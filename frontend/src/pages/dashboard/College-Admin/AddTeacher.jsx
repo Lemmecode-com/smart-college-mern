@@ -271,9 +271,26 @@ export default function AddTeacher() {
       isValid = false;
     }
 
-    if (formData.dateOfBirth && new Date(formData.dateOfBirth + "T00:00:00") > new Date()) {
-      errors.dateOfBirth = 'Date of Birth cannot be in the future';
-      isValid = false;
+    if (formData.dateOfBirth) {
+      const birthDate = new Date(formData.dateOfBirth + "T00:00:00");
+      if (isNaN(birthDate.getTime())) {
+        errors.dateOfBirth = 'Invalid Date of Birth';
+        isValid = false;
+      } else if (birthDate > new Date()) {
+        errors.dateOfBirth = 'Date of Birth cannot be in the future';
+        isValid = false;
+      } else {
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        if (age < 14 || age > 100) {
+          errors.dateOfBirth = 'Age must be between 14 and 100 years';
+          isValid = false;
+        }
+      }
     }
 
     if (formData.joiningDate && new Date(formData.joiningDate + "T00:00:00") > new Date()) {

@@ -45,14 +45,19 @@ exports.addSlot = async (req, res, next) => {
       throw new AppError("Start time must be before end time", 400, "INVALID_TIME");
     }
 
-    /* ================= SLOT TYPE VALIDATION ================= */
-    // Explicit validation so invalid values return a clear HTTP 400
-    // instead of relying on the Mongoose enum ValidationError.
-    if (slotType && !isValidSlotType(slotType)) {
-      throw new AppError("Invalid slot type.", 400, "INVALID_SLOT_TYPE");
-    }
+/* ================= SLOT TYPE VALIDATION ================= */
+  // Explicit validation so invalid values return a clear HTTP 400
+  // instead of relying on the Mongoose enum ValidationError.
+  if (slotType && !isValidSlotType(slotType)) {
+    throw new AppError("Invalid slot type.", 400, "INVALID_SLOT_TYPE");
+  }
 
-    /* ================= TIMETABLE ================= */
+  /* ================= AUTHORIZATION: HOD ONLY ================= */
+  if (req.user.role !== "HOD") {
+    throw new AppError("Only HOD can add timetable slots", 403, "HOD_ONLY");
+  }
+
+  /* ================= TIMETABLE ================= */
     const timetable = await Timetable.findOne({
       _id: timetable_id,
       college_id: collegeId,

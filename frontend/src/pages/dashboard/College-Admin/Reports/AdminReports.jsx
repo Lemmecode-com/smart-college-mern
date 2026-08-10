@@ -56,6 +56,7 @@ export default function AdminReports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [lastRefresh, setLastRefresh] = useState(null);
   const hasLoadedRef = useRef(false);
   const fetchIdRef = useRef(0);
 
@@ -80,6 +81,7 @@ export default function AdminReports() {
 
       setData(res.data);
       setRetryCount(0);
+      setLastRefresh(new Date());
 
       if (currentFetchId !== fetchIdRef.current) return;
 
@@ -110,6 +112,11 @@ export default function AdminReports() {
       }
     }
   }, []);
+
+  const handleRefresh = useCallback(() => {
+    hasLoadedRef.current = false;
+    fetchSummary();
+  }, [fetchSummary]);
 
   useEffect(() => {
     fetchSummary();
@@ -211,24 +218,24 @@ export default function AdminReports() {
 
   /* ================= CALCULATED METRICS (MEMOIZED) ================= */
   const approvalRate = useMemo(() => 
-    data?.approved && data?.total
-      ? Math.round((data.approved / data.total) * 100)
+    data?.approved && data?.totalApplications
+      ? Math.round((data.approved / data.totalApplications) * 100)
       : 0,
-    [data?.approved, data?.total]
+    [data?.approved, data?.totalApplications]
   );
 
   const pendingRate = useMemo(() =>
-    data?.pending && data?.total
-      ? Math.round((data.pending / data.total) * 100)
+    data?.pending && data?.totalApplications
+      ? Math.round((data.pending / data.totalApplications) * 100)
       : 0,
-    [data?.pending, data?.total]
+    [data?.pending, data?.totalApplications]
   );
 
   const rejectedRate = useMemo(() =>
-    data?.rejected && data?.total
-      ? Math.round((data.rejected / data.total) * 100)
+    data?.rejected && data?.totalApplications
+      ? Math.round((data.rejected / data.totalApplications) * 100)
       : 0,
-    [data?.rejected, data?.total]
+    [data?.rejected, data?.totalApplications]
   );
 
   /* ================= ERROR STATE ================= */
@@ -549,17 +556,17 @@ export default function AdminReports() {
       {/* FOOTER NOTE */}
       <div className="footer-note animate-fade-in">
         <FaInfoCircle className="note-icon" />
-        <span>
-          This report shows real-time admission status for your college. Data is
-          automatically updated. Last refreshed: {new Date().toLocaleString()}
-        </span>
-        <button
-          className="refresh-btn"
-          onClick={fetchSummary}
-          title="Refresh data"
-        >
-          <FaSyncAlt className="refresh-icon spin" />
-        </button>
+          <span>
+            This report shows real-time admission status for your college. Data is
+            automatically updated. Last refreshed: {lastRefresh ? lastRefresh.toLocaleString() : "Never"}
+          </span>
+          <button
+            className="refresh-btn"
+            onClick={handleRefresh}
+            title="Refresh data"
+          >
+            <FaSyncAlt className="refresh-icon spin" />
+          </button>
       </div>
 
       {/* STYLES */}

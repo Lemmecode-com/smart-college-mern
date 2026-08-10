@@ -195,7 +195,7 @@ const WeeklyTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/W
 const MyTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/MyTimetable"));
 const CreateException = lazy(() => import("./pages/dashboard/Teacher/Timetable/CreateException"));
 const ExceptionManagement = lazy(() => import("./pages/dashboard/Teacher/Timetable/ExceptionManagement"));
-const CreateTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/CreateTimetable"));
+const CreateTimetable = lazy(() => import("./pages/dashboard/HOD/Timetable/CreateTimetable"));
 
 /* ================= STUDENT (LAZY) ================= */
 const StudentDashboard = lazy(() => import("./pages/dashboard/Student/StudentDashboard"));
@@ -1624,7 +1624,7 @@ function AppContent({
               <Route
                 path="/timetable/add-slot"
                 element={
-                  <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                  <ProtectedRoute allowedRoles={["HOD"]}>
                     <AddTimetableSlot />
                   </ProtectedRoute>
                 }
@@ -1698,15 +1698,15 @@ function AppContent({
 
              {/* Sessions */}
 
-             {/* New Timetable created by teacher(hod) */}
+             {/* New Timetable created by HOD only */}
              <Route
-               path="/timetable/create-timetable"
-               element={
-                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
-                   <CreateTimetable />
-                 </ProtectedRoute>
-               }
-             />
+                path="/timetable/create-timetable"
+                element={
+                  <ProtectedRoute allowedRoles={["HOD"]}>
+                    <CreateTimetable />
+                  </ProtectedRoute>
+                }
+              />
 
             {/* ================= FALLBACK ================= */}
             <Route path="*" element={<Navigate to="/home" />} />

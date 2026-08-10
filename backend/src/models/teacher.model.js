@@ -6,6 +6,8 @@ const {
   mobileValidatorMessage,
   validateJoiningDate,
   joiningDateValidatorMessage,
+  validateAge,
+  ageValidatorMessage,
 } = require("../utils/validators");
 
 const teacherSchema = new mongoose.Schema(
@@ -76,6 +78,13 @@ const teacherSchema = new mongoose.Schema(
 
     dateOfBirth: {
       type: Date,
+      validate: {
+        validator: function(v) {
+          if (!v) return true;
+          return validateAge(v, 14, 100);
+        },
+        message: ageValidatorMessage(14, 100),
+      },
     },
 
     // Address Information
