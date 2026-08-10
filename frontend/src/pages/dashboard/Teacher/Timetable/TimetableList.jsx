@@ -13,7 +13,6 @@ import {
   FaCheckCircle,
   FaTrash,
   FaEye,
-  FaEdit,
   FaArrowLeft,
   FaSyncAlt,
   FaExclamationTriangle,
@@ -332,14 +331,9 @@ export default function TimetableList() {
        setArchivingId(null);
        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
      }
-   };
+    };
 
-    /* ================= EDIT TIMETABLE ================= */
-    const editTimetable = (id) => {
-     navigate(`/timetable/${id}/edit`);
-   };
-
-   const handleGoBack = () => {
+    const handleGoBack = () => {
      navigate(-1);
    };
 
@@ -821,33 +815,6 @@ export default function TimetableList() {
                               >
                                 <FaEye size={14} /> View
                               </motion.button>
-                              
-                              {/* EDIT BUTTON — hidden for archived */}
-                              {activeTab !== "archived" && (
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                  onClick={() => editTimetable(t._id)}
-                                  disabled={t.status === "PUBLISHED"}
-                                  title={t.status === "PUBLISHED" ? "Cannot edit published timetable" : "Edit Timetable"}
-                                  style={{
-                                    padding: '0.5rem 0.875rem',
-                                    borderRadius: '10px',
-                                    border: '1px solid #cbd5e1',
-                                    backgroundColor: t.status === "PUBLISHED" ? '#f1f5f9' : '#dbeafe',
-                                    color: t.status === "PUBLISHED" ? '#94a3b8' : BRAND_COLORS.primary.main,
-                                    fontSize: '0.875rem',
-                                    fontWeight: 600,
-                                    cursor: t.status === "PUBLISHED" ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.375rem',
-                                    transition: 'all 0.2s ease'
-                                  }}
-                                >
-                                  <FaEdit size={14} /> Edit
-                                </motion.button>
-                              )}
                               
                               {/* PUBLISH BUTTON (HOD ONLY) — hidden for archived */}
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
