@@ -491,29 +491,31 @@ export default function TimetableList() {
                   </p>
                 </div>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/timetable/create-timetable')}
-                className="erp-timetable-hero-cta"
-                style={{
-                  backgroundColor: 'white',
-                  color: BRAND_COLORS.primary.main,
-                  border: '2px solid white',
-                  padding: '0.875rem 1.75rem',
-                  borderRadius: '14px',
-                  fontSize: '1.1rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
-                }}
-              >
-                <FaPlus /> Create Timetable
-              </motion.button>
+              {isHOD && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/timetable/create-timetable')}
+                  className="erp-timetable-hero-cta"
+                  style={{
+                    backgroundColor: 'white',
+                    color: BRAND_COLORS.primary.main,
+                    border: '2px solid white',
+                    padding: '0.875rem 1.75rem',
+                    borderRadius: '14px',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  <FaPlus /> Create Timetable
+                </motion.button>
+              )}
             </div>
             
             {/* Stats Bar */}
@@ -962,8 +964,8 @@ export default function TimetableList() {
                   icon={<FaCalendarAlt />} 
                   title={activeTab === "active" ? "No Active Timetables" : "No Archived Timetables"} 
                   message={activeTab === "active" ? "Create your first academic timetable to get started" : "Archived timetables will appear here after being archived"} 
-                  actionText={activeTab === "active" ? "Create Timetable" : ""} 
-                  onAction={activeTab === "active" ? () => navigate('/timetable/create-timetable') : undefined} 
+                  actionText={activeTab === "active" && isHOD ? "Create Timetable" : ""} 
+                  onAction={activeTab === "active" && isHOD ? () => navigate('/timetable/create-timetable') : undefined} 
                 />
               )}
               
