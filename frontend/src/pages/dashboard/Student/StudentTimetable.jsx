@@ -1143,8 +1143,8 @@ export default function StudentTimetable() {
                 {displayDays.map((day, idx) => {
                   const dayDate = getDateForDay(day);
                   const dateStr = formatDateDDMMYYYY(dayDate);
-                  const todayStr = toLocalDateStr(new Date());
-                  const isToday = toLocalDateStr(dayDate) === todayStr;
+                  const todayDayCode = DAY_MAP[new Date().getDay()];
+                  const isToday = day === todayDayCode;
                   return (
                     <th
                       key={day}
