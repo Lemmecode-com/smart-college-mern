@@ -47,6 +47,7 @@ import {
   FaFileSignature, // VALID
   FaCertificate, // VALID: Standalone certificate icon
   FaWheelchair,
+  FaFileUpload,
 } from "react-icons/fa";
 
 // Authentication / session error codes that must NOT surface a toast.
@@ -241,6 +242,49 @@ export default function StudentProfile() {
     setRetryCount((prev) => prev + 1);
     await fetchProfile();
     setIsRetrying(false);
+  };
+
+  const handleDocumentUpload = async (docType, documentId, file) => {
+    const MAX_SIZE = 5 * 1024 * 1024;
+
+    if (file.size > MAX_SIZE) {
+      toast.error(`File size must be less than 5MB. Uploaded: ${(file.size / (1024 * 1024)).toFixed(1)}MB`, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaTimesCircle />,
+      });
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("ownerType", "Student");
+      formData.append("ownerId", profile?.student?._id);
+      formData.append("documentType", docType);
+      formData.append("file", file);
+
+      const endpoint = documentId ? `/documents/${documentId}` : "/documents/upload";
+      const method = documentId ? "put" : "post";
+
+      await api[method](endpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      toast.success("Document uploaded successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />,
+      });
+
+      await fetchProfile();
+    } catch (err) {
+      const message = err.response?.data?.message || "Failed to upload document";
+      toast.error(message, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaTimesCircle />,
+      });
+    }
   };
 
   // Handle go back action
@@ -865,6 +909,9 @@ export default function StudentProfile() {
                             filePath={uploadedDoc?.downloadUrl}
                             documentId={uploadedDoc?.documentId}
                             mandatory={doc.mandatory}
+                            onUpload={handleDocumentUpload}
+                            studentId={profile?.student?._id}
+                            docType={doc.type}
                           />
                         );
                       })
@@ -1475,6 +1522,9 @@ function DocumentCard({
    filePath,
    documentId,
    mandatory,
+   onUpload,
+   studentId,
+   docType,
  }) {
   const getDocumentColor = () => {
     switch (type) {
@@ -1578,6 +1628,19 @@ function DocumentCard({
     }
   };
 
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile || !onUpload) return;
+    onUpload(docType, documentId, selectedFile);
+    e.target.value = "";
+  };
+
+  const triggerUpload = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <div className="document-card">
       <div
@@ -1627,6 +1690,20 @@ function DocumentCard({
         >
           <FaDownload size={14} aria-hidden="true" /> Download
         </button>
+        <button
+          className="btn btn-sm btn-outline-success flex-grow-1 d-flex align-items-center justify-content-center gap-2"
+          onClick={triggerUpload}
+          aria-label={`Upload ${type}`}
+        >
+          <FaFileUpload size={14} aria-hidden="true" /> {hasFile ? "Replace" : "Upload"}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          style={{ display: "none" }}
+          onChange={handleFileSelect}
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        />
       </div>
     </div>
   );
