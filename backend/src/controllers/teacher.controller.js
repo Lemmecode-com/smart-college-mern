@@ -19,6 +19,7 @@ const {
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
   getTeacherReassignmentData: fetchReassignmentData,
 } = require("../services/teacherReassignment.service");
+const { validateAge, ageValidatorMessage } = require("../utils/validators");
 
 const generateTempPassword = (length = 10) => {
   const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
@@ -159,6 +160,11 @@ exports.createTeacher = async (req, res, next) => {
     /* ================= Joining Date Validation ================= */
     if (joiningDate && new Date(joiningDate) > new Date()) {
       throw new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR");
+    }
+
+    /* ================= Date of Birth Validation ================= */
+    if (dateOfBirth && !validateAge(dateOfBirth, 14, 100)) {
+      throw new AppError(ageValidatorMessage(14, 100), 400, "VALIDATION_ERROR");
     }
 
     /* ================= Generate Employee ID ================= */
