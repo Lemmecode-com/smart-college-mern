@@ -123,6 +123,10 @@ exports.uploadDocumentCtrl = async (req, res, next) => {
       return next(new AppError("ownerType, ownerId, and documentType are required", 400, "VALIDATION_ERROR"));
     }
 
+    if (ownerType === "Student" && req.file && req.file.size > 5 * 1024 * 1024) {
+      return next(new AppError("File size exceeds 5MB limit", 400, "FILE_TOO_LARGE"));
+    }
+
     if (req.collegeCode) {
       const docConfig = await DocumentConfig.findOne({
         collegeCode: req.collegeCode,
