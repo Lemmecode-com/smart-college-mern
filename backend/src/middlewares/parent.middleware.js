@@ -2,7 +2,8 @@ const ParentGuardian = require("../models/parentGuardian.model");
 const AppError = require("../utils/AppError");
 
 /**
- * Middleware to attach linked student IDs to request for Parent Guardian role
+ * Middleware to attach linked student IDs to request for Parent Guardian role.
+ * Allows parents with 0 linked children to reach the dashboard and see the empty state.
  */
 module.exports = async (req, res, next) => {
   try {
@@ -11,9 +12,12 @@ module.exports = async (req, res, next) => {
     });
 
     if (!parent || parent.length === 0) {
-      return next(
-        new AppError("Parent guardian profile not found", 404, "PARENT_NOT_FOUND")
-      );
+      // Parent exists but has no linked children yet — allow through so the
+      // frontend can display the appropriate empty state.
+      req.linkedStudentIds = [];
+      req.parentRelation = null;
+      req.parentGuardianRecords = [];
+      return next();
     }
 
     const hasAccess = parent.some(

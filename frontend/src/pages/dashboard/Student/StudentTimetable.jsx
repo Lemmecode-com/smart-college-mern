@@ -813,7 +813,10 @@ export default function StudentTimetable() {
             </div>
           </div>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              setToastShown({ success: false, error: false });
+              loadTimetable(true);
+            }}
             className="st-refresh-btn"
           >
             <FaSyncAlt className={loading ? "st-spin" : ""} />
@@ -871,7 +874,10 @@ export default function StudentTimetable() {
             <FaSun /> Today
           </button>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              setToastShown({ success: false, error: false });
+              loadTimetable(true);
+            }}
             className="st-nav-btn"
             title="Refresh"
           >
