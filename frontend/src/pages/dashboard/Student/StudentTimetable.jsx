@@ -564,14 +564,6 @@ export default function StudentTimetable() {
     const newStartStr = toLocalDateStr(start);
     const newEndStr = toLocalDateStr(end);
 
-    if (!isDateWithinActiveRange(newStartStr, newEndStr)) {
-      toast.info("No timetable available for this week.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-
     setDateRange({ startDate: newStartStr, endDate: newEndStr });
   };
 
@@ -583,14 +575,6 @@ export default function StudentTimetable() {
     const newStartStr = toLocalDateStr(start);
     const newEndStr = toLocalDateStr(end);
 
-    if (!isDateWithinActiveRange(newStartStr, newEndStr)) {
-      toast.info("No timetable available for this week.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-
     setDateRange({ startDate: newStartStr, endDate: newEndStr });
   };
 
@@ -601,10 +585,7 @@ export default function StudentTimetable() {
   };
 
   const goToToday = () => {
-    const todayStr = toLocalDateStr(new Date());
-    setDateRange({ startDate: todayStr, endDate: todayStr });
-    // Reset toast so success shows
-    setToastShown({ success: false, error: false });
+    goToCurrentWeek();
   };
 
   // Use a ref to track if timetable has been loaded
