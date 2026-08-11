@@ -1021,3 +1021,38 @@ exports.sendParentAccountCreatedEmail = async ({
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Send Email Changed Security Notification
+ */
+exports.sendEmailChangedNotification = async ({ to, userName, oldEmail, newEmail, collegeId }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: "Account Email Changed - Security Notification",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #1a4b6d;">Account Security Notification</h2>
+        <p>Dear ${userName || "User"},</p>
+        <p>The email address for your account has been successfully changed from <strong>${oldEmail}</strong> to <strong>${newEmail}</strong>.</p>
+        <p>If you did not request this change, please contact your administrator immediately.</p>
+        <p style="color: #6c757d; font-size: 12px;">This is an automated security notification. Please do not reply to this email.</p>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ Email changed notification sent", { recipient: to.split("@")[0] + "@***", messageId: info.messageId });
+    return { success: true };
+  } catch (error) {
+    logger.logError("❌ Failed to send email changed notification", { error: error.message, code: error.code, errno: error.errno, syscall: error.syscall });
+    return { success: false, error: error.message };
+  }
+};

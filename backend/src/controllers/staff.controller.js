@@ -17,7 +17,7 @@ const STAFF_ROLES = [
 ];
 const AuditService = require("../services/auditLog.service");
 const securityAuditService = require("../services/securityAudit.service");
-const { sendStaffCredentialsEmail } = require("../services/email.service");
+const { sendStaffCredentialsEmail, sendEmailChangedNotification } = require("../services/email.service");
 const { validateAge, ageValidatorMessage } = require("../utils/validators");
 
 /**
@@ -403,7 +403,10 @@ exports.getStaffProfile = async (req, res, next) => {
     const user = await User.findOne({
       _id: id,
       college_id: req.user.college_id,
-      role: { $in: STAFF_ROLES },
+      $or: [
+        { role: { $in: STAFF_ROLES } },
+        { _id: req.user.id, role: ROLE.COLLEGE_ADMIN },
+      ],
     });
 
     if (!user) {
@@ -550,11 +553,22 @@ exports.updateStaffProfile = async (req, res, next) => {
     const user = await User.findOne({
       _id: id,
       college_id: req.user.college_id,
-      role: { $in: STAFF_ROLES },
+      $or: [
+        { role: { $in: STAFF_ROLES } },
+        { _id: req.user.id, role: ROLE.COLLEGE_ADMIN },
+      ],
     });
 
     if (!user) {
       return next(new AppError("Staff member not found", 404, "STAFF_NOT_FOUND"));
+    }
+
+    // 🔐 Block direct email update through staff profile editing — use centralized secure email-change flow
+    if (updateData.email) {
+      return res.status(400).json({
+        message: "Email cannot be updated through Staff profile editing. Use the secure email-change flow.",
+        code: "EMAIL_CHANGE_NOT_ALLOWED",
+      });
     }
 
     // Separate user fields from profile fields
@@ -697,6 +711,42 @@ exports.updateStaffProfile = async (req, res, next) => {
               targetUserId: id,
               targetUserName: user.name,
               changedFields,
+            },
+          })
+          .catch((err) => console.error("Security audit log failed:", err.message));
+      }
+
+      if (userFields.email && userFields.email !== previousUserFields.email) {
+        sendEmailChangedNotification({
+          to: previousUserFields.email,
+          userName: user.name,
+          oldEmail: previousUserFields.email,
+          newEmail: userFields.email,
+          collegeId: user.college_id,
+        }).catch((err) => console.error("Email change notification failed:", err.message));
+
+        securityAuditService
+          .logEvent({
+            eventType: "EMAIL_CHANGED",
+            category: "DATA_MODIFICATION",
+            severity: "HIGH",
+            userId: id,
+            userEmail: userFields.email,
+            userRole: user.role,
+            collegeId: user.college_id,
+            ipAddress: req.ip,
+            userAgent: req.get("user-agent"),
+            endpoint: `/api/college/staff/${id}`,
+            method: "PUT",
+            statusCode: 200,
+            metadata: {
+              action: "ADMIN_EMAIL_CHANGE",
+              targetUserId: id,
+              targetUserName: user.name,
+              previousEmail: previousUserFields.email,
+              newEmail: userFields.email,
+              changedBy: req.user.id,
+              changeMethod: "ADMIN_MANAGED",
             },
           })
           .catch((err) => console.error("Security audit log failed:", err.message));
