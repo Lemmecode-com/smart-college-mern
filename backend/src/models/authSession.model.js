@@ -11,7 +11,6 @@ const authSessionSchema = new mongoose.Schema({
   user_id: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    index: true,
   },
   college_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -45,7 +44,6 @@ const authSessionSchema = new mongoose.Schema({
   expiresAt: {
     type: Date,
     required: true,
-    index: true,
   },
   invalidationReason: {
     type: String,

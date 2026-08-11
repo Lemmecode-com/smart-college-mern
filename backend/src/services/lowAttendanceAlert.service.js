@@ -81,6 +81,7 @@ exports.sendLowAttendanceAlerts = async () => {
       const courseMap = new Map();
       batch.forEach(student => {
         const courseId = student.course_id?._id || student.course_id;
+        if (!courseId) return;
         if (!courseMap.has(courseId.toString())) {
           courseMap.set(courseId.toString(), []);
         }
