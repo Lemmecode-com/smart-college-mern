@@ -16,6 +16,9 @@ const securityAuditSchema = new mongoose.Schema({
       'PASSWORD_CHANGE_SUCCESS',
       'PASSWORD_CHANGE_FAILED',
       'PASSWORD_CHANGE',
+      'EMAIL_CHANGE_REQUESTED',
+      'EMAIL_CHANGED',
+      'EMAIL_CHANGE_FAILED',
       'TOKEN_REFRESH',
       'TOKEN_BLACKLISTED',
       

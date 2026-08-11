@@ -182,9 +182,12 @@ exports.validateStudentUpdateByAdmin = [
 
   body('email')
     .optional()
-    .trim()
-    .isEmail().withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .custom((value) => {
+      if (value) {
+        throw new Error('Email cannot be updated here. Use the secure email-change flow.');
+      }
+      return true;
+    }),
 
   body('mobileNumber')
     .optional()
@@ -260,8 +263,12 @@ exports.validateStudentUpdateByAdmin = [
 
   // Explicitly block password update
   body('password')
+    .optional()
     .custom((value) => {
-      throw new Error('Password cannot be updated here. Use the password reset feature.');
+      if (value) {
+        throw new Error('Password cannot be updated here. Use the password reset feature.');
+      }
+      return true;
     }),
 
   // Handle validation errors

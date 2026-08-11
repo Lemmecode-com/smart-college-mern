@@ -4,8 +4,10 @@ const Student = require("../models/student.model");
 const AppError = require("../utils/AppError");
 const crypto = require("crypto");
 const { sendParentAccountCreatedEmail } = require("../services/email.service");
+const { sendEmailChangedNotification } = require("../services/email.service");
 const { buildFrontendUrl } = require("../utils/urlBuilder");
 const logger = require("../utils/logger");
+const securityAuditService = require("../services/securityAudit.service");
 
 const generateTempPassword = (length = 10) => {
   const bytes = crypto.randomBytes(length);
@@ -180,10 +182,58 @@ exports.updateParent = async (req, res, next) => {
       return next(new AppError("Parent/Guardian not found", 404, "PARENT_NOT_FOUND"));
     }
 
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({
+        email: email.trim(),
+        _id: { $ne: user._id },
+      });
+
+      if (existingUser) {
+        return next(new AppError("This email is already associated with another account", 409, "EMAIL_EXISTS"));
+      }
+    }
+
+    const previousEmail = user.email;
     if (name !== undefined) user.name = name.trim();
     if (email !== undefined) user.email = email.trim();
 
     await user.save();
+
+    if (email && email !== previousEmail) {
+      sendEmailChangedNotification({
+        to: previousEmail,
+        userName: user.name,
+        oldEmail: previousEmail,
+        newEmail: user.email,
+        collegeId: user.college_id,
+      }).catch((err) => console.error("Email change notification failed:", err.message));
+
+      securityAuditService
+        .logEvent({
+          eventType: "EMAIL_CHANGED",
+          category: "DATA_MODIFICATION",
+          severity: "HIGH",
+          userId: user._id,
+          userEmail: user.email,
+          userRole: user.role,
+          collegeId: user.college_id,
+          ipAddress: req.ip,
+          userAgent: req.get("user-agent"),
+          endpoint: `/api/college/parents/${id}`,
+          method: "PUT",
+          statusCode: 200,
+          metadata: {
+            action: "ADMIN_PARENT_EMAIL_CHANGE",
+            targetUserId: id,
+            targetUserName: user.name,
+            previousEmail,
+            newEmail: user.email,
+            changedBy: req.user.id,
+            changeMethod: "ADMIN_MANAGED",
+          },
+        })
+        .catch((err) => console.error("Security audit log failed:", err.message));
+    }
 
     res.json({
       success: true,
