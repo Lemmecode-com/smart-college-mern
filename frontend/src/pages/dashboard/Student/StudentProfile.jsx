@@ -414,20 +414,24 @@ export default function StudentProfile() {
                       <FaCheckCircle className="me-1" />
                       {student?.status || "PENDING"}
                     </span>
-                    <span className="badge bg-light text-dark">
-                      <FaClock className="me-1" />
-                      {student?.currentYear
-                        ? `Year ${student.currentYear}`
-                        : student?.currentSemester
-                          ? `Semester ${student.currentSemester}`
-                          : "N/A"}
-                    </span>
-                    <span className="badge bg-light text-dark">
-                      <FaGraduationCap className="me-1" />
-                      {student?.currentSemester
-                        ? `Semester ${student.currentSemester}`
-                        : "N/A"}
-                    </span>
+                    {student?.currentSemester && (
+                      <span className="badge bg-light text-dark" title="Current Semester">
+                        <FaGraduationCap className="me-1" />
+                        Semester {student.currentSemester}
+                      </span>
+                    )}
+                    {student?.currentSemester && (
+                      <span className="badge bg-light text-dark" title="Academic Year">
+                        <FaClock className="me-1" />
+                        Year {Math.ceil((student.currentSemester || 0) / 2)}
+                      </span>
+                    )}
+                    {!student?.currentSemester && student?.currentYear && (
+                      <span className="badge bg-light text-dark" title="Academic Year">
+                        <FaClock className="me-1" />
+                        Year {student.currentYear}
+                      </span>
+                    )}
                     <span className="badge bg-light text-dark">
                       <FaCalendarAlt className="me-1" />
                       Admitted: {student?.admissionYear || "N/A"}

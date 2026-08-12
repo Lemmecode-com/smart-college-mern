@@ -553,7 +553,8 @@ exports.verifyOTPAndResetPassword = async (req, res, next) => {
     const result = await verifyOTP(email, otp);
 
     if (!result.valid) {
-      throw new AppError(result.message, 400, "INVALID_OTP");
+      const errorCode = result.code === "OTP_MAX_ATTEMPTS" ? "OTP_MAX_ATTEMPTS" : "INVALID_OTP";
+      throw new AppError(result.message, 400, errorCode);
     }
 
     // Find user and update password
@@ -876,6 +877,32 @@ const parseExpiryToMilliseconds = (expiry) => {
       return value * 24 * 60 * 60 * 1000;
     default:
       return 24 * 60 * 60 * 1000;
+  }
+};
+
+/**
+ * Request Email Change
+ * POST /api/auth/change-email/request
+ */
+exports.requestEmailChange = async (req, res, next) => {
+  try {
+    const { requestEmailChange } = require("../services/emailChange.service");
+    await requestEmailChange(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Verify Email Change
+ * POST /api/auth/change-email/verify
+ */
+exports.verifyEmailChange = async (req, res, next) => {
+  try {
+    const { verifyEmailChange } = require("../services/emailChange.service");
+    await verifyEmailChange(req, res, next);
+  } catch (error) {
+    next(error);
   }
 };
 

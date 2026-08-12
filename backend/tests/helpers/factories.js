@@ -137,6 +137,8 @@ const createStudent = async (overrides = {}) => {
   return Student.create(payload);
 };
 
+const StaffProfile = require('../../src/models/staffProfile.model');
+
 /**
  * Create a ParentGuardian document with overrides merged.
  */
@@ -151,4 +153,32 @@ const createParentGuardian = async (overrides = {}) => {
   return ParentGuardian.create(payload);
 };
 
-module.exports = { createCollege, createUser, createTeacher, createStudent, createParentGuardian };
+/**
+ * Create a StaffProfile document with overrides merged.
+ */
+const createStaffProfile = async (overrides = {}) => {
+  const payload = {
+    user_id: null,
+    college_id: null,
+    designation: '',
+    mobileNumber: '',
+    employmentType: 'FULL_TIME',
+    joiningDate: null,
+    gender: '',
+    dateOfBirth: null,
+    bloodGroup: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    emergencyRelation: '',
+    qualification: '',
+    experienceYears: 0,
+    ...overrides,
+  };
+  return StaffProfile.create(payload);
+};
+
+module.exports = { createCollege, createUser, createTeacher, createStudent, createParentGuardian, createStaffProfile };

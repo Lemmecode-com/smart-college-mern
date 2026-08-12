@@ -24,7 +24,6 @@ const integrationHealthSchema = new mongoose.Schema(
         "QR_CODE",
       ],
       required: true,
-      unique: true,
     },
     status: {
       type: String,

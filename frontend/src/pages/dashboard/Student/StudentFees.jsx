@@ -509,16 +509,29 @@ export default function StudentFees() {
             subtitle="Remaining payment amount"
             delay="0.3s"
           />
-          <FeeSummaryCard
-            title="Payment Progress"
-            amount={`${progress}%`}
-            icon={<FaCreditCard aria-hidden="true" />}
-            color={
-              progress === 100 ? "success" : progress > 50 ? "warning" : "info"
-            }
-            subtitle={`${dashboard.totalPaid.toLocaleString()}/${dashboard.totalFee.toLocaleString()} paid`}
-            delay="0.4s"
-          />
+          <div
+            className="fee-summary-card scale-on-hover"
+            style={{ animationDelay: "0.4s" }}
+          >
+            <div
+              className={`fs-2 text-${
+                progress === 100 ? "success" : progress > 50 ? "warning" : "info"
+              }`}
+            >
+              <FaCreditCard aria-hidden="true" />
+            </div>
+            <h6 className="text-muted mb-1">Payment Progress</h6>
+            <div
+              className={`amount text-${
+                progress === 100 ? "success" : progress > 50 ? "warning" : "info"
+              }`}
+            >
+              {progress}%
+            </div>
+            <div className="subtitle text-muted mt-1">
+              {`${dashboard.totalPaid.toLocaleString("en-IN")}/${dashboard.totalFee.toLocaleString("en-IN")} paid`}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -681,7 +694,7 @@ export default function StudentFees() {
                         </td>
                         <td className="cell-due">
                           <div className="due-date">
-                            {new Date(installment.dueDate).toLocaleDateString()}
+                            {new Date(installment.dueDate).toLocaleDateString("en-IN")}
                           </div>
                           {isNearDue(installment.dueDate) &&
                             installment.status !== "PAID" && (

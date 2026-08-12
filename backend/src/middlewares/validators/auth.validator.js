@@ -67,3 +67,30 @@ exports.validateChangePassword = [
 
   handleValidationErrors,
 ];
+
+exports.validateEmailChangeRequest = [
+  body("email")
+    .trim()
+    .notEmpty().withMessage("New email is required")
+    .isEmail().withMessage("Invalid email format")
+    .normalizeEmail(),
+
+  body("currentPassword")
+    .notEmpty().withMessage("Current password is required"),
+
+  handleValidationErrors,
+];
+
+exports.validateEmailChangeVerify = [
+  body("email")
+    .trim()
+    .notEmpty().withMessage("New email is required")
+    .isEmail().withMessage("Invalid email format")
+    .normalizeEmail(),
+
+  body("otp")
+    .notEmpty().withMessage("OTP is required")
+    .isLength({ min: 6, max: 6 }).withMessage("OTP must be 6 digits"),
+
+  handleValidationErrors,
+];
