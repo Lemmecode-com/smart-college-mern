@@ -1056,3 +1056,194 @@ exports.sendEmailChangedNotification = async ({ to, userName, oldEmail, newEmail
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Send OTP Email for College Official Email Change
+ * Sent to the NEW college email address
+ */
+exports.sendCollegeEmailOTP = async ({ to, otp, collegeName, expiresIn, collegeId }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: `College Official Email Change Verification`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #1a4b6d;">🔐 College Email Change Verification</h2>
+
+        <p>Hello,</p>
+        <p>A request has been made to change the official institutional email address for <b>${collegeName || "your institution"}</b>.</p>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="margin: 0 0 10px 0; color: #6c757d;">Your One-Time Password (OTP) is:</p>
+          <h1 style="color: #1a4b6d; margin: 10px 0; font-size: 2.5rem; letter-spacing: 5px;">
+            ${otp}
+          </h1>
+          <p style="color: #dc3545; font-weight: 600;">
+            ⏰ Valid for ${expiresIn} minutes only
+          </p>
+        </div>
+
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <p style="margin: 0; font-size: 14px;">
+            <strong>⚠️ Important:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li>Do not share this OTP with anyone</li>
+              <li>This OTP is valid for ${expiresIn} minutes only</li>
+              <li>If you did not request this change, please ignore this email</li>
+            </ul>
+          </p>
+        </div>
+
+        <p style="color: #6c757d; font-size: 14px;">
+          For security reasons, never share your OTP with anyone, including NOVAA staff.
+        </p>
+
+        <br/>
+        <p>Regards,<br/><b>NOVAA Security Team</b></p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+/**
+ * Send College Email Change Security Notification
+ * Sent to the OLD college email address after a successful change
+ */
+exports.sendCollegeEmailChangedNotification = async ({ to, oldEmail, newEmail, collegeName, collegeId, changedAt }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: `Security Alert: Official Email Changed - ${collegeName || "Your Institution"}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #dc3545;">⚠️ Security Alert: Official Email Changed</h2>
+
+        <p>Dear Administrator,</p>
+        <p>This is a security notification for <b>${collegeName || "your institution"}</b>.</p>
+
+        <div style="background: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+          <h3 style="margin-top: 0; color: #721c24;">Email Change Details</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #f5c6cb;"><strong>Old Email:</strong></td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #f5c6cb; text-align: right;">${oldEmail}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0; border-bottom: 1px solid #f5c6cb;"><strong>New Email:</strong></td>
+              <td style="padding: 10px 0; border-bottom: 1px solid #f5c6cb; text-align: right;">${newEmail}</td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 0;"><strong>Changed At:</strong></td>
+              <td style="padding: 10px 0; text-align: right;">${changedAt || new Date().toISOString()}</td>
+            </tr>
+          </table>
+        </div>
+
+        <p>This change was initiated by a college administrator. If you did not request this change, please contact your administrator immediately.</p>
+
+        <p style="color: #6c757d; font-size: 14px;">
+          Note: This email address is your institution's official email. Your login identity has not been affected.
+        </p>
+
+        <br/>
+        <p>Regards,<br/><b>NOVAA Security Team</b></p>
+
+        <p style="color: #6c757d; font-size: 12px;">This is an automated security notification. Please do not reply to this email.</p>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ College email change notification sent to old email", {
+      recipient: to.split("@")[0] + "@***",
+      messageId: info.messageId,
+    });
+    return { success: true };
+  } catch (error) {
+    logger.logError("❌ Failed to send college email change notification", {
+      error: error.message,
+      code: error.code,
+    });
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send College Email Change Confirmation
+ * Sent to the NEW college email address after a successful change
+ */
+exports.sendCollegeEmailChangeConfirmation = async ({ to, newEmail, collegeName, collegeId, changedAt }) => {
+  if (!collegeId) {
+    throw new Error("collegeId is required for sending emails");
+  }
+
+  const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: `✅ Your Official Email Has Been Updated - ${collegeName || "Your Institution"}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #28a745;">✅ Email Change Confirmed</h2>
+
+        <p>Hello,</p>
+        <p>The official college email address for <b>${collegeName || "your institution"}</b> has been successfully updated.</p>
+
+        <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #4caf50;">
+          <h3 style="margin-top: 0; color: #1b5e20;">New Official Email</h3>
+          <p style="font-size: 1.2rem; color: #1b5e20; font-weight: 600; margin: 0;">
+            ${newEmail}
+          </p>
+        </div>
+
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="margin-top: 0; color: #1565c0;">What Happens Next?</h4>
+          <ul style="margin: 10px 0; padding-left: 20px; color: #495057;">
+            <li>This email address is now the institution's official email</li>
+            <li>All future communications will be sent to this address</li>
+            <li>Your administrator login identity remains unchanged</li>
+            <li>Review the security notification sent to the previous email</li>
+          </ul>
+        </div>
+
+        <p>If you have any questions, please contact your administrator.</p>
+
+        <br/>
+        <p>Regards,<br/><b>NOVAA Security Team</b></p>
+
+        <p style="color: #6c757d; font-size: 12px;">This is an automated message. Please do not reply to this email.</p>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    logger.logInfo("✅ College email change confirmation sent to new email", {
+      recipient: to.split("@")[0] + "@***",
+      messageId: info.messageId,
+    });
+    return { success: true };
+  } catch (error) {
+    logger.logError("❌ Failed to send college email change confirmation", {
+      error: error.message,
+      code: error.code,
+    });
+    return { success: false, error: error.message };
+  }
+};
