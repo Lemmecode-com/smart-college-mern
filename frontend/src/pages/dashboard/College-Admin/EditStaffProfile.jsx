@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import ChangeEmailModal from "../../../components/ChangeEmailModal";
 import { logger } from "../../../utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
 import "../College-Admin/Dashboard.css";
@@ -16,7 +17,8 @@ import {
   FaSyncAlt,
   FaExclamationTriangle,
   FaEye,
-  FaEyeSlash
+  FaEyeSlash,
+  FaShieldAlt
 } from "react-icons/fa";
 
 // Brand Color Palette - Matching Application Theme
@@ -170,6 +172,9 @@ export default function EditStaffProfile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  const isSelfEdit = currentUser && actualUserId === currentUser.id;
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
 
   // Fetch existing profile
   const fetchProfile = useCallback(async () => {
@@ -399,15 +404,49 @@ export default function EditStaffProfile() {
                           required
                           icon={<FaUserPlus />}
                         >
-                          <input
-                            type="email"
-                            name="email"
-                            placeholder="Enter email address"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="form-control"
-                            required
-                          />
+                          <div className="d-flex gap-2">
+                            <input
+                              type="email"
+                              name="email"
+                              placeholder="Enter email address"
+                              value={formData.email}
+                              onChange={isSelfEdit ? handleChange : undefined}
+                              className={`form-control${isSelfEdit ? "" : " bg-light"}`}
+                              required
+                              readOnly={!isSelfEdit}
+                              disabled={!isSelfEdit}
+                            />
+                            {isSelfEdit ? (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                type="button"
+                                onClick={() => setShowChangeEmailModal(true)}
+                                className="btn btn-outline-primary"
+                                title="Change Email"
+                              >
+                                <FaShieldAlt className="me-1" />
+                                Change Email
+                              </motion.button>
+                            ) : (
+                              <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                title="Email changes require secure verification"
+                                disabled
+                              >
+                                <FaShieldAlt className="me-1" />
+                                Secure Change
+                              </motion.button>
+                            )}
+                          </div>
+                          {!isSelfEdit && (
+                            <small className="text-muted mt-1 d-block">
+                              Email changes require secure verification and cannot be edited directly.
+                            </small>
+                          )}
                         </FormField>
                       </div>
                       <div className="col-12 col-md-4">
@@ -873,6 +912,16 @@ export default function EditStaffProfile() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* ================= CHANGE EMAIL MODAL ================= */}
+          {isSelfEdit && (
+            <ChangeEmailModal
+              show={showChangeEmailModal}
+              onClose={() => setShowChangeEmailModal(false)}
+              userRole={currentUser?.role}
+              currentEmail={formData.email}
+            />
+          )}
         </div>
       </motion.div>
     </AnimatePresence>

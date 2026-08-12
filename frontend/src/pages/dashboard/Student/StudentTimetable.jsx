@@ -564,14 +564,6 @@ export default function StudentTimetable() {
     const newStartStr = toLocalDateStr(start);
     const newEndStr = toLocalDateStr(end);
 
-    if (!isDateWithinActiveRange(newStartStr, newEndStr)) {
-      toast.info("No timetable available for this week.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-
     setDateRange({ startDate: newStartStr, endDate: newEndStr });
   };
 
@@ -583,14 +575,6 @@ export default function StudentTimetable() {
     const newStartStr = toLocalDateStr(start);
     const newEndStr = toLocalDateStr(end);
 
-    if (!isDateWithinActiveRange(newStartStr, newEndStr)) {
-      toast.info("No timetable available for this week.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-
     setDateRange({ startDate: newStartStr, endDate: newEndStr });
   };
 
@@ -601,10 +585,7 @@ export default function StudentTimetable() {
   };
 
   const goToToday = () => {
-    const todayStr = toLocalDateStr(new Date());
-    setDateRange({ startDate: todayStr, endDate: todayStr });
-    // Reset toast so success shows
-    setToastShown({ success: false, error: false });
+    goToCurrentWeek();
   };
 
   // Use a ref to track if timetable has been loaded
@@ -1168,8 +1149,8 @@ export default function StudentTimetable() {
                 {displayDays.map((day, idx) => {
                   const dayDate = getDateForDay(day);
                   const dateStr = formatDateDDMMYYYY(dayDate);
-                  const todayStr = toLocalDateStr(new Date());
-                  const isToday = toLocalDateStr(dayDate) === todayStr;
+                  const todayDayCode = DAY_MAP[new Date().getDay()];
+                  const isToday = day === todayDayCode;
                   return (
                     <th
                       key={day}
