@@ -152,16 +152,17 @@ export default function ChildAttendance() {
   if (loading) {
     return (
       <div className="parent-portal-wrapper">
-        <div className="parent-portal-container d-flex align-items-center justify-content-center" style={{ minHeight: '50vh' }}>
-          <div className="text-center">
+        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
+          <div className="parent-loading-state">
             <motion.div
               variants={spinVariants}
               animate="animate"
-              style={{ fontSize: '3rem', color: BRAND_COLORS.primary.main }}
+              className="parent-loading-spinner"
+              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
             >
               <FaSyncAlt />
             </motion.div>
-            <h4 className="mt-3" style={{ color: BRAND_COLORS.primary.main }}>Loading Attendance...</h4>
+            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Attendance...</h4>
           </div>
         </div>
       </div>
@@ -179,36 +180,30 @@ export default function ChildAttendance() {
             className="parent-dashboard-header"
           >
             <div className="parent-dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="parent-header-icon-wrapper"
-                    >
-                      <FaExclamationTriangle />
-                    </motion.div>
-                    <div className="parent-header-title-section">
-                      <h1 className="parent-header-title">Error Loading Attendance</h1>
-                      <p className="parent-header-subtitle">{error}</p>
-                    </div>
-                  </div>
+              <div className="parent-header-content">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="parent-header-icon-wrapper"
+                >
+                  <FaExclamationTriangle />
+                </motion.div>
+                <div className="parent-header-title-section">
+                  <h1 className="parent-header-title">Error Loading Attendance</h1>
+                  <p className="parent-header-subtitle">{error}</p>
                 </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="parent-btn-primary"
-                      onClick={() => navigate("/dashboard/parent")}
-                    >
-                      <FaArrowLeft className="me-2" />
-                      Back to Dashboard
-                    </motion.button>
-                  </div>
-                </div>
+              </div>
+              <div className="parent-header-meta">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="parent-btn-primary"
+                  onClick={() => navigate("/dashboard/parent")}
+                >
+                  <FaArrowLeft className="parent-me-2" />
+                  Back to Dashboard
+                </motion.button>
               </div>
             </div>
           </motion.div>
@@ -244,31 +239,25 @@ export default function ChildAttendance() {
           >
             {/* Hero Section */}
             <div className="parent-dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="parent-header-icon-wrapper"
-                    >
-                      <FaCalendarCheck />
-                    </motion.div>
-                    <div className="parent-header-title-section">
-                      <h1 className="parent-header-title">
-                        Attendance Records
-                      </h1>
-                      <p className="parent-header-subtitle">
-                        Track your child's attendance performance and history
-                      </p>
-                    </div>
-                  </div>
+              <div className="parent-header-content">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="parent-header-icon-wrapper"
+                >
+                  <FaCalendarCheck />
+                </motion.div>
+                <div className="parent-header-title-section">
+                  <h1 className="parent-header-title">
+                    Attendance Records
+                  </h1>
+                  <p className="parent-header-subtitle">
+                    Track your child's attendance performance and history
+                  </p>
                 </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                  </div>
-                </div>
+              </div>
+              <div className="parent-header-meta">
               </div>
             </div>
           </motion.div>
@@ -279,50 +268,40 @@ export default function ChildAttendance() {
             custom={0}
             initial="hidden"
             animate="visible"
-            className="dashboard-section"
+            className="parent-section-grid"
           >
-            <div className="row g-3 g-md-4">
-              <div className="col-12 col-sm-6 col-lg-3">
-                <StatCard
-                  icon={FaCalendarAlt}
-                  label="Total Sessions"
-                  value={attendanceStats.total}
-                  color={BRAND_COLORS.primary.main}
-                  gradient={BRAND_COLORS.primary.gradient}
-                  subtitle="Recorded sessions"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-3">
-                <StatCard
-                  icon={FaCheckCircle}
-                  label="Present"
-                  value={attendanceStats.present}
-                  color={BRAND_COLORS.success.main}
-                  gradient={BRAND_COLORS.success.gradient}
-                  subtitle="Days attended"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-3">
-                <StatCard
-                  icon={FaTimesCircle}
-                  label="Absent"
-                  value={attendanceStats.absent}
-                  color={BRAND_COLORS.danger.main}
-                  gradient={BRAND_COLORS.danger.gradient}
-                  subtitle="Days missed"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-3">
-                <StatCard
-                  icon={FaChartBar}
-                  label="Attendance Rate"
-                  value={`${attendanceStats.percentage}%`}
-                  color={attendanceStats.percentage >= 75 ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main}
-                  gradient={attendanceStats.percentage >= 75 ? BRAND_COLORS.success.gradient : BRAND_COLORS.warning.gradient}
-                  subtitle="Overall performance"
-                />
-              </div>
-            </div>
+            <StatCard
+              icon={FaCalendarAlt}
+              label="Total Sessions"
+              value={attendanceStats.total}
+              color={BRAND_COLORS.primary.main}
+              gradient={BRAND_COLORS.primary.gradient}
+              subtitle="Recorded sessions"
+            />
+            <StatCard
+              icon={FaCheckCircle}
+              label="Present"
+              value={attendanceStats.present}
+              color={BRAND_COLORS.success.main}
+              gradient={BRAND_COLORS.success.gradient}
+              subtitle="Days attended"
+            />
+            <StatCard
+              icon={FaTimesCircle}
+              label="Absent"
+              value={attendanceStats.absent}
+              color={BRAND_COLORS.danger.main}
+              gradient={BRAND_COLORS.danger.gradient}
+              subtitle="Days missed"
+            />
+            <StatCard
+              icon={FaChartBar}
+              label="Attendance Rate"
+              value={`${attendanceStats.percentage}%`}
+              color={attendanceStats.percentage >= 75 ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main}
+              gradient={attendanceStats.percentage >= 75 ? BRAND_COLORS.success.gradient : BRAND_COLORS.warning.gradient}
+              subtitle="Overall performance"
+            />
           </motion.div>
 
           {/* ================= ATTENDANCE RECORDS ================= */}
@@ -336,7 +315,7 @@ export default function ChildAttendance() {
               <div className="parent-chart-header">
                 <div>
                   <h3 className="parent-chart-title">Detailed Attendance History</h3>
-                  <p className="text-muted mb-0">Complete record of your child's attendance</p>
+                   <p className="parent-text-muted parent-mb-0">Complete record of your child's attendance</p>
                 </div>
               </div>
 
@@ -369,27 +348,27 @@ export default function ChildAttendance() {
                             animate="visible"
                           >
                             <td>
-                              <div className="d-flex flex-column">
-                                <span className="fw-semibold">
+                              <div className="parent-table-cell-stack">
+                                <span className="parent-fw-semibold">
                                   {new Date(rec.date).toLocaleDateString('en-US', {
                                     weekday: 'short',
                                     month: 'short',
                                     day: 'numeric'
                                   })}
                                 </span>
-                                <small className="text-muted">
+                                <small className="parent-text-muted">
                                   {new Date(rec.date).getFullYear()}
                                 </small>
                               </div>
                             </td>
                             <td>
-                              <div className="d-flex align-items-center gap-2">
+                              <div className="parent-table-cell-inline">
                                 <div className="parent-student-avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem' }}>
                                   {rec.subject?.charAt(0) || '?'}
                                 </div>
                                 <div>
-                                  <div className="fw-semibold">{rec.subject || "N/A"}</div>
-                                  <small className="text-muted">{rec.subjectCode || ""}</small>
+                                  <div className="parent-fw-semibold">{rec.subject || "N/A"}</div>
+                                  <small className="parent-text-muted">{rec.subjectCode || ""}</small>
                                 </div>
                               </div>
                             </td>
@@ -405,13 +384,13 @@ export default function ChildAttendance() {
                               </span>
                             </td>
                             <td>
-                              <span className="badge bg-light text-dark">
-                                <FaClock className="me-1" />
+                              <span className="parent-session-badge">
+                                <FaClock className="parent-me-1" />
                                 {rec.sessionType || "Regular"}
                               </span>
                             </td>
                             <td>
-                              <span className="fw-semibold">
+                              <span className="parent-fw-semibold">
                                 {rec.slotStartTime && rec.slotEndTime
                                   ? `${rec.slotStartTime} - ${rec.slotEndTime}`
                                   : rec.lectureNumber
