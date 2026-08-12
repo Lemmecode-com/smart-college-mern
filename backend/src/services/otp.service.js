@@ -91,15 +91,61 @@ exports.verifyOTP = async (email, otp) => {
   try {
     const record = await PasswordReset.findOne({
       email,
-      isUsed: false,
       expiresAt: { $gt: new Date() },
     });
 
-    const isMatch = await record.compareOTP(otp);
-    if (!record || !isMatch) {
+    if (!record) {
       return {
         valid: false,
         message: "Invalid OTP",
+        code: "INVALID_OTP",
+      };
+    }
+
+    if (record.isUsed) {
+      if (record.failedAttempts >= record.maxAttempts) {
+        return {
+          valid: false,
+          message: "OTP blocked",
+          code: "OTP_MAX_ATTEMPTS",
+        };
+      }
+      return {
+        valid: false,
+        message: "Invalid OTP",
+        code: "INVALID_OTP",
+      };
+    }
+
+    if (record.failedAttempts >= record.maxAttempts) {
+      return {
+        valid: false,
+        message: "OTP blocked",
+        code: "OTP_MAX_ATTEMPTS",
+      };
+    }
+
+    const isMatch = await record.compareOTP(otp);
+    if (!isMatch) {
+      const updated = await PasswordReset.findOneAndUpdate(
+        { _id: record._id },
+        { $inc: { failedAttempts: 1 } },
+        { new: true },
+      );
+
+      if (updated.failedAttempts >= updated.maxAttempts) {
+        await PasswordReset.findByIdAndUpdate(record._id, { isUsed: true });
+        return {
+          valid: false,
+          message: "OTP blocked",
+          code: "OTP_MAX_ATTEMPTS",
+        };
+      }
+
+      return {
+        valid: false,
+        message: "Invalid OTP",
+        code: "INVALID_OTP",
       };
     }
 

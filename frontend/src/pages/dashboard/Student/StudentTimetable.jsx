@@ -794,7 +794,10 @@ export default function StudentTimetable() {
             </div>
           </div>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              setToastShown({ success: false, error: false });
+              loadTimetable(true);
+            }}
             className="st-refresh-btn"
           >
             <FaSyncAlt className={loading ? "st-spin" : ""} />
@@ -852,7 +855,10 @@ export default function StudentTimetable() {
             <FaSun /> Today
           </button>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              setToastShown({ success: false, error: false });
+              loadTimetable(true);
+            }}
             className="st-nav-btn"
             title="Refresh"
           >
@@ -1210,18 +1216,39 @@ export default function StudentTimetable() {
                         }
 
                         // Regular slot logic for non-holiday days
-                        const slot = (weekly[day] || []).find(
+                        const matchingSlots = (weekly[day] || []).filter(
                           (s) =>
                             s.startTime === timeRow.start &&
                             s.endTime === timeRow.end,
                         );
+                        const hasConflict = matchingSlots.length > 1;
                         return (
                           <td
                             key={`${day}-${timeRow.key}`}
-                            className="st-slot-cell erp-timetable-cell"
+                            className={`st-slot-cell erp-timetable-cell ${hasConflict ? "st-slot-cell--conflict" : ""}`}
                           >
-                            {slot ? (
-                              <WeeklySlotCard slot={slot} />
+                            {matchingSlots.length > 0 ? (
+                              <div
+                                className={`st-slot-stack ${hasConflict ? "st-slot-stack--conflict" : ""}`}
+                              >
+                                {hasConflict && (
+                                  <div className="st-conflict-badge">
+                                    <FaExclamationTriangle />{" "}
+                                    {matchingSlots.length} classes overlap
+                                  </div>
+                                )}
+                                {matchingSlots.map((slot, idx) => (
+                                  <div
+                                    key={
+                                      slot._id ||
+                                      `${slot.subject_id?.name}-${idx}-${timeRow.key}`
+                                    }
+                                    className="st-slot-item"
+                                  >
+                                    <WeeklySlotCard slot={slot} />
+                                  </div>
+                                ))}
+                              </div>
                             ) : (
                               <div
                                 className="st-empty-cell"
@@ -2777,5 +2804,49 @@ const componentStyles = `
     .st-holiday-details {
       grid-template-columns: 1fr;
     }
+  }
+
+  /* ================= OVERLAPPING CLASS CONFLICT ================= */
+  .st-slot-cell--conflict {
+    background: #fef9e7 !important;
+    border-color: #fcd34d !important;
+    overflow: hidden;
+  }
+
+  .st-slot-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    height: 100%;
+  }
+
+  .st-slot-stack--conflict {
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    max-height: 140px;
+  }
+
+  .st-slot-item {
+    flex-shrink: 0;
+  }
+
+  .st-conflict-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #92400e;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .st-conflict-badge svg {
+    font-size: 0.75rem;
+    color: #f59e0b;
   }
 `;

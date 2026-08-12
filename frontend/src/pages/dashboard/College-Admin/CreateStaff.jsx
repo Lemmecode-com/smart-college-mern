@@ -176,14 +176,33 @@ export default function CreateStaff() {
         return "Emergency phone must be 10 digits";
       }
 
-      if (
-        formData.joiningDate &&
-        new Date(formData.joiningDate + "T00:00:00") > new Date()
-      ) {
-        return "Joining Date cannot be a future date";
-      }
+       if (
+         formData.joiningDate &&
+         new Date(formData.joiningDate + "T00:00:00") > new Date()
+       ) {
+         return "Joining Date cannot be a future date";
+       }
 
-      return null;
+       if (formData.dateOfBirth) {
+         const birthDate = new Date(formData.dateOfBirth + "T00:00:00");
+         if (isNaN(birthDate.getTime())) {
+           return "Invalid Date of Birth";
+         }
+         if (birthDate > new Date()) {
+           return "Date of Birth cannot be in the future";
+         }
+         const today = new Date();
+         let age = today.getFullYear() - birthDate.getFullYear();
+         const monthDiff = today.getMonth() - birthDate.getMonth();
+         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+           age--;
+         }
+         if (age < 14 || age > 100) {
+           return "Age must be between 14 and 100 years";
+         }
+       }
+
+       return null;
    };
 
   const handleChange = (e) => {

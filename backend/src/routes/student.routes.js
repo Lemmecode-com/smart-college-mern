@@ -17,8 +17,6 @@ const {
   registerStudent,
   getMyFullProfile,
   updateMyProfile,
-  requestEmailChange,
-  verifyEmailChange,
   updateStudentByAdmin,
   deleteStudent,
   getApprovedStudents,
@@ -120,26 +118,6 @@ router.put(
   studentMiddleware,
   validateStudentProfileUpdate,
   updateMyProfile,
-);
-
-// 🎓 STUDENT: Request email change (sends OTP)
-router.post(
-  "/request-email-change",
-  auth,
-  role("STUDENT"),
-  collegeMiddleware,
-  studentMiddleware,
-  requestEmailChange
-);
-
-// 🎓 STUDENT: Verify email change with OTP
-router.post(
-  "/verify-email-change",
-  auth,
-  role("STUDENT"),
-  collegeMiddleware,
-  studentMiddleware,
-  verifyEmailChange
 );
 
 // 🏛️ ADMIN: Update student

@@ -19,6 +19,7 @@ const {
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
   getTeacherReassignmentData: fetchReassignmentData,
 } = require("../services/teacherReassignment.service");
+const { validateAge, ageValidatorMessage } = require("../utils/validators");
 
 const generateTempPassword = (length = 10) => {
   const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
@@ -159,6 +160,11 @@ exports.createTeacher = async (req, res, next) => {
     /* ================= Joining Date Validation ================= */
     if (joiningDate && new Date(joiningDate) > new Date()) {
       throw new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR");
+    }
+
+    /* ================= Date of Birth Validation ================= */
+    if (dateOfBirth && !validateAge(dateOfBirth, 14, 100)) {
+      throw new AppError(ageValidatorMessage(14, 100), 400, "VALIDATION_ERROR");
     }
 
     /* ================= Generate Employee ID ================= */
@@ -387,10 +393,9 @@ exports.getMyProfile = async (req, res) => {
 ========================================================= */
 exports.updateMyProfile = async (req, res, next) => {
   try {
-    const { name, email, experienceYears, mobileNumber, joiningDate } =
+    const { name, experienceYears, mobileNumber, joiningDate } =
       req.body;
 
-    // Find teacher by user_id (logged-in user)
     const teacher = await Teacher.findOne({
       user_id: req.user.id,
       college_id: req.college_id,
@@ -401,17 +406,18 @@ exports.updateMyProfile = async (req, res, next) => {
       throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
     }
 
-    // Update teacher fields (ONLY editable fields)
     const updateFields = {
       ...(name && { name }),
-      ...(email && { email }),
       ...(experienceYears !== undefined && { experienceYears }),
       ...(mobileNumber !== undefined && { mobileNumber }),
       ...(joiningDate !== undefined && { joiningDate }),
     };
 
-    // ─── Joining date validation ───
-    if (updateFields.joiningDate && new Date(updateFields.joiningDate) > new Date()) {
+    if (updateFields.email) {
+      delete updateFields.email;
+    }
+
+    if (joiningDate && new Date(joiningDate) > new Date()) {
       throw new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR");
     }
 
@@ -426,11 +432,9 @@ exports.updateMyProfile = async (req, res, next) => {
       .populate("department_id", "name")
       .populate("courses", "name code");
 
-    // Update user name/email if provided
-    if (name || email) {
+    if (name) {
       await User.findByIdAndUpdate(req.user.id, {
-        ...(name && { name }),
-        ...(email && { email }),
+        name,
       });
     }
 
@@ -681,6 +685,16 @@ exports.updateTeacher = async (req, res, next) => {
     delete updateData.password;
     delete updateData.user_id;
     delete updateData.college_id;
+
+    // 🔐 Email cannot be updated via this endpoint
+    // Email changes must go through the centralized secure email-change flow
+    if (updateData.email) {
+      return res.status(400).json({
+        message:
+          "Email cannot be updated here. Use the secure email-change flow.",
+        code: "EMAIL_CHANGE_NOT_ALLOWED",
+      });
+    }
 
     // Parse JSON-encoded arrays from FormData
     if (typeof updateData.courses === 'string') {

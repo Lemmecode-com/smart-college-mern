@@ -171,14 +171,6 @@ const studentSchema = new mongoose.Schema(
     motherMobile: String,
     motherEmail: String,
 
-    // 📧 Email Change Verification
-    pendingEmail: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      default: null,
-    },
-
     // 📚 10th (SSC) Academic Details
     sscSchoolName: String,
     sscBoard: String,
