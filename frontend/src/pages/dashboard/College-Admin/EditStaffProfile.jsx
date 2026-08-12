@@ -256,9 +256,10 @@ export default function EditStaffProfile() {
     }
 
     try {
+      const { email, ...profileData } = formData;
       const payload = {
-        ...formData,
-        experienceYears: formData.experienceYears ? Number(formData.experienceYears) : 0,
+        ...profileData,
+        experienceYears: profileData.experienceYears ? Number(profileData.experienceYears) : 0,
       };
       logger.log("[EditStaffProfile] Submitting update for userId:", actualUserId, "payload:", payload);
       const res = await api.put(`/college/staff/profile/${actualUserId}`, payload);
