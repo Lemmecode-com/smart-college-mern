@@ -73,11 +73,23 @@ exports.updateMyCollegeProfile = async (req, res) => {
   try {
     const collegeId = req.college_id;
 
-    // Allowed fields (whitelist)
+    // ── BLOCK direct email update via profile editing ──
+    // College.email is the institution's official email and must only be
+    // changed through the secure email-change flow (OTP + password + audit).
+    // This guard executes BEFORE any database write.
+    if (req.body && req.body.email !== undefined) {
+      return res.status(400).json({
+        success: false,
+        code: "COLLEGE_EMAIL_CHANGE_NOT_ALLOWED",
+        message:
+          "Official college email cannot be changed through profile editing. Use the secure email-change flow.",
+      });
+    }
+
+    // Allowed fields (whitelist) — email deliberately excluded
     const allowedUpdates = [
       "name",
       "code",
-      "email",
       "contactNumber",
       "address",
       "establishedYear",
@@ -225,4 +237,25 @@ exports.getSetupStatus = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+const { requestCollegeEmailChange, verifyCollegeEmailChange } = require("../services/collegeEmailChange.service");
+
+/**
+ * POST /api/college/change-email/request
+ * Step 1 of secure College official email change flow.
+ * Verifies current password, checks email uniqueness, sends OTP to NEW email.
+ */
+exports.requestCollegeEmailChange = async (req, res, next) => {
+  await requestCollegeEmailChange(req, res, next);
+};
+
+/**
+ * POST /api/college/change-email/verify
+ * Step 2 of secure College official email change flow.
+ * Verifies OTP, atomically claims it, transactionally updates College.email,
+ * creates security audit, and sends notifications after commit.
+ */
+exports.verifyCollegeEmailChange = async (req, res, next) => {
+  await verifyCollegeEmailChange(req, res, next);
 };
