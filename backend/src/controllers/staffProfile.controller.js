@@ -117,6 +117,14 @@ exports.updateStaffProfile = async (req, res, next) => {
     delete updates.college_id;
     delete updates.createdAt;
 
+    if (updates.email) {
+      return next(new AppError(
+        "Email cannot be updated through profile editing. Use the secure email-change flow.",
+        400,
+        "EMAIL_CHANGE_NOT_ALLOWED"
+      ));
+    }
+
     // Find existing profile
     const profile = await StaffProfile.findOne({ user_id: new mongoose.Types.ObjectId(userId) });
     console.log(`[updateStaffProfile] Found profile:`, profile ? { id: profile._id, user_id: profile.user_id, college_id: profile.college_id } : null);
@@ -190,6 +198,14 @@ exports.updateMyStaffProfile = async (req, res, next) => {
     delete updates.user_id;
     delete updates.college_id;
     delete updates.createdAt;
+
+    if (updates.email) {
+      return next(new AppError(
+        "Email cannot be updated through profile editing. Use the secure email-change flow.",
+        400,
+        "EMAIL_CHANGE_NOT_ALLOWED"
+      ));
+    }
 
     const profile = await StaffProfile.findOne({ user_id: userId });
 
