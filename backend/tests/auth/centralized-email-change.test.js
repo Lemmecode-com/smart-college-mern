@@ -790,8 +790,8 @@ describe('Centralized Email Change Mechanism', () => {
     });
   });
 
-  describe('Admin Parent Email Change', () => {
-    it('should allow college admin to update parent email with audit', async () => {
+  describe('Admin Parent Email Change Bypass Prevention', () => {
+    it('should reject direct parent email update via PUT /api/college/parents/:id', async () => {
       const college = await createCollege({ code: 'EMAIL10', email: 'email10@test.com' });
       await createUser({
         email: 'admin.email10@test.com',
@@ -818,12 +818,83 @@ describe('Centralized Email Change Mechanism', () => {
       const res = await agent
         .put(`/api/college/parents/${parentUser._id}`)
         .send({ name: 'Updated Parent', email: 'newparent.email10@test.com' })
+        .expect(400);
+
+      expect(res.body.code).toBe('EMAIL_CHANGE_NOT_ALLOWED');
+
+      const user = await User.findById(parentUser._id);
+      expect(user.email).toBe('parent.email10@test.com');
+    });
+
+    it('should reject direct parent email update without other fields', async () => {
+      const college = await createCollege({ code: 'EMAIL10B', email: 'email10b@test.com' });
+      await createUser({
+        email: 'admin.email10b@test.com',
+        password: 'Test@123',
+        role: 'COLLEGE_ADMIN',
+        college_id: college._id,
+        isActive: true,
+      });
+
+      const parentUser = await createUser({
+        email: 'parent.email10b@test.com',
+        password: 'Test@123',
+        role: 'PARENT_GUARDIAN',
+        college_id: college._id,
+        isActive: true,
+      });
+
+      const agent = request.agent(app);
+      await agent
+        .post('/api/auth/login')
+        .send({ email: 'admin.email10b@test.com', password: 'Test@123' })
+        .expect(200);
+
+      const res = await agent
+        .put(`/api/college/parents/${parentUser._id}`)
+        .send({ email: 'newparent.email10b@test.com' })
+        .expect(400);
+
+      expect(res.body.code).toBe('EMAIL_CHANGE_NOT_ALLOWED');
+
+      const user = await User.findById(parentUser._id);
+      expect(user.email).toBe('parent.email10b@test.com');
+    });
+
+    it('should allow normal parent profile update without email', async () => {
+      const college = await createCollege({ code: 'EMAIL10C', email: 'email10c@test.com' });
+      await createUser({
+        email: 'admin.email10c@test.com',
+        password: 'Test@123',
+        role: 'COLLEGE_ADMIN',
+        college_id: college._id,
+        isActive: true,
+      });
+
+      const parentUser = await createUser({
+        email: 'parent.email10c@test.com',
+        password: 'Test@123',
+        role: 'PARENT_GUARDIAN',
+        college_id: college._id,
+        isActive: true,
+      });
+
+      const agent = request.agent(app);
+      await agent
+        .post('/api/auth/login')
+        .send({ email: 'admin.email10c@test.com', password: 'Test@123' })
+        .expect(200);
+
+      const res = await agent
+        .put(`/api/college/parents/${parentUser._id}`)
+        .send({ name: 'Updated Parent Name' })
         .expect(200);
 
       expect(res.body.success).toBe(true);
 
       const user = await User.findById(parentUser._id);
-      expect(user.email).toBe('newparent.email10@test.com');
+      expect(user.name).toBe('Updated Parent Name');
+      expect(user.email).toBe('parent.email10c@test.com');
     });
   });
 

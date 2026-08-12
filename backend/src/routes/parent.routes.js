@@ -35,4 +35,10 @@ router.post("/payments/confirm", parentController.confirmParentPayment);
 
 router.get("/payments/status", parentController.getParentPaymentStatus);
 
+// GET /api/parent/my-profile — logged-in parent's own profile
+router.get("/my-profile", parentController.getMyProfile);
+
+// PUT /api/parent/update-my-profile — logged-in parent updates own profile
+router.put("/update-my-profile", parentController.updateMyProfile);
+
 module.exports = router;
