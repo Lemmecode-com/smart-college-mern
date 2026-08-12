@@ -35,6 +35,10 @@ const {
   rejectStudent,
   bulkApproveStudents,
 } = require("../controllers/studentApproval.controller");
+const {
+  verifyStudentDocument,
+  rejectStudentDocument,
+} = require("../controllers/documentVerification.controller");
 const studentMiddleware = require("../middlewares/student.middleware");
 const { uploadStudentDocuments } = require("../middlewares/upload.middleware");
 const { ROLE } = require("../utils/constants");
@@ -84,6 +88,27 @@ router.put(
   collegeMiddleware,
   validateStudentId,
   rejectStudent,
+);
+
+// 🔐 COLLEGE ADMIN / ADMISSION_OFFICER / PRINCIPAL → DOCUMENT VERIFICATION
+// Verify (approve) a single uploaded Student document.
+router.put(
+  "/:studentId/documents/:documentId/verify",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  validateStudentId,
+  verifyStudentDocument,
+);
+
+// Reject a single uploaded Student document (requires a reason).
+router.put(
+  "/:studentId/documents/:documentId/reject",
+  auth,
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER, ROLE.PRINCIPAL),
+  collegeMiddleware,
+  validateStudentId,
+  rejectStudentDocument,
 );
 
 // 🔐 COLLEGE ADMIN / ADMISSION_OFFICER → BULK APPROVE STUDENTS
