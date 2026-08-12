@@ -28,6 +28,7 @@ import {
   FaChartLine,
   FaShieldAlt,
   FaInfoCircle,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 // Theme colors matching the design system
@@ -136,6 +137,7 @@ export default function AuditLogs() {
     startDate: "",
     endDate: "",
   });
+  const [dateError, setDateError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -151,6 +153,14 @@ export default function AuditLogs() {
     try {
       setLoading(true);
       setError(null);
+      setDateError("");
+
+      if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
+        setDateError("End date cannot be earlier than start date");
+        setLoading(false);
+        return;
+      }
+
       const params = new URLSearchParams({
         page: currentPage,
         limit: 20,
@@ -831,6 +841,13 @@ export default function AuditLogs() {
 
       {/* Filters */}
       {renderFilters()}
+
+      {dateError && (
+        <div className="alert alert-warning d-flex align-items-center mt-3" role="alert">
+          <FaExclamationTriangle className="me-2" size={18} />
+          <div>{dateError}</div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <AnimatePresence>
