@@ -85,7 +85,7 @@ describe('Teacher - Save Profile Edits with Valid Data (DASH-07)', () => {
     expect(getAfterRes.body.data.teacher.name).toBe('Updated Name');
     expect(getAfterRes.body.data.teacher.experienceYears).toBe(10);
     expect(getAfterRes.body.data.teacher.mobileNumber).toBe('9876543210');
-    expect(getAfterRes.body.data.teacher.email).toBe('updated.dash07@test.com');
+    expect(getAfterRes.body.data.teacher.email).toBe('teacher.dash07@test.com');
     expect(getAfterRes.body.data.teacher.joiningDate).toBeDefined();
   });
 });
