@@ -152,6 +152,8 @@ const ChildProfile = lazy(() => import("./pages/dashboard/Parent/ChildProfile"))
 const ChildAttendance = lazy(() => import("./pages/dashboard/Parent/ChildAttendance"));
 const ChildFees = lazy(() => import("./pages/dashboard/Parent/ChildFees"));
 const ParentPaymentSuccess = lazy(() => import("./pages/dashboard/Parent/ParentPaymentSuccess"));
+const ParentProfile = lazy(() => import("./pages/dashboard/Parent/ParentProfile"));
+const EditParentProfile = lazy(() => import("./pages/dashboard/Parent/EditParentProfile"));
 
 /* ================= PRINCIPAL (LAZY) ================= */
 const PrincipalDashboard = lazy(() => import("./pages/dashboard/Principal/PrincipalDashboard"));
@@ -823,6 +825,23 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
                   <ChildrenList />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/dashboard/parent/profile"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <ParentProfile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/parent/profile/edit"
+              element={
+                <ProtectedRoute allowedRoles={["PARENT_GUARDIAN"]}>
+                  <EditParentProfile />
                 </ProtectedRoute>
               }
             />

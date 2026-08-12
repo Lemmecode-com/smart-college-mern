@@ -7,7 +7,6 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
-import "../College-Admin/Dashboard.css";
 import "./ParentPortal.css";
 
 import {
@@ -202,9 +201,9 @@ export default function ChildrenList() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="dashboard-wrapper erp-page erp-viewport-min-100"
+        className="parent-portal-wrapper"
       >
-        <div className="dashboard-container-inner">
+        <div className="parent-portal-container">
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -218,30 +217,26 @@ export default function ChildrenList() {
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-            className="dashboard-header"
+            className="parent-dashboard-header"
           >
             {/* Hero Section */}
-            <div className="dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="header-icon-wrapper"
-                    >
-                      <FaUsers />
-                    </motion.div>
-                    <div className="header-title-section">
-                      <h1 className="header-title">
-                        My Children
-                      </h1>
-                      <p className="header-subtitle">
-                        View and manage all your children's academic information.
-                      </p>
-                    </div>
-                  </div>
+            <div className="parent-dashboard-header-hero">
+              <div className="parent-header-content">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="parent-header-icon-wrapper"
+                >
+                  <FaUsers />
+                </motion.div>
+                <div className="parent-header-title-section">
+                  <h1 className="parent-header-title">
+                    My Children
+                  </h1>
+                  <p className="parent-header-subtitle">
+                    View and manage all your children's academic information.
+                  </p>
                 </div>
               </div>
             </div>
@@ -255,8 +250,8 @@ export default function ChildrenList() {
             animate="visible"
             className="parent-search-container"
           >
-            <div className="row g-3">
-              <div className="col-12 col-md-6">
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 250px", minWidth: "220px" }}>
                 <div className="parent-search-input-group">
                   <FaSearch className="parent-search-icon" />
                   <input
@@ -268,7 +263,7 @@ export default function ChildrenList() {
                   />
                 </div>
               </div>
-              <div className="col-12 col-md-3">
+              <div style={{ flex: "0 1 200px", minWidth: "160px" }}>
                 <select
                   className="parent-filter-select"
                   value={statusFilter}
@@ -281,17 +276,18 @@ export default function ChildrenList() {
                   <option value="ENROLLED">Enrolled</option>
                 </select>
               </div>
-              <div className="col-12 col-md-3">
+              <div style={{ flex: "0 1 160px", minWidth: "130px" }}>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="parent-clear-filters-btn w-100"
+                  className="parent-clear-filters-btn"
+                  style={{ width: "100%" }}
                   onClick={() => {
                     setSearchTerm("");
                     setStatusFilter("ALL");
                   }}
                 >
-                  <FaFilter className="me-1" />
+                  <FaFilter className="parent-me-1" />
                   Clear Filters
                 </motion.button>
               </div>

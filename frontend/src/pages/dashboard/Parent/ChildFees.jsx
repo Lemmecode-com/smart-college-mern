@@ -132,16 +132,17 @@ export default function ChildFees() {
   if (loading) {
     return (
       <div className="parent-portal-wrapper">
-        <div className="parent-portal-container d-flex align-items-center justify-content-center" style={{ minHeight: '50vh' }}>
-          <div className="text-center">
+        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
+          <div className="parent-loading-state">
             <motion.div
               variants={spinVariants}
               animate="animate"
-              style={{ fontSize: '3rem', color: BRAND_COLORS.primary.main }}
+              className="parent-loading-spinner"
+              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
             >
               <FaSyncAlt />
             </motion.div>
-            <h4 className="mt-3" style={{ color: BRAND_COLORS.primary.main }}>Loading Fee Details...</h4>
+            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Fee Details...</h4>
           </div>
         </div>
       </div>
@@ -159,36 +160,30 @@ export default function ChildFees() {
             className="parent-dashboard-header"
           >
             <div className="parent-dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="parent-header-icon-wrapper"
-                    >
-                      <FaExclamationTriangle />
-                    </motion.div>
-                    <div className="parent-header-title-section">
-                      <h1 className="parent-header-title">Error Loading Fees</h1>
-                      <p className="parent-header-subtitle">{error}</p>
-                    </div>
-                  </div>
+              <div className="parent-header-content">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="parent-header-icon-wrapper"
+                >
+                  <FaExclamationTriangle />
+                </motion.div>
+                <div className="parent-header-title-section">
+                  <h1 className="parent-header-title">Error Loading Fees</h1>
+                  <p className="parent-header-subtitle">{error}</p>
                 </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="parent-btn-primary"
-                      onClick={() => navigate("/dashboard/parent")}
-                    >
-                      <FaArrowLeft className="me-2" />
-                      Back to Dashboard
-                    </motion.button>
-                  </div>
-                </div>
+              </div>
+              <div className="parent-header-meta">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="parent-btn-primary"
+                  onClick={() => navigate("/dashboard/parent")}
+                >
+                  <FaArrowLeft className="parent-me-2" />
+                  Back to Dashboard
+                </motion.button>
               </div>
             </div>
           </motion.div>
@@ -258,29 +253,25 @@ export default function ChildFees() {
           >
             {/* Hero Section */}
             <div className="parent-dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="parent-header-icon-wrapper"
-                    >
-                      <FaMoneyBillWave />
-                    </motion.div>
-                    <div className="parent-header-title-section">
-                      <h1 className="parent-header-title">
-                        Fee Details & Payments
-                      </h1>
-                      <p className="parent-header-subtitle">
-                        Track your child's fee payments and outstanding amounts
-                      </p>
-                    </div>
-                  </div>
+              <div className="parent-header-content">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="parent-header-icon-wrapper"
+                >
+                  <FaMoneyBillWave />
+                </motion.div>
+                <div className="parent-header-title-section">
+                  <h1 className="parent-header-title">
+                    Fee Details & Payments
+                  </h1>
+                  <p className="parent-header-subtitle">
+                    Track your child's fee payments and outstanding amounts
+                  </p>
                 </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                </div>
+              </div>
+              <div className="parent-header-meta">
               </div>
             </div>
           </motion.div>
@@ -291,48 +282,38 @@ export default function ChildFees() {
             custom={0}
             initial="hidden"
             animate="visible"
-            className="dashboard-section"
+            className="parent-section-grid"
           >
-            <div className="row g-3 g-md-4">
-              <div className="col-12 col-sm-6 col-lg-3">
-                <FeeStatCard
-                  icon={FaWallet}
-                  label="Total Fee"
-                  value={`₹${totalFee?.toLocaleString()}`}
-                  color={BRAND_COLORS.primary.main}
-                  gradient={BRAND_COLORS.primary.gradient}
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-3">
-                <FeeStatCard
-                  icon={FaCheckCircle}
-                  label="Paid Amount"
-                  value={`₹${paidAmount?.toLocaleString()}`}
-                  color={BRAND_COLORS.success.main}
-                  gradient={BRAND_COLORS.success.gradient}
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-3">
-                <FeeStatCard
-                  icon={FaClock}
-                  label="Pending Amount"
-                  value={`₹${pendingAmount?.toLocaleString()}`}
-                  color={BRAND_COLORS.warning.main}
-                  gradient={BRAND_COLORS.warning.gradient}
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-3">
-                <FeeStatCard
-                  icon={FaRupeeSign}
-                  label="Payment Progress"
-                  value={`${paymentProgress}%`}
-                  color={BRAND_COLORS.info.main}
-                  gradient={BRAND_COLORS.info.gradient}
-                  showProgress={true}
-                  progressValue={paymentProgress}
-                />
-              </div>
-            </div>
+            <FeeStatCard
+              icon={FaWallet}
+              label="Total Fee"
+              value={`₹${totalFee?.toLocaleString()}`}
+              color={BRAND_COLORS.primary.main}
+              gradient={BRAND_COLORS.primary.gradient}
+            />
+            <FeeStatCard
+              icon={FaCheckCircle}
+              label="Paid Amount"
+              value={`₹${paidAmount?.toLocaleString()}`}
+              color={BRAND_COLORS.success.main}
+              gradient={BRAND_COLORS.success.gradient}
+            />
+            <FeeStatCard
+              icon={FaClock}
+              label="Pending Amount"
+              value={`₹${pendingAmount?.toLocaleString()}`}
+              color={BRAND_COLORS.warning.main}
+              gradient={BRAND_COLORS.warning.gradient}
+            />
+            <FeeStatCard
+              icon={FaRupeeSign}
+              label="Payment Progress"
+              value={`${paymentProgress}%`}
+              color={BRAND_COLORS.info.main}
+              gradient={BRAND_COLORS.info.gradient}
+              showProgress={true}
+              progressValue={paymentProgress}
+            />
           </motion.div>
 
           {/* ================= PAYMENT PROGRESS ================= */}
@@ -351,22 +332,21 @@ export default function ChildFees() {
                   <h3 className="parent-fee-title">Payment Progress</h3>
                 </div>
               </div>
-              <div className="p-4">
-                <div className="mb-3">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <span className="fw-semibold">Payment Completion</span>
-                    <span className="fw-bold" style={{ color: BRAND_COLORS.primary.main }}>
+              <div className="parent-fee-card-body">
+                <div style={{ marginBottom: "1rem" }}>
+                  <div className="parent-fee-progress-header">
+                    <span className="parent-fee-progress-label">Payment Completion</span>
+                    <span className="parent-fee-progress-value" style={{ color: BRAND_COLORS.primary.main }}>
                       {paymentProgress}%
                     </span>
                   </div>
-                  <div className="progress" style={{ height: '12px', borderRadius: '6px' }}>
+                  <div className="parent-fee-progress-track">
                     <div
-                      className="progress-bar"
+                      className="parent-fee-progress-bar"
                       role="progressbar"
                       style={{
                         width: `${paymentProgress}%`,
                         background: BRAND_COLORS.primary.gradient,
-                        borderRadius: '6px'
                       }}
                       aria-valuenow={paymentProgress}
                       aria-valuemin={0}
@@ -374,18 +354,18 @@ export default function ChildFees() {
                     />
                   </div>
                 </div>
-                <div className="row text-center">
-                  <div className="col-4">
-                    <div className="fw-bold text-success">₹{paidAmount?.toLocaleString()}</div>
-                    <small className="text-muted">Paid</small>
+                <div className="parent-fee-progress-stats">
+                  <div className="parent-fee-progress-stat">
+                    <div className="parent-fee-progress-stat-value" style={{ color: "#28a745" }}>₹{paidAmount?.toLocaleString()}</div>
+                    <div className="parent-fee-progress-stat-label">Paid</div>
                   </div>
-                  <div className="col-4">
-                    <div className="fw-bold text-warning">₹{pendingAmount?.toLocaleString()}</div>
-                    <small className="text-muted">Pending</small>
+                  <div className="parent-fee-progress-stat">
+                    <div className="parent-fee-progress-stat-value" style={{ color: "#ffc107" }}>₹{pendingAmount?.toLocaleString()}</div>
+                    <div className="parent-fee-progress-stat-label">Pending</div>
                   </div>
-                  <div className="col-4">
-                    <div className="fw-bold text-primary">₹{totalFee?.toLocaleString()}</div>
-                    <small className="text-muted">Total</small>
+                  <div className="parent-fee-progress-stat">
+                    <div className="parent-fee-progress-stat-value" style={{ color: "#1a4b6d" }}>₹{totalFee?.toLocaleString()}</div>
+                    <div className="parent-fee-progress-stat-label">Total</div>
                   </div>
                 </div>
               </div>
@@ -409,7 +389,7 @@ export default function ChildFees() {
                   <h3 className="parent-fee-title">Installment History</h3>
                 </div>
               </div>
-              <div className="p-4">
+              <div className="parent-fee-card-body">
                 {installments?.length === 0 ? (
                   <EmptyState
                     icon={<FaCreditCard style={{ color: BRAND_COLORS.secondary.main }} />}
@@ -418,60 +398,58 @@ export default function ChildFees() {
                     success={false}
                   />
                 ) : (
-                  <div className="space-y-3">
+                  <div className="parent-installment-list">
                     {installments?.map((installment, idx) => (
                       <motion.div
                         key={idx}
-                        className="p-3 bg-light rounded-lg border"
+                        className="parent-installment-item"
                         variants={fadeInVariants}
                         custom={idx}
                         initial="hidden"
                         animate="visible"
                       >
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                           <div>
-                             <h6 className="mb-1 fw-bold">{installment.name}</h6>
-                             <small className="text-muted">
-                               Due: {new Date(installment.dueDate).toLocaleDateString('en-US', {
-                                 year: 'numeric',
-                                 month: 'long',
-                                 day: 'numeric'
-                               })}
-                             </small>
-                           </div>
-                           <span className={`parent-status-badge ${
-                             installment.status === 'PAID' ? 'parent-status-approved' :
-                             installment.status === 'PENDING' ? 'parent-status-pending' :
-                             'parent-status-secondary'
-                           }`}>
-                             {installment.status}
-                           </span>
-                         </div>
-                         <div className="d-flex justify-content-between align-items-center">
-                           <div>
-                             <div className="fw-semibold text-primary">
-                               ₹{installment.amount?.toLocaleString()}
-                             </div>
-                             {installment.paidAt && (
-                               <small className="text-success">
-                                 Paid on {new Date(installment.paidAt).toLocaleDateString()}
-                               </small>
-                             )}
-                           </div>
-                           {installment.status === 'PENDING' && (
-                             <button
-                               className="btn btn-primary btn-sm"
-                               onClick={() => handlePayInstallment(installment.name)}
-                             >
-                               Pay Now
-                             </button>
-                           )}
-                           {installment.mode && (
-                             <small className="text-muted">
-                               Mode: {installment.mode}
-                             </small>
-                           )}
-                         </div>
+                        <div className="parent-installment-header">
+                          <div>
+                            <div className="parent-installment-title">{installment.name}</div>
+                            <div className="parent-installment-due">
+                              Due: {new Date(installment.dueDate).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </div>
+                          </div>
+                          <span className={`parent-status-badge ${
+                            installment.status === 'PAID' ? 'parent-status-approved' :
+                            installment.status === 'PENDING' ? 'parent-status-pending' :
+                            'parent-status-secondary'
+                          }`}>
+                            {installment.status}
+                          </span>
+                        </div>
+                        <div className="parent-installment-body">
+                          <div className="parent-installment-amount">
+                            <div className="parent-installment-amount-value">₹{installment.amount?.toLocaleString()}</div>
+                            {installment.paidAt && (
+                              <div className="parent-installment-meta">
+                                Paid on {new Date(installment.paidAt).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
+                          {installment.status === 'PENDING' && (
+                            <button
+                              className="parent-installment-pay-btn"
+                              onClick={() => handlePayInstallment(installment.name)}
+                            >
+                              Pay Now
+                            </button>
+                          )}
+                          {installment.mode && (
+                            <div className="parent-installment-meta">
+                              Mode: {installment.mode}
+                            </div>
+                          )}
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -512,10 +490,10 @@ function FeeStatCard({ icon: Icon, label, value, color, gradient, showProgress =
         <div className="parent-card-label">{label}</div>
         <div className="parent-card-value">{value}</div>
         {showProgress && (
-          <div className="mt-2">
-            <div className="progress" style={{ height: '4px' }}>
+          <div className="parent-mt-2">
+            <div className="parent-fee-progress-track" style={{ height: '4px' }}>
               <div
-                className="progress-bar"
+                className="parent-fee-progress-bar"
                 style={{
                   width: `${progressValue}%`,
                   background: gradient,
