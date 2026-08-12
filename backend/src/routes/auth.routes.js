@@ -1,8 +1,8 @@
 const router = require("express").Router();
 const auth = require("../middlewares/auth.middleware");
-const { login, logout, refreshToken, requestPasswordReset, verifyOTPAndResetPassword, changePassword } = require("../controllers/auth.controller");
+const { login, logout, refreshToken, requestPasswordReset, verifyOTPAndResetPassword, changePassword, requestEmailChange, verifyEmailChange } = require("../controllers/auth.controller");
 const { authLimiter, passwordResetLimiter, sessionLimiter } = require("../middlewares/rateLimit.middleware");
-const { validateLogin, validatePasswordReset, validateVerifyOTP, validateChangePassword } = require("../middlewares/validators/auth.validator");
+const { validateLogin, validatePasswordReset, validateVerifyOTP, validateChangePassword, validateEmailChangeRequest, validateEmailChangeVerify } = require("../middlewares/validators/auth.validator");
 
 // Login - strict rate limit to prevent brute force
 router.post("/login", authLimiter, validateLogin, login);
@@ -80,5 +80,9 @@ router.post("/verify-otp-reset", authLimiter, validateVerifyOTP, verifyOTPAndRes
 
 // 🔐 Change Password (Works for both authenticated and first-login users)
 router.post("/change-password", authLimiter, validateChangePassword, changePassword);
+
+// 🔐 Centralized Email Change
+router.post("/change-email/request", auth, validateEmailChangeRequest, requestEmailChange);
+router.post("/change-email/verify", auth, validateEmailChangeVerify, verifyEmailChange);
 
 module.exports = router;
