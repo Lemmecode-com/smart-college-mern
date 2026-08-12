@@ -1,6 +1,7 @@
 const Document = require("../models/document.model");
 const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
+const DocumentConfig = require("../models/documentConfig.model");
 const { getStorageProvider } = require("./storage");
 const AppError = require("../utils/AppError");
 const crypto = require("crypto");
@@ -250,7 +251,99 @@ class DocumentService {
       return ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL"].includes(user.role);
     }
     
-    return false;
+     return false;
+  }
+
+  /**
+   * Document Verification (admissions workflow).
+   * Records that a College Admin has verified a Student document.
+   * Only transitions PENDING -> VERIFIED (or REJECTED -> VERIFIED).
+   */
+  static async verifyDocument(documentId, { verifiedBy }) {
+    const document = await Document.findOne({
+      documentId,
+      ownerType: "Student",
+      status: "ACTIVE",
+    });
+
+    if (!document) {
+      throw new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND");
+    }
+
+    document.verificationStatus = "VERIFIED";
+    document.verifiedAt = new Date();
+    document.verifiedBy = verifiedBy;
+    document.rejectedAt = undefined;
+    document.rejectionReason = undefined;
+
+    await document.save();
+    return document;
+  }
+
+  /**
+   * Document Rejection (admissions workflow).
+   * Records that a College Admin rejected a Student document, with a reason.
+   */
+  static async rejectDocument(documentId, { rejectedBy, reason }) {
+    const document = await Document.findOne({
+      documentId,
+      ownerType: "Student",
+      status: "ACTIVE",
+    });
+
+    if (!document) {
+      throw new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND");
+    }
+
+    document.verificationStatus = "REJECTED";
+    document.rejectedAt = new Date();
+    document.rejectedBy = rejectedBy;
+    document.rejectionReason = reason;
+    document.verifiedAt = undefined;
+    document.verifiedBy = undefined;
+
+    await document.save();
+    return document;
+  }
+
+  /**
+   * Returns the list of mandatory + enabled document types for a college,
+   * using the existing DocumentConfig (no hard-coded document types).
+   */
+  static async getRequiredDocumentTypes(collegeId) {
+    const config = await DocumentConfig.findOne({
+      college_id: collegeId,
+      isActive: true,
+    }).lean();
+
+    if (!config || !Array.isArray(config.documents)) return [];
+
+    return config.documents
+      .filter((doc) => doc.enabled && doc.mandatory)
+      .map((doc) => doc.type);
+  }
+
+  /**
+   * Approval-gating helper.
+   * Returns the mandatory document types for a college that are NOT verified
+   * for the given student (missing upload or verificationStatus !== VERIFIED).
+   * An empty array means the student is clear to approve.
+   */
+  static async getUnverifiedRequiredDocumentTypes(collegeId, studentId) {
+    const requiredTypes = await this.getRequiredDocumentTypes(collegeId);
+
+    if (requiredTypes.length === 0) return [];
+
+    const verifiedDocs = await Document.find({
+      ownerType: "Student",
+      ownerId: studentId,
+      status: "ACTIVE",
+      verificationStatus: "VERIFIED",
+    }).select("documentType").lean();
+
+    const verifiedTypes = new Set(verifiedDocs.map((d) => d.documentType));
+
+    return requiredTypes.filter((type) => !verifiedTypes.has(type));
   }
 }
 
