@@ -54,7 +54,6 @@ const courseSchema = new mongoose.Schema(
     // Auto-calculated from durationSemesters — never set directly by clients
     durationYears: {
       type: Number,
-      required: [true, "Duration in years is required"],
       min: [1, "Duration must be at least 1 year"],
       max: [4, "Duration cannot exceed 4 years"]
     },
