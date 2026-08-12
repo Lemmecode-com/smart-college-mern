@@ -14,6 +14,7 @@ const { buildFrontendUrl } = require("../utils/urlBuilder");
 const auditLogService = require("../services/auditLog.service");
 const securityAuditService = require("../services/securityAudit.service");
 const parentCreationService = require("../services/parentCreation.service");
+const DocumentService = require("../services/document.service");
 
 exports.approveStudent = async (req, res, next) => {
   try {
@@ -106,11 +107,25 @@ exports.approveStudent = async (req, res, next) => {
       status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
     });
 
-    if (approvedCount >= course.maxStudents) {
+     if (approvedCount >= course.maxStudents) {
+       throw new AppError(
+         "Admission capacity reached for this course",
+         409,
+         "CAPACITY_REACHED",
+       );
+     }
+
+    // ✅ Document Verification Gate: a PENDING student may only be approved once
+    // all mandatory documents configured for the college are VERIFIED.
+    const unverifiedRequiredDocs = await DocumentService.getUnverifiedRequiredDocumentTypes(
+      student.college_id,
+      student._id,
+    );
+    if (unverifiedRequiredDocs.length > 0) {
       throw new AppError(
-        "Admission capacity reached for this course",
-        409,
-        "CAPACITY_REACHED",
+        "Required documents are not verified. Please verify all required documents before approving.",
+        400,
+        "DOCUMENTS_NOT_VERIFIED",
       );
     }
 
@@ -374,7 +389,21 @@ exports.bulkApproveStudents = async (req, res, next) => {
           continue;
         }
 
-        // ── 5. Prevent duplicate fee record ──
+        // ── 5. Document Verification Gate ──
+        const unverified = await DocumentService.getUnverifiedRequiredDocumentTypes(
+          student.college_id,
+          student._id,
+        );
+        if (unverified.length > 0) {
+          results.failed.push({
+            studentId,
+            fullName: student.fullName,
+            reason: `Required documents not verified: ${unverified.join(", ")}`,
+          });
+          continue;
+        }
+
+        // ── 6. Prevent duplicate fee record ──
         const existingFee = await StudentFee.findOne({
           student_id: student._id,
         });

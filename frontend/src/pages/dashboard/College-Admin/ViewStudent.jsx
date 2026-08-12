@@ -95,6 +95,18 @@ const STATUS_CONFIG = {
   [STUDENT_STATUS.PENDING]: { label: 'Pending', color: COLORS.warning, bg: 'rgba(245, 158, 11, 0.1)', icon: FaClock }
 };
 
+const DOCUMENT_VERIFICATION_STATUS = {
+  PENDING: "PENDING",
+  VERIFIED: "VERIFIED",
+  REJECTED: "REJECTED",
+};
+
+const DOC_VERIFICATION_CONFIG = {
+  [DOCUMENT_VERIFICATION_STATUS.VERIFIED]: { label: "Verified", color: COLORS.success, bg: "rgba(16, 185, 129, 0.1)", icon: FaCheckCircle },
+  [DOCUMENT_VERIFICATION_STATUS.REJECTED]: { label: "Rejected", color: COLORS.danger, bg: "rgba(239, 68, 68, 0.1)", icon: FaTimesCircle },
+  [DOCUMENT_VERIFICATION_STATUS.PENDING]: { label: "Pending", color: COLORS.warning, bg: "rgba(245, 158, 11, 0.1)", icon: FaClock },
+};
+
 const ERROR_MESSAGES = {
   NETWORK: 'Unable to connect to server. Please check your internet connection.',
   NOT_FOUND: 'Student not found. The student ID may be invalid or the record was deleted.',
@@ -216,9 +228,30 @@ function InfoRow({ icon, label, value, iconColor = COLORS.primary.accent }) {
 }
 
 // Document Card Component
-function DocumentCard({ label, path, icon, onView, documentId, mandatory, isUploaded }) {
+function DocumentCard({
+  label,
+  path,
+  icon,
+  onView,
+  documentId,
+  mandatory,
+  isUploaded,
+  verificationStatus = "PENDING",
+  rejectionReason,
+  canAct = false,
+  onVerify,
+  onReject,
+  isVerifying = false,
+  isRejecting = false,
+}) {
   const fileName = getFileName(path);
-  
+
+  const verifyConfig =
+    DOC_VERIFICATION_CONFIG[verificationStatus] || DOC_VERIFICATION_CONFIG.PENDING;
+  const VerifyIcon = verifyConfig.icon;
+
+  const canVerifyNow = canAct && isUploaded && verificationStatus !== "VERIFIED";
+
   return (
     <div className="document-card-enterprise">
       <div className="document-card-header">
@@ -236,8 +269,9 @@ function DocumentCard({ label, path, icon, onView, documentId, mandatory, isUplo
         <div className="document-filename" title={fileName}>
           {isUploaded ? (fileName || 'Document') : 'Not Uploaded'}
         </div>
+
         {isUploaded && (
-          <button 
+          <button
             className="btn-view-document"
             onClick={() => onView(path, documentId)}
             aria-label={`View ${label}`}
@@ -245,6 +279,49 @@ function DocumentCard({ label, path, icon, onView, documentId, mandatory, isUplo
             <FaEye className="me-1" />
             View
           </button>
+        )}
+
+        {/* 📋 Verification status badge */}
+        {isUploaded && (
+          <span
+            className="doc-verification-badge"
+            title={
+              verificationStatus === "REJECTED" && rejectionReason
+                ? `Rejected: ${rejectionReason}`
+                : verifyConfig.label
+            }
+            style={{
+              backgroundColor: verifyConfig.bg,
+              color: verifyConfig.color,
+            }}
+          >
+            <VerifyIcon className="doc-verification-icon" />
+            {verifyConfig.label}
+          </span>
+        )}
+
+        {/* ✨ Per-document Verify / Reject actions (College Admin only, PENDING student) */}
+        {canVerifyNow && (
+          <div className="doc-verification-actions">
+            <button
+              className="btn-verify-document"
+              onClick={() => onVerify(documentId)}
+              disabled={isVerifying}
+              aria-label={`Verify ${label}`}
+            >
+              <FaCheckCircle className="me-1" />
+              {isVerifying ? "Verifying..." : "Verify"}
+            </button>
+            <button
+              className="btn-reject-document"
+              onClick={() => onReject(documentId)}
+              disabled={isRejecting === documentId}
+              aria-label={`Reject ${label}`}
+            >
+              <FaTimesCircle className="me-1" />
+              {isRejecting === documentId ? "Rejecting..." : "Reject"}
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -322,6 +399,12 @@ export default function ViewStudent() {
   const [showParentDetailsModal, setShowParentDetailsModal] = useState(false);
   const [documentConfig, setDocumentConfig] = useState([]);
 
+  // 📋 Document verification (admissions workflow)
+  const [verifyingDocId, setVerifyingDocId] = useState(null);
+  const [rejectingDocId, setRejectingDocId] = useState(null);
+  const [showDocRejectModal, setShowDocRejectModal] = useState(false);
+  const [docRejectReason, setDocRejectReason] = useState("");
+
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
     "TOKEN_EXPIRED",
@@ -334,9 +417,12 @@ export default function ViewStudent() {
   ]);
 
   /* ================= SECURITY & VALIDATION ================= */
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== USER_ROLES.COLLEGE_ADMIN && user.role !== USER_ROLES.ADMISSION_OFFICER && user.role !== USER_ROLES.PRINCIPAL)
-    return <Navigate to="/dashboard" replace />;
+  const shouldRedirectLogin = !user;
+  const shouldRedirectRole =
+    !!user &&
+    user.role !== USER_ROLES.COLLEGE_ADMIN &&
+    user.role !== USER_ROLES.ADMISSION_OFFICER &&
+    user.role !== USER_ROLES.PRINCIPAL;
 
   const isIdValid = useMemo(() => {
     if (!studentId) return false;
@@ -431,12 +517,18 @@ export default function ViewStudent() {
       const uploadedDoc = student.documents?.[doc.type];
       docs.push({
         label: doc.label,
-        path: uploadedDoc?.downloadUrl || null,
         icon: <FaFileAlt />,
-        documentId: uploadedDoc?.documentId || null,
         type: doc.type,
-        isUploaded: !!uploadedDoc,
         mandatory: doc.mandatory || false,
+        isUploaded: !!uploadedDoc,
+        documentId: uploadedDoc?.documentId || null,
+        path: uploadedDoc?.downloadUrl || null,
+        verificationStatus: uploadedDoc?.verificationStatus || "PENDING",
+        verifiedAt: uploadedDoc?.verifiedAt || null,
+        verifiedBy: uploadedDoc?.verifiedBy?.name || null,
+        rejectedAt: uploadedDoc?.rejectedAt || null,
+        rejectedBy: uploadedDoc?.rejectedBy?.name || null,
+        rejectionReason: uploadedDoc?.rejectionReason || null,
       });
     });
 
@@ -445,12 +537,18 @@ export default function ViewStudent() {
         const uploadedDoc = student.documents[type];
         docs.push({
           label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          path: uploadedDoc?.downloadUrl || null,
           icon: <FaFileAlt />,
-          documentId: uploadedDoc?.documentId || null,
           type: type,
-          isUploaded: !!uploadedDoc,
           mandatory: false,
+          isUploaded: !!uploadedDoc,
+          documentId: uploadedDoc?.documentId || null,
+          path: uploadedDoc?.downloadUrl || null,
+          verificationStatus: uploadedDoc?.verificationStatus || "PENDING",
+          verifiedAt: uploadedDoc?.verifiedAt || null,
+          verifiedBy: uploadedDoc?.verifiedBy?.name || null,
+          rejectedAt: uploadedDoc?.rejectedAt || null,
+          rejectedBy: uploadedDoc?.rejectedBy?.name || null,
+          rejectionReason: uploadedDoc?.rejectionReason || null,
         });
       });
     } else {
@@ -459,12 +557,18 @@ export default function ViewStudent() {
           const uploadedDoc = student.documents[type];
           docs.push({
             label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            path: uploadedDoc?.downloadUrl || null,
             icon: <FaFileAlt />,
-            documentId: uploadedDoc?.documentId || null,
             type: type,
-            isUploaded: !!uploadedDoc,
             mandatory: false,
+            isUploaded: !!uploadedDoc,
+            documentId: uploadedDoc?.documentId || null,
+            path: uploadedDoc?.downloadUrl || null,
+            verificationStatus: uploadedDoc?.verificationStatus || "PENDING",
+            verifiedAt: uploadedDoc?.verifiedAt || null,
+            verifiedBy: uploadedDoc?.verifiedBy?.name || null,
+            rejectedAt: uploadedDoc?.rejectedAt || null,
+            rejectedBy: uploadedDoc?.rejectedBy?.name || null,
+            rejectionReason: uploadedDoc?.rejectionReason || null,
           });
         }
       });
@@ -472,6 +576,50 @@ export default function ViewStudent() {
 
     return docs;
   }, [student, documentConfig]);
+
+  /* ================= DOCUMENT VERIFICATION DERIVED STATE ================= */
+  const canVerifyDocs = useMemo(
+    () => canEdit('students') && student?.status === STUDENT_STATUS.PENDING,
+    [student, canEdit]
+  );
+
+  // Required (enabled + mandatory) document types for this college.
+  const requiredDocTypes = useMemo(
+    () =>
+      (documentConfig || [])
+        .filter((doc) => doc.enabled && doc.mandatory)
+        .map((doc) => doc.type),
+    [documentConfig]
+  );
+
+  // True only when every required document has a VERIFIED upload.
+  const allRequiredDocsVerified = useMemo(() => {
+    if (!student) return false;
+    if (requiredDocTypes.length === 0) return true;
+    return requiredDocTypes.every(
+      (type) => student.documents?.[type]?.verificationStatus === "VERIFIED"
+    );
+  }, [student, requiredDocTypes]);
+
+  // List of required doc labels whose upload is not yet verified.
+  const unverifiedRequiredDocs = useMemo(() => {
+    if (!student || requiredDocTypes.length === 0) return [];
+    const labelMap = new Map(
+      (documentConfig || []).map((doc) => [doc.type, doc.label])
+    );
+    return requiredDocTypes
+      .filter(
+        (type) => student.documents?.[type]?.verificationStatus !== "VERIFIED"
+      )
+      .map((type) => labelMap.get(type) || type);
+  }, [student, requiredDocTypes, documentConfig]);
+
+  const requiredVerifiedCount = useMemo(() => {
+    if (!student || requiredDocTypes.length === 0) return 0;
+    return requiredDocTypes.filter(
+      (type) => student.documents?.[type]?.verificationStatus === "VERIFIED"
+    ).length;
+  }, [student, requiredDocTypes]);
 
   /* ================= ACTION HANDLERS ================= */
   const handleViewDocument = useCallback((path, documentId) => {
@@ -564,7 +712,67 @@ export default function ViewStudent() {
     }
   }, [studentId, rejectionReason, fetchStudent]);
 
-  /* ================= LOADING STATE ================= */
+  /* ================= DOCUMENT VERIFICATION HANDLERS ================= */
+  const handleVerifyDocument = useCallback(
+    async (documentId) => {
+      try {
+        setVerifyingDocId(documentId);
+        const response = await api.put(
+          `/students/${studentId}/documents/${documentId}/verify`
+        );
+        toast.success(
+          response.data.message || "Document verified successfully",
+          { position: "top-right", autoClose: 3000 }
+        );
+        fetchStudent();
+      } catch (err) {
+        toast.error(
+          err.response?.data?.message || "Failed to verify document"
+        );
+      } finally {
+        setVerifyingDocId(null);
+      }
+    },
+    [studentId, fetchStudent]
+  );
+
+  const openDocReject = useCallback((documentId) => {
+    setRejectingDocId(documentId);
+    setDocRejectReason("");
+    setShowDocRejectModal(true);
+  }, []);
+
+  const handleRejectDocument = useCallback(async () => {
+    if (!docRejectReason.trim()) {
+      toast.warning("Please enter a rejection reason");
+      return;
+    }
+    try {
+      setShowDocRejectModal(false);
+      await api.put(
+        `/students/${studentId}/documents/${rejectingDocId}/reject`,
+        { reason: docRejectReason.trim() }
+      );
+      toast.success("Document rejected successfully", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      fetchStudent();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to reject document");
+    } finally {
+      setRejectingDocId(null);
+      setDocRejectReason("");
+    }
+  }, [studentId, docRejectReason, rejectingDocId, fetchStudent]);
+
+  /* ================= RENDER GUARDS (after all hooks) ================= */
+  if (shouldRedirectLogin) {
+    return <Navigate to="/login" replace />;
+  }
+  if (shouldRedirectRole) {
+    return <Navigate to="/dashboard" replace />;
+  }
   if (loading) {
     return <SkeletonLoader />;
   }
@@ -875,8 +1083,52 @@ export default function ViewStudent() {
             </div>
           </div>
 
-          {/* Uploaded Documents */}
-          {uploadedDocuments.length > 0 && (
+           {/* Document Verification Summary */}
+           {canVerifyDocs && requiredDocTypes.length > 0 && (
+             <div className="content-card-enterprise doc-verification-summary">
+               <div className="card-header-enterprise">
+                 <div className="card-title-wrapper">
+                   <FaClipboardCheck className="card-title-icon" />
+                   <h3 className="card-title">Document Verification</h3>
+                 </div>
+                 <span className="card-badge">
+                   {requiredVerifiedCount}/{requiredDocTypes.length} Verified
+                 </span>
+               </div>
+               <div className="card-body-enterprise">
+                 <div className="doc-verification-progress">
+                   <div
+                     className="doc-verification-progress-bar"
+                     style={{
+                       width: `${(requiredVerifiedCount / requiredDocTypes.length) * 100}%`,
+                     }}
+                   />
+                 </div>
+                 {allRequiredDocsVerified ? (
+                   <div className="doc-verification-ok">
+                     <FaCheckCircle className="doc-verification-ok-icon" />
+                     <span>All required documents verified. You may now approve this student.</span>
+                   </div>
+                 ) : (
+                   <div className="doc-verification-warning">
+                     <FaExclamationTriangle className="doc-verification-warning-icon" />
+                     <span>
+                       Verify the remaining {unverifiedRequiredDocs.length} required document
+                       {unverifiedRequiredDocs.length !== 1 ? "s" : ""} before approval.
+                     </span>
+                     <ul className="doc-verification-warning-list">
+                       {unverifiedRequiredDocs.map((label) => (
+                         <li key={label}>{label}</li>
+                       ))}
+                     </ul>
+                   </div>
+                 )}
+               </div>
+             </div>
+           )}
+
+           {/* Uploaded Documents */}
+           {uploadedDocuments.length > 0 && (
             <div className="content-card-enterprise">
               <div className="card-header-enterprise">
                 <div className="card-title-wrapper">
@@ -888,18 +1140,25 @@ export default function ViewStudent() {
               
               <div className="card-body-enterprise">
                 <div className="documents-grid">
-                  {uploadedDocuments.map((doc) => (
-                    <DocumentCard
-                      key={doc.type}
-                      label={doc.label}
-                      path={doc.path}
-                      icon={doc.icon}
-                      documentId={doc.documentId}
-                      onView={handleViewDocument}
-                      mandatory={doc.mandatory}
-                      isUploaded={doc.isUploaded}
-                    />
-                  ))}
+                   {uploadedDocuments.map((doc) => (
+                     <DocumentCard
+                       key={doc.type}
+                       label={doc.label}
+                       path={doc.path}
+                       icon={doc.icon}
+                       documentId={doc.documentId}
+                       onView={handleViewDocument}
+                       mandatory={doc.mandatory}
+                       isUploaded={doc.isUploaded}
+                       verificationStatus={doc.verificationStatus}
+                       rejectionReason={doc.rejectionReason}
+                       canAct={canVerifyDocs}
+                       onVerify={handleVerifyDocument}
+                       onReject={openDocReject}
+                       isVerifying={verifyingDocId === doc.documentId}
+                       isRejecting={rejectingDocId === doc.documentId}
+                     />
+                   ))}
                 </div>
               </div>
             </div>
@@ -917,26 +1176,37 @@ export default function ViewStudent() {
              </div>
              <p className="action-card-subtitle">Review and approve or reject this student's registration</p>
            </div>
-           
-           <div className="action-card-body">
-             <button
-               className="btn-approve-enterprise"
-               onClick={handleApproveClick}
-               disabled={approving}
-             >
-               <FaCheckCircle className="btn-icon" />
-               {approving ? 'Approving...' : 'Approve Student'}
-             </button>
+            
+            <div className="action-card-body">
+              {requiredDocTypes.length > 0 && !allRequiredDocsVerified && (
+                <div className="doc-verification-gate-warning">
+                  <FaExclamationTriangle className="doc-verification-gate-icon" />
+                  <span>
+                    Verify all required documents before approving. Backend enforcement is active.
+                  </span>
+                </div>
+              )}
+              <button
+                className="btn-approve-enterprise"
+                onClick={handleApproveClick}
+                disabled={
+                  approving ||
+                  (requiredDocTypes.length > 0 && !allRequiredDocsVerified)
+                }
+              >
+                <FaCheckCircle className="btn-icon" />
+                {approving ? 'Approving...' : 'Approve Student'}
+              </button>
 
-             <button
-               className="btn-reject-enterprise"
-               onClick={handleRejectClick}
-               disabled={rejecting}
-             >
-               <FaTimesCircle className="btn-icon" />
-               {rejecting ? 'Rejecting...' : 'Reject Student'}
-             </button>
-           </div>
+              <button
+                className="btn-reject-enterprise"
+                onClick={handleRejectClick}
+                disabled={rejecting}
+              >
+                <FaTimesCircle className="btn-icon" />
+                {rejecting ? 'Rejecting...' : 'Reject Student'}
+              </button>
+            </div>
          </div>
        )}
 
@@ -992,6 +1262,39 @@ export default function ViewStudent() {
               fontFamily: 'inherit',
               resize: 'vertical',
               marginTop: '1rem'
+            }}
+          />
+        }
+      />
+
+      {/* ================= DOCUMENT REJECTION MODAL ================= */}
+      <ConfirmModal
+        isOpen={showDocRejectModal}
+        onClose={() => setShowDocRejectModal(false)}
+        onConfirm={handleRejectDocument}
+        title="Reject Document"
+        message="Please enter the reason for rejecting this document:"
+        type="danger"
+        confirmText="Reject Document"
+        cancelText="Cancel"
+        isLoading={!!rejectingDocId}
+        customContent={
+          <textarea
+            className="reject-reason-textarea"
+            value={docRejectReason}
+            onChange={(e) => setDocRejectReason(e.target.value)}
+            placeholder="Enter rejection reason (required)..."
+            rows={4}
+            autoFocus
+            style={{
+              width: "100%",
+              padding: "0.75rem",
+              border: "2px solid #e2e8f0",
+              borderRadius: "8px",
+              fontSize: "0.9375rem",
+              fontFamily: "inherit",
+              resize: "vertical",
+              marginTop: "1rem",
             }}
           />
         }
@@ -1427,13 +1730,150 @@ export default function ViewStudent() {
           color: #dc2626;
         }
 
-        .doc-badge-optional {
-          background: rgba(107, 114, 128, 0.1);
-          color: #6b7280;
-        }
-        
-        /* Action Card */
-        .action-card-enterprise {
+         .doc-badge-optional {
+           background: rgba(107, 114, 128, 0.1);
+           color: #6b7280;
+         }
+
+         /* Document Verification Summary */
+         .doc-verification-summary {
+           margin-bottom: 1.5rem;
+         }
+
+         .doc-verification-progress {
+           width: 100%;
+           height: 8px;
+           background: #e5e7eb;
+           border-radius: 4px;
+           overflow: hidden;
+           margin-bottom: 0.75rem;
+         }
+
+         .doc-verification-progress-bar {
+           height: 100%;
+           background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+           border-radius: 4px;
+           transition: width 0.3s ease;
+         }
+
+         .doc-verification-ok,
+         .doc-verification-warning {
+           display: flex;
+           align-items: flex-start;
+           gap: 0.5rem;
+           font-size: 0.84375rem;
+         }
+
+         .doc-verification-ok-icon,
+         .doc-verification-warning-icon {
+           font-size: 1.125rem;
+           margin-top: 0.125rem;
+         }
+
+         .doc-verification-ok {
+           color: #064e3b;
+         }
+
+         .doc-verification-ok-icon {
+           color: #10b981;
+         }
+
+         .doc-verification-warning {
+           color: #78350f;
+           background: rgba(245, 158, 11, 0.08);
+           padding: 0.625rem 0.75rem;
+           border: 1px solid rgba(245, 158, 11, 0.2);
+           border-radius: 8px;
+         }
+
+         .doc-verification-warning-icon {
+           color: #f59e0b;
+         }
+
+         .doc-verification-warning-list {
+           list-style: disc inside;
+           margin: 0.375rem 0 0 1.125rem;
+           padding-left: 0;
+         }
+
+         /* Per-document verification badge + actions */
+         .doc-verification-badge {
+           display: inline-flex;
+           align-items: center;
+           gap: 0.25rem;
+           font-size: 0.71875rem;
+           font-weight: 600;
+           padding: 0.2rem 0.5rem;
+           border-radius: 9999px;
+           text-transform: uppercase;
+           letter-spacing: 0.03em;
+         }
+
+         .doc-verification-icon {
+           font-size: 0.8125rem;
+         }
+
+         .doc-verification-actions {
+           display: flex;
+           gap: 0.5rem;
+         }
+
+         .btn-verify-document,
+         .btn-reject-document {
+           flex: 1 1 auto;
+           border: none;
+           padding: 0.4rem 0.6rem;
+           border-radius: 8px;
+           font-size: 0.78125rem;
+           font-weight: 600;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           gap: 0.25rem;
+           cursor: pointer;
+           transition: all 0.2s ease;
+         }
+
+         .btn-verify-document {
+           background: rgba(16, 185, 129, 0.12);
+           color: #065f46;
+         }
+
+         .btn-verify-document:hover:not(:disabled) {
+           background: rgba(16, 185, 129, 0.2);
+         }
+
+         .btn-reject-document {
+           background: rgba(239, 68, 68, 0.12);
+           color: #7f1d1d;
+         }
+
+         .btn-reject-document:hover:not(:disabled) {
+           background: rgba(239, 68, 68, 0.2);
+         }
+
+         /* Approval gate warning */
+         .doc-verification-gate-warning {
+           display: flex;
+           align-items: flex-start;
+           gap: 0.5rem;
+           color: #78350f;
+           background: rgba(245, 158, 11, 0.08);
+           border: 1px solid rgba(245, 158, 11, 0.2);
+           border-radius: 8px;
+           padding: 0.625rem 0.75rem;
+           margin-bottom: 0.75rem;
+           font-size: 0.84375rem;
+         }
+
+         .doc-verification-gate-icon {
+           font-size: 1.125rem;
+           color: #f59e0b;
+           margin-top: 0.125rem;
+         }
+
+         /* Action Card */
+         .action-card-enterprise {
           background: #ffffff;
           border-radius: 16px;
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -1957,6 +2397,6 @@ export default function ViewStudent() {
           </div>
         </div>
       )}
-    </div>
+      </div>
   );
 }
