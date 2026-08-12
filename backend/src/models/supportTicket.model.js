@@ -11,7 +11,6 @@ const supportTicketSchema = new mongoose.Schema(
   {
     ticketId: {
       type: String,
-      unique: true,
       required: true,
     },
     userId: {
