@@ -126,16 +126,17 @@ export default function ChildProfile() {
   if (loading) {
     return (
       <div className="parent-portal-wrapper">
-        <div className="parent-portal-container d-flex align-items-center justify-content-center" style={{ minHeight: '50vh' }}>
-          <div className="text-center">
+        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
+          <div className="parent-loading-state">
             <motion.div
               variants={spinVariants}
               animate="animate"
-              style={{ fontSize: '3rem', color: BRAND_COLORS.primary.main }}
+              className="parent-loading-spinner"
+              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
             >
               <FaSyncAlt />
             </motion.div>
-            <h4 className="mt-3" style={{ color: BRAND_COLORS.primary.main }}>Loading Profile...</h4>
+            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Profile...</h4>
           </div>
         </div>
       </div>
@@ -153,36 +154,30 @@ export default function ChildProfile() {
             className="parent-dashboard-header"
           >
             <div className="parent-dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="parent-header-icon-wrapper"
-                    >
-                      <FaExclamationTriangle />
-                    </motion.div>
-                    <div className="parent-header-title-section">
-                      <h1 className="parent-header-title">Error Loading Profile</h1>
-                      <p className="parent-header-subtitle">{error}</p>
-                    </div>
-                  </div>
+              <div className="parent-header-content">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="parent-header-icon-wrapper"
+                >
+                  <FaExclamationTriangle />
+                </motion.div>
+                <div className="parent-header-title-section">
+                  <h1 className="parent-header-title">Error Loading Profile</h1>
+                  <p className="parent-header-subtitle">{error}</p>
                 </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="parent-btn-primary"
-                      onClick={() => navigate("/dashboard/parent")}
-                    >
-                      <FaArrowLeft className="me-2" />
-                      Back to Dashboard
-                    </motion.button>
-                  </div>
-                </div>
+              </div>
+              <div className="parent-header-meta">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="parent-btn-primary"
+                  onClick={() => navigate("/dashboard/parent")}
+                >
+                  <FaArrowLeft className="parent-me-2" />
+                  Back to Dashboard
+                </motion.button>
               </div>
             </div>
           </motion.div>
@@ -249,38 +244,32 @@ export default function ChildProfile() {
           >
             {/* Hero Section */}
             <div className="parent-dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="parent-header-icon-wrapper"
-                    >
-                      <FaUser />
-                    </motion.div>
-                    <div className="parent-header-title-section">
-                      <h1 className="parent-header-title">
-                        {fullName}'s Profile
-                      </h1>
-                      <p className="parent-header-subtitle">
-                        Complete student information and academic details
-                      </p>
-                    </div>
-                  </div>
+              <div className="parent-header-content">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="parent-header-icon-wrapper"
+                >
+                  <FaUser />
+                </motion.div>
+                <div className="parent-header-title-section">
+                  <h1 className="parent-header-title">
+                    {fullName}'s Profile
+                  </h1>
+                  <p className="parent-header-subtitle">
+                    Complete student information and academic details
+                  </p>
                 </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <Breadcrumb
-                      items={[
-                        { label: "Home", path: "/dashboard/parent" },
-                        { label: "My Children", path: "/dashboard/parent/children" },
-                        { label: "Profile", path: `/dashboard/parent/child/${childId}` },
-                      ]}
-                    />
-                  </div>
-                </div>
+              </div>
+              <div className="parent-header-meta">
+                <Breadcrumb
+                  items={[
+                    { label: "Home", path: "/dashboard/parent" },
+                    { label: "My Children", path: "/dashboard/parent/children" },
+                    { label: "Profile", path: `/dashboard/parent/child/${childId}` },
+                  ]}
+                />
               </div>
             </div>
           </motion.div>
@@ -291,58 +280,50 @@ export default function ChildProfile() {
             custom={0}
             initial="hidden"
             animate="visible"
-            className="dashboard-section"
+            className="parent-section-grid"
           >
-            <div className="row g-3 g-md-4">
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="parent-stat-card">
-                  <div className="parent-stat-card-icon" style={{ background: BRAND_COLORS.primary.gradient }}>
-                    <FaIdCard />
-                  </div>
-                  <div className="parent-stat-card-content">
-                    <div className="parent-card-label">Enrollment Number</div>
-                     <div className="parent-card-value">{enrollmentNumber || "N/A"}</div>
-                    <div className="parent-card-subtitle">Student ID</div>
-                  </div>
-                </div>
+            <div className="parent-stat-card">
+              <div className="parent-stat-card-icon" style={{ background: BRAND_COLORS.primary.gradient }}>
+                <FaIdCard />
               </div>
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="parent-stat-card">
-                  <div className="parent-stat-card-icon" style={{
-                    background: status === 'APPROVED' ? BRAND_COLORS.success.gradient :
-                               status === 'PENDING' ? BRAND_COLORS.warning.gradient :
-                               BRAND_COLORS.danger.gradient
-                  }}>
-                    {status === 'APPROVED' ? <FaCheckCircle /> : <FaExclamationTriangle />}
-                  </div>
-                  <div className="parent-stat-card-content">
-                    <div className="parent-card-label">Account Status</div>
-                    <div className="parent-card-value">
-                      <span className={`parent-status-badge ${
-                        status === 'APPROVED' ? 'parent-status-approved' :
-                        status === 'PENDING' ? 'parent-status-pending' :
-                        'parent-status-rejected'
-                      }`}>
-                        {status === 'APPROVED' ? 'Active Student' :
-                         status === 'PENDING' ? 'Application Pending' :
-                         'Account Inactive'}
-                      </span>
-                    </div>
-                    <div className="parent-card-subtitle">Current status</div>
-                  </div>
-                </div>
+              <div className="parent-stat-card-content">
+                <div className="parent-card-label">Enrollment Number</div>
+                 <div className="parent-card-value">{enrollmentNumber || "N/A"}</div>
+                <div className="parent-card-subtitle">Student ID</div>
               </div>
-              <div className="col-12 col-sm-6 col-lg-4">
-                <div className="parent-stat-card">
-                  <div className="parent-stat-card-icon" style={{ background: BRAND_COLORS.secondary.gradient }}>
-                    <FaCalendarAlt />
-                  </div>
-                  <div className="parent-stat-card-content">
-                    <div className="parent-card-label">Academic Year</div>
-                    <div className="parent-card-value">{admissionYear || "N/A"}</div>
-                    <div className="parent-card-subtitle">Year of admission</div>
-                  </div>
+            </div>
+            <div className="parent-stat-card">
+              <div className="parent-stat-card-icon" style={{
+                background: status === 'APPROVED' ? BRAND_COLORS.success.gradient :
+                           status === 'PENDING' ? BRAND_COLORS.warning.gradient :
+                           BRAND_COLORS.danger.gradient
+              }}>
+                {status === 'APPROVED' ? <FaCheckCircle /> : <FaExclamationTriangle />}
+              </div>
+              <div className="parent-stat-card-content">
+                <div className="parent-card-label">Account Status</div>
+                <div className="parent-card-value">
+                  <span className={`parent-status-badge ${
+                    status === 'APPROVED' ? 'parent-status-approved' :
+                    status === 'PENDING' ? 'parent-status-pending' :
+                    'parent-status-rejected'
+                  }`}>
+                    {status === 'APPROVED' ? 'Active Student' :
+                     status === 'PENDING' ? 'Application Pending' :
+                     'Account Inactive'}
+                  </span>
                 </div>
+                <div className="parent-card-subtitle">Current status</div>
+              </div>
+            </div>
+            <div className="parent-stat-card">
+              <div className="parent-stat-card-icon" style={{ background: BRAND_COLORS.secondary.gradient }}>
+                <FaCalendarAlt />
+              </div>
+              <div className="parent-stat-card-content">
+                <div className="parent-card-label">Academic Year</div>
+                <div className="parent-card-value">{admissionYear || "N/A"}</div>
+                <div className="parent-card-subtitle">Year of admission</div>
               </div>
             </div>
           </motion.div>
@@ -354,213 +335,205 @@ export default function ChildProfile() {
             initial="hidden"
             animate="visible"
           >
-            <div className="row g-3 g-md-4">
-              <div className="col-12 col-lg-6">
-                <ProfileCard
-                  title="Personal Information"
-                  icon={<FaUser />}
-                  color={BRAND_COLORS.primary.main}
-                >
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaUser />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Full Name</div>
-                      <div className="parent-profile-value">{fullName}</div>
+            <div className="parent-two-col-grid">
+              <ProfileCard
+                title="Personal Information"
+                icon={<FaUser />}
+                color={BRAND_COLORS.primary.main}
+              >
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaUser />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Full Name</div>
+                    <div className="parent-profile-value">{fullName}</div>
+                  </div>
+                </div>
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaEnvelope />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Email Address</div>
+                    <div className="parent-profile-value">
+                      <a href={`mailto:${email}`} className="text-decoration-none">
+                        {email}
+                      </a>
                     </div>
                   </div>
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaEnvelope />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Email Address</div>
-                      <div className="parent-profile-value">
-                        <a href={`mailto:${email}`} className="text-decoration-none">
-                          {email}
-                        </a>
-                      </div>
+                </div>
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaPhone />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Mobile Number</div>
+                    <div className="parent-profile-value">
+                      <a href={`tel:${mobileNumber || phone}`} className="text-decoration-none">
+                        {mobileNumber || phone || "Not provided"}
+                      </a>
                     </div>
                   </div>
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaPhone />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Mobile Number</div>
-                      <div className="parent-profile-value">
-                        <a href={`tel:${mobileNumber || phone}`} className="text-decoration-none">
-                          {mobileNumber || phone || "Not provided"}
-                        </a>
-                      </div>
+                </div>
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaCalendarAlt />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Date of Birth</div>
+                    <div className="parent-profile-value">
+                      {dateOfBirth ? new Date(dateOfBirth).toLocaleDateString() : "Not provided"}
                     </div>
                   </div>
+                </div>
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaUser />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Gender</div>
+                    <div className="parent-profile-value">{gender || "Not specified"}</div>
+                  </div>
+                </div>
+                {bloodGroup && (
                   <div className="parent-profile-item">
                     <div className="parent-profile-icon">
-                      <FaCalendarAlt />
+                      <FaCheckCircle />
                     </div>
                     <div className="parent-profile-content">
-                      <div className="parent-profile-label">Date of Birth</div>
-                      <div className="parent-profile-value">
-                        {dateOfBirth ? new Date(dateOfBirth).toLocaleDateString() : "Not provided"}
-                      </div>
+                      <div className="parent-profile-label">Blood Group</div>
+                      <div className="parent-profile-value">{bloodGroup}</div>
                     </div>
                   </div>
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaUser />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Gender</div>
-                      <div className="parent-profile-value">{gender || "Not specified"}</div>
-                    </div>
-                  </div>
-                  {bloodGroup && (
-                    <div className="parent-profile-item">
-                      <div className="parent-profile-icon">
-                        <FaCheckCircle />
-                      </div>
-                      <div className="parent-profile-content">
-                        <div className="parent-profile-label">Blood Group</div>
-                        <div className="parent-profile-value">{bloodGroup}</div>
-                      </div>
-                    </div>
-                  )}
-                </ProfileCard>
-              </div>
+                )}
+              </ProfileCard>
 
-              <div className="col-12 col-lg-6">
-                <ProfileCard
-                  title="Academic Information"
-                  icon={<FaGraduationCap />}
-                  color={BRAND_COLORS.success.main}
-                >
+              <ProfileCard
+                title="Academic Information"
+                icon={<FaGraduationCap />}
+                color={BRAND_COLORS.success.main}
+              >
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaGraduationCap />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Course</div>
+                    <div className="parent-profile-value">{course_id?.name || "Not assigned"}</div>
+                  </div>
+                </div>
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaSchool />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Department</div>
+                    <div className="parent-profile-value">{department_id?.name || "Not assigned"}</div>
+                  </div>
+                </div>
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaIdCard />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Current Semester</div>
+                    <div className="parent-profile-value">{currentSemester || "Not specified"}</div>
+                  </div>
+                </div>
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaCalendarAlt />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Admission Year</div>
+                    <div className="parent-profile-value">{admissionYear || "Not specified"}</div>
+                  </div>
+                </div>
+                {category && (
                   <div className="parent-profile-item">
                     <div className="parent-profile-icon">
-                      <FaGraduationCap />
+                      <FaCheckCircle />
                     </div>
                     <div className="parent-profile-content">
-                      <div className="parent-profile-label">Course</div>
-                      <div className="parent-profile-value">{course_id?.name || "Not assigned"}</div>
+                      <div className="parent-profile-label">Category</div>
+                      <div className="parent-profile-value">{category}</div>
                     </div>
                   </div>
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaSchool />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Department</div>
-                      <div className="parent-profile-value">{department_id?.name || "Not assigned"}</div>
-                    </div>
-                  </div>
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaIdCard />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Current Semester</div>
-                      <div className="parent-profile-value">{currentSemester || "Not specified"}</div>
-                    </div>
-                  </div>
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaCalendarAlt />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Admission Year</div>
-                      <div className="parent-profile-value">{admissionYear || "Not specified"}</div>
-                    </div>
-                  </div>
-                  {category && (
-                    <div className="parent-profile-item">
-                      <div className="parent-profile-icon">
-                        <FaCheckCircle />
-                      </div>
-                      <div className="parent-profile-content">
-                        <div className="parent-profile-label">Category</div>
-                        <div className="parent-profile-value">{category}</div>
-                      </div>
-                    </div>
-                  )}
-                </ProfileCard>
-              </div>
+                )}
+              </ProfileCard>
 
-              <div className="col-12 col-lg-6">
-                <ProfileCard
-                  title="Address Information"
-                  icon={<FaMapMarkerAlt />}
-                  color={BRAND_COLORS.warning.main}
-                >
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaHome />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Address</div>
-                      <div className="parent-profile-value">
-                        {addressLine ? (
-                          <>
-                            {addressLine}
-                            {city && state && pincode && (
-                              <><br />{city}, {state} - {pincode}</>
-                            )}
-                          </>
-                        ) : (
-                          "Address not provided"
-                        )}
-                      </div>
+              <ProfileCard
+                title="Address Information"
+                icon={<FaMapMarkerAlt />}
+                color={BRAND_COLORS.warning.main}
+              >
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaHome />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Address</div>
+                    <div className="parent-profile-value">
+                      {addressLine ? (
+                        <>
+                          {addressLine}
+                          {city && state && pincode && (
+                            <><br />{city}, {state} - {pincode}</>
+                          )}
+                        </>
+                      ) : (
+                        "Address not provided"
+                      )}
                     </div>
                   </div>
-                </ProfileCard>
-              </div>
+                </div>
+              </ProfileCard>
 
-              <div className="col-12 col-lg-6">
-                <ProfileCard
-                  title="Family Information"
-                  icon={<FaUser />}
-                  color={BRAND_COLORS.info.main}
-                >
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaUser />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Father's Name</div>
-                      <div className="parent-profile-value">
-                        {fatherName || "Not provided"}
-                        {fatherMobile && (
-                          <span className="ms-2">
-                            <a href={`tel:${fatherMobile}`} className="text-decoration-none">
-                              <FaPhone className="me-1" />
-                              {fatherMobile}
-                            </a>
-                          </span>
-                        )}
-                      </div>
+              <ProfileCard
+                title="Family Information"
+                icon={<FaUser />}
+                color={BRAND_COLORS.info.main}
+              >
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaUser />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Father's Name</div>
+                    <div className="parent-profile-value">
+                      {fatherName || "Not provided"}
+                      {fatherMobile && (
+                        <span className="parent-ms-2">
+                          <a href={`tel:${fatherMobile}`} className="text-decoration-none">
+                            <FaPhone className="parent-me-1" />
+                            {fatherMobile}
+                          </a>
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="parent-profile-item">
-                    <div className="parent-profile-icon">
-                      <FaUser />
-                    </div>
-                    <div className="parent-profile-content">
-                      <div className="parent-profile-label">Mother's Name</div>
-                      <div className="parent-profile-value">
-                        {motherName || "Not provided"}
-                        {motherMobile && (
-                          <span className="ms-2">
-                            <a href={`tel:${motherMobile}`} className="text-decoration-none">
-                              <FaPhone className="me-1" />
-                              {motherMobile}
-                            </a>
-                          </span>
-                        )}
-                      </div>
+                </div>
+                <div className="parent-profile-item">
+                  <div className="parent-profile-icon">
+                    <FaUser />
+                  </div>
+                  <div className="parent-profile-content">
+                    <div className="parent-profile-label">Mother's Name</div>
+                    <div className="parent-profile-value">
+                      {motherName || "Not provided"}
+                      {motherMobile && (
+                        <span className="parent-ms-2">
+                          <a href={`tel:${motherMobile}`} className="text-decoration-none">
+                            <FaPhone className="parent-me-1" />
+                            {motherMobile}
+                          </a>
+                        </span>
+                      )}
                     </div>
                   </div>
-                </ProfileCard>
-              </div>
+                </div>
+              </ProfileCard>
             </div>
           </motion.div>
         </div>
@@ -575,7 +548,7 @@ function ProfileCard({ title, icon, color, children }) {
     <div className="parent-profile-card">
       <div className="parent-profile-header">
         <h3 className="parent-profile-title">
-          <span className="me-2" style={{ color: 'white', fontSize: '1.1rem' }}>{icon}</span>
+          <span className="parent-me-2" style={{ color: 'white', fontSize: '1.1rem' }}>{icon}</span>
           {title}
         </h3>
       </div>

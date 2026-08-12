@@ -261,21 +261,25 @@ export default function ChildDetail() {
 
   if (!child) {
     return (
-      <div className="child-detail-page erp-viewport-min-100">
-        <div className="erp-container">
-          <div className="text-center py-5">
-            <FaUser size={48} className="text-muted mb-3" />
-            <h5 className="text-muted">Child Not Found</h5>
-            <p className="text-muted">
+      <div className="parent-portal-wrapper">
+        <div className="parent-portal-container">
+          <div className="parent-error-state">
+            <div className="parent-error-icon">
+              <FaUser size={48} />
+            </div>
+            <h2 className="parent-error-title">Child Not Found</h2>
+            <p className="parent-error-message">
               The requested child information could not be found.
             </p>
-            <button
-              className="btn btn-primary"
-              onClick={() => navigate("/dashboard/parent/children")}
-            >
-              <FaArrowLeft className="me-2" />
-              Back to Children
-            </button>
+            <div className="parent-error-actions">
+              <button
+                className="parent-btn-primary"
+                onClick={() => navigate("/dashboard/parent/children")}
+              >
+                <FaArrowLeft className="parent-me-2" />
+                Back to Children
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -312,29 +316,25 @@ export default function ChildDetail() {
           >
             {/* Hero Section */}
             <div className="parent-dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="parent-header-icon-wrapper"
-                    >
-                      <FaUserGraduate />
-                    </motion.div>
-                    <div className="parent-header-title-section">
-                      <h1 className="parent-header-title">
-                        {child.fullName}
-                      </h1>
-                      <p className="parent-header-subtitle">
-                        {child.course_id?.name} • Semester {child.currentSemester} • {getStatusLabel(child.status)}
-                      </p>
-                    </div>
-                  </div>
+              <div className="parent-header-content">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="parent-header-icon-wrapper"
+                >
+                  <FaUserGraduate />
+                </motion.div>
+                <div className="parent-header-title-section">
+                  <h1 className="parent-header-title">
+                    {child.fullName}
+                  </h1>
+                  <p className="parent-header-subtitle">
+                    {child.course_id?.name} • Semester {child.currentSemester} • {getStatusLabel(child.status)}
+                  </p>
                 </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                </div>
+              </div>
+              <div className="parent-header-meta">
               </div>
             </div>
           </motion.div>
@@ -345,40 +345,32 @@ export default function ChildDetail() {
             custom={0}
             initial="hidden"
             animate="visible"
-            className="dashboard-section"
+            className="parent-section-grid"
           >
-            <div className="row g-3 g-md-4">
-              <div className="col-12 col-sm-6 col-lg-4">
-                <StatCard
-                  icon={FaGraduationCap}
-                  label="Academic Status"
-                  value={getStatusLabel(child.status)}
-                  color={getStatusColor(child.status)}
-                  gradient={getStatusGradient(child.status)}
-                  subtitle="Current enrollment status"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-4">
-                <StatCard
-                  icon={FaCalendarCheck}
-                  label="Attendance Rate"
-                  value={`${calculateAttendancePercentage()}%`}
-                  color={BRAND_COLORS.info.main}
-                  gradient={BRAND_COLORS.info.gradient}
-                  subtitle={`${attendance.length} sessions recorded`}
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-4">
-                <StatCard
-                  icon={FaRupeeSign}
-                  label="Pending Fees"
-                  value={fees ? `₹${(fees.totalFee - fees.paidAmount).toLocaleString()}` : "--"}
-                  color={BRAND_COLORS.warning.main}
-                  gradient={BRAND_COLORS.warning.gradient}
-                  subtitle={fees ? `Total: ₹${fees.totalFee.toLocaleString()}` : "Fee information unavailable"}
-                />
-              </div>
-            </div>
+            <StatCard
+              icon={FaGraduationCap}
+              label="Academic Status"
+              value={getStatusLabel(child.status)}
+              color={getStatusColor(child.status)}
+              gradient={getStatusGradient(child.status)}
+              subtitle="Current enrollment status"
+            />
+            <StatCard
+              icon={FaCalendarCheck}
+              label="Attendance Rate"
+              value={`${calculateAttendancePercentage()}%`}
+              color={BRAND_COLORS.info.main}
+              gradient={BRAND_COLORS.info.gradient}
+              subtitle={`${attendance.length} sessions recorded`}
+            />
+            <StatCard
+              icon={FaRupeeSign}
+              label="Pending Fees"
+              value={fees ? `₹${(fees.totalFee - fees.paidAmount).toLocaleString()}` : "--"}
+              color={BRAND_COLORS.warning.main}
+              gradient={BRAND_COLORS.warning.gradient}
+              subtitle={fees ? `Total: ₹${fees.totalFee.toLocaleString()}` : "Fee information unavailable"}
+            />
           </motion.div>
 
           {/* ================= TABS ================= */}
@@ -421,13 +413,12 @@ export default function ChildDetail() {
                       exit={{ opacity: 0, x: -20 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className="row g-3 g-md-4">
-                        <div className="col-12 col-lg-6">
-                          <ProfileCard
-                            title="Personal Information"
-                            icon={<FaUser />}
-                            color={BRAND_COLORS.primary.main}
-                          >
+                      <div className="parent-two-col-grid">
+                        <ProfileCard
+                          title="Personal Information"
+                          icon={<FaUser />}
+                          color={BRAND_COLORS.primary.main}
+                        >
                             <div className="parent-profile-item">
                               <div className="parent-profile-icon">
                                 <FaUser />
@@ -475,9 +466,7 @@ export default function ChildDetail() {
                               </div>
                             </div>
                           </ProfileCard>
-                        </div>
 
-                        <div className="col-12 col-lg-6">
                           <ProfileCard
                             title="Academic Details"
                             icon={<FaGraduationCap />}
@@ -520,9 +509,7 @@ export default function ChildDetail() {
                               </div>
                             </div>
                           </ProfileCard>
-                        </div>
 
-                        <div className="col-12 col-lg-6">
                           <ProfileCard
                             title="Address Information"
                             icon={<FaMapMarkerAlt />}
@@ -541,9 +528,7 @@ export default function ChildDetail() {
                               </div>
                             </div>
                           </ProfileCard>
-                        </div>
 
-                        <div className="col-12 col-lg-6">
                           <ProfileCard
                             title="Family Information"
                             icon={<FaUsers />}
@@ -558,9 +543,9 @@ export default function ChildDetail() {
                                 <div className="parent-profile-value">
                                   {child.fatherName}
                                   {child.fatherMobile && (
-                                    <span className="ms-2">
+                                    <span className="parent-ms-2">
                                       <a href={`tel:${child.fatherMobile}`} className="text-decoration-none">
-                                        <FaPhone className="me-1" />
+                                        <FaPhone className="parent-me-1" />
                                         {child.fatherMobile}
                                       </a>
                                     </span>
@@ -577,9 +562,9 @@ export default function ChildDetail() {
                                 <div className="parent-profile-value">
                                   {child.motherName}
                                   {child.motherMobile && (
-                                    <span className="ms-2">
+                                    <span className="parent-ms-2">
                                       <a href={`tel:${child.motherMobile}`} className="text-decoration-none">
-                                        <FaPhone className="me-1" />
+                                        <FaPhone className="parent-me-1" />
                                         {child.motherMobile}
                                       </a>
                                     </span>
@@ -589,8 +574,7 @@ export default function ChildDetail() {
                             </div>
                           </ProfileCard>
                         </div>
-                      </div>
-                    </motion.div>
+                      </motion.div>
                   )}
 
                   {/* Attendance Tab */}
@@ -606,7 +590,7 @@ export default function ChildDetail() {
                         <div className="parent-chart-header">
                           <div>
                             <h3 className="parent-chart-title">Attendance Overview</h3>
-                            <p className="text-muted mb-0">Track your child's attendance performance</p>
+                            <p className="parent-text-muted parent-mb-0">Track your child's attendance performance</p>
                           </div>
                           <div className="parent-chart-stats">
                             <div className="parent-chart-stat">
@@ -655,27 +639,27 @@ export default function ChildDetail() {
                             animate="visible"
                           >
                             <td>
-                              <div className="d-flex flex-column">
-                                <span className="fw-semibold">
+                              <div className="parent-table-cell-stack">
+                                <span className="parent-fw-semibold">
 {record.date ? new Date(record.date).toLocaleDateString('en-US', {
 	                                    weekday: 'short',
 	                                    month: 'short',
 	                                    day: 'numeric'
 	                                  }) : "N/A"}
                                 </span>
-                                <small className="text-muted">
+                                <small className="parent-text-muted">
                                   {new Date(record.date).getFullYear()}
                                 </small>
                               </div>
                             </td>
                             <td>
-                              <div className="d-flex align-items-center gap-2">
+                              <div className="parent-table-cell-inline">
                                 <div className="parent-student-avatar" style={{ width: '32px', height: '32px', fontSize: '0.75rem' }}>
                                   {record.subject?.charAt(0) || '?'}
                                 </div>
                                 <div>
-                                  <div className="fw-semibold">{record.subject || "N/A"}</div>
-                                  <small className="text-muted">{record.subjectCode || ""}</small>
+                                  <div className="parent-fw-semibold">{record.subject || "N/A"}</div>
+                                  <small className="parent-text-muted">{record.subjectCode || ""}</small>
                                 </div>
                               </div>
                             </td>
@@ -691,13 +675,13 @@ export default function ChildDetail() {
                               </span>
                             </td>
                             <td>
-                              <span className="badge bg-light text-dark">
-                                <FaClock className="me-1" />
+                              <span className="parent-session-badge">
+                                <FaClock className="parent-parent-me-1" />
                                 {record.sessionType || "Regular"}
                               </span>
                             </td>
                             <td>
-                              <span className="fw-semibold">
+                              <span className="parent-fw-semibold">
                                 {record.slotStartTime && record.slotEndTime
                                   ? `${record.slotStartTime} - ${record.slotEndTime}`
                                   : record.lectureNumber
@@ -732,15 +716,19 @@ export default function ChildDetail() {
                           success={false}
                         />
                       ) : (
-                        <div className="row g-3 g-md-4">
-                          <div className="col-12 col-lg-6">
-                            <FeeCard
-                              title="Fee Summary"
-                              icon={<FaRupeeSign />}
-                              color={BRAND_COLORS.primary.main}
-                            >
+                        <div className="parent-two-col-grid">
+                          <div className="parent-fee-card">
+                            <div className="parent-fee-header">
+                              <div className="parent-fee-icon" style={{ background: `linear-gradient(135deg, ${BRAND_COLORS.primary.main}20, ${BRAND_COLORS.primary.main}10)` }}>
+                                <FaRupeeSign style={{ color: BRAND_COLORS.primary.main }} />
+                              </div>
+                              <div>
+                                <h3 className="parent-fee-title">Fee Summary</h3>
+                              </div>
+                            </div>
+                            <div className="parent-fee-card-body">
                               <div className="parent-fee-item">
-                                <div className="parent-fee-icon">
+                                <div className="parent-fee-item-icon">
                                   <FaFileAlt />
                                 </div>
                                 <div>
@@ -749,46 +737,55 @@ export default function ChildDetail() {
                                 </div>
                               </div>
                               <div className="parent-fee-item">
-                                <div className="parent-fee-icon">
+                                <div className="parent-fee-item-icon">
                                   <FaCheckCircle />
                                 </div>
                                 <div>
                                   <div className="parent-fee-title">Paid Amount</div>
-                                  <div className="parent-fee-amount text-success">₹{fees.paidAmount?.toLocaleString()}</div>
+                                  <div className="parent-fee-amount" style={{ color: "#28a745" }}>₹{fees.paidAmount?.toLocaleString()}</div>
                                 </div>
                               </div>
                               <div className="parent-fee-item">
-                                <div className="parent-fee-icon">
+                                <div className="parent-fee-item-icon">
                                   <FaClock />
                                 </div>
                                 <div>
                                   <div className="parent-fee-title">Pending Amount</div>
-                                  <div className="parent-fee-amount text-warning">
+                                  <div className="parent-fee-amount" style={{ color: "#ffc107" }}>
                                     ₹{(fees.totalFee - fees.paidAmount)?.toLocaleString()}
                                   </div>
                                 </div>
                               </div>
-                            </FeeCard>
+                            </div>
                           </div>
 
-                          <div className="col-12 col-lg-6">
-                            <FeeCard
-                              title="Payment Installments"
-                              icon={<FaCreditCard />}
-                              color={BRAND_COLORS.info.main}
-                            >
-                              <div className="space-y-3">
+                          <div className="parent-fee-card">
+                            <div className="parent-fee-header">
+                              <div className="parent-fee-icon" style={{ background: `linear-gradient(135deg, ${BRAND_COLORS.info.main}20, ${BRAND_COLORS.info.main}10)` }}>
+                                <FaCreditCard style={{ color: BRAND_COLORS.info.main }} />
+                              </div>
+                              <div>
+                                <h3 className="parent-fee-title">Payment Installments</h3>
+                              </div>
+                            </div>
+                            <div className="parent-fee-card-body">
+                              <div className="parent-installment-list">
                                 {fees.installments?.map((installment, idx) => (
                                   <motion.div
                                     key={idx}
-                                    className="p-3 bg-light rounded-lg"
+                                    className="parent-installment-item"
                                     variants={fadeInVariants}
                                     custom={idx}
                                     initial="hidden"
                                     animate="visible"
                                   >
-                                    <div className="d-flex justify-content-between align-items-center mb-2">
-                                      <h6 className="mb-0">{installment.name}</h6>
+                                    <div className="parent-installment-header">
+                                      <div>
+                                        <div className="parent-installment-title">{installment.name}</div>
+                                        <div className="parent-installment-due">
+                                          Due: {installment.dueDate ? new Date(installment.dueDate).toLocaleDateString() : "N/A"}
+                                        </div>
+                                      </div>
                                       <span className={`parent-status-badge ${
                                         installment.status === 'PAID' ? 'parent-status-approved' :
                                         installment.status === 'PENDING' ? 'parent-status-pending' :
@@ -797,28 +794,28 @@ export default function ChildDetail() {
                                         {installment.status}
                                       </span>
                                     </div>
-                                    <div className="d-flex justify-content-between align-items-center text-sm">
-                                      <div className="text-muted">
-                                        Due: {installment.dueDate ? new Date(installment.dueDate).toLocaleDateString() : "N/A"}
-                                      </div>
-                                      <div className="d-flex align-items-center gap-2">
-                                        <span className="fw-semibold text-primary">
-                                          ₹{installment.amount?.toLocaleString()}
-                                        </span>
-                                        {installment.status === 'PENDING' && (
-                                          <button
-                                            className="btn btn-primary btn-sm"
-                                            onClick={() => handlePayInstallment(installment.name)}
-                                          >
-                                            Pay Now
-                                          </button>
+                                    <div className="parent-installment-body">
+                                      <div className="parent-installment-amount">
+                                        <div className="parent-installment-amount-value">₹{installment.amount?.toLocaleString()}</div>
+                                        {installment.paidAt && (
+                                          <div className="parent-installment-meta">
+                                            Paid on {new Date(installment.paidAt).toLocaleDateString()}
+                                          </div>
                                         )}
                                       </div>
+                                      {installment.status === 'PENDING' && (
+                                        <button
+                                          className="parent-installment-pay-btn"
+                                          onClick={() => handlePayInstallment(installment.name)}
+                                        >
+                                          Pay Now
+                                        </button>
+                                      )}
                                     </div>
                                   </motion.div>
                                 ))}
                               </div>
-                            </FeeCard>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -835,17 +832,17 @@ export default function ChildDetail() {
             custom={2}
             initial="hidden"
             animate="visible"
-            className="mt-4"
+            className="parent-mt-4"
           >
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="parent-btn-outline"
-              onClick={() => navigate("/dashboard/parent/children")}
-            >
-              <FaArrowLeft className="me-2" />
-              Back to Children
-            </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="parent-btn-outline"
+                onClick={() => navigate("/dashboard/parent/children")}
+              >
+                <FaArrowLeft className="parent-me-2" />
+                Back to Children
+              </motion.button>
           </motion.div>
         </div>
       </motion.div>
@@ -906,7 +903,7 @@ function ProfileCard({ title, icon, color, children }) {
     <div className="parent-profile-card">
       <div className="parent-profile-header">
         <h3 className="parent-profile-title">
-          <span className="me-2" style={{ color: 'white', fontSize: '1.1rem' }}>{icon}</span>
+          <span className="parent-parent-me-2" style={{ color: 'white', fontSize: '1.1rem' }}>{icon}</span>
           {title}
         </h3>
       </div>
@@ -929,7 +926,7 @@ function FeeCard({ title, icon, color, children }) {
           <h3 className="parent-fee-title">{title}</h3>
         </div>
       </div>
-      <div className="p-3">
+      <div className="parent-fee-card-body">
         {children}
       </div>
     </div>
