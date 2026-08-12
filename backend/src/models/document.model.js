@@ -72,6 +72,33 @@ const documentSchema = new mongoose.Schema({
   replacedBy: {
     type: String,
   },
+
+  // 📋 Document Verification (admissions workflow)
+  // Tracks College Admin verification of a document separate from lifecycle status.
+  verificationStatus: {
+    type: String,
+    enum: ["PENDING", "VERIFIED", "REJECTED"],
+    default: "PENDING",
+    index: true,
+  },
+  verifiedAt: {
+    type: Date,
+  },
+  verifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  rejectedAt: {
+    type: Date,
+  },
+  rejectedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  rejectionReason: {
+    type: String,
+  },
+
   metadata: {
     type: Map,
     of: mongoose.Schema.Types.Mixed,
@@ -83,6 +110,7 @@ const documentSchema = new mongoose.Schema({
 
 documentSchema.index({ ownerType: 1, ownerId: 1, documentType: 1, status: 1 });
 documentSchema.index({ ownerType: 1, ownerId: 1, status: 1 });
+documentSchema.index({ ownerType: 1, ownerId: 1, verificationStatus: 1 });
 documentSchema.index({ provider: 1, status: 1 });
 
 module.exports = mongoose.model("Document", documentSchema);

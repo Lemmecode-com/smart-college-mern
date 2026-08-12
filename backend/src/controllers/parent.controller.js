@@ -1,4 +1,5 @@
 const Student = require("../models/student.model");
+const User = require("../models/user.model");
 const StudentFee = require("../models/studentFee.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const AttendanceSession = require("../models/attendanceSession.model");
@@ -595,6 +596,115 @@ exports.linkStudentToParent = async (req, res, next) => {
         studentName: student.fullName,
         linkedStudentIds: link.student_ids,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   GET MY PROFILE (Logged-in Parent Guardian)
+   GET /api/parent/my-profile
+   Returns the Parent's own User + ParentGuardian context.
+   Identity is derived from req.user.id (JWT), never from body.
+========================================================= */
+exports.getMyProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id).select(
+      "name email mobileNumber role isActive college_id createdAt",
+    );
+
+    if (!user) {
+      throw new AppError("User account not found", 404, "USER_NOT_FOUND");
+    }
+
+    const studentIds = (req.linkedStudentIds || []).map((id) => id.toString());
+
+    let students = [];
+    if (studentIds.length > 0) {
+      students = await Student.find({ _id: { $in: studentIds } })
+        .select("fullName email enrollmentNumber status course_id department_id")
+        .populate("course_id", "name code")
+        .populate("department_id", "name code")
+        .sort({ fullName: 1 });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          name: user.name,
+          email: user.email,
+          mobileNumber: user.mobileNumber,
+          role: user.role,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+        },
+        parent: {
+          relation: req.parentRelation,
+          linkedStudentIds: studentIds,
+          students,
+        },
+      },
+      message: "Parent profile fetched successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/* =========================================================
+   UPDATE MY PROFILE (Logged-in Parent Guardian)
+   PUT /api/parent/update-my-profile
+   Parents may ONLY edit: User.name, User.mobileNumber
+   email is rejected → 400 EMAIL_CHANGE_NOT_ALLOWED
+   (email must go through the centralized OTP email-change flow)
+========================================================= */
+exports.updateMyProfile = async (req, res, next) => {
+  try {
+    const { name, mobileNumber, email } = req.body;
+
+    if (email !== undefined && email !== null) {
+      throw new AppError(
+        "Email cannot be updated here. Please use the email change flow.",
+        400,
+        "EMAIL_CHANGE_NOT_ALLOWED",
+      );
+    }
+
+    const updateFields = {};
+    if (name !== undefined) updateFields.name = name;
+    if (mobileNumber !== undefined) updateFields.mobileNumber = mobileNumber;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { $set: updateFields },
+      { new: true, runValidators: true },
+    ).select("name email mobileNumber role isActive college_id createdAt");
+
+    if (!updatedUser) {
+      throw new AppError("User account not found", 404, "USER_NOT_FOUND");
+    }
+
+    const studentIds = (req.linkedStudentIds || []).map((id) => id.toString());
+
+    res.json({
+      success: true,
+      data: {
+        user: {
+          name: updatedUser.name,
+          email: updatedUser.email,
+          mobileNumber: updatedUser.mobileNumber,
+          role: updatedUser.role,
+          isActive: updatedUser.isActive,
+          createdAt: updatedUser.createdAt,
+        },
+        parent: {
+          relation: req.parentRelation,
+          linkedStudentIds: studentIds,
+        },
+      },
+      message: "Profile updated successfully",
     });
   } catch (error) {
     next(error);

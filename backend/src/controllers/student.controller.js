@@ -64,7 +64,10 @@ const resolveActiveStudentDocuments = async (student) => {
   const docs = await Document.find({
     documentId: { $in: documentIds },
     status: "ACTIVE",
-  }).select("documentId documentType originalFileName mimeType size uploadedAt storageKey");
+  })
+    .select("documentId documentType originalFileName mimeType size uploadedAt storageKey verificationStatus verifiedAt verifiedBy rejectedAt rejectedBy rejectionReason")
+    .populate("verifiedBy", "name")
+    .populate("rejectedBy", "name");
 
   return docs.reduce((acc, doc) => {
     acc[doc.documentType] = {
@@ -75,6 +78,12 @@ const resolveActiveStudentDocuments = async (student) => {
       size: doc.size,
       uploadedAt: doc.uploadedAt,
       downloadUrl: `/api/documents/${doc.documentId}/download`,
+      verificationStatus: doc.verificationStatus || "PENDING",
+      verifiedAt: doc.verifiedAt || null,
+      verifiedBy: doc.verifiedBy ? { id: doc.verifiedBy._id, name: doc.verifiedBy.name } : null,
+      rejectedAt: doc.rejectedAt || null,
+      rejectedBy: doc.rejectedBy ? { id: doc.rejectedBy._id, name: doc.rejectedBy.name } : null,
+      rejectionReason: doc.rejectionReason || null,
     };
     return acc;
   }, {});
