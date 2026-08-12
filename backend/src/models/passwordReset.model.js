@@ -27,6 +27,18 @@ const passwordResetSchema = new mongoose.Schema(
       default: false,
     },
 
+    failedAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    maxAttempts: {
+      type: Number,
+      default: 5,
+      min: 1,
+    },
+
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -61,8 +73,13 @@ passwordResetSchema.methods.isValid = function () {
 };
 
 // Mark OTP as used
-passwordResetSchema.methods.markAsUsed = function () {
+passwordResetSchema.methods.markAsUsed = function (session) {
   this.isUsed = true;
+
+  if (session) {
+    return this.save({ session });
+  }
+
   return this.save();
 };
 
