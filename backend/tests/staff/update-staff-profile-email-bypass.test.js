@@ -204,4 +204,102 @@ describe('Staff Profile — Email Bypass Protection', () => {
     const updatedUser = await User.findById(staffB._id);
     expect(updatedUser.email).toBe(staffB.email);
   });
+
+  it('should reject email update via PUT /api/staff/profile/:userId', async () => {
+    const college = await createCollege({ code: 'STAFF-EMAIL-06' });
+    const staffA = await createStaffUser(college._id, 'ACCOUNTANT');
+    await createStaffProfile({
+      user_id: staffA._id,
+      college_id: college._id,
+      mobileNumber: '9999999999',
+      designation: 'Accountant',
+    });
+
+    const staffB = await createStaffUser(college._id, 'ACCOUNTANT');
+    await createStaffProfile({
+      user_id: staffB._id,
+      college_id: college._id,
+      mobileNumber: '8888888888',
+      designation: 'Accountant',
+    });
+
+    const agent = request.agent(app);
+    await agent
+      .post('/api/auth/login')
+      .send({ email: staffA.email, password: 'Test@123' })
+      .expect(200);
+
+    const res = await agent
+      .put(`/api/staff/profile/${staffB._id}`)
+      .send({ name: 'Hacked Name', email: 'hacked.staff-email-06@test.com' })
+      .expect(400);
+
+    expect(res.body.error.code).toBe('EMAIL_CHANGE_NOT_ALLOWED');
+
+    const updatedUser = await User.findById(staffB._id);
+    const updatedProfile = await StaffProfile.findOne({ user_id: staffB._id });
+    expect(updatedUser.email).toBe(staffB.email);
+    expect(updatedProfile.mobileNumber).toBe('8888888888');
+  });
+
+  it('should reject email update via PUT /api/staff/my-profile', async () => {
+    const college = await createCollege({ code: 'STAFF-EMAIL-07' });
+    const staff = await createStaffUser(college._id, 'ACCOUNTANT');
+    await createStaffProfile({
+      user_id: staff._id,
+      college_id: college._id,
+      mobileNumber: '9999999999',
+      designation: 'Accountant',
+    });
+
+    const agent = request.agent(app);
+    await agent
+      .post('/api/auth/login')
+      .send({ email: staff.email, password: 'Test@123' })
+      .expect(200);
+
+    const res = await agent
+      .put('/api/staff/my-profile')
+      .send({ name: 'Hacked Name', email: 'hacked.staff-email-07@test.com' })
+      .expect(400);
+
+    expect(res.body.error.code).toBe('EMAIL_CHANGE_NOT_ALLOWED');
+
+    const updatedUser = await User.findById(staff._id);
+    expect(updatedUser.email).toBe(staff.email);
+  });
+
+  it('should allow valid non-email profile update via PUT /api/staff/my-profile', async () => {
+    const college = await createCollege({ code: 'STAFF-EMAIL-08' });
+    const staff = await createStaffUser(college._id, 'ACCOUNTANT');
+    await createStaffProfile({
+      user_id: staff._id,
+      college_id: college._id,
+      mobileNumber: '9999999999',
+      designation: 'Accountant',
+      address: 'Old Address',
+      city: 'Old City',
+    });
+
+    const agent = request.agent(app);
+    await agent
+      .post('/api/auth/login')
+      .send({ email: staff.email, password: 'Test@123' })
+      .expect(200);
+
+    const res = await agent
+      .put('/api/staff/my-profile')
+      .send({ mobileNumber: '8888888888', designation: 'Senior Accountant', address: 'New Address', city: 'New City' })
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
+
+    const updatedUser = await User.findById(staff._id);
+    const updatedProfile = await StaffProfile.findOne({ user_id: staff._id });
+    expect(updatedUser.email).toBe(staff.email);
+    expect(updatedProfile.mobileNumber).toBe('8888888888');
+    expect(updatedProfile.designation).toBe('Senior Accountant');
+    expect(updatedProfile.address).toBe('New Address');
+    expect(updatedProfile.city).toBe('New City');
+  });
 });
