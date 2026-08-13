@@ -116,7 +116,12 @@ export default function CreateFeeStructure() {
     setSuccess("");
 
     if (!department_id || !course_id || !category || !totalFee) {
-      setError("All fields are required");
+      const missing = [];
+      if (!department_id) missing.push("Department");
+      if (!course_id) missing.push("Course");
+      if (!category) missing.push("Category");
+      if (!totalFee) missing.push("Total Fee");
+      setError(`Please select: ${missing.join(", ")}`);
       return;
     }
 

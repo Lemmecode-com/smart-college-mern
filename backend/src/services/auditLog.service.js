@@ -1,5 +1,6 @@
 const AuditLog = require("../models/auditLog.model");
 const logger = require("../utils/logger");
+const AppError = require("../utils/AppError");
 
 /**
  * Audit Log Service
@@ -766,9 +767,16 @@ class AuditLogService {
     if (userId) query.userId = userId;
 
     if (startDate || endDate) {
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+
+      if (start && end && start > end) {
+        throw new AppError("End date cannot be earlier than start date", 400, "INVALID_DATE_RANGE");
+      }
+
       query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) query.createdAt.$lte = new Date(endDate);
+      if (start) query.createdAt.$gte = start;
+      if (end) query.createdAt.$lte = end;
     }
 
     const skip = (page - 1) * limit;

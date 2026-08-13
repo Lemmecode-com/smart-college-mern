@@ -9,6 +9,7 @@ import {
   FaServer,
   FaLock,
   FaUserSlash,
+  FaCalendarAlt,
 } from "react-icons/fa";
 import { motion as Motion } from "framer-motion";
 

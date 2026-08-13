@@ -52,6 +52,7 @@ export default function AuditLogsViewer() {
   const [resourceFilter, setResourceFilter] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [dateError, setDateError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
 
@@ -61,6 +62,9 @@ export default function AuditLogsViewer() {
 
   // Computed query params
   const queryParams = useMemo(() => {
+    if (startDate && endDate && startDate > endDate) {
+      return null;
+    }
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (collegeFilter) params.set("college_id", collegeFilter);
@@ -91,6 +95,11 @@ export default function AuditLogsViewer() {
   };
 
   useEffect(() => {
+    if (startDate && endDate && startDate > endDate) {
+      setDateError("End date cannot be earlier than start date");
+      return;
+    }
+    setDateError("");
     fetchLogs();
   }, [queryParams]);
 
@@ -323,6 +332,7 @@ export default function AuditLogsViewer() {
                   setResourceFilter("");
                   setStartDate("");
                   setEndDate("");
+                  setDateError("");
                 }}
               >
                 Clear Filters
@@ -331,6 +341,13 @@ export default function AuditLogsViewer() {
           </Row>
         </Card.Body>
       </Card>
+
+      {dateError && (
+        <Alert variant="danger" className="mb-3">
+          <FaExclamationTriangle className="me-2" />
+          {dateError}
+        </Alert>
+      )}
 
       {/* RESULTS SUMMARY */}
       <div className="d-flex justify-content-between align-items-center mb-3">
