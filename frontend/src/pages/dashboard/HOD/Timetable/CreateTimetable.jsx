@@ -690,22 +690,22 @@ export default function CreateTimetable() {
                       )}
                      </FormField>
 
-                    {/* <FormField
-                      icon={<FaLayerGroup />}
-                      label="Division (Optional)"
-                      helperText="e.g., A, B, C — leave blank if not using divisions"
-                    >
-                      <input
-                        type="text"
-                        value={form.division}
-                        onChange={(e) => setForm({ ...form, division: e.target.value.toUpperCase() })}
-                        placeholder="e.g., A"
-                        style={{
-                          ...inputStyle,
-                          borderColor: form.division && error ? BRAND_COLORS.danger.main : '#e2e8f0'
-                        }}
-                      />
-                    </FormField> */}
+                     <FormField
+                       icon={<FaLayerGroup />}
+                       label="Division (Optional)"
+                       helperText="e.g., A, B, C — leave blank if not using divisions"
+                     >
+                       <input
+                         type="text"
+                         value={form.division}
+                         onChange={(e) => setForm({ ...form, division: e.target.value.toUpperCase() })}
+                         placeholder="e.g., A"
+                         style={{
+                           ...inputStyle,
+                           borderColor: form.division && error ? BRAND_COLORS.danger.main : '#e2e8f0'
+                         }}
+                       />
+                     </FormField>
 
                      <motion.button
                       whileHover={{ scale: 1.02 }}
