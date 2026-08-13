@@ -47,12 +47,15 @@ exports.createDepartment = async (req, res) => {
 /* get department by ID */
 exports.getDepartmentById = async (req, res) => {
   const department = await Department.findOne({
-    _id: req.params.id,
-    college_id: req.college_id
+    _id: req.params.id
   }).populate('hod_id', 'name email');
 
   if (!department) {
     return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
+  }
+
+  if (department.college_id.toString() !== req.college_id.toString()) {
+    return ApiResponse.error(res, "Access denied. You do not have permission to view this department.", "ACCESS_DENIED", 403);
   }
 
   ApiResponse.success(res, { department }, "Department fetched successfully");
