@@ -293,16 +293,13 @@ export default function NavbarComponent({
   const markAsRead = async (id) => {
     setMarkingRead(id);
     try {
-      // Use correct endpoint parameter name: notificationId
       await api.post(`/notifications/${id}/mark-read`);
 
-      // Optimistic update - remove from list immediately
       setNotes((prev) => prev.filter((n) => n._id !== id));
+      setCount((prev) => Math.max(0, prev - 1));
 
-      // Update count in background
       fetchCount();
 
-      // Show success feedback
       setToast("✅ Notification marked as read");
       setTimeout(() => setToast(null), 2000);
     } catch (err) {
@@ -616,7 +613,7 @@ export default function NavbarComponent({
           <Nav className="nav-items-gap navbar-right-group d-flex align-items-center flex-row">
             {user.role !== "SUPER_ADMIN" && (
               <>
-                {/* BELL NOTIFICATION - Clickable Icon with Dropdown */}
+                {/* BELL NOTIFICATION - Opens dropdown panel */}
                 <Dropdown
                   show={notifOpen}
               onToggle={(isOpen) => {
@@ -629,26 +626,26 @@ export default function NavbarComponent({
               }}
               align="end"
             >
-              <div
-                ref={notifTriggerRef}
-                className="navbar-icon-button notification-bell"
-                role="button"
-                aria-label="Notifications"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setNotifOpen(!notifOpen);
-                  if (!notifOpen) fetchNotes();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
+                <div
+                 ref={notifTriggerRef}
+                 className="navbar-icon-button notification-bell"
+                 role="button"
+                 aria-label="Notifications"
+                 tabIndex={0}
+                  onClick={(e) => {
                     e.preventDefault();
-                    setNotifOpen((prev) => !prev);
+                    e.stopPropagation();
+                    setNotifOpen(!notifOpen);
                     if (!notifOpen) fetchNotes();
-                  }
-                }}
-              >
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setNotifOpen((prev) => !prev);
+                      if (!notifOpen) fetchNotes();
+                    }
+                  }}
+               >
                 <FaBell
                   size={isMobile ? 18 : 20}
                   className={notifOpen ? "text-primary" : "text-secondary"}
@@ -714,6 +711,12 @@ export default function NavbarComponent({
                         key={n._id}
                         className="notification-card"
                         role="menuitem"
+                        onClick={async () => {
+                          setNotifOpen(false);
+                          await markAsRead(n._id);
+                          navigate(`/notification/view/${n._id}`);
+                        }}
+                        style={{ cursor: "pointer" }}
                       >
                         <div className="d-flex justify-content-between align-items-start gap-2">
                           <strong className="notification-card-title flex-grow-1">
@@ -740,7 +743,10 @@ export default function NavbarComponent({
                           )}
                           <button
                             className="notification-mark-read-btn ms-auto"
-                            onClick={() => markAsRead(n._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markAsRead(n._id);
+                            }}
                             disabled={markingRead === n._id}
                             aria-label={`Mark ${n.title} as read`}
                             title="Mark as read"
