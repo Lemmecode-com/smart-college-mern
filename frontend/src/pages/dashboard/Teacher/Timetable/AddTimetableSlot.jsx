@@ -501,12 +501,20 @@ export default function AddTimetableSlot() {
                       <select
                         name="timetable_id"
                         value={form.timetable_id}
-                         onChange={(e) => {
-                           handleChange(e);
-                           if (e.target.name === "timetable_id") {
-                             setForm(prev => ({ ...prev, subject_id: "", teacher_id: "" }));
-                           }
-                         }}
+                          onChange={(e) => {
+                            handleChange(e);
+                            if (e.target.name === "timetable_id") {
+                              const selectedTimetable = timetables.find(
+                                (t) => t._id === e.target.value
+                              );
+                              setForm((prev) => ({
+                                ...prev,
+                                subject_id: "",
+                                teacher_id: "",
+                                division: selectedTimetable?.division || "",
+                              }));
+                            }
+                          }}
                          style={{
                            width: '100%',
                            padding: '0.875rem 1.25rem',
