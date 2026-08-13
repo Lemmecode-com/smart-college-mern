@@ -112,6 +112,8 @@ exports.addSlot = async (req, res, next) => {
       );
     }
 
+    const slotDivision = division || timetable.division || null;
+
     /* ================= TIMETABLE TIME CONFLICT ================= */
     const timeConflict = await TimetableSlot.findOne({
       college_id: collegeId,
@@ -164,7 +166,7 @@ exports.addSlot = async (req, res, next) => {
       endTime,
       room,
       slotType,
-      division: division || null,
+      division: slotDivision,
     });
 
     // Invalidate schedule cache so the next student request rebuilds from MongoDB.
@@ -242,6 +244,11 @@ exports.updateSlot = async (req, res, next) => {
       }
     }
 
+    const updateData = { ...req.body };
+    if (!updateData.division && timetable.division) {
+      updateData.division = timetable.division;
+    }
+
     /* ================= SLOT TYPE VALIDATION ================= */
     // Explicit validation so invalid values return a clear HTTP 400
     // instead of relying on the Mongoose enum ValidationError.
@@ -275,10 +282,10 @@ exports.updateSlot = async (req, res, next) => {
       console.log(`✅ Teacher update validated: ${newTeacher.name} is assigned to ${subject.name}`);
     }
 
-    /* STEP 5: Update slot (NO publish restriction now) */
+    /* STEP 6: Update slot (NO publish restriction now) */
     const updatedSlot = await TimetableSlot.findOneAndUpdate(
       { _id: slotId, college_id: req.college_id },
-      req.body,
+      updateData,
       { new: true }
     );
 
