@@ -18,6 +18,7 @@ const {
   getMyFullProfile,
   updateMyProfile,
   updateStudentByAdmin,
+  getValidDivisionsForStudent,
   deleteStudent,
   getApprovedStudents,
   getStudentById,
@@ -154,6 +155,16 @@ router.put(
   validateStudentId,
   validateStudentUpdateByAdmin,
   updateStudentByAdmin,
+);
+
+// 🏛️ ADMIN: Get valid divisions for a student's academic context
+router.get(
+  "/:id/valid-divisions",
+  auth,
+  role("COLLEGE_ADMIN"),
+  collegeMiddleware,
+  validateStudentId,
+  getValidDivisionsForStudent,
 );
 
 // 🏛️ ADMIN: Delete student

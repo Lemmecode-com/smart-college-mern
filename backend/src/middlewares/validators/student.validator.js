@@ -253,6 +253,11 @@ exports.validateStudentUpdateByAdmin = [
     .optional()
     .isIn(['GEN', 'OBC', 'SC', 'ST', 'OTHER']).withMessage('Category must be GEN, OBC, SC, ST, or OTHER'),
 
+  body('division')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 10 }).withMessage('Division must be at most 10 characters'),
+
   body('sscPercentage')
     .optional({ checkFalsy: true })
     .isFloat({ min: 0, max: 100 }).withMessage('SSC percentage must be between 0 and 100'),
