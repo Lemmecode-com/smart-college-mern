@@ -145,7 +145,23 @@ exports.updateFeeStructure = async (req, res, next) => {
       );
     }
 
+    const existingInstallmentsMap = new Map();
+    for (const inst of feeStructure.installments) {
+      existingInstallmentsMap.set(inst._id.toString(), inst);
+    }
+
     for (const inst of installments) {
+      const existingInst = inst._id
+        ? existingInstallmentsMap.get(inst._id.toString())
+        : null;
+
+      if (existingInst) {
+        const oldDueDate = new Date(existingInst.dueDate);
+        if (oldDueDate < new Date()) {
+          continue;
+        }
+      }
+
       if (!validateExpiryDate(inst.dueDate)) {
         throw new AppError(
           "Installment due date cannot be earlier than today",
@@ -156,7 +172,13 @@ exports.updateFeeStructure = async (req, res, next) => {
     }
 
     feeStructure.totalFee = totalFee;
-    feeStructure.installments = installments;
+
+    const installmentsWithOrder = installments.map((i, idx) => ({
+      ...i,
+      order: i.order || idx + 1,
+    }));
+
+    feeStructure.installments = installmentsWithOrder;
 
     await feeStructure.save();
 
