@@ -173,6 +173,17 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
       toast.warning("No students selected");
       return;
     }
+
+    const studentsWithoutDivision = students.filter(
+      (s) => selectedStudents.has(s._id) && !s.division
+    );
+    if (studentsWithoutDivision.length > 0) {
+      toast.warning(
+        `${studentsWithoutDivision.length} selected student(s) do not have a division assigned. Please assign divisions before approving.`,
+      );
+      return;
+    }
+
     setShowBulkApproveModal(true);
   };
 
@@ -626,8 +637,15 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
                             <button
                               className="btn btn-action btn-approve"
                               onClick={() => handleApprove(student._id)}
-                              disabled={processingId === student._id}
-                              title="Approve Student"
+                              disabled={
+                                processingId === student._id ||
+                                !student.division
+                              }
+                              title={
+                                !student.division
+                                  ? "Division not assigned. Please assign a division before approving."
+                                  : "Approve Student"
+                              }
                             >
                               <FaCheck />
                               <span className="btn-text">
