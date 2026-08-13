@@ -4,6 +4,7 @@ const SystemLog = require("../models/systemLog.model");
 const IntegrationHealth = require("../models/integrationHealth.model");
 const College = require("../models/college.model");
 const { v4: uuidv4 } = require("uuid");
+const AppError = require("../utils/AppError");
 
 /**
  * Platform Support Service
@@ -371,9 +372,16 @@ exports.getSystemLogs = async (filters = {}) => {
     ];
   }
   if (startDate || endDate) {
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    if (start && end && start > end) {
+      throw new AppError("End date cannot be earlier than start date", 400, "INVALID_DATE_RANGE");
+    }
+
     query.createdAt = {};
-    if (startDate) query.createdAt.$gte = startDate;
-    if (endDate) query.createdAt.$lte = endDate;
+    if (start) query.createdAt.$gte = start;
+    if (end) query.createdAt.$lte = end;
   }
 
   return await SystemLog.find(query)
