@@ -37,7 +37,9 @@ import {
   FaBolt,
   FaUserCheck,
   FaInfoCircle,
-  FaCopy
+  FaCopy,
+  FaEdit,
+  FaUsers
 } from "react-icons/fa";
 
 /* =========================================================
@@ -385,7 +387,7 @@ export default function ViewStudent() {
   const { user } = useContext(AuthContext);
   const { studentId } = useParams();
   const navigate = useNavigate();
-  const { canEdit } = useRole();
+  const { canEdit, isCollegeAdmin } = useRole();
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -404,6 +406,13 @@ export default function ViewStudent() {
   const [rejectingDocId, setRejectingDocId] = useState(null);
   const [showDocRejectModal, setShowDocRejectModal] = useState(false);
   const [docRejectReason, setDocRejectReason] = useState("");
+
+  // 🎓 Division assignment workflow
+  const [showDivisionModal, setShowDivisionModal] = useState(false);
+  const [validDivisions, setValidDivisions] = useState([]);
+  const [selectedDivision, setSelectedDivision] = useState("");
+  const [assigningDivision, setAssigningDivision] = useState(false);
+  const [loadingDivisions, setLoadingDivisions] = useState(false);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -766,6 +775,53 @@ export default function ViewStudent() {
     }
   }, [studentId, docRejectReason, rejectingDocId, fetchStudent]);
 
+  /* ================= DIVISION ASSIGNMENT HANDLERS ================= */
+  const handleOpenDivisionModal = useCallback(async () => {
+    setShowDivisionModal(true);
+    setSelectedDivision(student?.division || "");
+    setLoadingDivisions(true);
+    try {
+      const res = await api.get(`/students/${studentId}/valid-divisions`);
+      const divisions = Array.isArray(res.data) ? res.data : [];
+      setValidDivisions(divisions);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to load valid divisions");
+      setValidDivisions([]);
+    } finally {
+      setLoadingDivisions(false);
+    }
+  }, [studentId, student?.division]);
+
+  const handleAssignDivision = useCallback(async () => {
+    if (!selectedDivision && selectedDivision !== "") {
+      toast.warning("Please select a division");
+      return;
+    }
+    try {
+      setAssigningDivision(true);
+      const payload = {
+        division: selectedDivision || null,
+      };
+      await api.put(`/students/${studentId}`, payload);
+      toast.success("Division assigned successfully", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      setShowDivisionModal(false);
+      fetchStudent();
+    } catch (err) {
+      const message =
+        err.response?.data?.message || "Failed to assign division";
+      if (err.response?.data?.code === "INVALID_DIVISION") {
+        toast.error(message, { autoClose: 6000 });
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setAssigningDivision(false);
+    }
+  }, [studentId, selectedDivision, fetchStudent]);
+
   /* ================= RENDER GUARDS (after all hooks) ================= */
   if (shouldRedirectLogin) {
     return <Navigate to="/login" replace />;
@@ -1053,6 +1109,15 @@ export default function ViewStudent() {
                 <FaBook className="card-title-icon" />
                 <h3 className="card-title">Academic Information</h3>
               </div>
+              {isCollegeAdmin && (
+                <button
+                  className="btn-assign-division"
+                  onClick={handleOpenDivisionModal}
+                  title="Assign Division"
+                >
+                  <FaEdit /> Assign Division
+                </button>
+              )}
             </div>
             
             <div className="card-body-enterprise">
@@ -1079,6 +1144,12 @@ export default function ViewStudent() {
                 label="Course"
                 value={student.course_id?.name}
                 iconColor={COLORS.success}
+              />
+              <InfoRow
+                icon={<FaUsers />}
+                label="Division"
+                value={student.division || 'Not Assigned'}
+                iconColor={COLORS.warning}
               />
             </div>
           </div>
@@ -1299,6 +1370,81 @@ export default function ViewStudent() {
           />
         }
       />
+
+      {/* ================= DIVISION ASSIGNMENT MODAL ================= */}
+      {showDivisionModal && (
+        <div className="division-modal-overlay" onClick={() => setShowDivisionModal(false)}>
+          <div className="division-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="division-modal-header">
+              <div className="division-modal-title-wrapper">
+                <FaEdit className="division-modal-icon" />
+                <h3 className="division-modal-title">Assign Division</h3>
+              </div>
+              <button
+                className="division-modal-close"
+                onClick={() => setShowDivisionModal(false)}
+                aria-label="Close modal"
+              >
+                ×
+              </button>
+            </div>
+            <div className="division-modal-body">
+              <p className="division-modal-subtitle">
+                Select a valid division for <strong>{student?.fullName}</strong>. 
+                Only divisions matching the student's College, Department, Course, Semester, and Academic Year are shown.
+              </p>
+              {loadingDivisions ? (
+                <div className="division-loading">
+                  <div className="division-spinner" />
+                  <span>Loading valid divisions...</span>
+                </div>
+              ) : (
+                <div className="division-form-group">
+                  <label className="division-label" htmlFor="division-select">
+                    Division
+                  </label>
+                  <select
+                    id="division-select"
+                    className="division-select"
+                    value={selectedDivision}
+                    onChange={(e) => setSelectedDivision(e.target.value)}
+                    disabled={validDivisions.length === 0}
+                  >
+                    <option value="">-- No Division / Remove --</option>
+                    {validDivisions.map((div) => (
+                      <option key={div} value={div}>
+                        Division {div}
+                      </option>
+                    ))}
+                  </select>
+                  {validDivisions.length === 0 && (
+                    <p className="division-warning">
+                      No valid divisions found for this student's academic context.
+                      Ensure a timetable exists for the student's Department, Course, Semester, and Academic Year.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="division-modal-footer">
+              <button
+                className="division-btn-cancel"
+                onClick={() => setShowDivisionModal(false)}
+                disabled={assigningDivision}
+              >
+                Cancel
+              </button>
+              <button
+                className="division-btn-save"
+                onClick={handleAssignDivision}
+                disabled={assigningDivision || loadingDivisions}
+              >
+                {assigningDivision ? "Saving..." : "Save Division"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= DESIGN SYSTEM CSS ================= */}
       <style>
@@ -2300,6 +2446,227 @@ export default function ViewStudent() {
             border: 1px solid #ddd;
             page-break-inside: avoid;
           }
+        }
+
+        /* ================= DIVISION ASSIGNMENT ================= */
+        .btn-assign-division {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.25s ease;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .btn-assign-division:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.4);
+        }
+
+        .division-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 16px;
+        }
+
+        .division-modal {
+          background: #fff;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 520px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+          overflow: hidden;
+          animation: fadeIn 0.2s ease;
+        }
+
+        .division-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.25rem 1.5rem;
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: white;
+        }
+
+        .division-modal-title-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .division-modal-icon {
+          font-size: 1.25rem;
+          color: #3db5e6;
+        }
+
+        .division-modal-title {
+          margin: 0;
+          font-size: 1.125rem;
+          font-weight: 700;
+          font-family: 'Poppins', sans-serif;
+        }
+
+        .division-modal-close {
+          background: transparent;
+          border: none;
+          color: white;
+          font-size: 1.75rem;
+          line-height: 1;
+          cursor: pointer;
+          opacity: 0.8;
+          transition: opacity 0.2s ease;
+        }
+
+        .division-modal-close:hover {
+          opacity: 1;
+        }
+
+        .division-modal-body {
+          padding: 1.5rem;
+        }
+
+        .division-modal-subtitle {
+          margin: 0 0 1.25rem 0;
+          font-size: 0.9375rem;
+          color: #475569;
+          line-height: 1.6;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .division-loading {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1rem;
+          color: #64748b;
+          font-size: 0.9375rem;
+        }
+
+        .division-spinner {
+          width: 20px;
+          height: 20px;
+          border: 2px solid #e2e8f0;
+          border-top-color: #3db5e6;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        .division-form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .division-label {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #0f3a4a;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .division-select {
+          width: 100%;
+          padding: 0.75rem 1rem;
+          border: 2px solid #e2e8f0;
+          border-radius: 10px;
+          font-size: 0.9375rem;
+          font-family: 'Inter', sans-serif;
+          background: white;
+          transition: all 0.2s ease;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 1rem center;
+          padding-right: 2.5rem;
+        }
+
+        .division-select:focus {
+          outline: none;
+          border-color: #3db5e6;
+          box-shadow: 0 0 0 0.25rem rgba(61, 181, 230, 0.15);
+        }
+
+        .division-warning {
+          margin: 0.75rem 0 0 0;
+          padding: 0.75rem 1rem;
+          background: #fff7ed;
+          border: 1px solid #fed7aa;
+          border-radius: 8px;
+          color: #c2410c;
+          font-size: 0.875rem;
+          line-height: 1.5;
+        }
+
+        .division-modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 0.75rem;
+          padding: 1rem 1.5rem;
+          background: #f8fafc;
+          border-top: 1px solid #e2e8f0;
+        }
+
+        .division-btn-cancel {
+          padding: 0.625rem 1.25rem;
+          border: 2px solid #e2e8f0;
+          background: white;
+          color: #475569;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .division-btn-cancel:hover:not(:disabled) {
+          background: #f1f5f9;
+          border-color: #cbd5e1;
+        }
+
+        .division-btn-cancel:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .division-btn-save {
+          padding: 0.625rem 1.25rem;
+          border: none;
+          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+          color: white;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: 'Inter', sans-serif;
+        }
+
+        .division-btn-save:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.4);
+        }
+
+        .division-btn-save:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
         `}
       </style>
