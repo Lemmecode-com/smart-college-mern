@@ -37,6 +37,15 @@ exports.approveStudent = async (req, res, next) => {
       );
     }
 
+    // ✅ Business Rule: Division must be assigned before approval
+    if (!student.division || student.division.toString().trim() === "") {
+      throw new AppError(
+        "Student must have a division assigned before approval. Please assign a division first.",
+        400,
+        "DIVISION_NOT_ASSIGNED",
+      );
+    }
+
     // ✅ FIX: Issue #1 - Ensure student has user_id (create User if missing)
     if (!student.user_id) {
       console.log(
@@ -318,7 +327,17 @@ exports.bulkApproveStudents = async (req, res, next) => {
           continue;
         }
 
-        // ── 2. Ensure student has user_id ──
+        // ── 2. Division must be assigned before approval ──
+        if (!student.division || student.division.toString().trim() === "") {
+          results.failed.push({
+            studentId,
+            fullName: student.fullName,
+            reason: "Division not assigned",
+          });
+          continue;
+        }
+
+        // ── 3. Ensure student has user_id ──
         if (!student.user_id) {
           const existingUser = await User.findOne({ email: student.email });
 

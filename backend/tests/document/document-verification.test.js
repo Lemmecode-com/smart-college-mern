@@ -129,6 +129,7 @@ const buildFixtures = async () => {
     status: "PENDING",
     admissionYear: 2025,
     currentSemester: 1,
+    division: "A",
   });
 
   const docs = {};
@@ -576,6 +577,7 @@ describe("DOC-VERIFY — Student Document Verification Workflow", () => {
       status: "PENDING",
       admissionYear: 2025,
       currentSemester: 1,
+      division: "A",
     });
 
     const agent = request.agent(app);
