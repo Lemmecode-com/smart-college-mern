@@ -930,6 +930,75 @@ exports.updateStudentByAdmin = async (req, res, next) => {
       });
     }
 
+    // 🔐 SCOPE: Validate academic fields belong to the admin's college
+    if (req.body.department_id) {
+      const dept = await Department.findOne({
+        _id: req.body.department_id,
+        college_id: req.college_id,
+      });
+      if (!dept) {
+        return res.status(400).json({
+          message: "Invalid department. Department must belong to your college.",
+          code: "INVALID_DEPARTMENT",
+        });
+      }
+    }
+
+    if (req.body.course_id) {
+      const effectiveDeptId = req.body.department_id || student.department_id;
+      const course = await Course.findOne({
+        _id: req.body.course_id,
+        department_id: effectiveDeptId,
+        college_id: req.college_id,
+      });
+      if (!course) {
+        return res.status(400).json({
+          message:
+            "Invalid course. Course must belong to your college and the selected department.",
+          code: "INVALID_COURSE",
+        });
+      }
+    }
+
+    // 🔐 SCOPE: Validate division is valid for student's academic context
+    if (req.body.division !== undefined) {
+      const divisionValue = req.body.division?.toString().trim() || null;
+
+      if (divisionValue) {
+        // Skip validation if division is not being changed (preserve existing assignments)
+        if (divisionValue === student.division?.toString().trim()) {
+          // No change — keep existing value, no validation needed
+        } else {
+          // Use effective values (new or existing) for context lookup
+          const effectiveDeptId = req.body.department_id || student.department_id;
+          const effectiveCourseId = req.body.course_id || student.course_id;
+          const effectiveSemester = req.body.currentSemester || student.currentSemester;
+          const effectiveAcademicYear =
+            req.body.currentAcademicYear || student.currentAcademicYear;
+
+          const validTimetable = await Timetable.findOne({
+            college_id: student.college_id,
+            department_id: effectiveDeptId,
+            course_id: effectiveCourseId,
+            semester: effectiveSemester,
+            academicYear: effectiveAcademicYear,
+            division: divisionValue,
+            status: { $ne: "ARCHIVED" },
+          });
+
+          if (!validTimetable) {
+            return res.status(400).json({
+              message: `Invalid division "${divisionValue}". Division must be valid for the student's College, Department, Course, Semester, and Academic Year.`,
+              code: "INVALID_DIVISION",
+            });
+          }
+        }
+      } else {
+        // Normalize empty string to null
+        req.body.division = null;
+      }
+    }
+
     // Store old values before update
     const oldStudent = student.toObject();
 
@@ -954,6 +1023,56 @@ exports.updateStudentByAdmin = async (req, res, next) => {
         student,
       },
       "Student updated successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * COLLEGE ADMIN: Get valid divisions for a student's academic context
+ * GET /api/students/:id/valid-divisions
+ */
+exports.getValidDivisionsForStudent = async (req, res, next) => {
+  try {
+    const studentId = req.params.id;
+
+    const student = await Student.findOne({
+      _id: studentId,
+      college_id: req.college_id,
+      status: { $ne: "DELETED" },
+    });
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Get distinct non-null, non-empty divisions from timetables
+    // matching the student's exact academic context
+    const divisions = await Timetable.find({
+      college_id: student.college_id,
+      department_id: student.department_id,
+      course_id: student.course_id,
+      semester: student.currentSemester,
+      academicYear: student.currentAcademicYear,
+      division: { $ne: null, $ne: "" },
+      status: { $ne: "ARCHIVED" },
+    })
+      .distinct("division")
+      .sort();
+
+    // Include student's current division if set (even if no matching timetable exists)
+    // so the admin can preserve an existing assignment
+    const currentDivision = student.division?.toString().trim();
+    if (currentDivision && !divisions.includes(currentDivision)) {
+      divisions.push(currentDivision);
+      divisions.sort();
+    }
+
+    ApiResponse.success(
+      res,
+      { divisions },
+      "Valid divisions fetched successfully",
     );
   } catch (error) {
     next(error);
