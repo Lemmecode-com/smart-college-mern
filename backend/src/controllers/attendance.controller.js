@@ -326,9 +326,27 @@ exports.getAttendanceSessions = async (req, res, next) => {
       .skip(skip)
       .sort({ lectureDate: -1, lectureNumber: -1 });
 
+    // 5.1️⃣ Enrich with live present counts for OPEN sessions
+    const sessionIds = sessions.map((s) => s._id);
+    const presentRecords = await AttendanceRecord.find({
+      session_id: { $in: sessionIds },
+      status: "PRESENT",
+    }).select("session_id");
+
+    const presentMap = {};
+    presentRecords.forEach((r) => {
+      const sid = r.session_id.toString();
+      presentMap[sid] = (presentMap[sid] || 0) + 1;
+    });
+
     // 6️⃣ Return sessions with snapshot info
     const sessionsWithSnapshot = sessions.map((session) => {
       const sessionObj = session.toObject();
+      const sid = session._id.toString();
+
+      if (presentMap[sid] !== undefined) {
+        sessionObj.presentCount = presentMap[sid];
+      }
 
       // Use snapshot data if available (for historical accuracy)
       if (sessionObj.slotSnapshot) {
@@ -533,7 +551,6 @@ exports.markAttendance = async (req, res, next) => {
     }).session(session);
 
     if (!teacher) {
-      await session.abortTransaction();
       throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
@@ -545,7 +562,6 @@ exports.markAttendance = async (req, res, next) => {
     }).session(session);
 
     if (!attendanceSession) {
-      await session.abortTransaction();
       throw new AppError(
         "Session not found or closed",
         404,
@@ -559,7 +575,6 @@ exports.markAttendance = async (req, res, next) => {
     }).session(session);
 
     if (existingRecords.length > 0) {
-      await session.abortTransaction();
       throw new AppError(
         "Attendance already saved. Use Edit option",
         409,
@@ -572,7 +587,6 @@ exports.markAttendance = async (req, res, next) => {
 
     for (let item of attendance) {
       if (!item.student_id || !item.status) {
-        await session.abortTransaction();
         throw new AppError(
           `Invalid attendance data for student: ${item.student_id}`,
           400,
@@ -581,7 +595,6 @@ exports.markAttendance = async (req, res, next) => {
       }
 
       if (!["PRESENT", "ABSENT"].includes(item.status)) {
-        await session.abortTransaction();
         throw new AppError(
           `Invalid status "${item.status}" for student: ${item.student_id}`,
           400,
@@ -658,7 +671,6 @@ exports.editAttendance = async (req, res, next) => {
     const collegeId = req.college_id;
 
     if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
-      await session.abortTransaction();
       throw new AppError(
         "Attendance data is required",
         400,
@@ -673,7 +685,6 @@ exports.editAttendance = async (req, res, next) => {
     }).session(session);
 
     if (!teacher) {
-      await session.abortTransaction();
       throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
@@ -686,7 +697,6 @@ exports.editAttendance = async (req, res, next) => {
     }).session(session);
 
     if (!attendanceSession) {
-      await session.abortTransaction();
       throw new AppError(
         "Session not found or already closed",
         404,
@@ -699,7 +709,6 @@ exports.editAttendance = async (req, res, next) => {
 
     for (const item of attendance) {
       if (!item.student_id || !item.status) {
-        await session.abortTransaction();
         throw new AppError(
           `Invalid attendance data for student: ${item.student_id}`,
           400,
@@ -708,7 +717,6 @@ exports.editAttendance = async (req, res, next) => {
       }
 
       if (!["PRESENT", "ABSENT"].includes(item.status)) {
-        await session.abortTransaction();
         throw new AppError(
           `Invalid status "${item.status}" for student: ${item.student_id}`,
           400,
@@ -875,6 +883,8 @@ exports.closeAttendanceSession = async (req, res) => {
     }
 
     session.totalStudents = students.length;
+    session.presentCount = presentIds.length;
+    session.absentCount = absentees.length;
     session.status = "CLOSED";
     await session.save();
 

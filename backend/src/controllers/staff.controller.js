@@ -621,28 +621,41 @@ exports.updateStaffProfile = async (req, res, next) => {
             403,
             "ROLE_ASSIGN_FORBIDDEN"
           ));
-         }
-       }
+        }
+      }
 
-       // ─── Joining date validation ───
-       if (profileFields.joiningDate && new Date(profileFields.joiningDate) > new Date()) {
-         return next(new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR"));
-       }
+      // ─── Joining date validation ───
+      if (profileFields.joiningDate && new Date(profileFields.joiningDate) > new Date()) {
+        return next(new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR"));
+      }
 
-       if (Object.keys(userFields).length > 0) {
-         await User.findByIdAndUpdate(id, userFields, { session, new: true });
-       }
+      if (Object.keys(userFields).length > 0) {
+        await User.findByIdAndUpdate(id, userFields, { session, new: true });
+      }
 
-       // Update or create staff profile
-       await StaffProfile.findOneAndUpdate(
-         { user_id: id, college_id: req.user.college_id },
-         { ...profileFields, user_id: id, college_id: req.user.college_id },
-         { session, upsert: true, new: true, runValidators: true }
-       );
+      // Update or create staff profile
+      await StaffProfile.findOneAndUpdate(
+        { user_id: id, college_id: req.user.college_id },
+        { ...profileFields, user_id: id, college_id: req.user.college_id },
+        { session, upsert: true, new: true, runValidators: true }
+      );
 
       await session.commitTransaction();
       session.endSession();
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+      throw err;
+    }
 
+    const changedFields = [];
+    ["name", "email", "role", "isActive"].forEach((field) => {
+      if (userFields[field] !== undefined && previousUserFields[field] !== userFields[field]) {
+        changedFields.push(field);
+      }
+    });
+
+    try {
       if (roleChanged) {
         AuditService.logStaffRoleChange(
           req.user,
@@ -677,13 +690,6 @@ exports.updateStaffProfile = async (req, res, next) => {
           })
           .catch((err) => console.error("Security audit log failed:", err.message));
       }
-
-      const changedFields = [];
-      ["name", "email", "role", "isActive"].forEach((field) => {
-        if (userFields[field] !== undefined && previousUserFields[field] !== userFields[field]) {
-          changedFields.push(field);
-        }
-      });
 
       if (changedFields.length > 0) {
         AuditService.logStaffUpdated(req.user, id, user.name, {
@@ -751,16 +757,14 @@ exports.updateStaffProfile = async (req, res, next) => {
           })
           .catch((err) => console.error("Security audit log failed:", err.message));
       }
-
-      res.json({
-        success: true,
-        message: "Staff profile updated successfully",
-      });
     } catch (err) {
-      await session.abortTransaction();
-      session.endSession();
-      throw err;
+      console.error("Post-commit audit/email error:", err.message);
     }
+
+    res.json({
+      success: true,
+      message: "Staff profile updated successfully",
+    });
   } catch (error) {
     next(error);
   }

@@ -8,6 +8,8 @@ const {
   joiningDateValidatorMessage,
   validateAge,
   ageValidatorMessage,
+  validateIndianPincode,
+  pincodeValidatorMessage,
 } = require("../utils/validators");
 
 const teacherSchema = new mongoose.Schema(
@@ -102,6 +104,13 @@ const teacherSchema = new mongoose.Schema(
 
     pincode: {
       type: String,
+      validate: {
+        validator: function(v) {
+          if (!v) return true;
+          return validateIndianPincode(v);
+        },
+        message: pincodeValidatorMessage
+      }
     },
 
     // Professional Details
