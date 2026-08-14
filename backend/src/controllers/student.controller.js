@@ -962,11 +962,11 @@ exports.updateStudentByAdmin = async (req, res, next) => {
 
     // 🔐 SCOPE: Validate division is valid for student's academic context
     if (req.body.division !== undefined) {
-      const divisionValue = req.body.division?.toString().trim() || null;
+      const divisionValue = req.body.division?.toString().trim().toUpperCase() || null;
 
       if (divisionValue) {
         // Skip validation if division is not being changed (preserve existing assignments)
-        if (divisionValue === student.division?.toString().trim()) {
+        if (divisionValue === (student.division?.toString().trim().toUpperCase() || null)) {
           // No change — keep existing value, no validation needed
         } else {
           // Use effective values (new or existing) for context lookup
@@ -1063,7 +1063,7 @@ exports.getValidDivisionsForStudent = async (req, res, next) => {
 
     // Include student's current division if set (even if no matching timetable exists)
     // so the admin can preserve an existing assignment
-    const currentDivision = student.division?.toString().trim();
+    const currentDivision = student.division?.toString().trim().toUpperCase() || null;
     if (currentDivision && !divisions.includes(currentDivision)) {
       divisions.push(currentDivision);
       divisions.sort();

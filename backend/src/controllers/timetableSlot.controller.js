@@ -27,6 +27,8 @@ exports.addSlot = async (req, res, next) => {
       division,
     } = req.body;
 
+    const normalizedSlotDivision = division?.trim().toUpperCase() || null;
+
     const collegeId = req.college_id;
 
     /* ================= REQUIRED FIELDS ================= */
@@ -104,15 +106,15 @@ exports.addSlot = async (req, res, next) => {
     console.log(`✅ Teacher validation passed: ${teacher.name} is assigned to ${subject.name}`);
 
     /* ================= DIVISION CONSISTENCY CHECK ================= */
-    if (division && timetable.division && division !== timetable.division) {
+    if (normalizedSlotDivision && timetable.division && normalizedSlotDivision !== timetable.division) {
       throw new AppError(
-        `Slot division "${division}" does not match timetable division "${timetable.division}"`,
+        `Slot division "${normalizedSlotDivision}" does not match timetable division "${timetable.division}"`,
         400,
         "DIVISION_MISMATCH",
       );
     }
 
-    const slotDivision = division || timetable.division || null;
+    const slotDivision = normalizedSlotDivision || timetable.division || null;
 
     /* ================= TIMETABLE TIME CONFLICT ================= */
     const timeConflict = await TimetableSlot.findOne({
@@ -235,9 +237,10 @@ exports.updateSlot = async (req, res, next) => {
 
     /* STEP 5: If division is being updated, validate it matches timetable's division */
     if (req.body.division !== undefined && timetable.division) {
-      if (req.body.division && req.body.division !== timetable.division) {
+      const normalizedReqDivision = req.body.division?.trim().toUpperCase() || null;
+      if (normalizedReqDivision && normalizedReqDivision !== timetable.division) {
         throw new AppError(
-          `Slot division "${req.body.division}" does not match timetable division "${timetable.division}"`,
+          `Slot division "${normalizedReqDivision}" does not match timetable division "${timetable.division}"`,
           400,
           "DIVISION_MISMATCH",
         );
