@@ -1,12 +1,14 @@
 const { body, validationResult } = require("express-validator");
-const { validateEmail, validatePassword, passwordValidationMessage, validateJoiningDate, joiningDateValidatorMessage } = require("../../utils/validators");
+const { validateEmail, validatePassword, passwordValidationMessage, validateJoiningDate, joiningDateValidatorMessage, validateIndianMobile, mobileValidatorMessage, validateIndianPincode, pincodeValidatorMessage } = require("../../utils/validators");
 
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.error("Validation Errors:", errors.array());
+    const errorMessages = errors.array().map((err) => err.msg);
     return res.status(400).json({
       success: false,
+      message: errorMessages[0] || "Validation failed",
       errors: errors.array().map((err) => ({
         field: err.path,
         message: err.msg,
@@ -45,13 +47,38 @@ exports.validateStaffCreation = [
 
   body("mobileNumber")
     .optional({ checkFalsy: true })
-    .matches(/^[6-9]\d{9}$/).withMessage("Invalid 10-digit mobile number"),
+    .custom((value) => {
+      if (!value) return true;
+      if (!/^\d+$/.test(value)) {
+        throw new Error("Mobile number must contain only digits");
+      }
+      if (value.length !== 10) {
+        throw new Error("Mobile number must be exactly 10 digits");
+      }
+      if (!/^[6-9]/.test(value)) {
+        throw new Error("Mobile number must start with 6, 7, 8, or 9");
+      }
+      return true;
+    }),
 
   body("joiningDate")
     .optional({ checkFalsy: true })
     .custom((value) => {
       if (!validateJoiningDate(value)) {
         throw new Error(joiningDateValidatorMessage);
+      }
+      return true;
+    }),
+
+  body("pincode")
+    .optional({ checkFalsy: true })
+    .custom((value) => {
+      if (!value) return true;
+      if (!/^\d+$/.test(value)) {
+        throw new Error("Pincode must contain only digits");
+      }
+      if (value.length !== 6) {
+        throw new Error("Pincode must be exactly 6 digits");
       }
       return true;
     }),

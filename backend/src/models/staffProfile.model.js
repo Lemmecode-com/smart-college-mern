@@ -4,6 +4,10 @@ const {
   joiningDateValidatorMessage,
   validateAge,
   ageValidatorMessage,
+  validateIndianMobile,
+  mobileValidatorMessage,
+  validateIndianPincode,
+  pincodeValidatorMessage,
 } = require("../utils/validators");
 
 const staffProfileSchema = new mongoose.Schema({
@@ -20,7 +24,17 @@ const staffProfileSchema = new mongoose.Schema({
   },
   // Common fields for all staff
   designation: { type: String, default: "" },
-  mobileNumber: { type: String, default: "" },
+  mobileNumber: {
+    type: String,
+    default: "",
+    validate: {
+      validator: function(v) {
+        if (!v) return true;
+        return validateIndianMobile(v);
+      },
+      message: mobileValidatorMessage
+    }
+  },
   employmentType: {
     type: String,
     enum: ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERN"],
@@ -53,7 +67,17 @@ const staffProfileSchema = new mongoose.Schema({
   address: { type: String, default: "" },
   city: { type: String, default: "" },
   state: { type: String, default: "" },
-  pincode: { type: String, default: "" },
+  pincode: {
+    type: String,
+    default: "",
+    validate: {
+      validator: function(v) {
+        if (!v) return true;
+        return validateIndianPincode(v);
+      },
+      message: pincodeValidatorMessage
+    }
+  },
   // Emergency contact
   emergencyContactName: { type: String, default: "" },
   emergencyContactPhone: { type: String, default: "" },
