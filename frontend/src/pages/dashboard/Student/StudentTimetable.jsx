@@ -88,17 +88,8 @@ export const DAY_MAP = {
   6: "SAT",
 };
 
-const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const DAY_NAMES = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
-const ALL_DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-const DAY_NAMES_FULL = [
   "Monday",
   "Tuesday",
   "Wednesday",
@@ -107,6 +98,8 @@ const DAY_NAMES_FULL = [
   "Saturday",
   "Sunday",
 ];
+const ALL_DAYS = DAYS;
+const DAY_NAMES_FULL = DAY_NAMES;
 
 // Validation helper function
 const validateTimetableSlot = (slot) => {
