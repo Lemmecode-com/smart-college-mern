@@ -1,271 +1,3 @@
-
-// const BRAND_COLORS = {
-//   primary: { main: "#1a4b6d", gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)" },
-//   success: { main: "#28a745", gradient: "linear-gradient(135deg, #28a745 0%, #218838 100%)" },
-//   info: { main: "#17a2b8", gradient: "linear-gradient(135deg, #17a2b8 0%, #138496 100%)" },
-//   warning: { main: "#ffc107", gradient: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)" },
-// };
-
-
-
-// export default function ViewStaffProfile() {
-//   const { userId } = useParams();
-//   const { user: currentUser } = useContext(AuthContext);
-//   const navigate = useNavigate();
-
-//   // If no userId param, use current user's ID (self route)
-//   const actualUserId = userId || currentUser?.id;
-
-//   const [profile, setProfile] = useState(null);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
-
-//   const canEdit = useMemo(() => {
-//     if (!currentUser || !profile) return false;
-//     const isSelf = currentUser.id === profile.user_id?._id?.toString();
-//     const isCollegeAdmin = currentUser.role === "COLLEGE_ADMIN";
-//     return isSelf || isCollegeAdmin;
-//   }, [currentUser, profile]);
-
-//   useEffect(() => {
-//     const fetchProfile = async () => {
-//       try {
-//         console.log("[ViewStaffProfile] Fetching profile for userId:", actualUserId);
-//         setLoading(true);
-//         const res = await api.get(`/staff/profile/${actualUserId}`);
-//         console.log("[ViewStaffProfile] API response:", res.data);
-//         setProfile(res.data.data || res.data);
-//       } catch (err) {
-//         console.error("[ViewStaffProfile] API error:", err);
-//         setError(err.response?.data?.message || "Failed to load profile");
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-//     if (actualUserId) fetchProfile();
-//   }, [actualUserId]);
-
-//   if (loading) return <Loading />;
-//   if (error) return <div className="text-center text-danger p-4">{error}</div>;
-//   if (!profile) return <div className="text-center p-4">Profile not found</div>;
-
-//   const personalFields = [
-//     { icon: FaPhone, label: "Mobile", value: profile.mobileNumber || "-" },
-//     { icon: FaBriefcase, label: "Designation", value: profile.designation || "-" },
-//     { icon: FaBuilding, label: "Employment Type", value: profile.employmentType?.replace("_", " ") },
-//     { icon: FaCalendarAlt, label: "Joining Date", value: profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : "-" },
-//     { icon: FaUser, label: "Gender", value: profile.gender || "-" },
-//     { icon: FaBirthdayCake, label: "Date of Birth", value: profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : "-" },
-//     { icon: FaIdCard, label: "Blood Group", value: profile.bloodGroup || "-" },
-//     { icon: FaMapMarkerAlt, label: "Address", value: profile.address || "-" },
-//   ];
-
-//   const emergencyFields = [
-//     { label: "Emergency Contact", value: profile.emergencyContactName || "-", sub: profile.emergencyRelation ? ` (${profile.emergencyRelation})` : "" },
-//     { label: "Emergency Phone", value: profile.emergencyContactPhone || "-" },
-//   ];
-
-//   return (
-//     <div className="dashboard-wrapper">
-//       <Container fluid className="py-4">
-//         {/* Header */}
-//         <Row className="mb-4">
-//             <Col>
-//               <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-//                 <div style={{
-//                   width: 80, height: 80, borderRadius: "50%",
-//                   background: BRAND_COLORS.primary.gradient,
-//                   display: "flex", alignItems: "center", justifyContent: "center",
-//                   color: "white", fontSize: "2rem"
-//                 }}>
-//                   <FaUser />
-//                 </div>
-//                 <div>
-//                   <h2 style={{ color: BRAND_COLORS.primary.main, margin: 0 }}>
-//                     {profile.user_id?.name || "Unnamed Staff"}
-//                   </h2>
-//                   <p className="text-muted mb-0">
-//                     {profile.user_id?.role?.replace("_", " ")} • {profile.college_id?.name || "Unknown College"}
-//                   </p>
-//                   <p className="text-muted mb-0"><small>ID: {userId}</small></p>
-//                 </div>
-//               </div>
-//             </Col>
-//             <Col xs="auto">
-//               {canEdit && (
-//                 <Button
-//                   variant="primary"
-//                   onClick={() => navigate(`/staff/profile/edit/${userId}`)}
-//                   style={{
-//                     background: BRAND_COLORS.primary.gradient,
-//                     border: "none",
-//                     padding: "0.75rem 1.5rem",
-//                   }}
-//                 >
-//                   Edit Profile
-//                 </Button>
-//               )}
-//             </Col>
-//           </Row>
-
-//         {/* Staff Info Cards */}
-//         <Row className="g-4">
-//           {personalFields.map((field, i) => (
-//             <Col md={6} lg={4} key={i}>
-//               <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
-//                 <Card.Body>
-//                   <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-//                     <div style={{
-//                       width: 48, height: 48, borderRadius: "0.75rem",
-//                       background: BRAND_COLORS.info.gradient,
-//                       display: "flex", alignItems: "center", justifyContent: "center", color: "white"
-//                     }}>
-//                       <field.icon size={20} />
-//                     </div>
-//         <div className="card-content">
-//                       <div className="text-muted" style={{ fontSize: "0.85rem" }}>{field.label}</div>
-//                       <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
-//                         {field.value}
-//                       </div>
-//                     </div>
-//                   </div>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-//           ))}
-
-//           {/* Qualification & Experience */}
-//           <Col md={6} lg={4}>
-//             <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
-//               <Card.Body>
-//                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-//                   <div style={{
-//                     width: 48, height: 48, borderRadius: "0.75rem",
-//                     background: BRAND_COLORS.warning.gradient,
-//                     display: "flex", alignItems: "center", justifyContent: "center", color: "white"
-//                   }}>
-//                     <FaGraduationCap size={20} />
-//                   </div>
-//                   <div className="card-content">
-//                     <div className="text-muted" style={{ fontSize: "0.85rem" }}>Qualification</div>
-//                     <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
-//                       {profile.qualification || "-"}
-//                     </div>
-//                     <div className="text-muted" style={{ fontSize: "0.85rem" }}>Experience: {profile.experienceYears || 0} yrs</div>
-//                   </div>
-//                 </div>
-//               </Card.Body>
-//             </Card>
-//           </Col>
-
-//           {/* Emergency Contact */}
-//           <Col md={6} lg={4}>
-//             <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
-//               <Card.Body>
-//                 <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
-//                   <div style={{
-//                     width: 48, height: 48, borderRadius: "0.75rem",
-//                     background: BRAND_COLORS.warning.gradient,
-//                     display: "flex", alignItems: "center", justifyContent: "center", color: "white"
-//                   }}>
-//                     <FaUsers size={20} />
-//                   </div>
-//                   <div className="card-content" style={{ flex: 1 }}>
-//                     <div className="text-muted" style={{ fontSize: "0.85rem" }}>Emergency Contact</div>
-//                     <div className="fw-bold mb-1" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
-//                       {emergencyFields[0].value}
-//                       <small className="text-muted">{emergencyFields[0].sub}</small>
-//                     </div>
-//                     <div className="fw-medium" style={{ fontSize: "0.95rem" }}>
-//                       {emergencyFields[1].value}
-//                     </div>
-//                   </div>
-//                 </div>
-//               </Card.Body>
-//             </Card>
-//           </Col>
-
-//           {/* Location */}
-//           <Col md={6} lg={4}>
-//             <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
-//               <Card.Body>
-//                 <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
-//                   <div style={{
-//                     width: 48, height: 48, borderRadius: "0.75rem",
-//                     background: BRAND_COLORS.success.gradient,
-//                     display: "flex", alignItems: "center", justifyContent: "center", color: "white"
-//                   }}>
-//                     <FaMapMarkerAlt size={20} />
-//                   </div>
-//                   <div className="card-content" style={{ flex: 1 }}>
-//                     <div className="text-muted" style={{ fontSize: "0.85rem" }}>Address</div>
-//                     <div className="fw-medium" style={{ fontSize: "1rem", lineHeight: 1.5 }}>
-//                       {profile.address || "-"} <br />
-//                       {profile.city || ""} {profile.state || ""} {profile.pincode || ""}
-//                     </div>
-//                   </div>
-//                 </div>
-//               </Card.Body>
-//             </Card>
-//           </Col>
-
-//           {/* College */}
-//           <Col md={6} lg={4}>
-//             <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
-//               <Card.Body>
-//                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-//                   <div style={{
-//                     width: 48, height: 48, borderRadius: "0.75rem",
-//                     background: BRAND_COLORS.primary.gradient,
-//                     display: "flex", alignItems: "center", justifyContent: "center", color: "white"
-//                   }}>
-//                     <FaBuilding size={20} />
-//                   </div>
-//                     <div className="card-content">
-//                       <div className="text-muted" style={{ fontSize: "0.85rem" }}>{field.label}</div>
-//                       <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
-//                         {field.value}
-//                       </div>
-//                     </div>
-//                     <div className="text-muted" style={{ fontSize: "0.8rem" }}>
-//                       {profile.college_id?.code || ""}
-//                     </div>
-//                   </div>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-
-//           {/* User Status */}
-//           <Col md={6} lg={4}>
-//             <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
-//               <Card.Body>
-//                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-//                   <div style={{
-//                     width: 48, height: 48, borderRadius: "0.75rem",
-//                     background: profile.user_id?.isActive ? BRAND_COLORS.success.gradient : "#6c757d",
-//                     display: "flex", alignItems: "center", justifyContent: "center", color: "white"
-//                   }}>
-//                     <FaCheckCircle size={20} />
-//                   </div>
-//                   <div className="card-content">
-//                     <div className="text-muted" style={{ fontSize: "0.85rem" }}>Account Status</div>
-//                     <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
-//                       {profile.user_id?.isActive ? "Active" : "Inactive"}
-//                     </div>
-//                     {profile.user_id?.mustChangePassword && (
-//                       <Badge bg="warning" className="mt-1">Password change required</Badge>
-//                     )}
-//                   </div>
-//                 </Card.Body>
-//               </Card>
-//             </Col>
-//         </Row>
-//       </Container>
-//     </div>
-//   );
-// }
-
-
 import React, { useState, useEffect, useMemo, useContext, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
@@ -277,6 +9,7 @@ import { Container, Row, Col, Card, Badge, Button } from "react-bootstrap";
 import {
   FaUser,
   FaPhone,
+  FaEnvelope,
   FaMapMarkerAlt,
   FaBirthdayCake,
   FaBriefcase,
@@ -286,6 +19,8 @@ import {
   FaUsers,
   FaGraduationCap,
   FaCheckCircle,
+  FaHome,
+  FaArrowLeft,
 } from "react-icons/fa";
 import "./ViewStaffProfile.css";
 
@@ -294,6 +29,40 @@ const BRAND_COLORS = {
   success: { main: "#28a745", gradient: "linear-gradient(135deg, #28a745 0%, #218838 100%)" },
   info: { main: "#17a2b8", gradient: "linear-gradient(135deg, #17a2b8 0%, #138496 100%)" },
   warning: { main: "#ffc107", gradient: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)" },
+};
+
+const ROLE_LABELS = {
+  SUPER_ADMIN: "System Administrator",
+  COLLEGE_ADMIN: "College Administrator",
+  PRINCIPAL: "Principal",
+  HOD: "Head of Department",
+  TEACHER: "Teacher",
+  ACCOUNTANT: "Accountant",
+  ADMISSION_OFFICER: "Admission Officer",
+  EXAM_COORDINATOR: "Exam Coordinator",
+  PLATFORM_SUPPORT: "Platform Support",
+};
+
+const formatRole = (role) => {
+  if (!role) return "Staff";
+  return ROLE_LABELS[role] || role.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return null;
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const getValue = (profile, field) => {
+  const value = profile[field];
+  if (value === undefined || value === null || value === "") return null;
+  return value;
 };
 
 export default function ViewStaffProfile() {
@@ -320,7 +89,8 @@ export default function ViewStaffProfile() {
 
   const canEdit = useMemo(() => {
     if (!currentUser || !profile) return false;
-    const isSelf = currentUser.id === profile.user_id?._id?.toString();
+    const profileUserId = profile.user_id?._id || profile.id;
+    const isSelf = currentUser.id === profileUserId?.toString();
     const isCollegeAdmin = currentUser.role === "COLLEGE_ADMIN";
     return isSelf || isCollegeAdmin;
   }, [currentUser, profile]);
@@ -368,21 +138,34 @@ export default function ViewStaffProfile() {
   );
   if (!profile) return <div className="text-center p-4">Profile not found</div>;
 
-  const personalFields = [
-    { icon: FaPhone, label: "Mobile", value: profile.mobileNumber || "-" },
-    { icon: FaBriefcase, label: "Designation", value: profile.designation || "-" },
-    { icon: FaBuilding, label: "Employment Type", value: profile.employmentType?.replace("_", " ") || "-" },
-    { icon: FaCalendarAlt, label: "Joining Date", value: profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : "-" },
-    { icon: FaUser, label: "Gender", value: profile.gender || "-" },
-    { icon: FaBirthdayCake, label: "Date of Birth", value: profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : "-" },
-    { icon: FaIdCard, label: "Blood Group", value: profile.bloodGroup || "-" },
-    { icon: FaMapMarkerAlt, label: "Address", value: profile.address || "-" },
-  ];
+  const profileUserId = profile.user_id || {};
+  const userName = profileUserId.name || "Unnamed Staff";
+  const userEmail = getValue(profileUserId, "email") || getValue(profile, "email") || "Not Provided";
+  const userRole = formatRole(profileUserId.role || profile.role);
+  const collegeName = profile.college_id?.name || getValue(profile, "collegeName") || "Unknown College";
+  const collegeCode = profile.college_id?.code || getValue(profile, "collegeCode") || "";
+  const isActive = profileUserId.isActive !== undefined ? profileUserId.isActive : profile.isActive;
+  const statusLabel = isActive ? "Active" : "Inactive";
+  const statusVariant = isActive ? "success" : "secondary";
 
-  const emergencyFields = [
-    { label: "Emergency Contact", value: profile.emergencyContactName || "-", sub: profile.emergencyRelation ? ` (${profile.emergencyRelation})` : "" },
-    { label: "Emergency Phone", value: profile.emergencyContactPhone || "-" },
-  ];
+  const mobileNumber = getValue(profile, "mobileNumber") || "Not Provided";
+  const designation = getValue(profile, "designation") || "Not Provided";
+  const employmentType = getValue(profile, "employmentType") || "Not Provided";
+  const joiningDate = formatDate(getValue(profile, "joiningDate"));
+  const gender = getValue(profile, "gender") || "Not Provided";
+  const dateOfBirth = formatDate(getValue(profile, "dateOfBirth"));
+  const bloodGroup = getValue(profile, "bloodGroup") || "Not Provided";
+  const qualification = getValue(profile, "qualification") || "Not Provided";
+  const experienceYears = getValue(profile, "experienceYears");
+  const experienceText = experienceYears !== null ? `${experienceYears} yrs` : "Not Provided";
+
+  const addressParts = [getValue(profile, "address"), getValue(profile, "city"), getValue(profile, "state"), getValue(profile, "pincode")].filter(Boolean);
+  const fullAddress = addressParts.length > 0 ? addressParts.join(", ") : "Not Provided";
+
+  const emergencyContactName = getValue(profile, "emergencyContactName") || "Not Provided";
+  const emergencyContactPhone = getValue(profile, "emergencyContactPhone");
+  const emergencyRelation = getValue(profile, "emergencyRelation");
+  const emergencySub = emergencyContactPhone ? `${emergencyContactPhone}${emergencyRelation ? ` (${emergencyRelation})` : ""}` : "";
 
   return (
     <div className="dashboard-wrapper erp-viewport-min-100">
@@ -407,144 +190,312 @@ export default function ViewStaffProfile() {
               </div>
               <div>
                 <h2 style={{ color: BRAND_COLORS.primary.main, margin: 0 }}>
-                  {profile.user_id?.name || "Unnamed Staff"}
+                  {userName}
                 </h2>
                 <p className="text-muted mb-0">
-                  {profile.user_id?.role?.replace("_", " ")} • {profile.college_id?.name || "Unknown College"}
+                  {userRole} • {collegeName}
+                  {collegeCode && <span className="text-muted"> ({collegeCode})</span>}
                 </p>
-                <p className="text-muted mb-0">
-                  <small>ID: {actualUserId}</small>
-                </p>
+                <Badge bg={statusVariant} className="mt-1">
+                  <FaCheckCircle size={12} className="me-1" />
+                  {statusLabel}
+                </Badge>
               </div>
             </div>
           </Col>
 
           <Col xs="auto">
-            {canEdit && (
-              <Button
-                variant="primary"
-                onClick={() => navigate(`/staff/profile/edit/${actualUserId}`)}
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+              <button
+                onClick={() => navigate("/college/staff")}
                 style={{
-                  background: BRAND_COLORS.primary.gradient,
+                  background: "none",
                   border: "none",
-                  padding: "0.75rem 1.5rem",
+                  color: BRAND_COLORS.primary.main,
+                  cursor: "pointer",
+                  padding: "0.5rem",
+                  borderRadius: "8px",
+                  transition: "all 0.3s ease",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  fontSize: "1rem",
+                  fontWeight: 500,
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f1f5f9"}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
               >
-                Edit Profile
-              </Button>
-            )}
+                <FaArrowLeft /> Back
+              </button>
+              {canEdit && (
+                <Button
+                  variant="primary"
+                  onClick={() => navigate(`/staff/profile/edit/${actualUserId}`)}
+                  style={{
+                    background: BRAND_COLORS.primary.gradient,
+                    border: "none",
+                    padding: "0.75rem 1.5rem",
+                  }}
+                >
+                  Edit Profile
+                </Button>
+              )}
+            </div>
           </Col>
         </Row>
 
-        {/* Cards */}
-        <Row className="g-4">
-
-          {personalFields.map((field, i) => {
-            return (
-              <Col md={6} lg={4} key={i}>
-                <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
-                  <Card.Body>
-                    <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                      <div style={{
-                        width: 48, height: 48, borderRadius: "0.75rem",
-                        background: BRAND_COLORS.info.gradient,
-                        display: "flex", alignItems: "center", justifyContent: "center", color: "white"
-                      }}>
-                        <field.icon size={20} />
-                      </div>
-                      <div className="card-content">
-                        <div className="text-muted" style={{ fontSize: "0.85rem" }}>{field.label}</div>
-                        <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
-                          {field.value}
-                        </div>
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            );
-          })}
-
-          {/* Qualification */}
+        {/* Personal Information */}
+        <div className="mb-3">
+          <h5 className="text-muted text-uppercase fw-semibold" style={{ letterSpacing: "0.05em", fontSize: "0.85rem" }}>Personal Information</h5>
+        </div>
+        <Row className="g-4 mb-4">
           <Col md={6} lg={4}>
             <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
               <Card.Body>
                 <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                  <div style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "0.75rem",
-                    background: BRAND_COLORS.warning.gradient,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white"
-                  }}>
-                    <FaGraduationCap size={20} />
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.info.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaUser size={20} />
                   </div>
-                  <div className="card-content">
-                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Qualification</div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Gender</div>
                     <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
-                      {profile.qualification || "-"}
-                    </div>
-                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>
-                      Experience: {profile.experienceYears || 0} yrs
+                      {gender}
                     </div>
                   </div>
                 </div>
               </Card.Body>
             </Card>
           </Col>
+          <Col md={6} lg={4}>
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card.Body>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.info.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaBirthdayCake size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Date of Birth</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {dateOfBirth || "Not Provided"}
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={6} lg={4}>
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card.Body>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.info.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaIdCard size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Blood Group</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {bloodGroup}
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={6} lg={4}>
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card.Body>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.info.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaHome size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Address</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {fullAddress}
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
 
-          {/* Emergency — hidden for TEACHER because Teacher model has no emergency contact fields */}
-          {profile.user_id?.role !== "TEACHER" && (
+        {/* Contact Information */}
+        <div className="mb-3">
+          <h5 className="text-muted text-uppercase fw-semibold" style={{ letterSpacing: "0.05em", fontSize: "0.85rem" }}>Contact Information</h5>
+        </div>
+        <Row className="g-4 mb-4">
+          <Col md={6} lg={4}>
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card.Body>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.primary.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaEnvelope size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Email</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {userEmail}
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={6} lg={4}>
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card.Body>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.primary.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaPhone size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Mobile</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {mobileNumber}
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={6} lg={4}>
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card.Body>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.primary.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaUsers size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Emergency Contact</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {emergencyContactName}
+                    </div>
+                    {emergencySub && (
+                      <div className="text-muted" style={{ fontSize: "0.85rem" }}>
+                        {emergencySub}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Professional Information */}
+        <div className="mb-3">
+          <h5 className="text-muted text-uppercase fw-semibold" style={{ letterSpacing: "0.05em", fontSize: "0.85rem" }}>Professional Information</h5>
+        </div>
+        <Row className="g-4 mb-4">
+          <Col md={6} lg={4}>
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card.Body>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaBriefcase size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Designation</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {designation}
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          {profile.department_id?.name && (
             <Col md={6} lg={4}>
               <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
                 <Card.Body>
-                  <div style={{ display: "flex", gap: "1rem" }}>
-                    <FaUsers size={20} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                    <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                      <FaBuilding size={20} />
+                    </div>
                     <div>
-                      <div>{emergencyFields[0].value}{emergencyFields[0].sub}</div>
-                      <div>{emergencyFields[1].value}</div>
+                      <div className="text-muted" style={{ fontSize: "0.85rem" }}>Department</div>
+                      <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                        {profile.department_id.name}
+                      </div>
                     </div>
                   </div>
                 </Card.Body>
               </Card>
             </Col>
           )}
-
-          {/* ✅ FIXED COLLEGE CARD */}
           <Col md={6} lg={4}>
             <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
               <Card.Body>
-                <div style={{ display: "flex", gap: "1rem" }}>
-                  <FaBuilding size={20} />
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaCalendarAlt size={20} />
+                  </div>
                   <div>
-                    <div className="text-muted">College</div>
-                    <div className="fw-bold">
-                      {profile.college_id?.name || "-"}
-                    </div>
-                    <div className="text-muted">
-                      {profile.college_id?.code || ""}
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Joining Date</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {joiningDate || "Not Provided"}
                     </div>
                   </div>
                 </div>
               </Card.Body>
             </Card>
           </Col>
-
-          {/* Status */}
           <Col md={6} lg={4}>
-            <Card className="h-100 border-0 shadow-sm">
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
               <Card.Body>
-                <div>
-                  {profile.user_id?.isActive ? "Active" : "Inactive"}
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaGraduationCap size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Qualification</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {qualification}
+                    </div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>
+                      Experience: {experienceText}
+                    </div>
+                  </div>
                 </div>
               </Card.Body>
             </Card>
           </Col>
-
+          <Col md={6} lg={4}>
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card.Body>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaBuilding size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Employment Type</div>
+                    <div className="fw-bold" style={{ fontSize: "1.1rem", color: "#1a4b6d" }}>
+                      {employmentType}
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={6} lg={4}>
+            <Card className="h-100 border-0 shadow-sm" style={{ borderRadius: "1rem" }}>
+              <Card.Body>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "0.75rem", background: BRAND_COLORS.warning.gradient, display: "flex", alignItems: "center", justifyContent: "center", color: "white" }}>
+                    <FaCheckCircle size={20} />
+                  </div>
+                  <div>
+                    <div className="text-muted" style={{ fontSize: "0.85rem" }}>Status</div>
+                    <Badge bg={statusVariant} className="mt-1">
+                      {statusLabel}
+                    </Badge>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
         </Row>
+
       </Container>
     </div>
   );
