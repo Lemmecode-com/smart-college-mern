@@ -99,7 +99,7 @@ export default function ViewDepartment() {
     email,
     contactNumber,
     establishedYear,
-    hod,
+    hod_id,
     sanctionedFacultyCount,
     sanctionedStudentIntake,
     programsOffered = [],
@@ -180,10 +180,15 @@ export default function ViewDepartment() {
                   <span className="info-label">Contact</span>
                   <span>{email}<br/>{contactNumber}</span>
                 </div>
-                {hod && (
+                {hod_id?.name ? (
                   <div className="info-row">
                     <span className="info-label">Head of Department</span>
-                    <span>{hod.name}<br/><small className="text-muted">{hod.email}</small></span>
+                    <span>{hod_id.name}<br/><small className="text-muted">{hod_id.email}</small></span>
+                  </div>
+                ) : (
+                  <div className="info-row">
+                    <span className="info-label">Head of Department</span>
+                    <span className="text-muted">Not Assigned</span>
                   </div>
                 )}
               </div>
