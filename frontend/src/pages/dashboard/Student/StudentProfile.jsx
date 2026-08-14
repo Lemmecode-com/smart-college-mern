@@ -7,6 +7,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
+import { validateFileObject } from "../../../utils/fileValidation";
 import "react-toastify/dist/ReactToastify.css";
 
 // REPLACE THIS (INVALID):
@@ -86,18 +87,20 @@ export default function StudentProfile() {
       if (!data.student) {
         errors.push("Student information is missing");
       } else {
-        if (!data.student.fullName) errors.push("Student name is missing");
-        if (!data.student.email) errors.push("Student email is missing");
-        if (!data.student.mobileNumber)
-          errors.push("Student mobile number is missing");
-      }
-
-      if (!data.department) errors.push("Department information is missing");
-      if (!data.course) errors.push("Course information is missing");
+      if (!data.student.fullName) errors.push("Student name is missing");
+      if (!data.student.email) errors.push("Student email is missing");
+      if (!data.student.mobileNumber)
+        errors.push("Student mobile number is missing");
     }
 
-    return errors;
-  };
+    if (!data.department && data.department !== null)
+      errors.push("Department information is missing");
+    if (!data.course && data.course !== null)
+      errors.push("Course information is missing");
+  }
+
+  return errors;
+};
 
   /* ================= FETCH PROFILE ================= */
   const fetchProfile = async () => {
@@ -155,8 +158,13 @@ export default function StudentProfile() {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
       const backendMessage = err.response?.data?.message;
+      const errorMessage =
+        err.message ||
+        err?.response?.data?.message ||
+        "Failed to load student profile";
 
       logger.error("Student profile load error:", {
+        message: errorMessage,
         statusCode,
         errorCode,
         backendMessage,
@@ -165,7 +173,7 @@ export default function StudentProfile() {
       });
 
       setError({
-        message: "Failed to load student profile. Please try again.",
+        message: errorMessage,
         statusCode,
         errorCode,
       });
@@ -245,14 +253,33 @@ export default function StudentProfile() {
   };
 
   const handleDocumentUpload = async (docType, documentId, file) => {
-    const MAX_SIZE = 5 * 1024 * 1024;
+    const docConfigItem = documentConfig.find((d) => d.type === docType);
+    const allowedFormats = docConfigItem?.allowedFormats || ["pdf", "jpg", "jpeg", "png"];
+    const fileValidation = validateFileObject(file, allowedFormats);
+
+    if (!fileValidation.valid) {
+      toast.error(
+        `${docConfigItem?.label || docType}: ${fileValidation.error}`,
+        {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaTimesCircle />,
+        },
+      );
+      return;
+    }
+
+    const MAX_SIZE = (docConfigItem?.maxFileSize || 5) * 1024 * 1024;
 
     if (file.size > MAX_SIZE) {
-      toast.error(`File size must be less than 5MB. Uploaded: ${(file.size / (1024 * 1024)).toFixed(1)}MB`, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaTimesCircle />,
-      });
+      toast.error(
+        `${docConfigItem?.label || docType} file size must be less than ${docConfigItem?.maxFileSize || 5}MB. Uploaded: ${(file.size / (1024 * 1024)).toFixed(1)}MB`,
+        {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaTimesCircle />,
+        },
+      );
       return;
     }
 
