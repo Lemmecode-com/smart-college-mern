@@ -39,6 +39,12 @@ exports.createCollege = async (req, res, next) => {
       throw new AppError("College code already exists", 409, "DUPLICATE_CODE");
     }
 
+    // 1.5️⃣ Validate college name - no special characters or emoji
+    const collegeNamePattern = /^[a-zA-Z0-9\s\-.,&()'\/]+$/;
+    if (!collegeNamePattern.test(collegeName)) {
+      throw new AppError("College name contains invalid characters. Only letters, numbers, spaces, and basic punctuation (-.,&'/) are allowed.", 400, "INVALID_COLLEGE_NAME");
+    }
+
     // 2️⃣ Generate Registration URL + QR FIRST
     const { registrationUrl, registrationQr } =
       await generateCollegeQR(collegeCode);
