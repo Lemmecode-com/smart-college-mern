@@ -972,6 +972,21 @@ export const navigationConfig = {
       label: "Dashboard",
     },
     sections: [
+
+      {
+        id: "parent-profile",
+        title: "My Profile",
+        icon: FaUser,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/parent/profile",
+            icon: FaUser,
+            label: "Profile",
+            exact: true,
+          },
+        ],
+      },
       {
         id: "parent-children",
         title: "My Children",
