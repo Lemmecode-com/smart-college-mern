@@ -17,6 +17,7 @@ import {
   FaCalendarAlt,
   FaDownload,
   FaArrowUp,
+  FaArrowDown,
   FaClock,
   FaSyncAlt,
   FaExclamationTriangle,
@@ -223,8 +224,8 @@ export default function SuperAdminReports() {
           <div className="stat-card-footer">
             <div className="stat-footer-item">
               <span className="footer-label">Growth (30d)</span>
-              <span className="footer-value positive">
-                <FaArrowUp /> {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '0%'}
+              <span className={`footer-value ${data.monthlyGrowth > 0 ? 'positive' : data.monthlyGrowth < 0 ? 'negative' : 'neutral'}`}>
+                {data.monthlyGrowth > 0 ? <FaArrowUp /> : data.monthlyGrowth < 0 ? <FaArrowDown /> : null} {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '0%'}
               </span>
             </div>
           </div>
@@ -346,8 +347,8 @@ export default function SuperAdminReports() {
                 data.monthlyAdmissions?.toLocaleString() || 0
               )}
             </div>
-            <div className="stat-trend positive">
-              <FaArrowUp className="trend-icon" />
+            <div className={`stat-trend ${data.monthlyGrowth > 0 ? 'positive' : data.monthlyGrowth < 0 ? 'negative' : 'neutral'}`}>
+              {data.monthlyGrowth > 0 ? <FaArrowUp className="trend-icon" /> : data.monthlyGrowth < 0 ? <FaArrowDown className="trend-icon" /> : null}
               {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '+0%'} vs last month
             </div>
           </div>
