@@ -59,6 +59,10 @@ api.interceptors.response.use(
       // Case 1: Response has array data - return array directly for backward compatibility
       if (Array.isArray(data)) {
         response.data = data; // Return: [...]
+        response.data.pagination = pagination;
+        response.data.success = success;
+        response.data.message = message;
+        response.data.error = error;
       }
       // Case 2: Response has nested 'data' object
       else if (data && typeof data === "object") {
