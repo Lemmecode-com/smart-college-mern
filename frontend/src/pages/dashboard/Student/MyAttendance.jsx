@@ -1293,14 +1293,14 @@ addToast("Filters reset successfully!", "info");
                       >
                         <td style={cellStyle}>
                           <div style={{ fontWeight: 600 }}>
-                            {new Date(session.date).toLocaleDateString('en-US', {
+                            {new Date(session.date).toLocaleDateString('en-IN', {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric'
                             })}
                           </div>
                           <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-                            {new Date(session.date).toLocaleDateString()}
+                            {new Date(session.date).toLocaleDateString('en-IN')}
                           </div>
                         </td>
                         <td style={cellStyle}>

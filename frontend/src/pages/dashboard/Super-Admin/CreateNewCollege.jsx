@@ -46,10 +46,12 @@ const VALIDATION = {
   ADDRESS_MIN_LENGTH: 20,
   LOGO_MAX_SIZE: 5 * 1024 * 1024,
   LOGO_ALLOWED_TYPES: ["image/png", "image/jpeg", "image/jpg", "image/webp"],
+  COLLEGE_NAME_PATTERN: /^[a-zA-Z0-9\s\-.,&()'\/]+$/,
 };
 
 const MESSAGES = {
   COLLEGE_NAME_REQUIRED: "College name is required",
+  COLLEGE_NAME_INVALID: "College name contains invalid characters. Only letters, numbers, spaces, and basic punctuation (-.,&'/) are allowed.",
   COLLEGE_CODE_REQUIRED: "College code is required",
   COLLEGE_CODE_INVALID:
     "College code must be 3-10 alphanumeric characters (A-Z, 0-9)",
@@ -122,6 +124,8 @@ export default function CreateNewCollege() {
     switch (name) {
       case "collegeName":
         if (!value.trim()) return MESSAGES.COLLEGE_NAME_REQUIRED;
+        if (!VALIDATION.COLLEGE_NAME_PATTERN.test(value))
+          return MESSAGES.COLLEGE_NAME_INVALID;
         return "";
       case "collegeCode":
         if (!value.trim()) return MESSAGES.COLLEGE_CODE_REQUIRED;
