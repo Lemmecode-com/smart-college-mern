@@ -29,6 +29,10 @@ import {
   FaChevronUp,
   FaSpinner,
   FaIdBadge,
+  FaAngleDoubleLeft,
+  FaAngleLeft,
+  FaAngleRight,
+  FaAngleDoubleRight,
 } from "react-icons/fa";
 
 export default function TeachersList() {
@@ -58,6 +62,10 @@ export default function TeachersList() {
     active: 0,
     inactive: 0,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -80,11 +88,11 @@ export default function TeachersList() {
   const [deleting, setDeleting] = useState(false);
 
   /* ================= LOAD TEACHERS ================= */
-  const fetchTeachers = async () => {
+  const fetchTeachers = async (page = 1, limit = itemsPerPage) => {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/teachers?limit=10000");
+      const res = await api.get(`/teachers?page=${page}&limit=${limit}`);
 
       let data;
       if (res.data.data) {
@@ -96,11 +104,22 @@ export default function TeachersList() {
       }
 
       setTeachers(data);
+      setCurrentPage(page);
 
+      const pagination = res.data.pagination || {};
+      if (pagination.total !== undefined) {
+        setTotalItems(pagination.total);
+        setTotalPages(pagination.pages || Math.ceil(pagination.total / limit));
+      } else {
+        setTotalItems(data.length);
+        setTotalPages(1);
+      }
+
+      const allTeachers = res.data.data || res.data || [];
       setStats({
-        total: data.length,
-        active: data.filter((t) => t.status === "ACTIVE").length,
-        inactive: data.filter((t) => t.status === "INACTIVE").length,
+        total: totalItems,
+        active: allTeachers.filter((t) => t.status === "ACTIVE").length,
+        inactive: allTeachers.filter((t) => t.status === "INACTIVE").length,
       });
     } catch (err) {
       const statusCode = err.response?.status;
@@ -132,8 +151,12 @@ export default function TeachersList() {
   };
 
   useEffect(() => {
-    fetchTeachers();
-  }, []);
+    fetchTeachers(currentPage);
+  }, [currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus]);
 
   /* ================= CLICK OUTSIDE TO CLOSE FILTER ================= */
   useEffect(() => {
@@ -154,7 +177,37 @@ export default function TeachersList() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    fetchTeachers();
+    fetchTeachers(currentPage);
+  };
+
+  /* ================= PAGINATION HANDLERS ================= */
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchTeachers(page);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleItemsPerPageChange = (e) => {
+    const newLimit = parseInt(e.target.value, 10);
+    setItemsPerPage(newLimit);
+    fetchTeachers(1);
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
   };
 
   /* ================= SORTING ================= */
@@ -704,6 +757,80 @@ export default function TeachersList() {
           )}
         </div>
       </div>
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="erp-card animate-fade-in">
+          <div className="erp-card-body">
+            <div className="pagination-container">
+              <div className="pagination-info">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} teachers
+              </div>
+              <div className="pagination-controls">
+                <button
+                  className="pagination-btn pagination-btn-first"
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  aria-label="First page"
+                >
+                  <FaAngleDoubleLeft />
+                </button>
+                <button
+                  className="pagination-btn pagination-btn-prev"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  aria-label="Previous page"
+                >
+                  <FaAngleLeft />
+                </button>
+
+                {getPageNumbers().map((page) => (
+                  <button
+                    key={page}
+                    className={`pagination-btn pagination-btn-page ${currentPage === page ? "active" : ""}`}
+                    onClick={() => handlePageChange(page)}
+                    aria-label={`Page ${page}`}
+                    aria-current={currentPage === page ? "page" : undefined}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  className="pagination-btn pagination-btn-next"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  aria-label="Next page"
+                >
+                  <FaAngleRight />
+                </button>
+                <button
+                  className="pagination-btn pagination-btn-last"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  aria-label="Last page"
+                >
+                  <FaAngleDoubleRight />
+                </button>
+              </div>
+              <div className="pagination-limit">
+                <label htmlFor="items-per-page">Show:</label>
+                <select
+                  id="items-per-page"
+                  value={itemsPerPage}
+                  onChange={handleItemsPerPageChange}
+                  className="pagination-select"
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TEACHER DELETE MODAL */}
       <TeacherDeleteModal
@@ -1566,7 +1693,110 @@ export default function TeachersList() {
         .animate-fade-in {
           animation: fadeIn 0.6s ease;
         }
-        
+
+        /* PAGINATION */
+        .pagination-container {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 1rem;
+          padding: 0.5rem 0;
+        }
+
+        .pagination-info {
+          font-size: 0.9rem;
+          color: #666;
+          font-weight: 500;
+        }
+
+        .pagination-controls {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .pagination-btn {
+          min-width: 40px;
+          height: 40px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #e9ecef;
+          background: white;
+          color: #1a4b6d;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          padding: 0 0.5rem;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+          border-color: #1a4b6d;
+          background: #f8f9fa;
+          transform: translateY(-1px);
+        }
+
+        .pagination-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          color: white;
+          border-color: #1a4b6d;
+          box-shadow: 0 4px 12px rgba(26, 75, 109, 0.3);
+        }
+
+        .pagination-limit {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.9rem;
+          color: #666;
+          font-weight: 500;
+        }
+
+        .pagination-select {
+          padding: 0.5rem 0.75rem;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          color: #2c3e50;
+          background: white;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .pagination-select:focus {
+          border-color: #1a4b6d;
+          outline: none;
+          box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
+        }
+
+        @media (max-width: 768px) {
+          .pagination-container {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .pagination-controls {
+            flex-wrap: wrap;
+            justify-content: center;
+          }
+
+          .pagination-info {
+            text-align: center;
+          }
+
+          .pagination-limit {
+            justify-content: center;
+          }
+        }
+
         /* RESPONSIVE DESIGN */
         @media (max-width: 992px) {
           .filters-container {
