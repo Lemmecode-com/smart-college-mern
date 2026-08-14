@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const StaffProfile = require("../models/staffProfile.model");
 const User = require("../models/user.model");
 const Teacher = require("../models/teacher.model");
+const Department = require("../models/department.model");
 const AppError = require("../utils/AppError");
 
 /**
@@ -91,6 +92,40 @@ exports.getStaffProfile = async (req, res, next) => {
           experienceYears: teacher.experienceYears || profileData.experienceYears,
         };
       }
+    }
+
+    let departmentInfo = null;
+    if (profileData.user_id?.role === "TEACHER" || profileData.user_id?.role === "HOD") {
+      const teacher = await Teacher.findOne({
+        user_id: new mongoose.Types.ObjectId(userId),
+        college_id: req.college_id,
+      });
+
+      if (teacher) {
+        if (profileData.user_id?.role === "TEACHER" && teacher.department_id) {
+          const department = await Department.findById(teacher.department_id);
+          if (department) {
+            departmentInfo = { _id: department._id, name: department.name, code: department.code };
+          }
+        } else if (profileData.user_id?.role === "HOD") {
+          if (teacher.department_id) {
+            const department = await Department.findById(teacher.department_id);
+            if (department) {
+              departmentInfo = { _id: department._id, name: department.name, code: department.code };
+            }
+          }
+          if (!departmentInfo) {
+            const department = await Department.findOne({ hod_id: teacher._id, college_id: req.college_id });
+            if (department) {
+              departmentInfo = { _id: department._id, name: department.name, code: department.code };
+            }
+          }
+        }
+      }
+    }
+
+    if (departmentInfo) {
+      profileData.department_id = departmentInfo;
     }
 
     res.json({
