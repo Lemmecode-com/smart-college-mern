@@ -48,7 +48,7 @@ const AUTH_ERROR_CODES = new Set([
 export default function DepartmentList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const { canCreate, canEdit, canDelete } = useRole();
+  const { canCreate, canEdit, canDelete, hasAccess } = useRole();
 
   const [departments, setDepartments] = useState([]);
   const [error, setError] = useState(null);
@@ -570,17 +570,28 @@ export default function DepartmentList() {
                         </td>
                         <td className="text-center pe-4">
                           <div className="d-flex justify-content-center gap-1">
-                            {canEdit('departments') && (
-                              <button
-                                className="btn btn-sm btn-outline-primary hover-lift"
-                                title="Edit Department"
-                                onClick={() =>
-                                  navigate(`/departments/edit/${d._id}`)
-                                }
-                              >
-                                <FaEdit size={14} />
-                              </button>
-                            )}
+                              {(hasAccess('departments') || hasAccess('departments-view')) && (
+                                <button
+                                  className="btn btn-sm btn-outline-info hover-lift"
+                                  title="View Department"
+                                  onClick={() =>
+                                    navigate(`/departments/view/${d._id}`)
+                                  }
+                                >
+                                  <FaEye size={14} />
+                                </button>
+                              )}
+                              {canEdit('departments') && (
+                                <button
+                                  className="btn btn-sm btn-outline-primary hover-lift"
+                                  title="Edit Department"
+                                  onClick={() =>
+                                    navigate(`/departments/edit/${d._id}`)
+                                  }
+                                >
+                                  <FaEdit size={14} />
+                                </button>
+                              )}
                             {/* {canEdit('departments') && (
                               <button
                                 className="btn btn-sm btn-outline-warning hover-lift"
