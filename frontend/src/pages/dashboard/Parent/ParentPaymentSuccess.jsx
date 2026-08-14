@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
+import "./ParentPortal.css";
 
 import {
   FaCheckCircle,
@@ -120,12 +121,14 @@ export default function ParentPaymentSuccess() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f7fa" }}>
-        <div style={{ textAlign: "center" }}>
-          <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} style={{ fontSize: "3rem", color: "#1a4b6d" }}>
-            <FaSpinner />
-          </motion.div>
-          <h4 className="mt-3" style={{ color: "#1a4b6d" }}>Confirming your payment...</h4>
+      <div className="parent-portal-wrapper">
+        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
+          <div className="parent-loading-state">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="parent-loading-spinner" style={{ fontSize: "3rem", color: "var(--parent-primary)" }}>
+              <FaSpinner />
+            </motion.div>
+            <h4 className="parent-mt-3" style={{ color: "var(--parent-primary)" }}>Confirming your payment...</h4>
+          </div>
         </div>
       </div>
     );
@@ -133,45 +136,51 @@ export default function ParentPaymentSuccess() {
 
   if (error) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f7fa" }}>
-        <div style={{ textAlign: "center", maxWidth: "400px" }}>
-          <FaExclamationTriangle size={48} color="#ffc107" />
-          <h4 className="mt-3">Payment Status</h4>
-          <p className="text-muted">{error.message || error}</p>
-          <button className="btn btn-primary mt-3" onClick={() => navigate("/dashboard/parent/children")}>
-            <FaArrowLeft className="me-2" /> Back to Children
-          </button>
+      <div className="parent-portal-wrapper">
+        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
+          <div className="parent-error-state">
+            <div className="parent-error-icon">
+              <FaExclamationTriangle size={32} />
+            </div>
+            <h2 className="parent-error-title">Payment Status</h2>
+            <p className="parent-error-message">{error.message || error}</p>
+            <div className="parent-error-actions">
+              <button className="parent-btn-primary" onClick={() => navigate("/dashboard/parent/children")}>
+                <FaArrowLeft className="parent-me-2" /> Back to Children
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f7fa", padding: "20px" }}>
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} style={{ background: "white", borderRadius: "16px", padding: "40px", maxWidth: "500px", width: "100%", textAlign: "center", boxShadow: "0 20px 60px rgba(0,0,0,0.08)" }}>
-        <div style={{ width: "88px", height: "88px", borderRadius: "50%", background: "linear-gradient(135deg, #dcfce7, #bbf7d0)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: "0 8px 24px rgba(34,197,94,0.25)" }}>
-          <FaCheckCircle size={44} color="#16a34a" />
-        </div>
-        <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "#0f172a", margin: "0 0 6px" }}>Payment Successful</h1>
-        <p style={{ color: "#64748b", margin: "0 0 20px" }}>Your payment has been processed securely.</p>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "20px", textAlign: "left" }}>
-          <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "10px" }}>
-            <small style={{ color: "#64748b", fontWeight: 500 }}>Amount Paid</small>
-            <div style={{ fontWeight: 700, color: "#16a34a" }}>₹{(payment?.amount || 0).toLocaleString()}</div>
+    <div className="parent-portal-wrapper">
+      <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
+        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="parent-success-card">
+          <div className="parent-success-icon">
+            <FaCheckCircle size={44} />
           </div>
-          <div style={{ background: "#f8fafc", padding: "12px", borderRadius: "10px" }}>
-            <small style={{ color: "#64748b", fontWeight: 500 }}>Remaining</small>
-            <div style={{ fontWeight: 700, color: "#dc3545" }}>₹{(payment?.remainingAmount || 0).toLocaleString()}</div>
-          </div>
-        </div>
+          <h1 className="parent-success-title">Payment Successful</h1>
+          <p className="parent-success-message">Your payment has been processed securely.</p>
 
-        <div style={{ display: "flex", gap: "10px", justifyContent: "center", flexWrap: "wrap" }}>
-          <button className="btn btn-outline-secondary" onClick={() => navigate("/dashboard/parent/children")}>
-            <FaArrowLeft className="me-1" /> Back to Children
+          <div className="parent-success-grid">
+            <div className="parent-success-stat">
+              <small className="parent-success-stat-label">Amount Paid</small>
+              <div className="parent-success-stat-value" style={{ color: "#16a34a" }}>₹{(payment?.amount || 0).toLocaleString()}</div>
+            </div>
+            <div className="parent-success-stat">
+              <small className="parent-success-stat-label">Remaining</small>
+              <div className="parent-success-stat-value" style={{ color: "#dc3545" }}>₹{(payment?.remainingAmount || 0).toLocaleString()}</div>
+            </div>
+          </div>
+
+          <button className="parent-btn-outline" onClick={() => navigate("/dashboard/parent/children")}>
+            <FaArrowLeft className="parent-me-1" /> Back to Children
           </button>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }
