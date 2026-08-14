@@ -27,6 +27,8 @@ exports.addSlot = async (req, res, next) => {
       division,
     } = req.body;
 
+    const normalizedSlotDivision = division?.trim().toUpperCase() || null;
+
     const collegeId = req.college_id;
 
     /* ================= REQUIRED FIELDS ================= */
@@ -104,13 +106,15 @@ exports.addSlot = async (req, res, next) => {
     console.log(`✅ Teacher validation passed: ${teacher.name} is assigned to ${subject.name}`);
 
     /* ================= DIVISION CONSISTENCY CHECK ================= */
-    if (division && timetable.division && division !== timetable.division) {
+    if (normalizedSlotDivision && timetable.division && normalizedSlotDivision !== timetable.division) {
       throw new AppError(
-        `Slot division "${division}" does not match timetable division "${timetable.division}"`,
+        `Slot division "${normalizedSlotDivision}" does not match timetable division "${timetable.division}"`,
         400,
         "DIVISION_MISMATCH",
       );
     }
+
+    const slotDivision = normalizedSlotDivision || timetable.division || null;
 
     /* ================= TIMETABLE TIME CONFLICT ================= */
     const timeConflict = await TimetableSlot.findOne({
@@ -164,7 +168,7 @@ exports.addSlot = async (req, res, next) => {
       endTime,
       room,
       slotType,
-      division: division || null,
+      division: slotDivision,
     });
 
     // Invalidate schedule cache so the next student request rebuilds from MongoDB.
@@ -233,13 +237,19 @@ exports.updateSlot = async (req, res, next) => {
 
     /* STEP 5: If division is being updated, validate it matches timetable's division */
     if (req.body.division !== undefined && timetable.division) {
-      if (req.body.division && req.body.division !== timetable.division) {
+      const normalizedReqDivision = req.body.division?.trim().toUpperCase() || null;
+      if (normalizedReqDivision && normalizedReqDivision !== timetable.division) {
         throw new AppError(
-          `Slot division "${req.body.division}" does not match timetable division "${timetable.division}"`,
+          `Slot division "${normalizedReqDivision}" does not match timetable division "${timetable.division}"`,
           400,
           "DIVISION_MISMATCH",
         );
       }
+    }
+
+    const updateData = { ...req.body };
+    if (!updateData.division && timetable.division) {
+      updateData.division = timetable.division;
     }
 
     /* ================= SLOT TYPE VALIDATION ================= */
@@ -275,10 +285,10 @@ exports.updateSlot = async (req, res, next) => {
       console.log(`✅ Teacher update validated: ${newTeacher.name} is assigned to ${subject.name}`);
     }
 
-    /* STEP 5: Update slot (NO publish restriction now) */
+    /* STEP 6: Update slot (NO publish restriction now) */
     const updatedSlot = await TimetableSlot.findOneAndUpdate(
       { _id: slotId, college_id: req.college_id },
-      req.body,
+      updateData,
       { new: true }
     );
 

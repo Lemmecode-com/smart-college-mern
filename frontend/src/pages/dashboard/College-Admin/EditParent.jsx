@@ -154,7 +154,6 @@ export default function EditParent() {
     try {
       const payload = {
         name: formData.name,
-        email: formData.email,
       };
       logger.log("[EditParent] Submitting update for userId:", actualUserId, "payload:", payload);
       const res = await api.put(`/college/parents/${actualUserId}`, payload);
@@ -302,11 +301,11 @@ export default function EditParent() {
                             <input
                               type="email"
                               name="email"
-                              placeholder="Enter email address"
+                              placeholder="Email address (read-only)"
                               value={formData.email}
-                              onChange={handleChange}
+                              readOnly
                               className="form-control"
-                              required
+                              style={{ backgroundColor: "#e9ecef", cursor: "not-allowed" }}
                             />
                           </div>
                         </div>

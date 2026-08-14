@@ -7,7 +7,6 @@ import Loading from "../../../components/Loading";
 import { toast } from "react-toastify";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { motion, AnimatePresence } from "framer-motion";
-import "../College-Admin/Dashboard.css";
 import "./ParentPortal.css";
 
 import {
@@ -215,9 +214,9 @@ export default function ParentDashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="dashboard-wrapper erp-page erp-viewport-min-100"
+        className="parent-portal-wrapper"
       >
-        <div className="dashboard-container-inner">
+        <div className="parent-portal-container">
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -230,63 +229,60 @@ export default function ParentDashboard() {
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-            className="dashboard-header"
+            className="parent-dashboard-header"
           >
-            <div className="dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="header-icon-wrapper"
-                    >
-                      <FaChild />
-                    </motion.div>
-                    <div className="header-title-section">
-                      <h1 className="header-title">
-                        Parent Dashboard
-                      </h1>
-                      <p className="header-subtitle">
-                        Welcome back! Here's an overview of your children's academic progress.
-                      </p>
-                    </div>
+            <div className="parent-dashboard-header-hero">
+              <div className="parent-header-content">
+                <motion.div
+                  variants={pulseVariants}
+                  initial="initial"
+                  animate="pulse"
+                  className="parent-header-icon-wrapper"
+                >
+                  <FaChild />
+                </motion.div>
+                <div className="parent-header-title-section">
+                  <h1 className="parent-header-title">
+                    Parent Dashboard
+                  </h1>
+                  <p className="parent-header-subtitle">
+                    Welcome back! Here's an overview of your children's academic progress.
+                  </p>
+                </div>
+              </div>
+              <div className="parent-header-meta">
+                <div className="parent-time-display">
+                  <div className="parent-time-label">
+                    <FaClock style={{ marginRight: "0.25rem" }} />
+                    Time
+                  </div>
+                  <div className="parent-time-value">
+                    {currentTime.toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: true
+                    })}
                   </div>
                 </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center gap-3 justify-content-center justify-content-md-end">
-                    <div className="header-time-display">
-                      <div className="time-label">Current Time</div>
-                      <div className="time-value">
-                        {currentTime.toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: true
-                        })}
-                      </div>
-                    </div>
-                    <motion.button
-                      whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(37, 99, 235, 0.4)' }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setRefreshKey(prev => prev + 1)}
-                      className="dashboard-btn btn-profile"
-                      onFocus={(e) => {
-                        e.target.style.outline = '2px solid #1a4b6d';
-                        e.target.style.outlineOffset = '2px';
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.outline = 'none';
-                      }}
-                    >
-                      <motion.div variants={spinVariants} animate="animate">
-                        <FaSyncAlt />
-                      </motion.div>
-                      <span>Refresh</span>
-                    </motion.button>
-                  </div>
-                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(37, 99, 235, 0.4)' }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setRefreshKey(prev => prev + 1)}
+                  className="parent-btn-primary"
+                  onFocus={(e) => {
+                    e.target.style.outline = '2px solid #1a4b6d';
+                    e.target.style.outlineOffset = '2px';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.outline = 'none';
+                  }}
+                >
+                  <motion.div variants={spinVariants} animate="animate">
+                    <FaSyncAlt />
+                  </motion.div>
+                  <span>Refresh</span>
+                </motion.button>
               </div>
             </div>
           </motion.div>
@@ -297,50 +293,40 @@ export default function ParentDashboard() {
             custom={0}
             initial="hidden"
             animate="visible"
-            className="dashboard-section"
+            className="parent-section-grid"
           >
-            <div className="row g-3 g-md-4">
-              <div className="col-12 col-sm-6 col-lg-3">
-                <StatCard
-                  icon={FaUsers}
-                  label="Total Children"
-                  value={stats.totalChildren}
-                  color={BRAND_COLORS.primary.main}
-                  gradient={BRAND_COLORS.primary.gradient}
-                  subtitle="Registered children"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-3">
-                <StatCard
-                  icon={FaUserGraduate}
-                  label="Active Students"
-                  value={stats.activeChildren}
-                  color={BRAND_COLORS.success.main}
-                  gradient={BRAND_COLORS.success.gradient}
-                  subtitle="Currently enrolled"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-3">
-                <StatCard
-                  icon={FaCalendarCheck}
-                  label="Avg Attendance"
-                  value={`${stats.avgAttendance || 0}%`}
-                  color={BRAND_COLORS.warning.main}
-                  gradient={BRAND_COLORS.warning.gradient}
-                  subtitle="Overall performance"
-                />
-              </div>
-              <div className="col-12 col-sm-6 col-lg-3">
-                <StatCard
-                  icon={FaRupeeSign}
-                  label="Pending Fees"
-                  value={`₹${stats.pendingFees?.toLocaleString() || '0'}`}
-                  color={BRAND_COLORS.danger.main}
-                  gradient={BRAND_COLORS.danger.gradient}
-                  subtitle="Outstanding payments"
-                />
-              </div>
-            </div>
+            <StatCard
+              icon={FaUsers}
+              label="Total Children"
+              value={stats.totalChildren}
+              color={BRAND_COLORS.primary.main}
+              gradient={BRAND_COLORS.primary.gradient}
+              subtitle="Registered children"
+            />
+            <StatCard
+              icon={FaUserGraduate}
+              label="Active Students"
+              value={stats.activeChildren}
+              color={BRAND_COLORS.success.main}
+              gradient={BRAND_COLORS.success.gradient}
+              subtitle="Currently enrolled"
+            />
+            <StatCard
+              icon={FaCalendarCheck}
+              label="Avg Attendance"
+              value={`${stats.avgAttendance || 0}%`}
+              color={BRAND_COLORS.warning.main}
+              gradient={BRAND_COLORS.warning.gradient}
+              subtitle="Overall performance"
+            />
+            <StatCard
+              icon={FaRupeeSign}
+              label="Pending Fees"
+              value={`₹${stats.pendingFees?.toLocaleString() || '0'}`}
+              color={BRAND_COLORS.danger.main}
+              gradient={BRAND_COLORS.danger.gradient}
+              subtitle="Outstanding payments"
+            />
           </motion.div>
 
           {/* ================= CHILDREN OVERVIEW ================= */}
@@ -356,7 +342,7 @@ export default function ParentDashboard() {
               subtitle={`${children.length} child${children.length !== 1 ? 'ren' : ''} registered`}
               color={BRAND_COLORS.primary.main}
             >
-              <div className="section-card-body">
+              <div className="parent-section-card-body">
                 {children.length === 0 ? (
                   <EmptyState
                     icon={<FaChild style={{ color: BRAND_COLORS.primary.main }} />}
@@ -365,11 +351,10 @@ export default function ParentDashboard() {
                     success={false}
                   />
                 ) : (
-                  <div className="row g-3 g-md-4">
+                  <div className="parent-section-grid">
                     {children.map((child, idx) => (
                       <motion.div
                         key={child._id}
-                        className="col-12 col-sm-6 col-lg-4"
                         variants={fadeInVariants}
                         custom={idx}
                         initial="hidden"
@@ -427,14 +412,14 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
 /* ================= SECTION CARD ================= */
 function SectionCard({ title, icon, subtitle, color, children }) {
   return (
-    <div className="section-card">
-      <div className="section-card-header">
-        <h3 className="section-card-title">
-          <span className="section-card-icon" style={{ color }}>{icon}</span>
+    <div className="parent-section-card">
+      <div className="parent-section-card-header">
+        <h3 className="parent-section-card-title">
+          <span className="parent-section-card-icon" style={{ color }}>{icon}</span>
           {title}
         </h3>
         {subtitle && (
-          <span className="section-card-subtitle">
+          <span className="parent-section-card-subtitle">
             {subtitle}
           </span>
         )}
@@ -459,17 +444,11 @@ function ChildCard({ child, onViewDetails }) {
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status?.toUpperCase()) {
-      case "APPROVED":
-        return <FaCheckCircle />;
-      case "REJECTED":
-        return <FaExclamationTriangle />;
-      case "PENDING":
-        return <FaClock />;
-      default:
-        return <FaCheckCircle />;
-    }
+  const getInitials = (name) => {
+    if (!name) return "?";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   };
 
   return (
@@ -483,7 +462,7 @@ function ChildCard({ child, onViewDetails }) {
           onViewDetails();
         }
       }}
-      className="student-item"
+      className="parent-child-card"
       tabIndex={0}
       role="button"
       aria-label={`View ${child.fullName}`}
@@ -499,21 +478,21 @@ function ChildCard({ child, onViewDetails }) {
         e.currentTarget.style.borderColor = '#e2e8f0';
       }}
     >
-      <div className="student-item-avatar">
-        {child.fullName.charAt(0).toUpperCase()}
-      </div>
-      <div className="student-item-content">
-        <div className="student-item-name">
-          {child.fullName}
-        </div>
-        <div className="student-item-status">
-          <span className="status-badge" style={{ backgroundColor: `${getStatusColor(child.status)}15`, color: getStatusColor(child.status) }}>
-            {getStatusIcon(child.status)}
+      <div className="parent-child-avatar">{getInitials(child.fullName)}</div>
+      <div className="parent-child-info">
+        <div className="parent-child-name">{child.fullName}</div>
+        <div className="parent-child-details">
+          <span className={`parent-status-badge ${
+            child.status === 'APPROVED' ? 'parent-status-approved' :
+            child.status === 'PENDING' ? 'parent-status-pending' :
+            child.status === 'REJECTED' ? 'parent-status-rejected' :
+            'parent-status-secondary'
+          }`}>
             {child.status}
           </span>
         </div>
       </div>
-      <div className="student-item-action">
+      <div className="parent-child-action">
         <FaEye size={16} />
       </div>
     </motion.div>
