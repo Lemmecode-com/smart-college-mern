@@ -28,6 +28,10 @@ const TimetableSchema = new mongoose.Schema(
       type: String,
       default: null,
       trim: true,
+      set: (v) => {
+        if (v === null || v === undefined || v === "") return v;
+        return String(v).trim().toUpperCase();
+      },
     },
 
     academicYear: {
