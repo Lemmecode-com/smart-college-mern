@@ -11,7 +11,6 @@ import {
   FaUser,
   FaSignOutAlt,
   FaCog,
-  FaChevronLeft,
   FaChevronRight,
 } from "react-icons/fa";
 import { Dropdown, Badge, Navbar, Container, Nav } from "react-bootstrap";
@@ -554,28 +553,6 @@ export default function NavbarComponent({
                 style={{ minWidth: "44px", minHeight: "44px" }}
               >
                 <FaBars size={20} />
-              </button>
-            )}
-
-            {/* DESKTOP SIDEBAR COLLAPSE TOGGLE - Visible only on desktop/tablet */}
-            {!isMobile && onToggleCollapse && (
-              <button
-                className="sidebar-collapse-toggle-navbar"
-                onClick={onToggleCollapse}
-                aria-label={
-                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                }
-                aria-expanded={!isSidebarCollapsed}
-                type="button"
-                title={
-                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                }
-              >
-                {isSidebarCollapsed ? (
-                  <FaChevronRight size={16} />
-                ) : (
-                  <FaChevronLeft size={16} />
-                )}
               </button>
             )}
 
