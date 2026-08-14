@@ -34,30 +34,31 @@ exports.createTimetable = async (req, res) => {
         true, // check active status
       );
 
-       const { department_id, course_id, semester, academicYear, division } = req.body;
+        const { department_id, course_id, semester, academicYear, division } = req.body;
+        const normalizedDivision = division?.trim().toUpperCase() || null;
 
-       // 🔒 SECURITY: Ensure user can only create timetable for their own department
-       const hodDepartment = await Department.findOne({
-         _id: department_id,
-         hod_id: teacher._id,
+        // 🔒 SECURITY: Ensure user can only create timetable for their own department
+        const hodDepartment = await Department.findOne({
+          _id: department_id,
+          hod_id: teacher._id,
+          college_id: req.college_id,
+        });
+        
+        if (!hodDepartment) {
+          return res.status(403).json({
+            message:
+              "Access denied: You can only create timetables for your own department",
+          });
+        }
+
+       const exists = await Timetable.findOne({
          college_id: req.college_id,
+         department_id,
+         course_id,
+         semester,
+         academicYear,
+         division: normalizedDivision,
        });
-       
-       if (!hodDepartment) {
-         return res.status(403).json({
-           message:
-             "Access denied: You can only create timetables for your own department",
-         });
-       }
-
-      const exists = await Timetable.findOne({
-        college_id: req.college_id,
-        department_id,
-        course_id,
-        semester,
-        academicYear,
-        division: division || null,
-      });
 
       if (exists) {
         return res.status(400).json({ message: "Timetable already exists" });
@@ -68,8 +69,8 @@ exports.createTimetable = async (req, res) => {
         ? require("../utils/yearLabels").getYearLabelForSemester(semester, course.yearLabels)
         : null;
       const name = yearLabel
-        ? `${course?.name || "Course"} - ${yearLabel} - Sem ${semester} (${academicYear})${division ? ` - Div ${division}` : ""}`
-        : `${course?.name || "Course"} - Sem ${semester} (${academicYear})${division ? ` - Div ${division}` : ""}`;
+        ? `${course?.name || "Course"} - ${yearLabel} - Sem ${semester} (${academicYear})${normalizedDivision ? ` - Div ${normalizedDivision}` : ""}`
+        : `${course?.name || "Course"} - Sem ${semester} (${academicYear})${normalizedDivision ? ` - Div ${normalizedDivision}` : ""}`;
 
       const timetable = await Timetable.create({
         college_id: req.college_id,
@@ -77,7 +78,7 @@ exports.createTimetable = async (req, res) => {
         course_id,
         semester,
         academicYear,
-        division: division || null,
+        division: normalizedDivision,
         name,
         createdBy: teacher._id,
       });
@@ -935,6 +936,8 @@ exports.getStudentTodayTimetable = async (req, res) => {
         { division: student.division },
         { division: null },
       ];
+    } else {
+      timetableQuery.division = null;
     }
 
     const matchingTimetables = await Timetable.find(timetableQuery)
@@ -1306,7 +1309,8 @@ exports.getSchedule = async (req, res) => {
       if (
         student.department_id.toString() !==
           timetable.department_id.toString() ||
-        student.course_id.toString() !== timetable.course_id.toString()
+        student.course_id.toString() !== timetable.course_id.toString() ||
+        (timetable.division && student.division !== timetable.division)
       ) {
         return res.status(403).json({
           message:
@@ -1373,7 +1377,8 @@ exports.getTodaySchedule = async (req, res) => {
       // Validate student belongs to this timetable's course/department
       if (
         student.department_id.toString() !== timetable.department_id.toString() ||
-        student.course_id.toString() !== timetable.course_id.toString()
+        student.course_id.toString() !== timetable.course_id.toString() ||
+        (timetable.division && student.division !== timetable.division)
       ) {
         return res.status(403).json({
           message: "Access denied: You can only view schedules for your own course",
@@ -1438,7 +1443,8 @@ exports.getWeeklySchedule = async (req, res) => {
       // Validate student belongs to this timetable's course/department
       if (
         student.department_id.toString() !== timetable.department_id.toString() ||
-        student.course_id.toString() !== timetable.course_id.toString()
+        student.course_id.toString() !== timetable.course_id.toString() ||
+        (timetable.division && student.division !== timetable.division)
       ) {
         return res.status(403).json({
           message: "Access denied: You can only view schedules for your own course",
