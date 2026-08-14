@@ -4,6 +4,7 @@ import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
 import { AuthContext } from "../../../../auth/AuthContext";
 import { logger } from "../../../../utils/logger";
+import { showError } from "../../../../utils/toast";
 import {
   FaCalendarAlt,
   FaGraduationCap,
@@ -219,19 +220,26 @@ export default function CreateTimetable() {
   }, [form, courses]);
 
    const submitHandler = async (e) => {
-     e.preventDefault();
-     setError("");
-     setSuccess("");
-     setSubmitting(true);
+      e.preventDefault();
+      setError("");
+      setSuccess("");
 
-     try {
-      const response = await api.post("/timetable", {
-        department_id: department._id,
-        course_id: form.course_id,
-        semester: Number(form.semester),
-        academicYear: form.academicYear,
-        division: form.division || undefined,
-      });
+      if (!form.course_id || !form.semester || !form.academicYear || !form.division) {
+        setError("All fields are required. Please fill in all the fields.");
+        setSubmitting(false);
+        return;
+      }
+
+      setSubmitting(true);
+
+      try {
+       const response = await api.post("/timetable", {
+         department_id: department._id,
+         course_id: form.course_id,
+         semester: Number(form.semester),
+         academicYear: form.academicYear,
+         division: form.division,
+       });
 
        setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
 
@@ -245,20 +253,25 @@ export default function CreateTimetable() {
        setTimeout(() => {
          navigate(`/timetable/${timetableId}/weekly`);
        }, 2000);
-     } catch (err) {
-       const statusCode = err.response?.status;
-       const errorCode = err.response?.data?.code;
-       const isAuthError =
-         statusCode === 401 ||
-         (errorCode && AUTH_ERROR_CODES.has(errorCode));
-       if (isAuthError) {
-         setAuthError({ statusCode, errorCode });
-         return;
-       }
-       setError(err.response?.data?.message || "Failed to create timetable. Please try again.");
-     } finally {
-       setSubmitting(false);
-     }
+      } catch (err) {
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const message = err.response?.data?.message;
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        if (isAuthError) {
+          setAuthError({ statusCode, errorCode });
+          return;
+        }
+        if (statusCode === 400 && message === "Timetable already exists") {
+          showError("A timetable for the selected course, semester, academic year, and division already exists. Please choose different values or view the existing timetable.");
+        } else {
+          setError(message || "Failed to create timetable. Please try again.");
+        }
+      } finally {
+        setSubmitting(false);
+      }
    };
 
   if (loading) {
@@ -691,43 +704,57 @@ export default function CreateTimetable() {
                      </FormField>
 
                      <FormField
-                       icon={<FaLayerGroup />}
-                       label="Division (Optional)"
-                       helperText="e.g., A, B, C — leave blank if not using divisions"
-                     >
-                       <input
-                         type="text"
-                         value={form.division}
-                         onChange={(e) => setForm({ ...form, division: e.target.value.toUpperCase() })}
-                         placeholder="e.g., A"
-                         style={{
-                           ...inputStyle,
-                           borderColor: form.division && error ? BRAND_COLORS.danger.main : '#e2e8f0'
-                         }}
-                       />
-                     </FormField>
+                        icon={<FaLayerGroup />}
+                        label="Division"
+                        required
+                        helperText="e.g., A, B, C"
+                      >
+                        <input
+                          type="text"
+                          value={form.division}
+                          onChange={(e) => setForm({ ...form, division: e.target.value.toUpperCase() })}
+                          placeholder="e.g., A"
+                          required
+                          style={{
+                            ...inputStyle,
+                            borderColor: !form.division && error ? BRAND_COLORS.danger.main : '#e2e8f0'
+                          }}
+                        />
+                        {!form.division && error && (
+                          <div style={{ 
+                            marginTop: '0.5rem', 
+                            color: BRAND_COLORS.danger.main, 
+                            fontSize: '0.85rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.375rem'
+                          }}>
+                            <FaTimesCircle size={14} /> Please enter a division
+                          </div>
+                        )}
+                      </FormField>
 
                      <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       type="submit"
-                      disabled={submitting || !previewName}
+                      disabled={submitting || !previewName || !form.division}
                       style={{
                         width: '100%',
                         padding: '1.25rem',
                         borderRadius: '16px',
                         border: 'none',
-                        backgroundColor: (submitting || !previewName) ? '#cbd5e1' : BRAND_COLORS.primary.main,
+                        backgroundColor: (submitting || !previewName || !form.division) ? '#cbd5e1' : BRAND_COLORS.primary.main,
                         color: 'white',
                         fontSize: '1.15rem',
                         fontWeight: 700,
-                        cursor: (submitting || !previewName) ? 'not-allowed' : 'pointer',
+                        cursor: (submitting || !previewName || !form.division) ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '0.75rem',
                         marginTop: '1rem',
-                        boxShadow: (submitting || !previewName) ? 'none' : '0 6px 20px rgba(26, 75, 109, 0.35)',
+                        boxShadow: (submitting || !previewName || !form.division) ? 'none' : '0 6px 20px rgba(26, 75, 109, 0.35)',
                         transition: 'all 0.3s ease',
                         position: 'relative',
                         overflow: 'hidden'
@@ -745,7 +772,7 @@ export default function CreateTimetable() {
                           <FaPlus size={20} /> Create Timetable
                         </>
                       )}
-                      {!submitting && !(!previewName) && (
+                      {!submitting && !(!previewName || !form.division) && (
                         <div style={{
                           position: 'absolute',
                           top: 0,
