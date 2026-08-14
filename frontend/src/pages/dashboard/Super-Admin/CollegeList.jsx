@@ -244,7 +244,7 @@ export default function CollegeList() {
           Contact: college.contactNumber,
           Established: college.establishedYear,
           Status: college.isActive ? "Active" : "Inactive",
-          Created: new Date(college.createdAt).toLocaleDateString(),
+          Created: new Date(college.createdAt).toLocaleDateString("en-IN"),
         }));
 
         const columns = [
