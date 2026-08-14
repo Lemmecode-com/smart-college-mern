@@ -581,7 +581,7 @@ export default function StudentProfile() {
                       label="Date of Birth"
                       value={
                         student?.dateOfBirth
-                          ? new Date(student.dateOfBirth).toLocaleDateString()
+                          ? new Date(student.dateOfBirth).toLocaleDateString("en-IN")
                           : "N/A"
                       }
                       icon={<FaCalendarAlt />}
