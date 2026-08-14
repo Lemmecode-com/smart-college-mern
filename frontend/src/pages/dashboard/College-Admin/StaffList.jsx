@@ -17,7 +17,6 @@ import {
   FaEdit,
   FaEnvelope,
   FaPhone,
-  FaCalendarAlt,
   FaKey,
   FaCheckCircle,
   FaUserCheck,
@@ -66,17 +65,6 @@ const ROLE_OPTIONS = [
 const formatRole = (role) => {
   if (!role) return "Staff";
   return ROLE_LABELS[role] || role.replace(/_/g, " ");
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return null;
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) return null;
-  return date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 };
 
 const getInitials = (name) => {
@@ -499,13 +487,10 @@ export default function StaffList() {
                     <th scope="col" className="erp-staff-th erp-staff-th--role">
                       Role
                     </th>
-                    <th scope="col" className="erp-staff-th erp-staff-th--contact">
-                      Contact
-                    </th>
-                    <th scope="col" className="erp-staff-th erp-staff-th--employment">
-                      Employment
-                    </th>
-                    <th scope="col" className="erp-staff-th erp-staff-th--status">
+                     <th scope="col" className="erp-staff-th erp-staff-th--contact">
+                       Contact
+                     </th>
+                     <th scope="col" className="erp-staff-th erp-staff-th--status">
                       Status
                     </th>
                     <th scope="col" className="erp-staff-th erp-staff-th--account">
@@ -585,26 +570,9 @@ export default function StaffList() {
                             </span>
                           </div>
                         </div>
-                      </td>
-                      <td className="erp-staff-td">
-                        <div className="erp-staff-employment">
-                          <div className="erp-staff-employment-type">
-                            {s.employmentType
-                              ? s.employmentType.replace(/_/g, " ")
-                              : "Not Provided"}
-                          </div>
-                          <div className="erp-staff-joining">
-                            <FaCalendarAlt
-                              className="erp-staff-joining-icon"
-                              aria-hidden="true"
-                            />
-                            Joining:{" "}
-                            {formatDate(s.joiningDate) || "date not provided"}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="erp-staff-td">
-                        <span
+                       </td>
+                       <td className="erp-staff-td">
+                         <span
                           className={`erp-staff-status ${
                             s.isActive
                               ? "erp-staff-status--active"

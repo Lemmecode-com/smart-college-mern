@@ -425,8 +425,6 @@
 .erp-staff-td--role { width: 130px; min-width: 110px; }
 .erp-staff-th--contact,
 .erp-staff-td--contact { min-width: 180px; }
-.erp-staff-th--employment,
-.erp-staff-td--employment { min-width: 150px; }
 .erp-staff-th--status,
 .erp-staff-td--status { width: 110px; min-width: 100px; }
 .erp-staff-th--account,
@@ -540,34 +538,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* ================= EMPLOYMENT ================= */
-.erp-staff-employment {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.erp-staff-employment-type {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--staff-text);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.erp-staff-joining {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  color: var(--staff-text-muted);
-}
-
-.erp-staff-joining-icon {
-  color: var(--staff-text-muted);
-  font-size: 0.8rem;
 }
 
 /* ================= STATUS ================= */
