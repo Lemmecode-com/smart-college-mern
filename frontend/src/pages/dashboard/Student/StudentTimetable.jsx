@@ -833,12 +833,12 @@ export default function StudentTimetable() {
           <div className="st-date-range">
             <FaCalendarAlt className="st-date-icon" />
             <span>
-              {parseLocalDate(dateRange.startDate).toLocaleDateString("en-US", {
+              {parseLocalDate(dateRange.startDate).toLocaleDateString("en-IN", {
                 month: "short",
                 day: "numeric",
               })}{" "}
               -{" "}
-              {parseLocalDate(dateRange.endDate).toLocaleDateString("en-US", {
+              {parseLocalDate(dateRange.endDate).toLocaleDateString("en-IN", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
@@ -888,7 +888,7 @@ export default function StudentTimetable() {
                   {" "}
                   Your timetable is active from{" "}
                   {parseLocalDate(activePeriod.startDate).toLocaleDateString(
-                    "en-US",
+                    "en-IN",
                     {
                       day: "numeric",
                       month: "short",
@@ -897,7 +897,7 @@ export default function StudentTimetable() {
                   )}{" "}
                   to{" "}
                   {parseLocalDate(activePeriod.endDate).toLocaleDateString(
-                    "en-US",
+                    "en-IN",
                     {
                       day: "numeric",
                       month: "short",
@@ -1394,7 +1394,7 @@ function TodaySlotCard({ slot, index }) {
             {exception.rescheduledTo && (
               <span className="st-rescheduled-info">
                 →{" "}
-                {new Date(exception.rescheduledTo).toLocaleDateString("en-US", {
+                {new Date(exception.rescheduledTo).toLocaleDateString("en-IN", {
                   month: "short",
                   day: "numeric",
                 })}

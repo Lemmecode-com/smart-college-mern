@@ -123,7 +123,7 @@ export default function SecurityAudit() {
       const params = new URLSearchParams({
         ...filters,
         page: currentPage,
-        limit: 20,
+        limit: 10,
       });
       const res = await api.get(`/security-audit?${params}`);
       const logsData = Array.isArray(res.data)
@@ -536,7 +536,7 @@ const getCategoryBadgeClass = (category) => {
                       >
                         <td className="cell-timestamp" data-label="Timestamp">
                           <div className="timestamp-date">
-                            {new Date(log.createdAt).toLocaleDateString()}
+                            {new Date(log.createdAt).toLocaleDateString("en-IN")}
                           </div>
                           <div className="timestamp-time">
                             {new Date(log.createdAt).toLocaleTimeString()}
@@ -641,19 +641,25 @@ const getCategoryBadgeClass = (category) => {
                       Previous
                     </button>
                   </li>
-                  {[...Array(pagination.pages)].map((_, i) => (
-                    <li
-                      key={i}
-                      className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
-                    >
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(i + 1)}
+                </ul>
+                <div className="pagination-pages-wrapper">
+                  <ul className="pagination-list">
+                    {[...Array(pagination.pages)].map((_, i) => (
+                      <li
+                        key={i}
+                        className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
                       >
-                        {i + 1}
-                      </button>
-                    </li>
-                  ))}
+                        <button
+                          className="page-link"
+                          onClick={() => setCurrentPage(i + 1)}
+                        >
+                          {i + 1}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <ul className="pagination-list">
                   <li
                     className={`page-item ${currentPage === pagination.pages ? "disabled" : ""}`}
                   >
@@ -1202,6 +1208,36 @@ const getCategoryBadgeClass = (category) => {
         .pagination-nav {
           display: flex;
           justify-content: center;
+          align-items: center;
+          gap: 0.5rem;
+          flex-wrap: nowrap;
+        }
+
+        .pagination-pages-wrapper {
+          display: flex;
+          overflow-x: auto;
+          gap: 0.5rem;
+          padding: 0.25rem 0.5rem;
+          max-width: 100%;
+          scroll-behavior: smooth;
+          align-items: center;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: #1a4b6d #f1f5f9;
+        }
+
+        .pagination-pages-wrapper::-webkit-scrollbar {
+          height: 6px;
+        }
+
+        .pagination-pages-wrapper::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 3px;
+        }
+
+        .pagination-pages-wrapper::-webkit-scrollbar-thumb {
+          background: #1a4b6d;
+          border-radius: 3px;
         }
 
         .pagination-list {
@@ -1210,6 +1246,7 @@ const getCategoryBadgeClass = (category) => {
           gap: 0.5rem;
           padding: 0;
           margin: 0;
+          flex-shrink: 0;
         }
 
         .page-item button {
@@ -1406,15 +1443,19 @@ const getCategoryBadgeClass = (category) => {
              font-size: 0.7rem;
            }
 
-           .pagination-section {
-             padding: 0.75rem 1rem;
-           }
+            .pagination-section {
+              padding: 0.75rem 1rem;
+            }
 
-           .page-item button {
-             padding: 0.375rem 0.625rem;
-             font-size: 0.8rem;
-           }
-         }
+            .pagination-pages-wrapper {
+              justify-content: flex-start;
+            }
+
+            .page-item button {
+              padding: 0.375rem 0.625rem;
+              font-size: 0.8rem;
+            }
+          }
 
          @media (max-width: 375px) {
            .security-audit-page {
@@ -1543,14 +1584,18 @@ const getCategoryBadgeClass = (category) => {
              font-size: 0.65rem;
            }
 
-           .pagination-section {
-             padding: 0.5rem 0.75rem;
-           }
+            .pagination-section {
+              padding: 0.5rem 0.75rem;
+            }
 
-           .page-item button {
-             padding: 0.3rem 0.5rem;
-             font-size: 0.7rem;
-           }
+            .pagination-pages-wrapper {
+              justify-content: flex-start;
+            }
+
+            .page-item button {
+              padding: 0.3rem 0.5rem;
+              font-size: 0.7rem;
+            }
 
            .empty-icon {
              font-size: 2rem;
