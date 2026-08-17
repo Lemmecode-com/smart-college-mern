@@ -209,7 +209,7 @@ function AlumniTableRow({ alumnus, onGenerateCertificate, onViewDetails }) {
       </td>
       <td className="cell-department">
         <span className="department-name">
-          {alumnus.department_id?.name || "N/A"}
+          {alumnus.department_id?.name || alumnus.course_id?.name || "N/A"}
         </span>
       </td>
       <td className="cell-year">
@@ -413,6 +413,7 @@ export default function AlumniList({ admissionOfficerMode = false }) {
       setError(null);
       const res = await getAlumni();
       setAlumni(res.alumni || []);
+      console.log("DEBUG - Alumni first department:", (res.alumni || [])[0]?.department_id);
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
