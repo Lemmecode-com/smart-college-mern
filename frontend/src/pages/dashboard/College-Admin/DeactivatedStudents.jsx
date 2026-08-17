@@ -68,6 +68,7 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
       }
 
       setStudents(data);
+      console.log("DEBUG - Deactivated first department:", data[0]?.department_id);
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -246,7 +247,7 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
                         <span className="badge badge-course">{student.course_id?.name || "N/A"}</span>
                       </td>
                       <td className="cell-department">
-                        <span className="department-name">{student.department_id?.name || "N/A"}</span>
+                        <span className="department-name">{student.department_id?.name || student.course_id?.name || "N/A"}</span>
                       </td>
                       <td className="cell-year">
                         <span className="badge badge-graduation-year">
