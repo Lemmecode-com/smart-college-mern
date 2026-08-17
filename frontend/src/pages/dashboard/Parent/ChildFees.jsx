@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
@@ -16,6 +16,7 @@ import {
   FaCalendarAlt
 } from "react-icons/fa";
 import api from "../../../api/axios";
+import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 import { toast } from "react-toastify";
 
 // Brand Color Palette - Matching Application Theme
@@ -287,21 +288,21 @@ export default function ChildFees() {
             <FeeStatCard
               icon={FaWallet}
               label="Total Fee"
-              value={`₹${totalFee?.toLocaleString()}`}
+              value={{formatINR(totalFee)}`}
               color={BRAND_COLORS.primary.main}
               gradient={BRAND_COLORS.primary.gradient}
             />
             <FeeStatCard
               icon={FaCheckCircle}
               label="Paid Amount"
-              value={`₹${paidAmount?.toLocaleString()}`}
+              value={{formatINR(paidAmount)}`}
               color={BRAND_COLORS.success.main}
               gradient={BRAND_COLORS.success.gradient}
             />
             <FeeStatCard
               icon={FaClock}
               label="Pending Amount"
-              value={`₹${pendingAmount?.toLocaleString()}`}
+              value={{formatINR(pendingAmount)}`}
               color={BRAND_COLORS.warning.main}
               gradient={BRAND_COLORS.warning.gradient}
             />
@@ -356,15 +357,15 @@ export default function ChildFees() {
                 </div>
                 <div className="parent-fee-progress-stats">
                   <div className="parent-fee-progress-stat">
-                    <div className="parent-fee-progress-stat-value" style={{ color: "#28a745" }}>₹{paidAmount?.toLocaleString()}</div>
+                    <div className="parent-fee-progress-stat-value" style={{ color: "#28a745" }}>{formatINR(paidAmount)}</div>
                     <div className="parent-fee-progress-stat-label">Paid</div>
                   </div>
                   <div className="parent-fee-progress-stat">
-                    <div className="parent-fee-progress-stat-value" style={{ color: "#ffc107" }}>₹{pendingAmount?.toLocaleString()}</div>
+                    <div className="parent-fee-progress-stat-value" style={{ color: "#ffc107" }}>{formatINR(pendingAmount)}</div>
                     <div className="parent-fee-progress-stat-label">Pending</div>
                   </div>
                   <div className="parent-fee-progress-stat">
-                    <div className="parent-fee-progress-stat-value" style={{ color: "#1a4b6d" }}>₹{totalFee?.toLocaleString()}</div>
+                    <div className="parent-fee-progress-stat-value" style={{ color: "#1a4b6d" }}>{formatINR(totalFee)}</div>
                     <div className="parent-fee-progress-stat-label">Total</div>
                   </div>
                 </div>
@@ -412,7 +413,7 @@ export default function ChildFees() {
                           <div>
                             <div className="parent-installment-title">{installment.name}</div>
                             <div className="parent-installment-due">
-                              Due: {new Date(installment.dueDate).toLocaleDateString('en-US', {
+                              Due: {new Date(installment.dueDate).formatDate, {
                                 year: 'numeric',
                                 month: 'long',
                                 day: 'numeric'
@@ -429,10 +430,10 @@ export default function ChildFees() {
                         </div>
                         <div className="parent-installment-body">
                           <div className="parent-installment-amount">
-                            <div className="parent-installment-amount-value">₹{installment.amount?.toLocaleString()}</div>
+                            <div className="parent-installment-amount-value">{formatINR(installment.amount)}</div>
                             {installment.paidAt && (
                               <div className="parent-installment-meta">
-                                Paid on {new Date(installment.paidAt).toLocaleDateString()}
+                                Paid on {formatDateTime(installment.paidAt)}
                               </div>
                             )}
                           </div>

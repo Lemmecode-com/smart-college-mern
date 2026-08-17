@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, useRef } from "react";
+﻿import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -25,6 +25,7 @@ import {
   FaShieldAlt,
   FaSync,
 } from "react-icons/fa";
+import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 
 // Authentication / session error codes routed exclusively to ApiError.
 const AUTH_ERROR_CODES = new Set([
@@ -870,16 +871,13 @@ export default function MakePayments() {
           </div>
 
           <h3 className="fw-bold mb-1 text-dark">
-            ₹{installmentDetails.amount?.toLocaleString()}
+            ₹{formatNumberIN(installmentDetails.amount)}
           </h3>
 
           <div className="text-muted small">
             Due on{" "}
             <strong>
-              {installmentDetails.dueDate
-                ? new Date(installmentDetails.dueDate).toLocaleDateString(
-                    "en-IN",
-                  )
+                ? formatDate(installmentDetails.dueDate)
                 : "N/A"}
             </strong>
           </div>
@@ -894,7 +892,7 @@ export default function MakePayments() {
           <div className="d-flex justify-content-between align-items-center mt-2">
             <span>Amount</span>
             <span className="fw-bold text-primary">
-              ₹{installmentDetails.amount?.toLocaleString()}
+              ₹{formatNumberIN(installmentDetails.amount)}
             </span>
           </div>
           <div className="d-flex justify-content-between align-items-center mt-2">
@@ -929,7 +927,7 @@ export default function MakePayments() {
                       className="payment-gateway-btn stripe-gateway w-100"
                       onClick={handleStripePayment}
                       disabled={loading}
-                      aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Stripe`}
+                      aria-label={`Pay ${formatNumberIN(installmentDetails.amount)} rupees via Stripe`}
                       aria-busy={loading}
                     >
                       <div className="gateway-icon-wrapper">
@@ -957,7 +955,7 @@ export default function MakePayments() {
                       className="payment-gateway-btn razorpay-gateway w-100"
                       onClick={handleRazorpayPayment}
                       disabled={loading}
-                      aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Razorpay`}
+                      aria-label={`Pay ${formatNumberIN(installmentDetails.amount)} rupees via Razorpay`}
                       aria-busy={loading}
                     >
                       <div className="gateway-icon-wrapper razorpay">
@@ -1090,7 +1088,7 @@ export default function MakePayments() {
                   </p>
                   <p className="mb-2">
                     <strong>Amount:</strong> ₹
-                    {result.installment.amount.toLocaleString()}
+                    {formatNumberIN(result.installment.amount)}
                   </p>
                   <p className="mb-2">
                     <strong>Status:</strong>{" "}
@@ -1100,8 +1098,7 @@ export default function MakePayments() {
                   </p>
                   <p className="mb-3">
                     <strong>Paid At:</strong>{" "}
-                    {new Date(result.installment.paidAt).toLocaleString(
-                      "en-IN",
+                    {formatDateTime(result.installment.paidAt)}
                     )}
                   </p>
                 </div>
@@ -1115,7 +1112,7 @@ export default function MakePayments() {
                       aria-hidden="true"
                     />
                     <p className="mb-0 fw-bold">
-                      ₹{result.totalFee?.toLocaleString()}
+                      ₹{formatNumberIN(result.totalFee)}
                     </p>
                     <small className="text-muted">Total</small>
                   </div>
@@ -1125,7 +1122,7 @@ export default function MakePayments() {
                       aria-hidden="true"
                     />
                     <p className="mb-0 fw-bold">
-                      ₹{result.paidAmount?.toLocaleString()}
+                      ₹{formatNumberIN(result.paidAmount)}
                     </p>
                     <small className="text-muted">Paid</small>
                   </div>
@@ -1135,7 +1132,7 @@ export default function MakePayments() {
                       aria-hidden="true"
                     />
                     <p className="mb-0 fw-bold">
-                      ₹{result.remainingAmount?.toLocaleString()}
+                      ₹{formatNumberIN(result.remainingAmount)}
                     </p>
                     <small className="text-muted">Remaining</small>
                   </div>
@@ -1554,13 +1551,12 @@ export default function MakePayments() {
             </div>
             <div className="mb-2">
               <strong>Amount:</strong> ₹
-              {installmentDetails.amount?.toLocaleString()}
+              {formatNumberIN(installmentDetails.amount)}
             </div>
             <div className="mb-2">
               <strong>Due Date:</strong>{" "}
               {installmentDetails.dueDate
-                ? new Date(installmentDetails.dueDate).toLocaleDateString(
-                    "en-IN",
+                ? formatDate(installmentDetails.dueDate)
                   )
                 : "N/A"}
             </div>
