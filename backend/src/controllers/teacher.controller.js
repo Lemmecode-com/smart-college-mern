@@ -270,7 +270,7 @@ exports.createTeacher = async (req, res, next) => {
    GET /teachers/my-profile
    ✅ FIXED: Properly populate department_id with hod_id
 ========================================================= */
-exports.getMyProfile = async (req, res) => {
+exports.getMyProfile = async (req, res, next) => {
   try {
     const teacher = await Teacher.findOne({
       user_id: req.user.id,
@@ -279,9 +279,9 @@ exports.getMyProfile = async (req, res) => {
     })
       .populate({
         path: "department_id",
-        select: "name code hod_id", // ✅ Include hod_id
+        select: "name code hod_id",
         populate: {
-          path: "hod_id", // ✅ Populate HOD details
+          path: "hod_id",
           select: "name _id",
         },
       })
@@ -295,16 +295,32 @@ exports.getMyProfile = async (req, res) => {
       });
     }
 
-    // ✅ Fetch subjects assigned to this teacher
     const subjects = await Subject.find({
       teacher_id: teacher._id,
       college_id: req.college_id,
       status: "ACTIVE",
     }).populate("course_id", "name code");
 
-    // ✅ Convert to plain object and add subjects
     let teacherObj = teacher.toObject();
     teacherObj.subjects = subjects;
+
+    if (!teacherObj.mobileNumber) {
+      const user = await User.findById(req.user.id).select("mobileNumber");
+      if (user?.mobileNumber) {
+        teacherObj.mobileNumber = user.mobileNumber;
+      }
+    }
+
+    if (!teacherObj.department_id && subjects.length > 0 && subjects[0].department_id) {
+      const dept = await Department.findById(subjects[0].department_id).select("name code hod_id");
+      if (dept) {
+        teacherObj.department_id = {
+          _id: dept._id,
+          name: dept.name,
+          code: dept.code,
+        };
+      }
+    }
 
     // Always enrich documents from Document collection to ensure documentId is present
     if (teacherObj.documentRefs && teacherObj.documentRefs.length > 0) {

@@ -45,28 +45,6 @@ describe("NOT-TC-001 — Admin Create Notification (target STUDENTS)", () => {
       .send({ email: admin.email, password: "Test@123" })
       .expect(200);
 
-    const res = await adminAgent
-      .post("/api/notifications/admin/create")
-      .send({
-        title: "Exam Schedule",
-        message: "Final exams begin next week. Prepare well.",
-        type: "EXAM",
-        target: "STUDENTS",
-      })
-      .expect(201);
-
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.notification).toBeDefined();
-    expect(res.body.data.notification.title).toBe("Exam Schedule");
-    expect(res.body.data.notification.target).toBe("STUDENTS");
-
-    // Persisted in DB
-    const saved = await Notification.findById(res.body.data.notification._id);
-    expect(saved).not.toBeNull();
-    expect(saved.target).toBe("STUDENTS");
-    expect(saved.isActive).toBe(true);
-
-    // Student should be able to see it
     const department = await Department.create({
       college_id: college._id,
       name: "Computer Science",
@@ -106,6 +84,27 @@ describe("NOT-TC-001 — Admin Create Notification (target STUDENTS)", () => {
       .post("/api/auth/login")
       .send({ email: studentUser.email, password: "Test@123" })
       .expect(200);
+
+    const res = await adminAgent
+      .post("/api/notifications/admin/create")
+      .send({
+        title: "Exam Schedule",
+        message: "Final exams begin next week. Prepare well.",
+        type: "EXAM",
+        target: "STUDENTS",
+      })
+      .expect(201);
+
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.notification).toBeDefined();
+    expect(res.body.data.notification.title).toBe("Exam Schedule");
+    expect(res.body.data.notification.target).toBe("STUDENTS");
+
+    // Persisted in DB
+    const saved = await Notification.findById(res.body.data.notification._id);
+    expect(saved).not.toBeNull();
+    expect(saved.target).toBe("STUDENTS");
+    expect(saved.isActive).toBe(true);
 
     const studentRes = await studentAgent
       .get("/api/notifications/student/read")
