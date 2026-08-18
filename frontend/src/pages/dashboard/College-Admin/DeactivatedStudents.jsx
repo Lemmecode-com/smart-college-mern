@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+﻿import { useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -68,7 +68,7 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
       }
 
       setStudents(data);
-      console.log("DEBUG - Deactivated first department:", data[0]?.department_id);
+
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;

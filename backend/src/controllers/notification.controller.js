@@ -323,7 +323,7 @@ exports.getStudentNotifications = async (req, res, next) => {
       user_id: req.user.id,
       college_id: req.college_id,
       status: { $in: ["APPROVED", "ENROLLED"] }
-    }).select("department_id course_id currentSemester");
+    }).select("department_id course_id currentSemester approvedAt createdAt");
 
     if (!student) {
       return res.status(404).json({
@@ -522,7 +522,7 @@ exports.getNotificationById = async (req, res, next) => {
         user_id: req.user.id,
         college_id: req.college_id,
         status: { $in: ["APPROVED", "ENROLLED"] }
-      }).select("department_id course_id currentSemester");
+      }).select("department_id course_id currentSemester approvedAt createdAt");
 
       if (!studentProfile) {
         return res.status(404).json({
@@ -677,7 +677,7 @@ exports.getStudentNotificationCount = async (req, res, next) => {
       user_id: userId,
       college_id: req.college_id,
       status: { $in: ["APPROVED", "ENROLLED"] }
-    }).select("department_id course_id currentSemester");
+    }).select("department_id course_id currentSemester approvedAt createdAt");
 
     if (!student) {
       return res.status(404).json({
@@ -998,7 +998,7 @@ exports.getUnreadForBell = async (req, res, next) => {
         user_id: req.user.id,
         college_id: req.college_id,
         status: { $in: ["APPROVED", "ENROLLED"] }
-      }).select("department_id course_id currentSemester");
+      }).select("department_id course_id currentSemester approvedAt createdAt");
 
       if (!studentProfile) {
         return ApiResponse.success(res, [], "Unread notifications fetched successfully");
@@ -1057,7 +1057,7 @@ exports.markAllAsRead = async (req, res, next) => {
         user_id: userId,
         college_id: req.college_id,
         status: { $in: ["APPROVED", "ENROLLED"] }
-      }).select("department_id course_id currentSemester");
+      }).select("department_id course_id currentSemester approvedAt createdAt");
 
       if (!studentProfile) {
         return ApiResponse.success(
@@ -1141,7 +1141,7 @@ exports.markAsRead = async (req, res, next) => {
         user_id: userId,
         college_id: req.college_id,
         status: { $in: ["APPROVED", "ENROLLED"] }
-      }).select("department_id course_id currentSemester");
+      }).select("department_id course_id currentSemester approvedAt createdAt");
 
       if (!studentProfile) {
         return res.status(404).json({

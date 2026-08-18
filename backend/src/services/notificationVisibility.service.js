@@ -126,25 +126,46 @@ const getNotificationVisibilityQuery = async ({
       throw new AppError("Student profile not found", 404, "STUDENT_PROFILE_NOT_FOUND");
     }
 
+    // A student should only receive broadcast notifications created at or after
+    // their eligibility date (approval). Explicitly targeted INDIVIDUAL
+    // notifications are exempt from this historical restriction.
+    const studentEligibilityDate = studentProfile.approvedAt || studentProfile.createdAt;
+
     return {
       ...baseQuery,
       $and: [
         getExpiryCondition(),
         {
           $or: [
-            // COLLEGE_ADMIN & TEACHER: existing college-wide behavior
+            // Explicit individual targeting — no date restriction
             {
-              createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] },
-              ...getStudentTargetCondition({ userId: userObjectId, studentProfile }),
+              target: "INDIVIDUAL",
+              target_users: userObjectId,
             },
-            // HOD: department-scoped (only students in the HOD's department)
+            // Broadcast targets — notification must exist at or after student eligibility
             {
-              createdByRole: "HOD",
-              createdByDepartment: studentProfile.department_id,
+              createdAt: { $gte: studentEligibilityDate },
               $or: [
-                { target: "STUDENTS" },
-                { target: "DEPARTMENT", target_department: studentProfile.department_id },
-                { target: "INDIVIDUAL", target_users: userObjectId },
+                // COLLEGE_ADMIN & TEACHER: existing college-wide behavior
+                {
+                  createdByRole: { $in: ["COLLEGE_ADMIN", "TEACHER"] },
+                  $or: [
+                    { target: "ALL" },
+                    { target: "STUDENTS" },
+                    { target: "DEPARTMENT", target_department: studentProfile.department_id },
+                    { target: "COURSE", target_course: studentProfile.course_id },
+                    { target: "SEMESTER", target_semester: studentProfile.currentSemester },
+                  ],
+                },
+                // HOD: department-scoped (only students in the HOD's department)
+                {
+                  createdByRole: "HOD",
+                  createdByDepartment: studentProfile.department_id,
+                  $or: [
+                    { target: "STUDENTS" },
+                    { target: "DEPARTMENT", target_department: studentProfile.department_id },
+                  ],
+                },
               ],
             },
           ],
