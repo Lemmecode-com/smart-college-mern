@@ -12,6 +12,7 @@ const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const { getNotificationVisibilityQuery } = require("../services/notificationVisibility.service");
 
 /**
  * 👨‍🎓 STUDENT DASHBOARD
@@ -39,7 +40,8 @@ exports.studentDashboard = async (req, res, next) => {
       college_id: collegeId,
     })
       .populate("course_id", "name")
-      .populate("department_id", "name");
+      .populate("department_id", "name")
+      .select("user_id college_id department_id course_id currentSemester approvedAt createdAt");
 
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
@@ -192,11 +194,21 @@ exports.studentDashboard = async (req, res, next) => {
 
     const readIds = readRecords.map((r) => r.notification_id);
 
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId: req.user.id,
+      studentProfile: {
+        department_id: student.department_id?._id || student.department_id,
+        course_id: student.course_id?._id || student.course_id,
+        currentSemester: student.currentSemester,
+        approvedAt: student.approvedAt,
+        createdAt: student.createdAt,
+      },
+    });
+
     const rawNotifications = await Notification.find({
-      college_id: student.college_id,
-      isActive: true,
-      target: { $in: ["ALL", "STUDENTS"] },
-      $or: [{ expiresAt: null }, { expiresAt: { $gte: new Date() } }],
+      ...visibilityQuery,
       _id: { $nin: readIds },
     })
       .sort({ createdAt: -1 })
