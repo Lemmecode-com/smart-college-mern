@@ -25,6 +25,7 @@ import {
   FaUniversity,
   FaSpinner,
 } from "react-icons/fa";
+import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -391,9 +392,9 @@ export default function PaymentSuccess() {
   })();
   const displayTransactionId = payment?.transactionId || "N/A";
   const displayPaymentDate = payment?.paidAt
-    ? new Date(payment.paidAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
+    ? formatDateTime(payment.paidAt)
     : receiptDetails?.paidAt
-      ? new Date(receiptDetails.paidAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })
+      ? formatDateTime(receiptDetails.paidAt)
       : "N/A";
   const displayPaymentStatus = "SUCCESS";
   const displayAmountPaid = payment?.amount || 0;
@@ -500,21 +501,21 @@ export default function PaymentSuccess() {
             <div className="ps-summary-icon-wrap"><FaUniversity /></div>
             <div className="ps-summary-content">
               <span className="ps-summary-label">Total Fee</span>
-              <h3 className="ps-summary-value">₹{displayTotalFee.toLocaleString("en-IN")}</h3>
+              <h3 className="ps-summary-value">₹{formatNumberIN(displayTotalFee)}</h3>
             </div>
           </motion.div>
           <motion.div className="ps-summary-card ps-paid" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
             <div className="ps-summary-icon-wrap"><FaCheckCircle /></div>
             <div className="ps-summary-content">
               <span className="ps-summary-label">Total Paid</span>
-              <h3 className="ps-summary-value">₹{displayTotalPaid.toLocaleString("en-IN")}</h3>
+              <h3 className="ps-summary-value">₹{formatNumberIN(displayTotalPaid)}</h3>
             </div>
           </motion.div>
           <motion.div className="ps-summary-card ps-remaining" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
             <div className="ps-summary-icon-wrap"><FaCreditCard /></div>
             <div className="ps-summary-content">
               <span className="ps-summary-label">Remaining</span>
-              <h3 className="ps-summary-value">₹{displayRemaining.toLocaleString("en-IN")}</h3>
+              <h3 className="ps-summary-value">₹{formatNumberIN(displayRemaining)}</h3>
             </div>
           </motion.div>
         </div>
@@ -595,7 +596,7 @@ export default function PaymentSuccess() {
                 </div>
                 <div className="ps-info-item">
                   <span className="ps-info-label">Amount Paid</span>
-                  <span className="ps-info-value ps-amount-highlight">₹{displayAmountPaid.toLocaleString("en-IN")}</span>
+                  <span className="ps-info-value ps-amount-highlight">₹{formatNumberIN(displayAmountPaid)}</span>
                 </div>
                 <div className="ps-info-item">
                   <span className="ps-info-label">Payment Method</span>

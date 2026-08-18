@@ -1,8 +1,9 @@
-// Child Detail - Shows individual child profile, attendance, and fees
+﻿// Child Detail - Shows individual child profile, attendance, and fees
 import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
@@ -366,10 +367,10 @@ export default function ChildDetail() {
             <StatCard
               icon={FaRupeeSign}
               label="Pending Fees"
-              value={fees ? `₹${(fees.totalFee - fees.paidAmount).toLocaleString()}` : "--"}
+              value={fees ? `{formatINR(fees.totalFee - fees.paidAmount)}` : "--"}
               color={BRAND_COLORS.warning.main}
               gradient={BRAND_COLORS.warning.gradient}
-              subtitle={fees ? `Total: ₹${fees.totalFee.toLocaleString()}` : "Fee information unavailable"}
+              subtitle={fees ? `Total: ₹${fees.totalFee}` : "Fee information unavailable"}
             />
           </motion.div>
 
@@ -461,7 +462,7 @@ export default function ChildDetail() {
                               <div className="parent-profile-content">
                                 <div className="parent-profile-label">Date of Birth</div>
                                 <div className="parent-profile-value">
-                                  {child.dateOfBirth ? new Date(child.dateOfBirth).toLocaleDateString() : "Not set"}
+                                  {child.dateOfBirth ? formatDate(child.dateOfBirth) : "Not set"}
                                 </div>
                               </div>
                             </div>
@@ -641,7 +642,7 @@ export default function ChildDetail() {
                             <td>
                               <div className="parent-table-cell-stack">
                                 <span className="parent-fw-semibold">
-{record.date ? new Date(record.date).toLocaleDateString('en-US', {
+{record.date ? formatDate(record.date), {
 	                                    weekday: 'short',
 	                                    month: 'short',
 	                                    day: 'numeric'
@@ -733,7 +734,7 @@ export default function ChildDetail() {
                                 </div>
                                 <div>
                                   <div className="parent-fee-title">Total Fee</div>
-                                  <div className="parent-fee-amount">₹{fees.totalFee?.toLocaleString()}</div>
+                                  <div className="parent-fee-amount">{formatINR(fees.totalFee)}</div>
                                 </div>
                               </div>
                               <div className="parent-fee-item">
@@ -742,7 +743,7 @@ export default function ChildDetail() {
                                 </div>
                                 <div>
                                   <div className="parent-fee-title">Paid Amount</div>
-                                  <div className="parent-fee-amount" style={{ color: "#28a745" }}>₹{fees.paidAmount?.toLocaleString()}</div>
+                                  <div className="parent-fee-amount" style={{ color: "#28a745" }}>{formatINR(fees.paidAmount)}</div>
                                 </div>
                               </div>
                               <div className="parent-fee-item">
@@ -752,7 +753,7 @@ export default function ChildDetail() {
                                 <div>
                                   <div className="parent-fee-title">Pending Amount</div>
                                   <div className="parent-fee-amount" style={{ color: "#ffc107" }}>
-                                    ₹{(fees.totalFee - fees.paidAmount)?.toLocaleString()}
+                                    {formatINR(fees.totalFee - fees.paidAmount)}
                                   </div>
                                 </div>
                               </div>
@@ -783,7 +784,7 @@ export default function ChildDetail() {
                                       <div>
                                         <div className="parent-installment-title">{installment.name}</div>
                                         <div className="parent-installment-due">
-                                          Due: {installment.dueDate ? new Date(installment.dueDate).toLocaleDateString() : "N/A"}
+                                          Due: {installment.dueDate ? formatDate(installment.dueDate) : "N/A"}
                                         </div>
                                       </div>
                                       <span className={`parent-status-badge ${
@@ -796,10 +797,10 @@ export default function ChildDetail() {
                                     </div>
                                     <div className="parent-installment-body">
                                       <div className="parent-installment-amount">
-                                        <div className="parent-installment-amount-value">₹{installment.amount?.toLocaleString()}</div>
+                                        <div className="parent-installment-amount-value">{formatINR(installment.amount)}</div>
                                         {installment.paidAt && (
                                           <div className="parent-installment-meta">
-                                            Paid on {new Date(installment.paidAt).toLocaleDateString()}
+                                            Paid on {formatDateTime(installment.paidAt)}
                                           </div>
                                         )}
                                       </div>

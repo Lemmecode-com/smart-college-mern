@@ -1224,7 +1224,7 @@ exports.getStudentById = async (req, res, next) => {
 };
 
 // REGISTERED (PENDING) STUDENTS - WITH PAGINATION
-exports.getRegisteredStudents = async (req, res) => {
+exports.getRegisteredStudents = async (req, res, next) => {
   try {
     // 📄 Pagination parameters
     const page = parseInt(req.query.page) || 1;
@@ -1529,7 +1529,7 @@ exports.getAlumni = async (req, res, next) => {
  * GET DEACTIVATED STUDENTS — For history and reactivation
  * GET /students/deactivated
  */
-exports.getDeactivatedStudents = async (req, res) => {
+exports.getDeactivatedStudents = async (req, res, next) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;

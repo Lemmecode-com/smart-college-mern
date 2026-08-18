@@ -1,7 +1,8 @@
-import { useContext, useEffect, useState, useRef } from "react";
+﻿import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -529,7 +530,7 @@ export default function StudentFees() {
               {progress}%
             </div>
             <div className="subtitle text-muted mt-1">
-              {`${dashboard.totalPaid.toLocaleString("en-IN")}/${dashboard.totalFee.toLocaleString("en-IN")} paid`}
+              {`${formatNumberIN(dashboard.totalPaid)}/${formatNumberIN(dashboard.totalFee)} paid`}
             </div>
           </div>
         </div>
@@ -690,11 +691,11 @@ export default function StudentFees() {
                       >
                         <td className="cell-installment">{installment.name}</td>
                         <td className="cell-amount">
-                          ₹{installment.amount.toLocaleString()}
+                          ₹{formatNumberIN(installment.amount)}
                         </td>
                         <td className="cell-due">
                           <div className="due-date">
-                            {new Date(installment.dueDate).toLocaleDateString("en-IN")}
+                            {formatDate(installment.dueDate)}
                           </div>
                           {isNearDue(installment.dueDate) &&
                             installment.status !== "PAID" && (
@@ -746,9 +747,7 @@ export default function StudentFees() {
                             <div className="payment-info">
                               <div className="payment-date">
                                 {installment.paidAt
-                                  ? new Date(installment.paidAt).toLocaleString(
-                                      "en-IN",
-                                    )
+                                  ? formatDateTime(installment.paidAt)
                                   : "N/A"}
                               </div>
                               <small className="payment-ref">
@@ -873,7 +872,7 @@ export default function StudentFees() {
               <small>
                 <FaSync className="spin-icon me-1" />
                 Fee data last updated:{" "}
-                <strong>{new Date().toLocaleString()}</strong>
+                <strong>{formatDateTime(new Date())}</strong>
               </small>
             </p>
           </div>
@@ -2064,7 +2063,7 @@ function FeeSummaryCard({ title, amount, icon, color, subtitle, delay }) {
       <div className={`fs-2 text-${color}`}>{icon}</div>
       <h6 className="text-muted mb-1">{title}</h6>
       <div className={`amount text-${color}`}>
-        ₹{typeof amount === "number" ? amount.toLocaleString() : amount}
+        {formatINR(amount)}
       </div>
       {subtitle && <div className="subtitle text-muted mt-1">{subtitle}</div>}
     </div>
