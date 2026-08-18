@@ -276,6 +276,7 @@ export default function MyTimetable() {
 
   /* ================= FETCH SCHEDULE FOR DATE RANGE ================= */
   const fetchScheduleForDateRange = async (startDate, endDate) => {
+    console.log("[TT] fetchScheduleForDateRange start", { startDate, endDate, timetableId });
     try {
       setLoading(true);
       setError(null);
@@ -296,6 +297,7 @@ export default function MyTimetable() {
       }
 
       if (!currentTimetableId) {
+        console.log("[TT] fetchScheduleForDateRange no timetableId");
         setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
         setScheduleSummary({
           totalScheduledSlots: 0,
@@ -313,6 +315,7 @@ export default function MyTimetable() {
       });
 
       const schedule = res.data?.data?.schedule || [];
+      console.log("[TT] fetchScheduleForDateRange schedule", { scheduleLength: schedule.length, dates: schedule.map(s => s.date) });
 
       if (schedule && schedule.length > 0) {
         const weeklyData = {
@@ -342,6 +345,7 @@ export default function MyTimetable() {
           }
         });
 
+        console.log("[TT] fetchScheduleForDateRange weeklyData", weeklyData);
         setWeekly(weeklyData);
 
         const totalSlots = Object.values(weeklyData).flat().length;
@@ -400,7 +404,6 @@ export default function MyTimetable() {
     }
   };
 
-  // Week navigation handlers
   const goToPreviousWeek = async () => {
     const start = new Date(dateRange.startDate.replace(/-/g, "/"));
     start.setDate(start.getDate() - 7);
@@ -410,6 +413,7 @@ export default function MyTimetable() {
       startDate: toLocalDateStr(start),
       endDate: toLocalDateStr(end),
     };
+    console.log("[TT] goToPreviousWeek", { from: dateRange, to: newRange, timetableId });
     setDateRange(newRange);
     await fetchScheduleForDateRange(newRange.startDate, newRange.endDate);
   };
@@ -423,6 +427,7 @@ export default function MyTimetable() {
       startDate: toLocalDateStr(start),
       endDate: toLocalDateStr(end),
     };
+    console.log("[TT] goToNextWeek", { from: dateRange, to: newRange, timetableId });
     setDateRange(newRange);
     await fetchScheduleForDateRange(newRange.startDate, newRange.endDate);
   };
@@ -441,6 +446,7 @@ export default function MyTimetable() {
       startDate: toLocalDateStr(monday),
       endDate: toLocalDateStr(sunday),
     };
+    console.log("[TT] goToCurrentWeek", { to: newRange, timetableId });
     setDateRange(newRange);
     setTimetableId(null);
     await fetchTimetable();
@@ -602,6 +608,7 @@ export default function MyTimetable() {
   }
 
   const totalSlots = getTotalSlots();
+  console.log("[TT] render", { totalSlots, weeklyKeys: Object.keys(weekly), dateRange });
 
   return (
     <motion.div
