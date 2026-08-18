@@ -235,12 +235,11 @@ export default function MyTimetable() {
       setLoading(true);
       setError(null);
 
-      // First, get the teacher's weekly timetable to find the timetable ID
       const res = await api.get("/timetable/weekly");
 
-      setWeekly(res.data.weekly || {});
+      const weeklyData = res.data.weekly || {};
+      setWeekly(weeklyData);
 
-      // Update date range from backend if available
       if (res.data.weekRange) {
         setDateRange({
           startDate: res.data.weekRange.start,
@@ -248,8 +247,7 @@ export default function MyTimetable() {
         });
       }
 
-      // Extract timetable ID from the weekly response slots
-      const allSlots = Object.values(res.data.weekly || {}).flat();
+      const allSlots = Object.values(weeklyData).flat();
       const firstSlotWithTimetable = allSlots.find((s) => s.timetable_id);
       if (firstSlotWithTimetable?.timetable_id?._id) {
         setTimetableId(firstSlotWithTimetable.timetable_id._id);
@@ -278,24 +276,45 @@ export default function MyTimetable() {
 
   /* ================= FETCH SCHEDULE FOR DATE RANGE ================= */
   const fetchScheduleForDateRange = async (startDate, endDate) => {
-    if (!timetableId) {
-      // Fallback to regular weekly fetch
-      await fetchTimetable();
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
 
-      const res = await api.get(`/timetable/${timetableId}/schedule`, {
+      let currentTimetableId = timetableId;
+
+      if (!currentTimetableId) {
+        const weeklyRes = await api.get("/timetable/weekly");
+        const weeklyData = weeklyRes.data.weekly || {};
+        setWeekly(weeklyData);
+
+        const allSlots = Object.values(weeklyData).flat();
+        const firstSlotWithTimetable = allSlots.find((s) => s.timetable_id);
+        if (firstSlotWithTimetable?.timetable_id?._id) {
+          currentTimetableId = firstSlotWithTimetable.timetable_id._id;
+          setTimetableId(currentTimetableId);
+        }
+      }
+
+      if (!currentTimetableId) {
+        setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
+        setScheduleSummary({
+          totalScheduledSlots: 0,
+          workingDays: 0,
+          cancelledSlots: 0,
+          extraClasses: 0,
+          holidays: 0,
+        });
+        setRetryCount(0);
+        return;
+      }
+
+      const res = await api.get(`/timetable/${currentTimetableId}/schedule`, {
         params: { startDate, endDate },
       });
 
       const schedule = res.data?.data || [];
 
       if (schedule && schedule.length > 0) {
-        // Convert schedule format to weekly format
         const weeklyData = {
           MON: [],
           TUE: [],
@@ -325,7 +344,6 @@ export default function MyTimetable() {
 
         setWeekly(weeklyData);
 
-        // Compute schedule summary
         const totalSlots = Object.values(weeklyData).flat().length;
         const workingDays = schedule.filter((d) => d.isWorkingDay).length;
         const cancelledSlots = schedule.reduce(
@@ -347,6 +365,7 @@ export default function MyTimetable() {
           cancelledSlots,
           extraClasses,
           holidays,
+          todaySlots: todaySlotsList,
         });
       } else {
         setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
@@ -356,6 +375,7 @@ export default function MyTimetable() {
           cancelledSlots: 0,
           extraClasses: 0,
           holidays: 0,
+          todaySlots: [],
         });
       }
 
@@ -422,6 +442,7 @@ export default function MyTimetable() {
       endDate: toLocalDateStr(sunday),
     };
     setDateRange(newRange);
+    setTimetableId(null);
     await fetchTimetable();
   };
 
