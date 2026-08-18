@@ -16,7 +16,6 @@ import {
   FaExclamationTriangle,
   FaChevronLeft,
   FaChevronRight,
-  FaUpload,
   FaUndo,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
@@ -158,7 +157,6 @@ export default function ExceptionManagement() {
   const [exceptions, setExceptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showBulkModal, setShowBulkModal] = useState(false);
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -434,21 +432,6 @@ export default function ExceptionManagement() {
                 }}
               >
                 <FaPlus className="me-1" /> Add Exception
-              </MotionButton>
-              <MotionButton
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowBulkModal(true)}
-                className="btn btn-sm px-3 py-2 border-0"
-                style={{
-                  background: "rgba(255, 255, 255, 0.1)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  color: "white",
-                  backdropFilter: "blur(10px)",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <FaUpload className="me-1" /> Bulk Upload
               </MotionButton>
             </div>
           </div>
@@ -800,15 +783,6 @@ export default function ExceptionManagement() {
         )}
       </div>
 
-      {/* ================= BULK UPLOAD MODAL ================= */}
-      {showBulkModal && (
-        <BulkExceptionModal
-          timetableId={selectedTimetable?._id}
-          onClose={() => setShowBulkModal(false)}
-          onSuccess={fetchExceptions}
-        />
-      )}
-
       {/* ================= WITHDRAW MODAL ================= */}
       <AnimatePresence>
         {withdrawModal.isOpen && (
@@ -938,228 +912,3 @@ export default function ExceptionManagement() {
   );
 }
 
-/* ================= BULK UPLOAD MODAL ================= */
-function BulkExceptionModal({ timetableId, onClose, onSuccess }) {
-  const [bulkText, setBulkText] = useState("");
-  const [exceptionType, setExceptionType] = useState("HOLIDAY");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-
-    try {
-      const lines = bulkText
-        .split("\n")
-        .filter((l) => l.trim())
-        .slice(1);
-
-      const exceptions = lines.map((line) => {
-        const [date, type, reason] = line.split(",").map((s) => s.trim());
-        return {
-          exceptionDate: date,
-          type: type || exceptionType,
-          reason: reason || "Bulk uploaded exception",
-        };
-      });
-
-      await api.post(`/timetable/${timetableId}/exceptions/bulk`, {
-        exceptions,
-      });
-
-      toast.success("Bulk exceptions uploaded successfully", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      onSuccess();
-    } catch (err) {
-      const statusCode = err.response?.status;
-      const errorCode = err.response?.data?.code;
-      const isAuthError =
-        statusCode === 401 ||
-        (errorCode && AUTH_ERROR_CODES.has(errorCode));
-      if (!isAuthError) {
-        toast.error(
-          err.response?.data?.message || "Failed to upload bulk exceptions",
-          {
-            position: "top-right",
-            autoClose: 5000,
-          },
-        );
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div
-      className="modal show d-block"
-      tabIndex="-1"
-      style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
-    >
-      <MotionDiv
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="modal-dialog modal-lg modal-dialog-centered"
-      >
-        <div
-          className="modal-content border-0 shadow-lg"
-          style={{
-            borderRadius: "16px",
-            overflow: "hidden",
-          }}
-        >
-          {/* Modal Header */}
-          <div
-            className="modal-header border-0 text-white p-3"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
-            }}
-          >
-            <div className="d-flex align-items-center gap-2">
-              <div
-                className="d-flex align-items-center justify-content-center"
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  background:
-                    "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                  borderRadius: "10px",
-                }}
-              >
-                <FaUpload />
-              </div>
-              <h5 className="modal-title fw-bold mb-0">
-                Bulk Upload Exceptions
-              </h5>
-            </div>
-            <button
-              type="button"
-              className="btn-close btn-close-white opacity-75"
-              onClick={onClose}
-              style={{ filter: "brightness(0) invert(1)" }}
-            ></button>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <div className="modal-body p-4" style={{ background: "#f8fafc" }}>
-              {error && (
-                <MotionDiv
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="alert alert-danger d-flex align-items-center mb-3 border-0"
-                  style={{
-                    background: "#fef2f2",
-                    border: "1px solid #fecaca",
-                    borderRadius: "10px",
-                    color: "#991b1b",
-                  }}
-                >
-                  <FaInfoCircle className="me-2" />
-                  {error}
-                </MotionDiv>
-              )}
-
-              <div className="mb-3">
-                <label className="form-label fw-bold text-dark mb-2">
-                  Default Exception Type
-                </label>
-                <select
-                  className="form-select border-0"
-                  value={exceptionType}
-                  onChange={(e) => setExceptionType(e.target.value)}
-                  style={{
-                    background: "white",
-                    borderRadius: "10px",
-                    padding: "0.75rem 1rem",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
-                    border: "1px solid #e2e8f0",
-                  }}
-                >
-                  {Object.entries(EXCEPTION_TYPES).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label fw-bold text-dark mb-2">
-                  CSV Data <span className="text-danger">*</span>
-                </label>
-                <small
-                  className="text-muted d-block mb-2"
-                  style={{ fontSize: "0.8rem" }}
-                >
-                  Format: date,type,reason (one per line, first line is header)
-                  <br />
-                  Example: 2024-03-15,HOLIDAY,Public Holiday
-                </small>
-                <textarea
-                  className="form-control border-0"
-                  rows="10"
-                  value={bulkText}
-                  onChange={(e) => setBulkText(e.target.value)}
-                  placeholder={`date,type,reason\n2024-03-15,HOLIDAY,Public Holiday\n2024-03-18,CANCELLED,Teacher absent`}
-                  required
-                  style={{
-                    background: "white",
-                    borderRadius: "10px",
-                    padding: "1rem",
-                    boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
-                    border: "1px solid #e2e8f0",
-                    fontFamily: "monospace",
-                    fontSize: "0.875rem",
-                  }}
-                />
-              </div>
-            </div>
-
-            <div
-              className="modal-footer border-0 d-flex gap-2 p-3"
-              style={{ background: "white" }}
-            >
-              <MotionButton
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                className="btn px-4 py-2 fw-medium"
-                onClick={onClose}
-                style={{
-                  background: "#f1f5f9",
-                  border: "1px solid #e2e8f0",
-                  color: "#64748b",
-                  borderRadius: "8px",
-                }}
-              >
-                Cancel
-              </MotionButton>
-              <MotionButton
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                className="btn px-4 py-2 fw-bold text-white"
-                disabled={submitting}
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                  borderRadius: "8px",
-                  boxShadow: "0 2px 8px rgba(61, 181, 230, 0.3)",
-                  opacity: submitting ? 0.7 : 1,
-                }}
-              >
-                <FaUpload className="me-1" />
-                {submitting ? "Uploading..." : "Upload"}
-              </MotionButton>
-            </div>
-          </form>
-        </div>
-      </MotionDiv>
-    </div>
-  );
-}

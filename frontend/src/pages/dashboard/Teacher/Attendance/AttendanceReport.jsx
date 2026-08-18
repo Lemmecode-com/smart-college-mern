@@ -24,6 +24,7 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
+import Pagination from "../../../../components/Pagination";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -118,6 +119,9 @@ export default function AttendanceReport() {
     startDate: "",
     endDate: "",
   });
+
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const isInitialMount = useRef(true);
   const invalidToastShown = useRef(false);
@@ -227,6 +231,7 @@ export default function AttendanceReport() {
       isInitialMount.current = false;
       return;
     }
+    setPage(1);
     fetchReport();
   }, [filters]);
 
@@ -448,6 +453,12 @@ export default function AttendanceReport() {
   }
 
   const { summary = {}, sessions = [] } = report || {};
+
+  const totalPages = Math.max(1, Math.ceil(sessions.length / PAGE_SIZE));
+  const paginatedSessions = sessions.slice(
+    (page - 1) * PAGE_SIZE,
+    page * PAGE_SIZE
+  );
 
   return (
     <AnimatePresence mode="wait">
@@ -1040,8 +1051,8 @@ export default function AttendanceReport() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sessions.length > 0 ? (
-                    sessions.map((session, idx) => (
+                  {paginatedSessions.length > 0 ? (
+                    paginatedSessions.map((session, idx) => (
                       <SessionRow
                         key={idx}
                         session={session}
@@ -1138,6 +1149,16 @@ export default function AttendanceReport() {
                     <FaPrint size={14} /> Print Report
                   </motion.button>
                 </div>
+              </div>
+            )}
+            
+            {sessions.length > PAGE_SIZE && (
+              <div style={{ display: "flex", justifyContent: "center", marginTop: "1.5rem" }}>
+                <Pagination
+                  page={page}
+                  totalPages={totalPages}
+                  setPage={setPage}
+                />
               </div>
             )}
           </motion.div>
