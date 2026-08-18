@@ -274,7 +274,6 @@ export default function MyTimetable() {
     }
   };
 
-  /* ================= FETCH SCHEDULE FOR DATE RANGE ================= */
   const fetchScheduleForDateRange = async (startDate, endDate) => {
     console.log("[TT] fetchScheduleForDateRange start", { startDate, endDate, timetableId });
     try {
@@ -316,6 +315,7 @@ export default function MyTimetable() {
 
       const schedule = res.data?.data?.schedule || [];
       console.log("[TT] fetchScheduleForDateRange schedule", { scheduleLength: schedule.length, dates: schedule.map(s => s.date) });
+      console.log("[TT] fetchScheduleForDateRange raw", res.data);
 
       if (schedule && schedule.length > 0) {
         const weeklyData = {
@@ -372,10 +372,39 @@ export default function MyTimetable() {
           todaySlots: todaySlotsList,
         });
       } else {
-        setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
+        console.log("[TT] schedule empty, falling back to weekly data for requested range");
+        const weeklyRes = await api.get("/timetable/weekly");
+        const weeklyData = weeklyRes.data.weekly || {};
+
+        const start = parseLocalDate(startDate);
+        const end = parseLocalDate(endDate);
+        const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+        const filteredWeekly = {
+          MON: [],
+          TUE: [],
+          WED: [],
+          THU: [],
+          FRI: [],
+          SAT: [],
+        };
+
+        Object.entries(weeklyData).forEach(([dayCode, slots]) => {
+          const matching = slots.filter((slot) => {
+            const slotDate = parseLocalDate(slot.exceptionDate || slot.date || startDate);
+            return slotDate >= start && slotDate <= end;
+          });
+          if (matching.length > 0) {
+            filteredWeekly[dayCode] = matching;
+          }
+        });
+
+        setWeekly(filteredWeekly);
+
+        const totalSlots = Object.values(filteredWeekly).flat().length;
+        const workingDays = totalSlots > 0 ? new Set(Object.entries(filteredWeekly).filter(([, s]) => s.length > 0).map(([d]) => d)).size : 0;
         setScheduleSummary({
-          totalScheduledSlots: 0,
-          workingDays: 0,
+          totalScheduledSlots: totalSlots,
+          workingDays,
           cancelledSlots: 0,
           extraClasses: 0,
           holidays: 0,
