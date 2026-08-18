@@ -23,6 +23,7 @@ import {
   FaListUl,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-toastify";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -239,9 +240,28 @@ export default function AttendanceReport() {
   };
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === "startDate" || name === "endDate") {
+      setFilters((prev) => {
+        const next = { ...prev, [name]: value };
+
+        if (next.startDate && next.endDate && next.startDate > next.endDate) {
+          toast.error("Start date cannot be after end date", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+          return prev;
+        }
+
+        return next;
+      });
+      return;
+    }
+
     setFilters({
       ...filters,
-      [e.target.name]: e.target.value,
+      [name]: value,
     });
   };
 
