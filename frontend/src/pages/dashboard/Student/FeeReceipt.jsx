@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+﻿import { useContext, useEffect, useRef, useState } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -35,6 +35,7 @@ import {
   FaArrowLeft,
   FaSpinner,
 } from "react-icons/fa";
+import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -625,7 +626,7 @@ export default function FeeReceipt() {
             <Info label="Installment" value={receipt.installmentName} />
             <Info
               label="Amount"
-              value={`₹ ${receipt.amount?.toLocaleString()}`}
+              value={`₹ ${receipt.amount}`}
             />
             <Info
               label="Payment Method"
@@ -654,7 +655,7 @@ export default function FeeReceipt() {
             />
             <Info
               label="Paid On"
-              value={new Date(receipt.paidAt).toLocaleString("en-IN")}
+              value={formatDateTime(receipt.paidAt)}
             />
             <Info label="Status" value={receipt.status} />
           </section>
