@@ -399,7 +399,7 @@ export default function MyProfile() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <FaUniversity style={{ color: BRAND_COLORS.info.main }} />
-                  <span style={{ color: '#4a5568', fontWeight: 500 }}>Department: {profile.department_id?.name || 'N/A'}</span>
+                   <span style={{ color: '#4a5568', fontWeight: 500 }}>Department: {profile.department_id?.name || profile.department_id?.code || "Not Assigned"}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <FaBuilding style={{ color: BRAND_COLORS.success.main }} />
@@ -457,7 +457,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaPhoneAlt />}
                         label="Contact Number"
-                        value={profile.mobileNumber || 'N/A'}
+                        value={profile.mobileNumber || 'Not Set'}
                         copyable
                       />
                     </div>
@@ -465,7 +465,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaMapMarkerAlt />}
                         label="Address"
-                        value={profile.address || 'N/A'}
+                        value={profile.address || 'Not Set'}
                         fullWidth
                       />
                     </div>
@@ -473,7 +473,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaCalendarAlt />}
                         label="Date of Birth"
-                        value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}
+                        value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'Not Set'}
                       />
                     </div>
                     <div className="col-12 col-sm-6 col-lg-4">
@@ -494,7 +494,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaClock />}
                         label="Joining Date"
-                        value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A')}
+                        value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Not Set')}
                       />
                     </div>
                     <div className="col-12 col-sm-6 col-lg-4">
