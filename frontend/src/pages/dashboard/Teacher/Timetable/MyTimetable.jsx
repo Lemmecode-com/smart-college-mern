@@ -312,7 +312,7 @@ export default function MyTimetable() {
         params: { startDate, endDate },
       });
 
-      const schedule = res.data?.data || [];
+      const schedule = res.data?.data?.schedule || [];
 
       if (schedule && schedule.length > 0) {
         const weeklyData = {
