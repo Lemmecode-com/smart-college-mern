@@ -107,6 +107,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
       // Filter only PENDING status students
       const pendingStudents = data.filter((s) => s.status === "PENDING");
       setStudents(pendingStudents);
+      console.log("DEBUG - First student department:", pendingStudents[0]?.department_id);
       calculateStats(pendingStudents);
     } catch (err) {
       const statusCode = err.response?.status;
@@ -657,7 +658,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
                       </td>
                       <td className="cell-department" data-label="Department">
                         <span className="department-name">
-                          {student.department_id?.name || "N/A"}
+                          {student.department_id?.name || student.department_id?.code || (typeof student.department_id === "string" ? student.department_id : student.course_id?.name || "N/A")}
                         </span>
                       </td>
                       <td className="cell-year" data-label="Year">
