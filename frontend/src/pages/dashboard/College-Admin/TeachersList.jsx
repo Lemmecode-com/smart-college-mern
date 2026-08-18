@@ -405,7 +405,7 @@ export default function TeachersList() {
             </div>
           </div>
         </div>
-        <div className="erp-page-header-actions">
+        <div className="erp-header-actions">
           {canCreate('teachers') && (
             <button
               className="erp-btn erp-btn-primary"
@@ -899,6 +899,45 @@ export default function TeachersList() {
           margin: 0.375rem 0 0 0;
           opacity: 0.85;
           font-size: 1rem;
+        }
+        
+        .erp-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.875rem 1.75rem;
+          border: none;
+          border-radius: 10px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-decoration: none;
+        }
+        
+        .erp-btn-icon {
+          font-size: 1.125rem;
+        }
+        
+        .erp-btn-primary {
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          color: white;
+        }
+        
+        .erp-btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(26, 75, 109, 0.4);
+        }
+        
+        .erp-btn-secondary {
+          background: white;
+          color: #1a4b6d;
+          border: 2px solid #e9ecef;
+        }
+        
+        .erp-btn-secondary:hover {
+          background: #f8f9fa;
+          border-color: #1a4b6d;
         }
         
         .erp-header-actions .erp-btn {
