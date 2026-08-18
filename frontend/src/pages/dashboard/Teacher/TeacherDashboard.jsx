@@ -724,7 +724,7 @@ function LectureRow({ lecture, delay = 0 }) {
         </div>
       </td>
       <td className="py-3 px-3 align-middle">
-        {lecture.department_id?.name || 'N/A'}
+        {lecture.department_id?.name || lecture.course_id?.name || "N/A"}
       </td>
       <td className="py-3 px-3 align-middle">
         <motion.span
