@@ -291,10 +291,7 @@ export default function ExceptionManagement() {
   const goToPreviousMonth = () => {
     const start = new Date(dateRange.startDate.replace(/-/g, "/"));
     start.setMonth(start.getMonth() - 1);
-    start.setDate(1);
-    const end = new Date(dateRange.endDate.replace(/-/g, "/"));
-    end.setMonth(end.getMonth() - 1);
-    end.setDate(0);
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
     setDateRange({
       startDate: toLocalDateStr(start),
       endDate: toLocalDateStr(end),
@@ -304,10 +301,7 @@ export default function ExceptionManagement() {
   const goToNextMonth = () => {
     const start = new Date(dateRange.startDate.replace(/-/g, "/"));
     start.setMonth(start.getMonth() + 1);
-    start.setDate(1);
-    const end = new Date(dateRange.endDate.replace(/-/g, "/"));
-    end.setMonth(end.getMonth() + 1);
-    end.setDate(0);
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
     setDateRange({
       startDate: toLocalDateStr(start),
       endDate: toLocalDateStr(end),
