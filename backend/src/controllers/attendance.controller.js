@@ -961,7 +961,7 @@ exports.getAttendanceReport = async (req, res) => {
 
     /* ================= FETCH SESSIONS ================= */
     const sessions = await AttendanceSession.find(match)
-      .populate("subject_id", "name")
+      .populate("subject_id", "name code")
       .populate("course_id", "name code")
       .sort({ lectureDate: -1 });
 
@@ -990,6 +990,7 @@ exports.getAttendanceReport = async (req, res) => {
         _id: session._id,
         date: session.lectureDate,
         subject: session.subject_id?.name || "N/A",
+        subjectCode: session.subject_id?.code || "N/A",
         course: session.course_id?.name || "N/A",
         lectureNumber: session.lectureNumber,
         totalStudents: total,
