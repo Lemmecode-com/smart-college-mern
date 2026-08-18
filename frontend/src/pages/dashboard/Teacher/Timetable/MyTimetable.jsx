@@ -422,7 +422,7 @@ export default function MyTimetable() {
       endDate: toLocalDateStr(sunday),
     };
     setDateRange(newRange);
-    await fetchScheduleForDateRange(newRange.startDate, newRange.endDate);
+    await fetchTimetable();
   };
 
   useEffect(() => {
