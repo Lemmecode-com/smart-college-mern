@@ -77,18 +77,6 @@ describe("NOT-REG — Notification Visibility Regression (ALL target)", () => {
       .send({ email: admin.email, password: "Test@123" })
       .expect(200);
 
-    const createRes = await adminAgent
-      .post("/api/notifications/admin/create")
-      .send({
-        title: "Holiday Announcement",
-        message: "Tomorrow is a holiday.",
-        type: "GENERAL",
-        target: "ALL",
-      })
-      .expect(201);
-
-    const notificationId = createRes.body.data.notification._id;
-
     const department = await Department.create({
       college_id: college._id,
       name: "Computer Science",
@@ -122,6 +110,18 @@ describe("NOT-REG — Notification Visibility Regression (ALL target)", () => {
       status: "APPROVED",
       user_id: studentUser._id,
     });
+
+    const createRes = await adminAgent
+      .post("/api/notifications/admin/create")
+      .send({
+        title: "Holiday Announcement",
+        message: "Tomorrow is a holiday.",
+        type: "GENERAL",
+        target: "ALL",
+      })
+      .expect(201);
+
+    const notificationId = createRes.body.data.notification._id;
 
     const studentAgent = request.agent(app);
     await studentAgent
@@ -565,6 +565,7 @@ describe("NOT-REG — Notification Visibility Regression (ALL target)", () => {
       user_id: teacherB._id,
       name: "Teacher B",
       employeeId: "TCH-REG08B",
+      createdBy: teacherB._id,
     });
 
     const teacherAgentB = request.agent(app);
@@ -721,6 +722,7 @@ describe("NOT-REG — Notification Visibility Regression (ALL target)", () => {
       user_id: teacherUser._id,
       name: "Test Teacher",
       employeeId: "TCH-REG10",
+      createdBy: teacherUser._id,
     });
 
     const teacherAgent = request.agent(app);
@@ -840,16 +842,6 @@ describe("NOT-REG — Notification Visibility Regression (ALL target)", () => {
       .send({ email: admin.email, password: "Test@123" })
       .expect(200);
 
-    await adminAgent
-      .post("/api/notifications/admin/create")
-      .send({
-        title: "Bell Count Test",
-        message: "Testing bell count.",
-        type: "GENERAL",
-        target: "ALL",
-      })
-      .expect(201);
-
     const department = await Department.create({
       college_id: college._id,
       name: "Geography",
@@ -888,12 +880,348 @@ describe("NOT-REG — Notification Visibility Regression (ALL target)", () => {
       .send({ email: teacherUser.email, password: "Test@123" })
       .expect(200);
 
+    await adminAgent
+      .post("/api/notifications/admin/create")
+      .send({
+        title: "Bell Count Test",
+        message: "Testing bell count.",
+        type: "GENERAL",
+        target: "ALL",
+      })
+      .expect(201);
+
     const bellRes = await teacherAgent
       .get("/api/notifications/unread/bell")
       .expect(200);
 
-    const bellNotifications = Array.isArray(bellRes.data) ? bellRes.data : [];
+    const bellNotifications = Array.isArray(bellRes.body.data) ? bellRes.body.data : [];
     const bellCount = bellNotifications.filter((n) => n.title === "Bell Count Test").length;
     expect(bellCount).toBe(1);
+  });
+
+  it("TC-13: Old ALL-targeted notification is NOT visible to newly approved student", async () => {
+    const college = await createCollege({ code: "REG13", name: "Regression College 13" });
+
+    const admin = await createUser({
+      email: "admin.reg13@test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const adminAgent = request.agent(app);
+    await adminAgent
+      .post("/api/auth/login")
+      .send({ email: admin.email, password: "Test@123" })
+      .expect(200);
+
+    // Notification created BEFORE student exists
+    const createRes = await adminAgent
+      .post("/api/notifications/admin/create")
+      .send({
+        title: "Old College Notice",
+        message: "Created before student registration.",
+        type: "GENERAL",
+        target: "ALL",
+      })
+      .expect(201);
+
+    const notificationId = createRes.body.data.notification._id;
+
+    const department = await Department.create({
+      college_id: college._id,
+      name: "Physics",
+      code: "PHY",
+      type: "ACADEMIC",
+      status: "ACTIVE",
+      hod_id: null,
+      programsOffered: ["UG"],
+      startYear: 2024,
+      sanctionedFacultyCount: 5,
+      sanctionedStudentIntake: 60,
+      createdBy: admin._id,
+    });
+
+    const studentUser = await createUser({
+      email: "student.reg13@test.com",
+      password: "Test@123",
+      role: "STUDENT",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const student = await createStudent({
+      email: "student.reg13@test.com",
+      college_id: college._id,
+      department_id: department._id,
+      course_id: new mongoose.Types.ObjectId(),
+      currentSemester: 1,
+      status: "APPROVED",
+      user_id: studentUser._id,
+    });
+
+    const studentAgent = request.agent(app);
+    await studentAgent
+      .post("/api/auth/login")
+      .send({ email: studentUser.email, password: "Test@123" })
+      .expect(200);
+
+    const studentRes = await studentAgent
+      .get("/api/notifications/student/read")
+      .expect(200);
+
+    const allNotifications = [
+      ...(studentRes.body.data.adminNotifications || []),
+      ...(studentRes.body.data.teacherNotifications || []),
+    ];
+
+    const matching = allNotifications.filter((n) => n._id === notificationId);
+    expect(matching).toHaveLength(0);
+  });
+
+  it("TC-14: New STUDENTS-targeted notification IS visible to existing student", async () => {
+    const college = await createCollege({ code: "REG14", name: "Regression College 14" });
+
+    const admin = await createUser({
+      email: "admin.reg14@test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const adminAgent = request.agent(app);
+    await adminAgent
+      .post("/api/auth/login")
+      .send({ email: admin.email, password: "Test@123" })
+      .expect(200);
+
+    const department = await Department.create({
+      college_id: college._id,
+      name: "Chemistry",
+      code: "CHE",
+      type: "ACADEMIC",
+      status: "ACTIVE",
+      hod_id: null,
+      programsOffered: ["UG"],
+      startYear: 2024,
+      sanctionedFacultyCount: 5,
+      sanctionedStudentIntake: 60,
+      createdBy: admin._id,
+    });
+
+    const studentUser = await createUser({
+      email: "student.reg14@test.com",
+      password: "Test@123",
+      role: "STUDENT",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const student = await createStudent({
+      email: "student.reg14@test.com",
+      college_id: college._id,
+      department_id: department._id,
+      course_id: new mongoose.Types.ObjectId(),
+      currentSemester: 1,
+      status: "APPROVED",
+      user_id: studentUser._id,
+    });
+
+    const studentAgent = request.agent(app);
+    await studentAgent
+      .post("/api/auth/login")
+      .send({ email: studentUser.email, password: "Test@123" })
+      .expect(200);
+
+    // Notification created AFTER student exists
+    const createRes = await adminAgent
+      .post("/api/notifications/admin/create")
+      .send({
+        title: "New Exam Notice",
+        message: "Created after student registration.",
+        type: "EXAM",
+        target: "STUDENTS",
+      })
+      .expect(201);
+
+    const notificationId = createRes.body.data.notification._id;
+
+    const studentRes = await studentAgent
+      .get("/api/notifications/student/read")
+      .expect(200);
+
+    const allNotifications = [
+      ...(studentRes.body.data.adminNotifications || []),
+      ...(studentRes.body.data.teacherNotifications || []),
+    ];
+
+    const matching = allNotifications.filter((n) => n._id === notificationId);
+    expect(matching).toHaveLength(1);
+  });
+
+  it("TC-15: Old DEPARTMENT-targeted notification is NOT visible to newly approved student", async () => {
+    const college = await createCollege({ code: "REG15", name: "Regression College 15" });
+
+    const admin = await createUser({
+      email: "admin.reg15@test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const adminAgent = request.agent(app);
+    await adminAgent
+      .post("/api/auth/login")
+      .send({ email: admin.email, password: "Test@123" })
+      .expect(200);
+
+    const department = await Department.create({
+      college_id: college._id,
+      name: "Mathematics",
+      code: "MTH",
+      type: "ACADEMIC",
+      status: "ACTIVE",
+      hod_id: null,
+      programsOffered: ["UG"],
+      startYear: 2024,
+      sanctionedFacultyCount: 5,
+      sanctionedStudentIntake: 60,
+      createdBy: admin._id,
+    });
+
+    // Notification created BEFORE student exists
+    const createRes = await adminAgent
+      .post("/api/notifications/admin/create")
+      .send({
+        title: "Old Dept Notice",
+        message: "Created before student registration.",
+        type: "GENERAL",
+        target: "DEPARTMENT",
+        target_department: department._id,
+      })
+      .expect(201);
+
+    const notificationId = createRes.body.data.notification._id;
+
+    const studentUser = await createUser({
+      email: "student.reg15@test.com",
+      password: "Test@123",
+      role: "STUDENT",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const student = await createStudent({
+      email: "student.reg15@test.com",
+      college_id: college._id,
+      department_id: department._id,
+      course_id: new mongoose.Types.ObjectId(),
+      currentSemester: 1,
+      status: "APPROVED",
+      user_id: studentUser._id,
+    });
+
+    const studentAgent = request.agent(app);
+    await studentAgent
+      .post("/api/auth/login")
+      .send({ email: studentUser.email, password: "Test@123" })
+      .expect(200);
+
+    const studentRes = await studentAgent
+      .get("/api/notifications/student/read")
+      .expect(200);
+
+    const allNotifications = [
+      ...(studentRes.body.data.adminNotifications || []),
+      ...(studentRes.body.data.teacherNotifications || []),
+    ];
+
+    const matching = allNotifications.filter((n) => n._id === notificationId);
+    expect(matching).toHaveLength(0);
+  });
+
+  it("TC-16: Old INDIVIDUAL notification IS visible to newly approved student when explicitly targeted", async () => {
+    const college = await createCollege({ code: "REG16", name: "Regression College 16" });
+
+    const admin = await createUser({
+      email: "admin.reg16@test.com",
+      password: "Test@123",
+      role: "COLLEGE_ADMIN",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const adminAgent = request.agent(app);
+    await adminAgent
+      .post("/api/auth/login")
+      .send({ email: admin.email, password: "Test@123" })
+      .expect(200);
+
+    const department = await Department.create({
+      college_id: college._id,
+      name: "Biology",
+      code: "BIO",
+      type: "ACADEMIC",
+      status: "ACTIVE",
+      hod_id: null,
+      programsOffered: ["UG"],
+      startYear: 2024,
+      sanctionedFacultyCount: 5,
+      sanctionedStudentIntake: 60,
+      createdBy: admin._id,
+    });
+
+    const studentUser = await createUser({
+      email: "student.reg16@test.com",
+      password: "Test@123",
+      role: "STUDENT",
+      college_id: college._id,
+      isActive: true,
+    });
+
+    const student = await createStudent({
+      email: "student.reg16@test.com",
+      college_id: college._id,
+      department_id: department._id,
+      course_id: new mongoose.Types.ObjectId(),
+      currentSemester: 1,
+      status: "APPROVED",
+      user_id: studentUser._id,
+    });
+
+    // Notification created BEFORE student exists, but explicitly targets the student
+    const createRes = await adminAgent
+      .post("/api/notifications/admin/create")
+      .send({
+        title: "Old Individual Notice",
+        message: "Created before student but explicitly targeted.",
+        type: "GENERAL",
+        target: "INDIVIDUAL",
+        target_users: [studentUser._id],
+      })
+      .expect(201);
+
+    const notificationId = createRes.body.data.notification._id;
+
+    const studentAgent = request.agent(app);
+    await studentAgent
+      .post("/api/auth/login")
+      .send({ email: studentUser.email, password: "Test@123" })
+      .expect(200);
+
+    const studentRes = await studentAgent
+      .get("/api/notifications/student/read")
+      .expect(200);
+
+    const allNotifications = [
+      ...(studentRes.body.data.adminNotifications || []),
+      ...(studentRes.body.data.teacherNotifications || []),
+    ];
+
+    const matching = allNotifications.filter((n) => n._id === notificationId);
+    expect(matching).toHaveLength(1);
   });
 });
