@@ -120,6 +120,7 @@ export default function AttendanceReport() {
   });
 
   const isInitialMount = useRef(true);
+  const invalidToastShown = useRef(false);
 
   /* ================= FETCH COLLEGE INFO ================= */
   const fetchCollegeInfo = async () => {
@@ -246,14 +247,24 @@ export default function AttendanceReport() {
       setFilters((prev) => {
         const next = { ...prev, [name]: value };
 
-        if (next.startDate && next.endDate && next.startDate > next.endDate) {
+        if (
+          next.startDate &&
+          next.endDate &&
+          next.startDate > next.endDate &&
+          !invalidToastShown.current
+        ) {
+          invalidToastShown.current = true;
           toast.error("Start date cannot be after end date", {
             position: "top-right",
             autoClose: 3000,
           });
+          setTimeout(() => {
+            invalidToastShown.current = false;
+          }, 3000);
           return prev;
         }
 
+        invalidToastShown.current = false;
         return next;
       });
       return;
