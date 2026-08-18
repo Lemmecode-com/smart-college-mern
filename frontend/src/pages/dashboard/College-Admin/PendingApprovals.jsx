@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+﻿import { useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -107,7 +107,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
       // Filter only PENDING status students
       const pendingStudents = data.filter((s) => s.status === "PENDING");
       setStudents(pendingStudents);
-      console.log("DEBUG - First student department:", pendingStudents[0]?.department_id);
+
       calculateStats(pendingStudents);
     } catch (err) {
       const statusCode = err.response?.status;
