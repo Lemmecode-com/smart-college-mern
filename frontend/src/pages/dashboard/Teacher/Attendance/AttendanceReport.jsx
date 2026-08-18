@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import api from "../../../../api/axios";
 import {
   FaChartBar,
@@ -118,6 +118,8 @@ export default function AttendanceReport() {
     endDate: "",
   });
 
+  const isInitialMount = useRef(true);
+
   /* ================= FETCH COLLEGE INFO ================= */
   const fetchCollegeInfo = async () => {
     try {
@@ -217,6 +219,14 @@ export default function AttendanceReport() {
     fetchReport();
     fetchCollegeInfo();
   }, []);
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    fetchReport();
+  }, [filters]);
 
   const handleCourseChange = (e) => {
     const courseId = e.target.value;
