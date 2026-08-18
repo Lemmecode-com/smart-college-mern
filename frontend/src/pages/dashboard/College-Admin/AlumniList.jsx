@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+﻿import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import { getAlumni } from "../../../api/alumni";
@@ -413,7 +413,7 @@ export default function AlumniList({ admissionOfficerMode = false }) {
       setError(null);
       const res = await getAlumni();
       setAlumni(res.alumni || []);
-      console.log("DEBUG - Alumni first department:", (res.alumni || [])[0]?.department_id);
+
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
