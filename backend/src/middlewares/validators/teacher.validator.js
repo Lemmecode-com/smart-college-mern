@@ -86,7 +86,7 @@ exports.validateTeacherCreation = [
     .notEmpty().withMessage("Department is required")
     .isMongoId().withMessage("Invalid department ID"),
 
-  validateMobile("mobile"),
+  validateMobile("mobileNumber"),
 
   validatePincode("pincode"),
 
@@ -118,7 +118,7 @@ exports.validateTeacherProfileUpdate = [
     .trim()
     .isLength({ min: 2, max: 100 }).withMessage("Name must be 2-100 characters"),
 
-  validateMobile("mobile"),
+  validateMobile("mobileNumber"),
 
   validatePincode("pincode"),
 
