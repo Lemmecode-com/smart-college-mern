@@ -260,7 +260,8 @@ exports.teacherDashboard = async (req, res, next) => {
     const teacher = await Teacher.findOne({
       user_id: userId,
       college_id: collegeId,
-    }).select("name email employeeId designation department_id");
+    }).select("name email employeeId designation department_id")
+      .populate("department_id", "name");
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
@@ -332,7 +333,13 @@ exports.teacherDashboard = async (req, res, next) => {
           totalAbsent,
           attendancePercentage,
         },
-        recentLectures: sessions.slice(0, 5),
+        recentLectures: sessions.slice(0, 5).map((session) => {
+          const dept = session.department_id || teacher.department_id;
+          return {
+            ...session.toObject(),
+            department_id: dept ? { _id: dept._id, name: dept.name } : null,
+          };
+        }),
       },
       "Teacher dashboard data fetched successfully",
     );
