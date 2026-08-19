@@ -96,59 +96,67 @@ export default function StudentDashboard() {
   // Defensive: Safe access to pie chart data (handled via attendancePieData below)
 
   useEffect(() => {
-    fetchDashboardData();
+    let isCancelled = false;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.get("/dashboard/student");
+        if (!isCancelled) {
+          setDashboardData(response.data);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          const statusCode = err.response?.status;
+          const errorCode = err.response?.data?.code;
+          const backendMessage = err.response?.data?.message;
+
+          logger.error("Student dashboard load error:", {
+            statusCode,
+            errorCode,
+            backendMessage,
+            page: "StudentDashboard",
+            role: user?.role,
+          });
+
+          setError({
+            message:
+              "Failed to load dashboard. Please check your connection and try again.",
+            statusCode,
+            errorCode,
+          });
+
+          const isAuthError =
+            statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+          if (!isAuthError) {
+            toast.error("Failed to load dashboard. Please try again.", {
+              position: "top-right",
+              autoClose: 5000,
+              icon: <FaExclamationTriangle />,
+            });
+          }
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+
     return () => {
+      isCancelled = true;
       toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
   }, [retryCount]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get("/dashboard/student");
-      setDashboardData(response.data);
-      // Page-load success toast removed (requirement 8)
-    } catch (err) {
-      const statusCode = err.response?.status;
-      const errorCode = err.response?.data?.code;
-      const backendMessage = err.response?.data?.message;
-
-      logger.error("Student dashboard load error:", {
-        statusCode,
-        errorCode,
-        backendMessage,
-        page: "StudentDashboard",
-        role: user?.role,
-      });
-
-      setError({
-        message:
-          "Failed to load dashboard. Please check your connection and try again.",
-        statusCode,
-        errorCode,
-      });
-
-      const isAuthError =
-        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
-
-      if (!isAuthError) {
-        toast.error("Failed to load dashboard. Please try again.", {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaExclamationTriangle />,
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRetry = async () => {
     if (retryCount >= 3) return;
     setIsRetrying(true);
     setRetryCount((prev) => prev + 1);
-    await fetchDashboardData();
     setIsRetrying(false);
   };
 
