@@ -264,7 +264,7 @@ const AcademicSetting = () => {
 
         .settings-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 1.5rem;
           margin-bottom: 1.5rem;
         }
@@ -357,16 +357,9 @@ const AcademicSetting = () => {
           margin-bottom: 0.75rem;
         }
 
-        .form-row-3 {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 0.75rem;
-          margin-bottom: 0.75rem;
-        }
-
         .form-row-4 {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: 0.75rem;
           margin-bottom: 0.75rem;
         }
@@ -585,7 +578,6 @@ const AcademicSetting = () => {
           }
           
           .form-row,
-          .form-row-3,
           .form-row-4 {
             grid-template-columns: 1fr;
           }
@@ -681,11 +673,12 @@ const AcademicSetting = () => {
 
               <div className="form-row-4">
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="minAttendance">
                     <span>Minimum Attendance (%)</span>
                   </label>
                   <div className="input-wrapper">
                     <input
+                      id="minAttendance"
                       type="number"
                       name="minAttendance"
                       value={formData.minAttendance}
@@ -703,11 +696,12 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="graceAttendance">
                     <span>Grace Attendance (%)</span>
                   </label>
                   <div className="input-wrapper">
                     <input
+                      id="graceAttendance"
                       type="number"
                       name="graceAttendance"
                       value={formData.graceAttendance}
@@ -723,11 +717,12 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="attendanceCalculation">
                     <span>Calculation Type</span>
                   </label>
                   <div className="select-wrapper">
                     <select
+                      id="attendanceCalculation"
                       name="attendanceCalculation"
                       value={formData.attendanceCalculation}
                       onChange={handleChange}
@@ -741,11 +736,12 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="autoBlockExam">
                     <span>Auto Block Exam</span>
                   </label>
                   <div className="select-wrapper">
                     <select
+                      id="autoBlockExam"
                       name="autoBlockExam"
                       value={formData.autoBlockExam}
                       onChange={handleChange}
@@ -760,7 +756,7 @@ const AcademicSetting = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="lateAttendanceTime">
                     <span>Late Attendance Time</span>
                     <FaInfoCircle
                       className="info-icon"
@@ -769,6 +765,7 @@ const AcademicSetting = () => {
                   </label>
                   <div className="input-wrapper">
                     <input
+                      id="lateAttendanceTime"
                       type="number"
                       name="lateAttendanceTime"
                       value={formData.lateAttendanceTime}
@@ -783,11 +780,12 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="autoMarkAbsentAfter">
                     <span>Auto Mark Absent After</span>
                   </label>
                   <div className="select-wrapper">
                     <select
+                      id="autoMarkAbsentAfter"
                       name="autoMarkAbsentAfter"
                       value={formData.autoMarkAbsentAfter}
                       onChange={handleChange}
@@ -818,11 +816,12 @@ const AcademicSetting = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="gradingSystem">
                     <span>Grading System</span>
                   </label>
                   <div className="select-wrapper">
                     <select
+                      id="gradingSystem"
                       name="gradingSystem"
                       value={formData.gradingSystem}
                       onChange={handleChange}
@@ -836,11 +835,12 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="allowGraceMarks">
                     <span>Allow Grace Marks</span>
                   </label>
                   <div className="select-wrapper">
                     <select
+                      id="allowGraceMarks"
                       name="allowGraceMarks"
                       value={formData.allowGraceMarks}
                       onChange={handleChange}
@@ -855,11 +855,12 @@ const AcademicSetting = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="maxGraceMarks">
                     <span>Max Grace Marks</span>
                   </label>
                   <div className="input-wrapper">
                     <input
+                      id="maxGraceMarks"
                       type="number"
                       name="maxGraceMarks"
                       value={formData.maxGraceMarks}
@@ -875,10 +876,11 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="internalExternalSplit">
                     <span>Internal + External Split</span>
                   </label>
                   <input
+                    id="internalExternalSplit"
                     type="text"
                     name="internalExternalSplit"
                     value={formData.internalExternalSplit}
@@ -892,16 +894,17 @@ const AcademicSetting = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">
-                  <span>Round Off Marks</span>
-                </label>
-                <div className="select-wrapper">
-                  <select
-                    name="roundOffMarks"
-                    value={formData.roundOffMarks}
-                    onChange={handleChange}
-                    className="form-select"
-                  >
+                  <label className="form-label" htmlFor="roundOffMarks">
+                    <span>Round Off Marks</span>
+                  </label>
+                  <div className="select-wrapper">
+                    <select
+                      id="roundOffMarks"
+                      name="roundOffMarks"
+                      value={formData.roundOffMarks}
+                      onChange={handleChange}
+                      className="form-select"
+                    >
                     <option value="enabled">
                       Enabled - Round to nearest integer
                     </option>
@@ -928,10 +931,11 @@ const AcademicSetting = () => {
 
               <div className="form-row-4">
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="maxLecturesPerDay">
                     <span>Max Lectures/Day</span>
                   </label>
                   <input
+                    id="maxLecturesPerDay"
                     type="number"
                     name="maxLecturesPerDay"
                     value={formData.maxLecturesPerDay}
@@ -945,11 +949,12 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="lectureDuration">
                     <span>Lecture Duration</span>
                   </label>
                   <div className="input-wrapper">
                     <input
+                      id="lectureDuration"
                       type="number"
                       name="lectureDuration"
                       value={formData.lectureDuration}
@@ -964,11 +969,12 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="breakDuration">
                     <span>Break Duration</span>
                   </label>
                   <div className="input-wrapper">
                     <input
+                      id="breakDuration"
                       type="number"
                       name="breakDuration"
                       value={formData.breakDuration}
@@ -983,11 +989,12 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="autoCloseSession">
                     <span>Auto Close Session</span>
                   </label>
                   <div className="select-wrapper">
                     <select
+                      id="autoCloseSession"
                       name="autoCloseSession"
                       value={formData.autoCloseSession}
                       onChange={handleChange}
@@ -1002,7 +1009,7 @@ const AcademicSetting = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="teacherSessionEdit">
                     <span>Teacher Session Edit</span>
                     <FaInfoCircle
                       className="info-icon"
@@ -1011,6 +1018,7 @@ const AcademicSetting = () => {
                   </label>
                   <div className="select-wrapper">
                     <select
+                      id="teacherSessionEdit"
                       name="teacherSessionEdit"
                       value={formData.teacherSessionEdit}
                       onChange={handleChange}
@@ -1028,11 +1036,12 @@ const AcademicSetting = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">
+                  <label className="form-label" htmlFor="studentAttendanceVisibility">
                     <span>Student Attendance Visibility</span>
                   </label>
                   <div className="select-wrapper">
                     <select
+                      id="studentAttendanceVisibility"
                       name="studentAttendanceVisibility"
                       value={formData.studentAttendanceVisibility}
                       onChange={handleChange}
