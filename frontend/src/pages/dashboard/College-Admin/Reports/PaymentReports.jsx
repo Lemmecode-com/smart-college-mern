@@ -65,6 +65,7 @@ export default function PaymentReports() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [dateFilter, setDateFilter] = useState("all"); // all, thisMonth, lastMonth, thisYear, custom
+  const [dateError, setDateError] = useState("");
   const [shouldFetchSummary, setShouldFetchSummary] = useState(true);
 
    // Trend analysis state
@@ -95,6 +96,8 @@ export default function PaymentReports() {
 
       // Build query parameters based on date filter
       let queryParams = {};
+      let validationError = null;
+
       if (dateFilter !== "all") {
         const now = new Date();
         let start, end;
@@ -115,14 +118,26 @@ export default function PaymentReports() {
           case "custom":
             if (startDate) start = new Date(startDate);
             if (endDate) end = new Date(endDate);
+
+            if (startDate && endDate && start > end) {
+              validationError = "Start date must be before end date";
+            }
             break;
           default:
             break;
         }
 
+        if (validationError) {
+          setDateError(validationError);
+          setLoading(false);
+          return;
+        }
+
         if (start) queryParams.startDate = start.toISOString().split('T')[0];
         if (end) queryParams.endDate = end.toISOString().split('T')[0];
       }
+
+      setDateError("");
 
       const queryString = new URLSearchParams(queryParams).toString();
       const url = `/reports/payments/filtered${queryString ? `?${queryString}` : ''}`;
@@ -395,31 +410,31 @@ export default function PaymentReports() {
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <button
                   className={`btn ${dateFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => { setDateFilter('all'); setShouldFetchSummary(true); }}
+                  onClick={() => { setDateFilter('all'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   All Time
                 </button>
                 <button
                   className={`btn ${dateFilter === 'thisMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => { setDateFilter('thisMonth'); setShouldFetchSummary(true); }}
+                  onClick={() => { setDateFilter('thisMonth'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   This Month
                 </button>
                 <button
                   className={`btn ${dateFilter === 'lastMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => { setDateFilter('lastMonth'); setShouldFetchSummary(true); }}
+                  onClick={() => { setDateFilter('lastMonth'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   Last Month
                 </button>
                 <button
                   className={`btn ${dateFilter === 'thisYear' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => { setDateFilter('thisYear'); setShouldFetchSummary(true); }}
+                  onClick={() => { setDateFilter('thisYear'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   This Year
                 </button>
                 <button
                   className={`btn ${dateFilter === 'custom' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
-                  onClick={() => { setDateFilter('custom'); setShouldFetchSummary(true); }}
+                  onClick={() => { setDateFilter('custom'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   Custom Range
                 </button>
@@ -427,12 +442,13 @@ export default function PaymentReports() {
             </div>
 
             {dateFilter === 'custom' && (
-              <div
-                className="date-inputs"
-                style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-              >
+              <>
+                <div
+                  className="date-inputs"
+                  style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: '600' }}>
                     Start Date:
@@ -446,11 +462,14 @@ export default function PaymentReports() {
                       zIndex: 10
                     }}
                     value={startDate}
-                    onChange={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setStartDate(e.target.value);
-                    }}
+                     onChange={(e) => {
+                       e.preventDefault();
+                       e.stopPropagation();
+                       setStartDate(e.target.value);
+                       if (endDate && new Date(e.target.value) <= new Date(endDate)) {
+                         setDateError("");
+                       }
+                     }}
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
@@ -484,11 +503,14 @@ export default function PaymentReports() {
                       zIndex: 10
                     }}
                     value={endDate}
-                    onChange={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setEndDate(e.target.value);
-                    }}
+                     onChange={(e) => {
+                       e.preventDefault();
+                       e.stopPropagation();
+                       setEndDate(e.target.value);
+                       if (startDate && new Date(startDate) <= new Date(e.target.value)) {
+                         setDateError("");
+                       }
+                     }}
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
@@ -509,14 +531,20 @@ export default function PaymentReports() {
                     }}
                   />
                 </div>
-                <button
-                  className="btn btn-success btn-sm"
-                  onClick={() => setShouldFetchSummary(true)}
-                  style={{ alignSelf: 'flex-end' }}
-                >
-                  <FaSyncAlt /> Apply Filter
-                </button>
-              </div>
+                  <button
+                    className="btn btn-success btn-sm"
+                    onClick={() => setShouldFetchSummary(true)}
+                    style={{ alignSelf: 'flex-end' }}
+                  >
+                    <FaSyncAlt /> Apply Filter
+                  </button>
+                </div>
+                {dateError && (
+                  <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: '500' }}>
+                    {dateError}
+                  </div>
+                )}
+              </>
             )}
 
             {dateFilter !== 'custom' && dateFilter !== 'all' && (
