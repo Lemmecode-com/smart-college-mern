@@ -378,7 +378,7 @@ export default function TeacherDashboard() {
                     icon={FaQrcode}
                     title="Create Attendance Session"
                     desc="Start a new lecture attendance session"
-                    link="/timetable/weekly-timetable"
+                    link="/attendance/my-sessions-list"
                     color={BRAND_COLORS.success.main}
                     gradient={BRAND_COLORS.success.gradient}
                   />
@@ -388,7 +388,7 @@ export default function TeacherDashboard() {
                     icon={FaUsers}
                     title="Mark Attendance"
                     desc="Record student attendance for active sessions"
-                    link="/attendance/my-sessions-list"
+                    link="/timetable/weekly-timetable"
                     color={BRAND_COLORS.info.main}
                     gradient={BRAND_COLORS.info.gradient}
                   />
