@@ -236,21 +236,19 @@ export default function MarkAttendance() {
         payload
       );
 
-      setAttendanceSaved(true);
-      setShowUndo(false);
-      setPreviousAttendance(null);
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-
       toast.success("Attendance saved successfully!", {
         position: "top-right",
         autoClose: 3000,
         icon: <FaCheckCircle />
       });
 
+      setTimeout(() => {
+        navigate("/attendance/my-sessions-list");
+      }, 1500);
+
     } catch (err) {
       if (err.response?.status === 409 || err.response?.status === 500) {
         setAttendanceSaved(true);
-        setError("Attendance already saved. Use Edit option.");
         toast.warning("Attendance already saved for this session. Use Edit to modify.", {
           position: "top-right",
           autoClose: 5000
