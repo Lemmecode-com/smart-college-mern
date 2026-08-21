@@ -15,7 +15,6 @@ import {
   FaPlus,
   FaLayerGroup,
   FaSearch,
-  FaFilter,
   FaSyncAlt,
   FaEye,
   FaCheckCircle,
@@ -356,67 +355,6 @@ const DeleteModal = ({ course, departmentName, onConfirm, onCancel, isDeleting }
   );
 };
 
-// Filter Dropdown Component
-const FilterDropdown = ({ filterStatus, setFilterStatus }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="dropdown-container">
-      <button 
-        className="dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        aria-haspopup="true"
-      >
-        <FaFilter className="dropdown-icon" />
-        <span>Filter</span>
-        <FaChevronDown className={`dropdown-arrow ${isOpen ? 'is-open' : ''}`} />
-      </button>
-      {isOpen && (
-        <>
-          <div className="dropdown-backdrop" onClick={() => setIsOpen(false)} />
-          <div className="dropdown-menu">
-            <div className="dropdown-header">
-              <span>Filter by Status</span>
-            </div>
-            <div className="dropdown-options" role="radiogroup">
-              {[
-                { value: 'ALL', label: 'All Courses', icon: FaBookOpen, color: '#6B7280' },
-                { value: 'ACTIVE', label: 'Active', icon: FaCheckCircle, color: '#22C55E' },
-                { value: 'INACTIVE', label: 'Inactive', icon: FaTimes, color: '#9CA3AF' }
-              ].map(({ value, label, icon: Icon, color }) => (
-                <label 
-                  key={value} 
-                  className={`dropdown-option ${filterStatus === value ? 'is-selected' : ''}`}
-                  role="radio"
-                  aria-checked={filterStatus === value}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      setFilterStatus(value);
-                      setIsOpen(false);
-                    }
-                  }}
-                  onClick={() => {
-                    setFilterStatus(value);
-                    setIsOpen(false);
-                  }}
-                >
-                  <Icon className="option-icon" style={{ color }} />
-                  <span className="option-label">{label}</span>
-                  {filterStatus === value && (
-                    <FaCheckCircle className="option-check" style={{ color }} />
-                  )}
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
 // Skeleton Loader Component
 const SkeletonLoader = () => (
   <div className="skeleton-wrapper">
@@ -507,7 +445,6 @@ export default function CourseList() {
   const [departmentsError, setDepartmentsError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ALL");
   const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState(null);
@@ -652,9 +589,6 @@ export default function CourseList() {
       .filter(course =>
         course.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
         course.code?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-      )
-      .filter(course =>
-        filterStatus === "ALL" || course.status === filterStatus
       );
 
     result = [...result].sort((a, b) => {
@@ -667,7 +601,7 @@ export default function CourseList() {
     });
 
     return result;
-  }, [courses, debouncedSearchTerm, filterStatus, sortConfig]);
+  }, [courses, debouncedSearchTerm, sortConfig]);
 
   /* ================= DELETE HANDLER ================= */
   const handleDeleteClick = (course) => {
@@ -911,10 +845,6 @@ export default function CourseList() {
                   </button>
                 )}
               </div>
-              <FilterDropdown 
-                filterStatus={filterStatus} 
-                setFilterStatus={setFilterStatus} 
-              />
               <button 
                 className="btn btn-outline" 
                 onClick={handleExport}
@@ -1484,122 +1414,6 @@ export default function CourseList() {
 
         .search-clear:hover {
           color: var(--text-primary);
-        }
-
-        /* ================= DROPDOWN ================= */
-        .dropdown-container {
-          position: relative;
-        }
-
-        .dropdown-trigger {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.625rem 1rem;
-          background: var(--bg-secondary);
-          border: 2px solid var(--border-light);
-          border-radius: 10px;
-          font-weight: 600;
-          color: var(--text-secondary);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .dropdown-trigger:hover {
-          border-color: var(--border-medium);
-          color: var(--text-primary);
-        }
-
-        .dropdown-icon {
-          font-size: 0.9rem;
-        }
-
-        .dropdown-arrow {
-          font-size: 0.7rem;
-          transition: transform 0.2s;
-        }
-
-        .dropdown-arrow.is-open {
-          transform: rotate(180deg);
-        }
-
-        .dropdown-backdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 99;
-        }
-
-        .dropdown-menu {
-          position: absolute;
-          top: calc(100% + 0.5rem);
-          right: 0;
-          min-width: 200px;
-          background: var(--bg-secondary);
-          border-radius: 12px;
-          box-shadow: var(--shadow-xl);
-          border: 1px solid var(--border-light);
-          z-index: 100;
-          animation: dropdownSlideIn 0.2s ease;
-          overflow: hidden;
-        }
-
-        @keyframes dropdownSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .dropdown-header {
-          padding: 0.75rem 1rem;
-          border-bottom: 1px solid var(--border-light);
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .dropdown-options {
-          padding: 0.5rem;
-        }
-
-        .dropdown-option {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.75rem 1rem;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: background 0.2s;
-          color: var(--text-secondary);
-        }
-
-        .dropdown-option:hover {
-          background: var(--bg-tertiary);
-          color: var(--text-primary);
-        }
-
-        .dropdown-option.is-selected {
-          background: rgba(79, 70, 229, 0.1);
-          color: var(--primary);
-        }
-
-        .option-icon {
-          font-size: 1rem;
-        }
-
-        .option-label {
-          flex: 1;
-          font-weight: 500;
-        }
-
-        .option-check {
-          font-size: 1rem;
         }
 
         /* ================= STATS GRID ================= */

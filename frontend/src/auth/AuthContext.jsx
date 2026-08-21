@@ -207,70 +207,76 @@ export const AuthProvider = ({ children }) => {
     }
    };
 
-    const checkAuthStatus = useCallback(async () => {
+    const checkAuthStatus = useCallback(async (isCancelled) => {
       const currentPath = window.location.pathname;
       try {
         const res = await api.get("/auth/me");
-        setUser({
-          id: res.data.id,
-          realId: res.data.realId,
-          role: res.data.role,
-          college_id: res.data.college_id || null,
-          email: res.data.email || null,
-          name: res.data.name || null,
-        });
-        setAuthError(null);
-        scheduleTokenExpiryCheck();
-      } catch (error) {
-        const isNetworkError = !error.response || error.code === "ERR_NETWORK";
-        if (isNetworkError) {
-          logger.error(
-            "Auth check network error:",
-            error.message || "No response received",
-          );
-          setUser(null);
-          setAuthError({
-            code: "NETWORK_ERROR",
-            message: "Unable to connect to the server. Check your internet connection.",
+        if (!isCancelled || !isCancelled()) {
+          setUser({
+            id: res.data.id,
+            realId: res.data.realId,
+            role: res.data.role,
+            college_id: res.data.college_id || null,
+            email: res.data.email || null,
+            name: res.data.name || null,
           });
-          return;
+          setAuthError(null);
+          scheduleTokenExpiryCheck();
         }
+      } catch (error) {
+        if (!isCancelled || !isCancelled()) {
+          const isNetworkError = !error.response || error.code === "ERR_NETWORK";
+          if (isNetworkError) {
+            logger.error(
+              "Auth check network error:",
+              error.message || "No response received",
+            );
+            setUser(null);
+            setAuthError({
+              code: "NETWORK_ERROR",
+              message: "Unable to connect to the server. Check your internet connection.",
+            });
+            return;
+          }
 
-        if (error.response?.status !== 401) {
-          logger.error(
-            "Auth check error:",
-            error.response?.status || error.message,
-          );
-        }
-        setUser(null);
-        setAuthError(null);
+          if (error.response?.status !== 401) {
+            logger.error(
+              "Auth check error:",
+              error.response?.status || error.message,
+            );
+          }
+          setUser(null);
+          setAuthError(null);
 
-        const errorCode = error.response?.data?.code;
-        const now = new Date().toISOString();
-        const AUTH_ERROR_CODES = new Set([
-          "SESSION_INVALIDATED",
-          "TOKEN_INVALIDATED",
-          "TOKEN_BLACKLISTED",
-          "TOKEN_MISSING",
-          "INVALID_TOKEN",
-          "UNAUTHORIZED",
-          "TOKEN_EXPIRED",
-        ]);
-        if (errorCode && AUTH_ERROR_CODES.has(errorCode)) {
-          console.log(
-            `[checkAuthStatus] Time=${now} | URL=/auth/me | Status=401 | ErrorCode=${errorCode} | RedirectingToLogin`
-          );
-          if (typeof window !== "undefined") {
-            const alreadyOnLoginExpired =
-              currentPath === "/login" &&
-              window.location.search.includes("session=expired");
-            if (!alreadyOnLoginExpired) {
-              performSessionInvalidation(errorCode, currentPath);
+          const errorCode = error.response?.data?.code;
+          const now = new Date().toISOString();
+          const AUTH_ERROR_CODES = new Set([
+            "SESSION_INVALIDATED",
+            "TOKEN_INVALIDATED",
+            "TOKEN_BLACKLISTED",
+            "TOKEN_MISSING",
+            "INVALID_TOKEN",
+            "UNAUTHORIZED",
+            "TOKEN_EXPIRED",
+          ]);
+          if (errorCode && AUTH_ERROR_CODES.has(errorCode)) {
+            console.log(
+              `[checkAuthStatus] Time=${now} | URL=/auth/me | Status=401 | ErrorCode=${errorCode} | RedirectingToLogin`
+            );
+            if (typeof window !== "undefined") {
+              const alreadyOnLoginExpired =
+                currentPath === "/login" &&
+                window.location.search.includes("session=expired");
+              if (!alreadyOnLoginExpired) {
+                performSessionInvalidation(errorCode, currentPath);
+              }
             }
           }
         }
       } finally {
-        setLoading(false);
+        if (!isCancelled || !isCancelled()) {
+          setLoading(false);
+        }
       }
     }, [performSessionInvalidation, scheduleTokenExpiryCheck]);
 
@@ -281,20 +287,31 @@ export const AuthProvider = ({ children }) => {
 
     /* ========== RESTORE SESSION ========== */
     useEffect(() => {
-      if (typeof window !== "undefined") {
-        const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
-        const isPublicRoute = publicRoutes.some((route) =>
-          window.location.pathname === route || window.location.pathname.startsWith("/register/")
-        );
+      let isCancelled = false;
 
-         if (isPublicRoute) {
-           setLoading(false);
-           return;
-         }
-      }
+      const run = async () => {
+        if (typeof window !== "undefined") {
+          const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
+          const isPublicRoute = publicRoutes.some((route) =>
+            window.location.pathname === route || window.location.pathname.startsWith("/register/")
+          );
 
-      checkAuthStatus();
-    }, []);
+           if (isPublicRoute) {
+             setLoading(false);
+             return;
+           }
+        }
+
+        await checkAuthStatus(() => isCancelled);
+      };
+
+      run();
+
+      return () => {
+        isCancelled = true;
+        clearTokenExpiryTimer();
+      };
+    }, [checkAuthStatus, clearTokenExpiryTimer]);
 
    const clearSessionInvalidReason = useCallback(() => {
     setSessionInvalidReason(null);

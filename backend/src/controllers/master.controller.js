@@ -45,6 +45,22 @@ exports.createCollege = async (req, res, next) => {
       throw new AppError("College name contains invalid characters. Only letters, numbers, spaces, and basic punctuation (-.,&'/) are allowed.", 400, "INVALID_COLLEGE_NAME");
     }
 
+    // 1.6️⃣ Check college email uniqueness (prevents raw E11000 leak + orphaned college)
+    const existingCollegeEmail = await College.findOne({ email: collegeEmail });
+    if (existingCollegeEmail) {
+      throw new AppError("A college with this email already exists.", 409, "DUPLICATE_COLLEGE_EMAIL");
+    }
+
+    // 1.7️⃣ Check admin email uniqueness (prevents raw E11000 leak + orphaned college)
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    if (existingAdmin) {
+      throw new AppError(
+        "A user with this admin email already exists. Use a different email or reuse the existing account.",
+        409,
+        "DUPLICATE_ADMIN_EMAIL",
+      );
+    }
+
     // 2️⃣ Generate Registration URL + QR FIRST
     const { registrationUrl, registrationQr } =
       await generateCollegeQR(collegeCode);

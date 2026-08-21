@@ -2,6 +2,8 @@ const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const AppError = require("../utils/AppError");
 const User = require("../models/user.model");
+const Teacher = require("../models/teacher.model");
+const Department = require("../models/department.model");
 const StaffProfile = require("../models/staffProfile.model");
 const { ROLE } = require("../utils/constants");
 
