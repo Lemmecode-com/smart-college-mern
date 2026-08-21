@@ -989,7 +989,7 @@ export default function MySchedule() {
       const attendanceMap = {};
       if (res.data.sessions) {
         res.data.sessions.forEach((session) => {
-          if (session.slot_id) {
+          if (session.slot_id && session.status === "OPEN") {
             const slotId =
               typeof session.slot_id === "object"
                 ? session.slot_id._id
@@ -2043,7 +2043,7 @@ function ScheduleRow({
             </button>
           )}
           {/* Info Messages */}
-          {attendanceMessage && (
+          {buttonState === "start" && attendanceMessage && (
             <div
               className={`info-message info-${
                 attendanceMessage.includes("already")
@@ -2058,7 +2058,7 @@ function ScheduleRow({
               <span>{attendanceMessage}</span>
             </div>
           )}
-          {buttonState === "ended" && isPublished && !attendanceMessage && (
+          {buttonState === "ended" && isPublished && (
             <div className="info-message info-error">
               <FaTimesCircle size={16} />
               <span>
