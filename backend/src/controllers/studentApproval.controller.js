@@ -37,15 +37,6 @@ exports.approveStudent = async (req, res, next) => {
       );
     }
 
-    // ✅ Business Rule: Division must be assigned before approval
-    if (!student.division || student.division.toString().trim() === "") {
-      throw new AppError(
-        "Student must have a division assigned before approval. Please assign a division first.",
-        400,
-        "DIVISION_NOT_ASSIGNED",
-      );
-    }
-
     // ✅ FIX: Issue #1 - Ensure student has user_id (create User if missing)
     if (!student.user_id) {
       console.log(
@@ -323,16 +314,6 @@ exports.bulkApproveStudents = async (req, res, next) => {
           results.failed.push({
             studentId,
             reason: "Student not found or already processed",
-          });
-          continue;
-        }
-
-        // ── 2. Division must be assigned before approval ──
-        if (!student.division || student.division.toString().trim() === "") {
-          results.failed.push({
-            studentId,
-            fullName: student.fullName,
-            reason: "Division not assigned",
           });
           continue;
         }
@@ -730,6 +711,15 @@ exports.confirmEnrollment = async (req, res, next) => {
         "Student not found or not in APPROVED/OFFER_MADE status",
         404,
         "STUDENT_NOT_FOUND",
+      );
+    }
+
+    // ✅ Business Rule: Division must be assigned before enrollment
+    if (!student.division || student.division.toString().trim() === "") {
+      throw new AppError(
+        "Student must have a division assigned before enrollment. Please assign a division first.",
+        400,
+        "DIVISION_NOT_ASSIGNED",
       );
     }
 
