@@ -204,9 +204,19 @@ export default function AccountantDashboard() {
         /* ================= STATS CARDS ================= */
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 1.5rem;
           margin-bottom: 2rem;
+        }
+        /* Desktop: 4 cards per row. Total Collected spans 2 columns so the
+           currency value has room; the other 3 cards are reduced to 1fr each. */
+        @media (min-width: 1024px) {
+          .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+          .stat-card.collected {
+            grid-column: span 2;
+          }
         }
 
         .stat-card {
@@ -216,7 +226,7 @@ export default function AccountantDashboard() {
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 1rem;
           border-left: 4px solid transparent;
           transition: all 0.3s ease;
         }
@@ -233,15 +243,15 @@ export default function AccountantDashboard() {
         .stat-card.due { border-left-color: #dc3545; }
 
         .stat-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
+          width: 32px;
+          height: 32px;
+          border-radius: 7px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
           flex-shrink: 0;
-          font-size: 1.5rem;
+          font-size: 0.95rem;
         }
 
         .stat-card.collected .stat-icon { background: linear-gradient(135deg, #28a745 0%, #218838 100%); }
@@ -252,6 +262,7 @@ export default function AccountantDashboard() {
 
         .stat-content {
           flex: 1;
+          min-width: 0;
         }
 
         .stat-label {
@@ -266,6 +277,8 @@ export default function AccountantDashboard() {
           font-weight: 800;
           color: #1a4b6d;
           line-height: 1;
+          white-space: nowrap;
+          overflow-wrap: anywhere;
         }
 
         /* ================= ACTION CARDS ================= */
