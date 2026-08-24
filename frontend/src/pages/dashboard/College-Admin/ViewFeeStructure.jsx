@@ -1092,82 +1092,74 @@ export default function ViewFeeStructure() {
           }
         }
         
-        /* ================= STATS GRID ================= */
-        .stats-grid-enterprise {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 2rem;
-        }
-        
-        @media (max-width: 1200px) {
-          .stats-grid-enterprise {
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          }
-        }
-        
-        .stat-card-enterprise {
-          background: #ffffff;
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-          border: 1px solid rgba(0, 0, 0, 0.04);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .stat-card-enterprise:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-        }
-        
-        .stat-card-body {
-          padding: 1.5rem;
-          display: flex;
-          gap: 1rem;
-        }
-        
-        .stat-card-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.5rem;
-          flex-shrink: 0;
-          transition: all 0.3s ease;
-        }
-        
-        .stat-card-enterprise:hover .stat-card-icon {
-          transform: scale(1.1);
-        }
-        
-        .stat-card-content {
-          flex: 1;
-          min-width: 0;
-          overflow: hidden;
-        }
+         /* ================= STATS GRID ================= */
+         .stats-grid-enterprise {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+           gap: 1rem;
+           margin-bottom: 2rem;
+         }
+         
+         .stat-card-enterprise {
+           background: #ffffff;
+           border-radius: 12px;
+           overflow: hidden;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+           border: 1px solid rgba(0, 0, 0, 0.04);
+           transition: all 0.3s ease;
+         }
+         
+         .stat-card-enterprise:hover {
+           transform: translateY(-2px);
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+         }
+         
+         .stat-card-body {
+           padding: 1rem;
+           display: flex;
+           gap: 0.75rem;
+           align-items: center;
+         }
+         
+         .stat-card-icon {
+           width: 32px;
+           height: 32px;
+           border-radius: 6px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-size: 0.85rem;
+           flex-shrink: 0;
+           transition: all 0.3s ease;
+         }
+         
+         .stat-card-enterprise:hover .stat-card-icon {
+           transform: scale(1.05);
+         }
+         
+         .stat-card-content {
+           flex: 1;
+           min-width: 0;
+           overflow: hidden;
+         }
 
-        .stat-card-label {
-          font-size: 0.8125rem;
-          color: #6b7280;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 0.5rem;
-          white-space: nowrap;
-        }
+         .stat-card-label {
+           font-size: 0.75rem;
+           color: #6b7280;
+           font-weight: 600;
+           margin-bottom: 0.25rem;
+           line-height: 1.2;
+           white-space: nowrap;
+         }
 
-        .stat-card-value {
-          font-size: 1.125rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          margin-bottom: 0.25rem;
-          line-height: 1.3;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-          hyphens: auto;
-        }
+         .stat-card-value {
+           font-size: 1.25rem;
+           font-weight: 700;
+           line-height: 1.2;
+           white-space: nowrap;
+           overflow: hidden;
+           text-overflow: ellipsis;
+         }
 
         .stat-card-sub {
           font-size: 0.8125rem;
