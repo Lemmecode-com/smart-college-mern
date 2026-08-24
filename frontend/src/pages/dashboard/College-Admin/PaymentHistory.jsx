@@ -315,12 +315,11 @@ export default function PaymentHistory() {
       .length,
   };
 
-  return (
-    <div className="payment-history-container">
+   return (
+     <div className="payment-history-container erp-page erp-viewport-min-100">
       <style>{`
         /* ================= CONTAINER ================= */
         .payment-history-container {
-          min-height: 100vh;
           background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
           padding: 1.5rem;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1261,9 +1260,9 @@ export default function PaymentHistory() {
               className="payment-filter-select"
             >
               <option value="">All Status</option>
-              <option value="PAID">✅ Paid</option>
-              <option value="PARTIAL">⏳ Partial</option>
-              <option value="DUE">❌ Due</option>
+              <option value="PAID">Paid</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="DUE">Due</option>
             </select>
           </div>
 

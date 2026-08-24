@@ -14,6 +14,7 @@ import {
    FaCheckCircle,
    FaExclamationTriangle,
 } from "react-icons/fa";
+import "./RecordOfflinePayment.css";
 
 export default function RecordOfflinePayment() {
    const navigate = useNavigate();
@@ -186,154 +187,21 @@ export default function RecordOfflinePayment() {
       );
    };
 
-   return (
-      <div className="record-offline-payment-container">
-         <style>{`
-            .record-offline-payment-container {
-               min-height: 100vh;
-               background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
-               padding: 1.5rem;
-               font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            }
-            .offline-payment-header {
-               background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-               padding: 1.75rem;
-               border-radius: 16px;
-               margin-bottom: 1.5rem;
-               color: white;
-            }
-            .offline-payment-header h1 {
-               margin: 0;
-               font-size: 1.75rem;
-               font-weight: 700;
-               display: flex;
-               align-items: center;
-               gap: 0.75rem;
-            }
-            .form-card {
-               background: white;
-               border-radius: 16px;
-               box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-               padding: 1.75rem;
-               margin-bottom: 1.5rem;
-            }
-            .form-label {
-               font-weight: 600;
-               color: #1a4b6d;
-               margin-bottom: 0.5rem;
-            }
-            .form-input, .form-select {
-               padding: 0.75rem 1rem;
-               border: 2px solid #e9ecef;
-               border-radius: 10px;
-               font-size: 0.95rem;
-               width: 100%;
-               transition: border-color 0.3s ease;
-            }
-            .form-input:focus, .form-select:focus {
-               border-color: #1a4b6d;
-               outline: none;
-               box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
-            }
-            .student-search-results {
-               position: absolute;
-               background: white;
-               border: 1px solid #e9ecef;
-               border-radius: 10px;
-               max-height: 200px;
-               overflow-y: auto;
-               z-index: 1000;
-               width: 100%;
-               box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            }
-            .student-result-item {
-               padding: 0.75rem 1rem;
-               cursor: pointer;
-               border-bottom: 1px solid #f1f3f4;
-               transition: background 0.2s ease;
-            }
-            .student-result-item:hover {
-               background: #f8f9fa;
-            }
-            .student-result-item:last-child {
-               border-bottom: none;
-            }
-            .pending-badge {
-               background: linear-gradient(135deg, #dc3545 0%, #c62828 100%);
-               color: white;
-               padding: 4px 8px;
-               border-radius: 12px;
-               font-size: 0.75rem;
-               font-weight: 600;
-            }
-            .success-card {
-               background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-               border: 1px solid #28a745;
-               border-radius: 16px;
-               padding: 2rem;
-               text-align: center;
-               margin-bottom: 1.5rem;
-            }
-            .success-icon {
-               font-size: 4rem;
-               color: #28a745;
-               margin-bottom: 1rem;
-            }
-            .action-btn {
-               display: inline-flex;
-               align-items: center;
-               gap: 0.5rem;
-               padding: 0.75rem 1.5rem;
-               border: none;
-               border-radius: 10px;
-               font-weight: 600;
-               cursor: pointer;
-               transition: all 0.3s ease;
-               margin: 0.25rem;
-            }
-            .action-btn.primary {
-               background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-               color: white;
-            }
-            .action-btn.success {
-               background: linear-gradient(135deg, #28a745 0%, #218838 100%);
-               color: white;
-            }
-            .action-btn.primary:hover, .action-btn.success:hover {
-               transform: translateY(-2px);
-               box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            }
-            .installment-item {
-               padding: 1rem;
-               border: 1px solid #e9ecef;
-               border-radius: 10px;
-               margin-bottom: 0.75rem;
-               cursor: pointer;
-               transition: all 0.2s ease;
-            }
-            .installment-item:hover {
-               border-color: #1a4b6d;
-               background: #f8f9fa;
-            }
-            .installment-item.selected {
-               border-color: #28a745;
-               background: #e8f5e9;
-            }
-         `}</style>
+    return (
+       <div className="record-offline-payment erp-page erp-viewport-min-100">
+          <Breadcrumb
+             items={[
+                { label: "Accountant Dashboard", path: "/dashboard/accountant" },
+                { label: "Record Offline Payment" },
+             ]}
+          />
 
-         <Breadcrumb
-            items={[
-               { label: "Accountant Dashboard", path: "/dashboard/accountant" },
-               { label: "Record Offline Payment" },
-            ]}
-         />
-
-         <div className="offline-payment-header">
-            <h1>
-               <FaMoneyBillWave />
-               Record Offline Payment
-            </h1>
-         </div>
+          <div className="dashboard-header">
+             <h1>
+                <FaMoneyBillWave />
+                Record Offline Payment
+             </h1>
+          </div>
 
          {showSuccess && successData ? (
             <div className="success-card">
@@ -426,18 +294,17 @@ export default function RecordOfflinePayment() {
                                  const instId = inst._id?.$oid || inst._id || inst.id;
                                  const isBlocked = !canPayInstallment(inst);
                                  return (
-                                    <div
-                                       key={instId || idx}
-                                       className={`installment-item ${selectedInstallment === instId ? "selected" : ""} ${isBlocked ? "blocked" : ""}`}
-                                       onClick={(e) => {
-                                          e.stopPropagation();
-                                          if (!isBlocked) {
-                                             setSelectedInstallment(instId);
-                                          }
-                                       }}
-                                       style={{ opacity: isBlocked ? 0.6 : 1, cursor: isBlocked ? "not-allowed" : "pointer" }}
-                                       title={isBlocked ? "Previous installments must be paid first" : ""}
-                                    >
+                                     <div
+                                        key={instId || idx}
+                                        className={`installment-item ${selectedInstallment === instId ? "selected" : ""} ${isBlocked ? "blocked" : ""}`}
+                                        onClick={(e) => {
+                                           e.stopPropagation();
+                                           if (!isBlocked) {
+                                              setSelectedInstallment(instId);
+                                           }
+                                        }}
+                                        title={isBlocked ? "Previous installments must be paid first" : ""}
+                                     >
                                        <div className="d-flex justify-content-between align-items-center">
                                           <div>
                                              <strong>{inst.name}</strong>
