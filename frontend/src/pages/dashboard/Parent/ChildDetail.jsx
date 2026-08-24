@@ -642,7 +642,7 @@ export default function ChildDetail() {
                             <td>
                               <div className="parent-table-cell-stack">
                                 <span className="parent-fw-semibold">
-{record.date ? formatDate(record.date), {
+{record.date ? formatDate(record.date, {
 	                                    weekday: 'short',
 	                                    month: 'short',
 	                                    day: 'numeric'
