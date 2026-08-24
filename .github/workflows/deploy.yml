@@ -61,7 +61,11 @@ jobs:
             # Otherwise auto-detect the SPA root from the live nginx configuration.
             NGINX_ROOT="${{ secrets.NGINX_ROOT }}"
             if [ -z "$NGINX_ROOT" ]; then
-              NGINX_CONF=$( (sudo nginx -T 2>/dev/null) || (nginx -T 2>/dev/null) || true )
+              NGINX_CONF=""
+              if command -v nginx >/dev/null 2>&1; then
+                # Non-interactive (sudo -n) + timeout so a password prompt can never hang the deploy.
+                NGINX_CONF=$(timeout 30 nginx -T 2>/dev/null) || NGINX_CONF=$(timeout 30 sudo -n nginx -T 2>/dev/null) || true
+              fi
               CANDIDATES=$(echo "$NGINX_CONF" | grep -oE 'root[[:space:]]+[^;[:space:]]+' | awk '{print $2}' | sort -u)
               # 1) Prefer a root under the known project tree that exists.
               for c in $CANDIDATES; do
@@ -107,12 +111,19 @@ jobs:
             echo "Frontend deployment: SUCCESS"
 
             echo "--- reload nginx (graceful) ---"
-            if command -v systemctl >/dev/null 2>&1; then
-              sudo systemctl reload nginx || sudo nginx -s reload || nginx -s reload
-            else
-              sudo nginx -s reload || nginx -s reload
+            NGINX_RELOADED=0
+            timeout 60 sudo -n systemctl reload nginx >/dev/null 2>&1 && NGINX_RELOADED=1
+            if [ "$NGINX_RELOADED" -ne 1 ]; then
+              timeout 60 sudo -n nginx -s reload >/dev/null 2>&1 && NGINX_RELOADED=1
             fi
-            echo "Nginx reload: SUCCESS"
+            if [ "$NGINX_RELOADED" -ne 1 ]; then
+              timeout 60 nginx -s reload >/dev/null 2>&1 && NGINX_RELOADED=1
+            fi
+            if [ "$NGINX_RELOADED" -eq 1 ]; then
+              echo "Nginx reload: SUCCESS"
+            else
+              echo "WARN: Nginx reload could not be performed automatically. Reload nginx manually or grant passwordless sudo for nginx reload."
+            fi
 
             echo "--- verify served frontend ---"
             if [ ! -f "$NGINX_ROOT/index.html" ]; then
