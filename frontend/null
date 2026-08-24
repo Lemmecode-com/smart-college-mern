@@ -1,0 +1,2081 @@
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+
+// node_modules/react/cjs/react.development.js
+var require_react_development = __commonJS({
+  "node_modules/react/cjs/react.development.js"(exports, module) {
+    "use strict";
+    (function() {
+      function defineDeprecationWarning(methodName, info) {
+        Object.defineProperty(Component.prototype, methodName, {
+          get: function() {
+            console.warn(
+              "%s(...) is deprecated in plain JavaScript React classes. %s",
+              info[0],
+              info[1]
+            );
+          }
+        });
+      }
+      function getIteratorFn(maybeIterable) {
+        if (null === maybeIterable || "object" !== typeof maybeIterable)
+          return null;
+        maybeIterable = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable["@@iterator"];
+        return "function" === typeof maybeIterable ? maybeIterable : null;
+      }
+      function warnNoop(publicInstance, callerName) {
+        publicInstance = (publicInstance = publicInstance.constructor) && (publicInstance.displayName || publicInstance.name) || "ReactClass";
+        var warningKey = publicInstance + "." + callerName;
+        didWarnStateUpdateForUnmountedComponent[warningKey] || (console.error(
+          "Can't call %s on a component that is not yet mounted. This is a no-op, but it might indicate a bug in your application. Instead, assign to `this.state` directly or define a `state = {};` class property with the desired state in the %s component.",
+          callerName,
+          publicInstance
+        ), didWarnStateUpdateForUnmountedComponent[warningKey] = true);
+      }
+      function Component(props, context, updater) {
+        this.props = props;
+        this.context = context;
+        this.refs = emptyObject;
+        this.updater = updater || ReactNoopUpdateQueue;
+      }
+      function ComponentDummy() {
+      }
+      function PureComponent(props, context, updater) {
+        this.props = props;
+        this.context = context;
+        this.refs = emptyObject;
+        this.updater = updater || ReactNoopUpdateQueue;
+      }
+      function noop() {
+      }
+      function testStringCoercion(value) {
+        return "" + value;
+      }
+      function checkKeyStringCoercion(value) {
+        try {
+          testStringCoercion(value);
+          var JSCompiler_inline_result = false;
+        } catch (e) {
+          JSCompiler_inline_result = true;
+        }
+        if (JSCompiler_inline_result) {
+          JSCompiler_inline_result = console;
+          var JSCompiler_temp_const = JSCompiler_inline_result.error;
+          var JSCompiler_inline_result$jscomp$0 = "function" === typeof Symbol && Symbol.toStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
+          JSCompiler_temp_const.call(
+            JSCompiler_inline_result,
+            "The provided key is an unsupported type %s. This value must be coerced to a string before using it here.",
+            JSCompiler_inline_result$jscomp$0
+          );
+          return testStringCoercion(value);
+        }
+      }
+      function getComponentNameFromType(type) {
+        if (null == type) return null;
+        if ("function" === typeof type)
+          return type.$$typeof === REACT_CLIENT_REFERENCE ? null : type.displayName || type.name || null;
+        if ("string" === typeof type) return type;
+        switch (type) {
+          case REACT_FRAGMENT_TYPE:
+            return "Fragment";
+          case REACT_PROFILER_TYPE:
+            return "Profiler";
+          case REACT_STRICT_MODE_TYPE:
+            return "StrictMode";
+          case REACT_SUSPENSE_TYPE:
+            return "Suspense";
+          case REACT_SUSPENSE_LIST_TYPE:
+            return "SuspenseList";
+          case REACT_ACTIVITY_TYPE:
+            return "Activity";
+        }
+        if ("object" === typeof type)
+          switch ("number" === typeof type.tag && console.error(
+            "Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue."
+          ), type.$$typeof) {
+            case REACT_PORTAL_TYPE:
+              return "Portal";
+            case REACT_CONTEXT_TYPE:
+              return type.displayName || "Context";
+            case REACT_CONSUMER_TYPE:
+              return (type._context.displayName || "Context") + ".Consumer";
+            case REACT_FORWARD_REF_TYPE:
+              var innerType = type.render;
+              type = type.displayName;
+              type || (type = innerType.displayName || innerType.name || "", type = "" !== type ? "ForwardRef(" + type + ")" : "ForwardRef");
+              return type;
+            case REACT_MEMO_TYPE:
+              return innerType = type.displayName || null, null !== innerType ? innerType : getComponentNameFromType(type.type) || "Memo";
+            case REACT_LAZY_TYPE:
+              innerType = type._payload;
+              type = type._init;
+              try {
+                return getComponentNameFromType(type(innerType));
+              } catch (x) {
+              }
+          }
+        return null;
+      }
+      function getTaskName(type) {
+        if (type === REACT_FRAGMENT_TYPE) return "<>";
+        if ("object" === typeof type && null !== type && type.$$typeof === REACT_LAZY_TYPE)
+          return "<...>";
+        try {
+          var name = getComponentNameFromType(type);
+          return name ? "<" + name + ">" : "<...>";
+        } catch (x) {
+          return "<...>";
+        }
+      }
+      function getOwner() {
+        var dispatcher = ReactSharedInternals.A;
+        return null === dispatcher ? null : dispatcher.getOwner();
+      }
+      function UnknownOwner() {
+        return Error("react-stack-top-frame");
+      }
+      function hasValidKey(config) {
+        if (hasOwnProperty.call(config, "key")) {
+          var getter = Object.getOwnPropertyDescriptor(config, "key").get;
+          if (getter && getter.isReactWarning) return false;
+        }
+        return void 0 !== config.key;
+      }
+      function defineKeyPropWarningGetter(props, displayName) {
+        function warnAboutAccessingKey() {
+          specialPropKeyWarningShown || (specialPropKeyWarningShown = true, console.error(
+            "%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://react.dev/link/special-props)",
+            displayName
+          ));
+        }
+        warnAboutAccessingKey.isReactWarning = true;
+        Object.defineProperty(props, "key", {
+          get: warnAboutAccessingKey,
+          configurable: true
+        });
+      }
+      function elementRefGetterWithDeprecationWarning() {
+        var componentName = getComponentNameFromType(this.type);
+        didWarnAboutElementRef[componentName] || (didWarnAboutElementRef[componentName] = true, console.error(
+          "Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release."
+        ));
+        componentName = this.props.ref;
+        return void 0 !== componentName ? componentName : null;
+      }
+      function ReactElement(type, key, props, owner, debugStack, debugTask) {
+        var refProp = props.ref;
+        type = {
+          $$typeof: REACT_ELEMENT_TYPE,
+          type,
+          key,
+          props,
+          _owner: owner
+        };
+        null !== (void 0 !== refProp ? refProp : null) ? Object.defineProperty(type, "ref", {
+          enumerable: false,
+          get: elementRefGetterWithDeprecationWarning
+        }) : Object.defineProperty(type, "ref", { enumerable: false, value: null });
+        type._store = {};
+        Object.defineProperty(type._store, "validated", {
+          configurable: false,
+          enumerable: false,
+          writable: true,
+          value: 0
+        });
+        Object.defineProperty(type, "_debugInfo", {
+          configurable: false,
+          enumerable: false,
+          writable: true,
+          value: null
+        });
+        Object.defineProperty(type, "_debugStack", {
+          configurable: false,
+          enumerable: false,
+          writable: true,
+          value: debugStack
+        });
+        Object.defineProperty(type, "_debugTask", {
+          configurable: false,
+          enumerable: false,
+          writable: true,
+          value: debugTask
+        });
+        Object.freeze && (Object.freeze(type.props), Object.freeze(type));
+        return type;
+      }
+      function cloneAndReplaceKey(oldElement, newKey) {
+        newKey = ReactElement(
+          oldElement.type,
+          newKey,
+          oldElement.props,
+          oldElement._owner,
+          oldElement._debugStack,
+          oldElement._debugTask
+        );
+        oldElement._store && (newKey._store.validated = oldElement._store.validated);
+        return newKey;
+      }
+      function validateChildKeys(node) {
+        isValidElement(node) ? node._store && (node._store.validated = 1) : "object" === typeof node && null !== node && node.$$typeof === REACT_LAZY_TYPE && ("fulfilled" === node._payload.status ? isValidElement(node._payload.value) && node._payload.value._store && (node._payload.value._store.validated = 1) : node._store && (node._store.validated = 1));
+      }
+      function isValidElement(object) {
+        return "object" === typeof object && null !== object && object.$$typeof === REACT_ELEMENT_TYPE;
+      }
+      function escape(key) {
+        var escaperLookup = { "=": "=0", ":": "=2" };
+        return "$" + key.replace(/[=:]/g, function(match) {
+          return escaperLookup[match];
+        });
+      }
+      function getElementKey(element, index) {
+        return "object" === typeof element && null !== element && null != element.key ? (checkKeyStringCoercion(element.key), escape("" + element.key)) : index.toString(36);
+      }
+      function resolveThenable(thenable) {
+        switch (thenable.status) {
+          case "fulfilled":
+            return thenable.value;
+          case "rejected":
+            throw thenable.reason;
+          default:
+            switch ("string" === typeof thenable.status ? thenable.then(noop, noop) : (thenable.status = "pending", thenable.then(
+              function(fulfilledValue) {
+                "pending" === thenable.status && (thenable.status = "fulfilled", thenable.value = fulfilledValue);
+              },
+              function(error) {
+                "pending" === thenable.status && (thenable.status = "rejected", thenable.reason = error);
+              }
+            )), thenable.status) {
+              case "fulfilled":
+                return thenable.value;
+              case "rejected":
+                throw thenable.reason;
+            }
+        }
+        throw thenable;
+      }
+      function mapIntoArray(children, array, escapedPrefix, nameSoFar, callback) {
+        var type = typeof children;
+        if ("undefined" === type || "boolean" === type) children = null;
+        var invokeCallback = false;
+        if (null === children) invokeCallback = true;
+        else
+          switch (type) {
+            case "bigint":
+            case "string":
+            case "number":
+              invokeCallback = true;
+              break;
+            case "object":
+              switch (children.$$typeof) {
+                case REACT_ELEMENT_TYPE:
+                case REACT_PORTAL_TYPE:
+                  invokeCallback = true;
+                  break;
+                case REACT_LAZY_TYPE:
+                  return invokeCallback = children._init, mapIntoArray(
+                    invokeCallback(children._payload),
+                    array,
+                    escapedPrefix,
+                    nameSoFar,
+                    callback
+                  );
+              }
+          }
+        if (invokeCallback) {
+          invokeCallback = children;
+          callback = callback(invokeCallback);
+          var childKey = "" === nameSoFar ? "." + getElementKey(invokeCallback, 0) : nameSoFar;
+          isArrayImpl(callback) ? (escapedPrefix = "", null != childKey && (escapedPrefix = childKey.replace(userProvidedKeyEscapeRegex, "$&/") + "/"), mapIntoArray(callback, array, escapedPrefix, "", function(c) {
+            return c;
+          })) : null != callback && (isValidElement(callback) && (null != callback.key && (invokeCallback && invokeCallback.key === callback.key || checkKeyStringCoercion(callback.key)), escapedPrefix = cloneAndReplaceKey(
+            callback,
+            escapedPrefix + (null == callback.key || invokeCallback && invokeCallback.key === callback.key ? "" : ("" + callback.key).replace(
+              userProvidedKeyEscapeRegex,
+              "$&/"
+            ) + "/") + childKey
+          ), "" !== nameSoFar && null != invokeCallback && isValidElement(invokeCallback) && null == invokeCallback.key && invokeCallback._store && !invokeCallback._store.validated && (escapedPrefix._store.validated = 2), callback = escapedPrefix), array.push(callback));
+          return 1;
+        }
+        invokeCallback = 0;
+        childKey = "" === nameSoFar ? "." : nameSoFar + ":";
+        if (isArrayImpl(children))
+          for (var i = 0; i < children.length; i++)
+            nameSoFar = children[i], type = childKey + getElementKey(nameSoFar, i), invokeCallback += mapIntoArray(
+              nameSoFar,
+              array,
+              escapedPrefix,
+              type,
+              callback
+            );
+        else if (i = getIteratorFn(children), "function" === typeof i)
+          for (i === children.entries && (didWarnAboutMaps || console.warn(
+            "Using Maps as children is not supported. Use an array of keyed ReactElements instead."
+          ), didWarnAboutMaps = true), children = i.call(children), i = 0; !(nameSoFar = children.next()).done; )
+            nameSoFar = nameSoFar.value, type = childKey + getElementKey(nameSoFar, i++), invokeCallback += mapIntoArray(
+              nameSoFar,
+              array,
+              escapedPrefix,
+              type,
+              callback
+            );
+        else if ("object" === type) {
+          if ("function" === typeof children.then)
+            return mapIntoArray(
+              resolveThenable(children),
+              array,
+              escapedPrefix,
+              nameSoFar,
+              callback
+            );
+          array = String(children);
+          throw Error(
+            "Objects are not valid as a React child (found: " + ("[object Object]" === array ? "object with keys {" + Object.keys(children).join(", ") + "}" : array) + "). If you meant to render a collection of children, use an array instead."
+          );
+        }
+        return invokeCallback;
+      }
+      function mapChildren(children, func, context) {
+        if (null == children) return children;
+        var result = [], count = 0;
+        mapIntoArray(children, result, "", "", function(child) {
+          return func.call(context, child, count++);
+        });
+        return result;
+      }
+      function lazyInitializer(payload) {
+        if (-1 === payload._status) {
+          var ioInfo = payload._ioInfo;
+          null != ioInfo && (ioInfo.start = ioInfo.end = performance.now());
+          ioInfo = payload._result;
+          var thenable = ioInfo();
+          thenable.then(
+            function(moduleObject) {
+              if (0 === payload._status || -1 === payload._status) {
+                payload._status = 1;
+                payload._result = moduleObject;
+                var _ioInfo = payload._ioInfo;
+                null != _ioInfo && (_ioInfo.end = performance.now());
+                void 0 === thenable.status && (thenable.status = "fulfilled", thenable.value = moduleObject);
+              }
+            },
+            function(error) {
+              if (0 === payload._status || -1 === payload._status) {
+                payload._status = 2;
+                payload._result = error;
+                var _ioInfo2 = payload._ioInfo;
+                null != _ioInfo2 && (_ioInfo2.end = performance.now());
+                void 0 === thenable.status && (thenable.status = "rejected", thenable.reason = error);
+              }
+            }
+          );
+          ioInfo = payload._ioInfo;
+          if (null != ioInfo) {
+            ioInfo.value = thenable;
+            var displayName = thenable.displayName;
+            "string" === typeof displayName && (ioInfo.name = displayName);
+          }
+          -1 === payload._status && (payload._status = 0, payload._result = thenable);
+        }
+        if (1 === payload._status)
+          return ioInfo = payload._result, void 0 === ioInfo && console.error(
+            "lazy: Expected the result of a dynamic import() call. Instead received: %s\n\nYour code should look like: \n  const MyComponent = lazy(() => import('./MyComponent'))\n\nDid you accidentally put curly braces around the import?",
+            ioInfo
+          ), "default" in ioInfo || console.error(
+            "lazy: Expected the result of a dynamic import() call. Instead received: %s\n\nYour code should look like: \n  const MyComponent = lazy(() => import('./MyComponent'))",
+            ioInfo
+          ), ioInfo.default;
+        throw payload._result;
+      }
+      function resolveDispatcher() {
+        var dispatcher = ReactSharedInternals.H;
+        null === dispatcher && console.error(
+          "Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:\n1. You might have mismatching versions of React and the renderer (such as React DOM)\n2. You might be breaking the Rules of Hooks\n3. You might have more than one copy of React in the same app\nSee https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem."
+        );
+        return dispatcher;
+      }
+      function releaseAsyncTransition() {
+        ReactSharedInternals.asyncTransitions--;
+      }
+      function enqueueTask(task) {
+        if (null === enqueueTaskImpl)
+          try {
+            var requireString = ("require" + Math.random()).slice(0, 7);
+            enqueueTaskImpl = (module && module[requireString]).call(
+              module,
+              "timers"
+            ).setImmediate;
+          } catch (_err) {
+            enqueueTaskImpl = function(callback) {
+              false === didWarnAboutMessageChannel && (didWarnAboutMessageChannel = true, "undefined" === typeof MessageChannel && console.error(
+                "This browser does not have a MessageChannel implementation, so enqueuing tasks via await act(async () => ...) will fail. Please file an issue at https://github.com/facebook/react/issues if you encounter this warning."
+              ));
+              var channel = new MessageChannel();
+              channel.port1.onmessage = callback;
+              channel.port2.postMessage(void 0);
+            };
+          }
+        return enqueueTaskImpl(task);
+      }
+      function aggregateErrors(errors) {
+        return 1 < errors.length && "function" === typeof AggregateError ? new AggregateError(errors) : errors[0];
+      }
+      function popActScope(prevActQueue, prevActScopeDepth) {
+        prevActScopeDepth !== actScopeDepth - 1 && console.error(
+          "You seem to have overlapping act() calls, this is not supported. Be sure to await previous act() calls before making a new one. "
+        );
+        actScopeDepth = prevActScopeDepth;
+      }
+      function recursivelyFlushAsyncActWork(returnValue, resolve, reject) {
+        var queue = ReactSharedInternals.actQueue;
+        if (null !== queue)
+          if (0 !== queue.length)
+            try {
+              flushActQueue(queue);
+              enqueueTask(function() {
+                return recursivelyFlushAsyncActWork(returnValue, resolve, reject);
+              });
+              return;
+            } catch (error) {
+              ReactSharedInternals.thrownErrors.push(error);
+            }
+          else ReactSharedInternals.actQueue = null;
+        0 < ReactSharedInternals.thrownErrors.length ? (queue = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, reject(queue)) : resolve(returnValue);
+      }
+      function flushActQueue(queue) {
+        if (!isFlushing) {
+          isFlushing = true;
+          var i = 0;
+          try {
+            for (; i < queue.length; i++) {
+              var callback = queue[i];
+              do {
+                ReactSharedInternals.didUsePromise = false;
+                var continuation = callback(false);
+                if (null !== continuation) {
+                  if (ReactSharedInternals.didUsePromise) {
+                    queue[i] = callback;
+                    queue.splice(0, i);
+                    return;
+                  }
+                  callback = continuation;
+                } else break;
+              } while (1);
+            }
+            queue.length = 0;
+          } catch (error) {
+            queue.splice(0, i + 1), ReactSharedInternals.thrownErrors.push(error);
+          } finally {
+            isFlushing = false;
+          }
+        }
+      }
+      "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(Error());
+      var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element"), REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal"), REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment"), REACT_STRICT_MODE_TYPE = /* @__PURE__ */ Symbol.for("react.strict_mode"), REACT_PROFILER_TYPE = /* @__PURE__ */ Symbol.for("react.profiler"), REACT_CONSUMER_TYPE = /* @__PURE__ */ Symbol.for("react.consumer"), REACT_CONTEXT_TYPE = /* @__PURE__ */ Symbol.for("react.context"), REACT_FORWARD_REF_TYPE = /* @__PURE__ */ Symbol.for("react.forward_ref"), REACT_SUSPENSE_TYPE = /* @__PURE__ */ Symbol.for("react.suspense"), REACT_SUSPENSE_LIST_TYPE = /* @__PURE__ */ Symbol.for("react.suspense_list"), REACT_MEMO_TYPE = /* @__PURE__ */ Symbol.for("react.memo"), REACT_LAZY_TYPE = /* @__PURE__ */ Symbol.for("react.lazy"), REACT_ACTIVITY_TYPE = /* @__PURE__ */ Symbol.for("react.activity"), MAYBE_ITERATOR_SYMBOL = Symbol.iterator, didWarnStateUpdateForUnmountedComponent = {}, ReactNoopUpdateQueue = {
+        isMounted: function() {
+          return false;
+        },
+        enqueueForceUpdate: function(publicInstance) {
+          warnNoop(publicInstance, "forceUpdate");
+        },
+        enqueueReplaceState: function(publicInstance) {
+          warnNoop(publicInstance, "replaceState");
+        },
+        enqueueSetState: function(publicInstance) {
+          warnNoop(publicInstance, "setState");
+        }
+      }, assign = Object.assign, emptyObject = {};
+      Object.freeze(emptyObject);
+      Component.prototype.isReactComponent = {};
+      Component.prototype.setState = function(partialState, callback) {
+        if ("object" !== typeof partialState && "function" !== typeof partialState && null != partialState)
+          throw Error(
+            "takes an object of state variables to update or a function which returns an object of state variables."
+          );
+        this.updater.enqueueSetState(this, partialState, callback, "setState");
+      };
+      Component.prototype.forceUpdate = function(callback) {
+        this.updater.enqueueForceUpdate(this, callback, "forceUpdate");
+      };
+      var deprecatedAPIs = {
+        isMounted: [
+          "isMounted",
+          "Instead, make sure to clean up subscriptions and pending requests in componentWillUnmount to prevent memory leaks."
+        ],
+        replaceState: [
+          "replaceState",
+          "Refactor your code to use setState instead (see https://github.com/facebook/react/issues/3236)."
+        ]
+      };
+      for (fnName in deprecatedAPIs)
+        deprecatedAPIs.hasOwnProperty(fnName) && defineDeprecationWarning(fnName, deprecatedAPIs[fnName]);
+      ComponentDummy.prototype = Component.prototype;
+      deprecatedAPIs = PureComponent.prototype = new ComponentDummy();
+      deprecatedAPIs.constructor = PureComponent;
+      assign(deprecatedAPIs, Component.prototype);
+      deprecatedAPIs.isPureReactComponent = true;
+      var isArrayImpl = Array.isArray, REACT_CLIENT_REFERENCE = /* @__PURE__ */ Symbol.for("react.client.reference"), ReactSharedInternals = {
+        H: null,
+        A: null,
+        T: null,
+        S: null,
+        actQueue: null,
+        asyncTransitions: 0,
+        isBatchingLegacy: false,
+        didScheduleLegacyUpdate: false,
+        didUsePromise: false,
+        thrownErrors: [],
+        getCurrentStack: null,
+        recentlyCreatedOwnerStacks: 0
+      }, hasOwnProperty = Object.prototype.hasOwnProperty, createTask = console.createTask ? console.createTask : function() {
+        return null;
+      };
+      deprecatedAPIs = {
+        react_stack_bottom_frame: function(callStackForError) {
+          return callStackForError();
+        }
+      };
+      var specialPropKeyWarningShown, didWarnAboutOldJSXRuntime;
+      var didWarnAboutElementRef = {};
+      var unknownOwnerDebugStack = deprecatedAPIs.react_stack_bottom_frame.bind(
+        deprecatedAPIs,
+        UnknownOwner
+      )();
+      var unknownOwnerDebugTask = createTask(getTaskName(UnknownOwner));
+      var didWarnAboutMaps = false, userProvidedKeyEscapeRegex = /\/+/g, reportGlobalError = "function" === typeof reportError ? reportError : function(error) {
+        if ("object" === typeof window && "function" === typeof window.ErrorEvent) {
+          var event = new window.ErrorEvent("error", {
+            bubbles: true,
+            cancelable: true,
+            message: "object" === typeof error && null !== error && "string" === typeof error.message ? String(error.message) : String(error),
+            error
+          });
+          if (!window.dispatchEvent(event)) return;
+        } else if ("object" === typeof process && "function" === typeof process.emit) {
+          process.emit("uncaughtException", error);
+          return;
+        }
+        console.error(error);
+      }, didWarnAboutMessageChannel = false, enqueueTaskImpl = null, actScopeDepth = 0, didWarnNoAwaitAct = false, isFlushing = false, queueSeveralMicrotasks = "function" === typeof queueMicrotask ? function(callback) {
+        queueMicrotask(function() {
+          return queueMicrotask(callback);
+        });
+      } : enqueueTask;
+      deprecatedAPIs = Object.freeze({
+        __proto__: null,
+        c: function(size) {
+          return resolveDispatcher().useMemoCache(size);
+        }
+      });
+      var fnName = {
+        map: mapChildren,
+        forEach: function(children, forEachFunc, forEachContext) {
+          mapChildren(
+            children,
+            function() {
+              forEachFunc.apply(this, arguments);
+            },
+            forEachContext
+          );
+        },
+        count: function(children) {
+          var n = 0;
+          mapChildren(children, function() {
+            n++;
+          });
+          return n;
+        },
+        toArray: function(children) {
+          return mapChildren(children, function(child) {
+            return child;
+          }) || [];
+        },
+        only: function(children) {
+          if (!isValidElement(children))
+            throw Error(
+              "React.Children.only expected to receive a single React element child."
+            );
+          return children;
+        }
+      };
+      exports.Activity = REACT_ACTIVITY_TYPE;
+      exports.Children = fnName;
+      exports.Component = Component;
+      exports.Fragment = REACT_FRAGMENT_TYPE;
+      exports.Profiler = REACT_PROFILER_TYPE;
+      exports.PureComponent = PureComponent;
+      exports.StrictMode = REACT_STRICT_MODE_TYPE;
+      exports.Suspense = REACT_SUSPENSE_TYPE;
+      exports.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE = ReactSharedInternals;
+      exports.__COMPILER_RUNTIME = deprecatedAPIs;
+      exports.act = function(callback) {
+        var prevActQueue = ReactSharedInternals.actQueue, prevActScopeDepth = actScopeDepth;
+        actScopeDepth++;
+        var queue = ReactSharedInternals.actQueue = null !== prevActQueue ? prevActQueue : [], didAwaitActCall = false;
+        try {
+          var result = callback();
+        } catch (error) {
+          ReactSharedInternals.thrownErrors.push(error);
+        }
+        if (0 < ReactSharedInternals.thrownErrors.length)
+          throw popActScope(prevActQueue, prevActScopeDepth), callback = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, callback;
+        if (null !== result && "object" === typeof result && "function" === typeof result.then) {
+          var thenable = result;
+          queueSeveralMicrotasks(function() {
+            didAwaitActCall || didWarnNoAwaitAct || (didWarnNoAwaitAct = true, console.error(
+              "You called act(async () => ...) without await. This could lead to unexpected testing behaviour, interleaving multiple act calls and mixing their scopes. You should - await act(async () => ...);"
+            ));
+          });
+          return {
+            then: function(resolve, reject) {
+              didAwaitActCall = true;
+              thenable.then(
+                function(returnValue) {
+                  popActScope(prevActQueue, prevActScopeDepth);
+                  if (0 === prevActScopeDepth) {
+                    try {
+                      flushActQueue(queue), enqueueTask(function() {
+                        return recursivelyFlushAsyncActWork(
+                          returnValue,
+                          resolve,
+                          reject
+                        );
+                      });
+                    } catch (error$0) {
+                      ReactSharedInternals.thrownErrors.push(error$0);
+                    }
+                    if (0 < ReactSharedInternals.thrownErrors.length) {
+                      var _thrownError = aggregateErrors(
+                        ReactSharedInternals.thrownErrors
+                      );
+                      ReactSharedInternals.thrownErrors.length = 0;
+                      reject(_thrownError);
+                    }
+                  } else resolve(returnValue);
+                },
+                function(error) {
+                  popActScope(prevActQueue, prevActScopeDepth);
+                  0 < ReactSharedInternals.thrownErrors.length ? (error = aggregateErrors(
+                    ReactSharedInternals.thrownErrors
+                  ), ReactSharedInternals.thrownErrors.length = 0, reject(error)) : reject(error);
+                }
+              );
+            }
+          };
+        }
+        var returnValue$jscomp$0 = result;
+        popActScope(prevActQueue, prevActScopeDepth);
+        0 === prevActScopeDepth && (flushActQueue(queue), 0 !== queue.length && queueSeveralMicrotasks(function() {
+          didAwaitActCall || didWarnNoAwaitAct || (didWarnNoAwaitAct = true, console.error(
+            "A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:\n\nawait act(() => ...)"
+          ));
+        }), ReactSharedInternals.actQueue = null);
+        if (0 < ReactSharedInternals.thrownErrors.length)
+          throw callback = aggregateErrors(ReactSharedInternals.thrownErrors), ReactSharedInternals.thrownErrors.length = 0, callback;
+        return {
+          then: function(resolve, reject) {
+            didAwaitActCall = true;
+            0 === prevActScopeDepth ? (ReactSharedInternals.actQueue = queue, enqueueTask(function() {
+              return recursivelyFlushAsyncActWork(
+                returnValue$jscomp$0,
+                resolve,
+                reject
+              );
+            })) : resolve(returnValue$jscomp$0);
+          }
+        };
+      };
+      exports.cache = function(fn) {
+        return function() {
+          return fn.apply(null, arguments);
+        };
+      };
+      exports.cacheSignal = function() {
+        return null;
+      };
+      exports.captureOwnerStack = function() {
+        var getCurrentStack = ReactSharedInternals.getCurrentStack;
+        return null === getCurrentStack ? null : getCurrentStack();
+      };
+      exports.cloneElement = function(element, config, children) {
+        if (null === element || void 0 === element)
+          throw Error(
+            "The argument must be a React element, but you passed " + element + "."
+          );
+        var props = assign({}, element.props), key = element.key, owner = element._owner;
+        if (null != config) {
+          var JSCompiler_inline_result;
+          a: {
+            if (hasOwnProperty.call(config, "ref") && (JSCompiler_inline_result = Object.getOwnPropertyDescriptor(
+              config,
+              "ref"
+            ).get) && JSCompiler_inline_result.isReactWarning) {
+              JSCompiler_inline_result = false;
+              break a;
+            }
+            JSCompiler_inline_result = void 0 !== config.ref;
+          }
+          JSCompiler_inline_result && (owner = getOwner());
+          hasValidKey(config) && (checkKeyStringCoercion(config.key), key = "" + config.key);
+          for (propName in config)
+            !hasOwnProperty.call(config, propName) || "key" === propName || "__self" === propName || "__source" === propName || "ref" === propName && void 0 === config.ref || (props[propName] = config[propName]);
+        }
+        var propName = arguments.length - 2;
+        if (1 === propName) props.children = children;
+        else if (1 < propName) {
+          JSCompiler_inline_result = Array(propName);
+          for (var i = 0; i < propName; i++)
+            JSCompiler_inline_result[i] = arguments[i + 2];
+          props.children = JSCompiler_inline_result;
+        }
+        props = ReactElement(
+          element.type,
+          key,
+          props,
+          owner,
+          element._debugStack,
+          element._debugTask
+        );
+        for (key = 2; key < arguments.length; key++)
+          validateChildKeys(arguments[key]);
+        return props;
+      };
+      exports.createContext = function(defaultValue) {
+        defaultValue = {
+          $$typeof: REACT_CONTEXT_TYPE,
+          _currentValue: defaultValue,
+          _currentValue2: defaultValue,
+          _threadCount: 0,
+          Provider: null,
+          Consumer: null
+        };
+        defaultValue.Provider = defaultValue;
+        defaultValue.Consumer = {
+          $$typeof: REACT_CONSUMER_TYPE,
+          _context: defaultValue
+        };
+        defaultValue._currentRenderer = null;
+        defaultValue._currentRenderer2 = null;
+        return defaultValue;
+      };
+      exports.createElement = function(type, config, children) {
+        for (var i = 2; i < arguments.length; i++)
+          validateChildKeys(arguments[i]);
+        i = {};
+        var key = null;
+        if (null != config)
+          for (propName in didWarnAboutOldJSXRuntime || !("__self" in config) || "key" in config || (didWarnAboutOldJSXRuntime = true, console.warn(
+            "Your app (or one of its dependencies) is using an outdated JSX transform. Update to the modern JSX transform for faster performance: https://react.dev/link/new-jsx-transform"
+          )), hasValidKey(config) && (checkKeyStringCoercion(config.key), key = "" + config.key), config)
+            hasOwnProperty.call(config, propName) && "key" !== propName && "__self" !== propName && "__source" !== propName && (i[propName] = config[propName]);
+        var childrenLength = arguments.length - 2;
+        if (1 === childrenLength) i.children = children;
+        else if (1 < childrenLength) {
+          for (var childArray = Array(childrenLength), _i = 0; _i < childrenLength; _i++)
+            childArray[_i] = arguments[_i + 2];
+          Object.freeze && Object.freeze(childArray);
+          i.children = childArray;
+        }
+        if (type && type.defaultProps)
+          for (propName in childrenLength = type.defaultProps, childrenLength)
+            void 0 === i[propName] && (i[propName] = childrenLength[propName]);
+        key && defineKeyPropWarningGetter(
+          i,
+          "function" === typeof type ? type.displayName || type.name || "Unknown" : type
+        );
+        var propName = 1e4 > ReactSharedInternals.recentlyCreatedOwnerStacks++;
+        return ReactElement(
+          type,
+          key,
+          i,
+          getOwner(),
+          propName ? Error("react-stack-top-frame") : unknownOwnerDebugStack,
+          propName ? createTask(getTaskName(type)) : unknownOwnerDebugTask
+        );
+      };
+      exports.createRef = function() {
+        var refObject = { current: null };
+        Object.seal(refObject);
+        return refObject;
+      };
+      exports.forwardRef = function(render) {
+        null != render && render.$$typeof === REACT_MEMO_TYPE ? console.error(
+          "forwardRef requires a render function but received a `memo` component. Instead of forwardRef(memo(...)), use memo(forwardRef(...))."
+        ) : "function" !== typeof render ? console.error(
+          "forwardRef requires a render function but was given %s.",
+          null === render ? "null" : typeof render
+        ) : 0 !== render.length && 2 !== render.length && console.error(
+          "forwardRef render functions accept exactly two parameters: props and ref. %s",
+          1 === render.length ? "Did you forget to use the ref parameter?" : "Any additional parameter will be undefined."
+        );
+        null != render && null != render.defaultProps && console.error(
+          "forwardRef render functions do not support defaultProps. Did you accidentally pass a React component?"
+        );
+        var elementType = { $$typeof: REACT_FORWARD_REF_TYPE, render }, ownName;
+        Object.defineProperty(elementType, "displayName", {
+          enumerable: false,
+          configurable: true,
+          get: function() {
+            return ownName;
+          },
+          set: function(name) {
+            ownName = name;
+            render.name || render.displayName || (Object.defineProperty(render, "name", { value: name }), render.displayName = name);
+          }
+        });
+        return elementType;
+      };
+      exports.isValidElement = isValidElement;
+      exports.lazy = function(ctor) {
+        ctor = { _status: -1, _result: ctor };
+        var lazyType = {
+          $$typeof: REACT_LAZY_TYPE,
+          _payload: ctor,
+          _init: lazyInitializer
+        }, ioInfo = {
+          name: "lazy",
+          start: -1,
+          end: -1,
+          value: null,
+          owner: null,
+          debugStack: Error("react-stack-top-frame"),
+          debugTask: console.createTask ? console.createTask("lazy()") : null
+        };
+        ctor._ioInfo = ioInfo;
+        lazyType._debugInfo = [{ awaited: ioInfo }];
+        return lazyType;
+      };
+      exports.memo = function(type, compare) {
+        null == type && console.error(
+          "memo: The first argument must be a component. Instead received: %s",
+          null === type ? "null" : typeof type
+        );
+        compare = {
+          $$typeof: REACT_MEMO_TYPE,
+          type,
+          compare: void 0 === compare ? null : compare
+        };
+        var ownName;
+        Object.defineProperty(compare, "displayName", {
+          enumerable: false,
+          configurable: true,
+          get: function() {
+            return ownName;
+          },
+          set: function(name) {
+            ownName = name;
+            type.name || type.displayName || (Object.defineProperty(type, "name", { value: name }), type.displayName = name);
+          }
+        });
+        return compare;
+      };
+      exports.startTransition = function(scope) {
+        var prevTransition = ReactSharedInternals.T, currentTransition = {};
+        currentTransition._updatedFibers = /* @__PURE__ */ new Set();
+        ReactSharedInternals.T = currentTransition;
+        try {
+          var returnValue = scope(), onStartTransitionFinish = ReactSharedInternals.S;
+          null !== onStartTransitionFinish && onStartTransitionFinish(currentTransition, returnValue);
+          "object" === typeof returnValue && null !== returnValue && "function" === typeof returnValue.then && (ReactSharedInternals.asyncTransitions++, returnValue.then(releaseAsyncTransition, releaseAsyncTransition), returnValue.then(noop, reportGlobalError));
+        } catch (error) {
+          reportGlobalError(error);
+        } finally {
+          null === prevTransition && currentTransition._updatedFibers && (scope = currentTransition._updatedFibers.size, currentTransition._updatedFibers.clear(), 10 < scope && console.warn(
+            "Detected a large number of updates inside startTransition. If this is due to a subscription please re-write it to use React provided hooks. Otherwise concurrent mode guarantees are off the table."
+          )), null !== prevTransition && null !== currentTransition.types && (null !== prevTransition.types && prevTransition.types !== currentTransition.types && console.error(
+            "We expected inner Transitions to have transferred the outer types set and that you cannot add to the outer Transition while inside the inner.This is a bug in React."
+          ), prevTransition.types = currentTransition.types), ReactSharedInternals.T = prevTransition;
+        }
+      };
+      exports.unstable_useCacheRefresh = function() {
+        return resolveDispatcher().useCacheRefresh();
+      };
+      exports.use = function(usable) {
+        return resolveDispatcher().use(usable);
+      };
+      exports.useActionState = function(action, initialState, permalink) {
+        return resolveDispatcher().useActionState(
+          action,
+          initialState,
+          permalink
+        );
+      };
+      exports.useCallback = function(callback, deps) {
+        return resolveDispatcher().useCallback(callback, deps);
+      };
+      exports.useContext = function(Context) {
+        var dispatcher = resolveDispatcher();
+        Context.$$typeof === REACT_CONSUMER_TYPE && console.error(
+          "Calling useContext(Context.Consumer) is not supported and will cause bugs. Did you mean to call useContext(Context) instead?"
+        );
+        return dispatcher.useContext(Context);
+      };
+      exports.useDebugValue = function(value, formatterFn) {
+        return resolveDispatcher().useDebugValue(value, formatterFn);
+      };
+      exports.useDeferredValue = function(value, initialValue) {
+        return resolveDispatcher().useDeferredValue(value, initialValue);
+      };
+      exports.useEffect = function(create, deps) {
+        null == create && console.warn(
+          "React Hook useEffect requires an effect callback. Did you forget to pass a callback to the hook?"
+        );
+        return resolveDispatcher().useEffect(create, deps);
+      };
+      exports.useEffectEvent = function(callback) {
+        return resolveDispatcher().useEffectEvent(callback);
+      };
+      exports.useId = function() {
+        return resolveDispatcher().useId();
+      };
+      exports.useImperativeHandle = function(ref, create, deps) {
+        return resolveDispatcher().useImperativeHandle(ref, create, deps);
+      };
+      exports.useInsertionEffect = function(create, deps) {
+        null == create && console.warn(
+          "React Hook useInsertionEffect requires an effect callback. Did you forget to pass a callback to the hook?"
+        );
+        return resolveDispatcher().useInsertionEffect(create, deps);
+      };
+      exports.useLayoutEffect = function(create, deps) {
+        null == create && console.warn(
+          "React Hook useLayoutEffect requires an effect callback. Did you forget to pass a callback to the hook?"
+        );
+        return resolveDispatcher().useLayoutEffect(create, deps);
+      };
+      exports.useMemo = function(create, deps) {
+        return resolveDispatcher().useMemo(create, deps);
+      };
+      exports.useOptimistic = function(passthrough, reducer) {
+        return resolveDispatcher().useOptimistic(passthrough, reducer);
+      };
+      exports.useReducer = function(reducer, initialArg, init) {
+        return resolveDispatcher().useReducer(reducer, initialArg, init);
+      };
+      exports.useRef = function(initialValue) {
+        return resolveDispatcher().useRef(initialValue);
+      };
+      exports.useState = function(initialState) {
+        return resolveDispatcher().useState(initialState);
+      };
+      exports.useSyncExternalStore = function(subscribe, getSnapshot, getServerSnapshot) {
+        return resolveDispatcher().useSyncExternalStore(
+          subscribe,
+          getSnapshot,
+          getServerSnapshot
+        );
+      };
+      exports.useTransition = function() {
+        return resolveDispatcher().useTransition();
+      };
+      exports.version = "19.2.3";
+      "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
+    })();
+  }
+});
+
+// node_modules/react/index.js
+var require_react = __commonJS({
+  "node_modules/react/index.js"(exports, module) {
+    "use strict";
+    if (false) {
+      module.exports = null;
+    } else {
+      module.exports = require_react_development();
+    }
+  }
+});
+
+// src/pages/dashboard/College-Admin/SystemSetting/AcademicSetting.jsx
+var import_react3 = __toESM(require_react(), 1);
+
+// node_modules/react-icons/lib/iconBase.mjs
+var import_react2 = __toESM(require_react(), 1);
+
+// node_modules/react-icons/lib/iconContext.mjs
+var import_react = __toESM(require_react(), 1);
+var DefaultContext = {
+  color: void 0,
+  size: void 0,
+  className: void 0,
+  style: void 0,
+  attr: void 0
+};
+var IconContext = import_react.default.createContext && /* @__PURE__ */ import_react.default.createContext(DefaultContext);
+
+// node_modules/react-icons/lib/iconBase.mjs
+var _excluded = ["attr", "size", "title"];
+function _objectWithoutProperties(source, excluded) {
+  if (source == null) return {};
+  var target = _objectWithoutPropertiesLoose(source, excluded);
+  var key, i;
+  if (Object.getOwnPropertySymbols) {
+    var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
+    for (i = 0; i < sourceSymbolKeys.length; i++) {
+      key = sourceSymbolKeys[i];
+      if (excluded.indexOf(key) >= 0) continue;
+      if (!Object.prototype.propertyIsEnumerable.call(source, key)) continue;
+      target[key] = source[key];
+    }
+  }
+  return target;
+}
+function _objectWithoutPropertiesLoose(source, excluded) {
+  if (source == null) return {};
+  var target = {};
+  for (var key in source) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      if (excluded.indexOf(key) >= 0) continue;
+      target[key] = source[key];
+    }
+  }
+  return target;
+}
+function _extends() {
+  _extends = Object.assign ? Object.assign.bind() : function(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
+      }
+    }
+    return target;
+  };
+  return _extends.apply(this, arguments);
+}
+function ownKeys(e, r) {
+  var t = Object.keys(e);
+  if (Object.getOwnPropertySymbols) {
+    var o = Object.getOwnPropertySymbols(e);
+    r && (o = o.filter(function(r2) {
+      return Object.getOwnPropertyDescriptor(e, r2).enumerable;
+    })), t.push.apply(t, o);
+  }
+  return t;
+}
+function _objectSpread(e) {
+  for (var r = 1; r < arguments.length; r++) {
+    var t = null != arguments[r] ? arguments[r] : {};
+    r % 2 ? ownKeys(Object(t), true).forEach(function(r2) {
+      _defineProperty(e, r2, t[r2]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function(r2) {
+      Object.defineProperty(e, r2, Object.getOwnPropertyDescriptor(t, r2));
+    });
+  }
+  return e;
+}
+function _defineProperty(obj, key, value) {
+  key = _toPropertyKey(key);
+  if (key in obj) {
+    Object.defineProperty(obj, key, { value, enumerable: true, configurable: true, writable: true });
+  } else {
+    obj[key] = value;
+  }
+  return obj;
+}
+function _toPropertyKey(t) {
+  var i = _toPrimitive(t, "string");
+  return "symbol" == typeof i ? i : i + "";
+}
+function _toPrimitive(t, r) {
+  if ("object" != typeof t || !t) return t;
+  var e = t[Symbol.toPrimitive];
+  if (void 0 !== e) {
+    var i = e.call(t, r || "default");
+    if ("object" != typeof i) return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return ("string" === r ? String : Number)(t);
+}
+function Tree2Element(tree) {
+  return tree && tree.map((node, i) => /* @__PURE__ */ import_react2.default.createElement(node.tag, _objectSpread({
+    key: i
+  }, node.attr), Tree2Element(node.child)));
+}
+function GenIcon(data) {
+  return (props) => /* @__PURE__ */ import_react2.default.createElement(IconBase, _extends({
+    attr: _objectSpread({}, data.attr)
+  }, props), Tree2Element(data.child));
+}
+function IconBase(props) {
+  var elem = (conf) => {
+    var {
+      attr,
+      size,
+      title
+    } = props, svgProps = _objectWithoutProperties(props, _excluded);
+    var computedSize = size || conf.size || "1em";
+    var className;
+    if (conf.className) className = conf.className;
+    if (props.className) className = (className ? className + " " : "") + props.className;
+    return /* @__PURE__ */ import_react2.default.createElement("svg", _extends({
+      stroke: "currentColor",
+      fill: "currentColor",
+      strokeWidth: "0"
+    }, conf.attr, attr, svgProps, {
+      className,
+      style: _objectSpread(_objectSpread({
+        color: props.color || conf.color
+      }, conf.style), props.style),
+      height: computedSize,
+      width: computedSize,
+      xmlns: "http://www.w3.org/2000/svg"
+    }), title && /* @__PURE__ */ import_react2.default.createElement("title", null, title), props.children);
+  };
+  return IconContext !== void 0 ? /* @__PURE__ */ import_react2.default.createElement(IconContext.Consumer, null, (conf) => elem(conf)) : elem(DefaultContext);
+}
+
+// node_modules/react-icons/fa/index.mjs
+function FaBookOpen(props) {
+  return GenIcon({ "tag": "svg", "attr": { "viewBox": "0 0 576 512" }, "child": [{ "tag": "path", "attr": { "d": "M542.22 32.05c-54.8 3.11-163.72 14.43-230.96 55.59-4.64 2.84-7.27 7.89-7.27 13.17v363.87c0 11.55 12.63 18.85 23.28 13.49 69.18-34.82 169.23-44.32 218.7-46.92 16.89-.89 30.02-14.43 30.02-30.66V62.75c.01-17.71-15.35-31.74-33.77-30.7zM264.73 87.64C197.5 46.48 88.58 35.17 33.78 32.05 15.36 31.01 0 45.04 0 62.75V400.6c0 16.24 13.13 29.78 30.02 30.66 49.49 2.6 149.59 12.11 218.77 46.95 10.62 5.35 23.21-1.94 23.21-13.46V100.63c0-5.29-2.62-10.14-7.27-12.99z" }, "child": [] }] })(props);
+}
+function FaCheck(props) {
+  return GenIcon({ "tag": "svg", "attr": { "viewBox": "0 0 512 512" }, "child": [{ "tag": "path", "attr": { "d": "M173.898 439.404l-166.4-166.4c-9.997-9.997-9.997-26.206 0-36.204l36.203-36.204c9.997-9.998 26.207-9.998 36.204 0L192 312.69 432.095 72.596c9.997-9.997 26.207-9.997 36.204 0l36.203 36.204c9.997 9.997 9.997 26.206 0 36.204l-294.4 294.401c-9.998 9.997-26.207 9.997-36.204-.001z" }, "child": [] }] })(props);
+}
+function FaClipboardCheck(props) {
+  return GenIcon({ "tag": "svg", "attr": { "viewBox": "0 0 384 512" }, "child": [{ "tag": "path", "attr": { "d": "M336 64h-80c0-35.3-28.7-64-64-64s-64 28.7-64 64H48C21.5 64 0 85.5 0 112v352c0 26.5 21.5 48 48 48h288c26.5 0 48-21.5 48-48V112c0-26.5-21.5-48-48-48zM192 40c13.3 0 24 10.7 24 24s-10.7 24-24 24-24-10.7-24-24 10.7-24 24-24zm121.2 231.8l-143 141.8c-4.7 4.7-12.3 4.6-17-.1l-82.6-83.3c-4.7-4.7-4.6-12.3.1-17L99.1 285c4.7-4.7 12.3-4.6 17 .1l46 46.4 106-105.2c4.7-4.7 12.3-4.6 17 .1l28.2 28.4c4.7 4.8 4.6 12.3-.1 17z" }, "child": [] }] })(props);
+}
+function FaClock(props) {
+  return GenIcon({ "tag": "svg", "attr": { "viewBox": "0 0 512 512" }, "child": [{ "tag": "path", "attr": { "d": "M256,8C119,8,8,119,8,256S119,504,256,504,504,393,504,256,393,8,256,8Zm92.49,313h0l-20,25a16,16,0,0,1-22.49,2.5h0l-67-49.72a40,40,0,0,1-15-31.23V112a16,16,0,0,1,16-16h32a16,16,0,0,1,16,16V256l58,42.5A16,16,0,0,1,348.49,321Z" }, "child": [] }] })(props);
+}
+function FaInfoCircle(props) {
+  return GenIcon({ "tag": "svg", "attr": { "viewBox": "0 0 512 512" }, "child": [{ "tag": "path", "attr": { "d": "M256 8C119.043 8 8 119.083 8 256c0 136.997 111.043 248 248 248s248-111.003 248-248C504 119.083 392.957 8 256 8zm0 110c23.196 0 42 18.804 42 42s-18.804 42-42 42-42-18.804-42-42 18.804-42 42-42zm56 254c0 6.627-5.373 12-12 12h-88c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h12v-64h-12c-6.627 0-12-5.373-12-12v-24c0-6.627 5.373-12 12-12h64c6.627 0 12 5.373 12 12v100h12c6.627 0 12 5.373 12 12v24z" }, "child": [] }] })(props);
+}
+function FaSave(props) {
+  return GenIcon({ "tag": "svg", "attr": { "viewBox": "0 0 448 512" }, "child": [{ "tag": "path", "attr": { "d": "M433.941 129.941l-83.882-83.882A48 48 0 0 0 316.118 32H48C21.49 32 0 53.49 0 80v352c0 26.51 21.49 48 48 48h352c26.51 0 48-21.49 48-48V163.882a48 48 0 0 0-14.059-33.941zM224 416c-35.346 0-64-28.654-64-64 0-35.346 28.654-64 64-64s64 28.654 64 64c0 35.346-28.654 64-64 64zm96-304.52V212c0 6.627-5.373 12-12 12H76c-6.627 0-12-5.373-12-12V108c0-6.627 5.373-12 12-12h228.52c3.183 0 6.235 1.264 8.485 3.515l3.48 3.48A11.996 11.996 0 0 1 320 111.48z" }, "child": [] }] })(props);
+}
+function FaStar(props) {
+  return GenIcon({ "tag": "svg", "attr": { "viewBox": "0 0 576 512" }, "child": [{ "tag": "path", "attr": { "d": "M259.3 17.8L194 150.2 47.9 171.5c-26.2 3.8-36.7 36.1-17.7 54.6l105.7 103-25 145.5c-4.5 26.3 23.2 46 46.4 33.7L288 439.6l130.7 68.7c23.2 12.2 50.9-7.4 46.4-33.7l-25-145.5 105.7-103c19-18.5 8.5-50.8-17.7-54.6L382 150.2 316.7 17.8c-11.7-23.6-45.6-23.9-57.4 0z" }, "child": [] }] })(props);
+}
+function FaUndo(props) {
+  return GenIcon({ "tag": "svg", "attr": { "viewBox": "0 0 512 512" }, "child": [{ "tag": "path", "attr": { "d": "M212.333 224.333H12c-6.627 0-12-5.373-12-12V12C0 5.373 5.373 0 12 0h48c6.627 0 12 5.373 12 12v78.112C117.773 39.279 184.26 7.47 258.175 8.007c136.906.994 246.448 111.623 246.157 248.532C504.041 393.258 393.12 504 256.333 504c-64.089 0-122.496-24.313-166.51-64.215-5.099-4.622-5.334-12.554-.467-17.42l33.967-33.967c4.474-4.474 11.662-4.717 16.401-.525C170.76 415.336 211.58 432 256.333 432c97.268 0 176-78.716 176-176 0-97.267-78.716-176-176-176-58.496 0-110.28 28.476-142.274 72.333h98.274c6.627 0 12 5.373 12 12v48c0 6.627-5.373 12-12 12z" }, "child": [] }] })(props);
+}
+
+// src/pages/dashboard/College-Admin/SystemSetting/AcademicSetting.jsx
+var AcademicSetting = () => {
+  const [formData, setFormData] = (0, import_react3.useState)({
+    // Attendance Rules
+    minAttendance: "75",
+    graceAttendance: "5",
+    attendanceCalculation: "session-wise",
+    autoBlockExam: "yes",
+    lateAttendanceTime: "10",
+    autoMarkAbsentAfter: "session-end",
+    // Grading Rules
+    gradingSystem: "cgpa",
+    allowGraceMarks: "yes",
+    maxGraceMarks: "5",
+    internalExternalSplit: "30 + 70",
+    roundOffMarks: "enabled",
+    // Session & Timetable
+    maxLecturesPerDay: "6",
+    lectureDuration: "60",
+    breakDuration: "15",
+    autoCloseSession: "enabled",
+    teacherSessionEdit: "before-session-end",
+    studentAttendanceVisibility: "real-time"
+  });
+  const [isSaving, setIsSaving] = (0, import_react3.useState)(false);
+  const [isModified, setIsModified] = (0, import_react3.useState)(false);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+    setIsModified(true);
+  };
+  const handleSave = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      setIsModified(false);
+    }, 1500);
+  };
+  const handleReset = () => {
+    setFormData({
+      minAttendance: "75",
+      graceAttendance: "5",
+      attendanceCalculation: "session-wise",
+      autoBlockExam: "yes",
+      lateAttendanceTime: "10",
+      autoMarkAbsentAfter: "session-end",
+      gradingSystem: "cgpa",
+      allowGraceMarks: "yes",
+      maxGraceMarks: "5",
+      internalExternalSplit: "30 + 70",
+      roundOffMarks: "enabled",
+      maxLecturesPerDay: "6",
+      lectureDuration: "60",
+      breakDuration: "15",
+      autoCloseSession: "enabled",
+      teacherSessionEdit: "before-session-end",
+      studentAttendanceVisibility: "real-time"
+    });
+    setIsModified(false);
+  };
+  return /* @__PURE__ */ import_react3.default.createElement(import_react3.default.Fragment, null, /* @__PURE__ */ import_react3.default.createElement("style", null, `
+        /* Academic Settings - Enterprise SaaS Professional UI */
+        :root {
+          --as-teal-dark: #0f3a4a;
+          --as-teal-medium: #0c2d3a;
+          --as-cyan-primary: #3db5e6;
+          --as-cyan-light: #4fc3f7;
+          --as-cyan-glow: rgba(61, 181, 230, 0.15);
+          --as-bg-primary: #f5f7fb;
+          --as-bg-card: #ffffff;
+          --as-text-primary: #1a202c;
+          --as-text-secondary: #4a5568;
+          --as-text-muted: #718096;
+          --as-attendance-accent: #38a169;
+          --as-grading-accent: #ed8936;
+          --as-session-accent: #805ad5;
+          --as-radius-md: 0.5rem;
+          --as-radius-lg: 0.75rem;
+          --as-radius-xl: 1rem;
+          --as-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+          --as-shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
+          --as-transition-base: 0.25s ease;
+          --as-transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .academic-settings-page {
+          min-height: 100vh;
+          background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
+          padding: 1.5rem;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .settings-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+          padding: 1.25rem;
+          background: linear-gradient(135deg, var(--as-teal-dark) 0%, var(--as-teal-medium) 100%);
+          border-radius: var(--as-radius-xl);
+          box-shadow: var(--as-shadow-lg);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .settings-header::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 400px;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(61, 181, 230, 0.1));
+          pointer-events: none;
+        }
+
+        .header-content {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          position: relative;
+          z-index: 1;
+        }
+
+        .header-icon-wrapper {
+          width: 56px;
+          height: 56px;
+          border-radius: var(--as-radius-lg);
+          background: linear-gradient(135deg, var(--as-cyan-primary), var(--as-cyan-light));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
+        }
+
+        .header-icon {
+          font-size: 1.5rem;
+          color: #ffffff;
+        }
+
+        .header-text {
+          color: #ffffff;
+        }
+
+        .settings-title {
+          font-size: 1.75rem;
+          font-weight: 700;
+          margin: 0;
+          letter-spacing: -0.5px;
+        }
+
+        .settings-subtitle {
+          font-size: 0.9375rem;
+          margin: 0.25rem 0 0 0;
+          opacity: 0.85;
+          font-weight: 400;
+        }
+
+        .header-actions {
+          display: flex;
+          gap: 0.75rem;
+          position: relative;
+          z-index: 1;
+        }
+
+        .btn-reset,
+        .btn-save {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: var(--as-radius-md);
+          font-size: 0.9375rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all var(--as-transition-base);
+          border: none;
+          outline: none;
+        }
+
+        .btn-reset {
+          background: rgba(255, 255, 255, 0.15);
+          color: #ffffff;
+          backdrop-filter: blur(10px);
+        }
+
+        .btn-reset:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-1px);
+        }
+
+        .btn-save {
+          background: linear-gradient(135deg, var(--as-cyan-primary), var(--as-cyan-light));
+          color: #ffffff;
+          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.35);
+        }
+
+        .btn-save:hover:not(:disabled) {
+          box-shadow: 0 6px 25px rgba(61, 181, 230, 0.5);
+          transform: translateY(-2px);
+        }
+
+        .btn-save-modified {
+          animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+          0%, 100% {
+            box-shadow: 0 4px 15px rgba(61, 181, 230, 0.35);
+          }
+          50% {
+            box-shadow: 0 4px 25px rgba(61, 181, 230, 0.6);
+          }
+        }
+
+        .btn-reset:disabled,
+        .btn-save:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          transform: none !important;
+        }
+
+        .btn-icon {
+          font-size: 1rem;
+        }
+
+        .spinner-icon {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top-color: #ffffff;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .settings-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1.5rem;
+          margin-bottom: 1.5rem;
+          align-items: start;
+        }
+
+        .card-session {
+          grid-column: auto;
+        }
+
+        @media (max-width: 1200px) {
+          .settings-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .card-session {
+            grid-column: 1 / -1;
+          }
+        }
+
+        .settings-card {
+          background: var(--as-bg-card);
+          border-radius: var(--as-radius-xl);
+          box-shadow: var(--as-shadow-md);
+          overflow: hidden;
+          transition: all var(--as-transition-slow);
+          border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .settings-card:hover {
+          box-shadow: var(--as-shadow-lg);
+          transform: translateY(-4px);
+        }
+
+        .card-attendance { border-top: 4px solid var(--as-attendance-accent); }
+        .card-grading { border-top: 4px solid var(--as-grading-accent); }
+        .card-session { border-top: 4px solid var(--as-session-accent); }
+
+        .card-header-custom {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 1rem 1.5rem;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.5));
+          border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .card-icon-wrapper {
+          width: 44px;
+          height: 44px;
+          border-radius: var(--as-radius-md);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all var(--as-transition-base);
+        }
+
+        .card-icon {
+          font-size: 1.25rem;
+          color: #ffffff;
+        }
+
+        .icon-attendance {
+          background: linear-gradient(135deg, var(--as-attendance-accent), #68d391);
+          box-shadow: 0 4px 12px rgba(56, 161, 105, 0.3);
+        }
+
+        .icon-grading {
+          background: linear-gradient(135deg, var(--as-grading-accent), #f6ad55);
+          box-shadow: 0 4px 12px rgba(237, 137, 54, 0.3);
+        }
+
+        .icon-session {
+          background: linear-gradient(135deg, var(--as-session-accent), #9f7aea);
+          box-shadow: 0 4px 12px rgba(128, 90, 213, 0.3);
+        }
+
+        .settings-card:hover .card-icon-wrapper {
+          transform: scale(1.1) rotate(5deg);
+        }
+
+        .card-title {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: var(--as-text-primary);
+          margin: 0;
+          letter-spacing: -0.3px;
+        }
+
+        .card-body-custom {
+          padding: 1.5rem;
+        }
+
+        .form-group {
+          margin-bottom: 1.25rem;
+        }
+
+        .form-group:last-child {
+          margin-bottom: 0;
+        }
+
+        .form-row {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .form-row-4 {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .form-label {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: var(--as-text-primary);
+          margin-bottom: 0.5rem;
+        }
+
+        .info-icon {
+          color: var(--as-cyan-primary);
+          cursor: help;
+          transition: color 0.15s ease;
+        }
+
+        .info-icon:hover {
+          color: var(--as-cyan-light);
+        }
+
+        .input-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .input-wrapper .form-input {
+          padding-right: 2.75rem;
+        }
+
+        .form-input {
+          width: 100%;
+          padding: 0.625rem 0.75rem;
+          font-size: 0.9375rem;
+          font-weight: 500;
+          color: var(--as-text-primary);
+          background: #ffffff;
+          border: 2px solid #e2e8f0;
+          border-radius: var(--as-radius-md);
+          transition: all 0.15s ease;
+          outline: none;
+        }
+
+        .form-input:hover {
+          border-color: #cbd5e0;
+        }
+
+        .form-input:focus {
+          border-color: var(--as-cyan-primary);
+          box-shadow: 0 0 0 4px var(--as-cyan-glow);
+        }
+
+        .input-suffix {
+          position: absolute;
+          right: 0.75rem;
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: var(--as-text-muted);
+          pointer-events: none;
+        }
+
+        .select-wrapper {
+          position: relative;
+        }
+
+        .form-select {
+          width: 100%;
+          padding: 0.5rem 0.75rem;
+          font-size: 0.9375rem;
+          font-weight: 500;
+          color: var(--as-text-primary);
+          background: #ffffff;
+          border: 2px solid #e2e8f0;
+          border-radius: var(--as-radius-md);
+          transition: all 0.15s ease;
+          outline: none;
+          cursor: pointer;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23718096' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          padding-right: 40px;
+        }
+
+        .form-select:hover {
+          border-color: #cbd5e0;
+        }
+
+        .form-select:focus {
+          border-color: var(--as-cyan-primary);
+          box-shadow: 0 0 0 4px var(--as-cyan-glow);
+        }
+
+        .form-hint {
+          display: block;
+          font-size: 0.75rem;
+          color: var(--as-text-muted);
+          margin-top: 0.25rem;
+          font-weight: 400;
+        }
+
+        .as-info-card {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          padding: 1.25rem;
+          margin-bottom: 1.5rem;
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.05), rgba(79, 195, 247, 0.05));
+          border: 1px solid rgba(61, 181, 230, 0.2);
+          border-radius: var(--as-radius-lg);
+        }
+
+        .as-info-card-icon {
+          width: 40px;
+          height: 40px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--as-radius-md);
+          background: linear-gradient(135deg, var(--as-cyan-primary), var(--as-cyan-light));
+          color: #ffffff;
+          font-size: 1.25rem;
+        }
+
+        .as-info-card-content {
+          flex: 1;
+        }
+
+        .as-info-card-title {
+          margin: 0 0 0.375rem 0;
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--as-text-primary);
+        }
+
+        .as-info-card-text {
+          margin: 0;
+          font-size: 0.875rem;
+          line-height: 1.6;
+          color: var(--as-text-secondary);
+        }
+
+        .badge-info {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.25rem 0.5rem;
+          background: rgba(61, 181, 230, 0.1);
+          color: var(--as-cyan-primary);
+          border-radius: var(--as-radius-md);
+          font-size: 0.75rem;
+          font-weight: 600;
+          margin-bottom: 0.75rem;
+        }
+
+        .modified-indicator {
+          position: fixed;
+          bottom: 1.5rem;
+          left: 50%;
+          transform: translateX(-50%) translateY(100px);
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 0.75rem 1.5rem;
+          background: linear-gradient(135deg, var(--as-teal-dark), var(--as-teal-medium));
+          color: #ffffff;
+          border-radius: var(--as-radius-lg);
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+          animation: slideUp 0.3s var(--as-transition-slow) forwards;
+          z-index: 1000;
+        }
+
+        @keyframes slideUp {
+          to {
+            transform: translateX(-50%) translateY(0);
+          }
+        }
+
+        .indicator-content {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.9375rem;
+          font-weight: 500;
+        }
+
+        .indicator-icon {
+          color: var(--as-cyan-light);
+          font-size: 1.125rem;
+        }
+
+        .btn-save-small {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          padding: 0.5rem 0.75rem;
+          background: linear-gradient(135deg, var(--as-cyan-primary), var(--as-cyan-light));
+          color: #ffffff;
+          border: none;
+          border-radius: var(--as-radius-md);
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all var(--as-transition-base);
+          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
+        }
+
+        .btn-save-small:hover {
+          box-shadow: 0 4px 16px rgba(61, 181, 230, 0.5);
+          transform: translateY(-1px);
+        }
+
+        .btn-icon-small {
+          font-size: 0.875rem;
+        }
+
+        @media (max-width: 1024px) {
+          .settings-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .settings-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+          }
+          
+          .header-actions {
+            width: 100%;
+            justify-content: flex-end;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .academic-settings-page {
+            padding: 0.75rem;
+          }
+          
+          .settings-title {
+            font-size: 1.5rem;
+          }
+          
+          .header-content {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          
+          .header-actions {
+            flex-direction: column;
+          }
+          
+          .btn-reset,
+          .btn-save {
+            width: 100%;
+            justify-content: center;
+          }
+          
+          .form-row,
+          .form-row-4 {
+            grid-template-columns: 1fr;
+          }
+          
+          .modified-indicator {
+            left: 0.75rem;
+            right: 0.75rem;
+            transform: none;
+            bottom: 0.75rem;
+            flex-direction: column;
+            text-align: center;
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          *,
+          *::before,
+          *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+          }
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .btn-reset:focus,
+        .btn-save:focus,
+        .btn-save-small:focus {
+          outline: 2px solid var(--as-cyan-primary);
+          outline-offset: 2px;
+        }
+      `), /* @__PURE__ */ import_react3.default.createElement("div", { className: "academic-settings-page" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "settings-header" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "header-content" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "header-icon-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(FaBookOpen, { className: "header-icon" })), /* @__PURE__ */ import_react3.default.createElement("div", { className: "header-text" }, /* @__PURE__ */ import_react3.default.createElement("h2", { className: "settings-title" }, "Academic Settings"), /* @__PURE__ */ import_react3.default.createElement("p", { className: "settings-subtitle" }, "Configure academic rules, attendance policies, grading, and session management"))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "header-actions" }, /* @__PURE__ */ import_react3.default.createElement(
+    "button",
+    {
+      className: "btn-reset",
+      onClick: handleReset,
+      disabled: isSaving || !isModified
+    },
+    /* @__PURE__ */ import_react3.default.createElement(FaUndo, { className: "btn-icon" }),
+    /* @__PURE__ */ import_react3.default.createElement("span", null, "Reset")
+  ), /* @__PURE__ */ import_react3.default.createElement(
+    "button",
+    {
+      className: `btn-save ${isModified ? "btn-save-modified" : ""}`,
+      onClick: handleSave,
+      disabled: isSaving || !isModified
+    },
+    isSaving ? /* @__PURE__ */ import_react3.default.createElement(import_react3.default.Fragment, null, /* @__PURE__ */ import_react3.default.createElement("span", { className: "spinner-icon" }), /* @__PURE__ */ import_react3.default.createElement("span", null, "Saving...")) : /* @__PURE__ */ import_react3.default.createElement(import_react3.default.Fragment, null, /* @__PURE__ */ import_react3.default.createElement(FaCheck, { className: "btn-icon" }), /* @__PURE__ */ import_react3.default.createElement("span", null, "Save Changes"))
+  ))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "as-info-card" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "as-info-card-icon" }, /* @__PURE__ */ import_react3.default.createElement(FaInfoCircle, null)), /* @__PURE__ */ import_react3.default.createElement("div", { className: "as-info-card-content" }, /* @__PURE__ */ import_react3.default.createElement("h3", { className: "as-info-card-title" }, "Manage core academic policies from one place"), /* @__PURE__ */ import_react3.default.createElement("p", { className: "as-info-card-text" }, "Define attendance, grading, and session/timetable rules that apply across the institution. Changes are applied globally once saved."))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "settings-grid" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "settings-card card-attendance" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "card-header-custom" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "card-icon-wrapper icon-attendance" }, /* @__PURE__ */ import_react3.default.createElement(FaClipboardCheck, { className: "card-icon" })), /* @__PURE__ */ import_react3.default.createElement("h3", { className: "card-title" }, "Attendance Rules")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "card-body-custom" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "badge-info" }, /* @__PURE__ */ import_react3.default.createElement(FaInfoCircle, null), /* @__PURE__ */ import_react3.default.createElement("span", null, "Student Attendance Configuration")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-row-4" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "minAttendance" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Minimum Attendance (%)")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "input-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "input",
+    {
+      id: "minAttendance",
+      type: "number",
+      name: "minAttendance",
+      value: formData.minAttendance,
+      onChange: handleChange,
+      className: "form-input",
+      placeholder: "75",
+      min: "0",
+      max: "100"
+    }
+  ), /* @__PURE__ */ import_react3.default.createElement("span", { className: "input-suffix" }, "%")), /* @__PURE__ */ import_react3.default.createElement("small", { className: "form-hint" }, "Required for exam eligibility")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "graceAttendance" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Grace Attendance (%)")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "input-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "input",
+    {
+      id: "graceAttendance",
+      type: "number",
+      name: "graceAttendance",
+      value: formData.graceAttendance,
+      onChange: handleChange,
+      className: "form-input",
+      placeholder: "5",
+      min: "0",
+      max: "20"
+    }
+  ), /* @__PURE__ */ import_react3.default.createElement("span", { className: "input-suffix" }, "%")), /* @__PURE__ */ import_react3.default.createElement("small", { className: "form-hint" }, "Condonation limit")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "attendanceCalculation" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Calculation Type")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "select-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "select",
+    {
+      id: "attendanceCalculation",
+      name: "attendanceCalculation",
+      value: formData.attendanceCalculation,
+      onChange: handleChange,
+      className: "form-select"
+    },
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "daily" }, "Daily"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "session-wise" }, "Session Wise"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "subject-wise" }, "Subject Wise")
+  ))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "autoBlockExam" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Auto Block Exam")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "select-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "select",
+    {
+      id: "autoBlockExam",
+      name: "autoBlockExam",
+      value: formData.autoBlockExam,
+      onChange: handleChange,
+      className: "form-select"
+    },
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "yes" }, "Yes - Auto block"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "no" }, "No - Manual review")
+  )))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-row" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "lateAttendanceTime" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Late Attendance Time"), /* @__PURE__ */ import_react3.default.createElement(
+    FaInfoCircle,
+    {
+      className: "info-icon",
+      title: "Time window to mark late attendance"
+    }
+  )), /* @__PURE__ */ import_react3.default.createElement("div", { className: "input-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "input",
+    {
+      id: "lateAttendanceTime",
+      type: "number",
+      name: "lateAttendanceTime",
+      value: formData.lateAttendanceTime,
+      onChange: handleChange,
+      className: "form-input",
+      placeholder: "10",
+      min: "0",
+      max: "60"
+    }
+  ), /* @__PURE__ */ import_react3.default.createElement("span", { className: "input-suffix" }, "mins"))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "autoMarkAbsentAfter" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Auto Mark Absent After")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "select-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "select",
+    {
+      id: "autoMarkAbsentAfter",
+      name: "autoMarkAbsentAfter",
+      value: formData.autoMarkAbsentAfter,
+      onChange: handleChange,
+      className: "form-select"
+    },
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "session-end" }, "Session End"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "fixed-time" }, "Fixed Time")
+  )))))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "settings-card card-grading" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "card-header-custom" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "card-icon-wrapper icon-grading" }, /* @__PURE__ */ import_react3.default.createElement(FaStar, { className: "card-icon" })), /* @__PURE__ */ import_react3.default.createElement("h3", { className: "card-title" }, "Grading Rules")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "card-body-custom" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "badge-info" }, /* @__PURE__ */ import_react3.default.createElement(FaInfoCircle, null), /* @__PURE__ */ import_react3.default.createElement("span", null, "Examination & Grading Configuration")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-row" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "gradingSystem" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Grading System")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "select-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "select",
+    {
+      id: "gradingSystem",
+      name: "gradingSystem",
+      value: formData.gradingSystem,
+      onChange: handleChange,
+      className: "form-select"
+    },
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "percentage" }, "Percentage (%)"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "cgpa" }, "CGPA (10-point)"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "grade-based" }, "Grade Based (A/B/C)")
+  ))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "allowGraceMarks" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Allow Grace Marks")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "select-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "select",
+    {
+      id: "allowGraceMarks",
+      name: "allowGraceMarks",
+      value: formData.allowGraceMarks,
+      onChange: handleChange,
+      className: "form-select"
+    },
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "yes" }, "Yes - Enable grace marks"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "no" }, "No - Strict grading")
+  )))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-row" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "maxGraceMarks" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Max Grace Marks")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "input-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "input",
+    {
+      id: "maxGraceMarks",
+      type: "number",
+      name: "maxGraceMarks",
+      value: formData.maxGraceMarks,
+      onChange: handleChange,
+      className: "form-input",
+      placeholder: "5",
+      min: "0",
+      max: "10"
+    }
+  ), /* @__PURE__ */ import_react3.default.createElement("span", { className: "input-suffix" }, "marks")), /* @__PURE__ */ import_react3.default.createElement("small", { className: "form-hint" }, "Per subject maximum")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "internalExternalSplit" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Internal + External Split")), /* @__PURE__ */ import_react3.default.createElement(
+    "input",
+    {
+      id: "internalExternalSplit",
+      type: "text",
+      name: "internalExternalSplit",
+      value: formData.internalExternalSplit,
+      onChange: handleChange,
+      className: "form-input",
+      placeholder: "30 + 70"
+    }
+  ), /* @__PURE__ */ import_react3.default.createElement("small", { className: "form-hint" }, "Marks distribution"))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "roundOffMarks" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Round Off Marks")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "select-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "select",
+    {
+      id: "roundOffMarks",
+      name: "roundOffMarks",
+      value: formData.roundOffMarks,
+      onChange: handleChange,
+      className: "form-select"
+    },
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "enabled" }, "Enabled - Round to nearest integer"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "disabled" }, "Disabled - Keep decimals")
+  ))))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "settings-card card-session" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "card-header-custom" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "card-icon-wrapper icon-session" }, /* @__PURE__ */ import_react3.default.createElement(FaClock, { className: "card-icon" })), /* @__PURE__ */ import_react3.default.createElement("h3", { className: "card-title" }, "Session & Timetable")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "card-body-custom" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "badge-info" }, /* @__PURE__ */ import_react3.default.createElement(FaInfoCircle, null), /* @__PURE__ */ import_react3.default.createElement("span", null, "Class Schedule & Session Management")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-row-4" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "maxLecturesPerDay" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Max Lectures/Day")), /* @__PURE__ */ import_react3.default.createElement(
+    "input",
+    {
+      id: "maxLecturesPerDay",
+      type: "number",
+      name: "maxLecturesPerDay",
+      value: formData.maxLecturesPerDay,
+      onChange: handleChange,
+      className: "form-input",
+      placeholder: "6",
+      min: "1",
+      max: "12"
+    }
+  )), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "lectureDuration" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Lecture Duration")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "input-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "input",
+    {
+      id: "lectureDuration",
+      type: "number",
+      name: "lectureDuration",
+      value: formData.lectureDuration,
+      onChange: handleChange,
+      className: "form-input",
+      placeholder: "60",
+      min: "15",
+      max: "180"
+    }
+  ), /* @__PURE__ */ import_react3.default.createElement("span", { className: "input-suffix" }, "mins"))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "breakDuration" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Break Duration")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "input-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "input",
+    {
+      id: "breakDuration",
+      type: "number",
+      name: "breakDuration",
+      value: formData.breakDuration,
+      onChange: handleChange,
+      className: "form-input",
+      placeholder: "15",
+      min: "5",
+      max: "120"
+    }
+  ), /* @__PURE__ */ import_react3.default.createElement("span", { className: "input-suffix" }, "mins"))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "autoCloseSession" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Auto Close Session")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "select-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "select",
+    {
+      id: "autoCloseSession",
+      name: "autoCloseSession",
+      value: formData.autoCloseSession,
+      onChange: handleChange,
+      className: "form-select"
+    },
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "enabled" }, "Enabled"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "disabled" }, "Disabled")
+  )))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-row" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "teacherSessionEdit" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Teacher Session Edit"), /* @__PURE__ */ import_react3.default.createElement(
+    FaInfoCircle,
+    {
+      className: "info-icon",
+      title: "When teachers can modify attendance"
+    }
+  )), /* @__PURE__ */ import_react3.default.createElement("div", { className: "select-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "select",
+    {
+      id: "teacherSessionEdit",
+      name: "teacherSessionEdit",
+      value: formData.teacherSessionEdit,
+      onChange: handleChange,
+      className: "form-select"
+    },
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "before-session-end" }, "Before Session End"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "after-session-end" }, "After Session End"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "not-allowed" }, "Not Allowed")
+  ))), /* @__PURE__ */ import_react3.default.createElement("div", { className: "form-group" }, /* @__PURE__ */ import_react3.default.createElement("label", { className: "form-label", htmlFor: "studentAttendanceVisibility" }, /* @__PURE__ */ import_react3.default.createElement("span", null, "Student Attendance Visibility")), /* @__PURE__ */ import_react3.default.createElement("div", { className: "select-wrapper" }, /* @__PURE__ */ import_react3.default.createElement(
+    "select",
+    {
+      id: "studentAttendanceVisibility",
+      name: "studentAttendanceVisibility",
+      value: formData.studentAttendanceVisibility,
+      onChange: handleChange,
+      className: "form-select"
+    },
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "real-time" }, "Real Time"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "end-of-day" }, "End of Day"),
+    /* @__PURE__ */ import_react3.default.createElement("option", { value: "end-of-term" }, "End of Term")
+  ))))))), isModified && /* @__PURE__ */ import_react3.default.createElement("div", { className: "modified-indicator" }, /* @__PURE__ */ import_react3.default.createElement("div", { className: "indicator-content" }, /* @__PURE__ */ import_react3.default.createElement(FaInfoCircle, { className: "indicator-icon" }), /* @__PURE__ */ import_react3.default.createElement("span", null, "You have unsaved changes")), /* @__PURE__ */ import_react3.default.createElement("button", { className: "btn-save-small", onClick: handleSave }, /* @__PURE__ */ import_react3.default.createElement(FaSave, { className: "btn-icon-small" }), /* @__PURE__ */ import_react3.default.createElement("span", null, "Save Now")))));
+};
+var AcademicSetting_default = AcademicSetting;
+export {
+  AcademicSetting_default as default
+};
+/*! Bundled license information:
+
+react/cjs/react.development.js:
+  (**
+   * @license React
+   * react.development.js
+   *
+   * Copyright (c) Meta Platforms, Inc. and affiliates.
+   *
+   * This source code is licensed under the MIT license found in the
+   * LICENSE file in the root directory of this source tree.
+   *)
+*/
