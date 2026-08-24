@@ -6,6 +6,7 @@ import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { Button } from "react-bootstrap";
 import { motion } from "framer-motion";
+import "./AccountantDashboard.css";
 import {
    FaFileInvoiceDollar,
    FaMoneyBillWave,
@@ -160,246 +161,10 @@ export default function AccountantDashboard() {
 
   return (
     <div className="accountant-dashboard erp-page erp-viewport-min-100">
-      <style>{`
-        .accountant-dashboard {
-          background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
-          padding: 1.5rem;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-
-        /* ================= HEADER ================= */
-        .dashboard-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-        }
-
-        .dashboard-header h1 {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .dashboard-header p {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
-
-        .time-display {
-          font-size: 0.875rem;
-          opacity: 0.8;
-          font-weight: 500;
-        }
-
-        /* ================= STATS CARDS ================= */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 2rem;
-        }
-        /* Desktop: 4 cards per row. Total Collected spans 2 columns so the
-           currency value has room; the other 3 cards are reduced to 1fr each. */
-        @media (min-width: 1024px) {
-          .stats-grid {
-            grid-template-columns: repeat(4, 1fr);
-          }
-          .stat-card.collected {
-            grid-column: span 2;
-          }
-        }
-
-        .stat-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          border-left: 4px solid transparent;
-          transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-        }
-
-        .stat-card.collected { border-left-color: #28a745; }
-        .stat-card.students { border-left-color: #17a2b8; }
-        .stat-card.paid { border-left-color: #3db5e6; }
-        .stat-card.partial { border-left-color: #ffc107; }
-        .stat-card.due { border-left-color: #dc3545; }
-
-        .stat-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 7px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          flex-shrink: 0;
-          font-size: 0.95rem;
-        }
-
-        .stat-card.collected .stat-icon { background: linear-gradient(135deg, #28a745 0%, #218838 100%); }
-        .stat-card.students .stat-icon { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); }
-        .stat-card.paid .stat-icon { background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%); }
-        .stat-card.partial .stat-icon { background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); }
-        .stat-card.due .stat-icon { background: linear-gradient(135deg, #dc3545 0%, #c62828 100%); }
-
-        .stat-content {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .stat-label {
-          font-size: 0.95rem;
-          color: #666;
-          font-weight: 600;
-          margin-bottom: 0.25rem;
-        }
-
-        .stat-value {
-          font-size: 2rem;
-          font-weight: 800;
-          color: #1a4b6d;
-          line-height: 1;
-          white-space: nowrap;
-          overflow-wrap: anywhere;
-        }
-
-        /* ================= ACTION CARDS ================= */
-        .actions-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .action-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-          transition: all 0.3s ease;
-        }
-
-        .action-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
-        }
-
-        .action-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          padding: 1rem 1.25rem;
-        }
-
-        .action-header h3 {
-          margin: 0;
-          font-size: 1.1rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .action-body {
-          padding: 1.25rem;
-        }
-
-        .action-buttons {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .action-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.875rem 1rem;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          border: none;
-          border-radius: 10px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          text-decoration: none;
-          font-size: 0.95rem;
-        }
-
-        .action-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.4);
-        }
-
-        .action-btn.secondary {
-          background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-        }
-
-        .action-btn.secondary:hover {
-          box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
-        }
-
-        .refresh-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          background: rgba(255, 255, 255, 0.2);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          border-radius: 8px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          backdrop-filter: blur(10px);
-        }
-
-        .refresh-btn:hover {
-          background: rgba(255, 255, 255, 0.3);
-          transform: translateY(-2px);
-        }
-
-        /* ================= RESPONSIVE ================= */
-        @media (max-width: 768px) {
-          .dashboard-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .actions-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .action-buttons {
-            flex-direction: column;
-          }
-        }
-      `}</style>
-
       <Breadcrumb
         items={[
-          { label: "Accountant Dashboard" },
+          { label: "Accountant Dashboard", path: "/dashboard/accountant" },
+          { label: "Dashboard" },
         ]}
       />
 
@@ -483,13 +248,13 @@ export default function AccountantDashboard() {
             <FaExclamationTriangle />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Total Defaulters</div>
-            <div className="stat-value">{stats?.totalDefaulters || 0}</div>
+            <div className="stat-label">Unpaid Students</div>
+            <div className="stat-value">{paymentStats.due}</div>
           </div>
         </div>
 
-        <div className="stat-card" style={{ borderLeftColor: "#dc3545" }}>
-          <div className="stat-icon" style={{ background: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)" }}>
+        <div className="stat-card overdue">
+          <div className="stat-icon">
             <FaTimesCircle />
           </div>
           <div className="stat-content">
@@ -498,8 +263,8 @@ export default function AccountantDashboard() {
           </div>
         </div>
 
-        <div className="stat-card" style={{ borderLeftColor: "#ffc107" }}>
-          <div className="stat-icon" style={{ background: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)" }}>
+        <div className="stat-card pending">
+          <div className="stat-icon">
             <FaMoneyBillWave />
           </div>
           <div className="stat-content">
