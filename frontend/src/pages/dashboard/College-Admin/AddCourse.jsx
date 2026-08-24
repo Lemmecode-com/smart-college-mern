@@ -242,14 +242,14 @@ export default function AddCourse() {
               Create and manage academic courses
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-outline-light btn-sm"
-            onClick={() => navigate("/courses")}
-          >
-            <FaArrowLeft className="me-1" />
-            Back to Courses
-          </button>
+            <button
+              type="button"
+              className="btn btn-outline-light d-flex align-items-center gap-2 px-3 py-2 hover-lift"
+              onClick={() => navigate("/courses")}
+            >
+              <FaArrowLeft className="me-1" />
+              Back to Courses
+            </button>
         </div>
       </div>
 
@@ -722,6 +722,11 @@ export default function AddCourse() {
         .btn-secondary:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .hover-lift:hover { animation: lift 0.3s ease forwards; }
+        @keyframes lift {
+          to { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); }
         }
 
         /* RESPONSIVE */
