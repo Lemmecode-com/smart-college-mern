@@ -1557,7 +1557,6 @@ export default function MakePayments() {
               <strong>Due Date:</strong>{" "}
               {installmentDetails.dueDate
                 ? formatDate(installmentDetails.dueDate)
-                  )
                 : "N/A"}
             </div>
             <div className="mb-3">
