@@ -1317,7 +1317,6 @@ export default function ViewStudent() {
                   onClick={handleApproveClick}
                   disabled={
                     approving ||
-                    !student.division ||
                     (requiredDocTypes.length > 0 && !allRequiredDocsVerified)
                   }
                 >

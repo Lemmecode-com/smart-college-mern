@@ -6,7 +6,7 @@ import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
 
-import { FaSearch, FaEye, FaCheckCircle, FaGraduationCap, FaBuilding, FaBookOpen, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSyncAlt, FaUserCheck, FaUserTimes, FaEnvelope, FaUsers, FaCheckDouble } from "react-icons/fa";
+import { FaSearch, FaEye, FaCheckCircle, FaGraduationCap, FaBuilding, FaBookOpen, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSyncAlt, FaUserCheck, FaUserTimes, FaEnvelope, FaUsers, FaCheckDouble, FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ApiError from "../../../components/ApiError";
@@ -45,6 +45,12 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollStudentId, setEnrollStudentId] = useState(null);
   const [parentCreds, setParentCreds] = useState(null);
+  const [showDivisionModal, setShowDivisionModal] = useState(false);
+  const [validDivisions, setValidDivisions] = useState([]);
+  const [selectedDivision, setSelectedDivision] = useState("");
+  const [assigningDivision, setAssigningDivision] = useState(false);
+  const [loadingDivisions, setLoadingDivisions] = useState(false);
+  const [assigningStudentId, setAssigningStudentId] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -280,6 +286,48 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
       setShowEnrollModal(false);
       setEnrollStudentId(null);
       setProcessingId(null);
+    }
+  };
+
+  /* ================= DIVISION ASSIGNMENT HANDLERS ================= */
+  const handleOpenDivisionModal = async (studentId) => {
+    setShowDivisionModal(true);
+    setAssigningStudentId(studentId);
+    setSelectedDivision("");
+    setLoadingDivisions(true);
+    try {
+      const res = await api.get(`/students/${studentId}/valid-divisions`);
+      const divisions = Array.isArray(res.data) ? res.data : [];
+      setValidDivisions(divisions);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to load valid divisions");
+      setValidDivisions([]);
+    } finally {
+      setLoadingDivisions(false);
+    }
+  };
+
+  const handleAssignDivisionFromPending = async () => {
+    if (!assigningStudentId || !selectedDivision) return;
+    try {
+      setAssigningDivision(true);
+      await api.put(`/students/${assigningStudentId}`, {
+        division: selectedDivision,
+      });
+      toast.success("Division assigned successfully", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      setShowDivisionModal(false);
+      principalMode ? fetchAllStudents() : fetchApprovedStudents();
+    } catch (err) {
+      const message =
+        err.response?.data?.message || "Failed to assign division";
+      toast.error(message, { position: "top-right", autoClose: 5000 });
+    } finally {
+      setAssigningDivision(false);
+      setAssigningStudentId(null);
+      setSelectedDivision("");
     }
   };
 
@@ -534,19 +582,31 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
                             <span className="btn-text">View</span>
                           </button>
                           {(student.status === "APPROVED" || student.status === "OFFER_MADE") && (
-                            <button
-                              className="btn btn-action btn-confirm-enrollment"
-                              onClick={() => handleConfirmEnrollment(student._id)}
-                              disabled={processingId === student._id}
-                              title="Confirm Enrollment"
-                            >
-                              <FaCheckDouble />
-                              <span className="btn-text">
-                                {processingId === student._id
-                                  ? "Processing..."
-                                  : "Confirm Enrollment"}
-                              </span>
-                            </button>
+                            <>
+                              {!student.division && (
+                                <button
+                                  className="btn btn-action btn-assign-division"
+                                  onClick={() => handleOpenDivisionModal(student._id)}
+                                  title="Assign Division"
+                                >
+                                  <FaEdit />
+                                  <span className="btn-text">Assign Division</span>
+                                </button>
+                              )}
+                              <button
+                                className="btn btn-action btn-confirm-enrollment"
+                                onClick={() => handleConfirmEnrollment(student._id)}
+                                disabled={processingId === student._id || !student.division}
+                                title={!student.division ? "Assign division before enrollment" : "Confirm Enrollment"}
+                              >
+                                <FaCheckDouble />
+                                <span className="btn-text">
+                                  {processingId === student._id
+                                    ? "Processing..."
+                                    : "Confirm Enrollment"}
+                                </span>
+                              </button>
+                            </>
                           )}
                           {student.user_id && (
                             <button
@@ -1514,6 +1574,119 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
           font-size: 15px;
           font-weight: 600;
         }
+
+        .btn-assign-division {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-assign-division:hover {
+          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .modal-header--info {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+        }
+
+        .modal-header-icon {
+          margin-right: 8px;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 16px;
+        }
+
+        .modal-content {
+          background: #fff;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 460px;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+
+        .modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 20px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .modal-header h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .modal-body {
+          padding: 20px;
+        }
+
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          padding: 16px 20px;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .btn-close {
+          border: none;
+          background: transparent;
+          font-size: 26px;
+          line-height: 1;
+          cursor: pointer;
+          color: white;
+          opacity: 0.9;
+          transition: opacity 0.2s;
+        }
+
+        .btn-close:hover {
+          opacity: 1;
+        }
+
+        .modal-body {
+          padding: 20px;
+        }
+
+        .form-group {
+          margin-bottom: 16px;
+        }
+
+        .form-group label {
+          display: block;
+          margin-bottom: 6px;
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .form-control {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 14px;
+        }
+
+        .text-muted {
+          color: #6b7280;
+          font-size: 14px;
+        }
       `}</style>
 
       {/* CONFIRM ENROLLMENT MODAL */}
@@ -1531,6 +1704,72 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         cancelText="Cancel"
         isLoading={processingId === enrollStudentId}
       />
+
+      {/* ASSIGN DIVISION MODAL */}
+      {showDivisionModal && (
+        <div className="modal-overlay" onClick={() => setShowDivisionModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header modal-header--info">
+              <h3>
+                <FaEdit className="modal-header-icon" />
+                Assign Division
+              </h3>
+              <button
+                className="btn-close"
+                onClick={() => setShowDivisionModal(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              {loadingDivisions ? (
+                <p>Loading valid divisions...</p>
+              ) : validDivisions.length > 0 ? (
+                <div className="form-group">
+                  <label>Select Division</label>
+                  <select
+                    value={selectedDivision}
+                    onChange={(e) => setSelectedDivision(e.target.value)}
+                    className="form-control"
+                  >
+                    <option value="">-- Select Division --</option>
+                    {validDivisions.map((div) => (
+                      <option key={div} value={div}>
+                        {div}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="text-muted">No valid divisions available for this student.</p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowDivisionModal(false)}
+                disabled={assigningDivision}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAssignDivisionFromPending}
+                disabled={assigningDivision || loadingDivisions || !selectedDivision}
+              >
+                {assigningDivision ? (
+                  <>
+                    <FaSyncAlt className="spin" /> Saving…
+                  </>
+                ) : (
+                  "Save Division"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PARENT CREDENTIALS MODAL */}
       {parentCreds && (

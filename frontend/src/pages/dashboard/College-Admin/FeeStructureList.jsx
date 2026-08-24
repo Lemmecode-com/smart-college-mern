@@ -513,6 +513,7 @@ export default function FeeStructureList() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: nowrap;
           animation: slideDown 0.6s ease;
         }
         
@@ -520,6 +521,7 @@ export default function FeeStructureList() {
           display: flex;
           align-items: center;
           gap: 1.25rem;
+          min-width: 0;
         }
         
         .erp-header-icon {
@@ -537,12 +539,19 @@ export default function FeeStructureList() {
           margin: 0;
           font-size: 1.75rem;
           font-weight: 700;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         
         .erp-page-subtitle {
           margin: 0.375rem 0 0 0;
           opacity: 0.85;
           font-size: 1rem;
+        }
+        
+        .erp-header-actions {
+          flex-shrink: 0;
         }
         
         .erp-header-actions .erp-btn {
@@ -554,9 +563,11 @@ export default function FeeStructureList() {
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
           transition: all 0.3s ease;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 0.5rem;
+          width: max-content;
+          white-space: nowrap;
         }
         
         .erp-header-actions .erp-btn:hover {
@@ -565,12 +576,24 @@ export default function FeeStructureList() {
         }
         
         /* STATS GRID */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
+         .stats-grid {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+           gap: 1.5rem;
+           margin-bottom: 1.5rem;
+         }
+         /* Widen the "Total Fee Amount" card on desktop so the growing ₹ value
+            doesn't wrap/clip, while reducing the sibling stat cards. */
+         @media (min-width: 1024px) {
+           .stats-grid {
+             grid-template-columns: 0.9fr 1.4fr 0.9fr 0.9fr;
+           }
+         }
+         @media (min-width: 1440px) {
+           .stats-grid {
+             grid-template-columns: 0.85fr 1.6fr 0.85fr 0.85fr;
+           }
+         }
         
         .stat-card {
           background: white;
@@ -590,19 +613,20 @@ export default function FeeStructureList() {
         }
         
         .stat-card-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
+          width: 32px;
+          height: 32px;
+          border-radius: 7px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
           flex-shrink: 0;
-          font-size: 1.5rem;
+          font-size: 0.95rem;
         }
         
         .stat-card-content {
           flex: 1;
+          min-width: 0;
         }
         
         .stat-card-label {
@@ -617,6 +641,8 @@ export default function FeeStructureList() {
           font-weight: 800;
           color: #1a4b6d;
           line-height: 1;
+          white-space: nowrap;
+          overflow-wrap: anywhere;
         }
         
         /* CONTROLS CARD */
