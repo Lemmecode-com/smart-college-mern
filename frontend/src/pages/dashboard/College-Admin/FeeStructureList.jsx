@@ -575,75 +575,65 @@ export default function FeeStructureList() {
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
         }
         
-        /* STATS GRID */
-         .stats-grid {
-           display: grid;
-           grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-           gap: 1.5rem;
-           margin-bottom: 1.5rem;
+         /* STATS GRID */
+          .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+          }
+         
+         .stat-card {
+           background: white;
+           padding: 1rem;
+           border-radius: 12px;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+           display: flex;
+           align-items: center;
+           gap: 0.75rem;
+           border-left: 4px solid transparent;
+           transition: all 0.3s ease;
          }
-         /* Widen the "Total Fee Amount" card on desktop so the growing ₹ value
-            doesn't wrap/clip, while reducing the sibling stat cards. */
-         @media (min-width: 1024px) {
-           .stats-grid {
-             grid-template-columns: 0.9fr 1.4fr 0.9fr 0.9fr;
-           }
+         
+         .stat-card:hover {
+           transform: translateY(-2px);
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
          }
-         @media (min-width: 1440px) {
-           .stats-grid {
-             grid-template-columns: 0.85fr 1.6fr 0.85fr 0.85fr;
-           }
+         
+         .stat-card-icon {
+           width: 32px;
+           height: 32px;
+           border-radius: 6px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           color: white;
+           flex-shrink: 0;
+           font-size: 0.85rem;
          }
-        
-        .stat-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          border-left: 4px solid transparent;
-          transition: all 0.3s ease;
-        }
-        
-        .stat-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-        }
-        
-        .stat-card-icon {
-          width: 32px;
-          height: 32px;
-          border-radius: 7px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          flex-shrink: 0;
-          font-size: 0.95rem;
-        }
-        
-        .stat-card-content {
-          flex: 1;
-          min-width: 0;
-        }
-        
-        .stat-card-label {
-          font-size: 0.95rem;
-          color: #666;
-          font-weight: 600;
-          margin-bottom: 0.25rem;
-        }
-        
-        .stat-card-value {
-          font-size: 2rem;
-          font-weight: 800;
-          color: #1a4b6d;
-          line-height: 1;
-          white-space: nowrap;
-          overflow-wrap: anywhere;
-        }
+         
+         .stat-card-content {
+           flex: 1;
+           min-width: 0;
+         }
+         
+         .stat-card-label {
+           font-size: 0.75rem;
+           color: #666;
+           font-weight: 600;
+           margin-bottom: 0.25rem;
+           line-height: 1.2;
+         }
+         
+         .stat-card-value {
+           font-size: 1.25rem;
+           font-weight: 700;
+           color: #1a4b6d;
+           line-height: 1.2;
+           white-space: nowrap;
+           overflow: hidden;
+           text-overflow: ellipsis;
+         }
         
         /* CONTROLS CARD */
         .erp-card {
@@ -717,7 +707,8 @@ export default function FeeStructureList() {
         .search-box {
           position: relative;
           flex: 1;
-          min-width: 300px;
+          min-width: 0;
+          max-width: 600px;
         }
         
         .search-icon {
@@ -746,6 +737,7 @@ export default function FeeStructureList() {
         .actions-group {
           display: flex;
           gap: 0.75rem;
+          flex-shrink: 0;
         }
         
         .export-btn {
@@ -773,11 +765,11 @@ export default function FeeStructureList() {
         }
         
         .refresh-btn {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 10px;
           background: white;
-          border: 2px solid #e9ecef;
+          border: 2px solid #1a4b6d;
           color: #1a4b6d;
           display: flex;
           align-items: center;
@@ -787,13 +779,13 @@ export default function FeeStructureList() {
         }
         
         .refresh-btn:hover {
-          border-color: #1a4b6d;
-          background: #f8f9fa;
+          background: #1a4b6d;
+          color: white;
           transform: rotate(90deg);
         }
         
         .refresh-icon {
-          font-size: 1.2rem;
+          font-size: 1.4rem;
         }
         
         /* TABLE */
@@ -933,30 +925,32 @@ export default function FeeStructureList() {
         
         .action-cell {
           text-align: center;
-          min-width: 160px;
+          min-width: 180px;
         }
         
         .action-buttons {
           display: flex;
+          flex-direction: row;
           justify-content: center;
-          gap: 0.5rem;
+          align-items: center;
+          gap: 0.75rem;
         }
         
         .action-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          color: white;
-          font-size: 0.85rem;
-          position: relative;
-          overflow: hidden;
-        }
+           width: 44px;
+           height: 44px;
+           border-radius: 10px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           border: none;
+           cursor: pointer;
+           transition: all 0.2s ease;
+           color: white;
+           font-size: 1.3rem;
+           position: relative;
+           overflow: hidden;
+         }
         
         .action-btn::before {
           content: "";
