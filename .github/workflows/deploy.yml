@@ -5,11 +5,6 @@ on:
     branches:
       - Features
 
-# Prevent overlapping production deploys (secondary hardening).
-concurrency:
-  group: production-deploy
-  cancel-in-progress: true
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -35,112 +30,21 @@ jobs:
             echo "--- git sync ---"
             git fetch origin Features
             git reset --hard origin/Features
-            echo "Deployed commit: $(git rev-parse HEAD)"
 
             echo "--- syncing secrets to .env ---"
             grep -q "^GLITCHTIP_DSN=" backend/.env && sed -i "s|^GLITCHTIP_DSN=.*|GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN }}|" backend/.env || echo "GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN }}" >> backend/.env
             grep -q "^GLITCHTIP_ENABLED=" backend/.env && sed -i "s|^GLITCHTIP_ENABLED=.*|GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}|" backend/.env || echo "GLITCHTIP_ENABLED=${{ secrets.GLITCHTIP_ENABLED }}" >> backend/.env
             grep -q "^VITE_GLITCHTIP_DSN=" frontend/.env.production && sed -i "s|^VITE_GLITCHTIP_DSN=.*|VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}|" frontend/.env.production || echo "VITE_GLITCHTIP_DSN=${{ secrets.GLITCHTIP_DSN_FRONTEND }}" >> frontend/.env.production
-            grep -q "^VITE_API_BASE_URL=" frontend/.env.production && sed -i "s|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}|" frontend/.env.production || echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> frontend/.env.production
 
+            grep -q "^VITE_API_BASE_URL=" frontend/.env.production && sed -i "s|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}|" frontend/.env.production || echo "VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}" >> frontend/.env.production
             echo "--- backend install ---"
             cd backend && npm ci --omit=dev && cd ..
 
             echo "--- frontend install & build ---"
             cd frontend && npm ci && npm run build && cd ..
 
-            echo "--- verify frontend build output ---"
-            if [ ! -f frontend/dist/index.html ]; then
-              echo "ERROR: frontend/dist/index.html not found. Frontend build failed."
-              exit 1
-            fi
-            echo "Frontend build: SUCCESS"
-
-            echo "--- determine ACTUAL nginx root (verified, never assumed) ---"
-            # Prefer an explicitly verified root supplied via the NGINX_ROOT secret.
-            # Otherwise auto-detect the SPA root from the live nginx configuration.
-            NGINX_ROOT="${{ secrets.NGINX_ROOT }}"
-            if [ -z "$NGINX_ROOT" ]; then
-              NGINX_CONF=""
-              if command -v nginx >/dev/null 2>&1; then
-                # Non-interactive (sudo -n) + timeout so a password prompt can never hang the deploy.
-                NGINX_CONF=$(timeout 30 nginx -T 2>/dev/null) || NGINX_CONF=$(timeout 30 sudo -n nginx -T 2>/dev/null) || true
-              fi
-              CANDIDATES=$(echo "$NGINX_CONF" | grep -oE 'root[[:space:]]+[^;[:space:]]+' | awk '{print $2}' | sort -u)
-              # 1) Prefer a root under the known project tree that exists.
-              for c in $CANDIDATES; do
-                [ -d "$c" ] || continue
-                case "$c" in
-                  /var/www/edu-novaa*) NGINX_ROOT="$c"; break ;;
-                esac
-              done
-              # 2) Fallback: any existing root (excluding the default html dir) that serves index.html.
-              if [ -z "$NGINX_ROOT" ]; then
-                for c in $CANDIDATES; do
-                  [ -d "$c" ] || continue
-                  [ "$c" = "/var/www/html" ] && continue
-                  [ -f "$c/index.html" ] && NGINX_ROOT="$c" && break
-                done
-              fi
-              # 3) Last resort: any existing root other than the default html dir.
-              if [ -z "$NGINX_ROOT" ]; then
-                for c in $CANDIDATES; do
-                  [ -d "$c" ] || continue
-                  [ "$c" = "/var/www/html" ] && continue
-                  NGINX_ROOT="$c"; break
-                done
-              fi
-            fi
-
-            # Safety: never deploy to an assumed/non-existent path.
-            if [ -z "$NGINX_ROOT" ] || [ ! -d "$NGINX_ROOT" ]; then
-              echo "ERROR: Could not VERIFY the production Nginx root."
-              echo "Set the NGINX_ROOT GitHub secret to the exact verified web root, or ensure nginx -T exposes a resolvable root."
-              echo "Refusing to deploy frontend to an assumed directory."
-              exit 1
-            fi
-            echo "Verified Nginx root: $NGINX_ROOT"
-
-            echo "--- deploy frontend build to verified nginx root ---"
-            if ! command -v rsync >/dev/null 2>&1; then
-              echo "ERROR: rsync is not available on the production server."
-              exit 1
-            fi
-            # Synchronize build output; --delete removes obsolete hashed assets.
-            rsync -a --delete frontend/dist/ "$NGINX_ROOT"/
-            echo "Frontend deployment: SUCCESS"
-
-            echo "--- reload nginx (graceful) ---"
-            NGINX_RELOADED=0
-            timeout 60 sudo -n systemctl reload nginx >/dev/null 2>&1 && NGINX_RELOADED=1
-            if [ "$NGINX_RELOADED" -ne 1 ]; then
-              timeout 60 sudo -n nginx -s reload >/dev/null 2>&1 && NGINX_RELOADED=1
-            fi
-            if [ "$NGINX_RELOADED" -ne 1 ]; then
-              timeout 60 nginx -s reload >/dev/null 2>&1 && NGINX_RELOADED=1
-            fi
-            if [ "$NGINX_RELOADED" -eq 1 ]; then
-              echo "Nginx reload: SUCCESS"
-            else
-              echo "WARN: Nginx reload could not be performed automatically. Reload nginx manually or grant passwordless sudo for nginx reload."
-            fi
-
-            echo "--- verify served frontend ---"
-            if [ ! -f "$NGINX_ROOT/index.html" ]; then
-              echo "ERROR: index.html missing from Nginx root after deploy."
-              exit 1
-            fi
-            if command -v curl >/dev/null 2>&1; then
-              if curl -fsS http://localhost/ -o /dev/null; then
-                echo "Production domain response: OK"
-              else
-                echo "WARN: localhost HTTP check failed (nginx may still be starting)."
-              fi
-            fi
-
-            echo "--- pm2 reload backend ---"
+            echo "--- pm2 reload ---"
             $PM2 reload smart-college-backend
-            echo "Backend reload: SUCCESS"
 
             echo "--- app logs (10s) ---"
             sleep 10 && $PM2 logs smart-college-backend --lines 30 --nostream
