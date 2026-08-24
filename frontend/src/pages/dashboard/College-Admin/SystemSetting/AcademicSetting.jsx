@@ -264,9 +264,24 @@ const AcademicSetting = () => {
 
         .settings-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 1.5rem;
           margin-bottom: 1.5rem;
+          align-items: start;
+        }
+
+        .card-session {
+          grid-column: auto;
+        }
+
+        @media (max-width: 1200px) {
+          .settings-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .card-session {
+            grid-column: 1 / -1;
+          }
         }
 
         .settings-card {
@@ -390,10 +405,13 @@ const AcademicSetting = () => {
           align-items: center;
         }
 
+        .input-wrapper .form-input {
+          padding-right: 2.75rem;
+        }
+
         .form-input {
           width: 100%;
-          padding: 0.5rem 0.75rem;
-          padding-right: 80px;
+          padding: 0.625rem 0.75rem;
           font-size: 0.9375rem;
           font-weight: 500;
           color: var(--as-text-primary);
@@ -460,6 +478,48 @@ const AcademicSetting = () => {
           color: var(--as-text-muted);
           margin-top: 0.25rem;
           font-weight: 400;
+        }
+
+        .as-info-card {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          padding: 1.25rem;
+          margin-bottom: 1.5rem;
+          background: linear-gradient(135deg, rgba(61, 181, 230, 0.05), rgba(79, 195, 247, 0.05));
+          border: 1px solid rgba(61, 181, 230, 0.2);
+          border-radius: var(--as-radius-lg);
+        }
+
+        .as-info-card-icon {
+          width: 40px;
+          height: 40px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: var(--as-radius-md);
+          background: linear-gradient(135deg, var(--as-cyan-primary), var(--as-cyan-light));
+          color: #ffffff;
+          font-size: 1.25rem;
+        }
+
+        .as-info-card-content {
+          flex: 1;
+        }
+
+        .as-info-card-title {
+          margin: 0 0 0.375rem 0;
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--as-text-primary);
+        }
+
+        .as-info-card-text {
+          margin: 0;
+          font-size: 0.875rem;
+          line-height: 1.6;
+          color: var(--as-text-secondary);
         }
 
         .badge-info {
@@ -652,6 +712,22 @@ const AcademicSetting = () => {
                 </>
               )}
             </button>
+          </div>
+        </div>
+
+        {/* ================= OVERVIEW ================= */}
+        <div className="as-info-card">
+          <div className="as-info-card-icon">
+            <FaInfoCircle />
+          </div>
+          <div className="as-info-card-content">
+            <h3 className="as-info-card-title">
+              Manage core academic policies from one place
+            </h3>
+            <p className="as-info-card-text">
+              Define attendance, grading, and session/timetable rules that apply
+              across the institution. Changes are applied globally once saved.
+            </p>
           </div>
         </div>
 
@@ -887,7 +963,6 @@ const AcademicSetting = () => {
                     onChange={handleChange}
                     className="form-input"
                     placeholder="30 + 70"
-                    style={{ paddingRight: "0.75rem" }}
                   />
                   <small className="form-hint">Marks distribution</small>
                 </div>
@@ -944,7 +1019,6 @@ const AcademicSetting = () => {
                     placeholder="6"
                     min="1"
                     max="12"
-                    style={{ paddingRight: "0.75rem" }}
                   />
                 </div>
 
