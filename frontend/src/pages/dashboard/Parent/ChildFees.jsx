@@ -288,21 +288,21 @@ export default function ChildFees() {
             <FeeStatCard
               icon={FaWallet}
               label="Total Fee"
-              value={{formatINR(totalFee)}`}
+              value={formatINR(totalFee)}
               color={BRAND_COLORS.primary.main}
               gradient={BRAND_COLORS.primary.gradient}
             />
             <FeeStatCard
               icon={FaCheckCircle}
               label="Paid Amount"
-              value={{formatINR(paidAmount)}`}
+              value={formatINR(paidAmount)}
               color={BRAND_COLORS.success.main}
               gradient={BRAND_COLORS.success.gradient}
             />
             <FeeStatCard
               icon={FaClock}
               label="Pending Amount"
-              value={{formatINR(pendingAmount)}`}
+              value={formatINR(pendingAmount)}
               color={BRAND_COLORS.warning.main}
               gradient={BRAND_COLORS.warning.gradient}
             />
@@ -413,7 +413,7 @@ export default function ChildFees() {
                           <div>
                             <div className="parent-installment-title">{installment.name}</div>
                             <div className="parent-installment-due">
-                              Due: {new Date(installment.dueDate).formatDate, {
+                              Due: {new Date(installment.dueDate).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'long',
                                 day: 'numeric'
