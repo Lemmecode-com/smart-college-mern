@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
+import Pagination from "../../../components/Pagination";
 import {
    FaMoneyBillWave,
    FaSearch,
@@ -13,60 +15,146 @@ import {
    FaReceipt,
    FaCheckCircle,
    FaExclamationTriangle,
+   FaSyncAlt,
+   FaRupeeSign,
+   FaUsers,
 } from "react-icons/fa";
 import "./RecordOfflinePayment.css";
 
+const PAGE_LOAD_TOAST_ID = "record-offline-payment-load";
+const PAGE_SIZE = 10;
+
 export default function RecordOfflinePayment() {
    const navigate = useNavigate();
-   const [loading, setLoading] = useState(false);
+   const [loading, setLoading] = useState(true);
    const [error, setError] = useState(null);
-   const [students, setStudents] = useState([]);
-   const [searchTerm, setSearchTerm] = useState("");
+   const [allReportData, setAllReportData] = useState(null);
+   const [searchQuery, setSearchQuery] = useState("");
    const [selectedStudent, setSelectedStudent] = useState(null);
    const [feeDetails, setFeeDetails] = useState(null);
    const [paymentMode, setPaymentMode] = useState("CASH");
    const [referenceNumber, setReferenceNumber] = useState("");
    const [remarks, setRemarks] = useState("");
    const [selectedInstallment, setSelectedInstallment] = useState("");
-   const [showSuccess, setShowSuccess] = useState(false);
-   const [successData, setSuccessData] = useState(null);
    const [proofFile, setProofFile] = useState(null);
    const [proofPreview, setProofPreview] = useState(null);
+   const [submitting, setSubmitting] = useState(false);
+   const [currentPage, setCurrentPage] = useState(1);
+   const tableRef = useRef(null);
+
+   const fetchReport = useCallback(async () => {
+      try {
+         setLoading(true);
+         setError(null);
+         const res = await api.get("/admin/payments/report");
+         setAllReportData(res.data);
+         toast.success("Students loaded successfully!", {
+            position: "top-right",
+            autoClose: 3000,
+            toastId: PAGE_LOAD_TOAST_ID,
+         });
+      } catch (err) {
+         const errorMsg = err.response?.data?.message || "Failed to load students";
+         setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
+         toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            toastId: "record-offline-payment-error",
+         });
+      } finally {
+         setLoading(false);
+      }
+   }, []);
 
    useEffect(() => {
-      if (!searchTerm || searchTerm.length < 2) {
-         setStudents([]);
-         return;
-      }
-
-      const searchStudents = async () => {
-         try {
-            const res = await api.get(`/admin/payments/report?search=${searchTerm}`);
-          const results = res.data?.report || [];
-             setStudents(results);
-          } catch (err) {
-             logger.warn("Search error:", err);
-             setStudents([]);
-         }
+      fetchReport();
+      return () => {
+         toast.dismiss(PAGE_LOAD_TOAST_ID);
+         toast.dismiss("record-offline-payment-error");
       };
+   }, [fetchReport]);
 
-      const debounceTimer = setTimeout(searchStudents, 500);
-      return () => clearTimeout(debounceTimer);
-   }, [searchTerm]);
+   const pendingStudents = useMemo(() => {
+      if (!allReportData?.report) return [];
+      return allReportData.report.filter(
+         (record) => record.pendingAmount > 0 && record.installments?.some((inst) => inst.status === "PENDING"),
+      );
+   }, [allReportData]);
 
-   const handleSelectStudent = async (student) => {
-      setSelectedStudent(student);
-      setSearchTerm("");
-      setStudents([]);
+   const summaryStats = useMemo(() => {
+      const totalPending = pendingStudents.reduce((sum, s) => sum + (s.pendingAmount || 0), 0);
+      const totalStudents = pendingStudents.length;
 
-      try {
-       const studentId = student?.student?._id || student?.student_id?._id;
-          const res = await api.get(`/admin/payments/report?studentId=${studentId}`);
-          setFeeDetails(res.data?.report?.[0]);
-       } catch (err) {
-          logger.warn("Fee details error:", err);
-          toast.error("Failed to load fee details");
-      }
+      const allStudents = allReportData?.report || [];
+      const paidStudents = allStudents.filter(
+         (record) => record.paidAmount > 0 && record.totalFee > 0,
+      );
+      const totalCollected = allStudents.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
+
+      return {
+         totalStudents,
+         totalPending,
+         paidStudentsCount: paidStudents.length,
+         totalCollected,
+      };
+   }, [pendingStudents, allReportData]);
+
+   const filteredStudents = useMemo(() => {
+      if (!searchQuery.trim()) return pendingStudents;
+
+      const query = searchQuery.toLowerCase().trim();
+
+      const scored = pendingStudents.map((student) => {
+         const name = (student.student?.fullName || "").toLowerCase();
+         const email = (student.student?.email || "").toLowerCase();
+         const enrollment = (student.student?.enrollment_number || "").toLowerCase();
+         const course = (student.course?.name || "").toLowerCase();
+
+         let score = 3;
+         if (name === query) score = 0;
+         else if (name.startsWith(query)) score = 1;
+         else if (name.includes(query)) score = 2;
+
+         if (email === query) score = Math.min(score, 0);
+         else if (email.startsWith(query)) score = Math.min(score, 1);
+         else if (email.includes(query)) score = Math.min(score, 2);
+
+         if (enrollment === query) score = Math.min(score, 0);
+         else if (enrollment.startsWith(query)) score = Math.min(score, 1);
+         else if (enrollment.includes(query)) score = Math.min(score, 2);
+
+         if (course === query) score = Math.min(score, 1);
+         else if (course.includes(query)) score = Math.min(score, 2);
+
+         const matches = name.includes(query) || email.includes(query) || enrollment.includes(query) || course.includes(query);
+         return { student, matches, score };
+      });
+
+      return scored
+         .filter((s) => s.matches)
+         .sort((a, b) => a.score - b.score)
+         .map((s) => s.student);
+   }, [pendingStudents, searchQuery]);
+
+   const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
+   const paginatedStudents = filteredStudents.slice(
+      (currentPage - 1) * PAGE_SIZE,
+      currentPage * PAGE_SIZE,
+   );
+
+   useEffect(() => {
+      setCurrentPage(1);
+   }, [searchQuery]);
+
+   const handleSelectStudent = async (record) => {
+      setSelectedStudent(record);
+      setFeeDetails(record);
+      setSelectedInstallment("");
+      setPaymentMode("CASH");
+      setReferenceNumber("");
+      setRemarks("");
+      setProofFile(null);
+      setProofPreview(null);
    };
 
    const handlePaymentSubmit = async (e) => {
@@ -82,37 +170,42 @@ export default function RecordOfflinePayment() {
          return;
       }
 
-      setLoading(true);
-      try {
-         const studentId = selectedStudent?.student?._id || selectedStudent?.student_id?._id;
-         const formData = new FormData();
-         formData.append("studentId", studentId);
-         formData.append("installmentId", selectedInstallment);
-         formData.append("paymentMode", paymentMode);
-         formData.append("referenceNumber", paymentMode === "CASH" ? "" : referenceNumber);
-         formData.append("remarks", remarks || "");
+          setSubmitting(true);
+          try {
+             const studentId = selectedStudent?.student?._id || selectedStudent?.student_id?._id;
+             const formData = new FormData();
+             formData.append("studentId", studentId);
+             formData.append("installmentId", selectedInstallment);
+             formData.append("paymentMode", paymentMode);
+             formData.append("referenceNumber", paymentMode === "CASH" ? "" : referenceNumber);
+             formData.append("remarks", remarks || "");
 
-         if (proofFile) {
-            formData.append("proof", proofFile);
-         }
+             if (proofFile) {
+                formData.append("proof", proofFile);
+             }
 
-         const res = await api.post("/admin/payments/mark-paid", formData, {
-            headers: {
-               "Content-Type": "multipart/form-data",
-            },
-         });
+             const res = await api.post("/admin/payments/mark-paid", formData, {
+                headers: {
+                   "Content-Type": "multipart/form-data",
+                },
+             });
 
-         setSuccessData(res.data.data);
-         setShowSuccess(true);
-         toast.success("Payment recorded successfully!");
-       } catch (err) {
-          logger.error("Payment error:", err);
-          const errorMsg = "Your payment could not be processed. Please try again or contact your bank.";
-           setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
-          toast.error(errorMsg);
-      } finally {
-         setLoading(false);
-      }
+             toast.success("Payment recorded successfully!");
+             fetchReport();
+
+             const installmentId = res.data?.installmentId;
+             if (installmentId) {
+                setTimeout(() => {
+                   navigate(`/student/fee-receipt/${installmentId}`);
+                }, 600);
+             }
+          } catch (err) {
+             logger.error("Payment error:", err);
+             const errorMsg = err.response?.data?.message || "Your payment could not be processed. Please try again or contact your bank.";
+             toast.error(errorMsg);
+          } finally {
+             setSubmitting(false);
+          }
    };
 
    const handleProofChange = (e) => {
@@ -149,23 +242,21 @@ export default function RecordOfflinePayment() {
       }
    };
 
-   const handleViewReceipt = () => {
-      navigate(`/student/fee-receipt/${successData?.installmentId || successData?.installment_id}`);
-   };
+    const handleAnotherPayment = () => {
+       setSelectedStudent(null);
+       setFeeDetails(null);
+       setSearchQuery("");
+       setPaymentMode("CASH");
+       setReferenceNumber("");
+       setRemarks("");
+       setSelectedInstallment("");
+       setProofFile(null);
+       setProofPreview(null);
 
-   const handleAnotherPayment = () => {
-      setSelectedStudent(null);
-      setFeeDetails(null);
-      setSearchTerm("");
-      setPaymentMode("CASH");
-      setReferenceNumber("");
-      setRemarks("");
-      setSelectedInstallment("");
-      setShowSuccess(false);
-      setSuccessData(null);
-      setProofFile(null);
-      setProofPreview(null);
-   };
+       setTimeout(() => {
+          tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+       }, 100);
+    };
 
    const formatCurrency = (amount) => {
       return new Intl.NumberFormat("en-IN", {
@@ -187,280 +278,384 @@ export default function RecordOfflinePayment() {
       );
    };
 
-    return (
-       <div className="record-offline-payment erp-page erp-viewport-min-100">
-          <Breadcrumb
-             items={[
-                { label: "Accountant Dashboard", path: "/dashboard/accountant" },
-                { label: "Record Offline Payment" },
-             ]}
-          />
+   if (loading) {
+      return <Loading fullScreen size="lg" text="Loading students..." />;
+   }
 
-          <div className="dashboard-header">
-             <h1>
-                <FaMoneyBillWave />
-                Record Offline Payment
-             </h1>
+   if (error) {
+      return (
+         <ApiError
+            title="Error Loading Students"
+            message={error.message}
+            statusCode={error.statusCode}
+            errorCode={error.errorCode}
+            onRetry={fetchReport}
+            onGoBack={() => navigate("/dashboard/accountant")}
+         />
+      );
+   }
+
+   return (
+      <div className="record-offline-payment erp-page erp-viewport-min-100">
+         <Breadcrumb
+            items={[
+               { label: "Accountant Dashboard", path: "/dashboard/accountant" },
+               { label: "Record Offline Payment" },
+            ]}
+         />
+
+         {/* ================= HEADER ================= */}
+         <div className="record-header">
+            <div>
+               <h1>
+                  <FaMoneyBillWave />
+                  Record Offline Payment
+               </h1>
+               <p>Search and select a student to record an offline payment</p>
+            </div>
+            <button className="refresh-btn" onClick={fetchReport}>
+               <FaSyncAlt /> Refresh
+            </button>
+         </div>
+
+          {/* ================= SUMMARY CARDS ================= */}
+          <div className="summary-grid">
+             <div className="stat-card students">
+                <div className="stat-icon">
+                   <FaUsers />
+                </div>
+                <div className="stat-content">
+                   <div className="stat-label">Students with Pending Fees</div>
+                   <div className="stat-value">{summaryStats.totalStudents}</div>
+                </div>
+             </div>
+             <div className="stat-card amount">
+                <div className="stat-icon">
+                   <FaRupeeSign />
+                </div>
+                <div className="stat-content">
+                   <div className="stat-label">Total Pending Amount</div>
+                   <div className="stat-value">{formatCurrency(summaryStats.totalPending)}</div>
+                </div>
+             </div>
+             <div className="stat-card paid">
+                <div className="stat-icon">
+                   <FaCheckCircle />
+                </div>
+                <div className="stat-content">
+                   <div className="stat-label">Students with Paid Fees</div>
+                   <div className="stat-value">{summaryStats.paidStudentsCount}</div>
+                </div>
+             </div>
+             <div className="stat-card collected">
+                <div className="stat-icon">
+                   <FaMoneyBillWave />
+                </div>
+                <div className="stat-content">
+                   <div className="stat-label">Total Collected Amount</div>
+                   <div className="stat-value">{formatCurrency(summaryStats.totalCollected)}</div>
+                </div>
+             </div>
           </div>
 
-         {showSuccess && successData ? (
-            <div className="success-card">
-               <FaCheckCircle className="success-icon" />
-               <h3>Payment Recorded Successfully!</h3>
-               <p className="mb-3">
-                  Student: <strong>{successData?.studentName || "N/A"}</strong>
-               </p>
-               <p className="mb-3">
-                  Amount: <strong>{formatCurrency(successData?.amount || 0)}</strong>
-               </p>
-               <p className="mb-4">
-                  Mode: <strong>{successData?.paymentMode}</strong>
-               </p>
-               <div>
-                      {successData?.proofUrl && (
-                         <button
-                            className="action-btn primary"
-                            onClick={() => {
-                              const installmentId = successData.installmentId;
-                              if (installmentId) {
-                                window.open(
-                                  `${api.defaults.baseURL}/admin/payments/proof/${installmentId}`,
-                                  "_blank",
-                                );
-                              }
-                            }}
-                         >
-                            <FaReceipt /> View Proof
-                         </button>
-                      )}
-                  <button className="action-btn primary" onClick={handleViewReceipt}>
-                     <FaReceipt /> View Receipt
-                  </button>
-                  <button className="action-btn success" onClick={handleAnotherPayment}>
-                     Record Another Payment
-                  </button>
+         {/* ================= CONTROLS ================= */}
+         <div className="record-controls-card">
+            <div className="record-controls-body">
+               <div className="record-search-box">
+                  <FaSearch className="record-search-icon" />
+                  <input
+                     type="text"
+                     placeholder="Search by name, email, enrollment, or course..."
+                     value={searchQuery}
+                     onChange={(e) => setSearchQuery(e.target.value)}
+                     className="record-search-input"
+                  />
                </div>
             </div>
-         ) : (
-            <div className="form-card">
-               <div className="mb-4">
-                  <label className="form-label">
-                     <FaSearch /> Search Student (Name/Email/Enrollment)
-                  </label>
-                  <div style={{ position: "relative" }}>
-                     <input
-                        type="text"
-                        className="form-input"
-                        placeholder="Type to search students..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                     />
-                     {students.length > 0 && (
-                        <div className="student-search-results">
-                           {students.map((s, idx) => (
-                              <div
-                                 key={idx}
-                                 className="student-result-item"
-                                 onClick={() => handleSelectStudent(s)}
-                              >
-                                 <strong>{s.student?.fullName}</strong>
-                                 <br />
-                                 <small>{s.course?.name} | {s.student?.email}</small>
-                              </div>
-                           ))}
-                        </div>
-                     )}
-                  </div>
+         </div>
+
+          {/* ================= STUDENTS TABLE ================= */}
+          <div className="record-table-card" ref={tableRef}>
+            <div className="record-table-header">
+               <h3>
+                  <FaFileInvoiceDollar />
+                  Students with Pending Fees
+               </h3>
+               <span className="record-count-badge">
+                  {filteredStudents.length} record{filteredStudents.length !== 1 ? "s" : ""}
+               </span>
+            </div>
+
+            {filteredStudents.length === 0 ? (
+               <div className="record-empty-state">
+                  <FaFileInvoiceDollar style={{ fontSize: "3rem", color: "#cbd5e1", marginBottom: "1rem" }} />
+                  <h4>No Students Found</h4>
+                  <p>Students with pending fees will appear here.</p>
                </div>
-
-               {feeDetails && (
-                  <>
-                     <div className="mb-4">
-                        <h5>
-                           <FaUser /> Student: {feeDetails?.student?.fullName}
-                        </h5>
-                        <p>Course: {feeDetails?.course?.name}</p>
-                     </div>
-
-                     <div className="mb-4">
-                        <h5>
-                           <FaFileInvoiceDollar /> Select Pending Installment
-                        </h5>
-                        {pendingInstallments.length === 0 ? (
-                           <p className="text-muted">No pending installments found for this student.</p>
-                        ) : (
-                           <div>
-                              {pendingInstallments.map((inst, idx) => {
-                                 const instId = inst._id?.$oid || inst._id || inst.id;
-                                 const isBlocked = !canPayInstallment(inst);
-                                 return (
-                                     <div
-                                        key={instId || idx}
-                                        className={`installment-item ${selectedInstallment === instId ? "selected" : ""} ${isBlocked ? "blocked" : ""}`}
-                                        onClick={(e) => {
-                                           e.stopPropagation();
-                                           if (!isBlocked) {
-                                              setSelectedInstallment(instId);
-                                           }
-                                        }}
-                                        title={isBlocked ? "Previous installments must be paid first" : ""}
-                                     >
-                                       <div className="d-flex justify-content-between align-items-center">
-                                          <div>
-                                             <strong>{inst.name}</strong>
-                                             <br />
-                                             <small>Due: {inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : "N/A"}</small>
-                                             {isBlocked && (
-                                                <div className="text-warning small mt-1">
-                                                   <FaExclamationTriangle /> Pay previous installments first
-                                                </div>
-                                             )}
-                                          </div>
-                                          <div>
-                                             <span className="pending-badge">
-                                                {formatCurrency(inst.amount)}
-                                             </span>
-                                          </div>
-                                       </div>
-                                    </div>
-                                 );
-                              })}
-                           </div>
-                        )}
-                     </div>
-
-                     <form onSubmit={handlePaymentSubmit}>
-                        <div className="mb-4">
-                           <label className="form-label">
-                              <FaReceipt /> Proof of Payment <span className="text-danger">*</span>
-                           </label>
-                           <input
-                              type="file"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={handleProofChange}
-                              className="form-input"
-                              style={{ padding: "0.5rem" }}
-                           />
-                           <small className="text-muted">
-                              Upload receipt, deposit slip, or payment confirmation (PDF, JPG, PNG — max 5MB)
-                           </small>
-
-                           {proofFile && (
-                              <div className="mt-2 p-2 border rounded" style={{ background: "#f8f9fa" }}>
-                                 <div className="d-flex align-items-center gap-2">
-                                    {proofPreview ? (
-                                       <img
-                                          src={proofPreview}
-                                          alt="Proof preview"
-                                          style={{
-                                             width: "60px",
-                                             height: "60px",
-                                             objectFit: "cover",
-                                             borderRadius: "6px",
-                                             border: "1px solid #dee2e6"
-                                          }}
-                                       />
-                                    ) : (
-                                       <div
-                                          style={{
-                                             width: "60px",
-                                             height: "60px",
-                                             background: "#dc3545",
-                                             color: "white",
-                                             borderRadius: "6px",
-                                             display: "flex",
-                                             alignItems: "center",
-                                             justifyContent: "center",
-                                             fontWeight: "bold",
-                                             fontSize: "0.75rem"
-                                          }}
-                                       >
-                                          PDF
-                                       </div>
-                                    )}
-                                    <div>
-                                       <strong>{proofFile.name}</strong>
-                                       <br />
-                                       <small className="text-muted">
-                                          {(proofFile.size / 1024 / 1024).toFixed(2)} MB
-                                       </small>
-                                    </div>
+             ) : (
+                <>
+                   <div className="record-table-container">
+                      <table className="record-table">
+                         <thead>
+                            <tr>
+                               <th>Student</th>
+                               <th>Course</th>
+                               <th>Total Fee</th>
+                               <th>Paid</th>
+                               <th>Pending</th>
+                               <th>Action</th>
+                            </tr>
+                         </thead>
+                         <tbody>
+                            {paginatedStudents.map((record, idx) => {
+                               const studentId = record.student?._id || record.student_id?._id;
+                               const isSelected = selectedStudent?.student?._id === studentId || selectedStudent?.student_id?._id === studentId;
+                               return (
+                                  <tr
+                                     key={studentId || idx}
+                                     className={isSelected ? "record-row-selected" : ""}
+                                     onClick={() => handleSelectStudent(record)}
+                                  >
+                                     <td>
+                                        <div>
+                                           <strong>{record.student?.fullName || "N/A"}</strong>
+                                           <br />
+                                           <small>{record.student?.email}</small>
+                                           <br />
+                                           <small>{record.student?.enrollment_number}</small>
+                                        </div>
+                                     </td>
+                                     <td>{record.course?.name || "N/A"}</td>
+                                     <td>{formatCurrency(record.totalFee)}</td>
+                                     <td>{formatCurrency(record.paidAmount)}</td>
+                                     <td>
+                                        <span className="record-pending-badge">
+                                           {formatCurrency(record.pendingAmount)}
+                                        </span>
+                                     </td>
+                                 <td>
                                     <button
                                        type="button"
-                                       className="btn btn-sm btn-outline-danger ms-auto"
-                                       onClick={() => {
-                                          setProofFile(null);
-                                          setProofPreview(null);
+                                       className={`record-action-btn ${isSelected ? "selected" : ""}`}
+                                       onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSelectStudent(record);
                                        }}
                                     >
-                                       Remove
+                                       {isSelected ? "Selected" : "Record Payment"}
                                     </button>
-                                 </div>
-                              </div>
-                           )}
-                        </div>
+                                 </td>
+                                  </tr>
+                               );
+                            })}
+                         </tbody>
+                      </table>
+                   </div>
 
-                        <div className="mb-3">
-                           <label className="form-label">Payment Mode</label>
-                           <select
-                              className="form-select"
-                              value={paymentMode}
-                              onChange={(e) => setPaymentMode(e.target.value)}
-                           >
-                              <option value="CASH">Cash</option>
-                              <option value="CHEQUE">Cheque</option>
-                              <option value="DD">Demand Draft</option>
-                           </select>
-                        </div>
+                   {totalPages > 1 && (
+                      <Pagination
+                         page={currentPage}
+                         totalPages={totalPages}
+                         setPage={setCurrentPage}
+                      />
+                   )}
+                </>
+             )}
+          </div>
 
-                        {(paymentMode === "CHEQUE" || paymentMode === "DD") && (
-                           <div className="mb-3">
-                              <label className="form-label">Reference Number *</label>
-                              <input
-                                 type="text"
-                                 className="form-input"
-                                 value={referenceNumber}
-                                 onChange={(e) => setReferenceNumber(e.target.value)}
-                                 placeholder="Enter cheque/DD number"
-                                 required
-                              />
-                           </div>
-                        )}
+      {/* ================= PAYMENT FORM ================= */}
+         {selectedStudent && feeDetails && (
+            <div className="record-form-card">
+               <div className="record-form-header">
+                  <h2>
+                     <FaReceipt />
+                     Record Payment for {feeDetails?.student?.fullName || "Student"}
+                  </h2>
+                  <button className="record-close-btn" onClick={handleAnotherPayment}>
+                     Cancel
+                  </button>
+                </div>
 
-                        <div className="mb-3">
-                           <label className="form-label">Remarks (Optional)</label>
-                           <textarea
-                              className="form-input"
-                              rows={3}
-                              value={remarks}
-                              onChange={(e) => setRemarks(e.target.value)}
-                              placeholder="Add any notes about this payment..."
-                           />
-                        </div>
+                <>
+                   <div className="record-student-info">
+                      <h5>
+                         <FaUser /> Student: {feeDetails?.student?.fullName}
+                      </h5>
+                      <p>Course: {feeDetails?.course?.name}</p>
+                      <p>
+                         Total Fee: {formatCurrency(feeDetails?.totalFee)} | Paid: {formatCurrency(feeDetails?.paidAmount)} | Pending:{" "}
+                         {formatCurrency(feeDetails?.pendingAmount)}
+                      </p>
+                   </div>
 
-                        <button
-                           type="submit"
-                           className="action-btn primary"
-                           disabled={!selectedInstallment || loading}
-                           onClick={handlePaymentSubmit}
-                        >
-                           {loading ? <span>Processing...</span> : <span>Record Payment</span>}
-                        </button>
-                     </form>
-                  </>
-               )}
+                   <div className="record-installments-section">
+                      <h5>
+                         <FaFileInvoiceDollar /> Select Pending Installment
+                      </h5>
+                      {pendingInstallments.length === 0 ? (
+                         <p className="text-muted">No pending installments found for this student.</p>
+                      ) : (
+                         <div>
+                            {pendingInstallments.map((inst, idx) => {
+                               const instId = inst._id?.$oid || inst._id || inst.id;
+                               const isBlocked = !canPayInstallment(inst);
+                               return (
+                                  <div
+                                     key={instId || idx}
+                                     className={`record-installment-item ${selectedInstallment === instId ? "selected" : ""} ${isBlocked ? "blocked" : ""}`}
+                                     onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!isBlocked) {
+                                           setSelectedInstallment(instId);
+                                        }
+                                     }}
+                                     title={isBlocked ? "Previous installments must be paid first" : ""}
+                                  >
+                                     <div className="d-flex justify-content-between align-items-center">
+                                        <div>
+                                           <strong>{inst.name}</strong>
+                                           <br />
+                                           <small>Due: {inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : "N/A"}</small>
+                                           {isBlocked && (
+                                              <div className="text-warning small mt-1">
+                                                 <FaExclamationTriangle /> Pay previous installments first
+                                              </div>
+                                           )}
+                                        </div>
+                                        <div>
+                                           <span className="record-pending-badge">
+                                              {formatCurrency(inst.amount)}
+                                           </span>
+                                        </div>
+                                     </div>
+                                  </div>
+                               );
+                            })}
+                         </div>
+                      )}
+                   </div>
+
+                   <form onSubmit={handlePaymentSubmit}>
+                      <div className="record-form-row">
+                         <div className="record-form-group">
+                            <label className="record-form-label">
+                               <FaReceipt /> Proof of Payment <span className="text-danger">*</span>
+                            </label>
+                            <input
+                               type="file"
+                               accept=".pdf,.jpg,.jpeg,.png"
+                               onChange={handleProofChange}
+                               className="record-form-input"
+                               style={{ padding: "0.5rem" }}
+                            />
+                            <small className="text-muted">
+                               Upload receipt, deposit slip, or payment confirmation (PDF, JPG, PNG — max 5MB)
+                            </small>
+
+                            {proofFile && (
+                               <div className="mt-2 p-2 border rounded" style={{ background: "#f8f9fa" }}>
+                                  <div className="d-flex align-items-center gap-2">
+                                     {proofPreview ? (
+                                        <img
+                                           src={proofPreview}
+                                           alt="Proof preview"
+                                           style={{
+                                              width: "60px",
+                                              height: "60px",
+                                              objectFit: "cover",
+                                              borderRadius: "6px",
+                                              border: "1px solid #dee2e6"
+                                           }}
+                                        />
+                                     ) : (
+                                        <div
+                                           style={{
+                                              width: "60px",
+                                              height: "60px",
+                                              background: "#dc3545",
+                                              color: "white",
+                                              borderRadius: "6px",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              fontWeight: "bold",
+                                              fontSize: "0.75rem"
+                                           }}
+                                        >
+                                           PDF
+                                        </div>
+                                     )}
+                                     <div>
+                                        <strong>{proofFile.name}</strong>
+                                        <br />
+                                        <small className="text-muted">
+                                           {(proofFile.size / 1024 / 1024).toFixed(2)} MB
+                                        </small>
+                                     </div>
+                                     <button
+                                        type="button"
+                                        className="record-btn-sm btn-outline-danger ms-auto"
+                                        onClick={() => {
+                                           setProofFile(null);
+                                           setProofPreview(null);
+                                        }}
+                                     >
+                                        Remove
+                                     </button>
+                                  </div>
+                               </div>
+                            )}
+                         </div>
+
+                         <div className="record-form-group">
+                            <label className="record-form-label">Payment Mode</label>
+                            <select
+                               className="record-form-select"
+                               value={paymentMode}
+                               onChange={(e) => setPaymentMode(e.target.value)}
+                            >
+                               <option value="CASH">Cash</option>
+                               <option value="CHEQUE">Cheque</option>
+                               <option value="DD">Demand Draft</option>
+                            </select>
+                         </div>
+
+                         {(paymentMode === "CHEQUE" || paymentMode === "DD") && (
+                            <div className="record-form-group">
+                               <label className="record-form-label">Reference Number *</label>
+                               <input
+                                  type="text"
+                                  className="record-form-input"
+                                  value={referenceNumber}
+                                  onChange={(e) => setReferenceNumber(e.target.value)}
+                                  placeholder="Enter cheque/DD number"
+                                  required
+                               />
+                            </div>
+                         )}
+
+                         <div className="record-form-group">
+                            <label className="record-form-label">Remarks (Optional)</label>
+                            <textarea
+                               className="record-form-input"
+                               rows={3}
+                               value={remarks}
+                               onChange={(e) => setRemarks(e.target.value)}
+                               placeholder="Add any notes about this payment..."
+                            />
+                         </div>
+
+                         <button
+                            type="submit"
+                            className="record-action-btn primary"
+                            disabled={!selectedInstallment || submitting}
+                         >
+                            {submitting ? <span>Processing...</span> : <span>Record Payment</span>}
+                         </button>
+                      </div>
+                   </form>
+                </>
             </div>
-         )}
-
-         {error && (
-            <ApiError
-               title="Payment Error"
-               message={error.message}
-                statusCode={error.statusCode}
-                errorCode={error.errorCode}
-                onRetry={() => setError(null)}
-               onGoBack={() => navigate("/dashboard/accountant")}
-            />
          )}
       </div>
    );
