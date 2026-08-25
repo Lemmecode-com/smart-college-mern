@@ -354,90 +354,91 @@ export default function PaymentHistory() {
         }
 
         /* ================= SUMMARY CARDS ================= */
-        .payment-summary-grid {
+        .summary-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
-          gap: 1.5rem;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
           margin-bottom: 1.5rem;
         }
 
-        .payment-summary-card {
+        .stat-card {
           background: white;
-          padding: 1.5rem;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          padding: 1.25rem;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 0.75rem;
           border-left: 4px solid transparent;
           transition: all 0.3s ease;
         }
 
-        .payment-summary-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        .stat-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .payment-summary-card.collected {
-          border-left-color: #28a745;
-        }
-
-        .payment-summary-card.paid {
-          border-left-color: #3db5e6;
-        }
-
-        .payment-summary-card.partial {
-          border-left-color: #ffc107;
-        }
-
-        .payment-summary-card.due {
-          border-left-color: #dc3545;
-        }
-
-        .payment-summary-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
+        .stat-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
           flex-shrink: 0;
-          font-size: 1.5rem;
+          font-size: 0.85rem;
         }
 
-        .payment-summary-card.collected .payment-summary-icon {
+        .stat-card.collected .stat-icon {
           background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
         }
 
-        .payment-summary-card.paid .payment-summary-icon {
+        .stat-card.paid .stat-icon {
           background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
         }
 
-        .payment-summary-card.partial .payment-summary-icon {
+        .stat-card.partial .stat-icon {
           background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
         }
 
-        .payment-summary-card.due .payment-summary-icon {
+        .stat-card.due .stat-icon {
           background: linear-gradient(135deg, #dc3545 0%, #c62828 100%);
         }
 
-        .payment-summary-content {
+        .stat-content {
           flex: 1;
+          min-width: 0;
         }
 
-        .payment-summary-label {
-          font-size: 0.95rem;
+        .stat-label {
+          font-size: 0.75rem;
           color: #666;
           font-weight: 600;
           margin-bottom: 0.25rem;
+          line-height: 1.2;
         }
 
-        .payment-summary-value {
-          font-size: 2rem;
-          font-weight: 800;
+        .stat-value {
+          font-size: 1.1rem;
+          font-weight: 700;
           color: #1a4b6d;
-          line-height: 1;
+          line-height: 1.2;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        @media (max-width: 1024px) {
+          .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 576px) {
+          .summary-grid {
+            grid-template-columns: 1fr;
+          }
         }
 
         /* ================= CONTROLS CARD ================= */
@@ -1013,9 +1014,9 @@ export default function PaymentHistory() {
             gap: 1rem;
           }
 
-          .payment-summary-grid {
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          }
+           .summary-grid {
+             grid-template-columns: repeat(2, 1fr);
+           }
 
           .payment-controls-body {
             flex-direction: column;
@@ -1191,50 +1192,50 @@ export default function PaymentHistory() {
       </div>
 
       {/* ================= SUMMARY CARDS ================= */}
-      <div className="payment-summary-grid">
-        <div className="payment-summary-card collected">
-          <div className="payment-summary-icon">
+      <div className="summary-grid">
+        <div className="stat-card collected">
+          <div className="stat-icon">
             <FaMoneyBillWave />
           </div>
-          <div className="payment-summary-content">
-            <div className="payment-summary-label">Total Collected</div>
-            <div className="payment-summary-value">
+          <div className="stat-content">
+            <div className="stat-label">Total Collected</div>
+            <div className="stat-value">
               {formatCurrency(summaryStats.totalCollected)}
             </div>
           </div>
         </div>
 
-        <div className="payment-summary-card paid">
-          <div className="payment-summary-icon">
+        <div className="stat-card paid">
+          <div className="stat-icon">
             <FaCheckCircle />
           </div>
-          <div className="payment-summary-content">
-            <div className="payment-summary-label">Fully Paid</div>
-            <div className="payment-summary-value">
+          <div className="stat-content">
+            <div className="stat-label">Fully Paid</div>
+            <div className="stat-value">
               {summaryStats.paidCount}
             </div>
           </div>
         </div>
 
-        <div className="payment-summary-card partial">
-          <div className="payment-summary-icon">
+        <div className="stat-card partial">
+          <div className="stat-icon">
             <FaClock />
           </div>
-          <div className="payment-summary-content">
-            <div className="payment-summary-label">Partial Payment</div>
-            <div className="payment-summary-value">
+          <div className="stat-content">
+            <div className="stat-label">Partial Payment</div>
+            <div className="stat-value">
               {summaryStats.partialCount}
             </div>
           </div>
         </div>
 
-        <div className="payment-summary-card due">
-          <div className="payment-summary-icon">
+        <div className="stat-card due">
+          <div className="stat-icon">
             <FaTimesCircle />
           </div>
-          <div className="payment-summary-content">
-            <div className="payment-summary-label">Payment Due</div>
-            <div className="payment-summary-value">{summaryStats.dueCount}</div>
+          <div className="stat-content">
+            <div className="stat-label">Payment Due</div>
+            <div className="stat-value">{summaryStats.dueCount}</div>
           </div>
         </div>
       </div>
