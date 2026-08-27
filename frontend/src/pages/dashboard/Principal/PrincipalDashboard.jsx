@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import LogoImage from "../../../components/common/LogoImage";
-import "./Dashboard.css";
+import "./PrincipalDashboard.css";
 
 import {
   FaUsers,
@@ -361,7 +361,6 @@ const ProgressRing = ({ percentage, color, size = 96, strokeWidth = 8 }) => {
 export default function PrincipalDashboard() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const { canEdit } = useRole();
 
   const [stats, setStats] = useState({
     totalStudents: 0,
