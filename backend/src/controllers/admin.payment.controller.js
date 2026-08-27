@@ -237,13 +237,13 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
       );
     }
 
-    // Find student fee record
-    const studentFee = await StudentFee.findOne({
+    // Find student fee record(s)
+    const studentFees = await StudentFee.find({
       student_id: student._id,
       college_id: collegeId,
     });
 
-    if (!studentFee) {
+    if (!studentFees || studentFees.length === 0) {
       throw new AppError(
         "Fee record not found for this student",
         404,
@@ -251,12 +251,22 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
       );
     }
 
-    // Find the specific installment
-    const installment = studentFee.installments.id(installmentId);
+    let studentFee = null;
+    let foundInstallment = null;
 
-    if (!installment) {
+    for (const fee of studentFees) {
+      foundInstallment = fee.installments.id(installmentId);
+      if (foundInstallment) {
+        studentFee = fee;
+        break;
+      }
+    }
+
+    if (!studentFee || !foundInstallment) {
       throw new AppError("Installment not found", 404, "INSTALLMENT_NOT_FOUND");
     }
+
+    const installment = foundInstallment;
 
     // Idempotency check: Only PENDING installments can be marked
     if (installment.status !== "PENDING") {
