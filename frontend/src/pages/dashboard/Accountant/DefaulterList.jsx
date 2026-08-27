@@ -19,6 +19,7 @@ import {
   FaChevronRight,
   FaFileInvoiceDollar,
 } from "react-icons/fa";
+import "./DefaulterList.css";
 
 const PAGE_SIZE = 10;
 const PAGE_LOAD_TOAST_ID = "accountant-defaulter-list-load";
@@ -107,13 +108,13 @@ export default function DefaulterList() {
 
   const getEscalationBadgeClass = (level) => {
     const classes = {
-      DUE_TODAY: "badge-due-today",
-      SLIGHTLY_OVERDUE: "badge-slightly",
-      MODERATELY_OVERDUE: "badge-moderately",
-      SEVERELY_OVERDUE: "badge-severely",
-      CRITICALLY_OVERDUE: "badge-critically",
+      DUE_TODAY: "due-today",
+      SLIGHTLY_OVERDUE: "slightly",
+      MODERATELY_OVERDUE: "moderately",
+      SEVERELY_OVERDUE: "severely",
+      CRITICALLY_OVERDUE: "critically",
     };
-    return classes[level] || "badge-default";
+    return classes[level] || "";
   };
 
   const getEscalationLabel = (level) => {
@@ -170,187 +171,62 @@ export default function DefaulterList() {
     );
   }
 
-  return (
-    <div className="defaulter-list-container erp-page erp-viewport-min-100">
-      <style>{`
-        .defaulter-list-container {
-          background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
-          padding: 1.5rem;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .defaulter-header {
-          background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          color: white;
-        }
-        .defaulter-header h1 {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-        .summary-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
-        .summary-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          text-align: center;
-        }
-        .summary-value {
-          font-size: 2rem;
-          font-weight: 800;
-          color: #dc3545;
-        }
-        .summary-label {
-          font-size: 0.95rem;
-          color: #666;
-          font-weight: 600;
-        }
-        .controls-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          margin-bottom: 1.5rem;
-          padding: 1.25rem 1.75rem;
-        }
-        .search-box {
-          position: relative;
-          flex: 1;
-          min-width: 0;
-        }
-        .search-icon {
-          position: absolute;
-          left: 1rem;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #666;
-        }
-        .search-input {
-          width: 100%;
-          padding: 0.75rem 1rem 0.75rem 2.5rem;
-          border: 2px solid #e9ecef;
-          border-radius: 10px;
-          font-size: 0.95rem;
-        }
-        .search-input:focus {
-          border-color: #dc3545;
-          outline: none;
-        }
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 6px 12px;
-          border-radius: 20px;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-        .badge-due-today { background: #ffc107; color: #212529; }
-        .badge-slightly { background: #fd7e14; color: white; }
-        .badge-moderately { background: #e83e8c; color: white; }
-        .badge-severely { background: #c82333; color: white; }
-        .badge-critically { background: #721c24; color: white; }
-        .table-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-        }
-        .defaulter-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        .defaulter-table th {
-          padding: 16px 20px;
-          text-align: left;
-          font-size: 12px;
-          font-weight: 600;
-          color: #212529;
-          text-transform: uppercase;
-          background: #f8f9fa;
-        }
-        .defaulter-table td {
-          padding: 18px 20px;
-          border-top: 1px solid #e9ecef;
-        }
-        .pagination {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1.5rem;
-          gap: 0.5rem;
-        }
-        .page-btn {
-          width: 40px;
-          height: 40px;
-          border-radius: 8px;
-          border: none;
-          background: #f8f9fa;
-          color: #dc3545;
-          font-weight: 600;
-          cursor: pointer;
-        }
-        .page-btn:hover:not(:disabled) {
-          background: #e9ecef;
-        }
-        .page-btn.active {
-          background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-          color: white;
-        }
-        .page-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .empty-state {
-          text-align: center;
-          padding: 3rem 2rem;
-          color: #666;
-        }
-      `}</style>
+   return (
+     <div className="defaulter-list erp-page erp-viewport-min-100">
+       <Breadcrumb
+         items={[
+           { label: "Accountant Dashboard", path: "/dashboard/accountant" },
+           { label: "Defaulter List" },
+         ]}
+       />
 
-      <Breadcrumb
-        items={[
-          { label: "Accountant Dashboard", path: "/dashboard/accountant" },
-          { label: "Defaulter List" },
-        ]}
-      />
+       <div className="dashboard-header">
+         <h1>
+           <FaUserTimes />
+           Defaulter List
+         </h1>
+       </div>
 
-      <div className="defaulter-header">
-        <h1>
-          <FaUserTimes />
-          Defaulter List
-        </h1>
-      </div>
-
-      {summary && (
-        <div className="summary-grid">
-          <div className="summary-card">
-            <div className="summary-value">{summary.totalDefaulters}</div>
-            <div className="summary-label">Total Defaulters</div>
-          </div>
-          <div className="summary-card">
-            <div className="summary-value">{formatCurrency(summary.totalPendingAmount)}</div>
-            <div className="summary-label">Total Pending Amount</div>
-          </div>
-          <div className="summary-card">
-            <div className="summary-value">{summary.byEscalation.CRITICALLY_OVERDUE || 0}</div>
-            <div className="summary-label">Critical Defaulters</div>
-          </div>
-          <div className="summary-card">
-            <div className="summary-value">{summary.byEscalation.SEVERELY_OVERDUE || 0}</div>
-            <div className="summary-label">Severe Defaulters</div>
-          </div>
-        </div>
-      )}
+       {summary && (
+         <div className="summary-grid">
+           <div className="stat-card total">
+             <div className="stat-icon">
+               <FaUserTimes />
+             </div>
+             <div className="stat-content">
+               <div className="stat-label">Total Defaulters</div>
+               <div className="stat-value">{summary.totalDefaulters}</div>
+             </div>
+           </div>
+           <div className="stat-card amount">
+             <div className="stat-icon">
+               <FaRupeeSign />
+             </div>
+             <div className="stat-content">
+               <div className="stat-label">Total Pending Amount</div>
+               <div className="stat-value">{formatCurrency(summary.totalPendingAmount)}</div>
+             </div>
+           </div>
+           <div className="stat-card critical">
+             <div className="stat-icon">
+               <FaExclamationTriangle />
+             </div>
+             <div className="stat-content">
+               <div className="stat-label">Critical Defaulters</div>
+               <div className="stat-value">{summary.byEscalation.CRITICALLY_OVERDUE || 0}</div>
+             </div>
+           </div>
+           <div className="stat-card severe">
+             <div className="stat-icon">
+               <FaCalendarAlt />
+             </div>
+             <div className="stat-content">
+               <div className="stat-label">Severe Defaulters</div>
+               <div className="stat-value">{summary.byEscalation.SEVERELY_OVERDUE || 0}</div>
+             </div>
+           </div>
+         </div>
+       )}
 
       <div className="controls-card">
         <div className="d-flex align-items-center gap-3 flex-wrap">
@@ -365,19 +241,16 @@ export default function DefaulterList() {
             />
           </div>
 
-          <select
-            value={escalationFilter}
-            onChange={(e) => setEscalationFilter(e.target.value)}
-            className="form-select"
-            style={{ width: "100%", maxWidth: "200px" }}
-          >
-            <option value="">All Escalation Levels</option>
-            <option value="DUE_TODAY">Due Today</option>
-            <option value="SLIGHTLY_OVERDUE">Slightly Overdue</option>
-            <option value="MODERATELY_OVERDUE">Moderately Overdue</option>
-            <option value="SEVERELY_OVERDUE">Severely Overdue</option>
-            <option value="CRITICALLY_OVERDUE">Critically Overdue</option>
-          </select>
+           <select
+             value={escalationFilter}
+             onChange={(e) => setEscalationFilter(e.target.value)}
+             className="form-select"
+             style={{ width: "100%", maxWidth: "200px" }}
+           >
+             <option value="">All Escalation Levels</option>
+             <option value="SEVERELY_OVERDUE">Severely Overdue</option>
+             <option value="CRITICALLY_OVERDUE">Critically Overdue</option>
+           </select>
 
           <ExportButtons
             title="Defaulter List"
@@ -441,7 +314,7 @@ export default function DefaulterList() {
                       </td>
                       <td>{d.installment?.daysOverdue || 0}</td>
                       <td>
-                        <span className={`badge ${getEscalationBadgeClass(d.installment?.escalationLevel)}`}>
+                        <span className={`escalation-badge ${getEscalationBadgeClass(d.installment?.escalationLevel)}`}>
                           {getEscalationLabel(d.installment?.escalationLevel)}
                         </span>
                       </td>
@@ -452,7 +325,7 @@ export default function DefaulterList() {
             </div>
 
             {totalPages > 1 && (
-              <div className="pagination">
+              <div className="defaulter-pagination">
                 <button
                   className="page-btn"
                   onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
