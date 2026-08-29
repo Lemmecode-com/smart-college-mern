@@ -581,7 +581,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
                             <FaEye />
                             <span className="btn-text">View</span>
                           </button>
-                          {(student.status === "APPROVED" || student.status === "OFFER_MADE") && (
+                          {(student.status === "APPROVED" || student.status === "OFFER_MADE" || student.status === "SEAT_CONFIRMED") && (
                             <>
                               {!student.division && (
                                 <button
