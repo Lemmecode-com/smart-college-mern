@@ -12,6 +12,18 @@ import ConfirmModal from "../../../components/ConfirmModal";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
+const STUDENT_STATUS = {
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  OFFER_MADE: "OFFER_MADE",
+  SEAT_CONFIRMED: "SEAT_CONFIRMED",
+  ENROLLED: "ENROLLED",
+  REJECTED: "REJECTED",
+  DELETED: "DELETED",
+  ALUMNI: "ALUMNI",
+  DEACTIVATED: "DEACTIVATED",
+};
+
 const PAGE_SIZE = 5;
 
 export default function ApproveStudents({ admissionOfficerMode = false, principalMode = false }) {
@@ -51,6 +63,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
   const [assigningDivision, setAssigningDivision] = useState(false);
   const [loadingDivisions, setLoadingDivisions] = useState(false);
   const [assigningStudentId, setAssigningStudentId] = useState(null);
+  const [divisionError, setDivisionError] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -225,7 +238,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
   /* ================= DEACTIVATE / REACTIVATE ================= */
   const handleToggleActive = async (student) => {
-    if (student.status === "DEACTIVATED") {
+    if (student.status === STUDENT_STATUS.DEACTIVATED) {
       if (!window.confirm(`Reactivate "${student.fullName}"?`)) return;
       try {
         await api.put(`/users/${student.user_id}/reactivate`);
@@ -294,13 +307,16 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
     setShowDivisionModal(true);
     setAssigningStudentId(studentId);
     setSelectedDivision("");
+    setDivisionError(null);
     setLoadingDivisions(true);
     try {
       const res = await api.get(`/students/${studentId}/valid-divisions`);
       const divisions = Array.isArray(res.data) ? res.data : [];
       setValidDivisions(divisions);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to load valid divisions");
+      const message =
+        err.response?.data?.message || "Failed to load valid divisions";
+      setDivisionError(message);
       setValidDivisions([]);
     } finally {
       setLoadingDivisions(false);
@@ -549,12 +565,12 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
                         </span>
                       </td>
                       <td className="cell-status">
-                        {student.status === "OFFER_MADE" ? (
+                        {student.status === STUDENT_STATUS.OFFER_MADE ? (
                           <span className="badge badge-offer-made">
                             <FaEnvelope className="badge-icon" />
                             OFFER MADE
                           </span>
-                        ) : student.status === "ENROLLED" ? (
+                        ) : student.status === STUDENT_STATUS.ENROLLED ? (
                           <span className="badge badge-enrolled">
                             <FaCheckDouble className="badge-icon" />
                             ENROLLED
@@ -581,7 +597,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
                             <FaEye />
                             <span className="btn-text">View</span>
                           </button>
-                          {(student.status === "APPROVED" || student.status === "OFFER_MADE" || student.status === "SEAT_CONFIRMED") && (
+                          {(student.status === STUDENT_STATUS.APPROVED || student.status === STUDENT_STATUS.OFFER_MADE || student.status === STUDENT_STATUS.SEAT_CONFIRMED) && (
                             <>
                               {!student.division && (
                                 <button
@@ -608,23 +624,23 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
                               </button>
                             </>
                           )}
-                          {student.user_id && (
-                            <button
-                              className={`btn btn-action ${student.status === "DEACTIVATED" ? "btn-reactivate-student" : "btn-deactivate-student"}`}
-                              onClick={() => handleToggleActive(student)}
-                              title={
-                                student.status === "DEACTIVATED"
-                                  ? "Reactivate"
-                                  : "Deactivate"
-                              }
-                            >
-                              {student.status === "DEACTIVATED" ? (
+                              {student.user_id && (
+                                <button
+                                  className={`btn btn-action ${student.status === STUDENT_STATUS.DEACTIVATED ? "btn-reactivate-student" : "btn-deactivate-student"}`}
+                                  onClick={() => handleToggleActive(student)}
+                                  title={
+                                    student.status === STUDENT_STATUS.DEACTIVATED
+                                      ? "Reactivate"
+                                      : "Deactivate"
+                                  }
+                                >
+                                  {student.status === STUDENT_STATUS.DEACTIVATED ? (
                                 <FaUserCheck />
                               ) : (
                                 <FaUserTimes />
                               )}
                               <span className="btn-text">
-                                {student.status === "DEACTIVATED"
+                                {student.status === STUDENT_STATUS.DEACTIVATED
                                   ? "Reactivate"
                                   : "Deactivate"}
                               </span>
@@ -1725,6 +1741,10 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
             <div className="modal-body">
               {loadingDivisions ? (
                 <p>Loading valid divisions...</p>
+              ) : divisionError ? (
+                <p className="text-danger">
+                  Failed to load divisions: {divisionError}
+                </p>
               ) : validDivisions.length > 0 ? (
                 <div className="form-group">
                   <label>Select Division</label>
