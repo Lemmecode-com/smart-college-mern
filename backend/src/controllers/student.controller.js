@@ -960,6 +960,22 @@ exports.updateStudentByAdmin = async (req, res, next) => {
       }
     }
 
+    // 🔐 WORKFLOW: Division can only be assigned/changed for APPROVED, OFFER_MADE, or SEAT_CONFIRMED students
+    if (req.body.division !== undefined) {
+      const DIVISION_ASSIGNABLE_STATUSES = [
+        STUDENT_STATUS.APPROVED,
+        STUDENT_STATUS.OFFER_MADE,
+        STUDENT_STATUS.SEAT_CONFIRMED,
+      ];
+
+      if (!DIVISION_ASSIGNABLE_STATUSES.includes(student.status)) {
+        return res.status(400).json({
+          message: `Division can only be assigned or changed for students with status: ${DIVISION_ASSIGNABLE_STATUSES.join(", ")}. Current student status: ${student.status}. Please approve the student first.`,
+          code: "INVALID_STATUS_FOR_DIVISION_CHANGE",
+        });
+      }
+    }
+
     // 🔐 SCOPE: Validate division is valid for student's academic context
     if (req.body.division !== undefined) {
       const divisionValue = req.body.division?.toString().trim().toUpperCase() || null;
@@ -1045,6 +1061,19 @@ exports.getValidDivisionsForStudent = async (req, res, next) => {
 
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
+    }
+
+    const DIVISION_ASSIGNABLE_STATUSES = [
+      STUDENT_STATUS.APPROVED,
+      STUDENT_STATUS.OFFER_MADE,
+      STUDENT_STATUS.SEAT_CONFIRMED,
+    ];
+
+    if (!DIVISION_ASSIGNABLE_STATUSES.includes(student.status)) {
+      return res.status(400).json({
+        message: `Valid divisions can only be fetched for students with status: ${DIVISION_ASSIGNABLE_STATUSES.join(", ")}. Current student status: ${student.status}.`,
+        code: "INVALID_STATUS_FOR_DIVISION_QUERY",
+      });
     }
 
     // Get distinct non-null, non-empty divisions from timetables
