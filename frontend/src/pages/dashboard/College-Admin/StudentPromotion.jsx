@@ -2496,11 +2496,10 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         .card-footer {
           padding: 20px 24px;
           border-top: 2px solid #e2e8f0;
-          display: flex;
-          justify-content: space-between;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
           align-items: center;
           background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-          flex-wrap: wrap;
           gap: 16px;
         }
 
@@ -2586,7 +2585,8 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           }
 
           .card-footer {
-            flex-direction: column;
+            grid-template-columns: 1fr;
+            justify-items: center;
             text-align: center;
           }
 
