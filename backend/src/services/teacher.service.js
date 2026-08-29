@@ -106,9 +106,9 @@ exports.isTeacherHOD = async (teacher, collegeId = null) => {
  * @returns {Promise<Object>} Teacher document
  */
 exports.getTeacherWithValidation = async (userId, collegeId, checkActive = true) => {
-  const teacher = await this.findTeacherByUserId(userId, collegeId);
+  const teacher = await exports.findTeacherByUserId(userId, collegeId);
   
-  if (checkActive && !this.isTeacherActive(teacher)) {
+  if (checkActive && !exports.isTeacherActive(teacher)) {
     throw new AppError('Teacher account is inactive', 403, 'TEACHER_INACTIVE');
   }
   
@@ -122,7 +122,7 @@ exports.getTeacherWithValidation = async (userId, collegeId, checkActive = true)
  * @returns {Promise<Object>} { isHOD: boolean, department: Object|null }
  */
 exports.getHODStatus = async (teacher, collegeId = null) => {
-  const isHOD = await this.isTeacherHOD(teacher, collegeId);
+  const isHOD = await exports.isTeacherHOD(teacher, collegeId);
   
   let department = null;
   if (isHOD && teacher.department_id && collegeId) {

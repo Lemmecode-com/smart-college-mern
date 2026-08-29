@@ -242,7 +242,9 @@ export default function NotificationDetails() {
             path:
               user?.role === "TEACHER"
                 ? "/teacher/notifications/list"
-                : "/notification/list",
+                : user?.role === "STUDENT"
+                  ? "/notification/student"
+                  : "/notification/list",
           },
           { label: notification.title?.substring(0, 30) || "Details" },
         ]}

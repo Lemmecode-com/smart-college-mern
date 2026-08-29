@@ -364,14 +364,14 @@ export default function ChildDetail() {
               gradient={BRAND_COLORS.info.gradient}
               subtitle={`${attendance.length} sessions recorded`}
             />
-            <StatCard
-              icon={FaRupeeSign}
-              label="Pending Fees"
-              value={fees ? `{formatINR(fees.totalFee - fees.paidAmount)}` : "--"}
-              color={BRAND_COLORS.warning.main}
-              gradient={BRAND_COLORS.warning.gradient}
-              subtitle={fees ? `Total: ₹${fees.totalFee}` : "Fee information unavailable"}
-            />
+              <StatCard
+                icon={FaRupeeSign}
+                label="Pending Fees"
+                value={fees ? formatINR((fees.totalFee || 0) - (fees.paidAmount || 0)) : "--"}
+                color={BRAND_COLORS.warning.main}
+                gradient={BRAND_COLORS.warning.gradient}
+                subtitle={fees ? `Total: ₹${fees.totalFee}` : "Fee information unavailable"}
+              />
           </motion.div>
 
           {/* ================= TABS ================= */}
