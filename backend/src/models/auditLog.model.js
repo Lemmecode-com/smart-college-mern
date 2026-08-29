@@ -59,6 +59,7 @@ const auditLogSchema = new mongoose.Schema(
         "HOD_ASSIGNED",
         "TIMETABLE_DELETED",
         "TIMETABLE_ARCHIVED",
+        "TIMETABLE_UNARCHIVED",
         "TIMETABLE_PUBLISHED",
         "TIMETABLE_EXCEPTION_CREATED",
         "TIMETABLE_EXCEPTION_UPDATED",
