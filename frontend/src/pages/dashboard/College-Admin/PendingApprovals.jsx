@@ -696,72 +696,40 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
                           </button>
                           {canEdit('students') && (
                             <>
-                              {!student.division ? (
-                                <>
-                                  <button
-                                    className="btn btn-action btn-assign-division"
-                                    onClick={() => handleOpenDivisionModal(student._id)}
-                                    title="Assign Division"
-                                  >
-                                    <FaEdit />
-                                    <span className="btn-text">Assign Division</span>
-                                  </button>
-                                  <button
-                                    className="btn btn-action btn-reject"
-                                    onClick={() => handleRejectClick(student._id)}
-                                    disabled={processingId === student._id}
-                                    title="Reject Student"
-                                  >
-                                    {processingId === student._id ? (
-                                      <FaSpinner className="spin" />
-                                    ) : (
-                                      <FaTimes />
-                                    )}
-                                    <span className="btn-text">
-                                      {processingId === student._id
-                                        ? "Processing…"
-                                        : "Reject"}
-                                    </span>
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <button
-                                    className="btn btn-action btn-approve"
-                                    onClick={() => handleApprove(student._id)}
-                                    disabled={processingId === student._id}
-                                    title="Approve Student"
-                                  >
-                                    {processingId === student._id ? (
-                                      <FaSpinner className="spin" />
-                                    ) : (
-                                      <FaCheck />
-                                    )}
-                                    <span className="btn-text">
-                                      {processingId === student._id
-                                        ? "Processing…"
-                                        : "Approve"}
-                                    </span>
-                                  </button>
-                                  <button
-                                    className="btn btn-action btn-reject"
-                                    onClick={() => handleRejectClick(student._id)}
-                                    disabled={processingId === student._id}
-                                    title="Reject Student"
-                                  >
-                                    {processingId === student._id ? (
-                                      <FaSpinner className="spin" />
-                                    ) : (
-                                      <FaTimes />
-                                    )}
-                                    <span className="btn-text">
-                                      {processingId === student._id
-                                        ? "Processing…"
-                                        : "Reject"}
-                                    </span>
-                                  </button>
-                                </>
-                              )}
+                              <button
+                                className="btn btn-action btn-approve"
+                                onClick={() => handleApprove(student._id)}
+                                disabled={processingId === student._id}
+                                title="Approve Student"
+                              >
+                                {processingId === student._id ? (
+                                  <FaSpinner className="spin" />
+                                ) : (
+                                  <FaCheck />
+                                )}
+                                <span className="btn-text">
+                                  {processingId === student._id
+                                    ? "Processing…"
+                                    : "Approve"}
+                                </span>
+                              </button>
+                              <button
+                                className="btn btn-action btn-reject"
+                                onClick={() => handleRejectClick(student._id)}
+                                disabled={processingId === student._id}
+                                title="Reject Student"
+                              >
+                                {processingId === student._id ? (
+                                  <FaSpinner className="spin" />
+                                ) : (
+                                  <FaTimes />
+                                )}
+                                <span className="btn-text">
+                                  {processingId === student._id
+                                    ? "Processing…"
+                                    : "Reject"}
+                                </span>
+                              </button>
                             </>
                           )}
                         </div>

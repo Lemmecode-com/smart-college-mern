@@ -259,6 +259,7 @@ export default function Pagination({ page, totalPages, setPage }) {
             </span>
           ) : (
             <NavButton
+              key={pageNum}
               id={`page-${pageNum}`}
               label={`Page ${pageNum}`}
               icon={<span>{pageNum}</span>}
