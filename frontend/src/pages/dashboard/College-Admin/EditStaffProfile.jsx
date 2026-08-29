@@ -168,6 +168,13 @@ export default function EditStaffProfile() {
     experienceYears: "",
   });
 
+  const [courses, setCourses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [previousSubjectId, setPreviousSubjectId] = useState("");
+  const [hodTeacherId, setHodTeacherId] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -211,6 +218,27 @@ export default function EditStaffProfile() {
           qualification: p.qualification || "",
           experienceYears: p.experienceYears?.toString() || "",
         });
+
+        // Load HOD teaching data if applicable
+        if (p.role === "HOD" && p.teacher && !isSelfEdit) {
+          const teacher = p.teacher;
+          setHodTeacherId(teacher.id || "");
+          setSelectedCourse(teacher.courses?.[0]?._id || teacher.courses?.[0] || "");
+          const currentSubject = teacher.subjects?.[0];
+          setSelectedSubject(currentSubject?._id || "");
+          setPreviousSubjectId(currentSubject?._id || "");
+
+          // Fetch courses for HOD's department
+          if (teacher.departmentId) {
+            api.get(`/courses/department/${teacher.departmentId}`)
+              .then(res => {
+                const coursesData = Array.isArray(res.data?.courses) ? res.data.courses :
+                                    Array.isArray(res.data) ? res.data : [];
+                setCourses(coursesData);
+              })
+              .catch(() => setCourses([]));
+          }
+        }
       }
     } catch (err) {
       const statusCode = err.response?.status;
@@ -235,8 +263,31 @@ export default function EditStaffProfile() {
     if (actualUserId) fetchProfile();
   }, [actualUserId, fetchProfile]);
 
+  // Fetch subjects when course changes (HOD admin edit only)
+  useEffect(() => {
+    if (formData.role === "HOD" && selectedCourse && !isSelfEdit) {
+      api.get(`/subjects/course/${selectedCourse}`)
+        .then(res => {
+          const subjectsData = Array.isArray(res.data) ? res.data : [];
+          setSubjects(subjectsData);
+        })
+        .catch(() => setSubjects([]));
+    } else {
+      setSubjects([]);
+    }
+    setSelectedSubject("");
+  }, [formData.role, selectedCourse, isSelfEdit]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+
+    if (e.target.name === "course") {
+      setSelectedCourse(e.target.value);
+      setSelectedSubject("");
+    }
+    if (e.target.name === "subject") {
+      setSelectedSubject(e.target.value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -255,12 +306,29 @@ export default function EditStaffProfile() {
       return;
     }
 
+    // ─── HOD teaching assignment validation ───
+    if (formData.role === "HOD" && !isSelfEdit) {
+      if (selectedSubject && !selectedCourse) {
+        setError("Please select a course before assigning a subject.");
+        setSaving(false);
+        return;
+      }
+    }
+
     try {
       const { email, ...profileData } = formData;
       const payload = {
         ...profileData,
         experienceYears: profileData.experienceYears ? Number(profileData.experienceYears) : 0,
       };
+
+      // Include HOD teaching assignments for admin edits
+      if (formData.role === "HOD" && !isSelfEdit) {
+        payload.courseId = selectedCourse || undefined;
+        payload.subjectId = selectedSubject || undefined;
+        payload.previousSubjectId = previousSubjectId || undefined;
+      }
+
       logger.log("[EditStaffProfile] Submitting update for userId:", actualUserId, "payload:", payload);
       const res = await api.put(`/college/staff/profile/${actualUserId}`, payload);
       logger.log("[EditStaffProfile] Update response:", res.data);
@@ -513,6 +581,66 @@ export default function EditStaffProfile() {
                   </div>
                 </SectionCard>
               </div>
+
+              {/* HOD Teaching Assignment (Admin only) */}
+              {formData.role === "HOD" && !isSelfEdit && (
+                <div className="col-12">
+                  <SectionCard
+                    title="Teaching Assignment"
+                    icon={<FaUserPlus />}
+                    subtitle="Assign course and subject for HOD teaching responsibilities"
+                    color={BRAND_COLORS.info.main}
+                  >
+                    <div className="section-card-body">
+                      <div className="row g-3">
+                        <div className="col-12 col-md-6">
+                          <FormField
+                            label="Course"
+                            icon={<FaUserPlus />}
+                          >
+                            <select
+                              name="course"
+                              value={selectedCourse}
+                              onChange={handleChange}
+                              className="form-select"
+                            >
+                              <option value="">Select Course</option>
+                              {courses.map((c) => (
+                                <option key={c._id} value={c._id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                          </FormField>
+                        </div>
+                        <div className="col-12 col-md-6">
+                          <FormField
+                            label="Subject"
+                            icon={<FaUserPlus />}
+                          >
+                            <select
+                              name="subject"
+                              value={selectedSubject}
+                              onChange={handleChange}
+                              className="form-select"
+                              disabled={!selectedCourse}
+                            >
+                              <option value="">
+                                {selectedCourse ? "Select Subject" : "Select a course first"}
+                              </option>
+                              {subjects.map((s) => (
+                                <option key={s._id} value={s._id}>
+                                  {s.name} ({s.code})
+                                </option>
+                              ))}
+                            </select>
+                          </FormField>
+                        </div>
+                      </div>
+                    </div>
+                  </SectionCard>
+                </div>
+              )}
 
               {/* Employment Information */}
               <div className="col-12 col-lg-6">

@@ -89,6 +89,7 @@ export default function TimetableList() {
   const [deletingId, setDeletingId] = useState(null);
   const [publishingId, setPublishingId] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
+  const [unarchivingId, setUnarchivingId] = useState(null);
   const [activeTab, setActiveTab] = useState("active");
   const [stats, setStats] = useState({ total: 0, published: 0, draft: 0, archived: 0 });
   const [confirmModal, setConfirmModal] = useState({
@@ -301,36 +302,79 @@ export default function TimetableList() {
      }
    };
 
-   /* ================= ARCHIVE TIMETABLE ================= */
-    const confirmArchiveTimetable = async () => {
-      setArchivingId(confirmModal.id);
+    /* ================= ARCHIVE TIMETABLE ================= */
+     const confirmArchiveTimetable = async () => {
+       setArchivingId(confirmModal.id);
+       try {
+         await api.put(`/timetable/${confirmModal.id}/archive`);
+         fetchTimetables();
+         fetchStats();
+         toast.success("Timetable archived successfully!", {
+           position: "top-right",
+           autoClose: 3000,
+           icon: <FaArchive />
+         });
+      } catch (err) {
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        if (!isAuthError) {
+          const errorMsg = err.response?.data?.message || "Failed to archive timetable. Please try again.";
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />
+          });
+        }
+      } finally {
+        setArchivingId(null);
+        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+      }
+     };
+
+    /* ================= UNARCHIVE TIMETABLE ================= */
+    const showUnarchiveConfirm = (id) => {
+      setConfirmModal({
+        isOpen: true,
+        action: "unarchive",
+        id: id,
+        title: "Unarchive Timetable?",
+        message: "Are you sure you want to unarchive this timetable? It will be restored to DRAFT status and can be edited and published again.",
+        type: "info"
+      });
+    };
+
+    const confirmUnarchiveTimetable = async () => {
+      setUnarchivingId(confirmModal.id);
       try {
-        await api.put(`/timetable/${confirmModal.id}/archive`);
-        fetchTimetables();
+        await api.put(`/timetable/${confirmModal.id}/unarchive`);
+        fetchArchivedTimetables();
         fetchStats();
-        toast.success("Timetable archived successfully!", {
+        toast.success("Timetable unarchived successfully!", {
           position: "top-right",
           autoClose: 3000,
-          icon: <FaArchive />
+          icon: <FaUnlock />
         });
-     } catch (err) {
-       const statusCode = err.response?.status;
-       const errorCode = err.response?.data?.code;
-       const isAuthError =
-         statusCode === 401 ||
-         (errorCode && AUTH_ERROR_CODES.has(errorCode));
-       if (!isAuthError) {
-         const errorMsg = err.response?.data?.message || "Failed to archive timetable. Please try again.";
-         toast.error(errorMsg, {
-           position: "top-right",
-           autoClose: 5000,
-           icon: <FaExclamationTriangle />
-         });
-       }
-     } finally {
-       setArchivingId(null);
-       setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
-     }
+      } catch (err) {
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        if (!isAuthError) {
+          const errorMsg = err.response?.data?.message || "Failed to unarchive timetable. Please try again.";
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />
+          });
+        }
+      } finally {
+        setUnarchivingId(null);
+        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+      }
     };
 
     const handleGoBack = () => {
@@ -813,9 +857,44 @@ export default function TimetableList() {
                                   transition: 'all 0.2s ease'
                                 }}
                               >
-                                <FaEye size={14} /> View
-                              </motion.button>
-                              
+                                 <FaEye size={14} /> View
+                               </motion.button>
+
+                               {/* UNARCHIVE BUTTON (HOD ONLY) — shown for archived timetables */}
+                               {activeTab === "archived" && isHOD && t.status === "ARCHIVED" && (
+                                 <motion.button
+                                   whileHover={{ scale: 1.05 }}
+                                   whileTap={{ scale: 0.95 }}
+                                   onClick={() => showUnarchiveConfirm(t._id)}
+                                   disabled={unarchivingId === t._id}
+                                   title="Unarchive Timetable"
+                                   style={{
+                                     padding: '0.5rem 0.875rem',
+                                     borderRadius: '10px',
+                                     border: '1px solid #cbd5e1',
+                                     backgroundColor: unarchivingId === t._id ? '#94a3b8' : BRAND_COLORS.info.main,
+                                     color: 'white',
+                                     fontSize: '0.875rem',
+                                     fontWeight: 600,
+                                     cursor: unarchivingId === t._id ? 'not-allowed' : 'pointer',
+                                     display: 'flex',
+                                     alignItems: 'center',
+                                     gap: '0.375rem',
+                                     transition: 'all 0.2s ease',
+                                     boxShadow: unarchivingId === t._id ? 'none' : '0 2px 8px rgba(23, 162, 184, 0.3)'
+                                   }}
+                                 >
+                                   {unarchivingId === t._id ? (
+                                     <motion.div variants={spinVariants} animate="animate">
+                                       <FaSyncAlt size={14} />
+                                     </motion.div>
+                                   ) : (
+                                     <FaUnlock size={14} />
+                                   )}
+                                   {unarchivingId === t._id ? 'Unarchiving...' : 'Unarchive'}
+                                 </motion.button>
+                               )
+}
                               {/* PUBLISH BUTTON (HOD ONLY) — hidden for archived */}
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
                                 <motion.button
@@ -963,28 +1042,34 @@ export default function TimetableList() {
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" })}
         onConfirm={
-          confirmModal.action === "publish" 
-            ? confirmPublishTimetable 
-            : confirmModal.action === "archive" 
-              ? confirmArchiveTimetable 
-              : confirmDeleteTimetable
+          confirmModal.action === "publish"
+            ? confirmPublishTimetable
+            : confirmModal.action === "archive"
+              ? confirmArchiveTimetable
+              : confirmModal.action === "unarchive"
+                ? confirmUnarchiveTimetable
+                : confirmDeleteTimetable
         }
         title={confirmModal.title}
         message={confirmModal.message}
         type={confirmModal.type}
         confirmText={
-          confirmModal.action === "publish" 
-            ? "Publish" 
-            : confirmModal.action === "archive" 
-              ? "Archive" 
-              : "Delete"
+          confirmModal.action === "publish"
+            ? "Publish"
+            : confirmModal.action === "archive"
+              ? "Archive"
+              : confirmModal.action === "unarchive"
+                ? "Unarchive"
+                : "Delete"
         }
         isLoading={
-          confirmModal.action === "publish" 
-            ? publishingId === confirmModal.id 
-            : confirmModal.action === "archive" 
-              ? archivingId === confirmModal.id 
-              : deletingId === confirmModal.id
+          confirmModal.action === "publish"
+            ? publishingId === confirmModal.id
+            : confirmModal.action === "archive"
+              ? archivingId === confirmModal.id
+              : confirmModal.action === "unarchive"
+                ? unarchivingId === confirmModal.id
+                : deletingId === confirmModal.id
         }
       />
     </AnimatePresence>

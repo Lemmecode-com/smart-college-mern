@@ -36,42 +36,100 @@ const generateTempPassword = (length = 10) => {
  * POST /api/college/staff
  * Create a staff account (used by COLLEGE_ADMIN)
  */
-  exports.createStaff = async (req, res, next) => {
-   try {
-     // Only COLLEGE_ADMIN can access this endpoint (enforced by middleware)
-     const {
-       name,
-       email,
-       role,
-       departmentId,
-       // Extended profile fields (optional)
-       mobileNumber,
-       designation,
-       employmentType,
-       joiningDate,
-       gender,
-       dateOfBirth,
-       bloodGroup,
-       address,
-       city,
-       state,
-       pincode,
-       emergencyContactName,
-       emergencyContactPhone,
-       emergencyRelation,
-       qualification,
-       experienceYears,
-     } = req.body;
+   exports.createStaff = async (req, res, next) => {
+    try {
+      // Only COLLEGE_ADMIN can access this endpoint (enforced by middleware)
+      const {
+        name,
+        email,
+        role,
+        departmentId,
+        // Teaching assignment fields (optional, for HOD)
+        courseId,
+        subjectId,
+        // Extended profile fields (optional)
+        mobileNumber,
+        designation,
+        employmentType,
+        joiningDate,
+        gender,
+        dateOfBirth,
+        bloodGroup,
+        address,
+        city,
+        state,
+        pincode,
+        emergencyContactName,
+        emergencyContactPhone,
+        emergencyRelation,
+        qualification,
+        experienceYears,
+      } = req.body;
 
      // Validate required fields
      if (!name || !email || !role) {
        return next(new AppError("Name, email, and role are required", 400, "MISSING_FIELDS"));
      }
 
-     // If role is HOD, departmentId is required
-     if (role === "HOD" && (!departmentId || departmentId === "")) {
-       return next(new AppError("Department is required for HOD role", 400, "MISSING_DEPARTMENT_FOR_HOD"));
-     }
+      // If role is HOD, departmentId is required
+      if (role === "HOD" && (!departmentId || departmentId === "")) {
+        return next(new AppError("Department is required for HOD role", 400, "MISSING_DEPARTMENT_FOR_HOD"));
+      }
+
+      // ─── HOD Teaching Assignment Validation ───
+      let validatedCourseId = null;
+      let validatedSubjectId = null;
+
+      if (role === "HOD") {
+        // Subject requires Course
+        if (subjectId && !courseId) {
+          return next(new AppError(
+            "Please select a course before assigning a subject.",
+            400,
+            "SUBJECT_WITHOUT_COURSE"
+          ));
+        }
+
+        // Validate Course belongs to department and college
+        if (courseId) {
+          const Course = require("../models/course.model");
+          const course = await Course.findOne({
+            _id: courseId,
+            department_id: departmentId,
+            college_id: req.user.college_id,
+          });
+
+          if (!course) {
+            return next(new AppError(
+              "Selected course does not belong to this department",
+              400,
+              "COURSE_NOT_IN_DEPARTMENT"
+            ));
+          }
+
+          validatedCourseId = courseId;
+        }
+
+        // Validate Subject belongs to selected Course
+        if (subjectId) {
+          const Subject = require("../models/subject.model");
+          const subject = await Subject.findOne({
+            _id: subjectId,
+            course_id: courseId,
+            college_id: req.user.college_id,
+          });
+
+          if (!subject) {
+            return next(new AppError(
+              "Selected subject does not belong to the selected course",
+              400,
+              "SUBJECT_NOT_IN_COURSE"
+            ));
+          }
+
+          validatedSubjectId = subjectId;
+        }
+      }
 
     // Validate role: must be a staff role that COLLEGE_ADMIN can create
     const allowedRoles = [
@@ -209,32 +267,33 @@ const generateTempPassword = (length = 10) => {
         // If role is HOD, create Teacher record required by hodMiddleware
         if (role === "HOD") {
           const employeeId = await generateEmployeeId(req.user.college_id);
+          const teacherPayload = {
+            college_id: req.user.college_id,
+            user_id: user[0]._id,
+            department_id: departmentId,
+            courses: validatedCourseId ? [validatedCourseId] : [],
+            name,
+            email,
+            employeeId,
+            designation: designation || "Head of Department",
+            qualification: qualification || "Not Specified",
+            experienceYears: parseInt(experienceYears) || 0,
+            createdBy: req.user.id,
+            dateOfBirth: dateOfBirth || null,
+            address: address || "",
+            city: city || "",
+            state: state || "",
+            pincode: pincode || "",
+            employmentType: employmentType || "FULL_TIME",
+            mobileNumber: mobileNumber || "",
+            joiningDate: joiningDate || null,
+          };
+
+          if (gender) teacherPayload.gender = gender;
+          if (bloodGroup) teacherPayload.bloodGroup = bloodGroup;
+
           teacher = await Teacher.create(
-            [
-              {
-                college_id: req.user.college_id,
-                user_id: user[0]._id,
-                department_id: departmentId,
-                name,
-                email,
-                employeeId,
-                designation: designation || "Head of Department",
-                qualification: qualification || "",
-                experienceYears: parseInt(experienceYears) || 0,
-                createdBy: req.user.id,
-                // Personal details
-                gender: gender || "",
-                bloodGroup: bloodGroup || "",
-                dateOfBirth: dateOfBirth || null,
-                address: address || "",
-                city: city || "",
-                state: state || "",
-                pincode: pincode || "",
-                employmentType: employmentType || "FULL_TIME",
-                mobileNumber: mobileNumber || "",
-                joiningDate: joiningDate || null,
-              },
-            ],
+            [teacherPayload],
             { session }
           );
 
@@ -244,6 +303,16 @@ const generateTempPassword = (length = 10) => {
             { hod_id: teacher[0]._id },
             { session, new: true }
           );
+
+          // Assign subject to the new HOD teacher if provided
+          if (validatedSubjectId) {
+            const Subject = require("../models/subject.model");
+            await Subject.findOneAndUpdate(
+              { _id: validatedSubjectId, college_id: req.user.college_id },
+              { teacher_id: teacher[0]._id },
+              { session, new: true }
+            );
+          }
         }
 
         return { user, teacher };
@@ -447,9 +516,40 @@ exports.getStaffProfile = async (req, res, next) => {
       experienceYears: profile?.experienceYears || 0,
     };
 
+    // For HODs, also include teacher/teaching data
+    let teacherData = null;
+    if (user.role === "HOD") {
+      const Teacher = require("../models/teacher.model");
+      const Subject = require("../models/subject.model");
+      const hodTeacher = await Teacher.findOne({
+        user_id: id,
+        college_id: req.user.college_id,
+      })
+        .populate("courses", "name code")
+        .populate("department_id", "name code");
+
+      if (hodTeacher) {
+        const assignedSubjects = await Subject.find({
+          teacher_id: hodTeacher._id,
+          college_id: req.user.college_id,
+          status: "ACTIVE",
+        }).populate("course_id", "name code");
+
+        teacherData = {
+          id: hodTeacher._id,
+          departmentId: hodTeacher.department_id?._id || hodTeacher.department_id || null,
+          courses: hodTeacher.courses || [],
+          subjects: assignedSubjects || [],
+        };
+      }
+    }
+
     res.json({
       success: true,
-      data: staffData,
+      data: {
+        ...staffData,
+        teacher: teacherData,
+      },
     });
   } catch (error) {
     next(error);
@@ -639,6 +739,101 @@ exports.updateStaffProfile = async (req, res, next) => {
         { ...profileFields, user_id: id, college_id: req.user.college_id },
         { session, upsert: true, new: true, runValidators: true }
       );
+
+      // ─── HOD Teaching Assignment Update (COLLEGE_ADMIN only) ───
+      if (user.role === "HOD" && req.user.role === ROLE.COLLEGE_ADMIN) {
+        const Teacher = require("../models/teacher.model");
+        const Course = require("../models/course.model");
+        const Subject = require("../models/subject.model");
+
+        const hodTeacher = await Teacher.findOne({
+          user_id: id,
+          college_id: req.user.college_id,
+        });
+
+        if (!hodTeacher) {
+          return next(new AppError("HOD teacher record not found", 404, "HOD_TEACHER_NOT_FOUND"));
+        }
+
+        const hodDepartmentId = hodTeacher.department_id;
+        const incomingCourseId = updateData.courseId;
+        const incomingSubjectId = updateData.subjectId;
+
+        // Subject requires Course
+        if (incomingSubjectId && !incomingCourseId) {
+          return next(new AppError(
+            "Please select a course before assigning a subject.",
+            400,
+            "SUBJECT_WITHOUT_COURSE"
+          ));
+        }
+
+        // Validate Course belongs to HOD's department
+        let finalCourseId = null;
+        if (incomingCourseId) {
+          const course = await Course.findOne({
+            _id: incomingCourseId,
+            department_id: hodDepartmentId,
+            college_id: req.user.college_id,
+          });
+
+          if (!course) {
+            return next(new AppError(
+              "Selected course does not belong to this department",
+              404,
+              "COURSE_NOT_IN_DEPARTMENT"
+            ));
+          }
+
+          finalCourseId = incomingCourseId;
+        }
+
+        // Validate Subject belongs to selected Course
+        let finalSubjectId = null;
+        if (incomingSubjectId) {
+          const subject = await Subject.findOne({
+            _id: incomingSubjectId,
+            course_id: incomingCourseId,
+            college_id: req.user.college_id,
+          });
+
+          if (!subject) {
+            return next(new AppError(
+              "Selected subject does not belong to the selected course",
+              404,
+              "SUBJECT_NOT_IN_COURSE"
+            ));
+          }
+
+          finalSubjectId = incomingSubjectId;
+        }
+
+        // Update Teacher's courses array
+        await Teacher.findByIdAndUpdate(
+          hodTeacher._id,
+          { courses: finalCourseId ? [finalCourseId] : [] },
+          { session, new: true }
+        );
+
+        // Clear previous subject assignment if subject changed or removed
+        const previousSubjectId = updateData.previousSubjectId;
+        if (previousSubjectId && previousSubjectId !== finalSubjectId) {
+          await Subject.findOneAndUpdate(
+            { _id: previousSubjectId, teacher_id: hodTeacher._id },
+            { $unset: { teacher_id: 1 } },
+            { session, new: true }
+          );
+        }
+
+        // Assign new subject if provided
+        if (finalSubjectId) {
+          await Subject.findOneAndUpdate(
+            { _id: finalSubjectId, college_id: req.user.college_id },
+            { teacher_id: hodTeacher._id },
+            { session, new: true }
+          );
+        }
+      }
 
       await session.commitTransaction();
       session.endSession();
