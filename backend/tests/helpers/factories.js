@@ -3,6 +3,9 @@ const User = require('../../src/models/user.model');
 const Teacher = require('../../src/models/teacher.model');
 const Student = require('../../src/models/student.model');
 const ParentGuardian = require('../../src/models/parentGuardian.model');
+const Department = require('../../src/models/department.model');
+const Course = require('../../src/models/course.model');
+const Subject = require('../../src/models/subject.model');
 const { CATEGORY, GENDER, STUDENT_STATUS } = require('../../src/utils/constants');
 
 // Real fields only � do NOT invent fields like "phone", "website", etc.
@@ -181,4 +184,46 @@ const createStaffProfile = async (overrides = {}) => {
   return StaffProfile.create(payload);
 };
 
-module.exports = { createCollege, createUser, createTeacher, createStudent, createParentGuardian, createStaffProfile };
+const createDepartment = async (overrides = {}) => {
+  const payload = {
+    name: 'Test Department',
+    code: 'DEPT',
+    type: 'ACADEMIC',
+    status: 'ACTIVE',
+    programsOffered: ['UG'],
+    startYear: 2020,
+    sanctionedFacultyCount: 10,
+    sanctionedStudentIntake: 60,
+    ...overrides,
+  };
+  return Department.create(payload);
+};
+
+const createCourse = async (overrides = {}) => {
+  const payload = {
+    name: 'Test Course',
+    code: 'COURSE',
+    type: 'THEORY',
+    programLevel: 'UG',
+    durationSemesters: 8,
+    credits: 120,
+    maxStudents: 60,
+    status: 'ACTIVE',
+    ...overrides,
+  };
+  return Course.create(payload);
+};
+
+const createSubject = async (overrides = {}) => {
+  const payload = {
+    name: 'Test Subject',
+    code: 'SUBJ',
+    semester: 1,
+    credits: 3,
+    status: 'ACTIVE',
+    ...overrides,
+  };
+  return Subject.create(payload);
+};
+
+module.exports = { createCollege, createUser, createTeacher, createStudent, createParentGuardian, createStaffProfile, createDepartment, createCourse, createSubject };
