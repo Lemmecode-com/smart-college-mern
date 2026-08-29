@@ -13,6 +13,7 @@ const StudentFee = require("../models/studentFee.model");
 const DocumentConfig = require("../models/documentConfig.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const { STUDENT_STATUS } = require("../utils/constants");
 const { sendRegistrationSuccessEmail } = require("../services/email.service");
 const collegeService = require("../services/college.service");
 const logger = require("../utils/logger");
