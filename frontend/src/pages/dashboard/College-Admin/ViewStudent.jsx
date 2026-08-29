@@ -1138,7 +1138,7 @@ export default function ViewStudent() {
                 <FaBook className="card-title-icon" />
                 <h3 className="card-title">Academic Information</h3>
               </div>
-              {isCollegeAdmin && (
+              {isCollegeAdmin && ["APPROVED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(student.status) && (
                 <button
                   className="btn-assign-division"
                   onClick={handleOpenDivisionModal}
@@ -1287,31 +1287,16 @@ export default function ViewStudent() {
              <p className="action-card-subtitle">Review and approve or reject this student's registration</p>
            </div>
             
-             <div className="action-card-body">
-              {!student.division && (
-                <div className="doc-verification-gate-warning">
-                  <FaExclamationTriangle className="doc-verification-gate-icon" />
-                  <span>
-                    Please assign division to student before approving.
-                    <button
-                      type="button"
-                      className="inline-assign-division-btn"
-                      onClick={handleOpenDivisionModal}
-                    >
-                      Assign Division
-                    </button>
-                  </span>
-                </div>
-              )}
-              {requiredDocTypes.length > 0 && !allRequiredDocsVerified && (
-                <div className="doc-verification-gate-warning">
-                  <FaExclamationTriangle className="doc-verification-gate-icon" />
-                  <span>
-                    Verify all required documents before approving. Backend enforcement is active.
-                  </span>
-                </div>
-              )}
-              <div className="action-card-buttons">
+              <div className="action-card-body">
+               {requiredDocTypes.length > 0 && !allRequiredDocsVerified && (
+                 <div className="doc-verification-gate-warning">
+                   <FaExclamationTriangle className="doc-verification-gate-icon" />
+                   <span>
+                     Verify all required documents before approving. Backend enforcement is active.
+                   </span>
+                 </div>
+               )}
+               <div className="action-card-buttons">
                 <button
                   className="btn-approve-enterprise"
                   onClick={handleApproveClick}
