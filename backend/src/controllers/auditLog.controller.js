@@ -3,23 +3,31 @@ const auditLogService = require('../services/auditLog.service');
 const AppError = require('../utils/AppError');
 
 /**
- * Get audit logs for COLLEGE_ADMIN
+ * Get audit logs for COLLEGE_ADMIN or SUPER_ADMIN
  * GET /api/audit-logs
- * College admins can only see logs for their own college
+ * COLLEGE_ADMIN/PRINCIPAL/PLATFORM_SUPPORT can only see logs for their own college
+ * SUPER_ADMIN can see all logs across all colleges
  */
 exports.getAuditLogs = async (req, res, next) => {
   try {
-    // College isolation - COLLEGE_ADMIN can only see their own college's logs
+    const isSuperAdmin = req.user?.role === "SUPER_ADMIN";
+
     const filters = {
-      collegeId: req.college_id,  // Enforced by college middleware
       action: req.query.action || undefined,
       resourceType: req.query.resourceType || undefined,
       userId: req.query.userId || undefined,
       startDate: req.query.startDate || undefined,
       endDate: req.query.endDate || undefined,
       page: req.query.page || 1,
-      limit: req.query.limit || 20
+      limit: req.query.limit || 20,
     };
+
+    // SUPER_ADMIN can see all colleges — only enforce college filter for non-superadmin
+    if (!isSuperAdmin) {
+      filters.collegeId = req.college_id;
+    } else if (req.query.collegeId) {
+      filters.collegeId = req.query.collegeId;
+    }
 
     const result = await auditLogService.getAuditLogs(filters);
 
@@ -40,6 +48,7 @@ exports.getAuditLogs = async (req, res, next) => {
 exports.getAuditLogById = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const isSuperAdmin = req.user?.role === "SUPER_ADMIN";
 
     const audit = await AuditLog.findById(id)
       .populate('userId', 'email role')
@@ -49,8 +58,8 @@ exports.getAuditLogById = async (req, res, next) => {
       throw new AppError("Audit log not found", 404, "NOT_FOUND");
     }
 
-    // College isolation - ensure the log belongs to the admin's college
-    if (audit.collegeId._id.toString() !== req.college_id.toString()) {
+    // College isolation - enforce only for non-superadmin roles
+    if (!isSuperAdmin && audit.collegeId && audit.collegeId._id.toString() !== req.college_id.toString()) {
       throw new AppError("Access denied", 403, "FORBIDDEN");
     }
 
@@ -74,6 +83,9 @@ exports.getAuditStats = async (req, res, next) => {
     const last7Days = new Date(now - 7 * 24 * 60 * 60 * 1000);
     const last30Days = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
+    const isSuperAdmin = req.user?.role === "SUPER_ADMIN";
+    const collegeId = isSuperAdmin ? undefined : req.college_id;
+
     const [
       total24h,
       total7d,
@@ -83,28 +95,28 @@ exports.getAuditStats = async (req, res, next) => {
       recentActivity
     ] = await Promise.all([
       AuditLog.countDocuments({
-        collegeId: req.college_id,
+        ...(collegeId && { collegeId }),
         createdAt: { $gte: last24Hours }
       }),
       AuditLog.countDocuments({
-        collegeId: req.college_id,
+        ...(collegeId && { collegeId }),
         createdAt: { $gte: last7Days }
       }),
       AuditLog.countDocuments({
-        collegeId: req.college_id,
+        ...(collegeId && { collegeId }),
         createdAt: { $gte: last30Days }
       }),
       AuditLog.aggregate([
-        { $match: { collegeId: req.college_id } },
+        { $match: collegeId ? { collegeId } : {} },
         { $group: { _id: '$action', count: { $sum: 1 } } },
         { $sort: { count: -1 } }
       ]),
       AuditLog.aggregate([
-        { $match: { collegeId: req.college_id } },
+        { $match: collegeId ? { collegeId } : {} },
         { $group: { _id: '$resourceType', count: { $sum: 1 } } },
         { $sort: { count: -1 } }
       ]),
-      AuditLog.find({ collegeId: req.college_id })
+      AuditLog.find({ ...(collegeId && { collegeId }) })
         .sort({ createdAt: -1 })
         .limit(5)
         .populate('userId', 'email')

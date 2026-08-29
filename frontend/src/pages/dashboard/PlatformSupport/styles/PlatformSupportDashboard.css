@@ -1,0 +1,80 @@
+/* Platform Support Dashboard - Custom Styles */
+
+/* Light background color utilities */
+.bg-light-blue {
+  background-color: rgba(13, 110, 253, 0.1) !important;
+}
+.bg-light-warning {
+  background-color: rgba(255, 193, 7, 0.15) !important;
+}
+.bg-light-success {
+  background-color: rgba(40, 167, 69, 0.1) !important;
+}
+.bg-light-danger {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+.bg-light-purple {
+  background-color: rgba(111, 66, 193, 0.1) !important;
+}
+.bg-light-primary {
+  background-color: rgba(13, 110, 253, 0.05) !important;
+}
+.bg-light-secondary {
+  background-color: rgba(108, 117, 125, 0.1) !important;
+}
+.bg-light-info {
+  background-color: rgba(23, 162, 184, 0.1) !important;
+}
+.bg-light-dark {
+  background-color: rgba(33, 37, 41, 0.05) !important;
+}
+
+/* Hover lift effect */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Progress bar customizations */
+.progress {
+  border-radius: 4px;
+}
+.progress-bar {
+  border-radius: 4px;
+}
+
+/* Card hover */
+.card {
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+.card:hover {
+  border-color: rgba(13, 110, 253, 0.25);
+}
+
+/* Status badge enhancements */
+.badge {
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+}
+
+/* Table enhancements */
+.table-hover tbody tr:hover {
+  background-color: rgba(13, 110, 253, 0.03);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .card-title small {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Utility for tiny text */
+.tiny {
+  font-size: 0.7rem;
+  opacity: 0.8;
+}

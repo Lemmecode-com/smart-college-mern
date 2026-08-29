@@ -1,11 +1,14 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
 import ExportButtons from "../../../../components/ExportButtons";
 import Pagination from "../../../../components/Pagination";
+import { showSuccess, showError } from "../../../../utils/toast";
 import { toast } from "react-toastify";
+
+const PAGE_LOAD_TOAST_ID = "college-report-dashboard-load";
 import {
   FaGraduationCap,
   FaCheckCircle,
@@ -16,7 +19,6 @@ import {
   FaChartBar,
   FaChartLine,
   FaTable,
-  FaDownload,
   FaFilter,
   FaSearch,
   FaExclamationTriangle,
@@ -44,6 +46,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { logger } from "../../../../utils/logger";
 
 /* ================= CONSTANTS & CONFIGURATION ================= */
 const CONFIG = {
@@ -85,24 +88,29 @@ const CONFIG = {
     },
   },
   PAYMENT_STATUS: ["PAID", "PARTIAL", "DUE"],
-  TOAST: {
-    position: "top-right",
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    theme: "colored",
-  },
 };
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function ReportDashboard() {
   // ================= STATE MANAGEMENT =================
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [hasLoaded, setHasLoaded] = useState(false); // Prevent duplicate toasts
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const fetchIdRef = useRef(0);
 
   // Report Data States
   const [admissionData, setAdmissionData] = useState(null);
@@ -118,6 +126,9 @@ export default function ReportDashboard() {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [attendanceCourseFilter, setAttendanceCourseFilter] = useState("");
+
+  // Tab State
+  const [activeTab, setActiveTab] = useState("admission");
 
   // Pagination States
   const [currentPaymentPage, setCurrentPaymentPage] = useState(1);
@@ -154,11 +165,11 @@ export default function ReportDashboard() {
       { metric: "Rejected", value: admissionData.rejected || 0 },
       {
         metric: "Approval Rate",
-        value: `${admissionData.approvedPercentage || 0}%`,
+        value: parseFloat((admissionData.approvedPercentage || 0).toFixed(1)),
       },
       {
         metric: "Pending Rate",
-        value: `${admissionData.pendingPercentage || 0}%`,
+        value: parseFloat((admissionData.pendingPercentage || 0).toFixed(1)),
       },
     ];
   };
@@ -169,21 +180,19 @@ export default function ReportDashboard() {
     return [
       {
         metric: "Total Expected Fee",
-        value: formatCurrency(paymentData.total || 0),
+        value: paymentData.totalExpectedFee || 0,
       },
       {
         metric: "Total Collected",
-        value: formatCurrency(
-          paymentData.collected || paymentData.totalCollected || 0,
-        ),
+        value: paymentData.totalCollected || 0,
       },
       {
         metric: "Total Pending",
-        value: formatCurrency(paymentData.pending || 0),
+        value: paymentData.totalPending || 0,
       },
       {
         metric: "Collection Rate",
-        value: `${paymentData.collectionRate || 0}%`,
+        value: parseFloat((paymentData.collectionRate || 0).toFixed(1)),
       },
     ];
   };
@@ -193,10 +202,10 @@ export default function ReportDashboard() {
     return filteredStudentPayments.map((student) => ({
       name: student.name,
       course: student.course,
-      totalFee: formatCurrency(student.totalFee),
-      paid: formatCurrency(student.paid),
-      pending: formatCurrency(student.pending),
-      status: student.status,
+      totalFee: student.totalFee || 0,
+      paid: student.paid || 0,
+      pending: student.pending || 0,
+      status: student.calculatedStatus,
     }));
   };
 
@@ -205,12 +214,16 @@ export default function ReportDashboard() {
     if (!attendanceData) return [];
     return [
       {
-        metric: "Overall Attendance",
-        value: `${attendanceData.percentage || attendanceData.attendancePercentage || 0}%`,
+        metric: "Overall Attendance %",
+        value: parseFloat((attendanceData.averageAttendance || 0).toFixed(1)),
       },
       {
         metric: "Total Sessions",
-        value: attendanceData.totalSessions || attendanceData.total || 0,
+        value: attendanceData.totalSessions || attendanceData.totalRecords || 0,
+      },
+      {
+        metric: "Total Records",
+        value: attendanceData.totalRecords || 0,
       },
       {
         metric: "Average Attendance",
@@ -224,19 +237,21 @@ export default function ReportDashboard() {
     return filteredLowAttendance.map((student) => ({
       name: student.name,
       course: student.course,
-      attendance: `${student.attendance}%`,
+      attendance: parseFloat((student.attendance || 0).toFixed(1)),
       status: student.status,
     }));
   };
 
   // ================= FETCH DATA =================
   const fetchAllReports = useCallback(async () => {
-    // Prevent duplicate fetches
-    if (hasLoaded) return;
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
 
     try {
       setLoading(true);
       setError(null);
+
+      if (currentFetchId !== fetchIdRef.current) return;
 
       // Fetch courses for filter dropdown
       try {
@@ -245,20 +260,24 @@ export default function ReportDashboard() {
         const courseNames = coursesRes.data.map((course) => course.name);
         setAvailableCourses(courseNames);
       } catch (err) {
-        console.error("Failed to fetch courses:", err);
+        logger.error("Failed to fetch courses:", err);
         setAvailableCourses([]);
       } finally {
-        setCoursesLoading(false);
+        if (currentFetchId === fetchIdRef.current) {
+          setCoursesLoading(false);
+        }
       }
 
-      // Fetch all reports in parallel from API endpoints
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      // Fetch all reports in parallel — tolerate individual failures
       const [
         admissionRes,
         paymentRes,
         attendanceRes,
         studentPaymentsRes,
         lowAttendanceRes,
-      ] = await Promise.all([
+      ] = await Promise.allSettled([
         api.get("/reports/admissions/college-admin-summary"),
         api.get("/reports/payments/summary"),
         api.get("/reports/attendance/summary"),
@@ -266,56 +285,70 @@ export default function ReportDashboard() {
         api.get("/reports/attendance/low-attendance"),
       ]);
 
-      setAdmissionData(admissionRes.data);
-      setPaymentData(paymentRes.data);
+      if (admissionRes.status === "fulfilled") setAdmissionData(admissionRes.value.data);
+      else logger.error("Admission summary failed:", admissionRes.reason);
 
-      // Fix: Attendance API returns array, extract first element
-      const attendanceData = Array.isArray(attendanceRes.data)
-        ? attendanceRes.data[0] || {}
-        : attendanceRes.data;
-      setAttendanceData(attendanceData);
+      if (paymentRes.status === "fulfilled") setPaymentData(paymentRes.value.data);
+      else logger.error("Payment summary failed:", paymentRes.reason);
 
-      // Use real API data for student payments
-      if (studentPaymentsRes.data && Array.isArray(studentPaymentsRes.data)) {
-        setStudentPayments(studentPaymentsRes.data);
+      if (attendanceRes.status === "fulfilled") {
+        const data = attendanceRes.value.data;
+        const attendanceData = Array.isArray(data) ? data[0] || {} : data;
+        setAttendanceData(attendanceData);
       } else {
+        logger.error("Attendance summary failed:", attendanceRes.reason);
+      }
+
+      if (studentPaymentsRes.status === "fulfilled") {
+        setStudentPayments(
+          Array.isArray(studentPaymentsRes.value.data)
+            ? studentPaymentsRes.value.data
+            : [],
+        );
+      } else {
+        logger.error("Student payments failed:", studentPaymentsRes.reason);
         setStudentPayments([]);
       }
 
-      // Use real API data for low attendance students
-      if (
-        lowAttendanceRes.data &&
-        Array.isArray(lowAttendanceRes.data) &&
-        lowAttendanceRes.data.length > 0
-      ) {
-        setLowAttendanceStudents(lowAttendanceRes.data);
+      if (lowAttendanceRes.status === "fulfilled") {
+        setLowAttendanceStudents(
+          lowAttendanceRes.value.data && Array.isArray(lowAttendanceRes.value.data)
+            ? lowAttendanceRes.value.data
+            : [],
+        );
       } else {
+        logger.error("Low attendance failed:", lowAttendanceRes.reason);
         setLowAttendanceStudents([]);
       }
 
-      // Show success toast with unique toastId to prevent duplicates
+      if (currentFetchId !== fetchIdRef.current) return;
+
       toast.success("Reports loaded successfully!", {
-        ...CONFIG.TOAST,
-        toastId: "reports-loaded-success",
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
       });
-      setHasLoaded(true); // Mark as loaded to prevent duplicate toasts
     } catch (err) {
-      console.error("Error fetching reports:", err);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Unexpected error fetching reports:", statusCode, errorCode);
       const errorMessage =
         err.response?.data?.message ||
         "Failed to load reports. Please try again.";
-      const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
-      // Show error toast with unique toastId to prevent duplicates
-      toast.error(errorMessage, {
-        ...CONFIG.TOAST,
-        toastId: "reports-load-error",
-      });
-      setHasLoaded(true);
+      setError({ message: errorMessage, statusCode, errorCode });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError(errorMessage);
+      }
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
     }
-  }, [hasLoaded]);
+  }, []);
 
   // Handle retry action
   const handleRetry = async () => {
@@ -323,7 +356,6 @@ export default function ReportDashboard() {
     setIsRetrying(true);
     setRetryCount((prev) => prev + 1);
     setError(null);
-    setHasLoaded(false);
     await fetchAllReports();
     setIsRetrying(false);
   };
@@ -334,8 +366,11 @@ export default function ReportDashboard() {
   };
 
   // Fetch data on mount only once
-  useEffect(() => {
+   useEffect(() => {
     fetchAllReports();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -511,6 +546,7 @@ export default function ReportDashboard() {
         title="Error Loading Reports"
         message={error.message || "Failed to load reports. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -542,9 +578,6 @@ export default function ReportDashboard() {
             aria-label="Refresh report data"
           >
             <FaSyncAlt className="spin-icon" /> Refresh Data
-          </button>
-          <button className="btn-export" aria-label="Export all reports">
-            <FaDownload /> Export All
           </button>
         </div>
       </div>
@@ -612,10 +645,33 @@ export default function ReportDashboard() {
         </div>
       </div>
 
-      {/* ================= MAIN CONTENT GRID ================= */}
-      <div className="reports-grid">
+      {/* ================= TAB NAVIGATION ================= */}
+      <div className="report-tabs">
+        {[
+          { id: "admission", label: "Admission Summary" },
+          { id: "payment", label: "Payment Summary" },
+          { id: "payment-status", label: "Payment Status" },
+          { id: "attendance", label: "Attendance Summary" },
+          { id: "low-attendance", label: "Low Attendance" },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            className={`tab-btn${activeTab === tab.id ? " tab-btn--active" : ""}`}
+            onClick={() => {
+              setActiveTab(tab.id);
+              if (tab.id === "payment-status") setCurrentPaymentPage(1);
+              if (tab.id === "low-attendance") setCurrentLowAttendancePage(1);
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ================= MAIN CONTENT ================= */}
+      <div className="tab-content fade-in">
         {/* ================= ADMISSION SUMMARY ================= */}
-        <div className="report-card admission-card fade-in-up">
+        {activeTab === "admission" && <div className="report-card admission-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaGraduationCap className="card-icon" />
@@ -639,6 +695,16 @@ export default function ReportDashboard() {
 
           <div className="card-body">
             <div className="stats-grid">
+              <div className="stat-box">
+                <FaUsers className="stat-icon total" />
+                <div>
+                  <span className="stat-value">
+                    {admissionData?.total || 0}
+                  </span>
+                  <span className="stat-label">Total Students</span>
+                </div>
+              </div>
+
               <div className="stat-box">
                 <FaCheckCircle className="stat-icon approved" />
                 <div>
@@ -732,8 +798,10 @@ export default function ReportDashboard() {
           </div>
         </div>
 
+        }
+
         {/* ================= PAYMENT SUMMARY ================= */}
-        <div className="report-card payment-card fade-in-up">
+        {activeTab === "payment" && <div className="report-card payment-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaWallet className="card-icon" />
@@ -787,7 +855,9 @@ export default function ReportDashboard() {
                 <span className="payment-label">Total Pending</span>
                 <span className="payment-value">
                   {formatCurrency(
-                    paymentData?.pending ||
+                    (paymentData?.totalPending ??
+                      paymentData?.pending ??
+                      0) ||
                       studentPayments.reduce(
                         (sum, student) => sum + (Number(student.totalFee) || 0),
                         0,
@@ -840,8 +910,10 @@ export default function ReportDashboard() {
           </div>
         </div>
 
+        }
+
         {/* ================= STUDENT PAYMENT STATUS ================= */}
-        <div className="report-card payment-table-card fade-in-up">
+        {activeTab === "payment-status" && <div className="report-card payment-table-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaTable className="card-icon" />
@@ -967,8 +1039,10 @@ export default function ReportDashboard() {
           </div>
         </div>
 
+        }
+
         {/* ================= ATTENDANCE SUMMARY ================= */}
-        <div className="report-card attendance-card fade-in-up">
+        {activeTab === "attendance" && <div className="report-card attendance-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaCalendarCheck className="card-icon" />
@@ -1052,8 +1126,10 @@ export default function ReportDashboard() {
           </div>
         </div>
 
+        }
+
         {/* ================= LOW ATTENDANCE STUDENTS ================= */}
-        <div className="report-card low-attendance-card fade-in-up">
+        {activeTab === "low-attendance" && <div className="report-card low-attendance-card fade-in-up">
           <div className="card-header">
             <div className="card-title-wrapper">
               <FaExclamationTriangle className="card-icon" />
@@ -1105,9 +1181,17 @@ export default function ReportDashboard() {
                 />
                 <h3>No Low Attendance Students</h3>
                 <p style={{ color: "#6c757d" }}>
-                  {lowAttendanceStudents.length === 0
-                    ? "All students have attendance above 75%. Great job!"
-                    : "No students match the current filter."}
+                  {(() => {
+                    const totalSessions =
+                      attendanceData?.totalSessions ?? attendanceData?.totalRecords ?? 0;
+                    if (totalSessions === 0) {
+                      return "No attendance data available. Attendance has not been recorded yet.";
+                    }
+                    if (lowAttendanceStudents.length === 0) {
+                      return "All students have attendance above 75%. Great job!";
+                    }
+                    return "No students match the current filter.";
+                  })()}
                 </p>
               </div>
             ) : (
@@ -1125,7 +1209,7 @@ export default function ReportDashboard() {
                   <tbody>
                     {lowAttendancePagination.data.map((student) => (
                       <tr
-                        key={student._id || student.name}
+                        key={student._id || student.name || `student-${index}`}
                         className={
                           student.attendance < 60 ? "critical-row" : ""
                         }
@@ -1155,7 +1239,10 @@ export default function ReportDashboard() {
                           </span>
                         </td>
                         <td>
-                          <button className="btn-action">
+                          <button
+                            className="btn-action"
+                            onClick={() => navigate(`/college/view-student/${student._id}`)}
+                          >
                             <FaEye /> View
                           </button>
                         </td>
@@ -1178,6 +1265,7 @@ export default function ReportDashboard() {
             )}
           </div>
         </div>
+        }
       </div>
 
       {/* ================= STYLES ================= */}
@@ -1437,6 +1525,60 @@ export default function ReportDashboard() {
           font-family: var(--font-family-base);
         }
 
+        /* ================= TAB NAVIGATION ================= */
+        .report-tabs {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+          background: white;
+          padding: 0.75rem;
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-sm);
+        }
+
+        .tab-btn {
+          padding: 0.6rem 1.25rem;
+          border: 2px solid transparent;
+          border-radius: var(--radius-md);
+          background: transparent;
+          color: var(--text-secondary);
+          font-size: var(--font-size-sm);
+          font-weight: var(--font-weight-semibold);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+          background: rgba(15, 58, 74, 0.06);
+          color: var(--primary);
+          border-color: rgba(15, 58, 74, 0.15);
+        }
+
+        .tab-btn--active {
+          background: var(--primary);
+          color: white;
+          border-color: var(--primary);
+        }
+
+        .tab-btn--active:hover {
+          background: var(--primary-dark);
+          border-color: var(--primary-dark);
+          color: white;
+        }
+
+        .tab-content {
+          min-height: 400px;
+        }
+
+        @media (max-width: 480px) {
+          .tab-btn {
+            flex: 1 1 100%;
+            text-align: center;
+          }
+        }
+
         /* ================= REPORTS GRID ================= */
         .reports-grid {
           display: grid;
@@ -1607,22 +1749,22 @@ export default function ReportDashboard() {
         /* ================= ADMISSION STATS ================= */
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-bottom: 1.5rem;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 0.75rem;
+          margin-bottom: 1.25rem;
         }
 
         .stat-box {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          padding: 1rem;
+          gap: 0.5rem;
+          padding: 0.75rem;
           background: #f8f9fa;
           border-radius: 8px;
         }
 
         .stat-icon {
-          font-size: 1.5rem;
+          font-size: 1.25rem;
         }
 
         .stat-icon.approved {
@@ -1633,6 +1775,9 @@ export default function ReportDashboard() {
         }
         .stat-icon.rejected {
           color: #dc3545;
+        }
+        .stat-icon.total {
+          color: #17a2b8;
         }
 
         .stat-box > div {

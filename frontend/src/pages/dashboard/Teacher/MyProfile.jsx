@@ -3,6 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUserTie,
   FaEnvelope,
@@ -29,6 +31,19 @@ import {
   FaDatabase
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -153,11 +168,27 @@ export default function MyProfile() {
         setLoading(true);
         const res = await api.get("/teachers/my-profile");
 
-        // Backend returns { teacher: {...} }, axios keeps it nested
-        const profileData = res.data?.teacher || (res.data?.fullName ? res.data : null);
+        // Backend returns { data: { teacher: {...} } }, axios interceptor unwraps it
+        const profileData = res.data?.teacher || res.data?.data?.teacher || null;
         setProfile(profileData);
       } catch (err) {
-        setError("Failed to load profile data. Please try again.");
+        const statusCode = err.response?.status;
+        const errorCode =
+          err.response?.data?.code || (!err.response ? "NETWORK_ERROR" : undefined);
+        const backendMessage = err.response?.data?.message;
+
+        logger.error("Teacher profile load error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "MyProfile",
+        });
+
+        setError({
+          message: "Failed to load profile data. Please try again.",
+          statusCode,
+          errorCode,
+        });
       } finally {
         setLoading(false);
       }
@@ -171,7 +202,18 @@ export default function MyProfile() {
   }
 
   if (error) {
-    return <ErrorDisplay message={error} onRetry={() => window.location.reload()} />;
+    return (
+      <ApiError
+        title="Profile Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={() => window.location.reload()}
+        onGoBack={() => navigate("/teacher/dashboard")}
+        retryCount={0}
+        maxRetry={3}
+      />
+    );
   }
 
   if (!profile) {
@@ -184,8 +226,8 @@ export default function MyProfile() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        className="erp-page erp-viewport-min-100"
         style={{
-          minHeight: '100vh',
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
           paddingTop: '1.5rem',
           paddingBottom: '1.5rem',
@@ -357,7 +399,7 @@ export default function MyProfile() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <FaUniversity style={{ color: BRAND_COLORS.info.main }} />
-                  <span style={{ color: '#4a5568', fontWeight: 500 }}>Department: {profile.department_id?.name || 'N/A'}</span>
+                   <span style={{ color: '#4a5568', fontWeight: 500 }}>Department: {profile.department_id?.name || profile.department_id?.code || "Not Assigned"}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <FaBuilding style={{ color: BRAND_COLORS.success.main }} />
@@ -415,7 +457,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaPhoneAlt />}
                         label="Contact Number"
-                        value={profile.mobileNumber || 'N/A'}
+                        value={profile.mobileNumber || 'Not Set'}
                         copyable
                       />
                     </div>
@@ -423,7 +465,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaMapMarkerAlt />}
                         label="Address"
-                        value={profile.address || 'N/A'}
+                        value={profile.address || 'Not Set'}
                         fullWidth
                       />
                     </div>
@@ -431,7 +473,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaCalendarAlt />}
                         label="Date of Birth"
-                        value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}
+                        value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'Not Set'}
                       />
                     </div>
                     <div className="col-12 col-sm-6 col-lg-4">
@@ -452,7 +494,7 @@ export default function MyProfile() {
                       <InfoItem
                         icon={<FaClock />}
                         label="Joining Date"
-                        value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'N/A')}
+                        value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Not Set')}
                       />
                     </div>
                     <div className="col-12 col-sm-6 col-lg-4">
@@ -546,85 +588,6 @@ export default function MyProfile() {
         </div>
       </motion.div>
     </AnimatePresence>
-  );
-}
-
-/* ================= ERROR DISPLAY ================= */
-function ErrorDisplay({ message, onRetry }) {
-  return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-      padding: '2rem'
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '1.5rem',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-        maxWidth: '500px',
-        width: '100%',
-        padding: '2.5rem',
-        textAlign: 'center'
-      }}>
-        <div style={{ 
-          width: '80px',
-          height: '80px',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(220, 53, 69, 0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 1.5rem',
-          color: BRAND_COLORS.danger.main,
-          fontSize: '3rem'
-        }}>
-          <FaSyncAlt />
-        </div>
-        <h3 style={{ 
-          margin: '0 0 0.5rem 0', 
-          fontWeight: 700, 
-          color: '#1e293b',
-          fontSize: '1.75rem'
-        }}>
-          Profile Error
-        </h3>
-        <p style={{ 
-          color: '#64748b', 
-          marginBottom: '1.5rem',
-          lineHeight: 1.6
-        }}>
-          {message}
-        </p>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onRetry}
-          style={{
-            backgroundColor: BRAND_COLORS.primary.main,
-            color: 'white',
-            border: 'none',
-            padding: '0.875rem 2rem',
-            borderRadius: '12px',
-            fontSize: '1rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            margin: '0 auto',
-            boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)'
-          }}
-        >
-          <motion.div variants={spinVariants} animate="animate">
-            <FaSyncAlt />
-          </motion.div>
-          Retry Loading
-        </motion.button>
-      </div>
-    </div>
   );
 }
 
@@ -994,10 +957,9 @@ function EmptySection({ icon, title, message }) {
         {title}
       </h4>
       <p style={{ 
-        margin: 0, 
+        margin: '0 auto', 
         fontSize: '1rem',
         maxWidth: '600px',
-        margin: '0 auto',
         lineHeight: 1.6
       }}>
         {message}

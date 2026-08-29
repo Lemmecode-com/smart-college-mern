@@ -1,4 +1,5 @@
 import { Component } from "react";
+import * as Sentry from "@sentry/react";
 import { motion } from "framer-motion";
 import {
   FaExclamationTriangle,
@@ -44,8 +45,7 @@ class ErrorBoundary extends Component {
       this.props.onError(error, errorInfo);
     }
 
-    // In production, you could send to Sentry, LogRocket, etc.
-    // Example: Sentry.captureException(error, { extra: errorInfo });
+    Sentry.captureException(error, { extra: errorInfo });
   }
 
   handleRetry = () => {

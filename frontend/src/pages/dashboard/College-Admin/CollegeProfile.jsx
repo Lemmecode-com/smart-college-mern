@@ -4,9 +4,23 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
+import useRole from "../../../hooks/useRole";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 import {
-  FaUniversity,
   FaEnvelope,
   FaPhoneAlt,
   FaMapMarkerAlt,
@@ -40,6 +54,7 @@ import {
   FaSyncAlt,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import LogoImage from "../../../components/common/LogoImage";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -138,6 +153,7 @@ const spinVariants = {
 export default function CollegeProfile() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [college, setCollege] = useState(null);
   const [stats, setStats] = useState({
@@ -156,7 +172,7 @@ export default function CollegeProfile() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL") return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH PROFILE ================= */
   const fetchCollegeProfile = async () => {
@@ -173,10 +189,27 @@ export default function CollegeProfile() {
         activeSessions: collegeRes.data?.activeSessions || 0,
       });
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.message || "Failed to load college profile data";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("College profile load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "CollegeProfile",
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      setError({
+        message: isAuthError
+          ? "Your session has expired. Please sign in again."
+          : "Failed to load college profile. Please try again.",
+        statusCode,
+        errorCode,
+      });
       setCollege(null);
     } finally {
       setLoading(false);
@@ -185,7 +218,7 @@ export default function CollegeProfile() {
 
   useEffect(() => {
     fetchCollegeProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // Handle retry action
@@ -207,7 +240,7 @@ export default function CollegeProfile() {
     {
       icon: <FaUsers />,
       label: "Students",
-      path: "/students",
+      path: "/students/pending-approvals",
       color: "primary",
       gradient: BRAND_COLORS.primary.gradient,
     },
@@ -239,13 +272,13 @@ export default function CollegeProfile() {
       color: "danger",
       gradient: BRAND_COLORS.danger.gradient,
     },
-    {
+    ...(user?.role === "COLLEGE_ADMIN" ? [{
       icon: <FaCogs />,
       label: "Settings",
       path: "/system-settings/general",
       color: "secondary",
       gradient: BRAND_COLORS.secondary.gradient,
-    },
+    }] : []),
   ];
 
   if (loading) {
@@ -260,6 +293,7 @@ export default function CollegeProfile() {
           error.message || "Failed to load college profile. Please try again."
         }
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -277,8 +311,8 @@ export default function CollegeProfile() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        className="erp-viewport-min-100"
         style={{
-          minHeight: "100vh",
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
           paddingTop: "1.5rem",
           paddingBottom: "1.5rem",
@@ -341,19 +375,15 @@ export default function CollegeProfile() {
                 variants={pulseVariants}
                 initial="initial"
                 animate="pulse"
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  background: BRAND_COLORS.primary.gradient,
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  boxShadow: "0 10px 30px rgba(26, 75, 109, 0.4)",
-                  flexShrink: 0,
-                }}
+                style={{ flexShrink: 0 }}
               >
-                <FaUniversity size={36} style={{ color: "white" }} />
+                <LogoImage
+                  documentId={
+                    college?.documentRefs?.logo?.documentId ||
+                    college?.logoDocumentId
+                  }
+                  size={100}
+                />
               </motion.div>
 
               <div style={{ flex: 1 }}>
@@ -415,32 +445,33 @@ export default function CollegeProfile() {
                 </div>
               </div>
             </div>
-
-            <motion.button
-              whileHover={{
-                scale: 1.05,
-                boxShadow: "0 8px 20px rgba(26, 75, 109, 0.3)",
-              }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/college/edit-profile")}
-              style={{
-                backgroundColor: BRAND_COLORS.primary.main,
-                color: "white",
-                border: "none",
-                padding: "0.875rem 1.75rem",
-                borderRadius: "0.75rem",
-                fontSize: "1rem",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "0.75rem",
-                boxShadow: "0 4px 15px rgba(26, 75, 109, 0.3)",
-                transition: "all 0.3s ease",
-              }}
-            >
-              <FaEdit /> Edit Profile
-            </motion.button>
+            {canEdit('college') && (
+              <motion.button
+                whileHover={{
+                  scale: 1.05,
+                  boxShadow: "0 8px 20px rgba(26, 75, 109, 0.3)",
+                }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/college/edit-profile")}
+                style={{
+                  backgroundColor: BRAND_COLORS.primary.main,
+                  color: "white",
+                  border: "none",
+                  padding: "0.875rem 1.75rem",
+                  borderRadius: "0.75rem",
+                  fontSize: "1rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  boxShadow: "0 4px 15px rgba(26, 75, 109, 0.3)",
+                  transition: "all 0.3s ease",
+                }}
+              >
+                <FaEdit /> Edit Profile
+              </motion.button>
+            )}
           </motion.div>
 
           {/* ================= MAIN CONTENT GRID ================= */}
@@ -837,14 +868,14 @@ export default function CollegeProfile() {
 function EmptyState({ onBack }) {
   return (
     <div
-      style={{
-        minHeight: "100vh",
+       style={{
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
         background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
         padding: "2rem",
       }}
+      className="erp-viewport-min-100"
     >
       <div
         style={{
@@ -857,9 +888,7 @@ function EmptyState({ onBack }) {
           textAlign: "center",
         }}
       >
-        <div
-          style={{ color: "#64748b", marginBottom: "1rem", fontSize: "3rem" }}
-        >
+        <div style={{ color: "#64748b", marginBottom: "1rem", fontSize: "3rem" }}>
           <FaUniversity />
         </div>
         <h4

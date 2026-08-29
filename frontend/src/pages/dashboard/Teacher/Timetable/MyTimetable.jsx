@@ -4,6 +4,8 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import {
   FaCalendarAlt,
@@ -19,6 +21,9 @@ import {
   FaChevronRight,
   FaExclamationTriangle,
   FaSun,
+  FaPlay,
+  FaTimesCircle,
+  FaSyncAlt,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -71,12 +76,23 @@ const SLOT_TYPE_COLORS = {
 // Days array for iteration
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function MyTimetable() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [timetable, setTimetable] = useState(null);
   const [weekly, setWeekly] = useState({});
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -100,6 +116,15 @@ export default function MyTimetable() {
   });
   const [scheduleSummary, setScheduleSummary] = useState(null);
   const [timetableId, setTimetableId] = useState(null);
+  const [openSessions, setOpenSessions] = useState({});
+  const [closedSessions, setClosedSessions] = useState({});
+  const [creatingAttendance, setCreatingAttendance] = useState(null);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [attendanceConfirmModal, setAttendanceConfirmModal] = useState({
+    isOpen: false,
+    slot: null,
+    timeSlot: null,
+  });
   const hasLoadedRef = useRef(false);
 
   const MAX_RETRY = 3;
@@ -108,19 +133,113 @@ export default function MyTimetable() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
+  /* ================= CURRENT TIME UPDATER ================= */
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  /* ================= LOAD ATTENDANCE SESSIONS ================= */
+  useEffect(() => {
+    const loadAttendanceSessions = async () => {
+      if (!timetableId) return;
+      try {
+        const today = new Date();
+        const todayStr = today.toISOString().split("T")[0];
+        const res = await api.get("/attendance/sessions", {
+          params: { date: todayStr, limit: 100 },
+        });
+        const openMap = {};
+        const closedMap = {};
+        if (res.data.sessions) {
+          res.data.sessions.forEach((session) => {
+            const slotId =
+              typeof session.slot_id === "object"
+                ? session.slot_id._id
+                : session.slot_id;
+            if (session.status === "CLOSED") {
+              closedMap[slotId] = session;
+            } else {
+              openMap[slotId] = session;
+            }
+          });
+        }
+        setOpenSessions(openMap);
+        setClosedSessions(closedMap);
+      } catch (err) {
+        // Silently fail - use empty state
+      }
+    };
+
+    if (user?.role === "TEACHER" && timetableId) {
+      loadAttendanceSessions();
+    }
+  }, [timetableId, user?.role]);
+
+  /* ================= ATTENDANCE HELPERS ================= */
+  const DAY_MAP_JS = { 0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT" };
+
+  const getTodayDayAbbr = () => {
+    return DAY_MAP_JS[new Date().getDay()];
+  };
+
+  const isTimeWithinSlot = (slot) => {
+    if (!slot.startTime || !slot.endTime) return false;
+    const [startH, startM] = slot.startTime.split(":").map(Number);
+    const [endH, endM] = slot.endTime.split(":").map(Number);
+    const now = currentTime;
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  };
+
+  const getAttendanceButtonState = (slot, dayCode) => {
+    const isToday = dayCode === getTodayDayAbbr();
+    const isPublished = slot.timetable_id?.status === "PUBLISHED";
+
+    if (!isPublished) return "unpublished";
+    if (!isToday) return "not_today";
+
+    const exception = slot.exception;
+    const isCancelled = slot.status === "CANCELLED" || exception?.type === "CANCELLED";
+    const isHoliday = slot.status === "HOLIDAY" || exception?.type === "HOLIDAY";
+    const isRescheduled = slot.status === "RESCHEDULED" || exception?.type === "RESCHEDULED";
+
+    if (isCancelled) return "cancelled";
+    if (isHoliday) return "holiday";
+    if (isRescheduled) return "rescheduled";
+
+    const [endH, endM] = slot.endTime.split(":").map(Number);
+    const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+    const endMinutes = endH * 60 + endM;
+    if (currentMinutes >= endMinutes) return "ended";
+
+    if (!isTimeWithinSlot(slot)) return "upcoming";
+
+    const slotId = slot._id;
+    const hasOpenSession = !!openSessions[slotId] || slot.hasOpenSession;
+    const hasClosedSession = !!closedSessions[slotId] || slot.hasClosedSession;
+
+    if (hasOpenSession) return "completed";
+    if (hasClosedSession) return "ended";
+
+    return "start";
+  };
+
   /* ================= FETCH TIMETABLE ================= */
   const fetchTimetable = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // First, get the teacher's weekly timetable to find the timetable ID
       const res = await api.get("/timetable/weekly");
 
-      setTimetable(res.data.timetable || null);
-      setWeekly(res.data.weekly || {});
+      const weeklyData = res.data.weekly || {};
+      setWeekly(weeklyData);
 
-      // Update date range from backend if available
       if (res.data.weekRange) {
         setDateRange({
           startDate: res.data.weekRange.start,
@@ -128,8 +247,7 @@ export default function MyTimetable() {
         });
       }
 
-      // Extract timetable ID from the weekly response slots
-      const allSlots = Object.values(res.data.weekly || {}).flat();
+      const allSlots = Object.values(weeklyData).flat();
       const firstSlotWithTimetable = allSlots.find((s) => s.timetable_id);
       if (firstSlotWithTimetable?.timetable_id?._id) {
         setTimetableId(firstSlotWithTimetable.timetable_id._id);
@@ -145,6 +263,7 @@ export default function MyTimetable() {
       setError({
         message: errorMsg,
         statusCode: err.response?.status,
+        errorCode: err.response?.data?.code,
       });
 
       if (retryCount < MAX_RETRY) {
@@ -155,26 +274,50 @@ export default function MyTimetable() {
     }
   };
 
-  /* ================= FETCH SCHEDULE FOR DATE RANGE ================= */
   const fetchScheduleForDateRange = async (startDate, endDate) => {
-    if (!timetableId) {
-      // Fallback to regular weekly fetch
-      await fetchTimetable();
-      return;
-    }
-
+    console.log("[TT] fetchScheduleForDateRange start", { startDate, endDate, timetableId });
     try {
       setLoading(true);
       setError(null);
 
-      const res = await api.get(`/timetable/${timetableId}/schedule`, {
+      let currentTimetableId = timetableId;
+
+      if (!currentTimetableId) {
+        const weeklyRes = await api.get("/timetable/weekly");
+        const weeklyData = weeklyRes.data.weekly || {};
+        setWeekly(weeklyData);
+
+        const allSlots = Object.values(weeklyData).flat();
+        const firstSlotWithTimetable = allSlots.find((s) => s.timetable_id);
+        if (firstSlotWithTimetable?.timetable_id?._id) {
+          currentTimetableId = firstSlotWithTimetable.timetable_id._id;
+          setTimetableId(currentTimetableId);
+        }
+      }
+
+      if (!currentTimetableId) {
+        console.log("[TT] fetchScheduleForDateRange no timetableId");
+        setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
+        setScheduleSummary({
+          totalScheduledSlots: 0,
+          workingDays: 0,
+          cancelledSlots: 0,
+          extraClasses: 0,
+          holidays: 0,
+        });
+        setRetryCount(0);
+        return;
+      }
+
+      const res = await api.get(`/timetable/${currentTimetableId}/schedule`, {
         params: { startDate, endDate },
       });
 
-      const schedule = res.data?.data || [];
+      const schedule = res.data?.data?.schedule || [];
+      console.log("[TT] fetchScheduleForDateRange schedule", { scheduleLength: schedule.length, dates: schedule.map(s => s.date) });
+      console.log("[TT] fetchScheduleForDateRange raw", res.data);
 
       if (schedule && schedule.length > 0) {
-        // Convert schedule format to weekly format
         const weeklyData = {
           MON: [],
           TUE: [],
@@ -202,9 +345,9 @@ export default function MyTimetable() {
           }
         });
 
+        console.log("[TT] fetchScheduleForDateRange weeklyData", weeklyData);
         setWeekly(weeklyData);
 
-        // Compute schedule summary
         const totalSlots = Object.values(weeklyData).flat().length;
         const workingDays = schedule.filter((d) => d.isWorkingDay).length;
         const cancelledSlots = schedule.reduce(
@@ -226,15 +369,46 @@ export default function MyTimetable() {
           cancelledSlots,
           extraClasses,
           holidays,
+          todaySlots: todaySlotsList,
         });
       } else {
-        setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
+        console.log("[TT] schedule empty, falling back to weekly data for requested range");
+        const weeklyRes = await api.get("/timetable/weekly");
+        const weeklyData = weeklyRes.data.weekly || {};
+
+        const start = parseLocalDate(startDate);
+        const end = parseLocalDate(endDate);
+        const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+        const filteredWeekly = {
+          MON: [],
+          TUE: [],
+          WED: [],
+          THU: [],
+          FRI: [],
+          SAT: [],
+        };
+
+        Object.entries(weeklyData).forEach(([dayCode, slots]) => {
+          const matching = slots.filter((slot) => {
+            const slotDate = parseLocalDate(slot.exceptionDate || slot.date || startDate);
+            return slotDate >= start && slotDate <= end;
+          });
+          if (matching.length > 0) {
+            filteredWeekly[dayCode] = matching;
+          }
+        });
+
+        setWeekly(filteredWeekly);
+
+        const totalSlots = Object.values(filteredWeekly).flat().length;
+        const workingDays = totalSlots > 0 ? new Set(Object.entries(filteredWeekly).filter(([, s]) => s.length > 0).map(([d]) => d)).size : 0;
         setScheduleSummary({
-          totalScheduledSlots: 0,
-          workingDays: 0,
+          totalScheduledSlots: totalSlots,
+          workingDays,
           cancelledSlots: 0,
           extraClasses: 0,
           holidays: 0,
+          todaySlots: [],
         });
       }
 
@@ -248,6 +422,7 @@ export default function MyTimetable() {
       setError({
         message: errorMsg,
         statusCode: err.response?.status,
+        errorCode: err.response?.data?.code,
       });
 
       if (retryCount < MAX_RETRY) {
@@ -258,7 +433,6 @@ export default function MyTimetable() {
     }
   };
 
-  // Week navigation handlers
   const goToPreviousWeek = async () => {
     const start = new Date(dateRange.startDate.replace(/-/g, "/"));
     start.setDate(start.getDate() - 7);
@@ -268,6 +442,7 @@ export default function MyTimetable() {
       startDate: toLocalDateStr(start),
       endDate: toLocalDateStr(end),
     };
+    console.log("[TT] goToPreviousWeek", { from: dateRange, to: newRange, timetableId });
     setDateRange(newRange);
     await fetchScheduleForDateRange(newRange.startDate, newRange.endDate);
   };
@@ -281,6 +456,7 @@ export default function MyTimetable() {
       startDate: toLocalDateStr(start),
       endDate: toLocalDateStr(end),
     };
+    console.log("[TT] goToNextWeek", { from: dateRange, to: newRange, timetableId });
     setDateRange(newRange);
     await fetchScheduleForDateRange(newRange.startDate, newRange.endDate);
   };
@@ -299,8 +475,10 @@ export default function MyTimetable() {
       startDate: toLocalDateStr(monday),
       endDate: toLocalDateStr(sunday),
     };
+    console.log("[TT] goToCurrentWeek", { to: newRange, timetableId });
     setDateRange(newRange);
-    await fetchScheduleForDateRange(newRange.startDate, newRange.endDate);
+    setTimetableId(null);
+    await fetchTimetable();
   };
 
   useEffect(() => {
@@ -322,6 +500,95 @@ export default function MyTimetable() {
 
   const handleGoBack = () => {
     navigate("/teacher/dashboard");
+  };
+
+  /* ================= ATTENDANCE HANDLERS ================= */
+  const openAttendanceConfirm = (slot, dayCode) => {
+    const today = new Date();
+    const currentDayAbbr = DAY_MAP_JS[today.getDay()];
+
+    if (slot.day !== currentDayAbbr) {
+      toast.error("Attendance can only be started for today's lectures.", {
+        position: "top-right",
+        autoClose: 4000,
+        icon: <FaExclamationTriangle />,
+      });
+      return;
+    }
+
+    setAttendanceConfirmModal({
+      isOpen: true,
+      slot,
+      timeSlot: `${slot.startTime} - ${slot.endTime}`,
+    });
+  };
+
+  const createAttendanceSession = async () => {
+    const { slot } = attendanceConfirmModal;
+    if (!slot) return;
+
+    setCreatingAttendance(slot._id);
+    try {
+      const todayDate = new Date().toISOString().split("T")[0];
+      const res = await api.post("/attendance/sessions", {
+        slot_id: slot._id,
+        lectureDate: todayDate,
+        lectureNumber: 1,
+      });
+
+      const newSession = res.data.session;
+      const slotId = slot._id;
+
+      setOpenSessions((prev) => ({ ...prev, [slotId]: newSession }));
+
+      toast.success("Attendance session started! Redirecting...", {
+        position: "top-right",
+        autoClose: 2000,
+        icon: <FaCheckCircle />,
+      });
+
+      setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null });
+
+      setTimeout(() => {
+        navigate(`/attendance/session/${newSession._id}`);
+      }, 1500);
+    } catch (err) {
+      const message =
+        err.response?.data?.message ||
+        "Failed to create attendance session. Please try again.";
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(message, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+      }
+
+      if (
+        message.toLowerCase().includes("already") ||
+        message.toLowerCase().includes("exists") ||
+        message.toLowerCase().includes("duplicate")
+      ) {
+        const slotId = slot._id;
+        setOpenSessions((prev) => ({
+          ...prev,
+          [slotId]: { _id: "existing", status: "active" },
+        }));
+        setClosedSessions((prev) => ({
+          ...prev,
+          [slotId]: { _id: "existing", status: "active" },
+        }));
+      }
+
+      setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null });
+    } finally {
+      setCreatingAttendance(null);
+    }
   };
 
   /* ================= HELPER FUNCTIONS ================= */
@@ -359,6 +626,7 @@ export default function MyTimetable() {
         title="Timetable Loading Error"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -369,6 +637,7 @@ export default function MyTimetable() {
   }
 
   const totalSlots = getTotalSlots();
+  console.log("[TT] render", { totalSlots, weeklyKeys: Object.keys(weekly), dateRange });
 
   return (
     <motion.div
@@ -699,7 +968,7 @@ export default function MyTimetable() {
 
                           return (
                             <motion.div
-                              key={slot._id || slotIndex}
+                              key={slot._id || slot.startTime || `slot-${slotIndex}`}
                               initial={{ opacity: 0, x: -10 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: slotIndex * 0.03 }}
@@ -896,6 +1165,207 @@ export default function MyTimetable() {
                                   </span>
                                 </div>
                               </div>
+
+                              {/* ================= ATTENDANCE BUTTON ================= */}
+                              {(() => {
+                                const btnState = getAttendanceButtonState(slot, dayCode);
+
+                                if (btnState === "cancelled" || btnState === "holiday" || btnState === "rescheduled") {
+                                  return null;
+                                }
+
+                                if (btnState === "unpublished") {
+                                  return (
+                                    <div
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.5rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "#f1f5f9",
+                                        border: "1px solid #e2e8f0",
+                                        fontSize: "0.75rem",
+                                        color: "#64748b",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.375rem",
+                                      }}
+                                    >
+                                      <FaExclamationTriangle size={12} />
+                                      <span>Timetable not published</span>
+                                    </div>
+                                  );
+                                }
+
+                                if (btnState === "not_today") {
+                                  return (
+                                    <div
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.5rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "#f8fafc",
+                                        border: "1px solid #e2e8f0",
+                                        fontSize: "0.75rem",
+                                        color: "#94a3b8",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.375rem",
+                                      }}
+                                    >
+                                      <FaClock size={12} />
+                                      <span>Mark attendance only on class day</span>
+                                    </div>
+                                  );
+                                }
+
+                                if (btnState === "upcoming") {
+                                  return (
+                                    <div
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.5rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "#eff6ff",
+                                        border: "1px solid #bfdbfe",
+                                        fontSize: "0.75rem",
+                                        color: "#2563eb",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "0.375rem",
+                                      }}
+                                    >
+                                      <FaSyncAlt size={12} />
+                                      <span>Available at {formatTime12Hour(slot.startTime)}</span>
+                                    </div>
+                                  );
+                                }
+
+                                if (btnState === "creating") {
+                                  return (
+                                    <motion.button
+                                      disabled
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        width: "100%",
+                                        padding: "0.6rem",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: "linear-gradient(135deg, #28a745, #1e7e34)",
+                                        color: "white",
+                                        fontSize: "0.85rem",
+                                        fontWeight: 600,
+                                        cursor: "not-allowed",
+                                        opacity: 0.8,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "0.5rem",
+                                      }}
+                                    >
+                                      <motion.div
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                      >
+                                        <FaSyncAlt size={14} />
+                                      </motion.div>
+                                      Starting Session...
+                                    </motion.button>
+                                  );
+                                }
+
+                                if (btnState === "completed") {
+                                  const session = openSessions[slot._id];
+                                  const sessionId = session?._id;
+                                  return (
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.95 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      onClick={() => sessionId && navigate(`/attendance/session/${sessionId}`)}
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.6rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "#dcfce7",
+                                        border: "1px solid #86efac",
+                                        fontSize: "0.85rem",
+                                        color: "#166534",
+                                        fontWeight: 600,
+                                        cursor: sessionId ? "pointer" : "default",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "0.5rem",
+                                        boxShadow: "0 4px 12px rgba(40, 167, 69, 0.35)",
+                                      }}
+                                    >
+                                      <FaCheckCircle size={14} />
+                                      <span>Attendance Marked</span>
+                                    </motion.div>
+                                  );
+                                }
+
+                                if (btnState === "ended") {
+                                  const session = closedSessions[slot._id];
+                                  const sessionId = session?._id;
+                                  return (
+                                    <motion.div
+                                      initial={{ opacity: 0, scale: 0.95 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      onClick={() => sessionId && navigate(`/attendance/session/${sessionId}`)}
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        padding: "0.6rem 0.75rem",
+                                        borderRadius: "8px",
+                                        background: "#f1f5f9",
+                                        border: "1px solid #e2e8f0",
+                                        fontSize: "0.85rem",
+                                        color: "#64748b",
+                                        fontWeight: 600,
+                                        cursor: sessionId ? "pointer" : "default",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "0.5rem",
+                                      }}
+                                    >
+                                      <FaTimesCircle size={14} />
+                                      <span>Session Ended</span>
+                                    </motion.div>
+                                  );
+                                }
+
+                                if (btnState === "start") {
+                                  return (
+                                    <motion.button
+                                      whileHover={{ scale: 1.02, boxShadow: "0 6px 20px rgba(40, 167, 69, 0.4)" }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={() => openAttendanceConfirm(slot, dayCode)}
+                                      style={{
+                                        marginTop: "0.75rem",
+                                        width: "100%",
+                                        padding: "0.6rem 0.75rem",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: "linear-gradient(135deg, #28a745, #1e7e34)",
+                                        color: "white",
+                                        fontSize: "0.85rem",
+                                        fontWeight: 600,
+                                        cursor: "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: "0.5rem",
+                                        boxShadow: "0 4px 15px rgba(40, 167, 69, 0.35)",
+                                      }}
+                                    >
+                                      <FaPlay size={13} />
+                                      <span>Mark Attendance</span>
+                                    </motion.button>
+                                  );
+                                }
+
+                                return null;
+                              })()}
                             </motion.div>
                           );
                         })}
@@ -908,7 +1378,230 @@ export default function MyTimetable() {
         </div>
       )}
 
-      {/* ================= CSS ================= */}
+      {/* ================= ATTENDANCE CONFIRM MODAL ================= */}
+      {attendanceConfirmModal.isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+          onClick={() =>
+            setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null })
+          }
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            style={{
+              backgroundColor: "white",
+              borderRadius: "16px",
+              boxShadow: "0 20px 50px rgba(0, 0, 0, 0.3)",
+              width: "100%",
+              maxWidth: "450px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              padding: "1.75rem",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1.25rem",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "1.25rem",
+                  fontWeight: 700,
+                  color: "#1e293b",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                }}
+              >
+                <FaCheckCircle style={{ color: "#28a745" }} /> Start Attendance
+              </h3>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() =>
+                  setAttendanceConfirmModal({ isOpen: false, slot: null, timeSlot: null })
+                }
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "1.5rem",
+                  color: "#64748b",
+                  cursor: "pointer",
+                  width: "32px",
+                  height: "32px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "8px",
+                }}
+              >
+                &times;
+              </motion.button>
+            </div>
+
+            {attendanceConfirmModal.slot && (
+              <div>
+                <div
+                  style={{
+                    padding: "1rem",
+                    borderRadius: "12px",
+                    backgroundColor: "#dbeafe",
+                    border: "1px solid #93c5fd",
+                    marginBottom: "1.25rem",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      marginBottom: "0.5rem",
+                    }}
+                  >
+                    <FaBookOpen style={{ color: BRAND_COLORS.primary.main }} />
+                    <strong>
+                      {attendanceConfirmModal.slot.subject_id?.name}
+                    </strong>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.9rem",
+                      color: "#4a5568",
+                    }}
+                  >
+                    <FaClock size={12} />
+                    <span>{attendanceConfirmModal.timeSlot}</span>
+                  </div>
+                  {attendanceConfirmModal.slot.room && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        fontSize: "0.9rem",
+                        color: "#4a5568",
+                        marginTop: "0.25rem",
+                      }}
+                    >
+                      <FaDoorOpen size={12} />
+                      <span>Room {attendanceConfirmModal.slot.room}</span>
+                    </div>
+                  )}
+                </div>
+
+                <p
+                  style={{
+                    color: "#4a5568",
+                    fontSize: "0.95rem",
+                    lineHeight: 1.6,
+                    marginBottom: "1.5rem",
+                  }}
+                >
+                  This will create a new attendance session for{" "}
+                  <strong>
+                    {attendanceConfirmModal.slot.subject_id?.name}
+                  </strong>{" "}
+                  today. Students will be able to mark their attendance.
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "0.75rem",
+                    justifyContent: "flex-end",
+                  }}
+                >
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() =>
+                      setAttendanceConfirmModal({
+                        isOpen: false,
+                        slot: null,
+                        timeSlot: null,
+                      })
+                    }
+                    style={{
+                      padding: "0.75rem 1.5rem",
+                      borderRadius: "12px",
+                      border: "1px solid #e2e8f0",
+                      backgroundColor: "white",
+                      color: "#1e293b",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={createAttendanceSession}
+                    disabled={creatingAttendance === attendanceConfirmModal.slot?._id}
+                    style={{
+                      padding: "0.75rem 1.5rem",
+                      borderRadius: "12px",
+                      border: "none",
+                      background: creatingAttendance === attendanceConfirmModal.slot?._id
+                        ? "#cbd5e1"
+                        : "linear-gradient(135deg, #28a745, #1e7e34)",
+                      color: "white",
+                      fontSize: "1rem",
+                      fontWeight: 600,
+                      cursor: creatingAttendance === attendanceConfirmModal.slot?._id
+                        ? "not-allowed"
+                        : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                    }}
+                  >
+                    {creatingAttendance === attendanceConfirmModal.slot?._id ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      >
+                        <FaSyncAlt size={16} />
+                      </motion.div>
+                    ) : (
+                      <FaPlay size={14} />
+                    )}
+                    {creatingAttendance === attendanceConfirmModal.slot?._id
+                      ? "Starting..."
+                      : "Start Attendance"}
+                  </motion.button>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
       <style>{`
         .card {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

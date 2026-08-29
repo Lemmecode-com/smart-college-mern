@@ -13,7 +13,9 @@
  */
 exports.validateEmail = (email) => {
   if (!email) return true; // Let required handle empty values
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // Rejects consecutive dots in the domain (e.g. abc@gmail..com) and aligns
+  // with the backend express-validator `.isEmail()` behavior.
+  const regex = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
   return regex.test(email);
 };
 
@@ -118,3 +120,56 @@ exports.yearValidatorMessage = (minYear = 1900, maxYearOffset = 5) => {
   const currentYear = new Date().getFullYear();
   return `Year must be between ${minYear} and ${currentYear + maxYearOffset}`;
 };
+
+/**
+ * 8. Password Strength Validator
+ * Centralized password policy for all password entry points
+ * Policy: min 8 characters, with uppercase, lowercase, number, and special character
+ */
+exports.validatePassword = (password) => {
+  if (!password || typeof password !== 'string') return false;
+  if (password.length < 8) return false;
+  if (!/[A-Z]/.test(password)) return false;
+  if (!/[a-z]/.test(password)) return false;
+  if (!/[0-9]/.test(password)) return false;
+  if (!/[^A-Za-z0-9]/.test(password)) return false;
+  return true;
+};
+
+exports.passwordValidationMessage = 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character';
+
+/**
+ * 9. Joining Date Validator
+ * Validates joining date is not in the future
+ */
+exports.validateJoiningDate = (joiningDate) => {
+  if (!joiningDate) return true;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const checkDate = new Date(joiningDate);
+  checkDate.setHours(0, 0, 0, 0);
+  return checkDate <= today;
+};
+
+exports.joiningDateValidatorMessage = 'Joining Date cannot be a future date';
+
+/**
+ * 10. Expiry Date Validator
+ * Validates expiry date is not in the past (must be today or a future date)
+ */
+exports.validateExpiryDate = (expiryDate) => {
+  if (!expiryDate) return true;
+
+  const date = new Date(expiryDate);
+  if (isNaN(date.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+
+  return date >= today;
+};
+
+exports.expiryDateValidatorMessage = 'Expiry Date must be today or a future date.';

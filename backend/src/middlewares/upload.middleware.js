@@ -1,96 +1,196 @@
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
 const crypto = require("crypto");
+const { getStorageProvider } = require("../services/storage");
+const {
+  BROAD_ALLOWED_MIME_TYPES,
+  validateFilesAgainstConfig,
+} = require("../utils/fileValidation");
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, "../../uploads/students");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
+const storage = multer.memoryStorage();
 
-// Allowed file extensions mapping
-const allowedExtensions = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/jpg": ".jpg",
-  "application/pdf": ".pdf"
-};
-
-// Storage configuration for student documents
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (req, file, cb) {
-    // 🔒 SECURITY: Generate completely random filename
-    // Don't use original filename to prevent path traversal attacks
-    const randomString = crypto.randomBytes(16).toString('hex');
-    const ext = allowedExtensions[file.mimetype] || '.bin';
-    const fieldName = file.fieldname.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
-    
-    // Format: fieldname-timestamp-randomstring.ext
-    cb(null, `${fieldName}-${Date.now()}-${randomString}${ext}`);
-  }
-});
-
-// File filter - only allow images and PDFs with double validation
-const fileFilter = (req, file, cb) => {
-  const allowedMimes = [
-    "image/jpeg",
-    "image/png",
-    "image/jpg",
-    "application/pdf"
-  ];
-
-  // 🔒 SECURITY: Validate MIME type
-  if (!allowedMimes.includes(file.mimetype)) {
-    return cb(new Error("Invalid file type. Only JPEG, PNG and PDF are allowed."), false);
-  }
-
-  // 🔒 SECURITY: Validate file extension matches MIME type
-  const ext = path.extname(file.originalname).toLowerCase();
-  const expectedExt = allowedExtensions[file.mimetype];
-  
-  if (ext && ext !== expectedExt) {
-    return cb(new Error(`File extension ${ext} does not match content type ${file.mimetype}`), false);
+/**
+ * Broad MIME type guard used as a first-pass filter in multer.
+ * This accepts the superset of all possible document formats.
+ * Strict per-document format validation against the college's
+ * Document Configuration is performed by the controller using
+ * validateFilesAgainstConfig() from the shared fileValidation utility.
+ */
+const studentFileFilter = (req, file, cb) => {
+  if (!BROAD_ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    return cb(
+      new Error("Invalid file type. Only PDF, JPG, JPEG, PNG, DOC and DOCX are allowed."),
+      false,
+    );
   }
 
   cb(null, true);
 };
 
-// Upload middleware configuration
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
+const uploadStudent = multer({
+  storage,
+  fileFilter: studentFileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB max file size
-  }
+    fileSize: 5 * 1024 * 1024,
+  },
 });
 
-// Middleware for handling student registration document uploads
-const uploadStudentDocuments = upload.fields([
-  { name: "sscMarksheet", maxCount: 1 },           // 10th Marksheet
-  { name: "hscMarksheet", maxCount: 1 },           // 12th Marksheet
-  { name: "passportPhoto", maxCount: 1 },          // Passport Photo
-  { name: "categoryCertificate", maxCount: 1 },    // Category Certificate (OBC/SC/ST/EWS) - COMMONLY USED
-  { name: "casteCertificate", maxCount: 1 },       // Caste Certificate (alternative name, same as category) - RARELY USED
-  { name: "incomeCertificate", maxCount: 1 },      // Income Certificate
-  { name: "characterCertificate", maxCount: 1 },   // Character Certificate
-  { name: "transferCertificate", maxCount: 1 },    // Transfer Certificate (TC)
-  { name: "aadharCard", maxCount: 1 },             // Aadhar Card
-  { name: "entranceExamScore", maxCount: 1 },      // Entrance Exam Score
-  { name: "migrationCertificate", maxCount: 1 },   // Migration Certificate
-  { name: "domicileCertificate", maxCount: 1 },    // Domicile Certificate
-  { name: "nonCreamyLayerCertificate", maxCount: 1 }, // Non-Creamy Layer (for OBC)
-  { name: "physicallyChallengedCertificate", maxCount: 1 }, // PC Certificate
-  { name: "sportsQuotaCertificate", maxCount: 1 }, // Sports Quota
-  { name: "nriSponsorCertificate", maxCount: 1 },  // NRI Sponsor
-  { name: "gapCertificate", maxCount: 1 },         // Gap Certificate
-  { name: "affidavit", maxCount: 1 }               // Affidavit
-]);
+/**
+ * Teacher upload filter — also uses the broad MIME guard.
+ * Format-specific validation is handled by controllers.
+ */
+const teacherFileFilter = (req, file, cb) => {
+  if (!BROAD_ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+    return cb(
+      new Error("Invalid file type. Only PDF, JPG, JPEG, PNG, DOC and DOCX are allowed."),
+      false,
+    );
+  }
+
+  cb(null, true);
+};
+
+const uploadTeacher = multer({
+  storage,
+  fileFilter: teacherFileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+});
+
+const uploadStudentDocuments = (req, res, next) => {
+  uploadStudent.any()(req, res, (err) => {
+    if (err) return next(err);
+
+    if (Array.isArray(req.files)) {
+      const normalized = {};
+      for (const file of req.files) {
+        if (!normalized[file.fieldname]) normalized[file.fieldname] = [];
+        normalized[file.fieldname].push(file);
+      }
+      req.files = normalized;
+    }
+
+    next();
+  });
+};
+
+const TEACHER_DOCUMENT_LIMITS = {
+  aadhaarCard: 2 * 1024 * 1024,
+  panCard: 2 * 1024 * 1024,
+  degreeCertificate: 5 * 1024 * 1024,
+  passportPhoto: 2 * 1024 * 1024,
+};
+
+const uploadTeacherDocuments = (req, res, next) => {
+  uploadTeacher.any()(req, res, (err) => {
+    if (err) return next(err);
+
+    if (Array.isArray(req.files)) {
+      const normalized = {};
+      for (const file of req.files) {
+        if (!normalized[file.fieldname]) normalized[file.fieldname] = [];
+        normalized[file.fieldname].push(file);
+      }
+      req.files = normalized;
+    }
+
+    const files = req.files || {};
+    const oversized = [];
+    for (const [fieldname, fileList] of Object.entries(files)) {
+      const file = Array.isArray(fileList) ? fileList[0] : fileList;
+      if (!file) continue;
+
+      const limit = TEACHER_DOCUMENT_LIMITS[fieldname];
+      if (limit && file.size > limit) {
+        oversized.push({
+          fieldname,
+          maxSize: `${Math.round(limit / (1024 * 1024))}MB`,
+          actualSize: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
+        });
+      }
+    }
+
+    if (oversized.length > 0) {
+      const messages = oversized
+        .map((o) => `${o.fieldname} exceeds maximum size of ${o.maxSize} (uploaded: ${o.actualSize})`)
+        .join("; ");
+      return next(new Error(messages));
+    }
+
+    next();
+  });
+};
+
+const uploadDocument = (req, res, next) => {
+  const fileFilter = (req, file, cb) => {
+    if (!BROAD_ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      return cb(
+        new Error("Invalid file type. Only PDF, JPG, JPEG, PNG, DOC and DOCX are allowed."),
+        false,
+      );
+    }
+    cb(null, true);
+  };
+
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    fileFilter,
+    limits: {
+      fileSize: 10 * 1024 * 1024,
+    },
+  });
+
+  upload.single("file")(req, res, (err) => {
+    if (err) return next(err);
+    next();
+  });
+};
+
+async function processUploadsWithStorage(files, category = "student") {
+  const storageService = getStorageProvider().getAdapter();
+  const results = {};
+
+  for (const [fieldName, fileList] of Object.entries(files)) {
+    const filesArray = Array.isArray(fileList) ? fileList : [fileList];
+    results[fieldName] = [];
+
+    for (const file of filesArray) {
+      if (!file.buffer) continue;
+
+      const uploadResult = await storageService.uploadFile(
+        file.buffer,
+        file.originalname,
+        category,
+        {
+          originalName: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          fieldname: fieldName,
+        },
+      );
+
+      results[fieldName].push({
+        ...file,
+        storagePath: uploadResult.storagePath,
+        filename: uploadResult.filename,
+        url: uploadResult.url,
+      });
+    }
+  }
+
+  return results;
+}
 
 module.exports = {
-  upload,
-  uploadStudentDocuments
+  upload: {
+    student: uploadStudent,
+    teacher: uploadTeacher,
+    document: uploadDocument,
+  },
+  uploadStudentDocuments,
+  uploadTeacherDocuments,
+  uploadDocument,
+  processUploadsWithStorage,
+  validateFilesAgainstConfig,
 };

@@ -1,10 +1,13 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useContext, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
+import { showSuccess, showError } from "../../../utils/toast";
+import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
 import {
   FaFileInvoiceDollar,
@@ -22,11 +25,28 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaExternalLinkAlt,
+  FaUser,
 } from "react-icons/fa";
+
+const PAGE_LOAD_TOAST_ID = "college-payment-history-load";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 const PAGE_SIZE = 10;
 
 export default function PaymentHistory() {
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,38 +56,76 @@ export default function PaymentHistory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [activeDropdown, setActiveDropdown] = useState(null); // Store row index for active dropdown
 
+  // Date filtering state
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [showDateFilters, setShowDateFilters] = useState(false);
+  const [shouldFetch, setShouldFetch] = useState(true);
+  const fetchIdRef = useRef(0);
+
   // Fetch payment history from backend
   const fetchPaymentHistory = useCallback(async () => {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get("/admin/payments/report");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      // Build query parameters for date filtering
+      let queryParams = {};
+      if (startDate) queryParams.startDate = startDate;
+      if (endDate) queryParams.endDate = endDate;
+
+      const queryString = new URLSearchParams(queryParams).toString();
+      const url = `/admin/payments/report${queryString ? `?${queryString}` : ''}`;
+
+      const res = await api.get(url);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setPaymentData(res.data);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       toast.success("Payment history loaded successfully!", {
-        position: "top-right",
+        toastId: PAGE_LOAD_TOAST_ID,
         autoClose: 3000,
-        toastId: "payment-history-success",
       });
     } catch (err) {
-      console.error("Payment history fetch error:", err);
       const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Payment history fetch error:", statusCode, errorCode);
       const errorMsg =
         err.response?.data?.message ||
         "Failed to load payment history. Please try again.";
-      setError({ message: errorMsg, statusCode });
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        toastId: "payment-history-error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      setError({ message: errorMsg, statusCode, errorCode });
 
-  useEffect(() => {
-    fetchPaymentHistory();
-  }, [fetchPaymentHistory]);
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError(errorMsg);
+      }
+    } finally {
+      if (currentFetchId === fetchIdRef.current) {
+         setLoading(false);
+      }
+    }
+  }, [startDate, endDate]);
+
+   useEffect(() => {
+    if (shouldFetch) {
+      fetchPaymentHistory();
+      setShouldFetch(false);
+    }
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
+  }, [shouldFetch, fetchPaymentHistory]);
 
   // Format currency
   const formatCurrency = (amount) => {
@@ -210,16 +268,16 @@ export default function PaymentHistory() {
   };
 
   const exportColumns = [
-    { header: "Student Name", key: "Student Name" },
-    { header: "Email", key: "Email" },
-    { header: "Course", key: "Course" },
-    { header: "Total Fee", key: "Total Fee" },
-    { header: "Paid Amount", key: "Paid Amount" },
-    { header: "Pending Amount", key: "Pending Amount" },
-    { header: "Status", key: "Status" },
-    { header: "Paid Installments", key: "Paid Installments" },
-    { header: "Transaction IDs", key: "Transaction IDs" },
-    { header: "Payment Dates", key: "Payment Dates" },
+    { header: "Student Name", key: "Student Name", width: 14, align: "left" },
+    { header: "Email", key: "Email", width: 14, align: "left" },
+    { header: "Course", key: "Course", width: 16, align: "left" },
+    { header: "Total Fee", key: "Total Fee", width: 12, align: "right" },
+    { header: "Paid Amount", key: "Paid Amount", width: 12, align: "right" },
+    { header: "Pending Amount", key: "Pending Amount", width: 12, align: "right" },
+    { header: "Status", key: "Status", width: 8, align: "center" },
+    { header: "Paid Installments", key: "Paid Installments", width: 16, align: "left" },
+    { header: "Transaction IDs", key: "Transaction IDs", width: 18, align: "left" },
+    { header: "Payment Dates", key: "Payment Dates", width: 12, align: "center" },
   ];
 
   // Loading state
@@ -234,6 +292,7 @@ export default function PaymentHistory() {
         title="Error Loading Payment History"
         message={error.message}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={fetchPaymentHistory}
         onGoBack={() => navigate(-1)}
         retryCount={0}
@@ -256,12 +315,11 @@ export default function PaymentHistory() {
       .length,
   };
 
-  return (
-    <div className="payment-history-container">
+   return (
+     <div className="payment-history-container erp-page erp-viewport-min-100">
       <style>{`
         /* ================= CONTAINER ================= */
         .payment-history-container {
-          min-height: 100vh;
           background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
           padding: 1.5rem;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -296,90 +354,91 @@ export default function PaymentHistory() {
         }
 
         /* ================= SUMMARY CARDS ================= */
-        .payment-summary-grid {
+        .summary-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
-          gap: 1.5rem;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
           margin-bottom: 1.5rem;
         }
 
-        .payment-summary-card {
+        .stat-card {
           background: white;
-          padding: 1.5rem;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+          padding: 1.25rem;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
           display: flex;
           align-items: center;
-          gap: 1.25rem;
+          gap: 0.75rem;
           border-left: 4px solid transparent;
           transition: all 0.3s ease;
         }
 
-        .payment-summary-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        .stat-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .payment-summary-card.collected {
-          border-left-color: #28a745;
-        }
-
-        .payment-summary-card.paid {
-          border-left-color: #3db5e6;
-        }
-
-        .payment-summary-card.partial {
-          border-left-color: #ffc107;
-        }
-
-        .payment-summary-card.due {
-          border-left-color: #dc3545;
-        }
-
-        .payment-summary-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
+        .stat-icon {
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
           flex-shrink: 0;
-          font-size: 1.5rem;
+          font-size: 0.85rem;
         }
 
-        .payment-summary-card.collected .payment-summary-icon {
+        .stat-card.collected .stat-icon {
           background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
         }
 
-        .payment-summary-card.paid .payment-summary-icon {
+        .stat-card.paid .stat-icon {
           background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
         }
 
-        .payment-summary-card.partial .payment-summary-icon {
+        .stat-card.partial .stat-icon {
           background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
         }
 
-        .payment-summary-card.due .payment-summary-icon {
+        .stat-card.due .stat-icon {
           background: linear-gradient(135deg, #dc3545 0%, #c62828 100%);
         }
 
-        .payment-summary-content {
+        .stat-content {
           flex: 1;
+          min-width: 0;
         }
 
-        .payment-summary-label {
-          font-size: 0.95rem;
+        .stat-label {
+          font-size: 0.75rem;
           color: #666;
           font-weight: 600;
           margin-bottom: 0.25rem;
+          line-height: 1.2;
         }
 
-        .payment-summary-value {
-          font-size: 2rem;
-          font-weight: 800;
+        .stat-value {
+          font-size: 1.1rem;
+          font-weight: 700;
           color: #1a4b6d;
-          line-height: 1;
+          line-height: 1.2;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        @media (max-width: 1024px) {
+          .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 576px) {
+          .summary-grid {
+            grid-template-columns: 1fr;
+          }
         }
 
         /* ================= CONTROLS CARD ================= */
@@ -955,9 +1014,9 @@ export default function PaymentHistory() {
             gap: 1rem;
           }
 
-          .payment-summary-grid {
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          }
+           .summary-grid {
+             grid-template-columns: repeat(2, 1fr);
+           }
 
           .payment-controls-body {
             flex-direction: column;
@@ -972,12 +1031,130 @@ export default function PaymentHistory() {
             min-width: 650px;
           }
         }
+
+        /* ================= DATE FILTER STYLES ================= */
+        .date-filter-controls {
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .filter-toggle-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .filter-toggle-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.3);
+        }
+
+        .filter-toggle-btn.active {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a4b6d 100%);
+        }
+
+        .date-filters-row {
+          display: flex;
+          align-items: flex-end;
+          gap: 1rem;
+          margin-top: 1rem;
+          padding: 1rem;
+          background: #f8f9fa;
+          border-radius: 12px;
+          border: 1px solid #e9ecef;
+        }
+
+        .date-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .date-label {
+          font-weight: 600;
+          color: #1a4b6d;
+          font-size: 0.875rem;
+        }
+
+        .date-input {
+          padding: 0.75rem;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          font-size: 0.875rem;
+          transition: border-color 0.3s ease;
+        }
+
+        .date-input:focus {
+          border-color: #1a4b6d;
+          outline: none;
+        }
+
+        .date-actions {
+          display: flex;
+          gap: 0.5rem;
+        }
+
+        .apply-filter-btn,
+        .clear-filter-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.75rem 1rem;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .apply-filter-btn {
+          background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+          color: white;
+        }
+
+        .apply-filter-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .clear-filter-btn {
+          background: #6c757d;
+          color: white;
+        }
+
+        .clear-filter-btn:hover {
+          background: #5a6268;
+          transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+          .date-filters-row {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .date-actions {
+            justify-content: center;
+            margin-top: 1rem;
+          }
+        }
       `}</style>
 
       {/* ================= BREADCRUMB ================= */}
       <Breadcrumb
         items={[
-          { label: "Dashboard", path: "/dashboard" },
+          {
+            label: "Dashboard",
+            path: user?.role === "ACCOUNTANT" ? "/dashboard/accountant" : "/dashboard"
+          },
           { label: "Payment History" },
         ]}
       />
@@ -994,7 +1171,7 @@ export default function PaymentHistory() {
         <div style={{ display: "flex", gap: "0.75rem" }}>
           <button
             className="payment-action-btn"
-            onClick={fetchPaymentHistory}
+            onClick={() => setShouldFetch(true)}
             style={{
               background: "rgba(255, 255, 255, 0.2)",
               backdropFilter: "blur(10px)",
@@ -1008,57 +1185,57 @@ export default function PaymentHistory() {
             data={getExportData()}
             filename={`payment_history_${new Date().toISOString().split("T")[0]}`}
             showCSV
-            showPDF
+            showPDF={false}
             showExcel
           />
         </div>
       </div>
 
       {/* ================= SUMMARY CARDS ================= */}
-      <div className="payment-summary-grid">
-        <div className="payment-summary-card collected">
-          <div className="payment-summary-icon">
+      <div className="summary-grid">
+        <div className="stat-card collected">
+          <div className="stat-icon">
             <FaMoneyBillWave />
           </div>
-          <div className="payment-summary-content">
-            <div className="payment-summary-label">Total Collected</div>
-            <div className="payment-summary-value">
+          <div className="stat-content">
+            <div className="stat-label">Total Collected</div>
+            <div className="stat-value">
               {formatCurrency(summaryStats.totalCollected)}
             </div>
           </div>
         </div>
 
-        <div className="payment-summary-card paid">
-          <div className="payment-summary-icon">
+        <div className="stat-card paid">
+          <div className="stat-icon">
             <FaCheckCircle />
           </div>
-          <div className="payment-summary-content">
-            <div className="payment-summary-label">Fully Paid</div>
-            <div className="payment-summary-value">
+          <div className="stat-content">
+            <div className="stat-label">Fully Paid</div>
+            <div className="stat-value">
               {summaryStats.paidCount}
             </div>
           </div>
         </div>
 
-        <div className="payment-summary-card partial">
-          <div className="payment-summary-icon">
+        <div className="stat-card partial">
+          <div className="stat-icon">
             <FaClock />
           </div>
-          <div className="payment-summary-content">
-            <div className="payment-summary-label">Partial Payment</div>
-            <div className="payment-summary-value">
+          <div className="stat-content">
+            <div className="stat-label">Partial Payment</div>
+            <div className="stat-value">
               {summaryStats.partialCount}
             </div>
           </div>
         </div>
 
-        <div className="payment-summary-card due">
-          <div className="payment-summary-icon">
+        <div className="stat-card due">
+          <div className="stat-icon">
             <FaTimesCircle />
           </div>
-          <div className="payment-summary-content">
-            <div className="payment-summary-label">Payment Due</div>
-            <div className="payment-summary-value">{summaryStats.dueCount}</div>
+          <div className="stat-content">
+            <div className="stat-label">Payment Due</div>
+            <div className="stat-value">{summaryStats.dueCount}</div>
           </div>
         </div>
       </div>
@@ -1084,12 +1261,120 @@ export default function PaymentHistory() {
               className="payment-filter-select"
             >
               <option value="">All Status</option>
-              <option value="PAID">✅ Paid</option>
-              <option value="PARTIAL">⏳ Partial</option>
-              <option value="DUE">❌ Due</option>
+              <option value="PAID">Paid</option>
+              <option value="PARTIAL">Partial</option>
+              <option value="DUE">Due</option>
             </select>
           </div>
+
+          <div className="date-filter-controls">
+            <button
+              className={`filter-toggle-btn ${showDateFilters ? 'active' : ''}`}
+              onClick={() => setShowDateFilters(!showDateFilters)}
+            >
+              <FaFilter />
+              {showDateFilters ? 'Hide Date Filters' : 'Show Date Filters'}
+            </button>
+          </div>
         </div>
+
+        {/* Date Range Filters */}
+        {showDateFilters && (
+          <div
+            className="date-filters-row animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <div className="date-input-group">
+              <label className="date-label">Start Date:</label>
+              <input
+                type="date"
+                className="date-input"
+                style={{
+                  pointerEvents: 'auto',
+                  zIndex: 10
+                }}
+                value={startDate}
+                onChange={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setStartDate(e.target.value);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onFocus={(e) => {
+                  e.stopPropagation();
+                }}
+                onBlur={(e) => {
+                  e.stopPropagation();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+              />
+            </div>
+            <div className="date-input-group">
+              <label className="date-label">End Date:</label>
+              <input
+                type="date"
+                className="date-input"
+                style={{
+                  pointerEvents: 'auto',
+                  zIndex: 10
+                }}
+                value={endDate}
+                onChange={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setEndDate(e.target.value);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onFocus={(e) => {
+                  e.stopPropagation();
+                }}
+                onBlur={(e) => {
+                  e.stopPropagation();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+              />
+            </div>
+            <div className="date-actions">
+              <button
+                className="apply-filter-btn"
+                onClick={() => setShouldFetch(true)}
+              >
+                <FaSyncAlt /> Apply Filters
+              </button>
+              <button
+                className="clear-filter-btn"
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                  setShouldFetch(true);
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ================= TABLE ================= */}
@@ -1151,7 +1436,7 @@ export default function PaymentHistory() {
                     .join(", ");
 
                   return (
-                    <tr key={record.student_id?._id || `student-${idx}`}>
+                    <tr key={record.student_id?._id || record.student?.fullName || `student-${idx}`}>
                       <td>
                         <div className="payment-student-info">
                           <span className="payment-student-name">
@@ -1247,6 +1532,21 @@ export default function PaymentHistory() {
                           </div>
                         ) : (
                           <span className="no-receipts-text">No Receipts</span>
+                        )}
+                        {/* View Student Report Button */}
+                        {record.student_id && (
+                          <button
+                            className="payment-action-btn"
+                            onClick={() => navigate(`/college-admin/student-payment-report/${record.student_id._id}`)}
+                            title="View detailed student payment report"
+                            style={{
+                              background: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)',
+                              marginLeft: '8px'
+                            }}
+                          >
+                            <FaUser />
+                            <span className="btn-text">Report</span>
+                          </button>
                         )}
                       </td>
                     </tr>

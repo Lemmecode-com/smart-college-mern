@@ -1,8 +1,9 @@
 const QRCode = require("qrcode");
 const path = require("path");
-const fs = require("fs");
+const { getStorageProvider } = require("../services/storage");
+const DocumentService = require("../services/document.service");
 
-exports.generateCollegeQR = async (collegeCode) => {
+exports.generateCollegeQR = async (collegeCode, collegeId = null) => {
   const baseUrl = process.env.FRONTEND_URL;
   if (!baseUrl) {
     throw new Error(
@@ -11,18 +12,44 @@ exports.generateCollegeQR = async (collegeCode) => {
   }
   const registrationUrl = `${baseUrl}/register/${collegeCode}`;
 
-  const qrDir = path.join(__dirname, "../../uploads/college-qrs");
+  const qrBuffer = await QRCode.toBuffer(registrationUrl);
 
-  if (!fs.existsSync(qrDir)) {
-    fs.mkdirSync(qrDir, { recursive: true });
+  const storageService = getStorageProvider().getAdapter();
+  const uploadResult = await storageService.uploadFile(
+    qrBuffer,
+    `${collegeCode}.png`,
+    "college-qr",
+    {
+      originalName: `${collegeCode}.png`,
+      mimetype: "image/png",
+      size: qrBuffer.length,
+    }
+  );
+
+  let qrDocumentId = null;
+  if (collegeId) {
+    try {
+      const doc = await DocumentService.createDocument({
+        ownerType: "College",
+        ownerId: collegeId,
+        documentType: "registration_qr",
+        fileBuffer: qrBuffer,
+        originalFileName: `${collegeCode}.png`,
+        mimeType: "image/png",
+        size: qrBuffer.length,
+        uploadedBy: null,
+        category: "college-qr",
+        storageKey: uploadResult.storagePath,
+      });
+      qrDocumentId = doc.documentId;
+    } catch (error) {
+      console.error("Failed to create QR Document record:", error.message);
+    }
   }
-
-  const qrFilePath = path.join(qrDir, `${collegeCode}.png`);
-
-  await QRCode.toFile(qrFilePath, registrationUrl);
 
   return {
     registrationUrl,
-    registrationQr: `uploads/college-qrs/${collegeCode}.png`,
+    registrationQr: uploadResult.storagePath,
+    qrDocumentId,
   };
 };

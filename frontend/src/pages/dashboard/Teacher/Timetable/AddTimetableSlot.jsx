@@ -1,7 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { useSearchParams, Navigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import ApiError from "../../../../components/ApiError";
+import { logger } from "../../../../utils/logger";
+import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaCalendarAlt,
   FaClock,
@@ -128,9 +131,21 @@ const spinVariants = {
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function AddTimetableSlot() {
   const [params] = useSearchParams();
   const timetableFromUrl = params.get("timetable");
+  const { user } = useContext(AuthContext);
 
   /* ================= STATE ================= */
   const [timetables, setTimetables] = useState([]);
@@ -146,25 +161,45 @@ export default function AddTimetableSlot() {
     teacher_id: "",
     room: "",
     slotType: "LECTURE",
+    division: "",
   });
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState(null);
+  const [submitError, setSubmitError] = useState("");
   const [success, setSuccess] = useState("");
 
   /* ================= LOAD TIMETABLES ================= */
+  const loadTimetables = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/timetable");
+      setTimetables(res.data.timetables || res.data);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("AddTimetableSlot: Failed to load timetables", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "AddTimetableSlot",
+        role: user?.role,
+      });
+
+      setLoadError({
+        message: backendMessage || "Failed to load timetables",
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadTimetables = async () => {
-      try {
-        const res = await api.get("/timetable");
-        setTimetables(res.data.timetables || res.data);
-      } catch {
-        setError("Failed to load timetables");
-      } finally {
-        setLoading(false);
-      }
-    };
     loadTimetables();
   }, []);
 
@@ -186,7 +221,16 @@ export default function AddTimetableSlot() {
         setSubjects(subjectsRes.data.subjects || subjectsRes.data || []);
         setTeachers(teachersRes.data.teachers || teachersRes.data || []);
       } catch (err) {
-        setError("Failed to load subjects or teachers. Please check if subjects are created for this course.");
+        logger.error("AddTimetableSlot: Failed to load subjects or teachers", {
+          statusCode: err.response?.status,
+          errorCode: err.response?.data?.code,
+          backendMessage: err.response?.data?.message,
+          page: "AddTimetableSlot",
+          role: user?.role,
+        });
+        setSubmitError(
+          "Failed to load subjects or teachers. Please check if subjects are created for this course.",
+        );
       }
     };
 
@@ -208,7 +252,7 @@ export default function AddTimetableSlot() {
 
   /* ================= HANDLERS ================= */
   const handleChange = (e) => {
-    setError("");
+    setSubmitError("");
     setSuccess("");
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -216,7 +260,7 @@ export default function AddTimetableSlot() {
   /* ================= SUBMIT ================= */
   const submitHandler = async (e) => {
     e.preventDefault();
-    setError("");
+    setSubmitError("");
     setSuccess("");
     setSubmitting(true);
 
@@ -240,23 +284,45 @@ export default function AddTimetableSlot() {
 
       setTimeout(() => setSuccess(""), 5000);
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to add slot";
+      const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
-      
-      // ✅ Show specific validation errors
-      if (errorCode === 'TEACHER_SUBJECT_MISMATCH') {
-        setError("🔒 " + errorMsg);
-      } else if (errorCode === 'SUBJECT_NOT_FOUND') {
-        setError("⚠️ " + errorMsg);
-      } else if (errorCode === 'TEACHER_NOT_FOUND') {
-        setError("⚠️ " + errorMsg);
-      } else if (errorCode === 'TIMETABLE_NOT_FOUND') {
-        setError("⚠️ " + errorMsg);
-      } else if (errorCode === 'TIME_CONFLICT') {
-        setError("⏰ " + errorMsg);
-      } else {
-        setError("❌ " + errorMsg);
+      const backendMessage = err.response?.data?.message;
+
+      logger.error("AddTimetableSlot: Failed to add timetable slot", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "AddTimetableSlot",
+        role: user?.role,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (isAuthError) {
+        setLoadError({
+          message: backendMessage || "Your session has expired",
+          statusCode,
+          errorCode,
+        });
+        return;
       }
+
+      // Friendly, non-technical validation messages
+      const friendlyMessage = {
+        TEACHER_SUBJECT_MISMATCH:
+          "The selected teacher does not match the assigned subject. Please choose a valid teacher.",
+        SUBJECT_NOT_FOUND:
+          "The selected subject could not be found. Please select a subject from the list.",
+        TEACHER_NOT_FOUND:
+          "The selected teacher could not be found. Please select a teacher from the list.",
+        TIMETABLE_NOT_FOUND:
+          "The selected timetable could not be found. Please refresh and try again.",
+        TIME_CONFLICT:
+          "This time slot conflicts with an existing slot. Please choose a different time.",
+      }[errorCode] || "Failed to add timetable slot. Please try again.";
+
+      setSubmitError(friendlyMessage);
     } finally {
       setSubmitting(false);
     }
@@ -264,6 +330,22 @@ export default function AddTimetableSlot() {
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading timetable slot..." />;
+  }
+
+  if (loadError) {
+    return (
+      <ApiError
+        title="Failed to Load"
+        message={loadError.message}
+        statusCode={loadError.statusCode}
+        errorCode={loadError.errorCode}
+        onRetry={() => {
+          setLoadError(null);
+          loadTimetables();
+        }}
+        onGoBack={() => window.history.back()}
+      />
+    );
   }
 
   return (
@@ -366,7 +448,7 @@ export default function AddTimetableSlot() {
                 </div>
                 
                 <div style={{ padding: '2rem' }}>
-                  {error && (
+                  {submitError && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -383,7 +465,7 @@ export default function AddTimetableSlot() {
                       }}
                     >
                       <FaTimesCircle size={20} />
-                      <span>{error}</span>
+                      <span>{submitError}</span>
                     </motion.div>
                   )}
                   
@@ -419,12 +501,25 @@ export default function AddTimetableSlot() {
                       <select
                         name="timetable_id"
                         value={form.timetable_id}
-                        onChange={handleChange}
-                        style={{
-                          width: '100%',
-                          padding: '0.875rem 1.25rem',
-                          borderRadius: '12px',
-                          border: `1px solid ${(!form.timetable_id && form.timetable_id !== "") ? BRAND_COLORS.danger.main : '#e2e8f0'}`,
+                          onChange={(e) => {
+                            handleChange(e);
+                            if (e.target.name === "timetable_id") {
+                              const selectedTimetable = timetables.find(
+                                (t) => t._id === e.target.value
+                              );
+                              setForm((prev) => ({
+                                ...prev,
+                                subject_id: "",
+                                teacher_id: "",
+                                division: selectedTimetable?.division || "",
+                              }));
+                            }
+                          }}
+                         style={{
+                           width: '100%',
+                           padding: '0.875rem 1.25rem',
+                           borderRadius: '12px',
+                           border: `1px solid ${(!form.timetable_id && form.timetable_id !== "") ? BRAND_COLORS.danger.main : '#e2e8f0'}`,
                           fontSize: '1rem',
                           backgroundColor: 'white',
                           color: '#1e293b',
@@ -567,19 +662,23 @@ export default function AddTimetableSlot() {
                     >
                       <input
                         type="text"
-                        value={teachers.find(t => t._id === form.teacher_id)?.name || "Select a subject to auto-assign teacher"}
-                        disabled
-                        style={{
-                          width: '100%',
-                          padding: '0.875rem 1.25rem',
-                          borderRadius: '12px',
-                          border: '1px solid #e2e8f0',
-                          fontSize: '1rem',
-                          backgroundColor: form.teacher_id ? '#f0fdf4' : '#f8fafc',
-                          color: form.teacher_id ? BRAND_COLORS.success.main : '#94a3b8',
-                          fontWeight: form.teacher_id ? 600 : 400,
-                          fontStyle: form.teacher_id ? 'normal' : 'italic'
-                        }}
+                         value={
+                           form.subject_id && subjects.some(s => s._id === form.subject_id)
+                             ? teachers.find(t => t._id === form.teacher_id)?.name || ""
+                             : ""
+                         }
+                         disabled
+                         style={{
+                           width: '100%',
+                           padding: '0.875rem 1.25rem',
+                           borderRadius: '12px',
+                           border: '1px solid #e2e8f0',
+                           fontSize: '1rem',
+                           backgroundColor: form.teacher_id ? '#f0fdf4' : '#f8fafc',
+                           color: form.teacher_id ? BRAND_COLORS.success.main : '#94a3b8',
+                           fontWeight: form.teacher_id ? 600 : 400,
+                           fontStyle: form.teacher_id ? 'normal' : 'italic'
+                         }}
                       />
                     </FormField>
 
@@ -594,6 +693,39 @@ export default function AddTimetableSlot() {
                         value={form.room}
                         onChange={handleChange}
                         placeholder="e.g., A-101, Lab-2"
+                        style={{
+                          width: '100%',
+                          padding: '0.875rem 1.25rem',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          fontSize: '1rem',
+                          backgroundColor: 'white',
+                          color: '#1e293b',
+                          fontWeight: 500
+                        }}
+                      />
+                    </FormField>
+
+                    {/* Division (Optional) */}
+                    <FormField
+                      icon={<FaLayerGroup />}
+                      label="Division (Optional)"
+                      helperText={
+                        (timetables.find(t => t._id === form.timetable_id)?.division
+                          ? `Timetable division: ${timetables.find(t => t._id === form.timetable_id)?.division}`
+                          : "Match timetable division or leave blank")
+                      }
+                    >
+                      <input
+                        type="text"
+                        name="division"
+                        value={form.division}
+                        onChange={handleChange}
+                        placeholder={
+                          timetables.find(t => t._id === form.timetable_id)?.division
+                            ? `Leave blank to use ${timetables.find(t => t._id === form.timetable_id)?.division}`
+                            : "e.g., A, B, C (optional)"
+                        }
                         style={{
                           width: '100%',
                           padding: '0.875rem 1.25rem',
@@ -757,12 +889,11 @@ function FormField({ icon, label, children, required = false, error = false }) {
   return (
     <div style={{ marginBottom: '1.5rem' }}>
       <label style={{
-        display: 'block',
+        display: 'flex',
         marginBottom: '0.5rem',
         fontWeight: 600,
         color: '#1e293b',
         fontSize: '0.95rem',
-        display: 'flex',
         alignItems: 'center',
         gap: '0.5rem'
       }}>

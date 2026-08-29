@@ -66,7 +66,9 @@ const documentConfigSchema = new mongoose.Schema({
   // College code for easy reference
   collegeCode: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
+    lowercase: true
   },
   
   // List of document configurations
@@ -136,7 +138,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf", "jpg", "png"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "SC/ST/OBC/EWS certificate (if applicable)",
       order: 4
     },
@@ -146,7 +148,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Family income certificate",
       order: 5
     },
@@ -156,7 +158,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Character certificate from previous institution",
       order: 6
     },
@@ -166,7 +168,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "TC from previous school/college",
       order: 7
     },
@@ -176,7 +178,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf", "jpg", "png"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Aadhar card for identity verification",
       order: 8
     },
@@ -186,7 +188,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "JEE/NEET/CUET or other entrance exam score card",
       order: 9
     },
@@ -196,7 +198,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Migration certificate from previous board/university",
       order: 10
     },
@@ -206,7 +208,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Domicile/residence certificate",
       order: 11
     },
@@ -216,7 +218,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Caste certificate (if applicable)",
       order: 12
     },
@@ -226,7 +228,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Non-creamy layer certificate (for OBC)",
       order: 13
     },
@@ -236,7 +238,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Disability certificate (if applicable)",
       order: 14
     },
@@ -246,7 +248,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Sports quota certificate (if applicable)",
       order: 15
     },
@@ -256,7 +258,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "NRI sponsorship certificate",
       order: 16
     },
@@ -266,7 +268,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Gap year affidavit/certificate",
       order: 17
     },
@@ -276,7 +278,7 @@ documentConfigSchema.statics.getAvailableDocumentTemplates = function() {
       enabled: false,
       mandatory: false,
       allowedFormats: ["pdf"],
-      maxFileSize: 3,
+      maxFileSize: 5,
       description: "Any required affidavit",
       order: 18
     },

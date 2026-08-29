@@ -4,21 +4,40 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const hodDepartment = require("../middlewares/hodDepartment.middleware");
+const { ROLE } = require("../utils/constants");
 const {
   createAdminNotification,
   createTeacherNotification,
+  createHodNotification,
   getStudentNotifications,
   getTeacherNotifications,
+  getHodNotifications,
   getAdminNotifications,
+  getParentNotifications,
+  getNotificationById,
   updateNotification,
   deleteNotification,
   getAdminNotificationCount,
   getTeacherNotificationCount,
+  getHodNotificationCount,
   getStudentNotificationCount,
+  getParentNotificationCount,
   markAsRead,
+  markAllAsRead,
   getUnreadForBell,
   sendPromotionNotification,
+  getEligibleRecipients,
 } = require("../controllers/notification.controller");
+
+router.post(
+  "/hod/create",
+  auth,
+  role("HOD"),
+  collegeMiddleware,
+  hodDepartment,
+  createHodNotification,
+);
 
 router.post(
   "/admin/create",
@@ -39,7 +58,7 @@ router.post(
 router.get(
   "/admin/read",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAdminNotifications,
 );
@@ -50,6 +69,14 @@ router.get(
   role("TEACHER"),
   collegeMiddleware,
   getTeacherNotifications,
+);
+
+router.get(
+  "/hod/read",
+  auth,
+  role("HOD"),
+  collegeMiddleware,
+  getHodNotifications,
 );
 
 router.get(
@@ -64,7 +91,7 @@ router.get(
 router.get(
   "/count/admin",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.PRINCIPAL),
   collegeMiddleware,
   getAdminNotificationCount,
 );
@@ -78,6 +105,15 @@ router.get(
   getTeacherNotificationCount,
 );
 
+// HOD
+router.get(
+  "/count/hod",
+  auth,
+  role("HOD"),
+  collegeMiddleware,
+  getHodNotificationCount,
+);
+
 // Student
 router.get(
   "/count/student",
@@ -87,9 +123,37 @@ router.get(
   getStudentNotificationCount,
 );
 
+router.get(
+  "/count/parent",
+  auth,
+  role("PARENT_GUARDIAN"),
+  collegeMiddleware,
+  getParentNotificationCount,
+);
+
+router.get(
+  "/parent/read",
+  auth,
+  role("PARENT_GUARDIAN"),
+  collegeMiddleware,
+  getParentNotifications,
+);
+
+router.get(
+  "/eligible-recipients",
+  auth,
+  role("COLLEGE_ADMIN", "HOD"),
+  collegeMiddleware,
+  getEligibleRecipients,
+);
+
 router.get("/unread/bell", auth, collegeMiddleware, getUnreadForBell);
 
-router.post("/:notificationId/mark-read", auth, markAsRead);
+router.get("/:notificationId", auth, collegeMiddleware, getNotificationById);
+
+router.post("/:notificationId/mark-read", auth, collegeMiddleware, markAsRead);
+
+router.post("/mark-all-read", auth, collegeMiddleware, markAllAsRead);
 
 router.put("/edit-note/:id", auth, collegeMiddleware, updateNotification);
 router.delete("/delete-note/:id", auth, collegeMiddleware, deleteNotification);

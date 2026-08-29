@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUniversity,
   FaUsers,
@@ -33,44 +35,56 @@ import {
 } from "react-icons/fa";
 
 // Constants
-const MAX_RETRY = 3;
 const INITIAL_COLLEGES_DISPLAY = 3;
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
   const [lastRefresh, setLastRefresh] = useState(new Date());
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= FETCH DASHBOARD DATA ================= */
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get("/dashboard/super-admin");
       setData(res.data || { stats: {}, colleges: [] });
-      setRetryCount(0);
       setLastRefresh(new Date());
     } catch (err) {
-      const errorMessages = {
-        401: "⚠️ Session expired. Please login again.",
-        403: "🚫 Access denied. Super Admin privileges required.",
-        500: "🔧 Server error. Please try again later.",
-        503: "⏳ Service temporarily unavailable.",
-      };
-
       const statusCode = err.response?.status;
-      const message =
-        err.response?.data?.message ||
-        errorMessages[statusCode] ||
-        "Failed to load dashboard data. Please check your connection.";
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load dashboard data. Please check your connection.";
 
-      setError(message);
-      console.error("Dashboard fetch error:", err);
+      logger.error("Dashboard fetch error:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -82,12 +96,7 @@ export default function SuperAdminDashboard() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < MAX_RETRY) {
-      setRetryCount((prev) => prev + 1);
-      fetchDashboardData();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    fetchDashboardData();
   };
 
   /* ================= KEYBOARD SHORTCUTS ================= */
@@ -139,13 +148,9 @@ export default function SuperAdminDashboard() {
       const matchesSearch = college.name
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const matchesStatus =
-        filterStatus === "all" ||
-        !college.status ||
-        college.status.toLowerCase() === filterStatus;
-      return matchesSearch && matchesStatus;
+      return matchesSearch;
     });
-  }, [colleges, searchTerm, filterStatus]);
+  }, [colleges, searchTerm]);
 
   const collegesToDisplay = useMemo(
     () => filteredColleges.slice(0, INITIAL_COLLEGES_DISPLAY),
@@ -156,33 +161,14 @@ export default function SuperAdminDashboard() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon" role="alert" aria-live="assertive">
-          <FaExclamationTriangle className="shake" aria-hidden="true" />
-        </div>
-        <h3>Dashboard Loading Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => window.history.back()}
-          >
-            <FaArrowLeft className="erp-btn-icon" aria-hidden="true" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= MAX_RETRY}
-            aria-disabled={retryCount >= MAX_RETRY}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" aria-hidden="true" />
-            {retryCount >= MAX_RETRY
-              ? "Max Retries"
-              : `Retry (${retryCount}/${MAX_RETRY})`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Dashboard Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -199,7 +185,7 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="erp-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb items={[{ label: "Dashboard" }]} />
 
@@ -283,34 +269,6 @@ export default function SuperAdminDashboard() {
               aria-label="Clear search"
             >
               <FaTimes className="rotate-45" aria-hidden="true" />
-            </button>
-          )}
-        </div>
-        <div className="filter-group">
-          <div className="filter-wrapper">
-            <FaFilter className="filter-icon" aria-hidden="true" />
-            <select
-              className="filter-select"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              aria-label="Filter by status"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="pending">Pending</option>
-            </select>
-          </div>
-          {(searchTerm || filterStatus !== "all") && (
-            <button
-              className="filter-reset"
-              onClick={() => {
-                setSearchTerm("");
-                setFilterStatus("all");
-              }}
-              aria-label="Reset filters"
-            >
-              Reset
             </button>
           )}
         </div>
@@ -430,9 +388,9 @@ export default function SuperAdminDashboard() {
               <div className="quick-action-title">Security Audit</div>
               <div className="quick-action-description">
                 Monitor system activity
-              </div>
-            </div>
-          </div>
+               </div>
+           </div>
+         </div>
         </div>
       </div>
 
@@ -457,6 +415,8 @@ export default function SuperAdminDashboard() {
             <div className="stat-value">
               {stats.totalColleges?.toLocaleString() || "0"}
             </div>
+          </div>
+          <div className="stat-card-footer">
             <div className="stat-trend">
               <FaBuilding className="trend-icon" aria-hidden="true" />
               <span>Registered institutions</span>
@@ -479,6 +439,8 @@ export default function SuperAdminDashboard() {
             <div className="stat-value">
               {stats.totalStudents?.toLocaleString() || "0"}
             </div>
+          </div>
+          <div className="stat-card-footer">
             <div className="stat-trend stat-trend-success">
               <FaGraduationCap className="trend-icon" aria-hidden="true" />
               <span>Across all colleges</span>
@@ -501,6 +463,8 @@ export default function SuperAdminDashboard() {
             <div className="stat-value">
               {stats.totalTeachers?.toLocaleString() || "0"}
             </div>
+          </div>
+          <div className="stat-card-footer">
             <div className="stat-trend stat-trend-success">
               <FaUserGraduate className="trend-icon" aria-hidden="true" />
               <span>Faculty members</span>
@@ -540,29 +504,17 @@ export default function SuperAdminDashboard() {
               </div>
               <h3>No Colleges Found</h3>
               <p className="empty-description">
-                {searchTerm || filterStatus !== "all"
-                  ? `No colleges match your search "${searchTerm}" and filter criteria. Try adjusting your filters.`
+                {searchTerm
+                  ? `No colleges match your search "${searchTerm}". Try adjusting your search.`
                   : "There are no colleges registered in the system yet. Click 'Add College' to register your first institution."}
               </p>
-              {!searchTerm && filterStatus === "all" && (
+              {!searchTerm && (
                 <button
                   className="erp-btn erp-btn-primary empty-action"
                   onClick={() => navigate("/super-admin/create-college")}
                 >
                   <FaPlus className="erp-btn-icon" aria-hidden="true" />
                   Add First College
-                </button>
-              )}
-              {(searchTerm || filterStatus !== "all") && (
-                <button
-                  className="erp-btn erp-btn-secondary empty-action"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setFilterStatus("all");
-                  }}
-                >
-                  <FaFilter className="erp-btn-icon" aria-hidden="true" />
-                  Reset Filters
                 </button>
               )}
             </div>
@@ -722,14 +674,6 @@ export default function SuperAdminDashboard() {
           --transition-fast: 0.15s ease;
           --transition-base: 0.25s ease;
           --transition-slow: 0.35s ease;
-        }
-
-        /* ================= BASE CONTAINER ================= */
-        .erp-container {
-          padding: var(--spacing-xl);
-          background: var(--bg-primary);
-          min-height: 100vh;
-          animation: fadeIn 0.5s ease;
         }
 
         /* ================= PAGE HEADER ================= */
@@ -1077,9 +1021,9 @@ export default function SuperAdminDashboard() {
         /* ================= STATS GRID ================= */
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          grid-template-columns: repeat(3, 1fr);
           gap: var(--spacing-lg);
-          margin-bottom: var(--spacing-xl);
+          margin-bottom: var(--spacing-lg);
           width: 100%;
         }
 
@@ -1087,14 +1031,13 @@ export default function SuperAdminDashboard() {
           background: var(--card-gradient);
           border-radius: var(--radius-lg);
           box-shadow: var(--shadow-md);
-          overflow: hidden;
-          transition: all var(--transition-base);
+          overflow: visible;
+          transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
           border: 1px solid var(--border-light);
           position: relative;
-          height: 90%;
           width: 100%;
         }
 
@@ -1108,6 +1051,7 @@ export default function SuperAdminDashboard() {
           background: var(--accent-gradient);
           opacity: 0;
           transition: opacity var(--transition-base);
+          border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
         }
 
         .stat-card-colleges::before {
@@ -1124,7 +1068,7 @@ export default function SuperAdminDashboard() {
 
         .stat-card:hover {
           transform: translateY(-4px);
-          box-shadow: var(--shadow-xl);
+          box-shadow: var(--shadow-md);
           border-color: var(--sidebar-accent);
         }
 
@@ -1137,25 +1081,24 @@ export default function SuperAdminDashboard() {
         .stat-card:nth-child(3) { animation-delay: 0.2s; }
 
         .stat-card-header {
-          padding: var(--spacing-lg) var(--spacing-xl);
+          padding: var(--spacing-sm) var(--spacing-md);
           display: flex;
-          align-items: flex-start;
-          gap: var(--spacing-md);
+          align-items: center;
+          gap: var(--spacing-sm);
           background: transparent;
           flex-shrink: 0;
-          min-height: 72px;
         }
 
         .stat-icon-wrapper {
-          width: 52px;
-          height: 52px;
-          border-radius: var(--radius-md);
+          width: 40px;
+          height: 40px;
+          border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          font-size: 1.5rem;
-          transition: all var(--transition-base);
+          font-size: 1.1rem;
+          transition: transform var(--transition-base);
           overflow: hidden;
         }
 
@@ -1166,55 +1109,59 @@ export default function SuperAdminDashboard() {
         .stat-icon-wrapper.stat-icon-colleges {
           background: linear-gradient(135deg, rgba(15, 58, 74, 0.1) 0%, rgba(12, 45, 58, 0.15) 100%);
           color: var(--sidebar-primary);
-          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.2);
+          box-shadow: 0 2px 6px rgba(15, 58, 74, 0.2);
         }
 
         .stat-icon-wrapper.stat-icon-students {
           background: linear-gradient(135deg, rgba(61, 181, 230, 0.1) 0%, rgba(79, 195, 247, 0.15) 100%);
           color: var(--sidebar-accent);
-          box-shadow: 0 4px 12px rgba(61, 181, 230, 0.2);
+          box-shadow: 0 2px 6px rgba(61, 181, 230, 0.2);
         }
 
         .stat-icon-wrapper.stat-icon-teachers {
           background: linear-gradient(135deg, rgba(12, 45, 58, 0.1) 0%, rgba(24, 73, 92, 0.15) 100%);
           color: var(--sidebar-primary);
-          box-shadow: 0 4px 12px rgba(12, 45, 58, 0.2);
+          box-shadow: 0 2px 6px rgba(12, 45, 58, 0.2);
         }
 
         .stat-icon {
-          font-size: 1.5rem;
+          font-size: 1.1rem;
         }
 
         .stat-title {
-          font-weight: 600;
-          color: var(--text-secondary);
-          font-size: 0.95rem;
+          font-weight: 500;
+          color: var(--text-muted);
+          font-size: 0.8rem;
           flex: 1;
-          padding-top: 0.25rem;
         }
 
         .stat-card-body {
-          padding: 0 var(--spacing-xl) var(--spacing-xl) var(--spacing-xl);
+          padding: 0 var(--spacing-md);
           flex: 1;
           display: flex;
           flex-direction: column;
           justify-content: flex-start;
-          gap: var(--spacing-sm);
+          gap: 0.25rem;
         }
 
         .stat-value {
-          font-size: 2.25rem;
-          font-weight: 800;
+          font-size: 1.75rem;
+          font-weight: 700;
           color: var(--sidebar-primary);
-          line-height: 1.2;
-          letter-spacing: -1px;
+          line-height: 1.15;
+          letter-spacing: -0.02em;
+        }
+
+        .stat-card-footer {
+          border-top: 1px solid var(--border-light);
+          padding: var(--spacing-xs) var(--spacing-md) var(--spacing-sm);
         }
 
         .stat-trend {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          font-size: 0.85rem;
+          gap: 0.375rem;
+          font-size: 0.78rem;
           font-weight: 500;
           color: var(--text-muted);
         }
@@ -1224,7 +1171,7 @@ export default function SuperAdminDashboard() {
         }
 
         .trend-icon {
-          font-size: 0.9rem;
+          font-size: 0.75rem;
         }
 
         /* ================= COLLEGES SECTION ================= */
@@ -1466,7 +1413,7 @@ export default function SuperAdminDashboard() {
           border-radius: var(--radius-lg);
           padding: var(--spacing-lg);
           cursor: pointer;
-          transition: all var(--transition-base);
+          transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
           border: 1px solid var(--border-light);
           display: flex;
           align-items: center;
@@ -1474,6 +1421,7 @@ export default function SuperAdminDashboard() {
           position: relative;
           overflow: visible;
           height: 100%;
+          z-index: 0;
         }
 
         .quick-action-card::before {
@@ -1486,16 +1434,33 @@ export default function SuperAdminDashboard() {
           background: var(--accent-gradient);
           opacity: 0;
           transition: opacity var(--transition-base);
+          z-index: 1;
+          border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+        }
+
+        .quick-action-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: rgba(61, 181, 230, 0.06);
+          border-radius: var(--radius-lg);
+          opacity: 0;
+          transition: opacity var(--transition-base);
+          z-index: -1;
+          pointer-events: none;
         }
 
         .quick-action-card:hover {
           transform: translateY(-4px);
           box-shadow: var(--shadow-colored);
           border-color: var(--sidebar-accent);
-          background: var(--card-hover-gradient);
         }
 
         .quick-action-card:hover::before {
+          opacity: 1;
+        }
+
+        .quick-action-card:hover::after {
           opacity: 1;
         }
 
@@ -1513,7 +1478,7 @@ export default function SuperAdminDashboard() {
           justify-content: center;
           font-size: 1.5rem;
           flex-shrink: 0;
-          transition: all var(--transition-base);
+          transition: transform var(--transition-base);
           overflow: hidden;
         }
 
@@ -1543,6 +1508,12 @@ export default function SuperAdminDashboard() {
           background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
           color: #ffffff;
           box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        }
+
+        .quick-action-icon.support {
+          background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
         .quick-action-content {
@@ -1851,6 +1822,10 @@ export default function SuperAdminDashboard() {
             text-align: center;
           }
 
+          .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          }
+
           .colleges-grid,
           .quick-actions-grid {
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -1863,10 +1838,6 @@ export default function SuperAdminDashboard() {
         }
 
         @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;
@@ -1958,7 +1929,42 @@ export default function SuperAdminDashboard() {
 
         @media (max-width: 480px) {
           .stat-value {
-            font-size: 1.75rem;
+            font-size: 1.5rem;
+          }
+
+          .stat-icon-wrapper {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+          }
+
+          .stat-icon {
+            font-size: 1rem;
+          }
+
+          .stat-title {
+            font-size: 0.75rem;
+          }
+
+          .stat-trend {
+            font-size: 0.72rem;
+          }
+
+          .trend-icon {
+            font-size: 0.7rem;
+          }
+
+          .stat-card-header {
+            padding: var(--spacing-xs) var(--spacing-sm);
+            gap: var(--spacing-xs);
+          }
+
+          .stat-card-body {
+            padding: 0 var(--spacing-sm);
+          }
+
+          .stat-card-footer {
+            padding: var(--spacing-xs) var(--spacing-sm) 0.5rem;
           }
 
           .erp-card-header h3 {

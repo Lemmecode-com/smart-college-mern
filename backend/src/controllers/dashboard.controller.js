@@ -12,6 +12,7 @@ const Notification = require("../models/notification.model");
 const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const { getNotificationVisibilityQuery } = require("../services/notificationVisibility.service");
 
 /**
  * 👨‍🎓 STUDENT DASHBOARD
@@ -39,7 +40,8 @@ exports.studentDashboard = async (req, res, next) => {
       college_id: collegeId,
     })
       .populate("course_id", "name")
-      .populate("department_id", "name");
+      .populate("department_id", "name")
+      .select("user_id college_id department_id course_id currentSemester approvedAt createdAt");
 
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
@@ -112,38 +114,53 @@ exports.studentDashboard = async (req, res, next) => {
        4️⃣ TODAY TIMETABLE (FILTERED BY COURSE + SEMESTER)
     ===================================================== */
 
-    const todayName = new Date()
-      .toLocaleDateString("en-US", { weekday: "short" })
-      .toUpperCase(); // MON, TUE etc
+    const todayDate = new Date();
+    const dayName = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][todayDate.getDay()];
 
-    // Step 1: Find all published timetables for student's current semester
-    const timetables = await Timetable.find({
-      college_id: collegeId,
-      semester: student.currentSemester,
-      status: "PUBLISHED",
-    }).select("_id");
+    let todaysTimetable = [];
+    try {
+      const semester = Number(student.currentSemester);
 
-    const timetableIds = timetables.map((t) => t._id);
+      const timetableFilters = {
+        college_id: collegeId,
+        status: { $in: ["PUBLISHED", "DRAFT"] },
+        semester,
+      };
 
-    // Step 2: Find slots belonging to those timetables for today
-    const todaySlots = await TimetableSlot.find({
-      college_id: collegeId,
-      day: todayName,
-      timetable_id: { $in: timetableIds },
-    })
-      .populate("subject_id", "name code")
-      .populate("teacher_id", "name")
-      .sort({ startTime: 1 });
+      if (student.course_id) {
+        timetableFilters.course_id = student.course_id;
+      }
 
-    const todayTimetable = todaySlots.map((slot) => ({
-      subject: slot.subject_id?.name || "No Subject",
-      code: slot.subject_id?.code || "N/A",
-      teacher: slot.teacher_id?.name || "TBA",
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      room: slot.room || "TBA",
-      slotType: slot.slotType || "Regular",
-    }));
+      const timetables = await Timetable.find(timetableFilters)
+        .select("_id semester")
+        .limit(20);
+
+      const timetableIds = timetables.map((t) => t._id);
+
+      if (timetableIds.length > 0) {
+        const todaySlots = await TimetableSlot.find({
+          college_id: collegeId,
+          day: dayName,
+          timetable_id: { $in: timetableIds },
+        })
+          .populate("subject_id", "name code")
+          .populate("teacher_id", "name")
+          .sort({ startTime: 1 })
+          .limit(20);
+
+        todaysTimetable = todaySlots.map((slot) => ({
+          subject: slot.subject_id?.name || "No Subject",
+          code: slot.subject_id?.code || "N/A",
+          teacher: slot.teacher_id?.name || "TBA",
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          room: slot.room || "TBA",
+          slotType: slot.slotType || "Regular",
+        }));
+      }
+    } catch (timetableError) {
+      todaysTimetable = [];
+    }
 
     /* =====================================================
        5️⃣ FEE SUMMARY
@@ -177,11 +194,21 @@ exports.studentDashboard = async (req, res, next) => {
 
     const readIds = readRecords.map((r) => r.notification_id);
 
+    const visibilityQuery = await getNotificationVisibilityQuery({
+      collegeId: req.college_id,
+      role: req.user.role,
+      userId: req.user.id,
+      studentProfile: {
+        department_id: student.department_id?._id || student.department_id,
+        course_id: student.course_id?._id || student.course_id,
+        currentSemester: student.currentSemester,
+        approvedAt: student.approvedAt,
+        createdAt: student.createdAt,
+      },
+    });
+
     const rawNotifications = await Notification.find({
-      college_id: student.college_id,
-      isActive: true,
-      target: { $in: ["ALL", "STUDENTS"] },
-      $or: [{ expiresAt: null }, { expiresAt: { $gte: new Date() } }],
+      ...visibilityQuery,
       _id: { $nin: readIds },
     })
       .sort({ createdAt: -1 })
@@ -220,7 +247,7 @@ exports.studentDashboard = async (req, res, next) => {
         },
 
         subjectWiseAttendance,
-        todayTimetable,
+        todaysTimetable,
         feeSummary,
         latestNotifications: latestNotifications || [],
       },
@@ -245,7 +272,8 @@ exports.teacherDashboard = async (req, res, next) => {
     const teacher = await Teacher.findOne({
       user_id: userId,
       college_id: collegeId,
-    }).select("name email employeeId");
+    }).select("name email employeeId designation department_id")
+      .populate("department_id", "name");
 
     if (!teacher) {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
@@ -286,6 +314,17 @@ exports.teacherDashboard = async (req, res, next) => {
       0,
     );
 
+    // Check if teacher is HOD of their department
+    let isHod = false;
+    if (teacher.department_id) {
+      const department = await Department.findOne({
+        _id: teacher.department_id,
+        hod_id: teacher._id,
+        college_id: collegeId,
+      });
+      isHod = !!department;
+    }
+
     ApiResponse.success(
       res,
       {
@@ -293,6 +332,8 @@ exports.teacherDashboard = async (req, res, next) => {
           name: teacher.name,
           email: teacher.email,
           employeeId: teacher.employeeId,
+          designation: teacher.designation,
+          isHod,
         },
         stats: {
           totalLecturesTaken,
@@ -304,7 +345,13 @@ exports.teacherDashboard = async (req, res, next) => {
           totalAbsent,
           attendancePercentage,
         },
-        recentLectures: sessions.slice(0, 5),
+        recentLectures: sessions.slice(0, 5).map((session) => {
+          const dept = session.department_id || teacher.department_id;
+          return {
+            ...session.toObject(),
+            department_id: dept ? { _id: dept._id, name: dept.name } : null,
+          };
+        }),
       },
       "Teacher dashboard data fetched successfully",
     );
@@ -330,7 +377,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
     const collegeId = req.college_id;
 
     const college = await College.findById(collegeId).select(
-      "name code email establishedYear logo",
+      "name code email establishedYear logo registrationUrl logoDocumentId",
     );
 
     if (!college) {
@@ -338,25 +385,30 @@ exports.collegeAdminDashboard = async (req, res, next) => {
     }
 
     // 🔥 OPTIMIZED: Use countDocuments() instead of loading all records
+    const activeStudentStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
     const [
       totalStudents,
       totalTeachers,
       totalDepartments,
       totalCourses,
       pendingAdmissionsCount,
+      activeStudentsCount,
     ] = await Promise.all([
       Student.countDocuments({ college_id: collegeId }),
       Teacher.countDocuments({ college_id: collegeId }),
       Department.countDocuments({ college_id: collegeId }),
       Course.countDocuments({ college_id: collegeId }),
       Student.countDocuments({ college_id: collegeId, status: "PENDING" }),
+      Student.countDocuments({ college_id: collegeId, status: { $in: activeStudentStatuses } }),
     ]);
 
     // 🔥 OPTIMIZED: Fetch only last 5 students instead of all
     const recentStudents = await Student.find({ college_id: collegeId })
       .sort({ createdAt: -1 })
       .limit(5)
-      .select("fullName email enrollmentNumber status");
+      .select("fullName email enrollmentNumber status")
+      .populate("course_id", "name")
+      .populate("department_id", "name");
 
     // 🔥 OPTIMIZED: Fetch only pending admissions (usually small count)
     const pendingAdmissions = await Student.find({
@@ -377,6 +429,8 @@ exports.collegeAdminDashboard = async (req, res, next) => {
           email: college.email,
           establishedYear: college.establishedYear,
           logo: college.logo,
+          logoDocumentId: college.logoDocumentId,
+          registrationUrl: college.registrationUrl,
         },
 
         stats: {
@@ -385,6 +439,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
           totalDepartments,
           totalCourses,
           pendingAdmissions: pendingAdmissionsCount,
+          activeStudents: activeStudentsCount,
         },
 
         recentStudents,
@@ -419,6 +474,77 @@ exports.superAdminDashboard = async (req, res, next) => {
         colleges,
       },
       "Super admin dashboard data fetched successfully",
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * 🏫 PRINCIPAL DASHBOARD (read-only)
+ */
+exports.principalDashboard = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+
+    if (!collegeId) {
+      throw new AppError("College ID missing", 403, "COLLEGE_ID_MISSING");
+    }
+
+    const college = await College.findById(collegeId).select("name code email establishedYear logo address contactNumber");
+
+    if (!college) {
+      throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
+    }
+
+    const activeStudentStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
+    const [
+      totalStudents,
+      totalTeachers,
+      totalDepartments,
+      totalCourses,
+      pendingAdmissions,
+      activeStudentsCount,
+    ] = await Promise.all([
+      Student.countDocuments({ college_id: collegeId }),
+      Teacher.countDocuments({ college_id: collegeId }),
+      Department.countDocuments({ college_id: collegeId }),
+      Course.countDocuments({ college_id: collegeId }),
+      Student.countDocuments({ college_id: collegeId, status: "PENDING" }),
+      Student.countDocuments({ college_id: collegeId, status: { $in: activeStudentStatuses } }),
+    ]);
+
+    const recentStudents = await Student.find({ college_id: collegeId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("fullName email enrollmentNumber status")
+      .populate("course_id", "name")
+      .populate("department_id", "name");
+
+    ApiResponse.success(
+      res,
+      {
+        college: {
+          id: college._id,
+          name: college.name,
+          code: college.code,
+          email: college.email,
+          establishedYear: college.establishedYear,
+          logo: college.logo,
+          address: college.address,
+          contactNumber: college.contactNumber,
+        },
+        stats: {
+          totalStudents,
+          totalTeachers,
+          totalDepartments,
+          totalCourses,
+          pendingAdmissions,
+          activeStudents: activeStudentsCount,
+        },
+        recentStudents,
+      },
+      "Principal dashboard data fetched successfully",
     );
   } catch (error) {
     next(error);

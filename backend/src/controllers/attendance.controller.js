@@ -199,11 +199,11 @@ exports.createAttendanceSession = async (req, res, next) => {
       slotType: slotWithDetails.slotType || "LECTURE",
     };
 
-    // Count students
+    // Count students (include APPROVED and ENROLLED for visibility)
     const totalStudents = await Student.countDocuments({
       college_id: collegeId,
       course_id: slot.course_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).session(session);
 
     // ✅ FIX: Edge Case 1 - Prevent session creation if no students enrolled
@@ -326,9 +326,27 @@ exports.getAttendanceSessions = async (req, res, next) => {
       .skip(skip)
       .sort({ lectureDate: -1, lectureNumber: -1 });
 
+    // 5.1️⃣ Enrich with live present counts for OPEN sessions
+    const sessionIds = sessions.map((s) => s._id);
+    const presentRecords = await AttendanceRecord.find({
+      session_id: { $in: sessionIds },
+      status: "PRESENT",
+    }).select("session_id");
+
+    const presentMap = {};
+    presentRecords.forEach((r) => {
+      const sid = r.session_id.toString();
+      presentMap[sid] = (presentMap[sid] || 0) + 1;
+    });
+
     // 6️⃣ Return sessions with snapshot info
     const sessionsWithSnapshot = sessions.map((session) => {
       const sessionObj = session.toObject();
+      const sid = session._id.toString();
+
+      if (presentMap[sid] !== undefined) {
+        sessionObj.presentCount = presentMap[sid];
+      }
 
       // Use snapshot data if available (for historical accuracy)
       if (sessionObj.slotSnapshot) {
@@ -489,11 +507,11 @@ exports.getStudentsForAttendance = async (req, res) => {
       });
     }
 
-    // Fetch students
+    // Fetch students (include APPROVED and ENROLLED for visibility)
     const students = await Student.find({
       college_id: collegeId,
       course_id: session.course_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).select("_id fullName email");
 
     res.status(200).json(students);
@@ -533,7 +551,6 @@ exports.markAttendance = async (req, res, next) => {
     }).session(session);
 
     if (!teacher) {
-      await session.abortTransaction();
       throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
@@ -545,11 +562,23 @@ exports.markAttendance = async (req, res, next) => {
     }).session(session);
 
     if (!attendanceSession) {
-      await session.abortTransaction();
       throw new AppError(
         "Session not found or closed",
         404,
         "SESSION_NOT_FOUND",
+      );
+    }
+
+    // ✅ Prevent duplicate attendance save
+    const existingRecords = await AttendanceRecord.find({
+      session_id: attendanceSession._id,
+    }).session(session);
+
+    if (existingRecords.length > 0) {
+      throw new AppError(
+        "Attendance already saved. Use Edit option",
+        409,
+        "ATTENDANCE_ALREADY_SAVED",
       );
     }
 
@@ -558,7 +587,6 @@ exports.markAttendance = async (req, res, next) => {
 
     for (let item of attendance) {
       if (!item.student_id || !item.status) {
-        await session.abortTransaction();
         throw new AppError(
           `Invalid attendance data for student: ${item.student_id}`,
           400,
@@ -567,7 +595,6 @@ exports.markAttendance = async (req, res, next) => {
       }
 
       if (!["PRESENT", "ABSENT"].includes(item.status)) {
-        await session.abortTransaction();
         throw new AppError(
           `Invalid status "${item.status}" for student: ${item.student_id}`,
           400,
@@ -644,7 +671,6 @@ exports.editAttendance = async (req, res, next) => {
     const collegeId = req.college_id;
 
     if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
-      await session.abortTransaction();
       throw new AppError(
         "Attendance data is required",
         400,
@@ -659,7 +685,6 @@ exports.editAttendance = async (req, res, next) => {
     }).session(session);
 
     if (!teacher) {
-      await session.abortTransaction();
       throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
@@ -672,7 +697,6 @@ exports.editAttendance = async (req, res, next) => {
     }).session(session);
 
     if (!attendanceSession) {
-      await session.abortTransaction();
       throw new AppError(
         "Session not found or already closed",
         404,
@@ -685,7 +709,6 @@ exports.editAttendance = async (req, res, next) => {
 
     for (const item of attendance) {
       if (!item.student_id || !item.status) {
-        await session.abortTransaction();
         throw new AppError(
           `Invalid attendance data for student: ${item.student_id}`,
           400,
@@ -694,7 +717,6 @@ exports.editAttendance = async (req, res, next) => {
       }
 
       if (!["PRESENT", "ABSENT"].includes(item.status)) {
-        await session.abortTransaction();
         throw new AppError(
           `Invalid status "${item.status}" for student: ${item.student_id}`,
           400,
@@ -831,11 +853,11 @@ exports.closeAttendanceSession = async (req, res) => {
       });
     }
 
-    // Fetch all students for the course
+    // Fetch all students for the course (include APPROVED and ENROLLED)
     const students = await Student.find({
       college_id: collegeId,
       course_id: session.course_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).select("_id");
 
     // Find present students
@@ -861,6 +883,8 @@ exports.closeAttendanceSession = async (req, res) => {
     }
 
     session.totalStudents = students.length;
+    session.presentCount = presentIds.length;
+    session.absentCount = absentees.length;
     session.status = "CLOSED";
     await session.save();
 
@@ -937,7 +961,7 @@ exports.getAttendanceReport = async (req, res) => {
 
     /* ================= FETCH SESSIONS ================= */
     const sessions = await AttendanceSession.find(match)
-      .populate("subject_id", "name")
+      .populate("subject_id", "name code")
       .populate("course_id", "name code")
       .sort({ lectureDate: -1 });
 
@@ -966,6 +990,7 @@ exports.getAttendanceReport = async (req, res) => {
         _id: session._id,
         date: session.lectureDate,
         subject: session.subject_id?.name || "N/A",
+        subjectCode: session.subject_id?.code || "N/A",
         course: session.course_id?.name || "N/A",
         lectureNumber: session.lectureNumber,
         totalStudents: total,
@@ -1007,123 +1032,198 @@ exports.getAttendanceReport = async (req, res) => {
    GET /attendance/student
 ========================================================= */
 exports.getStudentAttendanceReport = async (req, res) => {
-  try {
-    const student = req.student;
+   try {
+     const student = req.student;
 
-    if (!student) {
-      return res.status(404).json({ message: "Student not found" });
-    }
+     if (!student) {
+       return res.status(404).json({ message: "Student not found" });
+     }
 
-    const sessions = await AttendanceSession.find({
-      college_id: req.college_id,
-      department_id: student.department_id,
-      course_id: student.course_id,
-    }).populate("subject_id", "name code");
+     const { startDate, endDate, subjectId } = req.query;
 
+     const [reportData, todayData] = await Promise.all([
+       AttendanceRecord.aggregate([
+         {
+           $match: {
+             student_id: student._id,
+             college_id: req.college_id,
+           },
+         },
+         {
+           $lookup: {
+             from: "attendancesessions",
+             localField: "session_id",
+             foreignField: "_id",
+             as: "session",
+           },
+         },
+         { $unwind: "$session" },
+         {
+           $lookup: {
+             from: "subjects",
+             localField: "session.subject_id",
+             foreignField: "_id",
+             as: "subject",
+           },
+         },
+         { $unwind: { path: "$subject", preserveNullAndEmptyArrays: true } },
+         {
+           $match: {
+             ...(startDate && endDate ? { "session.lectureDate": { $gte: new Date(startDate), $lte: new Date(endDate) } } : {}),
+             ...(subjectId ? { "session.subject_id": new mongoose.Types.ObjectId(subjectId) } : {}),
+           },
+         },
+         {
+           $group: {
+            _id: "$session._id",
+            subjectId: { $first: "$subject._id" },
+            subjectName: { $first: "$subject.name" },
+            subjectCode: { $first: "$subject.code" },
+            date: { $first: "$session.lectureDate" },
+            lectureNumber: { $first: "$session.lectureNumber" },
+            startTime: { $first: "$session.slotSnapshot.startTime" },
+            endTime: { $first: "$session.slotSnapshot.endTime" },
+            room: { $first: "$session.slotSnapshot.room" },
+            teacher: { $first: "$session.slotSnapshot.teacher_name" },
+            status: { $first: "$status" },
+          },
+        },
+        { $sort: { date: -1 } },
+      ]),
+      AttendanceRecord.aggregate([
+        {
+          $match: {
+            student_id: student._id,
+            college_id: req.college_id,
+          },
+        },
+        {
+          $lookup: {
+            from: "attendancesessions",
+            localField: "session_id",
+            foreignField: "_id",
+            as: "session",
+          },
+        },
+        { $unwind: "$session" },
+         {
+           $match: {
+             $expr: {
+               $and: [
+                 { $eq: ["$session.college_id", req.college_id] },
+                 { $eq: ["$session.department_id", student.department_id] },
+                 { $eq: ["$session.course_id", student.course_id] },
+                 ...(startDate && endDate ? [{ $gte: ["$session.lectureDate", new Date(startDate)] }, { $lte: ["$session.lectureDate", new Date(endDate)] }] : []),
+                 ...(subjectId ? [{ $eq: ["$session.subject_id", new mongoose.Types.ObjectId(subjectId)] }] : []),
+                 {
+                   $gte: [
+                     "$session.lectureDate",
+                     { $dateTrunc: { date: new Date(), unit: "day" } },
+                   ],
+                 },
+                 {
+                   $lt: [
+                     "$session.lectureDate",
+                     {
+                       $dateAdd: {
+                         startDate: { $dateTrunc: { date: new Date(), unit: "day" } },
+                         unit: "day",
+                         amount: 1,
+                       },
+                     },
+                   ],
+                 },
+               ],
+             },
+           },
+         },
+        {
+          $lookup: {
+            from: "subjects",
+            localField: "session.subject_id",
+            foreignField: "_id",
+            as: "subject",
+          },
+        },
+        { $unwind: { path: "$subject", preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: "$session._id",
+            subjectId: { $first: "$subject._id" },
+            subjectName: { $first: "$subject.name" },
+            subjectCode: { $first: "$subject.code" },
+            lectureNumber: { $first: "$session.lectureNumber" },
+            startTime: { $first: "$session.slotSnapshot.startTime" },
+            endTime: { $first: "$session.slotSnapshot.endTime" },
+            room: { $first: "$session.slotSnapshot.room" },
+            teacher: { $first: "$session.slotSnapshot.teacher_name" },
+            status: { $first: "$status" },
+          },
+        },
+      ]),
+    ]);
+
+    const sessionReport = reportData.map((item) => ({
+      date: item.date,
+      subject: item.subjectName || "Unknown",
+      subjectCode: item.subjectCode || "N/A",
+      lectureNumber: item.lectureNumber,
+      startTime: item.startTime || "N/A",
+      endTime: item.endTime || "N/A",
+      room: item.room || "N/A",
+      teacher: item.teacher || "N/A",
+      status: item.status,
+    }));
+
+    const subjectMap = {};
     let total = 0;
     let present = 0;
     let absent = 0;
 
-    const sessionReport = [];
-    const subjectMap = {}; // 🔥 For subject-wise breakdown
-
-    for (const session of sessions) {
-      const record = await AttendanceRecord.findOne({
-        session_id: session._id,
-        student_id: student._id,
-      });
-
-      if (!record) continue;
-
+    for (const item of reportData) {
       total++;
+      if (item.status === "PRESENT") present++;
+      if (item.status === "ABSENT") absent++;
 
-      if (record.status === "PRESENT") present++;
-      if (record.status === "ABSENT") absent++;
+      const sid = (item.subjectId || "").toString();
+      if (!sid) continue;
 
-      // Session-wise
-      sessionReport.push({
-        date: session.lectureDate,
-        subject: session.subject_id.name,
-        subjectCode: session.subject_id.code,
-        lectureNumber: session.lectureNumber,
-        startTime: session.slotSnapshot?.startTime || "N/A",
-        endTime: session.slotSnapshot?.endTime || "N/A",
-        room: session.slotSnapshot?.room || "N/A",
-        teacher: session.slotSnapshot?.teacher_name || "N/A",
-        status: record.status,
-      });
-
-      // 🔥 Subject-wise aggregation
-      const subjectId = session.subject_id._id.toString();
-
-      if (!subjectMap[subjectId]) {
-        subjectMap[subjectId] = {
-          subject: session.subject_id.name,
-          code: session.subject_id.code,
+      if (!subjectMap[sid]) {
+        subjectMap[sid] = {
+          _id: sid,
+          subject: item.subjectName || "Unknown",
+          code: item.subjectCode || "N/A",
           total: 0,
           present: 0,
-          absent: 0, // ✅ Initialize absent count
+          absent: 0,
         };
       }
 
-      subjectMap[subjectId].total++;
-
-      if (record.status === "PRESENT") {
-        subjectMap[subjectId].present++;
-      } else if (record.status === "ABSENT") {
-        subjectMap[subjectId].absent++; // ✅ Increment absent count
-      }
+      subjectMap[sid].total++;
+      if (item.status === "PRESENT") subjectMap[sid].present++;
+      if (item.status === "ABSENT") subjectMap[sid].absent++;
     }
 
-    // 🔥 Convert subjectMap to array
     const subjectBreakdown = Object.values(subjectMap).map((sub) => {
-      const percentage =
-        sub.total > 0 ? ((sub.present / sub.total) * 100).toFixed(2) : 0;
-
+      const percentage = sub.total > 0 ? ((sub.present / sub.total) * 100).toFixed(2) : 0;
       return {
         ...sub,
         percentage,
-        warning: percentage < 75, // ⚠ below 75%
+        warning: percentage < 75,
       };
     });
 
-    // 🔥 Get today's sessions
-    const todayDate = new Date();
-    todayDate.setHours(0, 0, 0, 0);
-    const tomorrowDate = new Date(todayDate);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-
-    const todaySessions = await AttendanceSession.find({
-      college_id: req.college_id,
-      department_id: student.department_id,
-      course_id: student.course_id,
-      lectureDate: {
-        $gte: todayDate,
-        $lt: tomorrowDate,
-      },
-    }).populate("subject_id", "name code");
-
-    const todayReport = [];
-    for (const session of todaySessions) {
-      const record = await AttendanceRecord.findOne({
-        session_id: session._id,
-        student_id: student._id,
-      });
-
-      if (record) {
-        todayReport.push({
-          date: session.lectureDate,
-          subject: session.subject_id.name,
-          subjectCode: session.subject_id.code,
-          lectureNumber: session.lectureNumber,
-          startTime: session.slotSnapshot?.startTime || "N/A",
-          endTime: session.slotSnapshot?.endTime || "N/A",
-          room: session.slotSnapshot?.room || "Room not assigned",
-          teacher: session.slotSnapshot?.teacher_name || "N/A",
-          status: record.status,
-        });
-      }
-    }
+    const todayReport = todayData.map((item) => ({
+      date: item.date,
+      subject: item.subjectName || "Unknown",
+      subjectCode: item.subjectCode || "N/A",
+      lectureNumber: item.lectureNumber,
+      startTime: item.startTime || "N/A",
+      endTime: item.endTime || "N/A",
+      room: item.room || "Room not assigned",
+      teacher: item.teacher || "N/A",
+      status: item.status,
+    }));
 
     res.json({
       summary: {
@@ -1275,9 +1375,11 @@ exports.getTeacherSubjectsByCourse = async (req, res) => {
 };
 
 /* =========================================================
-   GET TODAY'S SLOTS FOR TEACHER (FOR ATTENDANCE)
+   GET TODAY'S SLOTS FOR TEACHER/HOD (FOR ATTENDANCE)
    GET /attendance/today-slots
-   Purpose: Show slots for today where teacher can start attendance
+   Purpose: Show slots for today where teacher/HOD can start attendance
+   - TEACHER: Only their own slots
+   - HOD: All slots in their department
 ========================================================= */
 exports.getTodaySlotsForTeacher = async (req, res, next) => {
   try {
@@ -1294,20 +1396,36 @@ exports.getTodaySlotsForTeacher = async (req, res, next) => {
       throw new AppError("Teacher profile not found", 404, "TEACHER_NOT_FOUND");
     }
 
+    // Check if user is HOD of their department
+    const isHod = await Department.findOne({
+      _id: teacher.department_id,
+      hod_id: teacher._id,
+    });
+
     // Get today's day name
     const today = new Date();
     const todayDayName = getDayName(today);
     const todayStr = today.toISOString().split("T")[0];
 
     console.log(`📅 Today: ${todayStr} (${todayDayName})`);
+    console.log(`📊 User role: ${req.user.role}, Is HOD: ${!!isHod}`);
 
-    // Find all PUBLISHED timetables for teacher's department
-    const slots = await TimetableSlot.find({
-      college_id: collegeId,
-      teacher_id: teacher._id,
-      day: todayDayName,
-    })
+    // Build query based on role
+    const slotQuery = isHod
+      ? {
+          college_id: collegeId,
+          department_id: teacher.department_id,
+          day: todayDayName,
+        }
+      : {
+          college_id: collegeId,
+          teacher_id: teacher._id,
+          day: todayDayName,
+        };
+
+    const slots = await TimetableSlot.find(slotQuery)
       .populate("subject_id", "name code")
+      .populate("teacher_id", "name")
       .populate("timetable_id", "name status semester academicYear")
       .populate("course_id", "name")
       .sort({ startTime: 1 });
@@ -1391,14 +1509,12 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
       .populate("department_id", "name code")
       .populate("course_id", "name code");
 
-    // Build query for sessions
     const sessionQuery = {
       college_id: student.college_id,
       department_id: student.department_id?._id || student.department_id,
       course_id: student.course_id?._id || student.course_id,
     };
 
-    // Add date filter if provided
     if (startDate && endDate) {
       sessionQuery.lectureDate = {
         $gte: new Date(startDate),
@@ -1406,9 +1522,9 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
       };
     }
 
-    // Add subject filter if provided
     if (subjectId) {
-      sessionQuery.subject_id = new mongoose.Types.ObjectId(subjectId);
+      sessionQuery.subject_id =
+        new mongoose.Types.ObjectId(subjectId);
     }
 
     const sessions = await AttendanceSession.find(sessionQuery)
@@ -1417,27 +1533,25 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
 
     const sessionIds = sessions.map((s) => s._id);
 
-    // Fetch attendance records for this student
     const records = await AttendanceRecord.find({
       session_id: { $in: sessionIds },
       student_id: student._id,
     });
 
-    // Build session-wise data
     const sessionReport = sessions.map((session) => {
       const record = records.find(
         (r) => r.session_id.toString() === session._id.toString(),
       );
       return {
         date: session.lectureDate,
-        subject: session.subject_id?.name || "N/A",
+        subject: session.subject_id?.name || "Unknown",
         subjectCode: session.subject_id?.code || "N/A",
         lectureNumber: session.lectureNumber,
         startTime: session.slotSnapshot?.startTime || "N/A",
         endTime: session.slotSnapshot?.endTime || "N/A",
         room: session.slotSnapshot?.room || "N/A",
         teacher: session.slotSnapshot?.teacher_name || "N/A",
-        status: record?.status || "N/A",
+        status: record?.status || "-",
       };
     });
 
@@ -1449,18 +1563,20 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
 
     // Subject-wise breakdown
     const subjectMap = {};
-    sessions.forEach((session) => {
-      const record = records.find(
-        (r) => r.session_id.toString() === session._id.toString(),
+    records.forEach((record) => {
+      if (!record.status) return;
+
+      const session = sessions.find(
+        (s) => s._id.toString() === record.session_id.toString(),
       );
-      if (!record) return;
+      if (!session) return;
 
-      const subjectId = session.subject_id?._id?.toString();
-      if (!subjectId) return;
+      const sid = session.subject_id?._id?.toString();
+      if (!sid) return;
 
-      if (!subjectMap[subjectId]) {
-        subjectMap[subjectId] = {
-          subject: session.subject_id?.name || "N/A",
+      if (!subjectMap[sid]) {
+        subjectMap[sid] = {
+          subject: session.subject_id?.name || "Unknown",
           code: session.subject_id?.code || "N/A",
           total: 0,
           present: 0,
@@ -1468,12 +1584,9 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
         };
       }
 
-      subjectMap[subjectId].total++;
-      if (record.status === "PRESENT") {
-        subjectMap[subjectId].present++;
-      } else if (record.status === "ABSENT") {
-        subjectMap[subjectId].absent++;
-      }
+      subjectMap[sid].total++;
+      if (record.status === "PRESENT") subjectMap[sid].present++;
+      if (record.status === "ABSENT") subjectMap[sid].absent++;
     });
 
     const subjectBreakdown = Object.values(subjectMap).map((sub) => {
@@ -1533,11 +1646,10 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
       .moveDown(0.3);
 
     doc
-      .font("Helvetica")
-      .fontSize(10)
-      .text(`Name: ${studentInfo?.fullName || studentInfo?.name || "N/A"}`)
-      .text(`Roll Number: ${studentInfo?.rollNumber || "N/A"}`)
-      .text(`Email: ${studentInfo?.email || "N/A"}`)
+       .font("Helvetica")
+       .fontSize(10)
+       .text(`Name: ${studentInfo?.fullName || studentInfo?.name || "N/A"}`)
+       .text(`Email: ${studentInfo?.email || "N/A"}`)
       .text(
         `Department: ${studentInfo?.department_id?.name || "N/A"} (${studentInfo?.department_id?.code || "N/A"})`,
       )
@@ -1574,13 +1686,12 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
       .moveDown(0.5);
 
     // Attendance Status
-    const statusColor = parseFloat(percentage) >= 75 ? "✓" : "⚠";
     const statusText =
       parseFloat(percentage) >= 75 ? "ELIGIBLE" : "NOT ELIGIBLE";
     doc
       .font("Helvetica-Bold")
       .text(
-        `${statusColor} Exam Eligibility: ${statusText} (Minimum 75% required)`,
+        `Exam Eligibility: ${statusText} (Minimum 75% required)`,
       );
     doc.moveDown(1);
 
@@ -1617,7 +1728,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
     // Table headers
     const tableTop = doc.y;
     const tableLeft = 40;
-    const colWidths = [60, 120, 50, 50, 60]; // Date, Subject, Lecture, Time, Status
+    const colWidths = [60, 100, 50, 85, 50]; // Date, Subject, Lecture, Time, Status
 
     // Header row background
     doc
@@ -1631,7 +1742,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
         width: colWidths[1],
         align: "center",
       })
-      .text("Lec #", tableLeft + colWidths[0] + colWidths[1], tableTop, {
+       .text("Lecture", tableLeft + colWidths[0] + colWidths[1], tableTop, {
         width: colWidths[2],
         align: "center",
       })
@@ -1660,7 +1771,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
     let rowY = doc.y;
     sessionReport.slice(0, 100).forEach((session, index) => {
       // Limit to 100 rows to prevent extremely long PDFs
-      const yPos = rowY + index * 15;
+      const yPos = rowY + index * 18;
 
       // Alternate row colors
       if (index % 2 === 0) {
@@ -1669,9 +1780,9 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
             tableLeft,
             yPos,
             colWidths.reduce((a, b) => a + b, 0),
-            14,
+            16,
           )
-          .fill("#f5f5f5");
+          .fill("#e8ecf0");
       }
 
       const dateStr = new Date(session.date).toLocaleDateString();
@@ -1685,19 +1796,20 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
 
       doc
         .font("Helvetica")
-        .fontSize(8)
-        .text(dateStr, tableLeft, yPos + 3, {
+        .fontSize(9)
+        .fill("black")
+        .text(dateStr, tableLeft, yPos + 4, {
           width: colWidths[0],
           align: "center",
         })
-        .text(session.subject, tableLeft + colWidths[0], yPos + 3, {
+        .text(session.subject, tableLeft + colWidths[0], yPos + 4, {
           width: colWidths[1],
           align: "left",
         })
         .text(
           session.lectureNumber.toString(),
           tableLeft + colWidths[0] + colWidths[1],
-          yPos + 3,
+          yPos + 4,
           {
             width: colWidths[2],
             align: "center",
@@ -1706,7 +1818,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
         .text(
           timeStr,
           tableLeft + colWidths[0] + colWidths[1] + colWidths[2],
-          yPos + 3,
+          yPos + 4,
           {
             width: colWidths[3],
             align: "center",
@@ -1715,7 +1827,7 @@ exports.getStudentAttendanceReportPDF = async (req, res, next) => {
         .text(
           `${statusSymbol} ${session.status}`,
           tableLeft + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3],
-          yPos + 3,
+          yPos + 4,
           {
             width: colWidths[4],
             align: "center",

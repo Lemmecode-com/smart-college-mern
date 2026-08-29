@@ -6,120 +6,171 @@ import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
 
-import {
-  FaSearch,
-  FaEye,
-  FaCheckCircle,
-  FaGraduationCap,
-  FaBuilding,
-  FaBookOpen,
-  FaCalendarAlt,
-  FaChevronLeft,
-  FaChevronRight,
-  FaExclamationTriangle,
-  FaSyncAlt,
-  FaUserCheck,
-  FaUserTimes,
-  FaEnvelope,
-  FaUsers,
-} from "react-icons/fa";
+import { FaSearch, FaEye, FaCheckCircle, FaGraduationCap, FaBuilding, FaBookOpen, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSyncAlt, FaUserCheck, FaUserTimes, FaEnvelope, FaUsers, FaCheckDouble, FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
+import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
+
+const STUDENT_STATUS = {
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  OFFER_MADE: "OFFER_MADE",
+  SEAT_CONFIRMED: "SEAT_CONFIRMED",
+  ENROLLED: "ENROLLED",
+  REJECTED: "REJECTED",
+  DELETED: "DELETED",
+  ALUMNI: "ALUMNI",
+  DEACTIVATED: "DEACTIVATED",
+};
 
 const PAGE_SIZE = 5;
 
-export default function ApproveStudents() {
+export default function ApproveStudents({ admissionOfficerMode = false, principalMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     byDepartment: {},
     byCourse: {},
     byYear: {},
   });
+  const [processingId, setProcessingId] = useState(null);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [enrollStudentId, setEnrollStudentId] = useState(null);
+  const [parentCreds, setParentCreds] = useState(null);
+  const [showDivisionModal, setShowDivisionModal] = useState(false);
+  const [validDivisions, setValidDivisions] = useState([]);
+  const [selectedDivision, setSelectedDivision] = useState("");
+  const [assigningDivision, setAssigningDivision] = useState(false);
+  const [loadingDivisions, setLoadingDivisions] = useState(false);
+  const [assigningStudentId, setAssigningStudentId] = useState(null);
+  const [divisionError, setDivisionError] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (principalMode && user.role !== "PRINCIPAL") {
+    return <Navigate to="/dashboard" />;
+  }
+  if (!admissionOfficerMode && !principalMode && user.role !== "COLLEGE_ADMIN") {
+    return <Navigate to="/dashboard" />;
+  }
+  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
 
   /* ================= FETCH APPROVED STUDENTS ================= */
   const fetchApprovedStudents = async () => {
     try {
       setLoading(true);
-      setError("");
-      const res = await api.get("/students/approved-students");
+      setError(null);
+      // Fetch the full set (not just the default page of 20) so the
+      // Total Approved / Departments / Courses stat cards reflect all
+      // approved students instead of only the first paginated page.
+      const res = await api.get("/students/approved-students?limit=10000");
 
-      // 🔧 Handle new paginated response structure
       let data;
       if (res.data.data) {
-        // New format: { success: true, data: [...], pagination: {...} }
         data = res.data.data;
       } else if (Array.isArray(res.data)) {
-        // Old format: [...]
         data = res.data;
       } else {
         data = [];
       }
 
       setStudents(data);
-
-      // Calculate stats client-side (no API changes)
       calculateStats(data);
-      setRetryCount(0);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "Failed to load approved students. Please try again.",
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load approved students.";
+
+      logger.error("Error fetching approved students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  /* ================= CALCULATE STATS ================= */
-  const calculateStats = (studentList) => {
-    const byDepartment = {};
-    const byCourse = {};
-    const byYear = {};
+  /* ================= FETCH ALL STUDENTS (PRINCIPAL) ================= */
+  const fetchAllStudents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await api.get("/students/approved");
+      const data = Array.isArray(res.data)
+        ? res.data
+        : Array.isArray(res.data.data)
+        ? res.data.data
+        : [];
+      setStudents(data);
+      calculateStats(data);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load students.";
 
-    studentList.forEach((student) => {
-      // Department stats
-      const dept = student.department_id?.name || "Unknown";
-      byDepartment[dept] = (byDepartment[dept] || 0) + 1;
+      logger.error("Error fetching students:", statusCode, errorCode);
 
-      // Course stats
-      const course = student.course_id?.name || "Unknown";
-      byCourse[course] = (byCourse[course] || 0) + 1;
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
 
-      // Year stats
-      const year = student.admissionYear || "Unknown";
-      byYear[year] = (byYear[year] || 0) + 1;
-    });
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
-    setStats({
-      total: studentList.length,
-      byDepartment,
-      byCourse,
-      byYear,
-    });
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // Initial data fetch on mount
   useEffect(() => {
-    fetchApprovedStudents();
+    principalMode ? fetchAllStudents() : fetchApprovedStudents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refresh when navigating from approval action
   useEffect(() => {
     if (location.state?.refresh) {
-      fetchApprovedStudents();
-      // Clear the refresh flag
+      principalMode ? fetchAllStudents() : fetchApprovedStudents();
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state?.refresh]);
@@ -136,7 +187,7 @@ export default function ApproveStudents() {
         now - lastRefreshTime > MIN_REFRESH_INTERVAL
       ) {
         lastRefreshTime = now;
-        fetchApprovedStudents();
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
       }
     };
 
@@ -148,12 +199,32 @@ export default function ApproveStudents() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      fetchApprovedStudents();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    principalMode ? fetchAllStudents() : fetchApprovedStudents();
+  };
+
+  /* ================= CALCULATE STATS ================= */
+  const calculateStats = (studentList) => {
+    const byDepartment = {};
+    const byCourse = {};
+    const byYear = {};
+
+    studentList.forEach((student) => {
+      const dept = student.department_id?.name || "Unknown";
+      byDepartment[dept] = (byDepartment[dept] || 0) + 1;
+
+      const course = student.course_id?.name || "Unknown";
+      byCourse[course] = (byCourse[course] || 0) + 1;
+
+      const year = student.admissionYear || "Unknown";
+      byYear[year] = (byYear[year] || 0) + 1;
+    });
+
+    setStats({
+      total: studentList.length,
+      byDepartment,
+      byCourse,
+      byYear,
+    });
   };
 
   /* ================= SEARCH ================= */
@@ -167,14 +238,14 @@ export default function ApproveStudents() {
 
   /* ================= DEACTIVATE / REACTIVATE ================= */
   const handleToggleActive = async (student) => {
-    if (student.status === "DEACTIVATED") {
+    if (student.status === STUDENT_STATUS.DEACTIVATED) {
       if (!window.confirm(`Reactivate "${student.fullName}"?`)) return;
       try {
         await api.put(`/users/${student.user_id}/reactivate`);
         toast.success(`${student.fullName} reactivated`, {
           position: "top-right",
         });
-        fetchApprovedStudents();
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
       } catch (e) {
         toast.error(e.response?.data?.message || "Failed to reactivate", {
           position: "top-right",
@@ -192,12 +263,87 @@ export default function ApproveStudents() {
         toast.success(`${student.fullName} deactivated`, {
           position: "top-right",
         });
-        fetchApprovedStudents();
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
       } catch (e) {
         toast.error(e.response?.data?.message || "Failed to deactivate", {
           position: "top-right",
         });
       }
+    }
+  };
+
+  /* ================= CONFIRM ENROLLMENT ================= */
+  const handleConfirmEnrollment = (studentId) => {
+    setEnrollStudentId(studentId);
+    setShowEnrollModal(true);
+  };
+
+  const executeConfirmEnrollment = async () => {
+    if (!enrollStudentId) return;
+
+    setProcessingId(enrollStudentId);
+    try {
+      const { data } = await api.put(`/students/${enrollStudentId}/confirm-enrollment`);
+      toast.success("Enrollment confirmed successfully!", {
+        position: "top-right",
+      });
+      if (data?.parentAccounts?.parents?.length) {
+        setParentCreds(data.parentAccounts.parents);
+      }
+      fetchApprovedStudents();
+    } catch (e) {
+      toast.error(e.response?.data?.message || "Failed to confirm enrollment", {
+        position: "top-right",
+      });
+    } finally {
+      setShowEnrollModal(false);
+      setEnrollStudentId(null);
+      setProcessingId(null);
+    }
+  };
+
+  /* ================= DIVISION ASSIGNMENT HANDLERS ================= */
+  const handleOpenDivisionModal = async (studentId) => {
+    setShowDivisionModal(true);
+    setAssigningStudentId(studentId);
+    setSelectedDivision("");
+    setDivisionError(null);
+    setLoadingDivisions(true);
+    try {
+      const res = await api.get(`/students/${studentId}/valid-divisions`);
+      const divisions = Array.isArray(res.data) ? res.data : [];
+      setValidDivisions(divisions);
+    } catch (err) {
+      const message =
+        err.response?.data?.message || "Failed to load valid divisions";
+      setDivisionError(message);
+      setValidDivisions([]);
+    } finally {
+      setLoadingDivisions(false);
+    }
+  };
+
+  const handleAssignDivisionFromPending = async () => {
+    if (!assigningStudentId || !selectedDivision) return;
+    try {
+      setAssigningDivision(true);
+      await api.put(`/students/${assigningStudentId}`, {
+        division: selectedDivision,
+      });
+      toast.success("Division assigned successfully", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      setShowDivisionModal(false);
+      principalMode ? fetchAllStudents() : fetchApprovedStudents();
+    } catch (err) {
+      const message =
+        err.response?.data?.message || "Failed to assign division";
+      toast.error(message, { position: "top-right", autoClose: 5000 });
+    } finally {
+      setAssigningDivision(false);
+      setAssigningStudentId(null);
+      setSelectedDivision("");
     }
   };
 
@@ -211,30 +357,14 @@ export default function ApproveStudents() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Approved Students Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => navigate(-1)}
-          >
-            <FaChevronLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Approved Students Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -245,46 +375,65 @@ export default function ApproveStudents() {
 
   return (
     <div className="erp-container">
-      {/* BREADCRUMBS */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Students", path: "/students" },
-          { label: "Approved Students" },
-        ]}
-      />
+        {/* BREADCRUMBS */}
+        <Breadcrumb
+          items={principalMode
+            ? [
+                { label: "Dashboard", path: "/dashboard/principal" },
+                { label: "Students", path: "/principal/students" },
+                { label: "All Students" },
+              ]
+            : admissionOfficerMode
+            ? [
+                { label: "Dashboard", path: "/dashboard/admission" },
+                { label: "Admissions", path: "/admission/applications" },
+                { label: "Approved Students" },
+              ]
+            : [
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Students", path: "/students" },
+                { label: "Approved Students" },
+              ]
+          }
+        />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaCheckCircle />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Approved Students</h1>
-            <p className="erp-page-subtitle">
-              View and manage students approved for admission
-            </p>
+        {/* HEADER */}
+        <div className="erp-page-header">
+          <div className="erp-header-content">
+            <div className="erp-header-icon">
+              {principalMode ? <FaUsers /> : <FaCheckCircle />}
+            </div>
+            <div className="erp-header-text">
+              <h1 className="erp-page-title">
+                {principalMode ? "All Students" : "Approved Students"}
+              </h1>
+              <p className="erp-page-subtitle">
+                {principalMode
+                  ? "View all students across the college"
+                  : "View and manage students approved for admission"}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* STATS CARDS */}
-      <div className="stats-grid animate-fade-in">
-        <div className="stat-card">
-          <div
-            className="stat-card-icon"
-            style={{
-              background: "linear-gradient(135deg, #4CAF50 0%, #43A047 100%)",
-            }}
-          >
-            <FaUserCheck />
+        {/* STATS CARDS */}
+        <div className="stats-grid animate-fade-in">
+          <div className="stat-card">
+            <div
+              className="stat-card-icon"
+              style={{
+                background: "linear-gradient(135deg, #4CAF50 0%, #43A047 100%)",
+              }}
+            >
+              <FaUserCheck />
+            </div>
+            <div className="stat-card-content">
+              <div className="stat-card-label">
+                {principalMode ? "Total Students" : "Total Approved"}
+              </div>
+              <div className="stat-card-value">{stats.total}</div>
+            </div>
           </div>
-          <div className="stat-card-content">
-            <div className="stat-card-label">Total Approved</div>
-            <div className="stat-card-value">{stats.total}</div>
-          </div>
-        </div>
         <div className="stat-card">
           <div
             className="stat-card-icon"
@@ -345,11 +494,12 @@ export default function ApproveStudents() {
         <div className="erp-card-header">
           <h3>
             <FaGraduationCap className="erp-card-icon" />
-            Approved Student Records
+            {principalMode ? "Student Records" : "Approved Student Records"}
           </h3>
           <span className="record-count">
             {filteredStudents.length}{" "}
-            {filteredStudents.length === 1 ? "Student" : "Students"} Approved
+            {filteredStudents.length === 1 ? "Student" : "Students"}
+            {principalMode ? "" : " Approved"}
           </span>
         </div>
 
@@ -415,12 +565,25 @@ export default function ApproveStudents() {
                         </span>
                       </td>
                       <td className="cell-status">
-                        <span className="badge badge-status">
-                          <FaCheckCircle className="badge-icon" />
-                          APPROVED
-                        </span>
+                        {student.status === STUDENT_STATUS.OFFER_MADE ? (
+                          <span className="badge badge-offer-made">
+                            <FaEnvelope className="badge-icon" />
+                            OFFER MADE
+                          </span>
+                        ) : student.status === STUDENT_STATUS.ENROLLED ? (
+                          <span className="badge badge-enrolled">
+                            <FaCheckDouble className="badge-icon" />
+                            ENROLLED
+                          </span>
+                        ) : (
+                          <span className="badge badge-status">
+                            <FaCheckCircle className="badge-icon" />
+                            APPROVED
+                          </span>
+                        )}
                       </td>
                       <td className="cell-actions">
+                        {!principalMode && (
                         <div className="action-buttons">
                           <button
                             className="btn btn-action btn-view-student"
@@ -434,30 +597,58 @@ export default function ApproveStudents() {
                             <FaEye />
                             <span className="btn-text">View</span>
                           </button>
-                          {student.user_id && (
-                            <button
-                              className={`btn btn-action ${student.status === "DEACTIVATED" ? "btn-reactivate-student" : "btn-deactivate-student"}`}
-                              onClick={() => handleToggleActive(student)}
-                              title={
-                                student.status === "DEACTIVATED"
-                                  ? "Reactivate"
-                                  : "Deactivate"
-                              }
-                            >
-                              {student.status === "DEACTIVATED" ? (
+                          {(student.status === STUDENT_STATUS.APPROVED || student.status === STUDENT_STATUS.OFFER_MADE || student.status === STUDENT_STATUS.SEAT_CONFIRMED) && (
+                            <>
+                              {!student.division && (
+                                <button
+                                  className="btn btn-action btn-assign-division"
+                                  onClick={() => handleOpenDivisionModal(student._id)}
+                                  title="Assign Division"
+                                >
+                                  <FaEdit />
+                                  <span className="btn-text">Assign Division</span>
+                                </button>
+                              )}
+                              <button
+                                className="btn btn-action btn-confirm-enrollment"
+                                onClick={() => handleConfirmEnrollment(student._id)}
+                                disabled={processingId === student._id || !student.division}
+                                title={!student.division ? "Assign division before enrollment" : "Confirm Enrollment"}
+                              >
+                                <FaCheckDouble />
+                                <span className="btn-text">
+                                  {processingId === student._id
+                                    ? "Processing..."
+                                    : "Confirm Enrollment"}
+                                </span>
+                              </button>
+                            </>
+                          )}
+                              {student.user_id && (
+                                <button
+                                  className={`btn btn-action ${student.status === STUDENT_STATUS.DEACTIVATED ? "btn-reactivate-student" : "btn-deactivate-student"}`}
+                                  onClick={() => handleToggleActive(student)}
+                                  title={
+                                    student.status === STUDENT_STATUS.DEACTIVATED
+                                      ? "Reactivate"
+                                      : "Deactivate"
+                                  }
+                                >
+                                  {student.status === STUDENT_STATUS.DEACTIVATED ? (
                                 <FaUserCheck />
                               ) : (
                                 <FaUserTimes />
                               )}
                               <span className="btn-text">
-                                {student.status === "DEACTIVATED"
+                                {student.status === STUDENT_STATUS.DEACTIVATED
                                   ? "Reactivate"
                                   : "Deactivate"}
                               </span>
                             </button>
                           )}
                         </div>
-                      </td>
+                          )}
+                        </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1269,7 +1460,385 @@ export default function ApproveStudents() {
             padding: 14px 14px;
           }
         }
+
+        /* Badge styles for new statuses */
+        .badge-offer-made {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-enrolled {
+          background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+          color: white;
+          box-shadow: 0 2px 6px rgba(13, 110, 253, 0.3);
+        }
+
+        .btn-confirm-enrollment {
+          background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+          color: white;
+          box-shadow: 0 3px 10px rgba(13, 110, 253, 0.3);
+        }
+
+        .btn-confirm-enrollment:hover {
+          background: linear-gradient(135deg, #0b5ed7 0%, #0d6efd 100%);
+          box-shadow: 0 5px 15px rgba(13, 110, 253, 0.4);
+        }
+
+        .parent-creds-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 16px;
+        }
+
+        .parent-creds-modal {
+          background: #fff;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 460px;
+          padding: 22px 24px;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+
+        .parent-creds-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .parent-creds-header h3 {
+          margin: 0;
+          font-size: 18px;
+          color: #1f2d3d;
+        }
+
+        .parent-creds-close {
+          border: none;
+          background: transparent;
+          font-size: 26px;
+          line-height: 1;
+          cursor: pointer;
+          color: #6c757d;
+        }
+
+        .parent-creds-note {
+          font-size: 13px;
+          color: #6c757d;
+          margin: 8px 0 16px;
+        }
+
+        .parent-creds-card {
+          border: 1px solid #e3e6ea;
+          border-radius: 8px;
+          padding: 12px 14px;
+          margin-bottom: 12px;
+          background: #f8f9fb;
+        }
+
+        .parent-creds-relation {
+          font-weight: 600;
+          color: #0d6efd;
+          margin-bottom: 8px;
+        }
+
+        .parent-creds-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 6px;
+          font-size: 14px;
+        }
+
+        .parent-creds-label {
+          font-weight: 600;
+          color: #495057;
+          min-width: 70px;
+        }
+
+        .parent-creds-value {
+          flex: 1;
+          word-break: break-all;
+          color: #212529;
+        }
+
+        .parent-creds-copy {
+          border: none;
+          background: #0d6efd;
+          color: #fff;
+          border-radius: 6px;
+          padding: 3px 10px;
+          cursor: pointer;
+          font-size: 12px;
+        }
+
+        .parent-creds-done {
+          width: 100%;
+          margin-top: 6px;
+          border: none;
+          background: #198754;
+          color: #fff;
+          border-radius: 8px;
+          padding: 10px;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 600;
+        }
+
+        .btn-assign-division {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-assign-division:hover {
+          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .modal-header--info {
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+        }
+
+        .modal-header-icon {
+          margin-right: 8px;
+        }
+
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.55);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2000;
+          padding: 16px;
+        }
+
+        .modal-content {
+          background: #fff;
+          border-radius: 12px;
+          width: 100%;
+          max-width: 460px;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+          max-height: 85vh;
+          overflow-y: auto;
+        }
+
+        .modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 20px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .modal-header h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .modal-body {
+          padding: 20px;
+        }
+
+        .modal-footer {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          padding: 16px 20px;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .btn-close {
+          border: none;
+          background: transparent;
+          font-size: 26px;
+          line-height: 1;
+          cursor: pointer;
+          color: white;
+          opacity: 0.9;
+          transition: opacity 0.2s;
+        }
+
+        .btn-close:hover {
+          opacity: 1;
+        }
+
+        .modal-body {
+          padding: 20px;
+        }
+
+        .form-group {
+          margin-bottom: 16px;
+        }
+
+        .form-group label {
+          display: block;
+          margin-bottom: 6px;
+          font-weight: 500;
+          color: #374151;
+        }
+
+        .form-control {
+          width: 100%;
+          padding: 8px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
+          font-size: 14px;
+        }
+
+        .text-muted {
+          color: #6b7280;
+          font-size: 14px;
+        }
       `}</style>
+
+      {/* CONFIRM ENROLLMENT MODAL */}
+      <ConfirmModal
+        isOpen={showEnrollModal}
+        onClose={() => {
+          setShowEnrollModal(false);
+          setEnrollStudentId(null);
+        }}
+        onConfirm={executeConfirmEnrollment}
+        title="Confirm Enrollment"
+        message="Are you sure you want to confirm enrollment for this student? This will finalize their admission status."
+        type="success"
+        confirmText="Confirm Enrollment"
+        cancelText="Cancel"
+        isLoading={processingId === enrollStudentId}
+      />
+
+      {/* ASSIGN DIVISION MODAL */}
+      {showDivisionModal && (
+        <div className="modal-overlay" onClick={() => setShowDivisionModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header modal-header--info">
+              <h3>
+                <FaEdit className="modal-header-icon" />
+                Assign Division
+              </h3>
+              <button
+                className="btn-close"
+                onClick={() => setShowDivisionModal(false)}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              {loadingDivisions ? (
+                <p>Loading valid divisions...</p>
+              ) : divisionError ? (
+                <p className="text-danger">
+                  Failed to load divisions: {divisionError}
+                </p>
+              ) : validDivisions.length > 0 ? (
+                <div className="form-group">
+                  <label>Select Division</label>
+                  <select
+                    value={selectedDivision}
+                    onChange={(e) => setSelectedDivision(e.target.value)}
+                    className="form-control"
+                  >
+                    <option value="">-- Select Division --</option>
+                    {validDivisions.map((div) => (
+                      <option key={div} value={div}>
+                        {div}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="text-muted">No valid divisions available for this student.</p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowDivisionModal(false)}
+                disabled={assigningDivision}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleAssignDivisionFromPending}
+                disabled={assigningDivision || loadingDivisions || !selectedDivision}
+              >
+                {assigningDivision ? (
+                  <>
+                    <FaSyncAlt className="spin" /> Saving…
+                  </>
+                ) : (
+                  "Save Division"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PARENT CREDENTIALS MODAL */}
+      {parentCreds && (
+        <div className="parent-creds-overlay" onClick={() => setParentCreds(null)}>
+          <div className="parent-creds-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="parent-creds-header">
+              <h3>Parent/Guardian Account Credentials</h3>
+              <button className="parent-creds-close" onClick={() => setParentCreds(null)}>
+                ×
+              </button>
+            </div>
+            <p className="parent-creds-note">
+              Share these credentials with the respective parent/guardian. They must change the password on first login.
+            </p>
+            {parentCreds.map((p, i) => (
+              <div className="parent-creds-card" key={i}>
+                <div className="parent-creds-relation">
+                  {p.relation ? p.relation.charAt(0).toUpperCase() + p.relation.slice(1) : "Parent"} — {p.name}
+                </div>
+                <div className="parent-creds-row">
+                  <span className="parent-creds-label">Email:</span>
+                  <span className="parent-creds-value">{p.email}</span>
+                  <button
+                    className="parent-creds-copy"
+                    onClick={() => navigator.clipboard.writeText(p.email)}
+                  >
+                    Copy
+                  </button>
+                </div>
+                {p.tempPassword && (
+                  <div className="parent-creds-row">
+                    <span className="parent-creds-label">Password:</span>
+                    <span className="parent-creds-value">{p.tempPassword}</span>
+                    <button
+                      className="parent-creds-copy"
+                      onClick={() => navigator.clipboard.writeText(p.tempPassword)}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+            <button className="parent-creds-done" onClick={() => setParentCreds(null)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,12 +1,26 @@
-import { useContext, useEffect, useRef, useState } from "react";
+﻿import { useContext, useEffect, useRef, useState } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { motion } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 import "react-toastify/dist/ReactToastify.css";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 import {
   FaReceipt,
@@ -21,6 +35,7 @@ import {
   FaArrowLeft,
   FaSpinner,
 } from "react-icons/fa";
+import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -36,6 +51,7 @@ export default function FeeReceipt() {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const fetchIdRef = useRef(0);
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
@@ -44,14 +60,13 @@ export default function FeeReceipt() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "STUDENT" && user.role !== "COLLEGE_ADMIN")
+  if (user.role !== "STUDENT" && user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "PRINCIPAL")
     return <Navigate to="/dashboard" replace />;
 
   /* ================= EARLY VALIDATION - PAYMENT ID ================= */
   if (!paymentId) {
     return (
       <div className="receipt-empty-wrapper">
-        <ToastContainer position="top-right" />
         <motion.div
           className="empty-card"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -63,13 +78,13 @@ export default function FeeReceipt() {
           <button
             className="btn-back"
             onClick={() =>
-              user.role === "COLLEGE_ADMIN"
+              user.role === "COLLEGE_ADMIN" || user.role === "PRINCIPAL"
                 ? navigate("/college-admin/payment-history")
                 : navigate("/student/fees")
             }
           >
             <FaArrowLeft />{" "}
-            {user.role === "COLLEGE_ADMIN"
+            {user.role === "COLLEGE_ADMIN" || user.role === "PRINCIPAL"
               ? "Back to Payment History"
               : "Back to Fees"}
           </button>
@@ -151,28 +166,36 @@ export default function FeeReceipt() {
   /* ================= FETCH RECEIPT ================= */
   useEffect(() => {
     const fetchReceipt = async () => {
+      fetchIdRef.current += 1;
+      const currentFetchId = fetchIdRef.current;
       const toastId = toast.loading("Loading receipt...");
 
       try {
-        // Validate paymentId
         if (!paymentId) {
           throw new Error("Payment ID is required");
         }
 
-        // Use different endpoints based on user role
+        if (currentFetchId !== fetchIdRef.current) {
+          toast.dismiss(toastId);
+          return;
+        }
+
         const endpoint =
-          user.role === "COLLEGE_ADMIN"
+          (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT" || user.role === "PRINCIPAL")
             ? `/admin/payments/receipt/${paymentId}`
             : `/student/payments/receipt/${paymentId}`;
 
         const res = await api.get(endpoint);
 
-        // Validate response structure
+        if (currentFetchId !== fetchIdRef.current) {
+          toast.dismiss(toastId);
+          return;
+        }
+
         if (!res.data) {
           throw new Error("Invalid response from server");
         }
 
-        // Validate receipt data
         const validation = validateReceiptData(res.data);
         if (!validation.isValid) {
           throw new Error(
@@ -183,25 +206,36 @@ export default function FeeReceipt() {
         setReceipt(res.data);
         setError(null);
 
-        toast.update(toastId, {
-          render: "Receipt loaded successfully!",
-          type: "success",
-          isLoading: false,
-          autoClose: 3000,
-        });
+        toast.dismiss(toastId);
       } catch (err) {
+        if (currentFetchId !== fetchIdRef.current) {
+          toast.dismiss(toastId);
+          return;
+        }
+
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+
+        logger.error("Fee receipt load error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "FeeReceipt",
+          role: user?.role,
+        });
+
         let errorMessage = "Unable to fetch receipt. ";
 
-        if (err.response?.status === 404) {
+        if (statusCode === 404) {
           errorMessage =
             "Receipt not found. It may have been deleted or never existed.";
-        } else if (err.response?.status === 403) {
+        } else if (statusCode === 403) {
           errorMessage = "You don't have permission to view this receipt.";
-        } else if (err.response?.status === 500) {
+        } else if (statusCode === 500) {
           errorMessage = "Server error. Please try again later.";
-        } else if (err.response?.status === 401) {
-          errorMessage = "Session expired. Redirecting to login...";
-          setTimeout(() => navigate("/login"), 2000);
+        } else if (statusCode === 401) {
+          errorMessage = "Your session has expired. Please sign in again.";
         } else if (
           err.code === "ERR_NETWORK" ||
           err.message?.includes("Network Error")
@@ -214,27 +248,34 @@ export default function FeeReceipt() {
         ) {
           errorMessage =
             "Request timeout. The server took too long to respond. Please try again.";
-        } else if (err.message) {
-          errorMessage += err.message;
         } else {
           errorMessage += "Please check your connection and try again.";
         }
 
-        setError({ message: errorMessage, statusCode: err.response?.status });
+        setError({ message: errorMessage, statusCode, errorCode });
 
-        toast.update(toastId, {
-          render: errorMessage,
-          type: "error",
-          isLoading: false,
-          autoClose: 5000,
-        });
+        const isAuthError =
+          statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          toast.update(toastId, {
+            render: errorMessage,
+            type: "error",
+            isLoading: false,
+            autoClose: 5000,
+          });
+        } else {
+          toast.dismiss(toastId);
+        }
       } finally {
+        if (currentFetchId !== fetchIdRef.current) return;
         setLoading(false);
+        toast.dismiss(toastId);
       }
     };
 
     fetchReceipt();
-  }, [paymentId, navigate, user]);
+  }, [paymentId, navigate]);
 
   // Handle retry action
   const handleRetry = async () => {
@@ -249,7 +290,7 @@ export default function FeeReceipt() {
 
   // Handle go back action
   const handleGoBack = () => {
-    if (user.role === "COLLEGE_ADMIN") {
+    if (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT") {
       navigate("/college-admin/payment-history");
     } else {
       navigate("/student/fees");
@@ -364,17 +405,14 @@ export default function FeeReceipt() {
     }
   };
 
-  // Helper function for error logging
-  const logErrorToMonitoring = (error, context) => {
-    // TODO: Integrate with Sentry/monitoring service
-    // For now, log to console for debugging
-    console.error("[FeeReceipt] Error:", {
-      error: error.message,
-      stack: error.stack,
-      context,
-      timestamp: new Date().toISOString(),
-    });
-  };
+   // Helper function for error logging
+   const logErrorToMonitoring = (error, context) => {
+     logger.error("[FeeReceipt] Error:", {
+       error: error.message,
+       context,
+       timestamp: new Date().toISOString(),
+     });
+   };
 
   /* ================= STATE ORDER - ERROR FIRST, THEN LOADING ================= */
   // Error state should be checked before loading state
@@ -384,6 +422,7 @@ export default function FeeReceipt() {
         title="Unable to Load Receipt"
         message={error.message || "Unable to fetch receipt. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -482,24 +521,22 @@ export default function FeeReceipt() {
 
   return (
     <div className="container py-4" role="main">
-      <ToastContainer position="top-right" />
-
       {/* BACK BUTTON */}
       <div className="mb-3">
         <button
           className="btn-back-to-fees"
-          onClick={() =>
-            user.role === "COLLEGE_ADMIN"
-              ? navigate("/college-admin/payment-history")
-              : navigate("/student/fees")
-          }
+            onClick={() =>
+              (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")
+                ? navigate("/college-admin/payment-history")
+                : navigate("/student/fees")
+            }
           aria-label="Go back to fees page"
-        >
-          <FaArrowLeft className="me-1" aria-hidden="true" />{" "}
-          {user.role === "COLLEGE_ADMIN"
-            ? "Back to Payment History"
-            : "Back to Fees"}
-        </button>
+          >
+            <FaArrowLeft />{" "}
+            {(user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")
+              ? "Back to Payment History"
+              : "Back to Fees"}
+          </button>
       </div>
 
       {/* Skip Link for Screen Readers */}
@@ -589,7 +626,7 @@ export default function FeeReceipt() {
             <Info label="Installment" value={receipt.installmentName} />
             <Info
               label="Amount"
-              value={`₹ ${receipt.amount?.toLocaleString()}`}
+              value={`₹ ${receipt.amount}`}
             />
             <Info
               label="Payment Method"
@@ -618,7 +655,7 @@ export default function FeeReceipt() {
             />
             <Info
               label="Paid On"
-              value={new Date(receipt.paidAt).toLocaleString("en-IN")}
+              value={formatDateTime(receipt.paidAt)}
             />
             <Info label="Status" value={receipt.status} />
           </section>

@@ -2,12 +2,16 @@ import { useContext, useEffect, useState, useMemo, useCallback } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { getDocumentViewUrl } from "../../../utils/documentUrl";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import PropTypes from "prop-types";
 import Loading from "../../../components/Loading";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
+import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -33,8 +37,7 @@ import {
   FaFileAlt,
   FaImage,
   FaCopy,
-  FaPrint,
-  FaExternalLinkAlt,
+  FaEye,
 } from "react-icons/fa";
 
 /* ================= CONSTANTS & CONFIGURATION ================= */
@@ -94,10 +97,6 @@ const copyToClipboard = async (text, label) => {
       autoClose: 3000,
     });
   }
-};
-
-const printProfile = () => {
-  window.print();
 };
 
 const getFileName = (filePath) => {
@@ -256,16 +255,94 @@ DetailRow.defaultProps = {
 };
 
 /* ---- DocumentRow Component ---- */
-function DocumentRow({ label, path, icon }) {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (!baseUrl) {
-    throw new Error("VITE_API_BASE_URL environment variable is required");
-  }
+function DocumentRow({ label, path, icon, documentId, isUploaded, uploadedAt }) {
   const fileName = getFileName(path);
-  // Use secure API endpoint for document access (authorization enforced)
-  const secureDocUrl = path
-    ? `${baseUrl}/students/documents/${getFileName(path)}`
-    : null;
+  const [downloading, setDownloading] = useState(false);
+
+  const handleViewDocument = (filename, docId) => {
+    if (!isUploaded) {
+      toast.error("Document not available for viewing");
+      return;
+    }
+    let url = null;
+    if (docId) {
+      url = getDocumentViewUrl(docId);
+    } else if (filename) {
+      url = `${api.defaults.baseURL}/students/documents/${filename}`;
+    }
+    if (!url) {
+      toast.error("Document not available for viewing");
+      return;
+    }
+    window.open(url, "_blank");
+  };
+
+  const handleDownloadDocument = async (filename, docId) => {
+    if (!isUploaded) {
+      toast.error("Document not available for download");
+      return;
+    }
+    let url = null;
+    if (docId) {
+      url = `${api.defaults.baseURL}/documents/${docId}/download`;
+    } else if (filename) {
+      url = `${api.defaults.baseURL}/students/documents/${filename}`;
+    }
+    if (!url) {
+      toast.error("Document not available for download");
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Accept: "application/pdf,image/*,*/*",
+        },
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Download failed (${response.status})`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData?.message || errorData?.error?.message || errorMessage;
+        } catch {
+          // response is not JSON
+        }
+        throw new Error(errorMessage);
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition");
+      let downloadFilename = "download";
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch && filenameMatch[1]) {
+          downloadFilename = filenameMatch[1];
+        }
+      } else if (filename) {
+        downloadFilename = filename;
+      }
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = downloadFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      toast.error(err.message || "Failed to download document", {
+        position: "top-right",
+        autoClose: 4000,
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <tr className="detail-row">
@@ -276,25 +353,50 @@ function DocumentRow({ label, path, icon }) {
         {label}
       </td>
       <td className="detail-value">
-        {path ? (
-          <a
-            href={secureDocUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="document-link"
-            aria-label={`View ${label} (opens in new tab)`}
-          >
-            <FaExternalLinkAlt className="link-icon" aria-hidden="true" />
-            {fileName || "View Document"}
-          </a>
-        ) : (
-          <span
-            className="document-not-uploaded"
-            aria-label="Document not uploaded"
-          >
-            Not uploaded
-          </span>
-        )}
+        <div className="document-actions">
+          <div className="document-meta">
+            <span className="document-filename">{fileName || "Document"}</span>
+            {uploadedAt && (
+              <span className="document-upload-date">
+                Uploaded {formatDate(uploadedAt)}
+              </span>
+            )}
+          </div>
+          {isUploaded ? (
+            <div className="document-buttons">
+              <button
+                onClick={() => handleViewDocument(fileName, documentId)}
+                className="document-action-btn document-view-btn"
+                aria-label={`View ${label}`}
+                type="button"
+              >
+                <FaEye className="action-icon" aria-hidden="true" />
+                View
+              </button>
+              <button
+                onClick={() => handleDownloadDocument(fileName, documentId)}
+                className="document-action-btn document-download-btn"
+                aria-label={`Download ${label}`}
+                type="button"
+                disabled={downloading}
+              >
+                {downloading ? (
+                  <FaSyncAlt className="action-icon spin-icon" aria-hidden="true" />
+                ) : (
+                  <FaDownload className="action-icon" aria-hidden="true" />
+                )}
+                {downloading ? "Downloading..." : "Download"}
+              </button>
+            </div>
+          ) : (
+            <span
+              className="document-not-uploaded"
+              aria-label="Document not uploaded"
+            >
+              Not uploaded
+            </span>
+          )}
+        </div>
       </td>
     </tr>
   );
@@ -304,10 +406,16 @@ DocumentRow.propTypes = {
   label: PropTypes.string.isRequired,
   path: PropTypes.string,
   icon: PropTypes.node.isRequired,
+  documentId: PropTypes.string,
+  isUploaded: PropTypes.bool,
+  uploadedAt: PropTypes.string,
 };
 
 DocumentRow.defaultProps = {
   path: null,
+  documentId: null,
+  isUploaded: false,
+  uploadedAt: null,
 };
 
 /* ---- InfoCard Component ---- */
@@ -375,7 +483,7 @@ FeeCard.defaultProps = {
 };
 
 /* ---- InstallmentTable Component ---- */
-function InstallmentTable({ installments, studentId, onMarkPaid }) {
+function InstallmentTable({ installments, studentId, onMarkPaid, canMarkPaid }) {
   if (!installments || installments.length === 0) {
     return (
       <EmptyState
@@ -400,37 +508,37 @@ function InstallmentTable({ installments, studentId, onMarkPaid }) {
             <th scope="col">Amount</th>
             <th scope="col">Due Date</th>
             <th scope="col">Status</th>
-            <th scope="col">Action</th>
+            {onMarkPaid && <th scope="col">Action</th>}
           </tr>
         </thead>
         <tbody>
           {installments.map((inst, index) => (
             <tr key={inst._id}>
-              <td>{index + 1}</td>
-              <td>{inst.name}</td>
-              <td>{formatCurrency(inst.amount)}</td>
-              <td>{formatDate(inst.dueDate)}</td>
-              <td>
+              <td data-label="#">{index + 1}</td>
+              <td data-label="Name">{inst.name}</td>
+              <td data-label="Amount">{formatCurrency(inst.amount)}</td>
+              <td data-label="Due Date">{formatDate(inst.dueDate)}</td>
+              <td data-label="Status">
                 <StatusBadge
                   status={inst.status}
                   type={inst.status.toLowerCase()}
                 />
               </td>
-              <td>
-                {inst.status === "PENDING" ? (
-                  <button
-                    className="mark-paid-btn"
-                    onClick={() => onMarkPaid(inst)}
-                    aria-label={`Mark ${inst.name} as paid`}
-                    title="Mark as Paid (Offline)"
-                  >
-                    <FaCheckCircle className="btn-icon" aria-hidden="true" />
-                    Mark Paid
-                  </button>
-                ) : (
-                  <span className="no-action-text">-</span>
-                )}
-              </td>
+               <td data-label="Action">
+                 {inst.status === "PENDING" && canMarkPaid ? (
+                   <button
+                     className="mark-paid-btn"
+                     onClick={() => onMarkPaid(inst)}
+                     aria-label={`Mark ${inst.name} as paid`}
+                     title="Mark as Paid (Offline)"
+                   >
+                     <FaCheckCircle className="btn-icon" aria-hidden="true" />
+                     Mark Paid
+                   </button>
+                 ) : (
+                   <span className="no-action-text">-</span>
+                 )}
+               </td>
             </tr>
           ))}
         </tbody>
@@ -451,6 +559,7 @@ InstallmentTable.propTypes = {
   ).isRequired,
   studentId: PropTypes.string.isRequired,
   onMarkPaid: PropTypes.func.isRequired,
+  canMarkPaid: PropTypes.bool,
 };
 
 /* ---- Skeleton Components ---- */
@@ -606,11 +715,47 @@ function MarkPaidModal({
   const [paymentMode, setPaymentMode] = useState("CASH");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [proofFile, setProofFile] = useState(null);
+  const [proofPreview, setProofPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   // Reference number required for CHEQUE and DD
   const isReferenceRequired = paymentMode === "CHEQUE" || paymentMode === "DD";
+
+  const handleProofChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Invalid file type. Only PDF, JPG, JPEG, PNG are allowed.");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("File size must be less than 5MB");
+      e.target.value = "";
+      return;
+    }
+
+    setError("");
+    setProofFile(file);
+
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => setProofPreview(reader.result);
+      reader.readAsDataURL(file);
+    } else {
+      setProofPreview(null);
+    }
+  };
+
+  const removeProof = () => {
+    setProofFile(null);
+    setProofPreview(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -622,16 +767,23 @@ function MarkPaidModal({
       return;
     }
 
+    if (!proofFile) {
+      setError("Proof of payment (receipt) is required to mark this installment as paid");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      await onSuccess({
-        studentId,
-        installmentId: installment._id,
-        paymentMode,
-        referenceNumber: isReferenceRequired ? referenceNumber.trim() : null,
-        remarks: remarks.trim() || null,
-      });
+      const formData = new FormData();
+      formData.append("studentId", studentId);
+      formData.append("installmentId", installment._id);
+      formData.append("paymentMode", paymentMode);
+      formData.append("referenceNumber", isReferenceRequired ? referenceNumber.trim() : "");
+      formData.append("remarks", remarks.trim() || "");
+      formData.append("proof", proofFile);
+
+      await onSuccess(formData);
     } catch (err) {
       setError(err.message || "Failed to mark installment as paid");
     } finally {
@@ -761,6 +913,53 @@ function MarkPaidModal({
             />
           </div>
 
+          {/* Proof of Payment (Receipt) — Required */}
+          <div className="form-group">
+            <label htmlFor="proof" className="form-label">
+              Proof of Payment (Receipt) <span className="required">*</span>
+            </label>
+            <input
+              id="proof"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={handleProofChange}
+              className="form-input"
+              style={{ padding: "0.5rem" }}
+            />
+            <small className="proof-hint">
+              Upload the student's receipt/deposit slip (PDF, JPG, PNG — max 5MB)
+            </small>
+
+            {proofFile && (
+              <div className="proof-preview-box">
+                <div className="proof-preview-info">
+                  {proofPreview ? (
+                    <img
+                      src={proofPreview}
+                      alt="Proof preview"
+                      className="proof-thumb"
+                    />
+                  ) : (
+                    <div className="proof-thumb proof-thumb-pdf">PDF</div>
+                  )}
+                  <div className="proof-file-meta">
+                    <strong>{proofFile.name}</strong>
+                    <br />
+                    <small>{(proofFile.size / 1024 / 1024).toFixed(2)} MB</small>
+                  </div>
+                  <button
+                    type="button"
+                    className="proof-remove-btn"
+                    onClick={removeProof}
+                    aria-label="Remove uploaded proof"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Modal Actions */}
           <div className="modal-actions">
             <button
@@ -810,8 +1009,9 @@ function MarkPaidModal({
           animation: fadeIn 0.2s ease;
         }
 
-        .mark-paid-modal {
-          background: white;
+         .mark-paid-modal {
+           position: relative;
+           background: white;
           border-radius: 12px;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
           max-width: 600px;
@@ -1025,6 +1225,73 @@ function MarkPaidModal({
           font-family: inherit;
         }
 
+        .proof-hint {
+          display: block;
+          margin-top: 0.5rem;
+          color: #6c757d;
+          font-size: 0.8rem;
+        }
+
+        .proof-preview-box {
+          margin-top: 0.75rem;
+          padding: 0.75rem;
+          border: 1px solid #e9ecef;
+          border-radius: 8px;
+          background: #f8f9fa;
+        }
+
+        .proof-preview-info {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .proof-thumb {
+          width: 56px;
+          height: 56px;
+          object-fit: cover;
+          border-radius: 6px;
+          border: 1px solid #dee2e6;
+          flex-shrink: 0;
+        }
+
+        .proof-thumb-pdf {
+          background: #dc3545;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          font-size: 0.75rem;
+        }
+
+        .proof-file-meta {
+          flex: 1;
+          word-break: break-all;
+        }
+
+        .proof-remove-btn {
+          background: rgba(220, 53, 69, 0.1);
+          border: 1px solid #dc3545;
+          color: #dc3545;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          font-size: 1.25rem;
+          line-height: 1;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          transition: all 0.2s;
+        }
+
+        .proof-remove-btn:hover {
+          background: #dc3545;
+          color: white;
+        }
+
         .modal-actions {
           display: flex;
           justify-content: flex-end;
@@ -1032,6 +1299,62 @@ function MarkPaidModal({
           margin-top: 1.5rem;
           padding-top: 1.5rem;
           border-top: 1px solid #e9ecef;
+        }
+
+        .mark-paid-modal .erp-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          padding: 0.7rem 1.6rem;
+          border-radius: 8px;
+          font-size: 0.95rem;
+          font-weight: 600;
+          cursor: pointer;
+          border: 2px solid transparent;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .mark-paid-modal .erp-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* Cancel button — neutral outline */
+        .mark-paid-modal .erp-btn-outline {
+          background: white;
+          border-color: #ced4da;
+          color: #495057;
+        }
+
+        .mark-paid-modal .erp-btn-outline:hover:not(:disabled) {
+          background: #f1f3f5;
+          border-color: #adb5bd;
+          color: #212529;
+        }
+
+        .mark-paid-modal .erp-btn-outline:active:not(:disabled) {
+          background: #e9ecef;
+        }
+
+        /* Mark as Paid button — solid green (matches modal header) */
+        .mark-paid-modal .erp-btn-success {
+          background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+          border-color: transparent;
+          color: white;
+          box-shadow: 0 4px 14px rgba(40, 167, 69, 0.3);
+        }
+
+        .mark-paid-modal .erp-btn-success:hover:not(:disabled) {
+          background: linear-gradient(135deg, #218838 0%, #199b7a 100%);
+          box-shadow: 0 6px 18px rgba(40, 167, 69, 0.4);
+          transform: translateY(-1px);
+        }
+
+        .mark-paid-modal .erp-btn-success:active:not(:disabled) {
+          transform: translateY(0);
+          box-shadow: 0 2px 8px rgba(40, 167, 69, 0.35);
         }
 
         .spin-icon {
@@ -1109,24 +1432,56 @@ function LoadingDisplay() {
 /* ================= MAIN COMPONENT ================= */
 export default function ViewApproveStudent() {
   const { user } = useContext(AuthContext);
-  const { id } = useParams();
+  const { id: studentId } = useParams();
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [documentConfig, setDocumentConfig] = useState([]);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   // 🏦 OFFLINE PAYMENT: Mark as Paid modal state
   const [showMarkPaidModal, setShowMarkPaidModal] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState(null);
 
+  // 🗂️ SECTION TABS
+  const [activeTab, setActiveTab] = useState("personal");
+
+  const SECTION_TABS = [
+    { id: "personal",   label: "Personal"   },
+    { id: "address",    label: "Address"    },
+    { id: "parent",     label: "Parent"     },
+    { id: "academic10", label: "10th"       },
+    { id: "academic12", label: "12th"       },
+    { id: "academic",   label: "College"    },
+    { id: "documents",  label: "Documents"  },
+    { id: "fee",        label: "Fee"        },
+    { id: "system",     label: "System"     },
+  ];
+
+  const handleTabClick = (tabId) => {
+    setActiveTab(tabId);
+  };
+
   /* ================= FETCH STUDENT ================= */
   const fetchStudent = useCallback(async () => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
-      const res = await api.get(CONFIG.API_ENDPOINTS.APPROVED_STUDENT(id));
+      const res = await api.get(CONFIG.API_ENDPOINTS.APPROVED_STUDENT(studentId));
 
       // API returns: { student: {...}, fee: {...} }
       const studentData =
@@ -1141,22 +1496,52 @@ export default function ViewApproveStudent() {
       setStudent(studentData);
       setRetryCount(0);
     } catch (fetchError) {
-      const errorType = getErrorType(fetchError);
-      setError(errorType);
-      toast.error(errorType, {
-        position: "top-right",
-        autoClose: 4000,
-      });
+      const statusCode = fetchError.response?.status;
+      const errorCode = fetchError.response?.data?.code;
+      const backendMessage = fetchError.response?.data?.message;
+      const errorType = backendMessage || getErrorType(fetchError);
+
+      logger.error("Error fetching student:", statusCode, errorCode);
+
+      setError({ message: errorType, statusCode, errorCode });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorType, {
+          position: "top-right",
+          autoClose: 4000,
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [studentId]);
 
-  useEffect(() => {
-    if (user?.role === "COLLEGE_ADMIN") {
-      fetchStudent();
-    }
-  }, [fetchStudent, user]);
+    useEffect(() => {
+      if ((user?.role === "COLLEGE_ADMIN" || user?.role === "ACCOUNTANT" || user?.role === "ADMISSION_OFFICER" || user?.role === "PRINCIPAL") && studentId) {
+        fetchStudent();
+      }
+    }, [fetchStudent, user, studentId]);
+
+    useEffect(() => {
+      const fetchDocumentConfig = async () => {
+        if (!student?.college_id?.code) return;
+        try {
+          const res = await api.get(`/document-config/${student.college_id.code}`);
+          setDocumentConfig(res.data?.documents || []);
+        } catch (err) {
+          logger.error("Error fetching document config:", err);
+          setDocumentConfig([]);
+        }
+      };
+
+      if (student) {
+        fetchDocumentConfig();
+      }
+    }, [student]);
 
   /* ================= 🏦 OFFLINE PAYMENT HANDLERS ================= */
   // Open Mark Paid modal
@@ -1165,13 +1550,16 @@ export default function ViewApproveStudent() {
     setShowMarkPaidModal(true);
   }, []);
 
-  // Submit offline payment
+  // Submit offline payment (paymentData is a FormData instance built by MarkPaidModal)
   const handleMarkPaidSubmit = useCallback(
     async (paymentData) => {
       try {
         const response = await api.post(
           "/admin/payments/mark-paid",
           paymentData,
+          {
+            headers: { "Content-Type": "multipart/form-data" },
+          },
         );
 
         if (response.data.success) {
@@ -1202,10 +1590,14 @@ export default function ViewApproveStudent() {
     setSelectedInstallment(null);
   }, []);
 
-  /* ================= SECURITY CHECK ================= */
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" replace />;
+    /* ================= SECURITY CHECK ================= */
+    if (!user) return <Navigate to="/login" replace />;
+    // Allow COLLEGE_ADMIN, ACCOUNTANT, ADMISSION_OFFICER, PRINCIPAL
+    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "ADMISSION_OFFICER" && user.role !== "PRINCIPAL")
+      return <Navigate to="/dashboard" replace />;
+
+   // Admission Officers can view but cannot mark payments as paid
+   const canMarkPaid = user?.role !== "ADMISSION_OFFICER";
 
   /* ================= MEMOIZED CALCULATIONS ================= */
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -1237,87 +1629,59 @@ export default function ViewApproveStudent() {
   const uploadedDocuments = useMemo(() => {
     if (!student) return [];
 
-    const docMap = [
-      { key: "sscMarksheetPath", label: "10th Marksheet", icon: <FaFileAlt /> },
-      { key: "hscMarksheetPath", label: "12th Marksheet", icon: <FaFileAlt /> },
-      { key: "passportPhotoPath", label: "Passport Photo", icon: <FaImage /> },
-      {
-        key: "categoryCertificatePath",
-        label: "Category Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "incomeCertificatePath",
-        label: "Income Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "characterCertificatePath",
-        label: "Character Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "transferCertificatePath",
-        label: "Transfer Certificate",
-        icon: <FaFileAlt />,
-      },
-      { key: "aadharCardPath", label: "Aadhar Card", icon: <FaFileAlt /> },
-      {
-        key: "entranceExamScorePath",
-        label: "Entrance Exam Score",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "migrationCertificatePath",
-        label: "Migration Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "domicileCertificatePath",
-        label: "Domicile Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "casteCertificatePath",
-        label: "Caste Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "nonCreamyLayerCertificatePath",
-        label: "Non-Creamy Layer Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "physicallyChallengedCertificatePath",
-        label: "Physically Challenged Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "sportsQuotaCertificatePath",
-        label: "Sports Quota Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "nriSponsorCertificatePath",
-        label: "NRI Sponsor Certificate",
-        icon: <FaFileAlt />,
-      },
-      {
-        key: "gapCertificatePath",
-        label: "Gap Certificate",
-        icon: <FaFileAlt />,
-      },
-      { key: "affidavitPath", label: "Affidavit", icon: <FaFileAlt /> },
-    ];
+    const docs = [];
+    const seenTypes = new Set();
 
-    return docMap
-      .filter(({ key }) => student[key])
-      .map(({ label, ...rest }) => ({
-        label,
-        path: student[docMap.find((d) => d.label === label).key],
-        ...rest,
-      }));
-  }, [student]);
+    const configDocs = documentConfig.length > 0
+      ? documentConfig.filter(doc => doc.enabled)
+      : [];
+
+    configDocs.forEach(doc => {
+      seenTypes.add(doc.type);
+      const uploadedDoc = student.documents?.[doc.type];
+      docs.push({
+        label: doc.label,
+        path: uploadedDoc?.downloadUrl || null,
+        icon: <FaFileAlt />,
+        documentId: uploadedDoc?.documentId || null,
+        type: doc.type,
+        isUploaded: !!uploadedDoc,
+        uploadedAt: uploadedDoc?.uploadedAt || null,
+      });
+    });
+
+    if (configDocs.length === 0 && student.documents) {
+      Object.keys(student.documents).forEach(type => {
+        const uploadedDoc = student.documents[type];
+        docs.push({
+          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          path: uploadedDoc?.downloadUrl || null,
+          icon: <FaFileAlt />,
+          documentId: uploadedDoc?.documentId || null,
+          type: type,
+          isUploaded: !!uploadedDoc,
+          uploadedAt: uploadedDoc?.uploadedAt || null,
+        });
+      });
+    } else {
+      Object.keys(student.documents || {}).forEach(type => {
+        if (!seenTypes.has(type)) {
+          const uploadedDoc = student.documents[type];
+          docs.push({
+            label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            path: uploadedDoc?.downloadUrl || null,
+            icon: <FaFileAlt />,
+            documentId: uploadedDoc?.documentId || null,
+            type: type,
+            isUploaded: !!uploadedDoc,
+            uploadedAt: uploadedDoc?.uploadedAt || null,
+          });
+        }
+      });
+    }
+
+    return docs;
+  }, [student, documentConfig]);
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const feeData = useMemo(() => {
@@ -1354,23 +1718,18 @@ export default function ViewApproveStudent() {
     navigate(-1);
   }, [navigate]);
 
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const handlePrint = useCallback(() => {
-    printProfile();
-    toast.info("Preparing print view...", {
-      position: "top-right",
-      autoClose: 1500,
-    });
-  }, []);
-
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <ErrorDisplay
-        error={error}
+      <ApiError
+        title="Student Profile Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
-        onBack={handleBack}
+        onGoBack={handleBack}
         retryCount={retryCount}
+        maxRetry={CONFIG.MAX_RETRY}
       />
     );
   }
@@ -1380,19 +1739,26 @@ export default function ViewApproveStudent() {
     return <LoadingDisplay />;
   }
 
-  /* ================= RENDER ================= */
-  return (
-    <div className="erp-container print-area">
-      {/* BREADCRUMBS */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Approved Students", path: "/students/approve" },
-          { label: student.fullName || "Student Profile" },
-        ]}
-      />
+   /* ================= RENDER ================= */
+   const renderSection = (sectionId, content) => {
+     if (activeTab !== sectionId) return null;
+     return content;
+   };
 
-      {/* HEADER WITH STUDENT INFO */}
+   return (
+     <div className="erp-container print-area">
+       {/* BREADCRUMBS */}
+       <Breadcrumb
+         items={[
+           { label: "Dashboard", path: "/dashboard" },
+           { label: "Approved Students", path: "/students/approve" },
+           { label: student.fullName || "Student Profile" },
+         ]}
+       />
+
+      
+
+       {/* HEADER WITH STUDENT INFO */}
       <div className="erp-page-header no-print" role="banner">
         <div className="erp-header-content">
           {/* Student Avatar */}
@@ -1408,9 +1774,9 @@ export default function ViewApproveStudent() {
                 <FaBookOpen className="meta-icon" aria-hidden="true" />
                 {student.course_id?.name || "N/A"}
               </span>
-              <span className="status-badge status-approved">
+              <span className={`status-badge status-${student.status?.toLowerCase() || 'approved'}`}>
                 <FaCheckCircle className="status-icon" aria-hidden="true" />
-                APPROVED
+                {student.status || "APPROVED"}
               </span>
             </div>
           </div>
@@ -1427,405 +1793,241 @@ export default function ViewApproveStudent() {
             <FaArrowLeft className="erp-btn-icon" aria-hidden="true" />
             <span>Back to Students</span>
           </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handlePrint}
-            type="button"
-            aria-label="Print student profile"
-            title="Print Profile"
-          >
-            <FaPrint className="erp-btn-icon" aria-hidden="true" />
-            <span>Print</span>
-          </button>
         </div>
       </div>
 
-      {/* MAIN CONTENT GRID */}
-      <div className="main-content-grid animate-fade-in">
-        {/* LEFT COLUMN - PERSONAL & ACADEMIC DETAILS */}
-        <div className="left-column">
-          {/* PERSONAL INFORMATION */}
-          <InfoCard title="Personal Information" icon={FaUserGraduate}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="Personal information"
-              >
-                <tbody>
-                  <DetailRow
-                    label="Email Address"
-                    value={student.email}
-                    icon={<FaEnvelope />}
-                    isEmail
-                    isCopyable
-                  />
-                  <DetailRow
-                    label="Mobile Number"
-                    value={student.mobileNumber}
-                    icon={<FaPhone />}
-                    isCopyable
-                  />
-                  <DetailRow
-                    label="Gender"
-                    value={student.gender}
-                    icon={<FaUserGraduate />}
-                  />
-                  <DetailRow
-                    label="Category"
-                    value={student.category}
-                    icon={<FaBookOpen />}
-                  />
-                  <DetailRow
-                    label="Date of Birth"
-                    value={formatDate(student.dateOfBirth)}
-                    icon={<FaCalendarAlt />}
-                  />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
 
-          {/* ADDRESS DETAILS */}
-          <InfoCard title="Address Details" icon={FaMapMarkerAlt}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="Address details"
-              >
-                <tbody>
-                  <DetailRow
-                    label="Address"
-                    value={student.addressLine}
-                    icon={<FaMapMarkerAlt />}
-                    isMultiline
-                  />
-                  <DetailRow
-                    label="City"
-                    value={student.city}
-                    icon={<FaMapMarkerAlt />}
-                  />
-                  <DetailRow
-                    label="State"
-                    value={student.state}
-                    icon={<FaMapMarkerAlt />}
-                  />
-                  <DetailRow
-                    label="Pincode"
-                    value={student.pincode}
-                    icon={<FaMapMarkerAlt />}
-                    isCopyable
-                  />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
+ {/* SECTION TABS */}
+       <div className="section-tabs no-print" role="tablist" aria-label="Section navigation">
+         {SECTION_TABS.map((tab) => (
+           <button
+             key={tab.id}
+             className={`section-tab ${activeTab === tab.id ? "active" : ""}`}
+             onClick={() => handleTabClick(tab.id)}
+             role="tab"
+             aria-selected={activeTab === tab.id}
+             aria-controls={`section-${tab.id}`}
+             type="button"
+           >
+             {tab.label}
+           </button>
+         ))}
+       </div>
+      {/* TAB CONTENT PANEL */}
+      <div className="tab-content-panel animate-fade-in">
 
-          {/* PARENT / GUARDIAN INFORMATION */}
-          <InfoCard title="Parent / Guardian Information" icon={FaUser}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="Parent guardian information"
-              >
-                <tbody>
-                  <DetailRow
-                    label="Father's Name"
-                    value={student.fatherName}
-                    icon={<FaUser />}
-                  />
-                  <DetailRow
-                    label="Father's Mobile"
-                    value={student.fatherMobile}
-                    icon={<FaPhone />}
-                    isCopyable
-                  />
-                  <DetailRow
-                    label="Mother's Name"
-                    value={student.motherName}
-                    icon={<FaUser />}
-                  />
-                  <DetailRow
-                    label="Mother's Mobile"
-                    value={student.motherMobile}
-                    icon={<FaPhone />}
-                    isCopyable
-                  />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
-
-          {/* 10TH (SSC) ACADEMIC DETAILS */}
-          {has10thDetails && (
-            <InfoCard
-              title="10th (SSC) Academic Details"
-              icon={FaGraduationCap}
-            >
+        {/* PERSONAL INFORMATION */}
+        <div id="section-personal" role="tabpanel" aria-labelledby="tab-personal">
+          {renderSection("personal", (
+            <InfoCard title="Personal Information" icon={FaUserGraduate}>
               <div className="erp-table-container">
-                <table
-                  className="erp-detail-table"
-                  role="table"
-                  aria-label="10th academic details"
-                >
+                <table className="erp-detail-table" role="table" aria-label="Personal information">
                   <tbody>
-                    <DetailRow
-                      label="School Name"
-                      value={student.sscSchoolName}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Board"
-                      value={student.sscBoard}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Passing Year"
-                      value={student.sscPassingYear?.toString()}
-                      icon={<FaCalendarAlt />}
-                    />
-                    <DetailRow
-                      label="Percentage / CGPA"
-                      value={
-                        student.sscPercentage
-                          ? `${student.sscPercentage}%`
-                          : null
-                      }
-                      icon={<FaGraduationCap />}
-                    />
-                    <DetailRow
-                      label="Roll Number"
-                      value={student.sscRollNumber}
-                      icon={<FaBookOpen />}
-                      isCopyable
-                    />
+                    <DetailRow label="Email Address" value={student.email} icon={<FaEnvelope />} isEmail isCopyable />
+                    <DetailRow label="Mobile Number" value={student.mobileNumber} icon={<FaPhone />} isCopyable />
+                    <DetailRow label="Gender" value={student.gender} icon={<FaUserGraduate />} />
+                    <DetailRow label="Category" value={student.category} icon={<FaBookOpen />} />
+                    <DetailRow label="Date of Birth" value={formatDate(student.dateOfBirth)} icon={<FaCalendarAlt />} />
                   </tbody>
                 </table>
               </div>
             </InfoCard>
-          )}
+          ))}
+        </div>
 
-          {/* 12TH (HSC) ACADEMIC DETAILS */}
-          {has12thDetails && (
-            <InfoCard
-              title="12th (HSC) Academic Details"
-              icon={FaGraduationCap}
-            >
+        {/* ADDRESS DETAILS */}
+        <div id="section-address" role="tabpanel" aria-labelledby="tab-address">
+          {renderSection("address", (
+            <InfoCard title="Address Details" icon={FaMapMarkerAlt}>
               <div className="erp-table-container">
-                <table
-                  className="erp-detail-table"
-                  role="table"
-                  aria-label="12th academic details"
-                >
+                <table className="erp-detail-table" role="table" aria-label="Address details">
                   <tbody>
-                    <DetailRow
-                      label="School / College Name"
-                      value={student.hscSchoolName}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Board"
-                      value={student.hscBoard}
-                      icon={<FaUniversity />}
-                    />
-                    <DetailRow
-                      label="Stream"
-                      value={student.hscStream}
-                      icon={<FaBookOpen />}
-                    />
-                    <DetailRow
-                      label="Passing Year"
-                      value={student.hscPassingYear?.toString()}
-                      icon={<FaCalendarAlt />}
-                    />
-                    <DetailRow
-                      label="Percentage / CGPA"
-                      value={
-                        student.hscPercentage
-                          ? `${student.hscPercentage}%`
-                          : null
-                      }
-                      icon={<FaGraduationCap />}
-                    />
-                    <DetailRow
-                      label="Roll Number"
-                      value={student.hscRollNumber}
-                      icon={<FaBookOpen />}
-                      isCopyable
-                    />
+                    <DetailRow label="Address" value={student.addressLine} icon={<FaMapMarkerAlt />} isMultiline />
+                    <DetailRow label="City" value={student.city} icon={<FaMapMarkerAlt />} />
+                    <DetailRow label="State" value={student.state} icon={<FaMapMarkerAlt />} />
+                    <DetailRow label="Pincode" value={student.pincode} icon={<FaMapMarkerAlt />} isCopyable />
                   </tbody>
                 </table>
               </div>
             </InfoCard>
-          )}
+          ))}
+        </div>
 
-          {/* UPLOADED DOCUMENTS */}
-          {uploadedDocuments.length > 0 && (
+        {/* PARENT / GUARDIAN INFORMATION */}
+        <div id="section-parent" role="tabpanel" aria-labelledby="tab-parent">
+          {renderSection("parent", (
+            <InfoCard title="Parent / Guardian Information" icon={FaUser}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="Parent guardian information">
+                  <tbody>
+                    <DetailRow label="Father's Name" value={student.fatherName} icon={<FaUser />} />
+                    <DetailRow label="Father's Mobile" value={student.fatherMobile} icon={<FaPhone />} isCopyable />
+                    <DetailRow label="Mother's Name" value={student.motherName} icon={<FaUser />} />
+                    <DetailRow label="Mother's Mobile" value={student.motherMobile} icon={<FaPhone />} isCopyable />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ))}
+        </div>
+
+        {/* 10TH (SSC) ACADEMIC DETAILS */}
+        <div id="section-academic10" role="tabpanel" aria-labelledby="tab-academic10">
+          {renderSection("academic10", has10thDetails ? (
+            <InfoCard title="10th (SSC) Academic Details" icon={FaGraduationCap}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="10th academic details">
+                  <tbody>
+                    <DetailRow label="School Name" value={student.sscSchoolName} icon={<FaUniversity />} />
+                    <DetailRow label="Board" value={student.sscBoard} icon={<FaUniversity />} />
+                    <DetailRow label="Passing Year" value={student.sscPassingYear?.toString()} icon={<FaCalendarAlt />} />
+                    <DetailRow
+                      label="Percentage / CGPA"
+                      value={student.sscPercentage ? `${student.sscPercentage}%` : null}
+                      icon={<FaGraduationCap />}
+                    />
+                    <DetailRow label="Roll Number" value={student.sscRollNumber} icon={<FaBookOpen />} isCopyable />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ) : (
+            <EmptyState icon={FaGraduationCap} message="No 10th details available" subMessage="10th (SSC) information has not been filled in" />
+          ))}
+        </div>
+
+        {/* 12TH (HSC) ACADEMIC DETAILS */}
+        <div id="section-academic12" role="tabpanel" aria-labelledby="tab-academic12">
+          {renderSection("academic12", has12thDetails ? (
+            <InfoCard title="12th (HSC) Academic Details" icon={FaGraduationCap}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="12th academic details">
+                  <tbody>
+                    <DetailRow label="School / College Name" value={student.hscSchoolName} icon={<FaUniversity />} />
+                    <DetailRow label="Board" value={student.hscBoard} icon={<FaUniversity />} />
+                    <DetailRow label="Stream" value={student.hscStream} icon={<FaBookOpen />} />
+                    <DetailRow label="Passing Year" value={student.hscPassingYear?.toString()} icon={<FaCalendarAlt />} />
+                    <DetailRow
+                      label="Percentage / CGPA"
+                      value={student.hscPercentage ? `${student.hscPercentage}%` : null}
+                      icon={<FaGraduationCap />}
+                    />
+                    <DetailRow label="Roll Number" value={student.hscRollNumber} icon={<FaBookOpen />} isCopyable />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ) : (
+            <EmptyState icon={FaGraduationCap} message="No 12th details available" subMessage="12th (HSC) information has not been filled in" />
+          ))}
+        </div>
+
+        {/* COLLEGE ACADEMIC DETAILS */}
+        <div id="section-academic" role="tabpanel" aria-labelledby="tab-academic">
+          {renderSection("academic", (
+            <InfoCard title="Academic Details" icon={FaGraduationCap}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="Academic details">
+                  <tbody>
+                    <DetailRow label="College" value={student.college_id?.name} icon={<FaUniversity />} />
+                    <DetailRow label="College Code" value={student.college_id?.code} icon={<FaBuilding />} isCopyable />
+                    <DetailRow label="Department" value={student.department_id?.name} icon={<FaBuilding />} />
+                    <DetailRow label="Course" value={student.course_id?.name} icon={<FaBookOpen />} />
+                    <DetailRow label="Admission Year" value={student.admissionYear?.toString()} icon={<FaCalendarAlt />} />
+                    <DetailRow label="Current Semester" value={student.currentSemester} icon={<FaGraduationCap />} />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ))}
+        </div>
+
+        {/* UPLOADED DOCUMENTS */}
+        <div id="section-documents" role="tabpanel" aria-labelledby="tab-documents">
+          {renderSection("documents", uploadedDocuments.length > 0 ? (
             <InfoCard title="Uploaded Documents" icon={FaFileAlt}>
-              <p
-                className="document-count"
-                aria-label={`${uploadedDocuments.length} documents uploaded`}
-              >
+              <p className="document-count" aria-label={`${uploadedDocuments.length} documents uploaded`}>
                 <FaFileAlt className="count-icon" aria-hidden="true" />
-                {uploadedDocuments.length} document
-                {uploadedDocuments.length !== 1 ? "s" : ""} uploaded
+                {uploadedDocuments.length} document{uploadedDocuments.length !== 1 ? "s" : ""} uploaded
               </p>
               <div className="erp-table-container">
-                <table
-                  className="erp-detail-table"
-                  role="table"
-                  aria-label="Uploaded documents"
-                >
+                <table className="erp-detail-table" role="table" aria-label="Uploaded documents">
                   <tbody>
-                    {uploadedDocuments.map((doc, index) => (
-                      <DocumentRow
-                        key={`${doc.label}-${index}`}
-                        label={doc.label}
-                        path={doc.path}
-                        icon={doc.icon}
-                      />
+                    {uploadedDocuments.map((doc) => (
+                      <DocumentRow key={doc.type} label={doc.label} path={doc.path} icon={doc.icon} documentId={doc.documentId} isUploaded={doc.isUploaded} uploadedAt={doc.uploadedAt} />
                     ))}
                   </tbody>
                 </table>
               </div>
             </InfoCard>
-          )}
-
-          {/* ACADEMIC DETAILS */}
-          <InfoCard title="Academic Details" icon={FaGraduationCap}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="Academic details"
-              >
-                <tbody>
-                  <DetailRow
-                    label="College"
-                    value={student.college_id?.name}
-                    icon={<FaUniversity />}
-                  />
-                  <DetailRow
-                    label="College Code"
-                    value={student.college_id?.code}
-                    icon={<FaBuilding />}
-                    isCopyable
-                  />
-                  <DetailRow
-                    label="Department"
-                    value={student.department_id?.name}
-                    icon={<FaBuilding />}
-                  />
-                  <DetailRow
-                    label="Course"
-                    value={student.course_id?.name}
-                    icon={<FaBookOpen />}
-                  />
-                  <DetailRow
-                    label="Admission Year"
-                    value={student.admissionYear?.toString()}
-                    icon={<FaCalendarAlt />}
-                  />
-                  <DetailRow
-                    label="Current Semester"
-                    value={student.currentSemester}
-                    icon={<FaGraduationCap />}
-                  />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
+          ) : (
+            <EmptyState icon={FaFileAlt} message="No documents uploaded" subMessage="No documents have been uploaded yet" />
+          ))}
         </div>
 
-        {/* RIGHT COLUMN - FEE & SYSTEM INFO */}
-        <div className="right-column">
-          {/* FEE SUMMARY */}
-          <InfoCard
-            title="Fee Summary"
-            icon={FaRupeeSign}
-            className="fee-summary-card"
-          >
-            <div className="fee-summary-grid">
-              <FeeCard
-                label="Total Fee"
-                value={formatCurrency(feeData?.totalFee)}
-                subtitle="Complete program fee"
-                variant="total"
-              />
-              <FeeCard
-                label="Paid Amount"
-                value={formatCurrency(feeData?.paidAmount)}
-                subtitle="Amount received"
-                variant="paid"
-              />
-              <FeeCard
-                label="Pending Amount"
-                value={formatCurrency(feeData?.pendingAmount)}
-                subtitle={
-                  feeData?.pendingAmount > 0 ? "Payment due" : "Fully paid"
-                }
-                variant="pending"
-                highlight={feeData?.pendingAmount > 0}
-              />
-            </div>
-          </InfoCard>
-
-          {/* INSTALLMENTS TABLE */}
-          <InfoCard title="Payment Installments" icon={FaCreditCard}>
-            <span
-              className="installment-count"
-              aria-label={`${feeData?.installments?.length || 0} installments`}
-            >
-              {feeData?.installments?.length || 0}{" "}
-              {feeData?.installments?.length === 1
-                ? "Installment"
-                : "Installments"}
-            </span>
-            <div className="erp-card-body">
-              <InstallmentTable
-                installments={feeData?.installments || []}
-                studentId={student._id}
-                onMarkPaid={handleMarkPaid}
-              />
-            </div>
-          </InfoCard>
-
-          {/* SYSTEM INFORMATION */}
-          <InfoCard title="System Information" icon={FaShieldAlt}>
-            <div className="erp-table-container">
-              <table
-                className="erp-detail-table"
-                role="table"
-                aria-label="System information"
-              >
-                <tbody>
-                  <DetailRow
-                    label="Status"
-                    value={student.status}
-                    icon={<FaCheckCircle />}
+        {/* FEE DETAILS */}
+        <div id="section-fee" role="tabpanel" aria-labelledby="tab-fee">
+          {renderSection("fee", (
+            <>
+              <InfoCard title="Fee Summary" icon={FaRupeeSign} className="fee-summary-card">
+                <div className="fee-summary-grid">
+                  <FeeCard
+                    label="Total Fee"
+                    value={formatCurrency(feeData?.totalFee)}
+                    subtitle="Complete program fee"
+                    variant="total"
                   />
-                  <DetailRow
-                    label="Registered Via"
-                    value={student.registeredVia}
-                    icon={<FaUserGraduate />}
+                  <FeeCard
+                    label="Paid Amount"
+                    value={formatCurrency(feeData?.paidAmount)}
+                    subtitle="Amount received"
+                    variant="paid"
                   />
-                  <DetailRow
-                    label="Approved At"
-                    value={formatDate(student.approvedAt)}
-                    icon={<FaCheckCircle />}
+                  <FeeCard
+                    label="Pending Amount"
+                    value={formatCurrency(feeData?.pendingAmount)}
+                    subtitle={feeData?.pendingAmount > 0 ? "Payment due" : "Fully paid"}
+                    variant="pending"
+                    highlight={feeData?.pendingAmount > 0}
                   />
-                  <DetailRow
-                    label="Created At"
-                    value={formatDate(student.createdAt)}
-                    icon={<FaClock />}
+                </div>
+              </InfoCard>
+              <InfoCard title="Payment Installments" icon={FaCreditCard}>
+                <span className="installment-count" aria-label={`${feeData?.installments?.length || 0} installments`}>
+                  {feeData?.installments?.length || 0}{" "}
+                  {feeData?.installments?.length === 1 ? "Installment" : "Installments"}
+                </span>
+                <div className="erp-card-body">
+                  <InstallmentTable
+                    installments={feeData?.installments || []}
+                    studentId={student._id}
+                    onMarkPaid={handleMarkPaid}
+                    canMarkPaid={canEdit("fee-structure")}
                   />
-                </tbody>
-              </table>
-            </div>
-          </InfoCard>
+                </div>
+              </InfoCard>
+            </>
+          ))}
         </div>
+
+        {/* SYSTEM INFORMATION */}
+        <div id="section-system" role="tabpanel" aria-labelledby="tab-system">
+          {renderSection("system", (
+            <InfoCard title="System Information" icon={FaShieldAlt}>
+              <div className="erp-table-container">
+                <table className="erp-detail-table" role="table" aria-label="System information">
+                  <tbody>
+                    <DetailRow label="Status" value={student.status} icon={<FaCheckCircle />} />
+                    <DetailRow label="Registered Via" value={student.registeredVia} icon={<FaUserGraduate />} />
+                    <DetailRow label="Approved At" value={formatDate(student.approvedAt)} icon={<FaCheckCircle />} />
+                    <DetailRow label="Created At" value={formatDate(student.createdAt)} icon={<FaClock />} />
+                  </tbody>
+                </table>
+              </div>
+            </InfoCard>
+          ))}
+        </div>
+
       </div>
 
       {/* STYLES */}
@@ -1859,7 +2061,8 @@ export default function ViewApproveStudent() {
         @media print {
           .no-print,
           .erp-header-actions,
-          .copy-btn {
+          .copy-btn,
+          .section-tabs {
             display: none !important;
           }
           
@@ -2035,8 +2238,8 @@ export default function ViewApproveStudent() {
 
         /* ================= MAIN CONTENT GRID ================= */
         .main-content-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
+          display: flex;
+          flex-direction: column;
           gap: 1.5rem;
         }
 
@@ -2185,24 +2388,76 @@ export default function ViewApproveStudent() {
           color: var(--erp-accent-light);
         }
 
-        /* ================= DOCUMENT LINK ================= */
-        .document-link {
-          color: #1976d2;
-          text-decoration: none;
-          font-weight: 600;
-          transition: all 0.2s ease;
-          display: inline-flex;
-          align-items: center;
+        /* ================= DOCUMENT ACTIONS ================= */
+        .document-actions {
+          display: flex;
+          flex-direction: column;
           gap: 0.5rem;
         }
 
-        .document-link:hover {
-          text-decoration: underline;
-          color: #1565c0;
+        .document-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
         }
 
-        .link-icon {
-          font-size: 0.75rem;
+        .document-filename {
+          font-weight: 600;
+          color: var(--erp-text);
+          font-size: 0.95rem;
+          word-break: break-all;
+        }
+
+        .document-upload-date {
+          font-size: 0.8rem;
+          color: var(--erp-text-muted);
+        }
+
+        .document-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .document-action-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.4rem 0.75rem;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .document-action-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .document-view-btn {
+          background: rgba(25, 118, 210, 0.1);
+          color: #1976d2;
+        }
+
+        .document-view-btn:hover:not(:disabled) {
+          background: rgba(25, 118, 210, 0.2);
+        }
+
+        .document-download-btn {
+          background: rgba(40, 167, 69, 0.1);
+          color: #28a745;
+        }
+
+        .document-download-btn:hover:not(:disabled) {
+          background: rgba(40, 167, 69, 0.2);
+        }
+
+        .action-icon {
+          font-size: 0.8rem;
         }
 
         .document-not-uploaded {
@@ -2230,12 +2485,18 @@ export default function ViewApproveStudent() {
           grid-row: span 2;
         }
 
-        .fee-summary-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.5rem;
-          padding: 1.5rem;
-        }
+         .fee-summary-grid {
+           display: grid;
+           grid-template-columns: repeat(3, 1fr);
+           gap: 1.5rem;
+           padding: 1.5rem;
+         }
+
+         @media (max-width: 1024px) and (min-width: 769px) {
+           .fee-summary-grid {
+             grid-template-columns: repeat(2, 1fr);
+           }
+         }
 
         .fee-item {
           background: #f8f9fa;
@@ -2646,12 +2907,83 @@ export default function ViewApproveStudent() {
           animation: fadeIn 0.6s ease;
         }
 
-        /* ================= RESPONSIVE DESIGN ================= */
-        @media (max-width: 1024px) {
-          .main-content-grid {
-            grid-template-columns: 1fr;
-          }
+        /* ================= SECTION TABS (always visible) ================= */
+        .section-tabs {
+          display: flex;
+          gap: 0.375rem;
+          overflow-x: auto;
+          padding: 0.5rem 0.25rem;
+          margin-bottom: 1.25rem;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          background: var(--erp-card-bg);
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          border: 1px solid var(--erp-border);
+          flex-wrap: wrap;
+        }
 
+        .section-tabs::-webkit-scrollbar {
+          display: none;
+        }
+
+        .section-tab {
+          flex-shrink: 0;
+          padding: 0.5rem 1.125rem;
+          border: 1.5px solid transparent;
+          background: transparent;
+          color: var(--erp-text-muted);
+          border-radius: 8px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s ease;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
+          user-select: none;
+          position: relative;
+        }
+
+        .section-tab:hover {
+          border-color: var(--erp-accent);
+          color: var(--erp-accent);
+          background: rgba(61, 181, 230, 0.06);
+        }
+
+        .section-tab.active {
+          background: var(--erp-primary);
+          color: white;
+          border-color: var(--erp-primary);
+          box-shadow: 0 2px 8px rgba(15, 58, 74, 0.25);
+        }
+
+        .section-tab.active::after {
+          content: '';
+          position: absolute;
+          bottom: -2px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 60%;
+          height: 2px;
+          background: var(--erp-accent);
+          border-radius: 2px;
+        }
+
+        /* ================= TAB CONTENT PANEL ================= */
+        .tab-content-panel {
+          display: flex;
+          flex-direction: column;
+          gap: -0.5rem;
+        }
+
+        .tab-content-panel > div[role="tabpanel"] {
+          width: 100%;
+        }
+
+        @media (max-width: 1024px) {
           .erp-page-header {
             flex-direction: column;
             align-items: flex-start;
@@ -2692,7 +3024,7 @@ export default function ViewApproveStudent() {
           }
 
           .fee-summary-grid {
-            grid-template-columns: 1fr;
+            grid-template-columns: repeat(2, 1fr);
           }
         }
 
@@ -2738,6 +3070,10 @@ export default function ViewApproveStudent() {
             justify-content: center;
           }
 
+          .fee-summary-grid {
+            grid-template-columns: 1fr;
+          }
+
           .detail-row {
             grid-template-columns: 1fr;
             gap: 0.5rem;
@@ -2774,7 +3110,7 @@ export default function ViewApproveStudent() {
 
           .skeleton-table-header,
           .skeleton-table-row {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
           }
         }
 

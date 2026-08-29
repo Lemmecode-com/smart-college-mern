@@ -182,7 +182,7 @@ export default function TeacherDashboard() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="min-vh-100"
+        className="erp-page erp-viewport-min-100"
         style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)' }}
       >
         <div className="container-fluid px-3 px-md-4 py-3 py-md-4">
@@ -274,23 +274,23 @@ export default function TeacherDashboard() {
               </div>
             </div>
 
-            {/* Teacher Info Bar */}
-            <div className="px-3 px-md-4 py-3 bg-light border-top">
-              <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                <div className="d-flex align-items-center gap-2">
-                  <FaShieldAlt style={{ color: BRAND_COLORS.info.main }} />
-                  <span
-                    className="px-3 py-1 rounded-pill fw-semibold small"
-                    style={{
-                      backgroundColor: '#dcfce7',
-                      color: '#166534',
-                      fontSize: '0.8rem'
-                    }}
-                  >
-                    Active Faculty
-                  </span>
-                </div>
-                <motion.button
+{/* Teacher Info Bar */}
+             <div className="px-3 px-md-4 py-3 bg-light border-top">
+               <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                 <div className="d-flex align-items-center gap-2">
+                   <FaShieldAlt style={{ color: BRAND_COLORS.info.main }} />
+                   <span
+                     className="px-3 py-1 rounded-pill fw-semibold small"
+                     style={{
+                       backgroundColor: teacher.isHod ? '#fef3c7' : '#dcfce7',
+                       color: teacher.isHod ? '#92400e' : '#166534',
+                       fontSize: '0.8rem'
+                     }}
+                   >
+                     {teacher.isHod ? 'Head of Department' : teacher.designation || 'Active Faculty'}
+                   </span>
+                 </div>
+                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate("/profile/edit-profile")}
@@ -378,7 +378,7 @@ export default function TeacherDashboard() {
                     icon={FaQrcode}
                     title="Create Attendance Session"
                     desc="Start a new lecture attendance session"
-                    link="/timetable/weekly-timetable"
+                    link="/attendance/my-sessions-list"
                     color={BRAND_COLORS.success.main}
                     gradient={BRAND_COLORS.success.gradient}
                   />
@@ -388,7 +388,7 @@ export default function TeacherDashboard() {
                     icon={FaUsers}
                     title="Mark Attendance"
                     desc="Record student attendance for active sessions"
-                    link="/attendance/my-sessions-list"
+                    link="/timetable/weekly-timetable"
                     color={BRAND_COLORS.info.main}
                     gradient={BRAND_COLORS.info.gradient}
                   />
@@ -724,7 +724,7 @@ function LectureRow({ lecture, delay = 0 }) {
         </div>
       </td>
       <td className="py-3 px-3 align-middle">
-        {lecture.department_id?.name || 'N/A'}
+        {lecture.department_id?.name || lecture.course_id?.name || "N/A"}
       </td>
       <td className="py-3 px-3 align-middle">
         <motion.span

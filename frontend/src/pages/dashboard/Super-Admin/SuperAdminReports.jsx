@@ -1,39 +1,79 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 import {
   FaUsers,
   FaCheckCircle,
   FaHourglassHalf,
   FaChartPie,
-  FaSyncAlt,
-  FaExclamationTriangle,
-  FaSpinner,
   FaInfoCircle,
   FaGraduationCap,
   FaUniversity,
   FaCalendarAlt,
   FaDownload,
   FaArrowUp,
+  FaArrowDown,
   FaClock,
+  FaSyncAlt,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 export default function SuperAdminReports() {
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= FETCH ADMISSION SUMMARY ================= */
   const fetchSummary = async () => {
     try {
       setLoading(true);
-      setError("");
-      const res = await api.get("/reports/admissions/super-summary");
+      setError(null);
+      const year = selectedYear;
+      const res = await api.get("/reports/admissions/super-summary", {
+        params: { month: selectedMonth, year },
+      });
       setData(res.data);
-      setRetryCount(0);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load admission summary. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load admission summary. Please try again.";
+
+      logger.error("Error fetching admission summary:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -43,14 +83,26 @@ export default function SuperAdminReports() {
     fetchSummary();
   }, []);
 
+  /* ================= FETCH MONTHLY ADMISSIONS (TARGETED) ================= */
+  const fetchMonthlyAdmissions = async (month, year) => {
+    try {
+      setMonthlyLoading(true);
+      const res = await api.get("/reports/admissions/super-summary", {
+        params: { month, year },
+      });
+      setData((prev) =>
+        prev ? { ...prev, monthlyAdmissions: res.data.monthlyAdmissions, monthlyGrowth: res.data.monthlyGrowth } : prev
+      );
+    } catch (err) {
+      logger.error("Error fetching monthly admissions:", err);
+    } finally {
+      setMonthlyLoading(false);
+    }
+  };
+
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
-      fetchSummary();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    fetchSummary();
   };
 
   /* ================= LOADING SKELETON ================= */
@@ -78,30 +130,14 @@ export default function SuperAdminReports() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle className="shake" />
-        </div>
-        <h3>Reports Loading Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
-            onClick={() => window.history.back()}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Reports Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchSummary}
+        onGoBack={() => window.history.back()}
+      />
     );
   }
 
@@ -188,8 +224,8 @@ export default function SuperAdminReports() {
           <div className="stat-card-footer">
             <div className="stat-footer-item">
               <span className="footer-label">Growth (30d)</span>
-              <span className="footer-value positive">
-                <FaArrowUp /> {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '0%'}
+              <span className={`footer-value ${data.monthlyGrowth > 0 ? 'positive' : data.monthlyGrowth < 0 ? 'negative' : 'neutral'}`}>
+                {data.monthlyGrowth > 0 ? <FaArrowUp /> : data.monthlyGrowth < 0 ? <FaArrowDown /> : null} {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '0%'}
               </span>
             </div>
           </div>
@@ -207,14 +243,14 @@ export default function SuperAdminReports() {
             <div className="stat-value approved">{data.approved?.toLocaleString() || 0}</div>
             <div className="stat-trend positive">
               <FaCheckCircle className="trend-icon" />
-              {data.approved ? Math.round((data.approved / data.totalStudents) * 100) : 0}% of total
+              {data.approvedPercentage ?? 0}% of total
             </div>
           </div>
           <div className="stat-card-footer">
             <div className="stat-footer-item">
               <span className="footer-label">Approval Rate</span>
               <span className="footer-value positive">
-                <FaCheckCircle /> {data.approved && data.totalStudents ? Math.round((data.approved / data.totalStudents) * 100) : 0}%
+                <FaCheckCircle /> {data.approvedPercentage ?? 0}%
               </span>
             </div>
           </div>
@@ -257,14 +293,14 @@ export default function SuperAdminReports() {
             <div className="stat-value rejected">{data.rejected?.toLocaleString() || 0}</div>
             <div className="stat-trend negative">
               <FaExclamationTriangle className="trend-icon" />
-              {data.rejected ? Math.round((data.rejected / data.totalStudents) * 100) : 0}% of total
+              {data.rejectedPercentage ?? 0}% of total
             </div>
           </div>
           <div className="stat-card-footer">
             <div className="stat-footer-item">
               <span className="footer-label">Rejection Rate</span>
               <span className="footer-value negative">
-                <FaExclamationTriangle /> {data.rejected && data.totalStudents ? Math.round((data.rejected / data.totalStudents) * 100) : 0}%
+                <FaExclamationTriangle /> {data.rejectedPercentage ?? 0}%
               </span>
             </div>
           </div>
@@ -304,17 +340,55 @@ export default function SuperAdminReports() {
             <div className="stat-title">Monthly Admissions</div>
           </div>
           <div className="stat-card-body">
-            <div className="stat-value">{data.monthlyAdmissions?.toLocaleString() || 0}</div>
-            <div className="stat-trend positive">
-              <FaArrowUp className="trend-icon" />
+            <div className="stat-value">
+              {monthlyLoading ? (
+                <span className="monthly-loading">Updating…</span>
+              ) : (
+                data.monthlyAdmissions?.toLocaleString() || 0
+              )}
+            </div>
+            <div className={`stat-trend ${data.monthlyGrowth > 0 ? 'positive' : data.monthlyGrowth < 0 ? 'negative' : 'neutral'}`}>
+              {data.monthlyGrowth > 0 ? <FaArrowUp className="trend-icon" /> : data.monthlyGrowth < 0 ? <FaArrowDown className="trend-icon" /> : null}
               {data.monthlyGrowth ? `${data.monthlyGrowth > 0 ? '+' : ''}${data.monthlyGrowth}%` : '+0%'} vs last month
             </div>
           </div>
-          <div className="stat-card-footer">
+<div className="stat-card-footer">
             <div className="stat-footer-item">
               <span className="footer-label">Current Month</span>
-              <span className="footer-value">
-                <FaCalendarAlt /> {new Date().toLocaleString('default', { month: 'short' })}
+              <span className="footer-value monthly-footer-value">
+                <FaCalendarAlt />
+                <select
+                  className="month-selector"
+                  value={selectedMonth}
+                  onChange={(e) => {
+                    const month = Number(e.target.value);
+                    setSelectedMonth(month);
+                    fetchMonthlyAdmissions(month, selectedYear);
+                  }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i} value={i}>
+                      {new Date(2025, i).toLocaleString("default", {
+                        month: "short",
+                      })}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="month-selector"
+                  value={selectedYear}
+                  onChange={(e) => {
+                    const year = Number(e.target.value);
+                    setSelectedYear(year);
+                    fetchMonthlyAdmissions(selectedMonth, year);
+                  }}
+                >
+                  {Array.from({ length: 5 }, (_, i) => (
+                    <option key={i} value={new Date().getFullYear() - 2 + i}>
+                      {new Date().getFullYear() - 2 + i}
+                    </option>
+                  ))}
+                </select>
               </span>
             </div>
           </div>
@@ -338,9 +412,7 @@ export default function SuperAdminReports() {
               <div className="metric-content">
                 <div className="metric-label">Approval Rate</div>
                 <div className="metric-value">
-                  {data.approved && data.totalStudents 
-                    ? Math.round((data.approved / data.totalStudents) * 100) 
-                    : 0}%
+                  {data.approvedPercentage ?? 0}%
                 </div>
                 <div className="metric-description">Percentage of approved applications</div>
               </div>
@@ -353,9 +425,7 @@ export default function SuperAdminReports() {
               <div className="metric-content">
                 <div className="metric-label">Pending Rate</div>
                 <div className="metric-value">
-                  {data.pending && data.totalStudents 
-                    ? Math.round((data.pending / data.totalStudents) * 100) 
-                    : 0}%
+                  {data.pendingPercentage ?? 0}%
                 </div>
                 <div className="metric-description">Applications awaiting review</div>
               </div>
@@ -368,9 +438,7 @@ export default function SuperAdminReports() {
               <div className="metric-content">
                 <div className="metric-label">Rejection Rate</div>
                 <div className="metric-value">
-                  {data.rejected && data.totalStudents 
-                    ? Math.round((data.rejected / data.totalStudents) * 100) 
-                    : 0}%
+                  {data.rejectedPercentage ?? 0}%
                 </div>
                 <div className="metric-description">Applications not approved</div>
               </div>
@@ -541,7 +609,7 @@ export default function SuperAdminReports() {
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 1.5rem;
+          gap: 0.5rem;
           margin-bottom: 1.5rem;
         }
         
@@ -669,6 +737,34 @@ export default function SuperAdminReports() {
         .footer-value.positive { color: #4CAF50; }
         .footer-value.warning { color: #FF9800; }
         .footer-value.negative { color: #F44336; }
+        
+        .monthly-footer-value {
+          gap: 0.5rem;
+        }
+        
+        .month-selector {
+          background: #f8f9fa;
+          border: 1px solid #dee2e6;
+          border-radius: 6px;
+          padding: 0.15rem 0.4rem;
+          font-size: 0.8rem;
+          font-weight: 600;
+          color: #1a4b6d;
+          cursor: pointer;
+          outline: none;
+          margin-left: 0.375rem;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          appearance: auto;
+        }
+        
+        .month-selector:hover {
+          border-color: #1a4b6d;
+        }
+        
+        .month-selector:focus {
+          border-color: #1a4b6d;
+          box-shadow: 0 0 0 2px rgba(26, 75, 109, 0.15);
+        }
         
         /* DETAILED METRICS */
         .erp-card {
@@ -1051,6 +1147,12 @@ export default function SuperAdminReports() {
         
         .spin {
           animation: spin 1s linear infinite;
+        }
+        
+        .monthly-loading {
+          font-size: 1rem;
+          color: #999;
+          font-weight: 400;
         }
         
         .animate-fade-in {

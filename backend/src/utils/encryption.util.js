@@ -70,7 +70,7 @@ function deriveKey(masterKey) {
  * @returns {string} - Base64 encoded encrypted data (IV + authTag + ciphertext)
  * @throws {Error} If encryption fails
  */
-function encrypt(plainText, masterKey) {
+function encrypt(plainText, masterKey = getMasterKey()) {
   // Validate inputs
   if (!plainText) {
     throw new Error(
@@ -125,7 +125,7 @@ function encrypt(plainText, masterKey) {
  * @returns {string} - Decrypted plaintext
  * @throws {Error} If decryption fails or data is tampered
  */
-function decrypt(encryptedData, masterKey) {
+function decrypt(encryptedData, masterKey = getMasterKey()) {
   // Validate inputs
   if (!encryptedData) {
     throw new Error("Cannot decrypt empty or null data");

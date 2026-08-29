@@ -1,4 +1,7 @@
 import { NavLink } from "react-router-dom";
+import { useContext, useState, useEffect } from "react";
+import { AuthContext } from "../../auth/AuthContext";
+import api from "../../api/axios";
 import { navigationConfig, getDashboardPath } from "./config/navigation.config";
 import SidebarSection, { SidebarSubItem } from "./SidebarSection";
 
@@ -20,15 +23,54 @@ export default function SidebarNav({
   onClose,
   isCollapsed = false
 }) {
+  const { user } = useContext(AuthContext);
+  const [children, setChildren] = useState([]);
+  const [loadingChildren, setLoadingChildren] = useState(false);
+
+  // Fetch children for parent users
+  useEffect(() => {
+    if (role === "PARENT_GUARDIAN") {
+      fetchChildren();
+    }
+  }, [role]);
+
+  const fetchChildren = async () => {
+    try {
+      setLoadingChildren(true);
+      const response = await api.get("/parent/children");
+      setChildren(response.data.children || []);
+    } catch (error) {
+      console.error("Error fetching children:", error);
+      setChildren([]);
+    } finally {
+      setLoadingChildren(false);
+    }
+  };
+
   // Get navigation config for current role
   const navigation = navigationConfig[role] || navigationConfig.COLLEGE_ADMIN;
-  
+
   if (!navigation) return null;
 
   const handleNavClick = () => {
     if (isMobileDevice && onClose) {
       onClose();
     }
+  };
+
+  // Resolve dynamic paths for parent navigation
+  const resolvePath = (item) => {
+    if (!item.dynamic || role !== "PARENT_GUARDIAN") {
+      return item.path;
+    }
+
+    // If we have children data and exactly one child, use it
+    if (!loadingChildren && children.length === 1) {
+      return item.path.replace(":childId", children[0]._id);
+    }
+
+    // Otherwise, redirect to children list (loading, no children, or multiple children)
+    return "/dashboard/parent/children";
   };
 
   const { dashboard, sections } = navigation;
@@ -64,16 +106,16 @@ export default function SidebarNav({
           isActive={checkSectionActive(section)}
           isCollapsed={isCollapsed}
         >
-          {section.items.map((item, index) => (
-            <SidebarSubItem
-              key={index}
-              to={item.path}
-              icon={item.icon}
-              label={item.label}
-              exact={item.exact}
-              onClick={handleNavClick}
-            />
-          ))}
+           {section.items.map((item, index) => (
+             <SidebarSubItem
+               key={index}
+               to={resolvePath(item)}
+               icon={item.icon}
+               label={item.label}
+               exact={item.exact}
+               onClick={handleNavClick}
+             />
+           ))}
         </SidebarSection>
       ))}
     </nav>

@@ -5,6 +5,10 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
+import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 
 import {
   FaMoneyBillWave,
@@ -37,11 +41,22 @@ import {
 export default function FeeStructureList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = useRole();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   const [structures, setStructures] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
   const [stats, setStats] = useState({
@@ -55,24 +70,41 @@ export default function FeeStructureList() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+   /* ================= SECURITY ================= */
+   if (!user) return <Navigate to="/login" />;
+    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "PRINCIPAL") return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH ================= */
   const loadStructures = async () => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
       const res = await api.get("/fees/structure");
       const data = res.data || [];
       setStructures(data);
 
-      // Calculate stats client-side (no API changes)
       calculateStats(data);
-      setRetryCount(0);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load fee structures. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load fee structures.";
+
+      logger.error("Error fetching fee structures:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -110,12 +142,7 @@ export default function FeeStructureList() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount(prev => prev + 1);
-      loadStructures();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    loadStructures();
   };
 
   /* ================= SORTING ================= */
@@ -163,9 +190,14 @@ export default function FeeStructureList() {
 
     try {
       await api.delete(`/fees/structure/${id}`);
-      loadStructures();
+      setStructures((prev) => prev.filter((s) => s._id !== id));
+      toast.success("Fee structure deleted successfully");
+      calculateStats(structures.filter((s) => s._id !== id));
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete fee structure. Please try again.");
+      const backendMessage =
+        err.response?.data?.message ||
+        "Failed to delete fee structure. Please try again.";
+      toast.error(backendMessage);
     }
   };
 
@@ -211,30 +243,14 @@ export default function FeeStructureList() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle className="shake" />
-        </div>
-        <h3>Fee Structures Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
-            onClick={() => navigate(-1)}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Fee Structures Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -244,7 +260,7 @@ export default function FeeStructureList() {
   }
 
   return (
-    <div className="erp-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "#f5f7fa" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -267,13 +283,15 @@ export default function FeeStructureList() {
           </div>
         </div>
         <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={() => navigate("/fees/create")}
-          >
-            <FaPlus className="erp-btn-icon pulse" />
-            <span>Create New Structure</span>
-          </button>
+          {canCreate('fee-structure') && (
+            <button
+              className="erp-btn erp-btn-primary"
+              onClick={() => navigate("/fees/create")}
+            >
+              <FaPlus className="erp-btn-icon pulse" />
+              <span>Create New Structure</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -370,18 +388,18 @@ export default function FeeStructureList() {
                   ? "No fee structures match your search criteria. Try adjusting your filters."
                   : "There are no fee structures configured yet. Create your first structure to get started."}
               </p>
-              {!searchTerm && (
-                <button 
-                  className="erp-btn erp-btn-primary empty-action"
-                  onClick={() => navigate("/fees/create")}
-                >
-                  <FaPlus className="erp-btn-icon" />
-                  Create First Fee Structure
-                </button>
-              )}
+               {!searchTerm && canCreate('fee-structure') && (
+                 <button 
+                   className="erp-btn erp-btn-primary empty-action"
+                   onClick={() => navigate("/fees/create")}
+                 >
+                   <FaPlus className="erp-btn-icon" />
+                   Create First Fee Structure
+                 </button>
+               )}
             </div>
           ) : (
-            <div className="table-container">
+            <div className="erp-table-responsive table-container">
               <table className="erp-table">
                 <thead>
                   <tr>
@@ -431,34 +449,38 @@ export default function FeeStructureList() {
                           <span className="installment-label">installments</span>
                         </div>
                       </td>
-                      <td className="action-cell">
-                        <div className="action-buttons">
-                          <button
-                            className="action-btn view-btn"
-                            title="View Fee Structure Details"
-                            onClick={() => navigate(`/fees/view/${structure._id}`)}
-                            aria-label={`View details for ${structure.course_id?.name}`}
-                          >
-                            <FaEye className="action-icon pulse" />
-                          </button>
-                          <button
-                            className="action-btn edit-btn"
-                            title="Edit Fee Structure"
-                            onClick={() => navigate(`/fees/edit/${structure._id}`)}
-                            aria-label={`Edit ${structure.course_id?.name} fee structure`}
-                          >
-                            <FaEdit className="action-icon pulse" />
-                          </button>
-                          <button
-                            className="action-btn delete-btn"
-                            title="Delete Fee Structure"
-                            onClick={() => handleDelete(structure._id)}
-                            aria-label={`Delete ${structure.course_id?.name} fee structure`}
-                          >
-                            <FaTrash className="action-icon shake" />
-                          </button>
-                        </div>
-                      </td>
+                       <td className="action-cell">
+                         <div className="action-buttons">
+                           <button
+                             className="action-btn view-btn"
+                             title="View Fee Structure Details"
+                             onClick={() => navigate(`/fees/view/${structure._id}`)}
+                             aria-label={`View details for ${structure.course_id?.name}`}
+                           >
+                             <FaEye className="action-icon pulse" />
+                           </button>
+                           {canEdit('fee-structure') && (
+                             <button
+                               className="action-btn edit-btn"
+                               title="Edit Fee Structure"
+                               onClick={() => navigate(`/fees/edit/${structure._id}`)}
+                               aria-label={`Edit ${structure.course_id?.name} fee structure`}
+                             >
+                               <FaEdit className="action-icon pulse" />
+                             </button>
+                           )}
+                           {canDelete('fee-structure') && (
+                             <button
+                               className="action-btn delete-btn"
+                               title="Delete Fee Structure"
+                               onClick={() => handleDelete(structure._id)}
+                               aria-label={`Delete ${structure.course_id?.name} fee structure`}
+                             >
+                               <FaTrash className="action-icon shake" />
+                             </button>
+                           )}
+                         </div>
+                       </td>
                     </tr>
                   ))}
                 </tbody>
@@ -481,13 +503,6 @@ export default function FeeStructureList() {
 
       {/* STYLES */}
       <style>{`
-        .erp-container {
-          padding: 1.5rem;
-          background: #f5f7fa;
-          min-height: 100vh;
-          animation: fadeIn 0.6s ease;
-        }
-        
         .erp-page-header {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 1.75rem;
@@ -498,6 +513,7 @@ export default function FeeStructureList() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: nowrap;
           animation: slideDown 0.6s ease;
         }
         
@@ -505,6 +521,7 @@ export default function FeeStructureList() {
           display: flex;
           align-items: center;
           gap: 1.25rem;
+          min-width: 0;
         }
         
         .erp-header-icon {
@@ -522,12 +539,19 @@ export default function FeeStructureList() {
           margin: 0;
           font-size: 1.75rem;
           font-weight: 700;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         
         .erp-page-subtitle {
           margin: 0.375rem 0 0 0;
           opacity: 0.85;
           font-size: 1rem;
+        }
+        
+        .erp-header-actions {
+          flex-shrink: 0;
         }
         
         .erp-header-actions .erp-btn {
@@ -539,9 +563,11 @@ export default function FeeStructureList() {
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
           transition: all 0.3s ease;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 0.5rem;
+          width: max-content;
+          white-space: nowrap;
         }
         
         .erp-header-actions .erp-btn:hover {
@@ -549,60 +575,65 @@ export default function FeeStructureList() {
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
         }
         
-        /* STATS GRID */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
-        
-        .stat-card {
-          background: white;
-          padding: 1.5rem;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          border-left: 4px solid transparent;
-          transition: all 0.3s ease;
-        }
-        
-        .stat-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-        }
-        
-        .stat-card-icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          flex-shrink: 0;
-          font-size: 1.5rem;
-        }
-        
-        .stat-card-content {
-          flex: 1;
-        }
-        
-        .stat-card-label {
-          font-size: 0.95rem;
-          color: #666;
-          font-weight: 600;
-          margin-bottom: 0.25rem;
-        }
-        
-        .stat-card-value {
-          font-size: 2rem;
-          font-weight: 800;
-          color: #1a4b6d;
-          line-height: 1;
-        }
+         /* STATS GRID */
+          .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+          }
+         
+         .stat-card {
+           background: white;
+           padding: 1rem;
+           border-radius: 12px;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+           display: flex;
+           align-items: center;
+           gap: 0.75rem;
+           border-left: 4px solid transparent;
+           transition: all 0.3s ease;
+         }
+         
+         .stat-card:hover {
+           transform: translateY(-2px);
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+         }
+         
+         .stat-card-icon {
+           width: 32px;
+           height: 32px;
+           border-radius: 6px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           color: white;
+           flex-shrink: 0;
+           font-size: 0.85rem;
+         }
+         
+         .stat-card-content {
+           flex: 1;
+           min-width: 0;
+         }
+         
+         .stat-card-label {
+           font-size: 0.75rem;
+           color: #666;
+           font-weight: 600;
+           margin-bottom: 0.25rem;
+           line-height: 1.2;
+         }
+         
+         .stat-card-value {
+           font-size: 1.25rem;
+           font-weight: 700;
+           color: #1a4b6d;
+           line-height: 1.2;
+           white-space: nowrap;
+           overflow: hidden;
+           text-overflow: ellipsis;
+         }
         
         /* CONTROLS CARD */
         .erp-card {
@@ -676,7 +707,8 @@ export default function FeeStructureList() {
         .search-box {
           position: relative;
           flex: 1;
-          min-width: 300px;
+          min-width: 0;
+          max-width: 600px;
         }
         
         .search-icon {
@@ -705,6 +737,7 @@ export default function FeeStructureList() {
         .actions-group {
           display: flex;
           gap: 0.75rem;
+          flex-shrink: 0;
         }
         
         .export-btn {
@@ -732,11 +765,11 @@ export default function FeeStructureList() {
         }
         
         .refresh-btn {
-          width: 40px;
-          height: 40px;
+          width: 44px;
+          height: 44px;
           border-radius: 10px;
           background: white;
-          border: 2px solid #e9ecef;
+          border: 2px solid #1a4b6d;
           color: #1a4b6d;
           display: flex;
           align-items: center;
@@ -746,13 +779,13 @@ export default function FeeStructureList() {
         }
         
         .refresh-btn:hover {
-          border-color: #1a4b6d;
-          background: #f8f9fa;
+          background: #1a4b6d;
+          color: white;
           transform: rotate(90deg);
         }
         
         .refresh-icon {
-          font-size: 1.2rem;
+          font-size: 1.4rem;
         }
         
         /* TABLE */
@@ -892,30 +925,32 @@ export default function FeeStructureList() {
         
         .action-cell {
           text-align: center;
-          min-width: 160px;
+          min-width: 180px;
         }
         
         .action-buttons {
           display: flex;
+          flex-direction: row;
           justify-content: center;
-          gap: 0.5rem;
+          align-items: center;
+          gap: 0.75rem;
         }
         
         .action-btn {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          color: white;
-          font-size: 0.85rem;
-          position: relative;
-          overflow: hidden;
-        }
+           width: 44px;
+           height: 44px;
+           border-radius: 10px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           border: none;
+           cursor: pointer;
+           transition: all 0.2s ease;
+           color: white;
+           font-size: 1.3rem;
+           position: relative;
+           overflow: hidden;
+         }
         
         .action-btn::before {
           content: "";
@@ -1310,10 +1345,6 @@ export default function FeeStructureList() {
         }
         
         @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-          
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;

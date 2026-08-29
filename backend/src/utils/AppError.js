@@ -6,11 +6,12 @@
  *   throw new AppError('Invalid credentials', 401, 'AUTH_ERROR');
  */
 class AppError extends Error {
-  constructor(message, statusCode, code = 'APPLICATION_ERROR') {
+  constructor(message, statusCode, code = 'APPLICATION_ERROR', data = null) {
     super(message);
     this.statusCode = statusCode;
     this.code = code;
-    this.isOperational = true; // Distinguishes operational errors from programming errors
+    this.data = data;
+    this.isOperational = true;
 
     Error.captureStackTrace(this, this.constructor);
   }

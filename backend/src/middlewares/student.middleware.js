@@ -31,7 +31,7 @@ module.exports = async (req, res, next) => {
 
     console.log("✅ Student found:", student.fullName, "Status:", student.status);
 
-    if (student.status !== "APPROVED") {
+    if (!["APPROVED", "ENROLLED"].includes(student.status)) {
       console.log("⚠️ Student not approved yet. Status:", student.status);
       throw new AppError("Student account is pending approval", 403, "STUDENT_NOT_APPROVED");
     }

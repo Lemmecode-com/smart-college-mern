@@ -1,14 +1,20 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useContext } from "react";
+import { showSuccess, showError } from "../../../../utils/toast";
 import { toast } from "react-toastify";
+import ApiError from "../../../../components/ApiError";
+import { logger } from "../../../../utils/logger";
+
+const PAGE_LOAD_TOAST_ID = "college-payment-reports-load";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaMoneyBillWave,
   FaChartPie,
   FaSyncAlt,
-  FaExclamationTriangle,
   FaSpinner,
   FaInfoCircle,
   FaDownload,
@@ -20,58 +26,193 @@ import {
   FaPercentage,
   FaFileInvoice,
   FaWallet,
-  FaArrowLeft,
+  FaFilter,
+  FaChartLine,
 } from "react-icons/fa";
 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function PaymentReports() {
+  const { user } = useContext(AuthContext);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const hasLoadedRef = useRef(false);
+  const fetchIdRef = useRef(0);
+
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [dateFilter, setDateFilter] = useState("all"); // all, thisMonth, lastMonth, thisYear, custom
+  const [dateError, setDateError] = useState("");
+  const [shouldFetchSummary, setShouldFetchSummary] = useState(true);
+
+   // Trend analysis state
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [trendData, setTrendData] = useState(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  const trendFetchIdRef = useRef(0);
+
+  // Memoize year options to prevent unnecessary re-renders
+  const yearOptions = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => {
+      const year = new Date().getFullYear() - i;
+      return { value: year, label: year };
+    });
+  }, []);
 
   /* ================= FETCH PAYMENT SUMMARY ================= */
   const fetchPaymentSummary = useCallback(async () => {
-    // Prevent duplicate fetches
-    if (hasLoadedRef.current) {
-      return;
-    }
+    hasLoadedRef.current = false;
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
 
     try {
       setLoading(true);
-      setError("");
-      const res = await api.get("/reports/payments/summary");
+      setError(null);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      // Build query parameters based on date filter
+      let queryParams = {};
+      let validationError = null;
+
+      if (dateFilter !== "all") {
+        const now = new Date();
+        let start, end;
+
+        switch (dateFilter) {
+          case "thisMonth":
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            break;
+          case "lastMonth":
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            end = new Date(now.getFullYear(), now.getMonth(), 0);
+            break;
+          case "thisYear":
+            start = new Date(now.getFullYear(), 0, 1);
+            end = new Date(now.getFullYear(), 11, 31);
+            break;
+          case "custom":
+            if (startDate) start = new Date(startDate);
+            if (endDate) end = new Date(endDate);
+
+            if (startDate && endDate && start > end) {
+              validationError = "Start date must be before end date";
+            }
+            break;
+          default:
+            break;
+        }
+
+        if (validationError) {
+          setDateError(validationError);
+          setLoading(false);
+          return;
+        }
+
+        if (start) queryParams.startDate = start.toISOString().split('T')[0];
+        if (end) queryParams.endDate = end.toISOString().split('T')[0];
+      }
+
+      setDateError("");
+
+      const queryString = new URLSearchParams(queryParams).toString();
+      const url = `/reports/payments/filtered${queryString ? `?${queryString}` : ''}`;
+
+      const res = await api.get(url);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setData(res.data || {});
       setRetryCount(0);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       toast.success("Payment summary loaded successfully!", {
-        position: "top-right",
+        toastId: PAGE_LOAD_TOAST_ID,
         autoClose: 3000,
-        toastId: "payment-summary-success",
       });
     } catch (err) {
-      console.error("Payment summary fetch error:", err);
-      setError(
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Payment summary fetch error:", statusCode, errorCode);
+      const errorMessage =
         err.response?.data?.message ||
-          "Failed to load payment summary. Please try again.",
-      );
-      toast.error("Failed to load payment summary.", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "payment-summary-error",
-      });
-    } finally {
-      setLoading(false);
-      hasLoadedRef.current = true;
-    }
-  }, []);
+        "Failed to load payment summary. Please try again.";
+      setError({ message: errorMessage, statusCode, errorCode });
 
-  useEffect(() => {
-    fetchPaymentSummary();
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError("Failed to load payment summary.");
+      }
+    } finally {
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [dateFilter, startDate, endDate]);
+
+   const fetchTrendData = useCallback(async (year) => {
+     trendFetchIdRef.current += 1;
+     const currentFetchId = trendFetchIdRef.current;
+
+     try {
+       setTrendLoading(true);
+       const res = await api.get(`/reports/payments/trends?year=${year}`);
+       if (currentFetchId !== trendFetchIdRef.current) return;
+       setTrendData(res.data || null);
+     } catch (err) {
+       console.error("Payment trends fetch error:", err);
+       if (currentFetchId !== trendFetchIdRef.current) return;
+       setTrendData(null);
+     } finally {
+       if (currentFetchId === trendFetchIdRef.current) {
+         setTrendLoading(false);
+       }
+     }
+   }, []);
+
+   useEffect(() => {
+     fetchTrendData(selectedYear);
+   }, [selectedYear, fetchTrendData]);
+
+    useEffect(() => {
+    if (shouldFetchSummary) {
+      fetchPaymentSummary();
+      setShouldFetchSummary(false);
+    }
     // Cleanup function to reset flag on unmount - fixes blank page on second navigation
     return () => {
       hasLoadedRef.current = false;
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
-  }, [fetchPaymentSummary]);
+  }, [shouldFetchSummary, fetchPaymentSummary]);
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = useCallback(() => {
@@ -81,12 +222,8 @@ export default function PaymentReports() {
       hasLoadedRef.current = false;
       fetchPaymentSummary();
     } else {
-      toast.error("Maximum retry attempts reached.", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "payment-max-retry",
-      });
-      setError("Maximum retry attempts reached. Please check your connection.");
+      showError("Maximum retry attempts reached.");
+      setError({ message: "Maximum retry attempts reached. Please check your connection." });
     }
   }, [retryCount, fetchPaymentSummary]);
 
@@ -103,20 +240,11 @@ export default function PaymentReports() {
   const getExportData = () => {
     if (!data) return [];
     return [
-      {
-        metric: "Total Expected Fee",
-        value: formatCurrency(data.totalExpectedFee || 0),
-      },
-      {
-        metric: "Total Collected",
-        value: formatCurrency(data.totalCollected || 0),
-      },
-      {
-        metric: "Total Pending",
-        value: formatCurrency(data.totalPending || 0),
-      },
-      { metric: "Collection Rate", value: `${collectionRate.toFixed(1)}%` },
-      { metric: "Pending Rate", value: `${pendingRate.toFixed(1)}%` },
+      { metric: "Total Expected Fee", value: data.totalExpectedFee || 0 },
+      { metric: "Total Collected", value: data.totalCollected || 0 },
+      { metric: "Total Pending", value: data.totalPending || 0 },
+      { metric: "Collection Rate", value: parseFloat(collectionRate.toFixed(1)) },
+      { metric: "Pending Rate", value: parseFloat(pendingRate.toFixed(1)) },
     ];
   };
 
@@ -174,30 +302,17 @@ export default function PaymentReports() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle className="shake" />
-        </div>
-        <h3>Payment Reports Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => window.history.back()}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Payment Reports Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => window.history.back()}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={loading}
+      />
     );
   }
 
@@ -219,7 +334,10 @@ export default function PaymentReports() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Reports", path: "/college-admin/reports-dashboard" },
+          ...(user?.role === "COLLEGE_ADMIN" || user?.role === "PRINCIPAL"
+            ? [{ label: "Reports", path: "/college-admin/reports-dashboard" }]
+            : []
+          ),
           { label: "Payment Summary" },
         ]}
       />
@@ -254,7 +372,7 @@ export default function PaymentReports() {
           </div>
           <button
             className="erp-btn erp-btn-secondary"
-            onClick={fetchPaymentSummary}
+            onClick={() => setShouldFetchSummary(true)}
             title="Refresh report data"
           >
             <FaSyncAlt className="erp-btn-icon spin" />
@@ -272,6 +390,181 @@ export default function PaymentReports() {
           <strong>Financial Overview:</strong> This report provides a real-time
           summary of fee collection status for all students. Data is updated
           automatically with each transaction.
+        </div>
+      </div>
+
+      {/* DATE FILTER CONTROLS */}
+      <div className="erp-card animate-fade-in" style={{ marginBottom: '1.5rem' }}>
+        <div className="erp-card-header">
+          <h3>
+            <FaFilter className="erp-card-icon" />
+            Filter by Date Range
+          </h3>
+        </div>
+        <div className="erp-card-body">
+          <div className="filter-controls" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="filter-group">
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a4b6d' }}>
+                Quick Filters:
+              </label>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <button
+                  className={`btn ${dateFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => { setDateFilter('all'); setDateError(""); setShouldFetchSummary(true); }}
+                >
+                  All Time
+                </button>
+                <button
+                  className={`btn ${dateFilter === 'thisMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => { setDateFilter('thisMonth'); setDateError(""); setShouldFetchSummary(true); }}
+                >
+                  This Month
+                </button>
+                <button
+                  className={`btn ${dateFilter === 'lastMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => { setDateFilter('lastMonth'); setDateError(""); setShouldFetchSummary(true); }}
+                >
+                  Last Month
+                </button>
+                <button
+                  className={`btn ${dateFilter === 'thisYear' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => { setDateFilter('thisYear'); setDateError(""); setShouldFetchSummary(true); }}
+                >
+                  This Year
+                </button>
+                <button
+                  className={`btn ${dateFilter === 'custom' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  onClick={() => { setDateFilter('custom'); setDateError(""); setShouldFetchSummary(true); }}
+                >
+                  Custom Range
+                </button>
+              </div>
+            </div>
+
+            {dateFilter === 'custom' && (
+              <>
+                <div
+                  className="date-inputs"
+                  style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                    Start Date:
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control form-control-sm"
+                    style={{
+                      width: '140px',
+                      pointerEvents: 'auto',
+                      zIndex: 10
+                    }}
+                    value={startDate}
+                     onChange={(e) => {
+                       e.preventDefault();
+                       e.stopPropagation();
+                       setStartDate(e.target.value);
+                       if (endDate && new Date(e.target.value) <= new Date(endDate)) {
+                         setDateError("");
+                       }
+                     }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onFocus={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onBlur={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                    End Date:
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control form-control-sm"
+                    style={{
+                      width: '140px',
+                      pointerEvents: 'auto',
+                      zIndex: 10
+                    }}
+                    value={endDate}
+                     onChange={(e) => {
+                       e.preventDefault();
+                       e.stopPropagation();
+                       setEndDate(e.target.value);
+                       if (startDate && new Date(startDate) <= new Date(e.target.value)) {
+                         setDateError("");
+                       }
+                     }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onFocus={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onBlur={(e) => {
+                      e.stopPropagation();
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                    }}
+                  />
+                </div>
+                  <button
+                    className="btn btn-success btn-sm"
+                    onClick={() => setShouldFetchSummary(true)}
+                    style={{ alignSelf: 'flex-end' }}
+                  >
+                    <FaSyncAlt /> Apply Filter
+                  </button>
+                </div>
+                {dateError && (
+                  <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: '500' }}>
+                    {dateError}
+                  </div>
+                )}
+              </>
+            )}
+
+            {dateFilter !== 'custom' && dateFilter !== 'all' && (
+              <button
+                className="btn btn-success btn-sm"
+                onClick={() => setShouldFetchSummary(true)}
+                style={{ alignSelf: 'flex-end' }}
+              >
+                <FaSyncAlt /> Apply Filter
+              </button>
+            )}
+          </div>
+
+          {data?.dateRange && (
+            <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+              <small style={{ color: '#6c757d' }}>
+                <strong>Current Filter:</strong> {data.dateRange.startDate || 'Start'} to {data.dateRange.endDate || 'End'}
+              </small>
+            </div>
+          )}
         </div>
       </div>
 
@@ -524,7 +817,7 @@ export default function PaymentReports() {
               </div>
               <div className="metric-content">
                 <div className="metric-title">Collection Target</div>
-                <div className="metric-value-large">90%</div>
+                <div className="metric-value-large">{collectionRate.toFixed(0)}%</div>
                 <div className="metric-description">
                   {collectionRate >= 90 ? (
                     <span className="target-met">✓ Target achieved</span>
@@ -1689,7 +1982,196 @@ export default function PaymentReports() {
             grid-template-columns: 1fr;
           }
         }
+
+        /* ================= TREND ANALYSIS ================= */
+        .trend-analysis-section {
+          margin-top: 2rem;
+        }
+
+        .trend-chart-container {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          padding: 2rem;
+          margin-top: 1rem;
+        }
+
+        .trend-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .trend-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #1a4b6d;
+          margin: 0;
+        }
+
+        .year-selector {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .year-select {
+          padding: 0.5rem;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          font-weight: 600;
+          color: #1a4b6d;
+        }
+
+        .trend-chart-placeholder {
+          height: 300px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          border-radius: 12px;
+          border: 2px dashed #dee2e6;
+        }
+
+        .trend-placeholder-text {
+          text-align: center;
+          color: #6c757d;
+        }
+
+        .trend-placeholder-icon {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+          opacity: 0.5;
+        }
       `}</style>
+
+      {/* TREND ANALYSIS SECTION */}
+      <div className="trend-analysis-section animate-fade-in">
+        <div className="erp-card">
+          <div className="erp-card-header">
+            <h3>
+              <FaChartLine className="erp-card-icon" />
+              Payment Collection Trends
+            </h3>
+            <p className="erp-card-subtitle">
+              Monthly payment collection analysis and trends
+            </p>
+          </div>
+          <div className="erp-card-body">
+            <div className="trend-header">
+              <div>
+                <h4 className="trend-title">Monthly Collection Trends</h4>
+                <p style={{ margin: '0.25rem 0 0 0', color: '#6c757d', fontSize: '0.875rem' }}>
+                  Track payment collection patterns over time
+                </p>
+              </div>
+              <div className="year-selector">
+                <label style={{ fontWeight: '600', color: '#1a4b6d' }}>Year:</label>
+                <select
+                  className="year-select"
+                  value={selectedYear}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    const year = parseInt(e.target.value);
+                    if (year !== selectedYear) {
+                      setSelectedYear(year);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }
+                  }}
+                >
+                  {yearOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {trendLoading ? (
+              <div style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', color: '#6c757d' }}>
+                  <FaSyncAlt style={{ fontSize: '2rem', marginBottom: '1rem', opacity: 0.5 }} className="spin" />
+                  <p>Loading trend data...</p>
+                </div>
+              </div>
+            ) : trendData?.trends && trendData.trends.length > 0 ? (
+              <div className="trend-chart-container">
+                <ResponsiveContainer key={selectedYear} width="100%" height={300}>
+                  <BarChart data={trendData.trends}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e9ecef" />
+                    <XAxis
+                      dataKey="monthName"
+                      tick={{ fontSize: 12, fill: '#6c757d' }}
+                    />
+                    <YAxis
+                      tickFormatter={(value) => `₹${(value / 1000)}k`}
+                      tick={{ fontSize: 12, fill: '#6c757d' }}
+                    />
+                    <Tooltip
+                      formatter={(value) => [`₹${value.toLocaleString()}`, 'Collected']}
+                      labelFormatter={(label) => `Month: ${label}`}
+                      contentStyle={{ borderRadius: 8, border: '1px solid #e9ecef' }}
+                    />
+                    <Bar
+                      dataKey="totalCollected"
+                      fill="#1a4b6d"
+                      radius={[4, 4, 0, 0]}
+                      name="Collection"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="no-data" style={{ padding: '3rem', textAlign: 'center', color: '#6c757d' }}>
+                <FaInfoCircle style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.5 }} />
+                <h5>No payment data available</h5>
+                <p>No payment data found for the selected year.</p>
+              </div>
+            )}
+
+            {/* Computed statistics from actual payment data */}
+            {trendData && (
+              <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#28a745' }}>
+                    {trendData.bestMonth ? `₹${trendData.bestMonth.totalCollected.toLocaleString()}` : '₹0'}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Best Month Collection</div>
+                </div>
+                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#17a2b8' }}>
+                    {trendData.bestMonth?.monthName || 'N/A'}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Peak Collection Month</div>
+                </div>
+                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
+                  <div style={{
+                    fontSize: '1.5rem',
+                    fontWeight: '700',
+                    color: trendData?.yoyGrowth !== undefined && trendData.yoyGrowth >= 0 ? '#28a745' : '#dc3545'
+                  }}>
+                    {trendData.yoyGrowth !== undefined ? `${trendData.yoyGrowth >= 0 ? '+' : ''}${trendData.yoyGrowth}%` : 'N/A'}
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Growth vs Last Year</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
