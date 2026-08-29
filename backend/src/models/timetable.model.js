@@ -130,7 +130,14 @@ const TimetableSchema = new mongoose.Schema(
 
 // ================= INDEXES =================
 
-// Unique constraint: One timetable per department/course/semester/division/year
+// Partial unique constraint: only ONE non-ARCHIVED timetable per academic
+// context. ARCHIVED timetables are historical records and must NOT block
+// creation of a new active/draft timetable for the same context.
+//
+// NOTE: MongoDB does not allow mixing "partialFilterExpression" with "sparse",
+// and "$ne" is not supported in partial indexes. So the null-division case is
+// handled explicitly via $type: "string" (division present) vs division: null
+// (division absent), instead of the sparse flag.
 TimetableSchema.index(
   {
     college_id: 1,
@@ -140,10 +147,17 @@ TimetableSchema.index(
     academicYear: 1,
     division: 1,
   },
-  { unique: true, sparse: true },
+  {
+    unique: true,
+    partialFilterExpression: {
+      division: { $type: "string" },
+      status: { $in: ["DRAFT", "PUBLISHED"] },
+    },
+    name: "uniq_active_timetable_with_division",
+  },
 );
 
-// Backward-compatible index for timetables without division (division: null)
+// Backward-compatible partial index for timetables without division (division: null)
 TimetableSchema.index(
   {
     college_id: 1,
@@ -152,7 +166,14 @@ TimetableSchema.index(
     semester: 1,
     academicYear: 1,
   },
-  { unique: true, partialFilterExpression: { division: null } },
+  {
+    unique: true,
+    partialFilterExpression: {
+      division: null,
+      status: { $in: ["DRAFT", "PUBLISHED"] },
+    },
+    name: "uniq_active_timetable_no_division",
+  },
 );
 
 // Index for division-based student timetable lookups
