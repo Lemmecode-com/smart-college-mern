@@ -51,17 +51,23 @@ exports.createTimetable = async (req, res) => {
           });
         }
 
-       const exists = await Timetable.findOne({
-         college_id: req.college_id,
-         department_id,
-         course_id,
-         semester,
-         academicYear,
-         division: normalizedDivision,
-       });
+        const exists = await Timetable.findOne({
+          college_id: req.college_id,
+          department_id,
+          course_id,
+          semester,
+          academicYear,
+          division: normalizedDivision,
+          // Only an active (DRAFT/PUBLISHED) timetable blocks creation.
+          // ARCHIVED timetables are historical records and must NOT prevent
+          // a new timetable for the same academic context.
+          status: { $in: ["DRAFT", "PUBLISHED"] },
+        });
 
       if (exists) {
-        return res.status(400).json({ message: "Timetable already exists" });
+        return res.status(400).json({
+          message: "An active timetable already exists for this course, semester, academic year, and division.",
+        });
       }
 
       const course = await Course.findById(course_id).select("name yearLabels");
@@ -251,6 +257,109 @@ exports.archiveTimetable = async (req, res) => {
   } catch (error) {
     console.error("Archive Timetable Error:", error);
     res.status(500).json({ message: "Failed to archive timetable" });
+  }
+};
+
+/* =========================================================
+    UNARCHIVE TIMETABLE (HOD only)
+    — Restores an ARCHIVED timetable to DRAFT so it can be edited/re-published.
+    — Blocks unarchive if an active (DRAFT/PUBLISHED) timetable already exists
+      for the same academic context (would violate the one-active rule).
+    — Audit log: TIMETABLE_UNARCHIVED
+ ========================================================= */
+exports.unarchiveTimetable = async (req, res) => {
+  try {
+    const timetable = await Timetable.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    });
+
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    if (timetable.status !== "ARCHIVED") {
+      return res.status(400).json({
+        message: "Only archived timetables can be unarchived.",
+      });
+    }
+
+    // 🔒 SECURITY: Verify HOD department ownership (defense-in-depth)
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+    );
+    const { isHOD } = await teacherService.getHODStatus(teacher);
+
+    if (!isHOD) {
+      return res.status(403).json({
+        message: "Access denied: Only HOD can unarchive timetable",
+      });
+    }
+
+    if (timetable.department_id.toString() !== teacher.department_id.toString()) {
+      return res.status(403).json({
+        message: "Access denied: You can only unarchive timetables for your own department",
+      });
+    }
+
+    // CONFLICT CHECK: block unarchive if an active timetable already exists
+    // for the same academic context (would violate the one-active rule).
+    const activeConflict = await Timetable.findOne({
+      college_id: req.college_id,
+      department_id: timetable.department_id,
+      course_id: timetable.course_id,
+      semester: timetable.semester,
+      academicYear: timetable.academicYear,
+      division: timetable.division,
+      status: { $in: ["DRAFT", "PUBLISHED"] },
+      _id: { $ne: timetable._id },
+    });
+
+    if (activeConflict) {
+      return res.status(409).json({
+        message:
+          "An active timetable already exists for this course, semester, academic year, and division. Archive or modify the active timetable before unarchiving this timetable.",
+      });
+    }
+
+    timetable.status = "DRAFT";
+    await timetable.save();
+
+    // Fire-and-forget audit log
+    AuditLog.create({
+      collegeId: req.college_id,
+      userId: req.user.id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      action: "TIMETABLE_UNARCHIVED",
+      resourceType: "Timetable",
+      resourceId: timetable._id,
+      ipAddress: req.ip || req.connection.remoteAddress || "unknown",
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        status: "ARCHIVED",
+      },
+      newValues: {
+        status: "DRAFT",
+      },
+    }).catch((err) =>
+      console.error("Audit log failed for timetable unarchival:", err.message),
+    );
+
+    ApiResponse.success(
+      res,
+      {
+        timetable,
+      },
+      "Timetable unarchived successfully",
+    );
+  } catch (error) {
+    console.error("Unarchive Timetable Error:", error);
+    res.status(500).json({ message: "Failed to unarchive timetable" });
   }
 };
 

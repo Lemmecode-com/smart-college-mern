@@ -12,6 +12,7 @@ const {
   createTimetable,
   publishTimetable,
   archiveTimetable,
+  unarchiveTimetable,
   getTimetableById,
   deleteTimetable,
   getTimetables,
@@ -188,6 +189,16 @@ router.put(
   collegeMiddleware,
   hod,
   archiveTimetable
+);
+
+/* ================= UNARCHIVE TIMETABLE ================= */
+router.put(
+  "/:id/unarchive",
+  auth,
+  role(ROLE.HOD),
+  collegeMiddleware,
+  hod,
+  unarchiveTimetable
 );
 
 /* ================= DELETE TIMETABLE ================= */
