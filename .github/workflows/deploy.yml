@@ -49,4 +49,4 @@ jobs:
             echo "--- app logs (10s) ---"
             sleep 10 && $PM2 logs smart-college-backend --lines 30 --nostream
 
-            echo "✅ Deploy complete"
+            echo "✅ Deploy complete" 
