@@ -123,6 +123,12 @@ export default function AddSubject() {
     code: "",
     semester: "",
     credits: "",
+    subjectType: "",
+    internalMaxMarks: "",
+    externalMaxMarks: "",
+    internalPassMarks: "",
+    externalPassMarks: "",
+    passMarks: "",
   });
 
   // ✅ Get selected course for UI display (with safety check)
@@ -266,6 +272,43 @@ export default function AddSubject() {
       isValid = false;
     }
 
+    // Exam / Marks Configuration validation (UI only; backend is authoritative)
+    if (formData.subjectType) {
+      const VALID_TYPES = ["THEORY", "PRACTICAL", "COMPOSITE"];
+      if (!VALID_TYPES.includes(formData.subjectType)) {
+        errors.subjectType = "Select a valid subject type";
+        isValid = false;
+      } else {
+        const numField = (field, label) => {
+          const v = formData[field];
+          if (v === "" || v === null || v === undefined) {
+            errors[field] = `${label} is required`;
+            isValid = false;
+            return;
+          }
+          const n = Number(v);
+          if (isNaN(n) || n < 0) {
+            errors[field] = `${label} must be a non-negative number`;
+            isValid = false;
+          }
+        };
+
+        if (formData.subjectType === "THEORY") {
+          numField("internalMaxMarks", "Internal Max Marks");
+          numField("externalMaxMarks", "External Max Marks");
+          numField("internalPassMarks", "Internal Pass Marks");
+          numField("externalPassMarks", "External Pass Marks");
+        } else if (formData.subjectType === "PRACTICAL") {
+          numField("internalMaxMarks", "Applicable Maximum Marks");
+          numField("passMarks", "Pass Marks");
+        } else if (formData.subjectType === "COMPOSITE") {
+          numField("internalMaxMarks", "Internal Max Marks");
+          numField("externalMaxMarks", "External Max Marks");
+          numField("passMarks", "Pass Marks");
+        }
+      }
+    }
+
     setValidationErrors(errors);
     return isValid;
   };
@@ -321,6 +364,22 @@ export default function AddSubject() {
         semester: Number(formData.semester),
         credits: Number(formData.credits),
         teacher_id: formData.teacher_id || null, // Allow null if not assigned
+        subjectType: formData.subjectType || undefined,
+        ...(formData.internalMaxMarks !== ""
+          ? { internalMaxMarks: Number(formData.internalMaxMarks) }
+          : {}),
+        ...(formData.externalMaxMarks !== ""
+          ? { externalMaxMarks: Number(formData.externalMaxMarks) }
+          : {}),
+        ...(formData.internalPassMarks !== ""
+          ? { internalPassMarks: Number(formData.internalPassMarks) }
+          : {}),
+        ...(formData.externalPassMarks !== ""
+          ? { externalPassMarks: Number(formData.externalPassMarks) }
+          : {}),
+        ...(formData.passMarks !== ""
+          ? { passMarks: Number(formData.passMarks) }
+          : {}),
       });
 
       setSuccess("Subject created successfully!");
@@ -1226,7 +1285,268 @@ export default function AddSubject() {
               </motion.div>
             </div>
 
-            {/* ================= SUBMIT BUTTON ================= */}
+              {/* ================= EXAM / MARKS CONFIGURATION CARD ================= */}
+              <motion.div
+                variants={fadeInVariants}
+                custom={3}
+                initial="hidden"
+                animate="visible"
+                style={{ gridColumn: "1 / -1" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "white",
+                    borderRadius: "20px",
+                    boxShadow: "0 10px 40px rgba(0, 0, 0, 0.08)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "1.75rem",
+                      background:
+                        "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+                      borderBottom: "1px solid #c7d2fe",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "12px",
+                        backgroundColor: `${BRAND_COLORS.primary.main}15`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: BRAND_COLORS.primary.main,
+                        fontSize: "1.5rem",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <FaLayerGroup />
+                    </div>
+                    <h2
+                      style={{
+                        margin: 0,
+                        fontSize: "1.5rem",
+                        fontWeight: 700,
+                        color: "#1e293b",
+                      }}
+                    >
+                      Exam / Marks Configuration
+                    </h2>
+                  </div>
+
+                  <div className="p-4">
+                    <div className="row g-4">
+                      <div className="col-12 col-md-6 col-lg-4">
+                        <FormField
+                          icon={<FaLayerGroup />}
+                          label="Subject Type"
+                          required
+                          error={validationErrors.subjectType}
+                          helperText="Determines which marks fields apply"
+                        >
+                          <select
+                            name="subjectType"
+                            value={formData.subjectType}
+                            onChange={handleChange}
+                            className="form-control"
+                            required
+                          >
+                            <option value="">Select subject type</option>
+                            <option value="THEORY">THEORY</option>
+                            <option value="PRACTICAL">PRACTICAL</option>
+                            <option value="COMPOSITE">COMPOSITE</option>
+                          </select>
+                        </FormField>
+                      </div>
+
+                      {formData.subjectType === "THEORY" && (
+                        <>
+                          <div className="col-12 col-md-6 col-lg-4">
+                            <FormField
+                              icon={<FaBookOpen />}
+                              label="Internal Max Marks"
+                              required
+                              error={validationErrors.internalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="internalMaxMarks"
+                                value={formData.internalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="30"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4">
+                            <FormField
+                              icon={<FaUniversity />}
+                              label="External Max Marks"
+                              required
+                              error={validationErrors.externalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="externalMaxMarks"
+                                value={formData.externalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="70"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4">
+                            <FormField
+                              icon={<FaCreditCard />}
+                              label="Internal Pass Marks"
+                              required
+                              error={validationErrors.internalPassMarks}
+                            >
+                              <input
+                                type="number"
+                                name="internalPassMarks"
+                                value={formData.internalPassMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="12"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4">
+                            <FormField
+                              icon={<FaCreditCard />}
+                              label="External Pass Marks"
+                              required
+                              error={validationErrors.externalPassMarks}
+                            >
+                              <input
+                                type="number"
+                                name="externalPassMarks"
+                                value={formData.externalPassMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="28"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                        </>
+                      )}
+
+                      {formData.subjectType === "PRACTICAL" && (
+                        <>
+                          <div className="col-12 col-md-6 col-lg-4">
+                            <FormField
+                              icon={<FaBookOpen />}
+                              label="Applicable Maximum Marks"
+                              required
+                              error={validationErrors.internalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="internalMaxMarks"
+                                value={formData.internalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="100"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4">
+                            <FormField
+                              icon={<FaCreditCard />}
+                              label="Pass Marks"
+                              required
+                              error={validationErrors.passMarks}
+                            >
+                              <input
+                                type="number"
+                                name="passMarks"
+                                value={formData.passMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="40"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                        </>
+                      )}
+
+                      {formData.subjectType === "COMPOSITE" && (
+                        <>
+                          <div className="col-12 col-md-6 col-lg-4">
+                            <FormField
+                              icon={<FaBookOpen />}
+                              label="Internal Max Marks"
+                              required
+                              error={validationErrors.internalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="internalMaxMarks"
+                                value={formData.internalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="40"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4">
+                            <FormField
+                              icon={<FaUniversity />}
+                              label="External Max Marks"
+                              required
+                              error={validationErrors.externalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="externalMaxMarks"
+                                value={formData.externalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="60"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4">
+                            <FormField
+                              icon={<FaCreditCard />}
+                              label="Pass Marks"
+                              required
+                              error={validationErrors.passMarks}
+                            >
+                              <input
+                                type="number"
+                                name="passMarks"
+                                value={formData.passMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="50"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* ================= SUBMIT BUTTON ================= */}
             <motion.div
               variants={fadeInVariants}
               custom={3}
