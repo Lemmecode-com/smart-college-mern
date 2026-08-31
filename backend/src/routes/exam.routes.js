@@ -12,13 +12,11 @@ const examController = require("../controllers/exam.controller");
 // Authentication (auth) and college/tenant isolation (collegeMiddleware) are
 // applied on every route. Role-based authorization is applied PER ROUTE so
 // that future Exam functionality can mix roles:
-//   - Coordinator-level config routes:  EXAM_COORDINATOR
-//   - Future marks routes:              TEACHER + EXAM_COORDINATOR
-// The previous router-wide `role(ROLE.EXAM_COORDINATOR)` restriction is removed
-// to allow teachers to enter marks in a later step without reworking the router.
+//   - Coordinator-level management routes:  EXAM_COORDINATOR
+//   - Future marks routes:                TEACHER + EXAM_COORDINATOR
 // ====================================================================
 
-// Coordinator-only configuration routes
+// Coordinator dashboard placeholder (kept for backward compatibility / Step 1 tests)
 router.get(
   "/dashboard",
   auth,
@@ -26,5 +24,11 @@ router.get(
   collegeMiddleware,
   examController.getDashboard,
 );
+
+// Exam management routes (EXAM_COORDINATOR only)
+router.post("/", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.createExam);
+router.get("/", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExams);
+router.get("/:id", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExamById);
+router.put("/:id", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.updateExam);
 
 module.exports = router;

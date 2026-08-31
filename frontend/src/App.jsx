@@ -172,6 +172,9 @@ const ConfigurationViewer = lazy(() => import("./pages/dashboard/PlatformSupport
 
 /* ================= EXAM COORDINATOR (LAZY) ================= */
 const ExamDashboard = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamDashboard"));
+const CreateExam = lazy(() => import("./pages/dashboard/ExamCoordinator/CreateExam"));
+const EditExam = lazy(() => import("./pages/dashboard/ExamCoordinator/EditExam"));
+const ViewExam = lazy(() => import("./pages/dashboard/ExamCoordinator/ViewExam"));
 
 /* ================= HOD (LAZY) ================= */
 const HodDashboard = lazy(() => import("./pages/dashboard/HOD/HodDashboard"));
@@ -197,6 +200,7 @@ const WeeklyTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/W
 const MyTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/MyTimetable"));
 const CreateException = lazy(() => import("./pages/dashboard/Teacher/Timetable/CreateException"));
 const ExceptionManagement = lazy(() => import("./pages/dashboard/Teacher/Timetable/ExceptionManagement"));
+const MarksEntry = lazy(() => import("./pages/dashboard/Teacher/MarksEntry"));
 const CreateTimetable = lazy(() => import("./pages/dashboard/HOD/Timetable/CreateTimetable"));
 
 /* ================= STUDENT (LAZY) ================= */
@@ -1027,6 +1031,30 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/dashboard/exam/create"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <CreateExam />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <EditExam />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/view/:id"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ViewExam />
+                </ProtectedRoute>
+              }
+            />
 
             {/* ================= HOD ================= */}
             <Route
@@ -1108,6 +1136,14 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
                   <TeacherDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/marks-entry"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <MarksEntry />
                 </ProtectedRoute>
               }
             />

@@ -19,7 +19,11 @@ import {
   FaCalendarAlt,
   FaCheckCircle,
   FaInfoCircle,
-  FaLayerGroup
+  FaLayerGroup,
+  FaClipboardList,
+  FaUniversity,
+  FaCreditCard,
+  FaBookOpen,
 } from "react-icons/fa";
 
 export default function ViewSubject() {
@@ -220,6 +224,89 @@ export default function ViewSubject() {
                 <FaUserTie className="no-teacher-icon" />
                 <p>No teacher assigned yet</p>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* EXAM / MARKS CONFIGURATION CARD */}
+        <div className="info-card">
+          <div className="card-header">
+            <FaClipboardList className="card-header-icon" />
+            <h3>Exam / Marks Configuration</h3>
+          </div>
+          <div className="card-body">
+            {subject.subjectType ? (
+              <div className="info-grid">
+                <InfoItem
+                  icon={<FaLayerGroup />}
+                  label="Subject Type"
+                  value={subject.subjectType}
+                />
+
+                {subject.subjectType === "THEORY" && (
+                  <>
+                    <InfoItem
+                      icon={<FaBookOpen />}
+                      label="Internal Max Marks"
+                      value={subject.internalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaUniversity />}
+                      label="External Max Marks"
+                      value={subject.externalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="Internal Pass Marks"
+                      value={subject.internalPassMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="External Pass Marks"
+                      value={subject.externalPassMarks}
+                    />
+                  </>
+                )}
+
+                {subject.subjectType === "PRACTICAL" && (
+                  <>
+                    <InfoItem
+                      icon={<FaBookOpen />}
+                      label="Applicable Maximum Marks"
+                      value={subject.internalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="Pass Marks"
+                      value={subject.passMarks}
+                    />
+                  </>
+                )}
+
+                {subject.subjectType === "COMPOSITE" && (
+                  <>
+                    <InfoItem
+                      icon={<FaBookOpen />}
+                      label="Internal Max Marks"
+                      value={subject.internalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaUniversity />}
+                      label="External Max Marks"
+                      value={subject.externalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="Pass Marks"
+                      value={subject.passMarks}
+                    />
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted mb-0">
+                No exam / marks configuration set for this subject.
+              </p>
             )}
           </div>
         </div>
