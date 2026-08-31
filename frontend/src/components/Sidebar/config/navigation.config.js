@@ -517,6 +517,20 @@ export const navigationConfig = {
         ],
       },
       {
+        id: "marks-teacher",
+        title: "Marks Entry",
+        icon: FaEdit,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/teacher/marks-entry",
+            icon: FaEdit,
+            label: "Enter Marks",
+            exact: true,
+          },
+        ],
+      },
+      {
         id: "attendance-teacher",
         title: "Attendance",
         icon: FaClipboardList,
@@ -917,7 +931,7 @@ export const navigationConfig = {
 
   /**
    * EXAM_COORDINATOR Navigation
-   * Placeholder until V1.1
+   * Exam management and planning
    */
   EXAM_COORDINATOR: {
     dashboard: {
@@ -928,14 +942,20 @@ export const navigationConfig = {
     sections: [
       {
         id: "exam",
-        title: "Exam Planning",
+        title: "Exam Management",
         icon: FaClipboardList,
         defaultOpen: true,
         items: [
           {
             path: "/dashboard/exam",
-            icon: FaExclamationTriangle,
+            icon: FaListOl,
             label: "Exam Dashboard",
+            exact: true,
+          },
+          {
+            path: "/dashboard/exam/create",
+            icon: FaPlus,
+            label: "Create Exam",
             exact: true,
           },
           {

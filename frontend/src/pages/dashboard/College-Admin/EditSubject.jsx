@@ -65,6 +65,12 @@ export default function EditSubject() {
         semester: subject.semester || "",
         credits: subject.credits || "",
         teacher_id: subject.teacher_id?._id || subject.teacher_id || "",
+        subjectType: subject.subjectType || "",
+        internalMaxMarks: subject.internalMaxMarks ?? "",
+        externalMaxMarks: subject.externalMaxMarks ?? "",
+        internalPassMarks: subject.internalPassMarks ?? "",
+        externalPassMarks: subject.externalPassMarks ?? "",
+        passMarks: subject.passMarks ?? "",
       });
 
       setCourses(courseRes.data || []);
@@ -107,11 +113,32 @@ export default function EditSubject() {
     setError("");
 
     try {
-      await api.put(`/subjects/${id}`, {
-        ...formData,
+      const payload = {
+        course_id: formData.course_id,
+        name: formData.name,
+        code: formData.code,
         semester: Number(formData.semester),
         credits: Number(formData.credits),
-      });
+        teacher_id: formData.teacher_id || undefined,
+      };
+
+      // Only include exam / marks configuration when a subjectType is set,
+      // so subjects without config keep their existing (empty) state.
+      if (formData.subjectType) {
+        payload.subjectType = formData.subjectType;
+        if (formData.internalMaxMarks !== "")
+          payload.internalMaxMarks = Number(formData.internalMaxMarks);
+        if (formData.externalMaxMarks !== "")
+          payload.externalMaxMarks = Number(formData.externalMaxMarks);
+        if (formData.internalPassMarks !== "")
+          payload.internalPassMarks = Number(formData.internalPassMarks);
+        if (formData.externalPassMarks !== "")
+          payload.externalPassMarks = Number(formData.externalPassMarks);
+        if (formData.passMarks !== "")
+          payload.passMarks = Number(formData.passMarks);
+      }
+
+      await api.put(`/subjects/${id}`, payload);
 
       navigate(`/subjects/view/${id}`);
     } catch (err) {
@@ -222,6 +249,79 @@ export default function EditSubject() {
                   label: `${t.name} (${t.designation})`,
                 }))}
               />
+
+              {/* ============ EXAM / MARKS CONFIGURATION ============ */}
+              <div className="col-12">
+                <hr />
+                <h5 className="mt-2 mb-3">Exam / Marks Configuration</h5>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold">Subject Type</label>
+                    <select
+                      className="form-control"
+                      name="subjectType"
+                      value={formData.subjectType}
+                      onChange={handleChange}
+                    >
+                      <option value="">Not configured</option>
+                      <option value="THEORY">THEORY</option>
+                      <option value="PRACTICAL">PRACTICAL</option>
+                      <option value="COMPOSITE">COMPOSITE</option>
+                    </select>
+                  </div>
+
+                  {formData.subjectType === "THEORY" && (
+                    <>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Internal Max Marks</label>
+                        <input className="form-control" type="number" min="0" name="internalMaxMarks" value={formData.internalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">External Max Marks</label>
+                        <input className="form-control" type="number" min="0" name="externalMaxMarks" value={formData.externalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Internal Pass Marks</label>
+                        <input className="form-control" type="number" min="0" name="internalPassMarks" value={formData.internalPassMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">External Pass Marks</label>
+                        <input className="form-control" type="number" min="0" name="externalPassMarks" value={formData.externalPassMarks} onChange={handleChange} />
+                      </div>
+                    </>
+                  )}
+
+                  {formData.subjectType === "PRACTICAL" && (
+                    <>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Applicable Maximum Marks</label>
+                        <input className="form-control" type="number" min="0" name="internalMaxMarks" value={formData.internalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Pass Marks</label>
+                        <input className="form-control" type="number" min="0" name="passMarks" value={formData.passMarks} onChange={handleChange} />
+                      </div>
+                    </>
+                  )}
+
+                  {formData.subjectType === "COMPOSITE" && (
+                    <>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Internal Max Marks</label>
+                        <input className="form-control" type="number" min="0" name="internalMaxMarks" value={formData.internalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">External Max Marks</label>
+                        <input className="form-control" type="number" min="0" name="externalMaxMarks" value={formData.externalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Pass Marks</label>
+                        <input className="form-control" type="number" min="0" name="passMarks" value={formData.passMarks} onChange={handleChange} />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
