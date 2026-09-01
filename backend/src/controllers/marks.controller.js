@@ -6,6 +6,7 @@ const Teacher = require("../models/teacher.model");
 const AppError = require("../utils/AppError");
 const auditLogService = require("../services/auditLog.service");
 const { ROLE } = require("../utils/constants");
+const { calculateSubjectResult } = require("../services/examCalculation.service");
 
 /**
  * Validate marks against the Exam Subject configuration.
@@ -174,6 +175,17 @@ exports.getStudentRoster = async (req, res, next) => {
       marks: marksMap.get(String(student._id)) || null,
     }));
 
+    // Attach calculated pass/fail status using the Exam Subject snapshot.
+    // Calculation is derived; not persisted to StudentMarks.
+    const rosterWithCalculation = roster.map((entry) => {
+      const raw = entry.marks || {};
+      const calculation = calculateSubjectResult(examSubject, {
+        internalMarks: raw.internalMarks,
+        externalMarks: raw.externalMarks,
+      });
+      return { ...entry, calculation };
+    });
+
     res.json({
       success: true,
       data: {
@@ -182,8 +194,8 @@ exports.getStudentRoster = async (req, res, next) => {
         subjectType: examSubject.subjectType,
         internalMaxMarks: examSubject.internalMaxMarks,
         externalMaxMarks: examSubject.externalMaxMarks,
-        roster,
-        totalStudents: roster.length,
+        roster: rosterWithCalculation,
+        totalStudents: rosterWithCalculation.length,
         markedCount: marks.length,
       },
     });
@@ -222,9 +234,22 @@ exports.getMarks = async (req, res, next) => {
       subject_id: subjectId,
     }).populate("student_id", "fullName enrollmentNumber rollNumber");
 
+    const examSubject = exam.subjects.find(
+      (s) => String(s.subject) === String(subjectId),
+    );
+
+    // Attach derived calculation; not persisted to StudentMarks.
+    const data = marks.map((mark) => {
+      const calculation = calculateSubjectResult(examSubject, {
+        internalMarks: mark.internalMarks,
+        externalMarks: mark.externalMarks,
+      });
+      return { ...mark.toObject(), calculation };
+    });
+
     res.json({
       success: true,
-      data: marks,
+      data,
     });
   } catch (error) {
     next(error);
