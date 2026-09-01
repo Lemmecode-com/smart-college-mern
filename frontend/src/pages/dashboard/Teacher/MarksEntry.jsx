@@ -237,6 +237,9 @@ const styles = `
 .marks-entry .badge-practical { background: var(--me-cyan-50); color: var(--me-cyan-600); }
 .marks-entry .badge-composite { background: var(--me-amber-50); color: var(--me-amber-600); }
 .marks-entry .badge-default { background: var(--me-slate-100); color: var(--me-slate-600); }
+.marks-entry .badge-pass { background: var(--me-green-50); color: var(--me-green-600); }
+.marks-entry .badge-fail { background: var(--me-red-50); color: var(--me-red-500); }
+.marks-entry .badge-incomplete { background: var(--me-amber-50); color: var(--me-amber-600); }
 
 @media (max-width: 640px) {
   .marks-entry .me-card-body { padding: 1.25rem; }
@@ -511,17 +514,19 @@ export default function MarksEntry() {
             <>
               <div className="table-card table-responsive">
                 <table className="table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Student Name</th>
-                      <th>Enrollment No.</th>
-                      <th>Internal Marks</th>
-                      {(roster.subjectType === "THEORY" || roster.subjectType === "COMPOSITE") && (
-                        <th>External Marks</th>
-                      )}
-                    </tr>
-                  </thead>
+                   <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Student Name</th>
+                        <th>Enrollment No.</th>
+                        <th>Internal Marks</th>
+                        {(roster.subjectType === "THEORY" || roster.subjectType === "COMPOSITE") && (
+                          <th>External Marks</th>
+                        )}
+                        <th>Total</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
                   <tbody>
                     {roster.roster.map((entry, index) => (
                       <tr key={entry.studentId}>
@@ -542,23 +547,43 @@ export default function MarksEntry() {
                             }
                           />
                         </td>
-                        {(roster.subjectType === "THEORY" || roster.subjectType === "COMPOSITE") && (
-                          <td>
-                            <input
-                              type="number"
-                              className="form-input"
-                              style={{ maxWidth: 120 }}
-                              min="0"
-                              max={roster.externalMaxMarks ?? undefined}
-                              placeholder={roster.externalMaxMarks !== undefined ? `Max ${roster.externalMaxMarks}` : "0"}
-                              value={marksMap[String(entry.studentId)]?.externalMarks ?? ""}
-                              onChange={(e) =>
-                                handleMarksChange(entry.studentId, "externalMarks", e.target.value)
-                              }
-                            />
-                          </td>
-                        )}
-                      </tr>
+                         {(roster.subjectType === "THEORY" || roster.subjectType === "COMPOSITE") && (
+                           <td>
+                             <input
+                               type="number"
+                               className="form-input"
+                               style={{ maxWidth: 120 }}
+                               min="0"
+                               max={roster.externalMaxMarks ?? undefined}
+                               placeholder={roster.externalMaxMarks !== undefined ? `Max ${roster.externalMaxMarks}` : "0"}
+                               value={marksMap[String(entry.studentId)]?.externalMarks ?? ""}
+                               onChange={(e) =>
+                                 handleMarksChange(entry.studentId, "externalMarks", e.target.value)
+                               }
+                             />
+                           </td>
+                         )}
+                         <td>
+                           {entry.calculation?.totalMarks ?? "-"}
+                         </td>
+                         <td>
+                           {entry.calculation?.status ? (
+                             <span
+                               className={`badge-me ${
+                                 entry.calculation.status === "PASS"
+                                   ? "badge-pass"
+                                   : entry.calculation.status === "FAIL"
+                                   ? "badge-fail"
+                                   : "badge-incomplete"
+                               }`}
+                             >
+                               {entry.calculation.status}
+                             </span>
+                           ) : (
+                             <span className="badge-me badge-incomplete">INCOMPLETE</span>
+                           )}
+                         </td>
+                       </tr>
                     ))}
                   </tbody>
                 </table>
