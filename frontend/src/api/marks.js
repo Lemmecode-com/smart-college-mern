@@ -10,7 +10,7 @@ const MARKS_BASE_URL = "/marks";
  * @returns {Promise}
  */
 export const getStudentRoster = async ({ examId, subjectId }) => {
-  const response = await api.get(MARKS_BASE_URL, {
+  const response = await api.get(`${MARKS_BASE_URL}/roster`, {
     params: { examId, subjectId },
   });
   return response.data;
