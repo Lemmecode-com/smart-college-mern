@@ -25,10 +25,12 @@ router.get(
   examController.getDashboard,
 );
 
-// Exam management routes (EXAM_COORDINATOR only)
+// Read routes: TEACHER needs exam list/detail to populate Marks Entry UI
+router.get("/", auth, role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExams);
+router.get("/:id", auth, role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExamById);
+
+// Write routes: EXAM_COORDINATOR only
 router.post("/", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.createExam);
-router.get("/", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExams);
-router.get("/:id", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExamById);
 router.put("/:id", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.updateExam);
 
 module.exports = router;

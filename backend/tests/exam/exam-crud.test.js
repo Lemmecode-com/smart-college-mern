@@ -558,6 +558,37 @@ describe("EXM-TC-002 — Exam CRUD operations", () => {
     expect(log.metadata.subjectCount || log.metadata?.get?.('subjectCount')).toBe(1);
   });
 
+  it("19. multiple Exams can be created for the same college", async () => {
+    const { agent, course, subject1 } = await baseSetup();
+
+    const first = await agent
+      .post("/api/exam")
+      .send({
+        name: "Mid-Term Examination",
+        course_id: course._id,
+        semester: 3,
+        academicYear: "2026-27",
+        subjects: [subject1._id],
+      })
+      .expect(201);
+
+    const second = await agent
+      .post("/api/exam")
+      .send({
+        name: "Final Term Examination",
+        course_id: course._id,
+        semester: 3,
+        academicYear: "2026-27",
+        subjects: [subject1._id],
+      })
+      .expect(201);
+
+    expect(first.body.exam.name).toBe("Mid-Term Examination");
+    expect(second.body.exam.name).toBe("Final Term Examination");
+    expect(first.body.exam.college_id).toBe(second.body.exam.college_id);
+    expect(first.body.exam._id).not.toBe(second.body.exam._id);
+  });
+
   it("18. existing Subject configuration remains unchanged after Exam creation", async () => {
     const { agent, course, subject1 } = await baseSetup();
 

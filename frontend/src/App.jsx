@@ -175,6 +175,8 @@ const ExamDashboard = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamD
 const CreateExam = lazy(() => import("./pages/dashboard/ExamCoordinator/CreateExam"));
 const EditExam = lazy(() => import("./pages/dashboard/ExamCoordinator/EditExam"));
 const ViewExam = lazy(() => import("./pages/dashboard/ExamCoordinator/ViewExam"));
+const ResultGeneration = lazy(() => import("./pages/dashboard/ExamCoordinator/ResultGeneration"));
+const ResultReview = lazy(() => import("./pages/dashboard/ExamCoordinator/ResultReview"));
 
 /* ================= HOD (LAZY) ================= */
 const HodDashboard = lazy(() => import("./pages/dashboard/HOD/HodDashboard"));
@@ -214,6 +216,7 @@ const FeeReceipt = lazy(() => import("./pages/dashboard/Student/FeeReceipt"));
 const PaymentSuccess = lazy(() => import("./pages/dashboard/Student/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("./pages/dashboard/Student/PaymentCancel"));
 const MyAttendance = lazy(() => import("./pages/dashboard/Student/MyAttendance"));
+const StudentResults = lazy(() => import("./pages/dashboard/Student/StudentResults"));
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -1055,6 +1058,22 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/dashboard/exam/results/generate"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ResultGeneration />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/results/:resultId"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ResultReview />
+                </ProtectedRoute>
+              }
+            />
 
             {/* ================= HOD ================= */}
             <Route
@@ -1262,6 +1281,15 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["STUDENT"]}>
                   <PaymentCancel />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/student/results"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <StudentResults />
                 </ProtectedRoute>
               }
             />

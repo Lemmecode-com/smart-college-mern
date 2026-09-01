@@ -1,0 +1,375 @@
+const SemesterResult = require("../models/semesterResult.model");
+const Exam = require("../models/exam.model");
+const Student = require("../models/student.model");
+const Subject = require("../models/subject.model");
+const StudentMarks = require("../models/studentMarks.model");
+const AppError = require("../utils/AppError");
+const { RESULT_STATUS } = require("../utils/constants");
+const { validateUnlockReason } = require("../utils/resultLifecycle.util");
+const { calculateSubjectResult } = require("./examCalculation.service");
+
+/**
+ * Centralized SemesterResult generation service.
+ *
+ * Flow:
+ *   1. Load the Exam (college-scoped) — validates ownership/tenant isolation.
+ *   2. Validate the student belongs to the exam's college + course + semester.
+ *   3. For every applicant Exam subject:
+ *        - locate the student's StudentMarks (if any)
+ *        - feed the Exam SUBJECT SNAPSHOT + marks into ExamCalculationService
+ *   4. Aggregate subject statuses into totals + an overall result.
+ *   5. Upsert the SemesterResult (no duplicates on re-generation).
+ *
+ * The ExamCalculationService is the single source of truth for per-subject
+ * pass/fail. This layer only aggregates already-calculated outcomes.
+ */
+
+/**
+ * Compute the overall semester result from a list of subject statuses.
+ *
+ * Rule (per task spec — no ATKT / grace behaviour):
+ *   - INCOMPLETE wins if any applicable subject is INCOMPLETE
+ *   - else FAIL if any applicable subject is FAIL
+ *   - else PASS only when every applicable subject is PASS
+ *
+ * Pure function — exported for unit testing without a database.
+ */
+const calculateOverallResult = (statuses = []) => {
+  if (statuses.length === 0) return "INCOMPLETE";
+
+  if (statuses.some((s) => s === "INCOMPLETE")) return "INCOMPLETE";
+  if (statuses.some((s) => s === "FAIL")) return "FAIL";
+  if (statuses.every((s) => s === "PASS")) return "PASS";
+
+  return "INCOMPLETE";
+};
+
+/**
+ * Generate (or regenerate) the SemesterResult for one student + one Exam.
+ *
+ * @param {Object} params
+ * @param {ObjectId/String} params.collegeId
+ * @param {ObjectId/String} params.studentId
+ * @param {ObjectId/String} params.examId
+ * @param {ObjectId/String} params.userId  actor generating the result
+ * @returns {Promise<SemesterResult>} the persisted result document
+ */
+exports.generateSemesterResult = async ({ collegeId, studentId, examId, userId }) => {
+  // 1. Load Exam (college-scoped) — cross-college Exams are invisible.
+  const exam = await Exam.findOne({ _id: examId, college_id: collegeId });
+  if (!exam) {
+    throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+  }
+
+  // 2. Validate the student belongs to the exam's college + academic context.
+  const student = await Student.findOne({ _id: studentId, college_id: collegeId });
+  if (!student) {
+    throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
+  }
+
+  if (String(student.course_id) !== String(exam.course_id)) {
+    throw new AppError(
+      "Student does not belong to the exam's course",
+      400,
+      "STUDENT_COURSE_MISMATCH",
+    );
+  }
+
+  if (Number(student.currentSemester) !== Number(exam.semester)) {
+    throw new AppError(
+      "Student's current semester does not match the exam's semester",
+      400,
+      "STUDENT_SEMESTER_MISMATCH",
+    );
+  }
+
+  // 3. Exam subjects (snapshot) drive calculation.
+  const examSubjects = exam.subjects || [];
+  if (examSubjects.length === 0) {
+    throw new AppError("Exam has no subjects", 400, "EXAM_NO_SUBJECTS");
+  }
+
+  // Snapshot subject name/code so the result is readable even if the Subject
+  // is later renamed. Subjects that can't be found are still recorded with just
+  // the reference + calculation.
+  const subjectIds = examSubjects.map((s) => s.subject);
+  const subjectDocs = await Subject.find({
+    _id: { $in: subjectIds },
+    college_id: collegeId,
+  });
+  const subjectMap = new Map(subjectDocs.map((s) => [String(s._id), s]));
+
+  // Load all the student's marks for this exam in a single query.
+  const studentMarks = await StudentMarks.find({
+    college_id: collegeId,
+    exam_id: examId,
+    student_id: studentId,
+  });
+  const marksMap = new Map(studentMarks.map((m) => [String(m.subject_id), m]));
+
+  // 4. Per-subject calculation reusing the centralized service.
+  const subjects = [];
+  let passedSubjects = 0;
+  let failedSubjects = 0;
+  let incompleteSubjects = 0;
+
+  for (const examSubject of examSubjects) {
+    const subjectId = String(examSubject.subject);
+    const marksRecord = marksMap.get(subjectId);
+    const marksRecorded = !!marksRecord;
+
+    // Missing StudentMarks => treat as INCOMPLETE, never coerce null -> 0.
+    const marks = marksRecorded
+      ? { internalMarks: marksRecord.internalMarks, externalMarks: marksRecord.externalMarks }
+      : { internalMarks: null, externalMarks: null };
+
+    const calculation = calculateSubjectResult(examSubject, marks);
+    const subjectDoc = subjectMap.get(subjectId);
+
+    subjects.push({
+      subject: examSubject.subject,
+      subjectName: subjectDoc ? subjectDoc.name : undefined,
+      subjectCode: subjectDoc ? subjectDoc.code : undefined,
+      subjectType: calculation.subjectType,
+      internalMarks: calculation.internalMarks,
+      externalMarks: calculation.externalMarks,
+      totalMarks: calculation.totalMarks,
+      internalPassed: calculation.internalPassed,
+      externalPassed: calculation.externalPassed,
+      passed: calculation.passed,
+      status: calculation.status,
+      marksRecorded,
+    });
+
+    if (calculation.status === "PASS") passedSubjects++;
+    else if (calculation.status === "FAIL") failedSubjects++;
+    else incompleteSubjects++;
+  }
+
+  const overallResult = calculateOverallResult(
+    subjects.map((s) => s.status),
+  );
+
+const persistedResult = {
+    college_id: collegeId,
+    student_id: studentId,
+    exam_id: examId,
+    course_id: exam.course_id,
+    semester: exam.semester,
+    academicYear: exam.academicYear,
+    subjects,
+    totalSubjects: subjects.length,
+    passedSubjects,
+    failedSubjects,
+    incompleteSubjects,
+    overallResult,
+    calculatedAt: new Date(),
+    status: RESULT_STATUS.DRAFT,
+    updatedBy: userId,
+  };
+
+  // 5. Upsert: create-or-update on (college, student, exam). No duplicates.
+  const existing = await SemesterResult.findOne({
+    college_id: collegeId,
+    student_id: studentId,
+    exam_id: examId,
+  });
+
+  if (existing) {
+    // Step 7 — lifecycle protection: regeneration is only allowed on DRAFT
+    // results. LOCKED / PUBLISHED results must not be silently overwritten.
+    if (existing.status !== RESULT_STATUS.DRAFT) {
+      throw new AppError(
+        `Cannot regenerate result: current status is ${existing.status}`,
+        409,
+        "RESULT_NOT_MUTABLE",
+        { resultId: existing._id, status: existing.status },
+      );
+    }
+
+    existing.subjects = persistedResult.subjects;
+    existing.totalSubjects = persistedResult.totalSubjects;
+    existing.passedSubjects = persistedResult.passedSubjects;
+    existing.failedSubjects = persistedResult.failedSubjects;
+    existing.incompleteSubjects = persistedResult.incompleteSubjects;
+    existing.overallResult = persistedResult.overallResult;
+    existing.calculatedAt = persistedResult.calculatedAt;
+    existing.updatedBy = userId;
+    await existing.save();
+    return existing;
+  }
+
+  return SemesterResult.create({ ...persistedResult, createdBy: userId });
+};
+
+exports.calculateOverallResult = calculateOverallResult;
+
+// ---------------------------------------------------------------------------
+// STEP 7 — Result lifecycle: LOCK / UNLOCK / PUBLISH
+//
+// Allowed transitions (enforced atomically via conditional findOneAndUpdate):
+//   DRAFT    -> LOCKED
+//   LOCKED   -> DRAFT   (authorized unlock, reason required)
+//   LOCKED   -> PUBLISHED
+//
+// DRAFT -> PUBLISHED is NOT allowed (must lock first).
+// PUBLISHED is terminal (no DRAFT/LOCKED transition).
+// ---------------------------------------------------------------------------
+
+/**
+ * Load a SemesterResult scoped to the authenticated college (tenant isolation).
+ * Returns null for both non-existent and cross-college documents (no leakage).
+ */
+const findResultInCollege = async (resultId, collegeId) =>
+  SemesterResult.findOne({ _id: resultId, college_id: collegeId });
+
+/**
+ * Lock a DRAFT SemesterResult (DRAFT -> LOCKED).
+ *
+ * Uses a conditional update (status = DRAFT) so concurrent lock attempts resolve
+ * to a single winner; the second caller receives a 409 conflict.
+ */
+exports.lockResult = async ({ resultId, collegeId, userId }) => {
+  const existing = await findResultInCollege(resultId, collegeId);
+  if (!existing) {
+    throw new AppError("SemesterResult not found", 404, "RESULT_NOT_FOUND");
+  }
+
+  const updated = await SemesterResult.findOneAndUpdate(
+    { _id: resultId, college_id: collegeId, status: RESULT_STATUS.DRAFT },
+    {
+      $set: {
+        status: RESULT_STATUS.LOCKED,
+        lockedBy: userId,
+        lockedAt: new Date(),
+        updatedBy: userId,
+      },
+    },
+    { new: true, runValidators: true },
+  );
+
+  if (!updated) {
+    throw new AppError(
+      `Cannot lock result: current status is ${existing.status}`,
+      409,
+      "RESULT_INVALID_TRANSITION",
+      { resultId: existing._id, currentStatus: existing.status },
+    );
+  }
+
+  return updated;
+};
+
+/**
+ * Unlock a LOCKED SemesterResult (LOCKED -> DRAFT).
+ *
+ * A non-empty unlock reason (max 500 chars, trimmed) is mandatory.
+ * Lock metadata (lockedBy/lockedAt) is retained as history; the reason is
+ * recorded on the document and in the audit log.
+ */
+exports.unlockResult = async ({ resultId, collegeId, userId, reason }) => {
+  const trimmedReason = validateUnlockReason(reason);
+
+  const existing = await findResultInCollege(resultId, collegeId);
+  if (!existing) {
+    throw new AppError("SemesterResult not found", 404, "RESULT_NOT_FOUND");
+  }
+
+  const updated = await SemesterResult.findOneAndUpdate(
+    { _id: resultId, college_id: collegeId, status: RESULT_STATUS.LOCKED },
+    {
+      $set: {
+        status: RESULT_STATUS.DRAFT,
+        unlockReason: trimmedReason,
+        updatedBy: userId,
+      },
+    },
+    { new: true, runValidators: true },
+  );
+
+  if (!updated) {
+    throw new AppError(
+      `Cannot unlock result: current status is ${existing.status}`,
+      409,
+      "RESULT_INVALID_TRANSITION",
+      { resultId: existing._id, currentStatus: existing.status },
+    );
+  }
+
+  return updated;
+};
+
+/**
+ * Publish a LOCKED SemesterResult (LOCKED -> PUBLISHED).
+ *
+ * DRAFT results cannot be published directly; PUBLISHED results are terminal.
+ */
+exports.publishResult = async ({ resultId, collegeId, userId }) => {
+  const existing = await findResultInCollege(resultId, collegeId);
+  if (!existing) {
+    throw new AppError("SemesterResult not found", 404, "RESULT_NOT_FOUND");
+  }
+
+  const updated = await SemesterResult.findOneAndUpdate(
+    { _id: resultId, college_id: collegeId, status: RESULT_STATUS.LOCKED },
+    {
+      $set: {
+        status: RESULT_STATUS.PUBLISHED,
+        publishedBy: userId,
+        publishedAt: new Date(),
+        updatedBy: userId,
+      },
+    },
+    { new: true, runValidators: true },
+  );
+
+  if (!updated) {
+    throw new AppError(
+      `Cannot publish result: current status is ${existing.status}`,
+      409,
+      "RESULT_INVALID_TRANSITION",
+      { resultId: existing._id, currentStatus: existing.status },
+    );
+  }
+
+  return updated;
+};
+
+/**
+ * Load a single SemesterResult for review (college-scoped).
+ */
+exports.getResultById = async ({ resultId, collegeId }) =>
+  findResultInCollege(resultId, collegeId);
+
+/**
+ * GET /api/results/my-results
+ *
+ * Return all PUBLISHED SemesterResults for the authenticated student.
+ * Identity is derived from the authenticated user — never from request params.
+ * College isolation is enforced via college_id from the request context.
+ *
+ * @param {Object} params
+ * @param {ObjectId|string} params.collegeId  from collegeMiddleware
+ * @param {ObjectId|string} params.userId     from auth middleware (User._id)
+ * @returns {Promise<SemesterResult[]>}
+ */
+exports.getMyResults = async ({ collegeId, userId }) => {
+  const student = await Student.findOne({
+    user_id: userId,
+    college_id: collegeId,
+  }).select("_id");
+
+  if (!student) {
+    throw new AppError("Student profile not found", 404, "STUDENT_NOT_FOUND");
+  }
+
+  return SemesterResult.find({
+    college_id: collegeId,
+    student_id: student._id,
+    status: RESULT_STATUS.PUBLISHED,
+  })
+    .populate("exam_id", "name semester academicYear")
+    .populate("course_id", "name code")
+    .sort({ createdAt: -1 })
+    .lean();
+};
