@@ -31,7 +31,7 @@ import {
   FaChartLine,
   FaMoneyBill,
   FaFileAlt,
-  FaUser,
+   FaUser,
   FaEdit,
   FaClock,
   FaChartBar,
@@ -635,6 +635,20 @@ export const navigationConfig = {
         ],
       },
       {
+        id: "results-student",
+        title: "Exam Results",
+        icon: FaFileAlt,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/student/results",
+            icon: FaFileAlt,
+            label: "My Results",
+            exact: true,
+          },
+        ],
+      },
+      {
         id: "notifications-student",
         title: "Notifications",
         icon: FaBell,
@@ -974,6 +988,20 @@ export const navigationConfig = {
             path: "/timetable/list",
             icon: FaCalendarAlt,
             label: "Timetable",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "exam-results",
+        title: "Results",
+        icon: FaClipboardList,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/exam/results/generate",
+            icon: FaFileAlt,
+            label: "Generate Result",
             exact: true,
           },
         ],

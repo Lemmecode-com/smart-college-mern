@@ -465,14 +465,16 @@ export default function MarksEntry() {
                 disabled={!selectedExamId || loadingRoster}
               >
                 <option value="">Select Subject</option>
-                {subjects.map((sub) => (
-                  <option key={sub.subject?._id || sub.subject} value={sub.subject}>
-                    {sub.subject?.name || sub.subject}{" "}
-                    <span className={getSubjectBadgeClass(sub.subjectType)}>
-                      {sub.subjectType || "N/A"}
-                    </span>
-                  </option>
-                ))}
+                {subjects.map((sub) => {
+                  const subjectId = sub.subject?._id || sub.subject;
+                  const subjectName = sub.subject?.name || sub.subject;
+                  const subjectType = sub.subjectType || "N/A";
+                  return (
+                    <option key={subjectId} value={subjectId}>
+                      {subjectName} [{subjectType}]
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

@@ -7,6 +7,7 @@ const AppError = require("../utils/AppError");
 const auditLogService = require("../services/auditLog.service");
 const { ROLE } = require("../utils/constants");
 const { calculateSubjectResult } = require("../services/examCalculation.service");
+const { assertMarksMutable } = require("../utils/resultLifecycle.util");
 
 /**
  * Validate marks against the Exam Subject configuration.
@@ -94,7 +95,7 @@ const authorizeTeacher = async (req, subjectId, collegeId) => {
 
   const teacher = await Teacher.findOne({
     user_id: req.user.id,
-    college_id,
+    college_id: collegeId,
   });
 
   if (!teacher) {
@@ -103,7 +104,7 @@ const authorizeTeacher = async (req, subjectId, collegeId) => {
 
   const subject = await Subject.findOne({
     _id: subjectId,
-    college_id,
+    college_id: collegeId,
   });
 
   if (!subject) {
@@ -283,6 +284,17 @@ exports.saveMarks = async (req, res, next) => {
 
     const examSubject = getExamSubject(exam, subjectId);
     await authorizeTeacher(req, subjectId, req.college_id);
+
+    // Step 7 — mutability guard: if a SemesterResult for this exam + student is
+    // LOCKED or PUBLISHED, the underlying marks must not be modified.
+    const studentIds = marks
+      .map((entry) => entry && entry.studentId)
+      .filter((id) => id);
+    await assertMarksMutable({
+      collegeId: req.college_id,
+      examId,
+      studentIds,
+    });
 
     const results = [];
     const auditLogs = [];
