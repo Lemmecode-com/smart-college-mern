@@ -3,6 +3,8 @@ const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const College = require("../models/college.model");
+const logger = require("../utils/logger");
+const AppError = require("../utils/AppError");
 
 /* =====================================================
    COLLEGE LEVEL REPORTS
@@ -12,10 +14,11 @@ const College = require("../models/college.model");
  * ADMISSION SUMMARY (COLLEGE)
  */
 exports.admissionSummary = async (college_id) => {
+  const activeStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
   const total = await Student.countDocuments({ college_id });
   const approved = await Student.countDocuments({
     college_id,
-    status: "APPROVED",
+    status: { $in: activeStatuses },
   });
   const pending = await Student.countDocuments({
     college_id,
@@ -26,13 +29,17 @@ exports.admissionSummary = async (college_id) => {
     status: "REJECTED",
   });
 
+  const totalApplications = approved + pending + rejected;
+
   return {
     total,
+    totalApplications,
     approved,
     pending,
     rejected,
-    approvedPercentage: total > 0 ? Math.round((approved / total) * 100) : 0,
-    pendingPercentage: total > 0 ? Math.round((pending / total) * 100) : 0,
+    approvedPercentage: totalApplications > 0 ? Math.round((approved / totalApplications) * 100) : 0,
+    pendingPercentage: totalApplications > 0 ? Math.round((pending / totalApplications) * 100) : 0,
+    rejectedPercentage: totalApplications > 0 ? Math.round((rejected / totalApplications) * 100) : 0,
   };
 };
 
@@ -154,9 +161,17 @@ exports.attendanceSummary = async (college_id) => {
 
   const data = result[0] || { total: 0, present: 0 };
 
+  // Real number of sessions conducted (distinct session ids for the college).
+  // Do NOT divide totalRecords by a guessed class size, as that undercounts
+  // and shows 0 for small colleges.
+  const sessionIds = await AttendanceRecord.distinct("session_id", {
+    college_id: new mongoose.Types.ObjectId(college_id),
+  });
+
   return {
     totalRecords: data.total,
-    averageAttendance: data.present,
+    averageAttendance: data.total > 0 ? Math.round((data.present / data.total) * 100) : 0,
+    totalSessions: sessionIds.length,
   };
 };
 
@@ -221,30 +236,35 @@ exports.studentAttendanceReport = async (college_id, minPercentage) => {
 /**
  * ADMISSION SUMMARY (ALL COLLEGES)
  */
-exports.admissionSummaryAll = async () => {
-  const total = await Student.countDocuments();
-  const approved = await Student.countDocuments({ status: "APPROVED" });
-  const pending = await Student.countDocuments({ status: "PENDING" });
-  const rejected = await Student.countDocuments({ status: "REJECTED" });
+exports.admissionSummaryAll = async ({ month, year } = {}) => {
+   const activeStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
+   const total = await Student.countDocuments();
+   const approved = await Student.countDocuments({
+     status: { $in: activeStatuses },
+   });
+   const pending = await Student.countDocuments({ status: "PENDING" });
+   const rejected = await Student.countDocuments({ status: "REJECTED" });
 
   const totalColleges = await College.countDocuments();
   const activeColleges = await College.countDocuments({ isActive: true });
 
-  // Calculate monthly admissions (current month)
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  // Calculate monthly admissions (selected or current month)
+  const targetMonth = month !== undefined ? parseInt(month) : new Date().getMonth();
+  const targetYear = year !== undefined ? parseInt(year) : new Date().getFullYear();
+
+  const startOfMonth = new Date(targetYear, targetMonth, 1, 0, 0, 0, 0);
+  const endOfMonth = new Date(targetYear, targetMonth + 1, 1, 0, 0, 0, 0);
 
   const monthlyAdmissions = await Student.countDocuments({
-    createdAt: { $gte: startOfMonth },
+    createdAt: { $gte: startOfMonth, $lt: endOfMonth },
   });
 
   // Calculate previous month admissions for growth calculation
-  const prevMonthStart = new Date(startOfMonth);
-  prevMonthStart.setMonth(prevMonthStart.getMonth() - 1);
+  const prevMonthStart = new Date(targetYear, targetMonth - 1, 1, 0, 0, 0, 0);
+  const prevMonthEnd = new Date(targetYear, targetMonth, 1, 0, 0, 0, 0);
 
   const prevMonthAdmissions = await Student.countDocuments({
-    createdAt: { $gte: prevMonthStart, $lt: startOfMonth },
+    createdAt: { $gte: prevMonthStart, $lt: prevMonthEnd },
   });
 
   const monthlyGrowth =
@@ -262,6 +282,9 @@ exports.admissionSummaryAll = async () => {
     approved,
     pending,
     rejected,
+    approvedPercentage: total > 0 ? Math.round((approved / total) * 100) : 0,
+    pendingPercentage: total > 0 ? Math.round((pending / total) * 100) : 0,
+    rejectedPercentage: total > 0 ? Math.round((rejected / total) * 100) : 0,
     totalColleges,
     activeColleges,
     monthlyAdmissions,
@@ -346,4 +369,275 @@ exports.attendanceSummaryAll = async () => {
 
   // Return first object or default values
   return result[0] || { totalRecords: 0, averageAttendance: 0 };
+};
+
+/* =====================================================
+   ADVANCED PAYMENT REPORTING (ACCOUNTANT FEATURES)
+   ===================================================== */
+
+/**
+ * PAYMENT SUMMARY WITH DATE RANGE FILTERING
+ */
+exports.paymentSummaryWithDateRange = async (college_id, startDate, endDate) => {
+  if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+    throw new AppError("Start date must be before end date", 400, "INVALID_DATE_RANGE");
+  }
+
+  const matchConditions = { college_id: new mongoose.Types.ObjectId(college_id) };
+
+  if (startDate || endDate) {
+    const paidAt = {};
+
+    if (startDate) {
+      paidAt.$gte = new Date(startDate);
+    }
+
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setUTCHours(23, 59, 59, 999);
+      paidAt.$lte = endDateTime;
+    }
+
+    matchConditions.installments = { $elemMatch: { paidAt } };
+
+    const result = await StudentFee.aggregate([
+      { $match: matchConditions },
+      { $unwind: "$installments" },
+      { $match: { "installments.paidAt": paidAt } },
+      {
+        $group: {
+          _id: null,
+          totalExpected: { $sum: "$installments.amount" },
+          totalPaid: {
+            $sum: {
+              $cond: [
+                { $eq: ["$installments.status", "PAID"] },
+                "$installments.amount",
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const data = result[0] || { totalExpected: 0, totalPaid: 0 };
+    const total = data.totalExpected;
+    const collected = data.totalPaid;
+    const pending = total - collected;
+    const collectionRate = total > 0 ? Math.round((collected / total) * 100) : 0;
+
+    return {
+      totalExpectedFee: total,
+      totalCollected: collected,
+      totalPending: pending,
+      collectionRate,
+      dateRange: { startDate, endDate }
+    };
+  }
+
+  const result = await StudentFee.aggregate([
+    { $match: matchConditions },
+    {
+      $group: {
+        _id: null,
+        totalExpected: { $sum: { $ifNull: ["$totalFee", 0] } },
+        totalPaid: { $sum: { $ifNull: ["$paidAmount", 0] } },
+      },
+    },
+  ]);
+
+  const data = result[0] || { totalExpected: 0, totalPaid: 0 };
+  const total = data.totalExpected;
+  const collected = data.totalPaid;
+  const pending = total - collected;
+  const collectionRate = total > 0 ? Math.round((collected / total) * 100) : 0;
+
+  return {
+    totalExpectedFee: total,
+    totalCollected: collected,
+    totalPending: pending,
+    collectionRate,
+    dateRange: { startDate, endDate }
+  };
+};
+
+/**
+ * STUDENT SPECIFIC PAYMENT HISTORY WITH DATE FILTERING
+ */
+exports.studentSpecificPaymentHistory = async (college_id, studentId, startDate, endDate) => {
+  if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+    throw new AppError("Start date must be before end date", 400, "INVALID_DATE_RANGE");
+  }
+
+  const matchConditions = {
+    college_id: new mongoose.Types.ObjectId(college_id),
+    student_id: new mongoose.Types.ObjectId(studentId)
+  };
+
+  if (startDate || endDate) {
+    const paidAt = {};
+
+    if (startDate) {
+      paidAt.$gte = new Date(startDate);
+    }
+
+    if (endDate) {
+      const endDateTime = new Date(endDate);
+      endDateTime.setUTCHours(23, 59, 59, 999);
+      paidAt.$lte = endDateTime;
+    }
+
+    matchConditions.installments = { $elemMatch: { paidAt } };
+  }
+
+  const fees = await StudentFee.find(matchConditions)
+    .populate("student_id", "fullName email")
+    .populate("course_id", "name")
+    .select("totalFee paidAmount paymentStatus installments");
+
+  const endDateTime = endDate ? new Date(endDate) : null;
+  if (endDateTime) {
+    endDateTime.setUTCHours(23, 59, 59, 999);
+  }
+
+  return fees.map((fee) => ({
+    student: fee.student_id,
+    course: fee.course_id,
+    totalFee: fee.totalFee || 0,
+    paidAmount: fee.paidAmount || 0,
+    pendingAmount: (fee.totalFee || 0) - (fee.paidAmount || 0),
+    status: fee.paymentStatus || "DUE",
+    installments: fee.installments.filter(inst => {
+      if (!startDate && !endDate) return true;
+      if (!inst.paidAt) return false;
+
+      const paidDate = new Date(inst.paidAt);
+      if (startDate && paidDate < new Date(startDate)) return false;
+      if (endDate && paidDate > endDateTime) return false;
+      return true;
+    })
+  }));
+};
+
+/**
+ * PAYMENT TRENDS BY MONTH
+ */
+exports.paymentTrendsByMonth = async (college_id, year = new Date().getFullYear()) => {
+  const startOfYear = new Date(year, 0, 1);
+  const endOfYear = new Date(year, 11, 31, 23, 59, 59);
+
+  const [monthlyTrends, prevYearTrends] = await Promise.all([
+    // Current year monthly data
+    StudentFee.aggregate([
+      {
+        $match: {
+          college_id: new mongoose.Types.ObjectId(college_id),
+          "installments.paidAt": {
+            $gte: startOfYear,
+            $lte: endOfYear
+          }
+        }
+      },
+      { $unwind: "$installments" },
+      {
+        $match: {
+          "installments.paidAt": {
+            $gte: startOfYear,
+            $lte: endOfYear
+          },
+          "installments.status": "PAID"
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$installments.paidAt" },
+            month: { $month: "$installments.paidAt" }
+          },
+          totalCollected: { $sum: "$installments.amount" },
+          transactionCount: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ]),
+    // Previous year monthly data for YoY comparison
+    StudentFee.aggregate([
+      {
+        $match: {
+          college_id: new mongoose.Types.ObjectId(college_id),
+          "installments.paidAt": {
+            $gte: new Date(year - 1, 0, 1),
+            $lte: new Date(year - 1, 11, 31, 23, 59, 59)
+          }
+        }
+      },
+      { $unwind: "$installments" },
+      {
+        $match: {
+          "installments.paidAt": {
+            $gte: new Date(year - 1, 0, 1),
+            $lte: new Date(year - 1, 11, 31, 23, 59, 59)
+          },
+          "installments.status": "PAID"
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$installments.paidAt" },
+            month: { $month: "$installments.paidAt" }
+          },
+          totalCollected: { $sum: "$installments.amount" },
+          transactionCount: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } }
+    ])
+  ]);
+
+  // Create array for all 12 months
+  const trends = [];
+  for (let month = 1; month <= 12; month++) {
+    const monthData = monthlyTrends.find(t => t._id.month === month);
+    trends.push({
+      month: month,
+      monthName: new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' }),
+      totalCollected: monthData?.totalCollected || 0,
+      transactionCount: monthData?.transactionCount || 0
+    });
+  }
+
+  const currentYearTotal = trends.reduce((sum, t) => sum + t.totalCollected, 0);
+  const prevYearTotal = prevYearTrends.reduce((sum, t) => sum + t.totalCollected, 0);
+
+  // Find best month (actual computed value)
+  let bestMonth = null;
+  let maxCollection = 0;
+  for (const t of trends) {
+    if (t.totalCollected > maxCollection) {
+      maxCollection = t.totalCollected;
+      bestMonth = {
+        month: t.month,
+        monthName: t.monthName,
+        totalCollected: t.totalCollected
+      };
+    }
+  }
+
+  // Calculate YoY growth
+  let yoyGrowth = 0;
+  if (prevYearTotal > 0) {
+    yoyGrowth = Math.round(((currentYearTotal - prevYearTotal) / prevYearTotal) * 100);
+  }
+
+  return {
+    year,
+    trends,
+    totalYearCollection: currentYearTotal,
+    totalYearTransactions: trends.reduce((sum, t) => sum + t.transactionCount, 0),
+    bestMonth,
+    previousYearTotal: prevYearTotal,
+    yoyGrowth
+  };
 };

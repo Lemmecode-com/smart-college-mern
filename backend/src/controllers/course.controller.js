@@ -20,7 +20,8 @@ exports.createCourse = async (req, res, next) => {
     durationSemesters,
     durationYears,
     credits,
-    maxStudents
+    maxStudents,
+    yearLabels
   } = req.body;
 
   // Validate department
@@ -38,12 +39,34 @@ exports.createCourse = async (req, res, next) => {
     throw new AppError("Program duration must be 1-8 semesters", 400, "INVALID_DURATION");
   }
 
-  // Note: durationYears is auto-calculated by the model's pre-save hook
-  // If provided, it will be validated by the model
+  // ✅ Validate maxStudents (must be a positive integer > 0)
+  if (
+    maxStudents === undefined ||
+    maxStudents === null ||
+    maxStudents === "" ||
+    !Number.isFinite(Number(maxStudents)) ||
+    !Number.isInteger(Number(maxStudents)) ||
+    Number(maxStudents) <= 0
+  ) {
+    throw new AppError("Maximum Students must be greater than 0", 400, "INVALID_MAX_STUDENTS");
+  }
+
+  // Note: durationYears is always auto-calculated by the pre('save') hook — never trust client value
 
   // Warn if creating long duration program
   if (durationSemesters > 6 && programLevel === "UG") {
     console.warn(`⚠️ Creating advanced program "${name}" with ${durationSemesters} semesters`);
+  }
+
+  // ✅ Check for duplicate course code in the same department
+  const duplicate = await Course.findOne({
+    college_id: req.college_id,
+    department_id,
+    code: code.toUpperCase()
+  });
+
+  if (duplicate) {
+    throw new AppError("duplicate course code", 409, "DUPLICATE_COURSE_CODE");
   }
 
   // Create course with new duration fields
@@ -61,10 +84,11 @@ exports.createCourse = async (req, res, next) => {
     createdBy: req.user.id
   };
 
-  // Only add durationYears if provided (otherwise let pre-save hook calculate it)
-  if (durationYears) {
-    courseData.durationYears = durationYears;
+  if (Array.isArray(yearLabels)) {
+    courseData.yearLabels = yearLabels.filter((label) => typeof label === "string" && label.trim().length > 0).map((label) => label.trim());
   }
+
+  // Never trust a client-supplied durationYears — the pre('save') hook always calculates it
 
   console.log('📝 [CREATE COURSE] Course data to save:', courseData);
 
@@ -75,7 +99,7 @@ exports.createCourse = async (req, res, next) => {
   } catch (error) {
     console.error('❌ [CREATE COURSE] Error creating course:', error.message);
     console.error('❌ [CREATE COURSE] Full error:', error);
-    throw error;
+    next(error);
   }
 };
 
@@ -106,9 +130,23 @@ exports.getCoursesByDepartment = async (req, res, next) => {
  */
 exports.getAllCourses = async (req, res, next) => {
   try {
-    const courses = await Course.find({
-      college_id: req.college_id
-    })
+    const { status, type, programLevel, departmentId, search } = req.query;
+
+    const filter = {
+      college_id: req.college_id,
+      ...(status && { status: status.toUpperCase() }),
+      ...(type && { type: type.toUpperCase() }),
+      ...(programLevel && { programLevel: programLevel.toUpperCase() }),
+      ...(departmentId && { department_id: departmentId }),
+      ...(search && {
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { code: { $regex: search, $options: "i" } }
+        ]
+      })
+    };
+
+    const courses = await Course.find(filter)
       .populate("department_id", "name code")
       .sort({ name: 1 });
 
@@ -151,13 +189,55 @@ exports.getCourseById = async (req, res, next) => {
  */
 exports.updateCourse = async (req, res, next) => {
   try {
+    const { code, department_id, maxStudents, durationSemesters } = req.body;
+
+    // ✅ Validate durationSemesters if being updated
+    if (durationSemesters !== undefined && durationSemesters !== null) {
+      const sem = Number(durationSemesters);
+      if (!Number.isFinite(sem) || !Number.isInteger(sem) || sem < 1 || sem > 8) {
+        throw new AppError("Program duration must be 1-8 semesters", 400, "INVALID_DURATION");
+      }
+    }
+
+    // ✅ Validate maxStudents if it is being updated (must be a positive integer > 0)
+    if (maxStudents !== undefined && maxStudents !== null) {
+      const parsed = Number(maxStudents);
+      if (
+        !Number.isFinite(parsed) ||
+        !Number.isInteger(parsed) ||
+        parsed <= 0
+      ) {
+        throw new AppError("Maximum Students must be greater than 0", 400, "INVALID_MAX_STUDENTS");
+      }
+    }
+
+    if (code || department_id) {
+      const targetCollegeId = req.college_id;
+      const targetDepartmentId = department_id || (await Course.findById(req.params.id).select("department_id"))?.department_id;
+      const targetCode = code ? code.toUpperCase() : (await Course.findById(req.params.id).select("code"))?.code;
+
+      const duplicate = await Course.findOne({
+        _id: { $ne: req.params.id },
+        college_id: targetCollegeId,
+        department_id: targetDepartmentId,
+        code: targetCode
+      });
+
+      if (duplicate) {
+        throw new AppError("duplicate course code", 409, "DUPLICATE_COURSE_CODE");
+      }
+    }
+
+    // Strip durationYears — the pre('findOneAndUpdate') hook on the model owns this field
+    const { durationYears: _stripped, ...updatePayload } = req.body;
+
     const course = await Course.findOneAndUpdate(
       {
         _id: req.params.id,
         college_id: req.college_id
       },
-      req.body,
-      { new: true }
+      updatePayload,
+      { new: true, runValidators: true }
     );
 
     if (!course) {

@@ -39,8 +39,7 @@ export default function MarkAttendance() {
   // NEW: Search and filter state
   const [searchTerm, setSearchTerm] = useState("");
   
-  // NEW: Mark All state
-  const [markAllStatus, setMarkAllStatus] = useState(null); // 'PRESENT', 'ABSENT', or null
+  // NEW: Mark All state removed; button state derived from current attendance
 
   // NEW: Undo state
   const [previousAttendance, setPreviousAttendance] = useState(null);
@@ -94,7 +93,6 @@ export default function MarkAttendance() {
     setAttendance({});
     setAttendanceSaved(false);
     setSearchTerm("");
-    setMarkAllStatus(null);
     setPreviousAttendance(null);
     setShowUndo(false);
 
@@ -149,7 +147,6 @@ export default function MarkAttendance() {
       allMarked[s._id] = status;
     });
     setAttendance(allMarked);
-    setMarkAllStatus(status);
 
     // Auto-hide undo after 5 seconds
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
@@ -165,7 +162,6 @@ export default function MarkAttendance() {
       setAttendance(previousAttendance);
       setPreviousAttendance(null);
       setShowUndo(false);
-      setMarkAllStatus(null);
       if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
       toast.info("Changes undone", {
         position: "top-right",
@@ -191,6 +187,14 @@ export default function MarkAttendance() {
     absent: Object.values(attendance).filter((s) => s === "ABSENT").length,
     total: students.length
   };
+
+  const allPresent =
+    students.length > 0 &&
+    students.every((student) => attendance[student._id] === "PRESENT");
+
+  const allAbsent =
+    students.length > 0 &&
+    students.every((student) => attendance[student._id] === "ABSENT");
 
   /* ================= SAVE ATTENDANCE (ONLY ONCE) ================= */
   const handleSaveAttendance = async () => {
@@ -228,14 +232,9 @@ export default function MarkAttendance() {
 
     try {
       await api.post(
-        `/attendance/sessions/${selectedSession}/mark-attendance`,
+        `/attendance/sessions/${selectedSession}/mark`,
         payload
       );
-
-      setAttendanceSaved(true);
-      setShowUndo(false);
-      setPreviousAttendance(null);
-      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
 
       toast.success("Attendance saved successfully!", {
         position: "top-right",
@@ -243,10 +242,13 @@ export default function MarkAttendance() {
         icon: <FaCheckCircle />
       });
 
+      setTimeout(() => {
+        navigate("/attendance/my-sessions-list");
+      }, 1500);
+
     } catch (err) {
       if (err.response?.status === 409 || err.response?.status === 500) {
         setAttendanceSaved(true);
-        setError("Attendance already saved. Use Edit option.");
         toast.warning("Attendance already saved for this session. Use Edit to modify.", {
           position: "top-right",
           autoClose: 5000
@@ -478,9 +480,9 @@ return (
                   <button
                     className="btn btn-sm btn-outline-success"
                     onClick={() => handleMarkAll("PRESENT")}
-                    disabled={attendanceSaved || markAllStatus === "PRESENT"}
+                    disabled={attendanceSaved || allPresent}
                     aria-label="Mark all students as present"
-                    aria-pressed={markAllStatus === "PRESENT"}
+                    aria-pressed={allPresent}
                     aria-describedby="mark-all-label"
                   >
                     <FaCheck className="me-1" aria-hidden="true" />
@@ -489,9 +491,9 @@ return (
                   <button
                     className="btn btn-sm btn-outline-danger"
                     onClick={() => handleMarkAll("ABSENT")}
-                    disabled={attendanceSaved || markAllStatus === "ABSENT"}
+                    disabled={attendanceSaved || allAbsent}
                     aria-label="Mark all students as absent"
-                    aria-pressed={markAllStatus === "ABSENT"}
+                    aria-pressed={allAbsent}
                     aria-describedby="mark-all-label"
                   >
                     <FaTimes className="me-1" aria-hidden="true" />

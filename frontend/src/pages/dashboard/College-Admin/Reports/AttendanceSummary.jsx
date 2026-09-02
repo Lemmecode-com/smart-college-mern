@@ -1,5 +1,10 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { showSuccess, showError } from "../../../../utils/toast";
 import { toast } from "react-toastify";
+import ApiError from "../../../../components/ApiError";
+import { logger } from "../../../../utils/logger";
+
+const PAGE_LOAD_TOAST_ID = "college-attendance-summary-load";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -8,7 +13,6 @@ import {
   FaClipboardList,
   FaChartPie,
   FaSyncAlt,
-  FaExclamationTriangle,
   FaSpinner,
   FaInfoCircle,
   FaDownload,
@@ -21,49 +25,76 @@ import {
   FaGraduationCap,
   FaCheckCircle,
   FaTimesCircle,
-  FaArrowLeft,
 } from "react-icons/fa";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function AttendanceSummary() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const hasLoadedRef = useRef(false);
+  const fetchIdRef = useRef(0);
 
   /* ================= FETCH ATTENDANCE SUMMARY ================= */
   const fetchAttendanceSummary = useCallback(async () => {
-    // Prevent duplicate fetches
-    if (hasLoadedRef.current) {
-      return;
-    }
+    hasLoadedRef.current = false;
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
 
     try {
       setLoading(true);
-      setError("");
+      setError(null);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       const res = await api.get("/reports/attendance/summary");
       // API returns an object, not an array
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setData(res.data || {});
       setRetryCount(0);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       toast.success("Attendance summary loaded successfully!", {
-        position: "top-right",
+        toastId: PAGE_LOAD_TOAST_ID,
         autoClose: 3000,
-        toastId: "attendance-summary-success",
       });
     } catch (err) {
-      console.error("Attendance summary fetch error:", err);
-      setError(
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Attendance summary fetch error:", statusCode, errorCode);
+      const errorMessage =
         err.response?.data?.message ||
-          "Failed to load attendance summary. Please try again.",
-      );
-      toast.error("Failed to load attendance summary.", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "attendance-summary-error",
-      });
+        "Failed to load attendance summary. Please try again.";
+      setError({ message: errorMessage, statusCode, errorCode });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError("Failed to load attendance summary.");
+      }
     } finally {
-      setLoading(false);
-      hasLoadedRef.current = true;
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+        hasLoadedRef.current = true;
+      }
     }
   }, []);
 
@@ -72,6 +103,7 @@ export default function AttendanceSummary() {
     // Cleanup function to reset flag on unmount - fixes blank page on second navigation
     return () => {
       hasLoadedRef.current = false;
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
   }, [fetchAttendanceSummary]);
 
@@ -83,12 +115,8 @@ export default function AttendanceSummary() {
       hasLoadedRef.current = false;
       fetchAttendanceSummary();
     } else {
-      toast.error("Maximum retry attempts reached.", {
-        position: "top-right",
-        autoClose: 3000,
-        toastId: "attendance-max-retry",
-      });
-      setError("Maximum retry attempts reached. Please check your connection.");
+      showError("Maximum retry attempts reached.");
+      setError({ message: "Maximum retry attempts reached. Please check your connection." });
     }
   }, [retryCount, fetchAttendanceSummary]);
 
@@ -96,28 +124,12 @@ export default function AttendanceSummary() {
   const getExportData = () => {
     if (!data || data.totalRecords === undefined) return [];
     return [
-      {
-        metric: "Total Attendance Records",
-        value: data.totalRecords?.toLocaleString() || "0",
-      },
-      {
-        metric: "Total Sessions Conducted",
-        value: (Math.round(data.totalRecords / 50) || 0).toLocaleString(),
-      },
-      {
-        metric: "Average Present Students",
-        value: data.averageAttendance?.toLocaleString() || "0",
-      },
-      {
-        metric: "Average Absent Students",
-        value: (50 - (data.averageAttendance || 0)).toLocaleString(),
-      },
-      { metric: "Attendance Rate", value: `${attendanceRate.toFixed(1)}%` },
-      {
-        metric: "Status",
-        value:
-          attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1),
-      },
+      { metric: "Total Attendance Records", value: data.totalRecords || 0 },
+      { metric: "Total Sessions Conducted", value: totalSessions },
+      { metric: "Average Present Students", value: presentPerSession },
+      { metric: "Average Absent Students", value: absentPerSession },
+      { metric: "Attendance Rate", value: parseFloat(attendanceRate.toFixed(1)) },
+      { metric: "Status", value: attendanceStatus },
     ];
   };
 
@@ -129,13 +141,29 @@ export default function AttendanceSummary() {
   }, [data]);
 
   /* ================= CALCULATED METRICS ================= */
+  // NOTE: `averageAttendance` from the API is already a PERCENTAGE (0-100),
+  // not a count of students. `totalSessions` is the real session count.
+  const ESTIMATED_CLASS_SIZE = 50;
+
   const attendanceRate = useMemo(() => {
-    // Assuming averageAttendance is the average count of present students
-    // We'll calculate a realistic rate based on typical class size (max 50 students)
-    const maxClassSize = 50;
-    const rate = (summary.averageAttendance / maxClassSize) * 100;
-    return Math.min(Math.max(rate, 0), 100); // Clamp between 0-100%
+    const pct = Number(summary.averageAttendance) || 0;
+    return Math.min(Math.max(pct, 0), 100); // Clamp between 0-100%
   }, [summary]);
+
+  // Estimated present/absent students per session, derived from the percentage
+  // and the documented estimated class size of 50.
+  const presentPerSession = useMemo(() => {
+    const pct = Number(summary.averageAttendance) || 0;
+    return Math.round((pct / 100) * ESTIMATED_CLASS_SIZE);
+  }, [summary]);
+
+  const absentPerSession = useMemo(() => {
+    // Always non-negative: a percentage can never imply more absent than the
+    // class size.
+    return Math.max(0, ESTIMATED_CLASS_SIZE - presentPerSession);
+  }, [presentPerSession]);
+
+  const totalSessions = Number(summary.totalSessions) || 0;
 
   const attendanceStatus = useMemo(() => {
     if (attendanceRate >= 85) return "excellent";
@@ -147,30 +175,17 @@ export default function AttendanceSummary() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle className="shake" />
-        </div>
-        <h3>Attendance Reports Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => window.history.back()}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Attendance Reports Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => window.history.back()}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={loading}
+      />
     );
   }
 
@@ -287,7 +302,7 @@ export default function AttendanceSummary() {
           </div>
           <div className="stat-card-body">
             <div className="stat-value attendance">
-              {summary.averageAttendance?.toLocaleString() || "0"}
+              {summary.averageAttendance?.toLocaleString() || "0"}%
             </div>
             <div className={`stat-trend ${attendanceStatus}`}>
               <FaUserCheck className="trend-icon" />
@@ -336,8 +351,8 @@ export default function AttendanceSummary() {
                 <div className="legend-item present">
                   <span className="legend-color present"></span>
                   <span>
-                    Present:{" "}
-                    {summary.averageAttendance?.toLocaleString() || "0"}{" "}
+                     Present:{" "}
+                    {presentPerSession?.toLocaleString() || "0"}{" "}
                     students
                   </span>
                 </div>
@@ -345,7 +360,7 @@ export default function AttendanceSummary() {
                   <span className="legend-color absent"></span>
                   <span>
                     Absent:{" "}
-                    {(50 - summary.averageAttendance)?.toLocaleString() || "0"}{" "}
+                    {absentPerSession?.toLocaleString() || "0"}{" "}
                     students*
                   </span>
                 </div>
@@ -366,7 +381,7 @@ export default function AttendanceSummary() {
                 <div className="metric-content">
                   <div className="metric-label">Average Present</div>
                   <div className="metric-value">
-                    {summary.averageAttendance?.toLocaleString() || "0"}
+                    {presentPerSession?.toLocaleString() || "0"}
                   </div>
                   <div className="metric-description">Students per session</div>
                 </div>
@@ -379,7 +394,7 @@ export default function AttendanceSummary() {
                 <div className="metric-content">
                   <div className="metric-label">Estimated Absent</div>
                   <div className="metric-value">
-                    {(50 - summary.averageAttendance)?.toLocaleString() || "0"}
+                    {absentPerSession?.toLocaleString() || "0"}
                   </div>
                   <div className="metric-description">Students per session</div>
                 </div>
@@ -392,9 +407,9 @@ export default function AttendanceSummary() {
                 <div className="metric-content">
                   <div className="metric-label">Total Sessions</div>
                   <div className="metric-value">
-                    {Math.round(summary.totalRecords / 50) || "0"}
+                    {totalSessions?.toLocaleString() || "0"}
                   </div>
-                  <div className="metric-description">Estimated sessions*</div>
+                  <div className="metric-description">Sessions conducted</div>
                 </div>
               </div>
 

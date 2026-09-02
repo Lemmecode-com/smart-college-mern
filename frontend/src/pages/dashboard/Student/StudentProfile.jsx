@@ -1,10 +1,13 @@
-import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef, useMemo } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { getDocumentViewUrl } from "../../../utils/documentUrl";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
+import { validateFileObject } from "../../../utils/fileValidation";
 import "react-toastify/dist/ReactToastify.css";
 
 // REPLACE THIS (INVALID):
@@ -44,26 +47,35 @@ import {
   FaFileMedical, // VALID
   FaFileSignature, // VALID
   FaCertificate, // VALID: Standalone certificate icon
+  FaWheelchair,
+  FaFileUpload,
 } from "react-icons/fa";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 export default function StudentProfile() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const loadTimeoutRef = useRef(null);
-  const [lastRefreshed, setLastRefreshed] = useState(new Date());
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const [activeTab, setActiveTab] = useState("personal"); // 'personal', 'academic', 'contact', 'address', 'education', 'college'
   const [documentConfig, setDocumentConfig] = useState([]);
-
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
 
   /* ================= DATA VALIDATION HELPER ================= */
   const validateProfileData = (data) => {
@@ -75,32 +87,37 @@ export default function StudentProfile() {
       if (!data.student) {
         errors.push("Student information is missing");
       } else {
-        if (!data.student.fullName) errors.push("Student name is missing");
-        if (!data.student.email) errors.push("Student email is missing");
-        if (!data.student.mobileNumber)
-          errors.push("Student mobile number is missing");
-      }
-
-      if (!data.department) errors.push("Department information is missing");
-      if (!data.course) errors.push("Course information is missing");
+      if (!data.student.fullName) errors.push("Student name is missing");
+      if (!data.student.email) errors.push("Student email is missing");
+      if (!data.student.mobileNumber)
+        errors.push("Student mobile number is missing");
     }
 
-    return errors;
-  };
+    if (!data.department && data.department !== null)
+      errors.push("Department information is missing");
+    if (!data.course && data.course !== null)
+      errors.push("Course information is missing");
+  }
+
+  return errors;
+};
 
   /* ================= FETCH PROFILE ================= */
   const fetchProfile = async () => {
-    // Clear any existing timeout
     if (loadTimeoutRef.current) {
       clearTimeout(loadTimeoutRef.current);
     }
 
-    // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
+      logger.warn("Student profile request timed out", {
+        page: "StudentProfile",
+        role: user?.role,
+      });
       setError({
         message:
           "Request timed out. Please check your connection and try again.",
         statusCode: 408,
+        errorCode: undefined,
       });
       setLoading(false);
       toast.error("Request timed out. Please try again.", {
@@ -117,60 +134,60 @@ export default function StudentProfile() {
         throw new Error("Invalid profile response structure");
       }
 
-      // Validate profile data
       const validation = validateProfileData(res.data);
       if (validation.length > 0) {
         throw new Error(`Invalid profile data: ${validation.join(", ")}`);
       }
 
-      // Clear timeout on success - user is actively viewing the page
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
 
       setProfile(res.data);
 
-      // Extract document config for conditional rendering
       if (res.data.documentConfig && Array.isArray(res.data.documentConfig)) {
         setDocumentConfig(res.data.documentConfig);
       } else {
         setDocumentConfig([]);
       }
     } catch (err) {
-      // Clear timeout on error
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
 
       const statusCode = err.response?.status;
-      let errorMessage = "";
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage =
+        err.message ||
+        err?.response?.data?.message ||
+        "Failed to load student profile";
 
-      if (statusCode === 401) {
-        errorMessage = "Session expired. Please login again.";
-        toast.error(errorMessage, {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaTimesCircle />,
-        });
-        setTimeout(() => navigate("/login"), 3000);
-      } else if (statusCode === 404) {
-        errorMessage =
-          "Student profile not found. Please contact administration.";
-      } else if (statusCode === 500) {
-        errorMessage =
-          "Server error while loading profile. Please try again later.";
-      } else {
-        errorMessage =
-          err.response?.data?.message ||
-          "Failed to load student profile. Please try again.";
-      }
-
-      setError({ message: errorMessage, statusCode });
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />,
+      logger.error("Student profile load error:", {
+        message: errorMessage,
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "StudentProfile",
+        role: user?.role,
       });
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error("Failed to load student profile. Please try again.", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -179,13 +196,52 @@ export default function StudentProfile() {
   useEffect(() => {
     fetchProfile();
 
-    // Cleanup timeout on unmount
     return () => {
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, navigate]);
+
+  const mergedDocuments = useMemo(() => {
+    const enabledConfigDocs = documentConfig.filter(doc => doc.enabled);
+    const docs = [];
+    const seenTypes = new Set();
+
+    const studentDocuments = profile?.student?.documents || {};
+
+    enabledConfigDocs.forEach(doc => {
+      seenTypes.add(doc.type);
+      const uploadedDoc = studentDocuments[doc.type];
+      docs.push({
+        type: doc.type,
+        label: doc.label,
+        description: doc.description || doc.label,
+        mandatory: doc.mandatory,
+        uploadedDoc,
+      });
+    });
+
+    Object.keys(studentDocuments).forEach(type => {
+      if (!seenTypes.has(type)) {
+        const uploadedDoc = studentDocuments[type];
+        docs.push({
+          type,
+          label: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          description: "",
+          mandatory: false,
+          uploadedDoc,
+        });
+      }
+    });
+
+    return docs;
+  }, [documentConfig, profile]);
+
+  /* ================= SECURITY ================= */
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "STUDENT") return <Navigate to="/" />;
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = async () => {
@@ -194,6 +250,68 @@ export default function StudentProfile() {
     setRetryCount((prev) => prev + 1);
     await fetchProfile();
     setIsRetrying(false);
+  };
+
+  const handleDocumentUpload = async (docType, documentId, file) => {
+    const docConfigItem = documentConfig.find((d) => d.type === docType);
+    const allowedFormats = docConfigItem?.allowedFormats || ["pdf", "jpg", "jpeg", "png"];
+    const fileValidation = validateFileObject(file, allowedFormats);
+
+    if (!fileValidation.valid) {
+      toast.error(
+        `${docConfigItem?.label || docType}: ${fileValidation.error}`,
+        {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaTimesCircle />,
+        },
+      );
+      return;
+    }
+
+    const MAX_SIZE = (docConfigItem?.maxFileSize || 5) * 1024 * 1024;
+
+    if (file.size > MAX_SIZE) {
+      toast.error(
+        `${docConfigItem?.label || docType} file size must be less than ${docConfigItem?.maxFileSize || 5}MB. Uploaded: ${(file.size / (1024 * 1024)).toFixed(1)}MB`,
+        {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaTimesCircle />,
+        },
+      );
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("ownerType", "Student");
+      formData.append("ownerId", profile?.student?._id);
+      formData.append("documentType", docType);
+      formData.append("file", file);
+
+      const endpoint = documentId ? `/documents/${documentId}` : "/documents/upload";
+      const method = documentId ? "put" : "post";
+
+      await api[method](endpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      toast.success("Document uploaded successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />,
+      });
+
+      await fetchProfile();
+    } catch (err) {
+      const message = err.response?.data?.message || "Failed to upload document";
+      toast.error(message, {
+        position: "top-right",
+        autoClose: 5000,
+        icon: <FaTimesCircle />,
+      });
+    }
   };
 
   // Handle go back action
@@ -215,6 +333,7 @@ export default function StudentProfile() {
           error.message || "Failed to load student profile. Please try again."
         }
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -226,7 +345,7 @@ export default function StudentProfile() {
 
   if (!profile) {
     return (
-      <div className="container-fluid py-5" role="main">
+      <div className="erp-page erp-viewport-min-100 py-5" role="main">
         <ToastContainer position="top-right" />
         <div className="row justify-content-center">
           <div className="col-md-8">
@@ -259,171 +378,8 @@ export default function StudentProfile() {
 
   const { student, college, department, course } = profile;
 
-  // Helper functions to check if documents are enabled
-  const is10thEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "10th_marksheet" && doc.enabled,
-    );
-  };
-
-  const is12thEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "12th_marksheet" && doc.enabled,
-    );
-  };
-
-  const isPassportPhotoEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "passport_photo" && doc.enabled,
-    );
-  };
-
-  const isCategoryCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "category_certificate" && doc.enabled,
-    );
-  };
-
-  const isIncomeCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "income_certificate" && doc.enabled,
-    );
-  };
-
-  const isCharacterCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "character_certificate" && doc.enabled,
-    );
-  };
-
-  const isTransferCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "transfer_certificate" && doc.enabled,
-    );
-  };
-
-  const isAadharCardEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "aadhar_card" && doc.enabled,
-    );
-  };
-
-  const isEntranceExamScoreEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "entrance_exam_score" && doc.enabled,
-    );
-  };
-
-  const isMigrationCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "migration_certificate" && doc.enabled,
-    );
-  };
-
-  const isDomicileCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "domicile_certificate" && doc.enabled,
-    );
-  };
-
-  const isCasteCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "caste_certificate" && doc.enabled,
-    );
-  };
-
-  const isNonCreamyLayerEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "non_creamy_layer_certificate" && doc.enabled,
-    );
-  };
-
-  const isPhysicallyChallengedEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "physically_challenged_certificate" && doc.enabled,
-    );
-  };
-
-  const isSportsQuotaEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "sports_quota_certificate" && doc.enabled,
-    );
-  };
-
-  const isNriSponsorEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "nri_sponsor_certificate" && doc.enabled,
-    );
-  };
-
-  const isGapCertificateEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "gap_certificate" && doc.enabled,
-    );
-  };
-
-  const isAffidavitEnabled = () => {
-    return documentConfig.some(
-      (doc) => doc.type === "affidavit" && doc.enabled,
-    );
-  };
-
-  // Mock educational documents data (to be replaced with real API later)
-  const educationalDocuments = [
-    {
-      id: 1,
-      type: "10th Marksheet",
-      name: "Secondary School Certificate",
-      board: "State Board",
-      year: "2018",
-      percentage: "85.4%",
-      file: "10th_marksheet.pdf",
-      icon: <FaFileAlt />, // Generic file icon
-    },
-    {
-      id: 2,
-      type: "12th Marksheet",
-      name: "Higher Secondary Certificate",
-      board: "CBSE",
-      year: "2020",
-      percentage: "78.9%",
-      file: "12th_marksheet.pdf",
-      icon: <FaFilePdf />, // ✅ CORRECTED: PDF icon instead of invalid FaFileCertificate
-    },
-    {
-      id: 3,
-      type: "Migration Certificate",
-      name: "Inter-State Migration Certificate",
-      board: "State Education Board",
-      year: "2020",
-      percentage: "",
-      file: "migration_certificate.pdf",
-      icon: <FaCertificate />, // ✅ CORRECTED: Standalone certificate icon
-    },
-    {
-      id: 4,
-      type: "Character Certificate",
-      name: "School Character Certificate",
-      board: "Delhi Public School",
-      year: "2020",
-      percentage: "",
-      file: "character_certificate.pdf",
-      icon: <FaCertificate />, // ✅ CORRECTED
-    },
-    {
-      id: 5,
-      type: "Income Certificate",
-      name: "Family Income Certificate",
-      board: "Municipal Corporation",
-      year: "2022",
-      percentage: "",
-      file: "income_certificate.pdf",
-      icon: <FaFileInvoice />,
-    },
-  ];
-
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in" role="main">
+    <div className="erp-page erp-viewport-min-100 py-3 py-md-4 animate-fade-in" role="main">
       <ToastContainer position="top-right" />
 
       {/* Skip Link for Screen Readers */}
@@ -431,92 +387,93 @@ export default function StudentProfile() {
         Skip to profile content
       </a>
 
-      {/* ================= TOP NAVIGATION BAR ================= */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-        <div className="d-flex justify-content-end align-items-center flex-wrap w-100">
-          <button
-            className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button"
-            onClick={() => navigate("/student/edit-profile")}
-            aria-label="Edit your profile"
-          >
-            <FaEdit size={16} aria-hidden="true" /> Edit Profile
-          </button>
-        </div>
-      </div>
       {/* ================= PROFILE HEADER CARD ================= */}
       <div
         className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up"
         style={{ animationDelay: "0.1s" }}
       >
         <div className="card-header bg-gradient-primary text-white py-4">
-          <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
-            <div className="d-flex align-items-center gap-4 mb-3 mb-md-0">
-              <div className="profile-avatar-container">
-                <div className="profile-avatar bg-white d-flex align-items-center justify-content-center text-primary">
-                  <FaUserGraduate size={64} />
-                </div>
-                <div className="profile-status-indicator">
-                  <span
-                    className={`status-dot ${
-                      student?.status === "APPROVED"
-                        ? "bg-success"
-                        : student?.status === "REJECTED"
-                          ? "bg-danger"
-                          : "bg-warning"
-                    }`}
-                  ></span>
-                </div>
-              </div>
-              <div>
-                <h2 className="h3 fw-bold mb-1">
-                  {student?.fullName || "N/A"}
-                </h2>
-                <div className="d-flex flex-wrap gap-3">
-                  <div className="d-flex align-items-center gap-1">
-                    <FaGraduationCap className="text-white opacity-75" />
-                    <span className="opacity-75">{course?.name || "N/A"}</span>
+          <div className="position-relative">
+            <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+              <div className="d-flex align-items-center gap-4 mb-3 mb-md-0">
+                <div className="profile-avatar-container">
+                  <div className="profile-avatar bg-white d-flex align-items-center justify-content-center text-primary">
+                    <FaUserGraduate size={64} />
                   </div>
-                  <div className="d-flex align-items-center gap-1">
-                    <FaLayerGroup className="text-white opacity-75" />
-                    <span className="opacity-75">
-                      {department?.name || "N/A"}
+                  <div className="profile-status-indicator">
+                    <span
+                      className={`status-dot ${
+                        student?.status === "APPROVED"
+                          ? "bg-success"
+                          : student?.status === "REJECTED"
+                            ? "bg-danger"
+                            : "bg-warning"
+                      }`}
+                    ></span>
+                  </div>
+                </div>
+                <div>
+                  <h2 className="h3 fw-bold mb-1">
+                    {student?.fullName || "N/A"}
+                  </h2>
+                  <div className="d-flex flex-wrap gap-3">
+                    <div className="d-flex align-items-center gap-1">
+                      <FaGraduationCap className="text-white opacity-75" />
+                      <span className="opacity-75">{course?.name || "N/A"}</span>
+                    </div>
+                    <div className="d-flex align-items-center gap-1">
+                      <FaLayerGroup className="text-white opacity-75" />
+                      <span className="opacity-75">
+                        {department?.name || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-2 d-flex flex-wrap gap-2">
+                    <span
+                      className={`badge ${
+                        student?.status === "APPROVED"
+                          ? "bg-success"
+                          : student?.status === "REJECTED"
+                            ? "bg-danger"
+                            : "bg-warning"
+                      }`}
+                    >
+                      <FaCheckCircle className="me-1" />
+                      {student?.status || "PENDING"}
+                    </span>
+                    {student?.currentSemester && (
+                      <span className="badge bg-light text-dark" title="Current Semester">
+                        <FaGraduationCap className="me-1" />
+                        Semester {student.currentSemester}
+                      </span>
+                    )}
+                    {student?.currentSemester && (
+                      <span className="badge bg-light text-dark" title="Academic Year">
+                        <FaClock className="me-1" />
+                        Year {Math.ceil((student.currentSemester || 0) / 2)}
+                      </span>
+                    )}
+                    {!student?.currentSemester && student?.currentYear && (
+                      <span className="badge bg-light text-dark" title="Academic Year">
+                        <FaClock className="me-1" />
+                        Year {student.currentYear}
+                      </span>
+                    )}
+                    <span className="badge bg-light text-dark">
+                      <FaCalendarAlt className="me-1" />
+                      Admitted: {student?.admissionYear || "N/A"}
                     </span>
                   </div>
                 </div>
-                <div className="mt-2 d-flex flex-wrap gap-2">
-                  <span
-                    className={`badge ${
-                      student?.status === "APPROVED"
-                        ? "bg-success"
-                        : student?.status === "REJECTED"
-                          ? "bg-danger"
-                          : "bg-warning"
-                    }`}
-                  >
-                    <FaCheckCircle className="me-1" />
-                    {student?.status || "PENDING"}
-                  </span>
-                  <span className="badge bg-light text-dark">
-                    <FaClock className="me-1" />
-                    {student?.currentYear
-                      ? `Year ${student.currentYear}`
-                      : student?.currentSemester
-                        ? `Semester ${student.currentSemester}`
-                        : "N/A"}
-                  </span>
-                  <span className="badge bg-light text-dark">
-                    <FaGraduationCap className="me-1" />
-                    {student?.currentSemester
-                      ? `Semester ${student.currentSemester}`
-                      : "N/A"}
-                  </span>
-                  <span className="badge bg-light text-dark">
-                    <FaCalendarAlt className="me-1" />
-                    Admitted: {student?.admissionYear || "N/A"}
-                  </span>
-                </div>
               </div>
             </div>
+            <button
+              className="btn btn-light d-flex align-items-center gap-2 px-3 py-2 position-absolute top-0 end-0 profile-header-btn"
+              onClick={() => navigate("/student/edit-profile")}
+              aria-label="Edit your profile"
+            >
+              <FaEdit size={16} aria-hidden="true" /> Edit Profile
+            </button>
           </div>
         </div>
 
@@ -542,7 +499,7 @@ export default function StudentProfile() {
             </div>
             <small className="text-muted">
               <FaSync className="spin-icon me-1" />
-              Last updated: {new Date().toLocaleString()}
+               Last updated: {student?.updatedAt ? new Date(student.updatedAt).toLocaleString() : "N/A"}
             </small>
           </div>
         </div>
@@ -598,14 +555,14 @@ export default function StudentProfile() {
                 label="10th Details"
                 active={activeTab === "ssc"}
                 onClick={() => setActiveTab("ssc")}
-                hidden={!is10thEnabled()}
+                hidden={!documentConfig.some(doc => doc.type === "10th_marksheet" && doc.enabled)}
               />
               <TabItem
                 icon={<FaGraduationCap />}
                 label="12th Details"
                 active={activeTab === "hsc"}
                 onClick={() => setActiveTab("hsc")}
-                hidden={!is12thEnabled()}
+                hidden={!documentConfig.some(doc => doc.type === "12th_marksheet" && doc.enabled)}
               />
               <TabItem
                 icon={<FaFileAlt />}
@@ -651,7 +608,7 @@ export default function StudentProfile() {
                       label="Date of Birth"
                       value={
                         student?.dateOfBirth
-                          ? new Date(student.dateOfBirth).toLocaleDateString()
+                          ? new Date(student.dateOfBirth).toLocaleDateString("en-IN")
                           : "N/A"
                       }
                       icon={<FaCalendarAlt />}
@@ -676,6 +633,31 @@ export default function StudentProfile() {
                       value={student?.bloodGroup || "N/A"}
                       icon={<FaHeartbeat />}
                     />
+                    <InfoItem
+                      label="Disability"
+                      value={
+                        student?.hasDisability ? "Yes" : "No"
+                      }
+                      icon={<FaWheelchair />}
+                    />
+                    {student?.hasDisability && (
+                      <>
+                        <InfoItem
+                          label="Disability Type"
+                          value={student?.disabilityType || "N/A"}
+                          icon={<FaWheelchair />}
+                        />
+                        <InfoItem
+                          label="Disability Percentage"
+                          value={
+                            student?.pwdDisability
+                              ? `${student.pwdDisability}%`
+                              : "N/A"
+                          }
+                          icon={<FaWheelchair />}
+                        />
+                      </>
+                    )}
                   </div>
                 </SectionContent>
               )}
@@ -686,6 +668,14 @@ export default function StudentProfile() {
                   icon={<FaUserFriends />}
                   color="primary"
                 >
+                  <button
+                    className="btn btn-sm btn-outline-primary ms-auto"
+                    onClick={() => navigate("/student/edit-profile")}
+                    aria-label="Edit parent details"
+                  >
+                    <FaEdit size={12} className="me-1" aria-hidden="true" />
+                    Edit
+                  </button>
                   <div className="row g-3">
                     <InfoItem
                       label="Father's Name"
@@ -818,7 +808,7 @@ export default function StudentProfile() {
                 </SectionContent>
               )}
 
-              {activeTab === "ssc" && is10thEnabled() && (
+              {activeTab === "ssc" && documentConfig.some(doc => doc.type === "10th_marksheet" && doc.enabled) && (
                 <SectionContent
                   title="10th (SSC) Academic Details"
                   icon={<FaGraduationCap />}
@@ -859,7 +849,7 @@ export default function StudentProfile() {
                 </SectionContent>
               )}
 
-              {activeTab === "hsc" && is12thEnabled() && (
+              {activeTab === "hsc" && documentConfig.some(doc => doc.type === "12th_marksheet" && doc.enabled) && (
                 <SectionContent
                   title="12th (HSC) Academic Details"
                   icon={<FaGraduationCap />}
@@ -923,366 +913,40 @@ export default function StudentProfile() {
                   </div>
 
                   <div className="row g-3">
-                    {/* 10th Marksheet - Only if enabled */}
-                    {is10thEnabled() && (
-                      <DocumentCard
-                        icon={<FaFilePdf />}
-                        type="10th Marksheet"
-                        name="Secondary School Certificate"
-                        board={student?.sscBoard || "N/A"}
-                        year={student?.sscPassingYear || "N/A"}
-                        percentage={
-                          student?.sscPercentage
-                            ? `${student.sscPercentage}%`
-                            : ""
-                        }
-                        file={
-                          student?.sscMarksheetPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
-                        }
-                        filePath={student?.sscMarksheetPath}
-                      />
-                    )}
-
-                    {/* 12th Marksheet - Only if enabled */}
-                    {is12thEnabled() && (
-                      <DocumentCard
-                        icon={<FaFilePdf />}
-                        type="12th Marksheet"
-                        name="Higher Secondary Certificate"
-                        board={student?.hscBoard || "N/A"}
-                        year={student?.hscPassingYear || "N/A"}
-                        percentage={
-                          student?.hscPercentage
-                            ? `${student.hscPercentage}%`
-                            : ""
-                        }
-                        file={
-                          student?.hscMarksheetPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
-                        }
-                        filePath={student?.hscMarksheetPath}
-                      />
-                    )}
-
-                    {/* Passport Photo - Only if enabled */}
-                    {isPassportPhotoEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="Passport Photo"
-                        name="Passport Size Photograph"
-                        board="N/A"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.passportPhotoPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
-                        }
-                        filePath={student?.passportPhotoPath}
-                      />
-                    )}
-
-                    {/* Category Certificate - Only if enabled and category is not GEN */}
-                    {isCategoryCertificateEnabled() &&
-                      student?.category !== "GEN" && (
-                        <DocumentCard
-                          icon={<FaCertificate />}
-                          type="Category Certificate"
-                          name={`${student?.category || "N/A"} Category Certificate`}
-                          board="Issuing Authority"
-                          year="N/A"
-                          percentage=""
-                          file={
-                            student?.categoryCertificatePath
-                              ?.split(/[\\/]/)
-                              .pop() || "Not uploaded"
-                          }
-                          filePath={student?.categoryCertificatePath}
-                        />
-                      )}
-
-                    {/* Income Certificate - Only if enabled */}
-                    {isIncomeCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileInvoice />}
-                        type="Income Certificate"
-                        name="Family Income Certificate"
-                        board="Issuing Authority"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.incomeCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
-                        }
-                        filePath={student?.incomeCertificatePath}
-                      />
-                    )}
-
-                    {/* Character Certificate - Only if enabled */}
-                    {isCharacterCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaCertificate />}
-                        type="Character Certificate"
-                        name="Character Certificate"
-                        board={student?.sscSchoolName || "N/A"}
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.characterCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
-                        }
-                        filePath={student?.characterCertificatePath}
-                      />
-                    )}
-
-                    {/* Transfer Certificate - Only if enabled */}
-                    {isTransferCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="Transfer Certificate"
-                        name="School Leaving Certificate"
-                        board="N/A"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.transferCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
-                        }
-                        filePath={student?.transferCertificatePath}
-                      />
-                    )}
-
-                    {/* Aadhar Card - Only if enabled */}
-                    {isAadharCardEnabled() && (
-                      <DocumentCard
-                        icon={<FaIdCard />}
-                        type="Aadhar Card"
-                        name="Aadhar Card"
-                        board="UIDAI"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.aadharCardPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
-                        }
-                        filePath={student?.aadharCardPath}
-                      />
-                    )}
-
-                    {/* Entrance Exam Score - Only if enabled */}
-                    {isEntranceExamScoreEnabled() && (
-                      <DocumentCard
-                        icon={<FaFilePdf />}
-                        type="Entrance Exam Score"
-                        name="Entrance Examination Score Card"
-                        board="Exam Authority"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.entranceExamScorePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
-                        }
-                        filePath={student?.entranceExamScorePath}
-                      />
-                    )}
-
-                    {/* Migration Certificate - Only if enabled */}
-                    {isMigrationCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaCertificate />}
-                        type="Migration Certificate"
-                        name="Migration Certificate"
-                        board="Board/University"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.migrationCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
-                        }
-                        filePath={student?.migrationCertificatePath}
-                      />
-                    )}
-
-                    {/* Domicile Certificate - Only if enabled */}
-                    {isDomicileCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="Domicile Certificate"
-                        name="Domicile / Residence Certificate"
-                        board="State Government"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.domicileCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
-                        }
-                        filePath={student?.domicileCertificatePath}
-                      />
-                    )}
-
-                    {/* Caste Certificate - Only if enabled */}
-                    {isCasteCertificateEnabled() &&
-                      student?.category !== "GEN" && (
-                        <DocumentCard
-                          icon={<FaCertificate />}
-                          type="Caste Certificate"
-                          name="Caste Certificate"
-                          board="Competent Authority"
-                          year="N/A"
-                          percentage=""
-                          file={
-                            student?.casteCertificatePath
-                              ?.split(/[\\/]/)
-                              .pop() || "Not uploaded"
-                          }
-                          filePath={student?.casteCertificatePath}
-                        />
-                      )}
-
-                    {/* Non Creamy Layer Certificate - Only if enabled */}
-                    {isNonCreamyLayerEnabled() &&
-                      student?.category === "OBC" && (
-                        <DocumentCard
-                          icon={<FaFileAlt />}
-                          type="Non Creamy Layer Certificate"
-                          name="Non Creamy Layer Certificate"
-                          board="Competent Authority"
-                          year="N/A"
-                          percentage=""
-                          file={
-                            student?.nonCreamyLayerCertificatePath
-                              ?.split(/[\\/]/)
-                              .pop() || "Not uploaded"
-                          }
-                          filePath={student?.nonCreamyLayerCertificatePath}
-                        />
-                      )}
-
-                    {/* Physically Challenged Certificate - Only if enabled */}
-                    {isPhysicallyChallengedEnabled() && (
-                      <DocumentCard
-                        icon={<FaHeartbeat />}
-                        type="Physically Challenged Certificate"
-                        name="Disability Certificate"
-                        board="Medical Board"
-                        year="N/A"
-                        percentage={student?.pwdDisability || ""}
-                        file={
-                          student?.physicallyChallengedCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
-                        }
-                        filePath={student?.physicallyChallengedCertificatePath}
-                      />
-                    )}
-
-                    {/* Sports Quota Certificate - Only if enabled */}
-                    {isSportsQuotaEnabled() && (
-                      <DocumentCard
-                        icon={<FaAward />}
-                        type="Sports Quota Certificate"
-                        name="Sports Achievement Certificate"
-                        board="Sports Authority"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.sportsQuotaCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
-                        }
-                        filePath={student?.sportsQuotaCertificatePath}
-                      />
-                    )}
-
-                    {/* NRI Sponsor Certificate - Only if enabled */}
-                    {isNriSponsorEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="NRI Sponsor Certificate"
-                        name="NRI Sponsorship Certificate"
-                        board="Embassy/Consulate"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.nriSponsorCertificatePath
-                            ?.split(/[\\/]/)
-                            .pop() || "Not uploaded"
-                        }
-                        filePath={student?.nriSponsorCertificatePath}
-                      />
-                    )}
-
-                    {/* Gap Certificate - Only if enabled */}
-                    {isGapCertificateEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileAlt />}
-                        type="Gap Certificate"
-                        name="Gap Year Affidavit"
-                        board="N/A"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.gapCertificatePath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
-                        }
-                        filePath={student?.gapCertificatePath}
-                      />
-                    )}
-
-                    {/* Affidavit - Only if enabled */}
-                    {isAffidavitEnabled() && (
-                      <DocumentCard
-                        icon={<FaFileSignature />}
-                        type="Affidavit"
-                        name="Legal Affidavit"
-                        board="N/A"
-                        year="N/A"
-                        percentage=""
-                        file={
-                          student?.affidavitPath?.split(/[\\/]/).pop() ||
-                          "Not uploaded"
-                        }
-                        filePath={student?.affidavitPath}
-                      />
-                    )}
-
-                    {/* Show message if no documents are configured */}
-                    {!is10thEnabled() &&
-                      !is12thEnabled() &&
-                      !isPassportPhotoEnabled() &&
-                      (!isCategoryCertificateEnabled() ||
-                        student?.category === "GEN") &&
-                      !isIncomeCertificateEnabled() &&
-                      !isCharacterCertificateEnabled() &&
-                      !isTransferCertificateEnabled() &&
-                      !isAadharCardEnabled() &&
-                      !isEntranceExamScoreEnabled() &&
-                      !isMigrationCertificateEnabled() &&
-                      !isDomicileCertificateEnabled() &&
-                      !isCasteCertificateEnabled() &&
-                      !isNonCreamyLayerEnabled() &&
-                      !isPhysicallyChallengedEnabled() &&
-                      !isSportsQuotaEnabled() &&
-                      !isNriSponsorEnabled() &&
-                      !isGapCertificateEnabled() &&
-                      !isAffidavitEnabled() && (
-                        <div className="col-12">
-                          <div className="alert alert-warning d-flex align-items-center">
-                            <FaExclamationTriangle className="me-2" size={20} />
-                            <div>
-                              <strong>No Documents Required:</strong> Your
-                              college has not configured any document
-                              requirements for your batch.
-                            </div>
+                    {mergedDocuments.length === 0 ? (
+                      <div className="col-12">
+                        <div className="alert alert-warning d-flex align-items-center">
+                          <FaExclamationTriangle className="me-2" size={20} />
+                          <div>
+                            <strong>No Documents Required:</strong> Your
+                            college has not configured any document
+                            requirements for your batch.
                           </div>
                         </div>
-                      )}
+                      </div>
+                    ) : (
+                      mergedDocuments.map((doc) => {
+                        const uploadedDoc = doc.uploadedDoc;
+                        return (
+                          <DocumentCard
+                            key={doc.type}
+                            icon={<FaFileAlt />}
+                            type={doc.label}
+                            name={doc.description || doc.label}
+                            board=""
+                            year=""
+                            percentage=""
+                            file={uploadedDoc?.originalFileName || "Not uploaded"}
+                            filePath={uploadedDoc?.downloadUrl}
+                            documentId={uploadedDoc?.documentId}
+                            mandatory={doc.mandatory}
+                            onUpload={handleDocumentUpload}
+                            studentId={profile?.student?._id}
+                            docType={doc.type}
+                          />
+                        );
+                      })
+                    )}
                   </div>
 
                   <div className="mt-4 p-3 bg-light rounded-3">
@@ -1356,8 +1020,12 @@ export default function StudentProfile() {
               <p className="mb-0">
                 <small className="text-muted">
                   <FaSync className="spin-icon me-1" aria-hidden="true" />
-                  Profile last updated:{" "}
-                  <strong>{lastRefreshed.toLocaleString()}</strong>
+                   Profile last updated:{" "}
+                   <strong>
+                     {profile?.student?.updatedAt
+                       ? new Date(profile.student.updatedAt).toLocaleString()
+                       : "N/A"}
+                   </strong>
                 </small>
               </p>
             </div>
@@ -1461,13 +1129,25 @@ export default function StudentProfile() {
           height: 100px;
         }
 
-        .profile-avatar {
-          width: 100px;
-          height: 100px;
-          border-radius: 50%;
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-          font-size: 2.5rem;
-        }
+         .profile-avatar {
+           width: 100px;
+           height: 100px;
+           border-radius: 50%;
+           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+           font-size: 2.5rem;
+         }
+
+         .profile-header-btn {
+           top: 1rem;
+           right: 1rem;
+         }
+
+         @media (max-width: 991.98px) {
+           .profile-header-btn {
+             position: static;
+             margin-top: 1rem;
+           }
+         }
 
         .profile-status-indicator {
           position: absolute;
@@ -1606,6 +1286,27 @@ export default function StudentProfile() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
+          flex-wrap: wrap;
+        }
+        
+        .doc-badge-profile {
+          display: inline-block;
+          font-size: 0.6875rem;
+          font-weight: 600;
+          padding: 0.125rem 0.5rem;
+          border-radius: 9999px;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .doc-badge-profile-required {
+          background: rgba(239, 68, 68, 0.1);
+          color: #dc2626;
+        }
+
+        .doc-badge-profile-optional {
+          background: rgba(107, 114, 128, 0.1);
+          color: #6b7280;
         }
         
         .document-name {
@@ -1776,7 +1477,7 @@ export default function StudentProfile() {
 }
 
 /* ================= TAB ITEM COMPONENT ================= */
-function TabItem({ icon, label, active, onClick, badge, hidden, id }) {
+function TabItem({ icon, label, active, onClick, badge, hidden }) {
   if (hidden) return null;
 
   // Handle keyboard navigation
@@ -1812,7 +1513,7 @@ function TabItem({ icon, label, active, onClick, badge, hidden, id }) {
 }
 
 /* ================= SECTION CONTENT COMPONENT ================= */
-function SectionContent({ title, icon, color, children }) {
+function SectionContent({ title, icon, children }) {
   return (
     <div className="section-content" role="tabpanel">
       <h2 className="section-title text-primary">
@@ -1843,14 +1544,19 @@ function InfoItem({ label, value, icon, col = 6 }) {
 /* ================= DOCUMENT CARD COMPONENT ================= */
 function DocumentCard({
   icon,
-  type,
-  name,
-  board,
-  year,
-  percentage,
-  file,
-  filePath,
-}) {
+   type,
+   name,
+   board,
+   year,
+   percentage,
+   file,
+   filePath,
+   documentId,
+   mandatory,
+   onUpload,
+   studentId,
+   docType,
+ }) {
   const getDocumentColor = () => {
     switch (type) {
       case "10th Marksheet":
@@ -1885,31 +1591,34 @@ function DocumentCard({
     }
   };
 
-  // Get base URL from environment variable
-  const baseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (!baseUrl) {
-    throw new Error("VITE_API_BASE_URL environment variable is required");
-  }
+  const source = filePath || null;
 
-  // Construct SECURE document URL via API endpoint (authorization enforced)
-  // Returns: "http://localhost:5000/api/students/documents/filename.pdf"
-  const documentUrl = filePath
-    ? (() => {
-        const fileName = filePath.split("/").pop(); // Extract just the filename
-        return `${baseUrl}/students/documents/${fileName}`;
-      })()
-    : null;
+  const documentUrl = (() => {
+    if (!source) return null;
+    if (source.startsWith('http')) return source;
+    if (source.startsWith('/api/')) {
+      return `${window.location.origin}${source}`;
+    }
+    const fileName = source.split(/[\\/]/).pop();
+    return `${api.defaults.baseURL}/students/documents/${fileName}`;
+  })();
 
-  // Check if file actually exists (not null, not undefined, not empty string)
   const hasFile =
-    filePath &&
-    String(filePath).trim() !== "" &&
-    filePath !== "null" &&
-    filePath !== "undefined";
+    (source &&
+     String(source).trim() !== "" &&
+     source !== "null" &&
+     source !== "undefined") ||
+    false;
 
   const handleView = () => {
-    if (documentUrl && hasFile) {
-      window.open(documentUrl, "_blank");
+    let viewUrl = null;
+    if (documentId) {
+      viewUrl = getDocumentViewUrl(documentId);
+    } else if (source) {
+      viewUrl = source;
+    }
+    if (viewUrl) {
+      window.open(viewUrl, "_blank");
     } else {
       toast.error("Document not available for viewing", {
         position: "top-right",
@@ -1922,7 +1631,6 @@ function DocumentCard({
   const handleDownload = async () => {
     try {
       if (documentUrl && hasFile) {
-        // Fetch the file as a blob to trigger download
         const response = await fetch(documentUrl, { credentials: "include" });
         if (!response.ok) throw new Error("Failed to fetch document");
         const blob = await response.blob();
@@ -1930,7 +1638,7 @@ function DocumentCard({
 
         const link = document.createElement("a");
         link.href = blobUrl;
-        link.setAttribute("download", file);
+        link.setAttribute("download", file || "document");
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1942,13 +1650,26 @@ function DocumentCard({
           icon: <FaCheckCircle />,
         });
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to download document. Please try again.", {
         position: "top-right",
         autoClose: 5000,
         icon: <FaTimesCircle />,
       });
     }
+  };
+
+  const fileInputRef = useRef(null);
+
+  const handleFileSelect = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile || !onUpload) return;
+    onUpload(docType, documentId, selectedFile);
+    e.target.value = "";
+  };
+
+  const triggerUpload = () => {
+    fileInputRef.current?.click();
   };
 
   return (
@@ -1965,6 +1686,9 @@ function DocumentCard({
       </div>
       <div className="document-type">
         <FaFileAlt aria-hidden="true" /> {type}
+        <span className={`doc-badge-profile ${mandatory ? 'doc-badge-profile-required' : 'doc-badge-profile-optional'}`}>
+          {mandatory ? 'Required' : 'Optional'}
+        </span>
       </div>
       <div className="document-name">{name}</div>
       <div className="document-meta">
@@ -1997,6 +1721,20 @@ function DocumentCard({
         >
           <FaDownload size={14} aria-hidden="true" /> Download
         </button>
+        <button
+          className="btn btn-sm btn-outline-success flex-grow-1 d-flex align-items-center justify-content-center gap-2"
+          onClick={triggerUpload}
+          aria-label={`Upload ${type}`}
+        >
+          <FaFileUpload size={14} aria-hidden="true" /> {hasFile ? "Replace" : "Upload"}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          style={{ display: "none" }}
+          onChange={handleFileSelect}
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+        />
       </div>
     </div>
   );

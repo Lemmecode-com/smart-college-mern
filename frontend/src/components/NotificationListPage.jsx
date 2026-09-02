@@ -6,8 +6,8 @@ import ApiError from "../components/ApiError";
 import ConfirmModal from "../components/ConfirmModal";
 import Pagination from "../components/Pagination";
 import Breadcrumb from "../components/Breadcrumb";
+import PageHero from "../components/common/PageHero";
 import NotificationCard from "../components/NotificationCard";
-import CustomSelect from "../components/CustomSelect";
 import {
   FaBell,
   FaUserTie,
@@ -16,23 +16,27 @@ import {
   FaClock,
   FaTrash,
   FaEdit,
-  FaSyncAlt,
   FaExclamationTriangle,
   FaArrowLeft,
   FaInfoCircle,
   FaSearch,
-  FaFilter,
-  FaGraduationCap,
-  FaCalendarAlt,
-  FaMoneyBillWave,
-  FaUserCheck,
-  FaBullhorn,
-  FaClipboardList,
   FaEye,
   FaStar,
+  FaBullhorn,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 /* ================= ROLE-BASED CONFIGURATION ================= */
 const ROLE_CONFIG = {
@@ -56,15 +60,37 @@ const ROLE_CONFIG = {
     apiEndpoint: "/notifications/teacher/read",
     deleteEndpoint: "/notifications/delete-note/",
     primaryNotesKey: "myNotifications",
-    secondaryNotesKey: "adminNotifications",
+    secondaryNotesKey: "hodNotifications",
+    tertiaryNotesKey: "adminNotifications",
     primaryLabel: "My Notifications",
-    secondaryLabel: "Admin Notifications",
+    secondaryLabel: "From HOD",
+    tertiaryLabel: "From College Admin",
     primaryIcon: FaChalkboardTeacher,
     secondaryIcon: FaUserTie,
+    tertiaryIcon: FaBullhorn,
     createRoute: "/teacher/notifications/create",
     editRoute: "/teacher/notifications/edit/",
     viewRoute: "/teacher/notifications/view/",
     dashboardRoute: "/teacher/dashboard",
+    canCreate: true,
+    showStats: true,
+  },
+  hod: {
+    apiEndpoint: "/notifications/hod/read",
+    deleteEndpoint: "/notifications/delete-note/",
+    primaryNotesKey: "myNotifications",
+    secondaryNotesKey: "teacherNotifications",
+    tertiaryNotesKey: "adminNotifications",
+    primaryLabel: "My HOD Notifications",
+    secondaryLabel: "From Teachers",
+    tertiaryLabel: "From College Admin",
+    primaryIcon: FaChalkboardTeacher,
+    secondaryIcon: FaUserTie,
+    tertiaryIcon: FaBullhorn,
+    createRoute: "/hod/notifications/create",
+    editRoute: "/hod/notifications/edit/",
+    viewRoute: "/notification/view/",
+    dashboardRoute: "/hod/dashboard",
     canCreate: true,
     showStats: true,
   },
@@ -73,14 +99,36 @@ const ROLE_CONFIG = {
     deleteEndpoint: null, // Students can't delete
     primaryNotesKey: "adminNotifications",
     secondaryNotesKey: "teacherNotifications",
+    tertiaryNotesKey: "hodNotifications",
     primaryLabel: "From College Admin",
     secondaryLabel: "From Teachers",
+    tertiaryLabel: "From HOD",
     primaryIcon: FaUserTie,
     secondaryIcon: FaChalkboardTeacher,
+    tertiaryIcon: FaUserTie,
     createRoute: null,
     editRoute: null,
     viewRoute: "/notification/view/",
     dashboardRoute: "/student/dashboard",
+    canCreate: false,
+    showStats: false,
+  },
+  parent: {
+    apiEndpoint: "/notifications/parent/read",
+    deleteEndpoint: null,
+    primaryNotesKey: "adminNotifications",
+    secondaryNotesKey: "teacherNotifications",
+    tertiaryNotesKey: "hodNotifications",
+    primaryLabel: "From College Admin",
+    secondaryLabel: "From Teachers",
+    tertiaryLabel: "From HOD",
+    primaryIcon: FaUserTie,
+    secondaryIcon: FaChalkboardTeacher,
+    tertiaryIcon: FaUserGraduate,
+    createRoute: null,
+    editRoute: null,
+    viewRoute: "/notification/view/",
+    dashboardRoute: "/dashboard/parent",
     canCreate: false,
     showStats: false,
   },
@@ -96,23 +144,6 @@ const fadeInVariants = {
   }),
 };
 
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
-  },
-};
-
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-  },
-};
-
 /* ================= BRAND COLORS ================= */
 const BRAND_COLORS = {
   primary: {
@@ -123,16 +154,6 @@ const BRAND_COLORS = {
   info: { main: "#17a2b8" },
   warning: { main: "#ffc107" },
   danger: { main: "#dc3545" },
-  notificationTypes: {
-    GENERAL: { icon: FaInfoCircle, color: "#3b82f6", bg: "#dbeafe" },
-    ACADEMIC: { icon: FaGraduationCap, color: "#8b5cf6", bg: "#ede9fe" },
-    EXAM: { icon: FaCalendarAlt, color: "#ec4899", bg: "#fce7f3" },
-    FEE: { icon: FaMoneyBillWave, color: "#f59e0b", bg: "#ffedd5" },
-    ATTENDANCE: { icon: FaUserCheck, color: "#10b981", bg: "#dcfce7" },
-    EVENT: { icon: FaBullhorn, color: "#ef4444", bg: "#fee2e2" },
-    ASSIGNMENT: { icon: FaClipboardList, color: "#6366f1", bg: "#eef2ff" },
-    URGENT: { icon: FaExclamationTriangle, color: "#dc2626", bg: "#fee2e2" },
-  },
   priorities: {
     LOW: { color: "#64748b", bg: "#f1f5f9", icon: FaStar },
     NORMAL: { color: "#1e40af", bg: "#dbeafe", icon: FaInfoCircle },
@@ -163,6 +184,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
 
   const [primaryNotes, setPrimaryNotes] = useState([]);
   const [secondaryNotes, setSecondaryNotes] = useState([]);
+  const [tertiaryNotes, setTertiaryNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -199,30 +221,44 @@ export default function NotificationListPage({ role = "college-admin" }) {
         ).map((note) => ({
           ...note,
           isOwner: config.primaryNotesKey === "myNotifications",
+          noteCategory: "primary",
         }));
 
         const secondaryData = (res.data[config.secondaryNotesKey] || []).map(
           (note) => ({
             ...note,
             isOwner: false,
+            noteCategory: "secondary",
+          }),
+        );
+
+        const tertiaryData = (res.data[config.tertiaryNotesKey] || []).map(
+          (note) => ({
+            ...note,
+            isOwner: false,
+            noteCategory: "tertiary",
           }),
         );
 
         setPrimaryNotes(primaryData);
         setSecondaryNotes(secondaryData);
+        setTertiaryNotes(tertiaryData);
 
         if (showRefreshToast) {
           toast.success("Notifications refreshed!", CONFIG.TOAST);
         }
         setRetryCount(0);
       } catch (err) {
-        const errorMsg =
-          err.response?.data?.message ||
-          err.message ||
-          "Failed to load notifications";
         const statusCode = err.response?.status;
-        setError({ message: errorMsg, statusCode });
-        toast.error("Failed to load notifications", CONFIG.TOAST);
+        const errorCode = err.response?.data?.code;
+        const errorMsg = err.response?.data?.message || "Failed to load notifications";
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        setError({ message: errorMsg, statusCode, errorCode });
+        if (!isAuthError) {
+          toast.error("Failed to load notifications", CONFIG.TOAST);
+        }
       } finally {
         setLoading(false);
       }
@@ -278,6 +314,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
       setSecondaryNotes((prev) =>
         prev.filter((note) => note._id !== confirmModal.noteId),
       );
+      setTertiaryNotes((prev) =>
+        prev.filter((note) => note._id !== confirmModal.noteId),
+      );
 
       toast.success("Notification deleted successfully!", CONFIG.TOAST);
     } catch (err) {
@@ -300,8 +339,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
     (notes) => {
       return notes.filter((note) => {
         // Tab filter
-        if (activeTab === "primary" && !note.isOwner) return false;
-        if (activeTab === "secondary" && note.isOwner) return false;
+        if (activeTab === "primary" && note.noteCategory !== "primary") return false;
+        if (activeTab === "secondary" && note.noteCategory !== "secondary") return false;
+        if (activeTab === "tertiary" && note.noteCategory !== "tertiary") return false;
 
         // Search filter
         const searchLower = searchQuery.toLowerCase();
@@ -331,16 +371,21 @@ export default function NotificationListPage({ role = "college-admin" }) {
     [secondaryNotes, filterNotifications],
   );
 
+  const filteredTertiaryNotes = useMemo(
+    () => filterNotifications(tertiaryNotes),
+    [tertiaryNotes, filterNotifications],
+  );
+
   /* ================= PAGINATION ================= */
   const getUniqueNotes = useMemo(() => {
-    const allNotes = [...filteredPrimaryNotes, ...filteredSecondaryNotes];
+    const allNotes = [...filteredPrimaryNotes, ...filteredSecondaryNotes, ...filteredTertiaryNotes];
     const uniqueIds = new Set();
     return allNotes.filter((note) => {
       if (uniqueIds.has(note._id)) return false;
       uniqueIds.add(note._id);
       return true;
     });
-  }, [filteredPrimaryNotes, filteredSecondaryNotes]);
+  }, [filteredPrimaryNotes, filteredSecondaryNotes, filteredTertiaryNotes]);
 
   const paginatedNotes = useMemo(() => {
     const startIndex = (currentPage - 1) * CONFIG.ITEMS_PER_PAGE;
@@ -355,25 +400,20 @@ export default function NotificationListPage({ role = "college-admin" }) {
     setCurrentPage(1);
   }, [searchQuery, typeFilter, activeTab]);
 
-  /* ================= GET UNIQUE TYPES FOR FILTER ================= */
-  const notificationTypes = useMemo(() => {
-    const allNotes = [...primaryNotes, ...secondaryNotes];
-    const types = new Set(allNotes.map((note) => note.type).filter(Boolean));
-    return Array.from(types);
-  }, [primaryNotes, secondaryNotes]);
-
   /* ================= CALCULATE STATS ================= */
   const stats = useMemo(() => {
-    const allNotes = [...primaryNotes, ...secondaryNotes];
+    const allNotes = [...primaryNotes, ...secondaryNotes, ...tertiaryNotes];
     return {
       totalPrimary: primaryNotes.length,
       totalSecondary: secondaryNotes.length,
-      unreadPrimary: primaryNotes.filter((n) => !n.read).length,
-      unreadSecondary: secondaryNotes.filter((n) => !n.read).length,
+      totalTertiary: tertiaryNotes.length,
+      unreadPrimary: primaryNotes.filter((n) => !n.isRead).length,
+      unreadSecondary: secondaryNotes.filter((n) => !n.isRead).length,
+      unreadTertiary: tertiaryNotes.filter((n) => !n.isRead).length,
       urgent: allNotes.filter((n) => n.priority === "URGENT").length,
       total: allNotes.length,
     };
-  }, [primaryNotes, secondaryNotes]);
+  }, [primaryNotes, secondaryNotes, tertiaryNotes]);
 
   /* ================= LOADING STATE ================= */
   if (loading && retryCount === 0) {
@@ -388,8 +428,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
         message={
           error.message || "Failed to load notifications. Please try again."
         }
-        statusCode={error.statusCode}
-        onRetry={handleRetry}
+          statusCode={error.statusCode}
+          errorCode={error.errorCode}
+          onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
         maxRetry={3}
@@ -401,6 +442,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
   /* ================= MAIN RENDER ================= */
   const PrimaryIcon = config.primaryIcon;
   const SecondaryIcon = config.secondaryIcon;
+  const TertiaryIcon = config.tertiaryIcon;
 
   return (
     <AnimatePresence mode="wait">
@@ -427,194 +469,107 @@ export default function NotificationListPage({ role = "college-admin" }) {
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="erp-page-header"
-            style={{
-              marginBottom: "1.5rem",
-              backgroundColor: "white",
-              borderRadius: "1.5rem",
-              overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
-            }}
-          >
-            <div
-              style={{
-                padding: "1.75rem 2rem",
-                background: BRAND_COLORS.primary.gradient,
-                color: "white",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1.5rem",
-              }}
-            >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
-              >
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  style={{
-                    width: "72px",
-                    height: "72px",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "2rem",
-                    flexShrink: 0,
-                    boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
-                  }}
-                >
-                  <FaBell />
-                </motion.div>
-                <div>
-                  <h1
-                    style={{
-                      margin: 0,
-                      fontSize: "2rem",
-                      fontWeight: 700,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    Notifications Center
-                  </h1>
-                  <p
-                    style={{
-                      margin: "0.5rem 0 0 0",
-                      opacity: 0.9,
-                      fontSize: "1.1rem",
-                    }}
-                  >
-                    {role === "student"
-                      ? "Important updates from college & teachers"
-                      : role === "teacher"
-                        ? "Your announcements and college updates"
-                        : "Manage and view all announcements"}
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                {config.canCreate && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => navigate(config.createRoute)}
-                    style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.2)",
-                      color: "white",
-                      border: "2px solid rgba(255, 255, 255, 0.4)",
-                      padding: "0.75rem 1.5rem",
-                      borderRadius: "12px",
-                      fontSize: "0.95rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <FaBell /> Create New
-                  </motion.button>
-                )}
+          {/* ================= PAGE HERO ================= */}
+          <PageHero
+            icon={<FaBell />}
+            title="Notifications Center"
+            description={
+              role === "student"
+                ? "Important updates from college & teachers"
+                : role === "teacher"
+                  ? "Your announcements and college updates"
+                  : "Manage and view all announcements"
+            }
+            onBack={handleGoBack}
+            backLabel="Back"
+            primaryAction={
+              config.canCreate ? (
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => fetchNotes(true)}
-                  disabled={loading}
-                  style={{
-                    backgroundColor: loading
-                      ? "rgba(255, 255, 255, 0.1)"
-                      : "rgba(255, 255, 255, 0.2)",
-                    color: "white",
-                    border: "2px solid rgba(255, 255, 255, 0.4)",
-                    padding: "0.75rem 1.5rem",
-                    borderRadius: "12px",
-                    fontSize: "0.95rem",
-                    fontWeight: 600,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    transition: "all 0.3s ease",
-                    opacity: loading ? 0.6 : 1,
-                  }}
+                  onClick={() => navigate(config.createRoute)}
+                  className="erp-page-hero__primary-btn"
+                  type="button"
                 >
-                  <FaSyncAlt className={loading ? "spinning" : ""} /> Refresh
+                  <FaBell /> Create New
                 </motion.button>
-              </div>
-            </div>
+              ) : null
+            }
+          />
 
-            {/* Stats Bar (conditionally rendered) */}
-            {config.showStats && (
+          {/* ================= STATS BAR ================= */}
+          {config.showStats && (
+            <div
+              className="erp-stats-bar"
+              style={{
+                padding: "1rem 2rem",
+                backgroundColor: "#f8fafc",
+                borderRadius: "1.5rem",
+                marginBottom: "1.5rem",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "1.5rem",
+                boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
+              }}
+            >
               <div
                 style={{
-                  padding: "1rem 2rem",
-                  backgroundColor: "#f8fafc",
-                  borderTop: "1px solid #e2e8f0",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
+                  gap: "2rem",
                   flexWrap: "wrap",
-                  gap: "1.5rem",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "2rem",
-                    flexWrap: "wrap",
-                  }}
-                >
+                <StatItem
+                  icon={<PrimaryIcon />}
+                  label={config.primaryLabel}
+                  value={stats.totalPrimary}
+                  unread={stats.unreadPrimary}
+                  color={BRAND_COLORS.primary.main}
+                />
+                <StatItem
+                  icon={<SecondaryIcon />}
+                  label={config.secondaryLabel}
+                  value={stats.totalSecondary}
+                  unread={stats.unreadSecondary}
+                  color={BRAND_COLORS.info.main}
+                />
+                {config.tertiaryLabel && (
                   <StatItem
-                    icon={<PrimaryIcon />}
-                    label={config.primaryLabel}
-                    value={stats.totalPrimary}
-                    unread={stats.unreadPrimary}
-                    color={BRAND_COLORS.primary.main}
+                    icon={<TertiaryIcon />}
+                    label={config.tertiaryLabel}
+                    value={stats.totalTertiary}
+                    unread={stats.unreadTertiary}
+                    color={BRAND_COLORS.warning.main}
                   />
-                  <StatItem
-                    icon={<SecondaryIcon />}
-                    label={config.secondaryLabel}
-                    value={stats.totalSecondary}
-                    unread={stats.unreadSecondary}
-                    color={BRAND_COLORS.info.main}
-                  />
-                  <StatItem
-                    icon={<FaExclamationTriangle />}
-                    label="Urgent Alerts"
-                    value={stats.urgent}
-                    color={BRAND_COLORS.danger.main}
-                  />
-                </div>
-                <div
-                  style={{
-                    padding: "0.5rem 1.25rem",
-                    borderRadius: "20px",
-                    backgroundColor: "#dbeafe",
-                    color: BRAND_COLORS.primary.main,
-                    fontWeight: 600,
-                    fontSize: "0.95rem",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                  }}
-                >
-                  <FaInfoCircle size={14} />
-                  Total: {stats.total} notifications
-                </div>
+                )}
+                <StatItem
+                  icon={<FaExclamationTriangle />}
+                  label="Urgent Alerts"
+                  value={stats.urgent}
+                  color={BRAND_COLORS.danger.main}
+                />
               </div>
-            )}
-          </motion.div>
+              <div
+                style={{
+                  padding: "0.5rem 1.25rem",
+                  borderRadius: "20px",
+                  backgroundColor: "#dbeafe",
+                  color: BRAND_COLORS.primary.main,
+                  fontWeight: 600,
+                  fontSize: "0.95rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <FaInfoCircle size={14} />
+                Total: {stats.total} notifications
+              </div>
+            </div>
+          )}
 
           {/* ================= SEARCH & FILTER BAR ================= */}
           <div
@@ -673,34 +628,6 @@ export default function NotificationListPage({ role = "college-admin" }) {
                   display: "block",
                 }}
                 aria-label="Search notifications"
-              />
-            </div>
-
-            {/* Filter Dropdown with Icon Inside */}
-            <div
-              className="filter-wrapper"
-              style={{
-                width: "100%",
-                position: "relative",
-                overflow: "visible",
-              }}
-            >
-              <CustomSelect
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                options={[
-                  { value: "", label: "All Types" },
-                  ...notificationTypes.map((type) => ({
-                    value: type,
-                    label: type,
-                  })),
-                ]}
-                placeholder="All Types"
-                style={{
-                  width: "100%",
-                  maxWidth: "100%",
-                }}
-                aria-label="Filter by type"
               />
             </div>
 
@@ -790,17 +717,44 @@ export default function NotificationListPage({ role = "college-admin" }) {
               >
                 <SecondaryIcon className="me-1" /> {config.secondaryLabel}
               </button>
+              {config.tertiaryLabel && (
+                <button
+                  className={`tab-btn ${activeTab === "tertiary" ? "active" : ""}`}
+                  onClick={() => setActiveTab("tertiary")}
+                  style={{
+                    flex: "1 1 auto",
+                    minWidth: "120px",
+                    padding: "0.625rem 1rem",
+                    border: "2px solid #e2e8f0",
+                    borderRadius: "10px",
+                    backgroundColor:
+                      activeTab === "tertiary"
+                        ? BRAND_COLORS.primary.main
+                        : "white",
+                    color: activeTab === "tertiary" ? "white" : "#64748b",
+                    fontWeight: 600,
+                    fontSize: "0.9rem",
+                    cursor: "pointer",
+                    transition: "all 0.3s ease",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.375rem",
+                  }}
+                >
+                  <TertiaryIcon className="me-1" /> {config.tertiaryLabel}
+                </button>
+              )}
             </div>
           </div>
 
-          {/* ================= NOTIFICATIONS GRID ================= */}
+          {/* ================= NOTIFICATIONS LIST ================= */}
           <div
-            className="notifications-grid"
+            className="notifications-list"
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
-              gap: "1rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.75rem",
               marginBottom: "1.5rem",
             }}
           >
@@ -808,7 +762,6 @@ export default function NotificationListPage({ role = "college-admin" }) {
               <div
                 className="empty-state"
                 style={{
-                  gridColumn: "1 / -1",
                   textAlign: "center",
                   padding: "4rem 2rem",
                   backgroundColor: "white",
@@ -939,29 +892,8 @@ export default function NotificationListPage({ role = "college-admin" }) {
 
         {/* ================= RESPONSIVE STYLES ================= */}
         <style>{`
-          /* Mobile: Use flexbox to keep icons inside inputs */
+          /* Notification page specific mobile styles */
           @media (max-width: 767.98px) {
-            .filter-bar {
-              padding: 1rem !important;
-              width: 100% !important;
-              max-width: 100vw !important;
-              box-sizing: border-box !important;
-            }
-
-            /* Use flexbox layout on mobile to contain icons */
-            .search-wrapper,
-            .filter-wrapper {
-              width: 100% !important;
-              max-width: 100% !important;
-              display: flex !important;
-              align-items: center !important;
-              position: relative !important;
-              overflow: hidden !important;
-              background: white !important;
-              border: 2px solid #e2e8f0 !important;
-              border-radius: 10px !important;
-            }
-
             .search-icon,
             .filter-select-icon {
               position: relative !important;
@@ -974,24 +906,6 @@ export default function NotificationListPage({ role = "college-admin" }) {
               z-index: 2 !important;
             }
 
-            .search-input,
-            .filter-select {
-              flex: 1 !important;
-              width: auto !important;
-              max-width: 100% !important;
-              border: none !important;
-              border-radius: 0 !important;
-              padding: 0.75rem 1rem 0.75rem 0 !important;
-              box-sizing: border-box !important;
-              background: transparent !important;
-            }
-
-            .search-input:focus,
-            .filter-select:focus {
-              outline: none !important;
-              box-shadow: none !important;
-            }
-
             .tab-group {
               flex-direction: column !important;
               width: 100% !important;
@@ -1001,24 +915,27 @@ export default function NotificationListPage({ role = "college-admin" }) {
               width: 100% !important;
               justify-content: center !important;
             }
+
+            /* Stack notification row content on small screens */
+            .notification-row {
+              flex-wrap: wrap !important;
+            }
+
+            .notification-row > div:last-child {
+              width: 100% !important;
+              justify-content: flex-start !important;
+              flex-wrap: wrap !important;
+              margin-left: 3.25rem !important;
+              margin-top: 0.25rem !important;
+            }
           }
 
           /* Small mobile: Further reduce sizes */
           @media (max-width: 479.98px) {
-            .filter-bar {
-              padding: 0.75rem !important;
-            }
-
             .search-icon,
             .filter-select-icon {
               margin-left: 0.75rem !important;
               font-size: 0.85rem !important;
-            }
-
-            .search-input,
-            .filter-select {
-              font-size: 0.9rem !important;
-              padding: 0.625rem 0.75rem 0.625rem 0 !important;
             }
 
             .tab-btn {

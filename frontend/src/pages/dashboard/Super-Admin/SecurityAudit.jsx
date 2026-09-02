@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaShieldAlt,
   FaChartPie,
   FaSyncAlt,
   FaExclamationTriangle,
-  FaDownload,
   FaCheckCircle,
   FaUserLock,
   FaSignOutAlt,
@@ -68,9 +70,11 @@ const THEME = {
 };
 
 export default function SecurityAudit() {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     eventType: "",
     severity: "",
@@ -81,6 +85,17 @@ export default function SecurityAudit() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [colleges, setColleges] = useState([]);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   useEffect(() => {
     fetchLogs();
@@ -95,13 +110,20 @@ export default function SecurityAudit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, currentPage]);
 
+  useEffect(() => {
+    const interval = setInterval(fetchLogs, 60000); // Auto-refresh logs every 60s for real-time monitoring
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      setError(null);
       const params = new URLSearchParams({
         ...filters,
         page: currentPage,
-        limit: 20,
+        limit: 10,
       });
       const res = await api.get(`/security-audit?${params}`);
       const logsData = Array.isArray(res.data)
@@ -109,10 +131,27 @@ export default function SecurityAudit() {
         : res.data?.data || res.data?.logs || [];
       setLogs(Array.isArray(logsData) ? logsData : []);
       setPagination(res.data?.pagination || null);
-    } catch (error) {
-      console.error("Failed to fetch logs:", error);
-      setLogs([]);
-      toast.error("Failed to load security logs");
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load security logs";
+
+      logger.error("Error fetching security logs:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -122,34 +161,44 @@ export default function SecurityAudit() {
     try {
       const res = await api.get("/security-audit/dashboard");
       setStats(res.data?.data || null);
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Error fetching security stats:", statusCode, errorCode);
       setStats(null);
     }
   };
 
   const fetchColleges = async () => {
     try {
-      const res = await api.get("/college/list");
+      setLoading(true);
+      const res = await api.get("/master/get/colleges?includeInactive=true");
 
-      // API returns array directly, not wrapped in { success, data }
       if (Array.isArray(res.data)) {
         setColleges(res.data);
+      } else if (res.data?.colleges && Array.isArray(res.data.colleges)) {
+        setColleges(res.data.colleges);
       } else if (res.data?.data && Array.isArray(res.data.data)) {
-        // Fallback for wrapped response
         setColleges(res.data.data);
       } else {
-        console.warn("⚠️ [Colleges] Invalid response structure:", res.data);
+        logger.warn("Invalid colleges response structure:", res.data);
         setColleges([]);
       }
-    } catch (error) {
-      console.error("❌ [Colleges] Fetch failed:", error.message);
+    } catch (err) {
+      logger.error("Error fetching colleges:", err.response?.status, err.response?.data?.code);
       setColleges([]);
     }
   };
 
   const handleFilterChange = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    const next = { ...filters, [key]: value };
+
+    if ((key === "startDate" || key === "endDate") && next.startDate && next.endDate && next.endDate < next.startDate) {
+      toast.error("End Date cannot be earlier than Start Date");
+      return;
+    }
+
+    setFilters(next);
     setCurrentPage(1);
   };
 
@@ -161,15 +210,10 @@ export default function SecurityAudit() {
       toast.success("Marked as reviewed");
       fetchLogs();
       fetchStats();
-    } catch (error) {
-      console.error("Failed to mark as reviewed:", error);
+    } catch (err) {
+      logger.error("Error marking as reviewed:", err.response?.status, err.response?.data?.code);
       toast.error("Failed to update status");
     }
-  };
-
-  const handleExport = () => {
-    const params = new URLSearchParams(filters);
-    window.open(`/api/security-audit/export/download?${params}`, "_blank");
   };
 
   const getSeverityBadgeClass = (severity) => {
@@ -199,9 +243,35 @@ export default function SecurityAudit() {
     return icons[eventType] || "📋";
   };
 
-  const getCategoryBadgeClass = (category) => {
-    return category === "AUTHENTICATION" ? "category-auth" : "category-system";
-  };
+const getCategoryBadgeClass = (category) => {
+     switch (category) {
+       case 'AUTHENTICATION':
+         return 'category-auth';
+       case 'AUTHORIZATION':
+         return 'category-auth';
+       case 'DATA_ACCESS':
+         return 'category-data';
+       case 'DATA_MODIFICATION':
+         return 'category-modification';
+       case 'SYSTEM':
+         return 'category-system';
+       default:
+         return 'category-system';
+     }
+   };
+
+  if (error && !loading) {
+    return (
+      <ApiError
+        title="Security Audit Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchLogs}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
 
   if (loading && !logs.length) {
     return (
@@ -234,10 +304,6 @@ export default function SecurityAudit() {
               </p>
             </div>
           </div>
-          <button className="btn-export" onClick={handleExport}>
-            <FaDownload className="btn-icon" />
-            Export CSV
-          </button>
         </div>
 
         {/* Statistics Cards */}
@@ -365,18 +431,6 @@ export default function SecurityAudit() {
                 <option value="LOGIN_SUCCESS">Login Success</option>
                 <option value="LOGIN_FAILED">Login Failed</option>
                 <option value="LOGOUT">Logout</option>
-                <option value="PASSWORD_RESET_REQUEST">
-                  Password Reset Request
-                </option>
-                <option value="PASSWORD_RESET_SUCCESS">
-                  Password Reset Success
-                </option>
-                <option value="PERMISSION_DENIED">Permission Denied</option>
-                <option value="UNAUTHORIZED_ACCESS">Unauthorized Access</option>
-                <option value="BRUTE_FORCE_DETECTED">
-                  Brute Force Detected
-                </option>
-                <option value="TOKEN_BLACKLISTED">Token Blacklisted</option>
               </select>
             </div>
 
@@ -469,7 +523,6 @@ export default function SecurityAudit() {
                     <th>College</th>
                     <th>IP Address</th>
                     <th>Severity</th>
-                    <th>Endpoint</th>
                     <th>Status</th>
                     <th>Action</th>
                   </tr>
@@ -481,15 +534,15 @@ export default function SecurityAudit() {
                         key={log._id}
                         className={!log.reviewed ? "row-pending" : ""}
                       >
-                        <td className="cell-timestamp">
+                        <td className="cell-timestamp" data-label="Timestamp">
                           <div className="timestamp-date">
-                            {new Date(log.createdAt).toLocaleDateString()}
+                            {new Date(log.createdAt).toLocaleDateString("en-IN")}
                           </div>
                           <div className="timestamp-time">
                             {new Date(log.createdAt).toLocaleTimeString()}
                           </div>
                         </td>
-                        <td>
+                        <td data-label="Event">
                           <div className="event-cell">
                             <span className="event-icon">
                               {getEventTypeIcon(log.eventType)}
@@ -501,37 +554,36 @@ export default function SecurityAudit() {
                             </span>
                           </div>
                         </td>
-                        <td>
-                          {log.userEmail ? (
+                        <td data-label="User">
+                          {log.userId?.name || log.userRole ? (
                             <div className="user-cell">
-                              <div className="user-email">{log.userEmail}</div>
-                              <div className="user-role">{log.userRole}</div>
+                              {log.userId?.name && (
+                                <div className="user-name">{log.userId.name}</div>
+                              )}
+                              {log.userRole && (
+                                <div className="user-role">{log.userRole}</div>
+                              )}
                             </div>
                           ) : (
                             <span className="text-muted">N/A</span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="College">
                           {log.collegeId?.name || (
                             <span className="text-muted">N/A</span>
                           )}
                         </td>
-                        <td>
-                          <code className="ip-address">{log.ipAddress}</code>
+                        <td data-label="IP Address">
+                          <span className="ip-address">{log.ipAddress}</span>
                         </td>
-                        <td>
+                        <td data-label="Severity">
                           <span
                             className={`severity-badge ${getSeverityBadgeClass(log.severity)}`}
                           >
                             {log.severity}
                           </span>
                         </td>
-                        <td>
-                          <span className="endpoint-cell">
-                            {log.endpoint || "N/A"}
-                          </span>
-                        </td>
-                        <td>
+                        <td data-label="Status">
                           {log.reviewed ? (
                             <span className="status-badge status-reviewed">
                               <FaCheckCircle className="status-icon" />
@@ -544,7 +596,7 @@ export default function SecurityAudit() {
                             </span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Action">
                           {!log.reviewed && (
                             <button
                               className="btn-review"
@@ -558,7 +610,7 @@ export default function SecurityAudit() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="9" className="cell-empty">
+                        <td colSpan="8" className="cell-empty">
                         <div className="empty-state">
                           <FaShieldAlt className="empty-icon" />
                           <p className="empty-text">
@@ -589,19 +641,25 @@ export default function SecurityAudit() {
                       Previous
                     </button>
                   </li>
-                  {[...Array(pagination.pages)].map((_, i) => (
-                    <li
-                      key={i}
-                      className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
-                    >
-                      <button
-                        className="page-link"
-                        onClick={() => setCurrentPage(i + 1)}
+                </ul>
+                <div className="pagination-pages-wrapper">
+                  <ul className="pagination-list">
+                    {[...Array(pagination.pages)].map((_, i) => (
+                      <li
+                        key={i}
+                        className={`page-item ${currentPage === i + 1 ? "active" : ""}`}
                       >
-                        {i + 1}
-                      </button>
-                    </li>
-                  ))}
+                        <button
+                          className="page-link"
+                          onClick={() => setCurrentPage(i + 1)}
+                        >
+                          {i + 1}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <ul className="pagination-list">
                   <li
                     className={`page-item ${currentPage === pagination.pages ? "disabled" : ""}`}
                   >
@@ -686,32 +744,6 @@ export default function SecurityAudit() {
 
         .meta-icon {
           font-size: 0.75rem;
-        }
-
-        /* Export Button */
-        .btn-export {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1.25rem;
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.9rem;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 2px 8px rgba(26, 75, 109, 0.2);
-        }
-
-        .btn-export:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(26, 75, 109, 0.3);
-        }
-
-        .btn-icon {
-          font-size: 0.9rem;
         }
 
         /* Stats Grid */
@@ -1024,6 +1056,16 @@ export default function SecurityAudit() {
           color: #17a2b8;
         }
 
+        .category-data {
+          background: rgba(40, 167, 69, 0.1);
+          color: #28a745;
+        }
+
+        .category-modification {
+          background: rgba(255, 193, 7, 0.1);
+          color: #e0a800;
+        }
+
         .category-system {
           background: rgba(255, 193, 7, 0.1);
           color: #ffc107;
@@ -1035,9 +1077,10 @@ export default function SecurityAudit() {
           gap: 0.25rem;
         }
 
-        .user-email {
-          font-weight: 600;
-          color: #1a4b6d;
+        .user-name {
+          font-weight: 700;
+          color: #0f172a;
+          font-size: 0.9rem;
         }
 
         .user-role {
@@ -1165,6 +1208,36 @@ export default function SecurityAudit() {
         .pagination-nav {
           display: flex;
           justify-content: center;
+          align-items: center;
+          gap: 0.5rem;
+          flex-wrap: nowrap;
+        }
+
+        .pagination-pages-wrapper {
+          display: flex;
+          overflow-x: auto;
+          gap: 0.5rem;
+          padding: 0.25rem 0.5rem;
+          max-width: 100%;
+          scroll-behavior: smooth;
+          align-items: center;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: #1a4b6d #f1f5f9;
+        }
+
+        .pagination-pages-wrapper::-webkit-scrollbar {
+          height: 6px;
+        }
+
+        .pagination-pages-wrapper::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 3px;
+        }
+
+        .pagination-pages-wrapper::-webkit-scrollbar-thumb {
+          background: #1a4b6d;
+          border-radius: 3px;
         }
 
         .pagination-list {
@@ -1173,6 +1246,7 @@ export default function SecurityAudit() {
           gap: 0.5rem;
           padding: 0;
           margin: 0;
+          flex-shrink: 0;
         }
 
         .page-item button {
@@ -1206,66 +1280,331 @@ export default function SecurityAudit() {
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
-          .security-audit-page {
-            padding: 1rem;
+         @media (max-width: 768px) {
+           .security-audit-page {
+             padding: 1rem;
+           }
+
+           .page-header {
+             flex-direction: column;
+             align-items: flex-start;
+             gap: 1rem;
+           }
+
+           .stats-grid {
+             grid-template-columns: 1fr;
+           }
+
+           .filter-grid {
+             grid-template-columns: 1fr;
+           }
+
+           .table-header {
+             flex-direction: column;
+             align-items: flex-start;
+             gap: 0.5rem;
+           }
+
+           .data-table thead {
+             display: none;
+           }
+
+           .data-table tbody tr {
+             display: block;
+             margin-bottom: 1rem;
+             border: 1px solid #e2e8f0;
+             border-radius: 8px;
+             padding: 1rem;
+           }
+
+           .data-table tbody td {
+             display: flex;
+             justify-content: space-between;
+             align-items: center;
+             padding: 0.5rem 0;
+             border-bottom: 1px solid #f1f5f9;
+           }
+
+           .data-table tbody td:last-child {
+             border-bottom: none;
+           }
+
+           .data-table tbody td::before {
+             content: attr(data-label);
+             font-weight: 600;
+             color: #1a4b6d;
+           }
+         }
+
+         @media (max-width: 480px) {
+           .security-audit-page {
+             padding: 0.75rem;
+           }
+
+           .page-header {
+             padding: 1rem;
+             margin-bottom: 1rem;
+           }
+
+           .header-icon {
+             width: 44px;
+             height: 44px;
+             font-size: 1.2rem;
+           }
+
+           .page-title {
+             font-size: 1.35rem;
+           }
+
+           .page-subtitle {
+             font-size: 0.85rem;
+           }
+
+           .stats-grid {
+             gap: 0.75rem;
+             margin-bottom: 1rem;
+           }
+
+           .stat-card {
+             padding: 1rem;
+           }
+
+           .stat-value {
+             font-size: 1.5rem;
+           }
+
+           .stat-title {
+             font-size: 0.75rem;
+           }
+
+           .stat-icon {
+             width: 40px;
+             height: 40px;
+             font-size: 1rem;
+           }
+
+           .filter-section {
+             padding: 1rem;
+             margin-bottom: 1rem;
+           }
+
+           .filter-grid {
+             gap: 0.75rem;
+           }
+
+           .filter-select,
+           .filter-input {
+             padding: 0.5rem 0.75rem;
+             font-size: 0.85rem;
+           }
+
+            .filter-actions {
+              justify-content: center;
+            }
+
+            .btn-apply {
+              width: auto;
+              max-width: 160px;
+              justify-content: center;
+              padding: 0.5rem 0.875rem;
+              font-size: 0.8rem;
+              align-self: center;
+            }
+
+           .table-section {
+             border-radius: 8px;
+           }
+
+           .table-header {
+             padding: 1rem;
+           }
+
+           .table-title {
+             font-size: 0.9rem;
+           }
+
+           .data-table tbody td {
+             padding: 0.4rem 0;
+             font-size: 0.8rem;
+           }
+
+           .severity-badge {
+             padding: 0.2rem 0.5rem;
+             font-size: 0.65rem;
+           }
+
+           .status-badge {
+             padding: 0.2rem 0.5rem;
+             font-size: 0.65rem;
+           }
+
+           .btn-review {
+             padding: 0.25rem 0.5rem;
+             font-size: 0.7rem;
+           }
+
+            .pagination-section {
+              padding: 0.75rem 1rem;
+            }
+
+            .pagination-pages-wrapper {
+              justify-content: flex-start;
+            }
+
+            .page-item button {
+              padding: 0.375rem 0.625rem;
+              font-size: 0.8rem;
+            }
           }
 
-          .page-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+         @media (max-width: 375px) {
+           .security-audit-page {
+             padding: 0.5rem;
+           }
 
-          .btn-export {
-            width: 100%;
-            justify-content: center;
-          }
+           .page-header {
+             padding: 0.75rem;
+             margin-bottom: 0.75rem;
+           }
 
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
+           .header-icon {
+             width: 38px;
+             height: 38px;
+             font-size: 1rem;
+           }
 
-          .filter-grid {
-            grid-template-columns: 1fr;
-          }
+           .page-title {
+             font-size: 1.15rem;
+           }
 
-          .table-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-          }
+           .page-subtitle {
+             font-size: 0.75rem;
+           }
 
-          .data-table thead {
-            display: none;
-          }
+           .stats-grid {
+             gap: 0.5rem;
+             margin-bottom: 0.75rem;
+           }
 
-          .data-table tbody tr {
-            display: block;
-            margin-bottom: 1rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1rem;
-          }
+           .stat-card {
+             padding: 0.75rem;
+           }
 
-          .data-table tbody td {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #f1f5f9;
-          }
+           .stat-value {
+             font-size: 1.25rem;
+           }
 
-          .data-table tbody td:last-child {
-            border-bottom: none;
-          }
+           .stat-title {
+             font-size: 0.7rem;
+           }
 
-          .data-table tbody td::before {
-            content: attr(data-label);
-            font-weight: 600;
-            color: #1a4b6d;
-          }
-        }
+           .stat-icon {
+             width: 34px;
+             height: 34px;
+             font-size: 0.85rem;
+           }
+
+           .stat-card-header {
+             gap: 0.5rem;
+             margin-bottom: 0.75rem;
+           }
+
+           .stat-trend {
+             font-size: 0.75rem;
+           }
+
+           .filter-section {
+             padding: 0.75rem;
+             margin-bottom: 0.75rem;
+           }
+
+           .filter-title {
+             font-size: 0.9rem;
+           }
+
+           .filter-grid {
+             gap: 0.5rem;
+           }
+
+           .filter-label {
+             font-size: 0.75rem;
+           }
+
+           .filter-select,
+           .filter-input {
+             padding: 0.4rem 0.625rem;
+             font-size: 0.8rem;
+           }
+
+            .filter-actions {
+              justify-content: center;
+            }
+
+            .btn-apply {
+              max-width: 140px;
+              padding: 0.4rem 0.625rem;
+              font-size: 0.75rem;
+              align-self: center;
+            }
+
+           .table-header {
+             padding: 0.75rem;
+           }
+
+           .table-title {
+             font-size: 0.85rem;
+           }
+
+           .table-info {
+             font-size: 0.75rem;
+           }
+
+           .data-table tbody td {
+             padding: 0.3rem 0;
+             font-size: 0.75rem;
+           }
+
+           .category-badge {
+             padding: 0.15rem 0.4rem;
+             font-size: 0.6rem;
+           }
+
+           .severity-badge {
+             padding: 0.15rem 0.4rem;
+             font-size: 0.6rem;
+           }
+
+           .status-badge {
+             padding: 0.15rem 0.4rem;
+             font-size: 0.6rem;
+           }
+
+           .btn-review {
+             padding: 0.2rem 0.4rem;
+             font-size: 0.65rem;
+           }
+
+            .pagination-section {
+              padding: 0.5rem 0.75rem;
+            }
+
+            .pagination-pages-wrapper {
+              justify-content: flex-start;
+            }
+
+            .page-item button {
+              padding: 0.3rem 0.5rem;
+              font-size: 0.7rem;
+            }
+
+           .empty-icon {
+             font-size: 2rem;
+           }
+
+           .empty-text {
+             font-size: 0.85rem;
+           }
+         }
       `}</style>
     </>
   );

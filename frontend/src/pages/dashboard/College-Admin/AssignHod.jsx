@@ -2,6 +2,8 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaUserTie,
@@ -20,6 +22,17 @@ export default function AssignHod() {
   if (user.role !== "COLLEGE_ADMIN")
     return <Navigate to="/dashboard" />;
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   /* ================= STATE ================= */
   const [department, setDepartment] = useState(null);
   const [teachers, setTeachers] = useState([]);
@@ -30,32 +43,36 @@ export default function AssignHod() {
   const [error, setError] = useState("");
 
   /* ================= LOAD DATA ================= */
+  const fetchData = async () => {
+    try {
+      const deptRes = await api.get(`/departments/${departmentId}`);
+      const deptData = deptRes.data.department || deptRes.data;
+      setDepartment(deptData);
+
+      const teacherRes = await api.get("/teachers");
+      const teachersData = teacherRes.data.data || teacherRes.data || [];
+      const filtered = teachersData.filter(
+        (t) => t.department_id?._id === departmentId
+      );
+      setTeachers(filtered);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+        ? "Authentication error occurred."
+        : backendMessage || "Failed to load department or teachers";
+
+      logger.error("Error fetching assign HOD data:", statusCode, errorCode);
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Department
-        const deptRes = await api.get(`/departments/${departmentId}`);
-        // Handle both old format (direct object) and new format (wrapped in department key)
-        const deptData = deptRes.data.department || deptRes.data;
-        setDepartment(deptData);
-
-        // Teachers (same college)
-        const teacherRes = await api.get("/teachers");
-
-        // 🔧 Handle paginated response
-        const teachersData = teacherRes.data.data || teacherRes.data || [];
-
-        // Filter teachers only of this department
-        const filtered = teachersData.filter(
-          (t) => t.department_id?._id === departmentId
-        );
-
-        setTeachers(filtered);
-      } catch (err) {
-        setError("Failed to load department or teachers");
-      }
-    };
-
     fetchData();
   }, [departmentId]);
 
@@ -83,9 +100,20 @@ export default function AssignHod() {
         navigate("/departments");
       }, 1500);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to assign HOD"
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error assigning HOD:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        setError(
+          err.response?.data?.message || "Failed to assign HOD"
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -93,6 +121,16 @@ export default function AssignHod() {
 
   return (
     <div className="container-fluid">
+      {error && typeof error === 'object' && !loading && (
+        <ApiError
+          title="Assign HOD Error"
+          message={error.message}
+          statusCode={error.statusCode}
+          errorCode={error.errorCode}
+          onRetry={fetchData}
+          onGoBack={() => navigate(-1)}
+        />
+      )}
 
       {/* ================= HEADER ================= */}
       <div className="gradient-header mb-4 p-4 rounded-4 text-white">
@@ -106,7 +144,7 @@ export default function AssignHod() {
       </div>
 
       {/* ================= ALERTS ================= */}
-      {error && <div className="alert alert-danger">{error}</div>}
+      {error && typeof error === 'string' && <div className="alert alert-danger">{error}</div>}
 
       {success && (
         <div className="alert alert-success d-flex align-items-center gap-2">
@@ -133,10 +171,13 @@ export default function AssignHod() {
               </div>
               <div className="col-md-6">
                 <p><strong>Status:</strong> {department.status}</p>
-                <p>
-                  <strong>Current HOD:</strong>{" "}
-                  {department.hod_id ? "Assigned" : "Not Assigned"}
-                </p>
+<p>
+                   <strong>Current HOD:</strong>{" "}
+                   {department.hod_id ? (
+                     typeof department.hod_id === 'object' 
+                       ? `${department.hod_id.name} (${department.hod_id.email})` 
+                       : "Assigned") : "Not Assigned"}
+                 </p>
               </div>
             </div>
 

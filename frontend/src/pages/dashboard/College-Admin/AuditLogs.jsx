@@ -1,10 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
-import { toast } from "react-toastify";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
 
 import {
@@ -27,6 +28,7 @@ import {
   FaChartLine,
   FaShieldAlt,
   FaInfoCircle,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 // Theme colors matching the design system
@@ -60,18 +62,11 @@ const ACTION_MAP = {
     label: "Updated",
     border: "#3b82f6",
   },
-  DELETE: {
-    icon: FaTrash,
-    color: "#ef4444",
-    bg: "rgba(239, 68, 68, 0.1)",
-    label: "Deleted",
-    border: "#ef4444",
-  },
   APPROVE: {
     icon: FaCheckCircle,
     color: "#10b981",
     bg: "rgba(16, 185, 129, 0.1)",
-    label: "Approved",
+    label: "Enrolled",
     border: "#10b981",
   },
   REJECT: {
@@ -80,13 +75,6 @@ const ACTION_MAP = {
     bg: "rgba(239, 68, 68, 0.1)",
     label: "Rejected",
     border: "#ef4444",
-  },
-  BULK_APPROVE: {
-    icon: FaUsers,
-    color: "#10b981",
-    bg: "rgba(16, 185, 129, 0.1)",
-    label: "Bulk Approved",
-    border: "#10b981",
   },
   DEACTIVATE: {
     icon: FaTimesCircle,
@@ -124,18 +112,32 @@ const RESOURCE_MAP = {
   Department: { icon: FaFileAlt, label: "Department", color: "#ec4899" },
 };
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function AuditLogs() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     action: "",
     resourceType: "",
     startDate: "",
     endDate: "",
   });
+  const [dateError, setDateError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -143,12 +145,22 @@ export default function AuditLogs() {
 
   // Security check
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   // Fetch audit logs
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      setError(null);
+      setDateError("");
+
+      if (filters.startDate && filters.endDate && filters.startDate > filters.endDate) {
+        setDateError("End date cannot be earlier than start date");
+        setLoading(false);
+        return;
+      }
+
       const params = new URLSearchParams({
         page: currentPage,
         limit: 20,
@@ -162,17 +174,22 @@ export default function AuditLogs() {
 
       const res = await api.get(`/audit-logs?${params}`);
 
-      // API returns array directly, not wrapped in { success, data }
       const logsData = Array.isArray(res.data)
         ? res.data
         : res.data?.data || res.data?.logs || [];
 
       setLogs(Array.isArray(logsData) ? logsData : []);
       setPagination(res.data?.pagination || null);
-    } catch (error) {
-      console.error("Failed to fetch audit logs:", error);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Failed to fetch audit logs:", statusCode, errorCode);
       setLogs([]);
-      toast.error("Failed to load audit logs");
+      setError({
+        message: err.response?.data?.message || "Failed to load audit logs.",
+        statusCode,
+        errorCode,
+      });
     } finally {
       setLoading(false);
     }
@@ -182,10 +199,9 @@ export default function AuditLogs() {
   const fetchStats = async () => {
     try {
       const res = await api.get("/audit-logs/stats");
-      // API returns stats directly, not wrapped
       setStats(res.data?.data || res.data || null);
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
+    } catch (err) {
+      logger.error("Failed to fetch audit log stats:", err.response?.status);
     }
   };
 
@@ -273,7 +289,7 @@ export default function AuditLogs() {
 
     const cards = [
       {
-        title: "Last 24 Hours",
+        title: "Actions (Last 24 Hours)",
         value: stats.last24Hours || 0,
         icon: FaClock,
         color: "#3b82f6",
@@ -281,7 +297,7 @@ export default function AuditLogs() {
         border: "#3b82f6",
       },
       {
-        title: "Last 7 Days",
+        title: "Actions (Last 7 Days)",
         value: stats.last7Days || 0,
         icon: FaChartLine,
         color: "#10b981",
@@ -289,7 +305,7 @@ export default function AuditLogs() {
         border: "#10b981",
       },
       {
-        title: "Last 30 Days",
+        title: "Actions (Last 30 Days)",
         value: stats.last30Days || 0,
         icon: FaCalendarAlt,
         color: "#8b5cf6",
@@ -297,7 +313,7 @@ export default function AuditLogs() {
         border: "#8b5cf6",
       },
       {
-        title: "Total Actions",
+        title: "Total Log Entries",
         value:
           stats.actionsByType?.reduce((sum, item) => sum + item.count, 0) || 0,
         icon: FaClipboardList,
@@ -311,9 +327,9 @@ export default function AuditLogs() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "1rem",
-          marginBottom: "1.5rem",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "0.75rem",
+          marginBottom: "1rem",
         }}
       >
         {cards.map((card, index) => (
@@ -324,10 +340,10 @@ export default function AuditLogs() {
             transition={{ delay: index * 0.1, duration: 0.3 }}
             style={{
               background: "white",
-              borderRadius: "16px",
-              padding: "1.5rem",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
-              border: `2px solid ${card.border}20`,
+              borderRadius: "12px",
+              padding: "1rem",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+              border: `1px solid ${card.border}20`,
               position: "relative",
               overflow: "hidden",
             }}
@@ -337,8 +353,8 @@ export default function AuditLogs() {
                 position: "absolute",
                 top: 0,
                 right: 0,
-                width: "100px",
-                height: "100px",
+                width: "70px",
+                height: "70px",
                 background: card.bg,
                 borderRadius: "50%",
                 transform: "translate(30%, -30%)",
@@ -350,13 +366,13 @@ export default function AuditLogs() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginBottom: "0.75rem",
+                  marginBottom: "0.5rem",
                 }}
               >
                 <p
                   style={{
                     margin: 0,
-                    fontSize: "0.875rem",
+                    fontSize: "0.75rem",
                     fontWeight: "500",
                     color: THEME.text.secondary,
                   }}
@@ -365,9 +381,9 @@ export default function AuditLogs() {
                 </p>
                 <div
                   style={{
-                    width: "40px",
-                    height: "40px",
-                    borderRadius: "12px",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
                     background: card.bg,
                     display: "flex",
                     alignItems: "center",
@@ -376,17 +392,17 @@ export default function AuditLogs() {
                   }}
                 >
                   <card.icon
-                    style={{ fontSize: "1.25rem", color: card.color }}
+                    style={{ fontSize: "0.875rem", color: card.color }}
                   />
                 </div>
               </div>
               <h3
                 style={{
                   margin: 0,
-                  fontSize: "2.25rem",
-                  fontWeight: "bold",
+                  fontSize: "1.5rem",
+                  fontWeight: "700",
                   color: card.color,
-                  letterSpacing: "-0.02em",
+                  letterSpacing: "-0.01em",
                 }}
               >
                 {card.value.toLocaleString()}
@@ -679,6 +695,17 @@ export default function AuditLogs() {
     );
   };
 
+  if (error) {
+    return (
+      <ApiError
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchLogs}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
+
   return (
     <div
       style={{
@@ -812,6 +839,16 @@ export default function AuditLogs() {
         </div>
       </motion.div>
 
+      {/* Filters */}
+      {renderFilters()}
+
+      {dateError && (
+        <div className="alert alert-warning d-flex align-items-center mt-3" role="alert">
+          <FaExclamationTriangle className="me-2" size={18} />
+          <div>{dateError}</div>
+        </div>
+      )}
+
       {/* Stats Cards */}
       <AnimatePresence>
         {stats && (
@@ -825,10 +862,35 @@ export default function AuditLogs() {
         )}
       </AnimatePresence>
 
-      {/* Filters */}
-      {renderFilters()}
-
       {/* Audit Logs Table */}
+      <style>{`
+        .erp-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        .erp-table thead {
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+        }
+        .erp-table th {
+          padding: 0.875rem 1rem;
+          text-align: left;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: white;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .erp-table tbody tr {
+          transition: all 0.2s;
+        }
+        .erp-table tbody tr:hover {
+          background: #f0f9ff;
+        }
+        .erp-table td {
+          padding: 1rem;
+          border-bottom: 1px solid #e2e8f0;
+        }
+      `}</style>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -884,11 +946,10 @@ export default function AuditLogs() {
             </h3>
             <p
               style={{
-                margin: 0,
+                margin: "0 auto",
                 fontSize: "0.9375rem",
                 color: THEME.text.muted,
                 maxWidth: "400px",
-                margin: "0 auto",
               }}
             >
               Admin actions will appear here as you manage student data, fee
@@ -897,12 +958,12 @@ export default function AuditLogs() {
           </motion.div>
         ) : (
           <>
-            <div style={{ overflowX: "auto" }}>
+            <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
               <table
+                className="erp-table"
                 style={{
                   width: "100%",
-                  borderCollapse: "separate",
-                  borderSpacing: "0 0.5rem",
+                  borderCollapse: "collapse",
                   fontSize: "0.875rem",
                 }}
               >
@@ -911,8 +972,8 @@ export default function AuditLogs() {
                     <th
                       style={{
                         textAlign: "left",
-                        padding: "1rem",
-                        color: THEME.text.muted,
+                        padding: "0.875rem 1rem",
+                        color: "white",
                         fontWeight: "600",
                         fontSize: "0.75rem",
                         textTransform: "uppercase",
@@ -924,8 +985,8 @@ export default function AuditLogs() {
                     <th
                       style={{
                         textAlign: "left",
-                        padding: "1rem",
-                        color: THEME.text.muted,
+                        padding: "0.875rem 1rem",
+                        color: "white",
                         fontWeight: "600",
                         fontSize: "0.75rem",
                         textTransform: "uppercase",
@@ -937,8 +998,8 @@ export default function AuditLogs() {
                     <th
                       style={{
                         textAlign: "left",
-                        padding: "1rem",
-                        color: THEME.text.muted,
+                        padding: "0.875rem 1rem",
+                        color: "white",
                         fontWeight: "600",
                         fontSize: "0.75rem",
                         textTransform: "uppercase",
@@ -950,8 +1011,8 @@ export default function AuditLogs() {
                     <th
                       style={{
                         textAlign: "left",
-                        padding: "1rem",
-                        color: THEME.text.muted,
+                        padding: "0.875rem 1rem",
+                        color: "white",
                         fontWeight: "600",
                         fontSize: "0.75rem",
                         textTransform: "uppercase",
@@ -963,8 +1024,8 @@ export default function AuditLogs() {
                     <th
                       style={{
                         textAlign: "left",
-                        padding: "1rem",
-                        color: THEME.text.muted,
+                        padding: "0.875rem 1rem",
+                        color: "white",
                         fontWeight: "600",
                         fontSize: "0.75rem",
                         textTransform: "uppercase",
@@ -981,7 +1042,6 @@ export default function AuditLogs() {
                     const resourceConfig = getResourceConfig(log.resourceType);
                     const ActionIcon = actionConfig.icon;
                     const ResourceIcon = resourceConfig.icon;
-                    const isExpanded = expandedLog === log._id;
 
                     return (
                       <React.Fragment key={log._id}>
@@ -989,27 +1049,15 @@ export default function AuditLogs() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.05 }}
-                          style={{
-                            background: isExpanded ? "#f8fafc" : "white",
-                            transition: "all 0.2s",
-                          }}
+                          style={{ transition: "all 0.2s" }}
                           onClick={() =>
                             setExpandedLog(isExpanded ? null : log._id)
                           }
-                          onMouseEnter={(e) => {
-                            if (!isExpanded)
-                              e.currentTarget.style.background = "#f8fafc";
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!isExpanded)
-                              e.currentTarget.style.background = "white";
-                          }}
                         >
                           <td
                             style={{
                               padding: "1rem",
                               whiteSpace: "nowrap",
-                              borderRadius: "12px 0 0 12px",
                             }}
                           >
                             <div>

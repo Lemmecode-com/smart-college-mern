@@ -3,7 +3,10 @@ import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import { Badge } from "react-bootstrap";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaBookOpen,
@@ -27,16 +30,28 @@ export default function ViewCourse() {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copiedField, setCopiedField] = useState(null);
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH COURSE ================= */
   useEffect(() => {
@@ -45,7 +60,18 @@ export default function ViewCourse() {
         const res = await api.get(`/courses/${id}`);
         setCourse(res.data?.course || res.data);
       } catch (err) {
-        setError("Failed to load course details. Please try again.");
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage = backendMessage || "Failed to load course details. Please try again.";
+
+        logger.error("Error fetching course:", statusCode, errorCode);
+
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
       } finally {
         setLoading(false);
       }
@@ -60,25 +86,27 @@ export default function ViewCourse() {
   }
 
   /* ================= ERROR/NOT FOUND STATE ================= */
-  if (error || !course) {
+  if (error) {
     return (
-      <div className="view-course-page">
-        <div className="error-state">
-          <div className="error-state__icon">
-            <FaTimesCircle />
-          </div>
-          <h3 className="error-state__title">{error || "Course not found"}</h3>
-          <p className="error-state__message">
-            The course you're looking for doesn't exist or has been removed.
-          </p>
-          <button
-            className="btn btn--primary"
-            onClick={() => navigate('/courses')}
-          >
-            <FaArrowLeft /> Back to Courses
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Course Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchCourse}
+        onGoBack={() => navigate('/courses')}
+      />
+    );
+  }
+
+  if (!course) {
+    return (
+      <ApiError
+        title="Course Loading Error"
+        message="Course not found"
+        statusCode={404}
+        onGoBack={() => navigate('/courses')}
+      />
     );
   }
 
@@ -157,14 +185,16 @@ export default function ViewCourse() {
           </div>
 
           {/* RIGHT SECTION - Edit Course Button */}
-          <div className="page-header__right">
-            <button
-              className="btn btn--primary"
-              onClick={() => navigate(`/courses/edit/${course._id}`)}
-            >
-              <FaEdit /> Edit Course
-            </button>
-          </div>
+          {canEdit('courses') && (
+            <div className="page-header__right">
+              <button
+                className="btn btn--primary"
+                onClick={() => navigate(`/courses/edit/${course._id}`)}
+              >
+                <FaEdit /> Edit Course
+              </button>
+            </div>
+          )}
         </div>
       </header>
 

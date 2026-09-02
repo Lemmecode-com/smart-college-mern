@@ -7,53 +7,267 @@ import {
   FaWifi,
   FaInfoCircle,
   FaServer,
+  FaLock,
+  FaUserSlash,
+  FaCalendarAlt,
 } from "react-icons/fa";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 
 /**
- * ApiError - Reusable component for API error states
- * Displays a beautiful error UI with retry functionality
+ * Centralized error configuration.
  *
- * @param {string} title - Error title
- * @param {string} message - Error message
+ * The UI is determined exclusively from `errorCode` / `statusCode`.
+ * Each entry maps:
+ *   errorCode | statusCode  ->  { title, message, icon, color, variant, buttons }
+ *
+ * `buttons` is an ordered array of: "signIn" | "goBack" | "retry".
+ *
+ * Friendly messages only. Backend technical messages (err.message,
+ * Mongo/JWT/Axios errors, stack traces) are NEVER shown to end users.
+ * Developers keep full technical details via logger.js in the pages.
+ */
+const SESSION_BUTTONS = ["signIn"];
+
+const ERROR_CONFIG = {
+  // ----- Authentication / Session error codes -----
+  TOKEN_EXPIRED: {
+    title: "Session Expired",
+    message: "Your session has expired.\nPlease sign in again to continue.",
+    icon: FaLock,
+    color: "#0f3a4a",
+    variant: "session",
+    buttons: SESSION_BUTTONS,
+  },
+  TOKEN_MISSING: {
+    title: "Session Expired",
+    message: "Please sign in again.",
+    icon: FaLock,
+    color: "#0f3a4a",
+    variant: "session",
+    buttons: SESSION_BUTTONS,
+  },
+  INVALID_TOKEN: {
+    title: "Session Expired",
+    message: "Your session is no longer valid.\nPlease sign in again.",
+    icon: FaLock,
+    color: "#0f3a4a",
+    variant: "session",
+    buttons: SESSION_BUTTONS,
+  },
+  TOKEN_BLACKLISTED: {
+    title: "Session Expired",
+    message: "Your session has been invalidated.\nPlease sign in again.",
+    icon: FaLock,
+    color: "#0f3a4a",
+    variant: "session",
+    buttons: SESSION_BUTTONS,
+  },
+  TOKEN_INVALIDATED: {
+    title: "Session Expired",
+    message: "Your session has expired.\nPlease sign in again.",
+    icon: FaLock,
+    color: "#0f3a4a",
+    variant: "session",
+    buttons: SESSION_BUTTONS,
+  },
+  SESSION_INVALIDATED: {
+    title: "Session Expired",
+    message:
+      "Your session has expired.\nPlease sign in again.",
+    icon: FaLock,
+    color: "#0f3a4a",
+    variant: "session",
+    buttons: SESSION_BUTTONS,
+  },
+  SESSION_TERMINATED: {
+    title: "Session Terminated",
+    message:
+      "Your session was terminated because you logged in from another location.\nIf this wasn't you, please contact your administrator.",
+    icon: FaLock,
+    color: "#0f3a4a",
+    variant: "session",
+    buttons: SESSION_BUTTONS,
+  },
+  UNAUTHORIZED: {
+    title: "Session Expired",
+    message: "Please sign in to continue.",
+    icon: FaLock,
+    color: "#0f3a4a",
+    variant: "session",
+    buttons: SESSION_BUTTONS,
+  },
+  ACCOUNT_DEACTIVATED: {
+    title: "Account Deactivated",
+    message:
+      "Your account has been deactivated by your administrator.\nPlease contact your administrator.",
+    icon: FaUserSlash,
+    color: "#ef4444",
+    variant: "standard",
+    // No "signIn" button for deactivated accounts.
+    buttons: ["goBack"],
+  },
+  USER_NOT_FOUND: {
+    title: "Account Not Found",
+    message: "Your account could not be found.\nPlease contact your administrator.",
+    icon: FaUserSlash,
+    color: "#ef4444",
+    variant: "standard",
+    buttons: ["goBack"],
+  },
+  NETWORK_ERROR: {
+    title: "Connection Problem",
+    message: "Unable to connect to the server.\nCheck your internet connection.",
+    icon: FaWifi,
+    color: "#f59e0b",
+    variant: "standard",
+    buttons: ["retry"],
+  },
+
+  // ----- HTTP status codes -----
+  "403": {
+    title: "Access Denied",
+    message: "You don't have permission to access this page.",
+    icon: FaLock,
+    color: "#ef4444",
+    variant: "standard",
+    buttons: ["goBack"],
+  },
+  "404": {
+    title: "Page Not Found",
+    message: "The requested resource could not be found.",
+    icon: FaInfoCircle,
+    color: "#3b82f6",
+    variant: "standard",
+    buttons: ["goBack"],
+  },
+  "429": {
+    title: "Too Many Requests",
+    message: "Please wait before trying again.",
+    icon: FaClock,
+    color: "#f59e0b",
+    variant: "standard",
+    buttons: ["retry"],
+  },
+  "500": {
+    title: "Server Error",
+    message: "Something went wrong.\nPlease try again later.",
+    icon: FaServer,
+    color: "#ef4444",
+    variant: "standard",
+    buttons: ["retry"],
+  },
+};
+
+/**
+ * Resolve the friendly error configuration from the error identity.
+ *
+ * Priority:
+ *   1. errorCode (case-insensitive)
+ *   2. statusCode
+ *   3. Backward-compatible fallback to the explicit props passed by pages.
+ *
+ * When a mapping exists, the friendly title/message/buttons from the map
+ * are used and any technical `message`/`errorCode` supplied by the page
+ * is intentionally ignored (not displayed).
+ */
+const resolveError = ({ errorCode, statusCode, title, message }) => {
+  const codeKey = errorCode ? String(errorCode).toUpperCase() : null;
+  const statusKey = statusCode != null ? String(statusCode) : null;
+
+  const mapped =
+    (codeKey && ERROR_CONFIG[codeKey]) || (statusKey && ERROR_CONFIG[statusKey]);
+
+  if (mapped) {
+    return { ...mapped, isMapped: true };
+  }
+
+  // No mapping: preserve existing behavior for explicit props.
+  return {
+    title: title || "Loading Error",
+    message: message || "Something went wrong while loading the data",
+    icon: FaExclamationTriangle,
+    color: "#ef4444",
+    variant: "standard",
+    buttons: [],
+    isMapped: false,
+  };
+};
+
+/**
+ * ApiError - Reusable, centralized error component for NOVAA ERP.
+ *
+ * Displays a consistent, user-friendly error screen based on errorCode /
+ * statusCode. Technical backend messages are never rendered.
+ *
+ * @param {string} title - Fallback title (used only when no mapping exists)
+ * @param {string} message - Fallback message (used only when no mapping exists)
  * @param {number} statusCode - HTTP status code
+ * @param {string} errorCode - Backend error code (e.g., TOKEN_EXPIRED, UNAUTHORIZED)
  * @param {function} onRetry - Retry callback function
  * @param {function} onGoBack - Go back callback function
  * @param {number} retryCount - Current retry count
  * @param {number} maxRetry - Maximum retry attempts
  * @param {boolean} isRetryLoading - Loading state during retry
+ * @param {number} retryAfter - Seconds to wait before retry (rate limit)
  */
 export default function ApiError({
   title = "Loading Error",
   message = "Something went wrong while loading the data",
   statusCode,
+  errorCode,
   onRetry,
   onGoBack,
   retryCount = 0,
   maxRetry = 3,
   isRetryLoading = false,
+  retryAfter,
 }) {
   const [countdown, setCountdown] = useState(null);
 
-  // Check if error is rate limit (429)
-  const isRateLimit = statusCode === 429 || message.toLowerCase().includes("too many requests");
+  const config = resolveError({ errorCode, statusCode, title, message });
+  const { icon: ErrorIcon, color, variant, buttons, isMapped } = config;
 
-  // Extract wait time from message if available (e.g., "try again after 15 minutes")
-  useEffect(() => {
-    if (isRateLimit) {
-      const timeMatch = message.match(/(\d+)\s*(minute|minutes|min)/i);
-      if (timeMatch) {
-        const minutes = parseInt(timeMatch[1], 10);
-        setCountdown(minutes * 60); // Convert to seconds
+  // Determine which buttons to render.
+  let showSignIn = buttons.includes("signIn");
+  let showGoBack = buttons.includes("goBack");
+  let showRetry = buttons.includes("retry");
 
-        const timer = setInterval(() => {
-          setCountdown((prev) => (prev > 0 ? prev - 1 : null));
-        }, 1000);
+  if (!isMapped) {
+    // Backward-compatible: derive from provided callbacks.
+    showGoBack = !!onGoBack;
+    showRetry = !!onRetry;
+  }
 
-        return () => clearInterval(timer);
-      }
+  const handleSignIn = () => {
+    window.location.href = "/login";
+  };
+
+  const handleSessionGoBack = () => {
+    if (onGoBack) {
+      onGoBack();
+      return;
     }
-  }, [isRateLimit, message]);
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.href = "/login";
+    }
+  };
+
+  const handleGoBack = onGoBack || handleSessionGoBack;
+  const handleRetry = onRetry || (() => window.location.reload());
+
+  // Rate limit countdown (429) - derived from `retryAfter` seconds.
+  useEffect(() => {
+    if (statusCode === 429 && retryAfter) {
+      setCountdown(Number(retryAfter));
+      const timer = setInterval(() => {
+        setCountdown((prev) => (prev > 0 ? prev - 1 : null));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+    setCountdown(null);
+  }, [statusCode, retryAfter]);
 
   // Format countdown time
   const formatCountdown = (seconds) => {
@@ -62,30 +276,131 @@ export default function ApiError({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Get appropriate icon based on error type
-  const getErrorIcon = () => {
-    if (statusCode === 401) return FaServer;
-    if (statusCode === 403) return FaExclamationTriangle;
-    if (statusCode === 404) return FaWifi;
-    if (statusCode === 429 || isRateLimit) return FaClock;
-    if (statusCode >= 500) return FaServer;
-    return FaExclamationTriangle;
-  };
+  // Render friendly multi-line message.
+  const renderMessage = (text) =>
+    String(text)
+      .split("\n")
+      .map((line, i) => (
+        <span key={i}>
+          {line}
+          {i < String(text).split("\n").length - 1 && <br />}
+        </span>
+      ));
 
-  const ErrorIcon = getErrorIcon();
+  // ----- Session (auth) variant -----
+  if (variant === "session") {
+    return (
+      <Motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="api-error-container"
+        style={styles.container}
+      >
+        <div style={styles.sessionCard}>
+          <Motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, type: "spring", damping: 12 }}
+            style={styles.sessionIconWrapper}
+          >
+            <FaLock size={72} color="#0f3a4a" />
+          </Motion.div>
 
-  // Get color based on error type
-  const getIconColor = () => {
-    if (statusCode === 401) return "#f59e0b";
-    if (statusCode === 403) return "#ef4444";
-    if (statusCode === 404) return "#3b82f6";
-    if (statusCode === 429 || isRateLimit) return "#f59e0b";
-    if (statusCode >= 500) return "#ef4444";
-    return "#ef4444";
-  };
+          <Motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            style={styles.sessionTitle}
+          >
+            {config.title}
+          </Motion.h1>
 
+          <Motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            style={styles.sessionMessage}
+          >
+            {renderMessage(config.message)}
+          </Motion.p>
+
+          <Motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            style={styles.sessionActions}
+          >
+            {showSignIn && (
+              <button
+                onClick={handleSignIn}
+                style={{
+                  ...styles.button,
+                  ...styles.buttonPrimary,
+                  ...styles.buttonSignIn,
+                }}
+                onMouseOver={(e) => {
+                  e.target.style.background =
+                    "linear-gradient(135deg, #0c4a6e, #0f3a4a)";
+                  e.target.style.boxShadow =
+                    "0 6px 20px rgba(15, 58, 74, 0.4)";
+                  e.target.style.transform = "translateY(-2px)";
+                }}
+                onMouseOut={(e) => {
+                  e.target.style.background =
+                    "linear-gradient(135deg, #0f3a4a, #3db5e6)";
+                  e.target.style.boxShadow =
+                    "0 4px 12px rgba(15, 58, 74, 0.3)";
+                  e.target.style.transform = "translateY(0)";
+                }}
+              >
+                Sign In
+              </button>
+            )}
+
+            {showGoBack && (
+              <button
+                onClick={handleGoBack}
+                style={{
+                  ...styles.button,
+                  ...styles.buttonOutline,
+                }}
+                onMouseOver={(e) => {
+                  if (!isRetryLoading) {
+                    e.target.style.background = "#f1f5f9";
+                    e.target.style.transform = "translateY(-2px)";
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (!isRetryLoading) {
+                    e.target.style.background = "transparent";
+                    e.target.style.transform = "translateY(0)";
+                  }
+                }}
+              >
+                <FaArrowLeft size={14} style={{ marginRight: "8px" }} />
+                Go Back
+              </button>
+            )}
+          </Motion.div>
+        </div>
+
+        <style>{`
+          .api-error-container {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+          }
+        `}</style>
+      </Motion.div>
+    );
+  }
+
+  // ----- Standard variant -----
   return (
-    <motion.div
+    <Motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
@@ -93,46 +408,42 @@ export default function ApiError({
       style={styles.container}
     >
       <div style={styles.content}>
-        {/* Animated Icon */}
-        <motion.div
+        <Motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.1, type: "spring", damping: 12 }}
-          style={{ ...styles.iconWrapper, borderColor: getIconColor() }}
+          style={{ ...styles.iconWrapper, borderColor: color }}
         >
-          <ErrorIcon size={48} color={getIconColor()} />
-          {isRateLimit && (
-            <motion.div
+          <ErrorIcon size={48} color={color} />
+          {statusCode === 429 && (
+            <Motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
               style={styles.ring}
             />
           )}
-        </motion.div>
+        </Motion.div>
 
-        {/* Title */}
-        <motion.h1
+        <Motion.h1
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
           style={styles.title}
         >
-          {title}
-        </motion.h1>
+          {config.title}
+        </Motion.h1>
 
-        {/* Message */}
-        <motion.p
+        <Motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           style={styles.message}
         >
-          {message}
-        </motion.p>
+          {renderMessage(config.message)}
+        </Motion.p>
 
-        {/* Rate Limit Countdown */}
-        {isRateLimit && countdown !== null && (
-          <motion.div
+        {statusCode === 429 && countdown !== null && (
+          <Motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4 }}
@@ -140,12 +451,11 @@ export default function ApiError({
           >
             <FaClock size={20} color="#f59e0b" />
             <span>Wait time: {formatCountdown(countdown)}</span>
-          </motion.div>
+          </Motion.div>
         )}
 
-        {/* Retry Status */}
-        {onRetry && retryCount > 0 && (
-          <motion.div
+        {showRetry && onRetry && retryCount > 0 && (
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
@@ -155,19 +465,18 @@ export default function ApiError({
             <span>
               Attempt {retryCount} of {maxRetry}
             </span>
-          </motion.div>
+          </Motion.div>
         )}
 
-        {/* Action Buttons */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
           style={styles.actions}
         >
-          {onGoBack && (
+          {showGoBack && (
             <button
-              onClick={onGoBack}
+              onClick={handleGoBack}
               disabled={isRetryLoading}
               style={{
                 ...styles.button,
@@ -192,9 +501,9 @@ export default function ApiError({
             </button>
           )}
 
-          {onRetry && (
+          {showRetry && (
             <button
-              onClick={onRetry}
+              onClick={handleRetry}
               disabled={isRetryLoading || (countdown !== null && countdown > 0)}
               style={{
                 ...styles.button,
@@ -224,7 +533,7 @@ export default function ApiError({
             >
               {isRetryLoading ? (
                 <>
-                  <motion.span
+                  <Motion.span
                     animate={{ rotate: 360 }}
                     transition={{
                       duration: 1,
@@ -250,11 +559,10 @@ export default function ApiError({
               )}
             </button>
           )}
-        </motion.div>
+        </Motion.div>
 
-        {/* Additional Info */}
-        {statusCode && (
-          <motion.div
+        {isMapped === false && statusCode && (
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
@@ -262,7 +570,7 @@ export default function ApiError({
           >
             <FaInfoCircle size={12} />
             <span>Error Code: {statusCode}</span>
-          </motion.div>
+          </Motion.div>
         )}
       </div>
 
@@ -296,7 +604,7 @@ export default function ApiError({
           border: 1px solid rgba(0, 0, 0, 0.05);
         }
       `}</style>
-    </motion.div>
+    </Motion.div>
   );
 }
 
@@ -321,6 +629,7 @@ const styles = {
     borderStyle: "solid",
     position: "relative",
     boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
+    borderColor: "#f59e0b",
   },
   ring: {
     position: "absolute",
@@ -408,5 +717,53 @@ const styles = {
     color: "#94a3b8",
     fontSize: "0.75rem",
     fontWeight: "500",
+  },
+  sessionCard: {
+    textAlign: "center",
+    maxWidth: "520px",
+    width: "100%",
+    background: "white",
+    padding: "3.5rem 2.5rem",
+    borderRadius: "24px",
+    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.08)",
+    border: "1px solid rgba(0, 0, 0, 0.05)",
+  },
+  sessionIconWrapper: {
+    width: "120px",
+    height: "120px",
+    margin: "0 auto 1.5rem",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "linear-gradient(135deg, #f0f9ff, #e0f2fe)",
+    border: "3px solid #e0f2fe",
+    boxShadow: "0 8px 30px rgba(15, 58, 74, 0.15)",
+  },
+  sessionTitle: {
+    fontSize: "2rem",
+    fontWeight: "700",
+    color: "#0f172a",
+    marginBottom: "0.75rem",
+    lineHeight: "1.3",
+  },
+  sessionMessage: {
+    color: "#64748b",
+    fontSize: "1.05rem",
+    lineHeight: "1.7",
+    marginBottom: "2rem",
+    maxWidth: "480px",
+    marginLeft: "auto",
+    marginRight: "auto",
+  },
+  sessionActions: {
+    display: "flex",
+    gap: "1rem",
+    justifyContent: "center",
+    flexWrap: "wrap",
+  },
+  buttonSignIn: {
+    minWidth: "140px",
+    justifyContent: "center",
   },
 };
