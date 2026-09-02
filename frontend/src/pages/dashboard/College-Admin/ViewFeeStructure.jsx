@@ -6,6 +6,9 @@ import { exportToPDF, exportToExcel } from "../../../utils/exportHelpers";
 import { toast } from "react-toastify";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaMoneyBillWave,
   FaLayerGroup,
@@ -308,7 +311,7 @@ function InstallmentTable({ installments, totalFee, calculatedSum }) {
               const isOverdue = relativeTime.type === 'overdue';
               
               return (
-                <tr key={installment._id || index} className={isOverdue ? 'row-overdue' : ''}>
+                <tr key={installment._id || installment.name || `installment-${index}`} className={isOverdue ? 'row-overdue' : ''}>
                   <td className="cell-index">{index + 1}</td>
                   <td className="cell-name">{installment.name}</td>
                   <td className="cell-amount text-end">{formatCurrency(installment.amount)}</td>
@@ -351,7 +354,7 @@ function InstallmentTable({ installments, totalFee, calculatedSum }) {
           const isOverdue = getRelativeTime(installment.dueDate).type === 'overdue';
           return (
             <InstallmentCard
-              key={installment._id || index}
+              key={installment._id || installment.name || `installment-card-${index}`}
               installment={installment}
               index={index}
               isOverdue={isOverdue}
@@ -417,13 +420,24 @@ export default function ViewFeeStructure() {
 
   const [fee, setFee] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [exporting, setExporting] = useState(false);
   const [validationWarning, setValidationWarning] = useState(null);
 
-  /* ================= SECURITY & VALIDATION ================= */
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== USER_ROLES.COLLEGE_ADMIN) return <Navigate to="/dashboard" replace />;
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
+   /* ================= SECURITY & VALIDATION ================= */
+   if (!user) return <Navigate to="/login" replace />;
+    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "PRINCIPAL") return <Navigate to="/dashboard" replace />;
 
   const isIdValid = useMemo(() => {
     if (!id) return false;
@@ -433,14 +447,14 @@ export default function ViewFeeStructure() {
   /* ================= LOAD STRUCTURE ================= */
   const loadFeeStructure = useCallback(async () => {
     if (!isIdValid) {
-      setError(ERROR_MESSAGES.INVALID_ID);
+      setError({ message: ERROR_MESSAGES.INVALID_ID, statusCode: 400 });
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get(`/fees/structure/${id}`);
       const feeData = res.data.feeStructure || res.data;
       setFee(feeData);
@@ -461,9 +475,18 @@ export default function ViewFeeStructure() {
         }
       }
     } catch (err) {
-      const status = err.response?.status;
-      const specificError = HTTP_ERROR_MAP[status] || ERROR_MESSAGES.LOAD_FAILED;
-      setError(specificError);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const specificError = backendMessage || HTTP_ERROR_MAP[statusCode] || ERROR_MESSAGES.LOAD_FAILED;
+
+      logger.error("Error loading fee structure:", statusCode, errorCode);
+
+      setError({
+        message: specificError,
+        statusCode,
+        errorCode,
+      });
     } finally {
       setLoading(false);
     }
@@ -572,7 +595,15 @@ export default function ViewFeeStructure() {
   }
 
   if (error && !fee) {
-    return <ErrorDisplay error={error} onRetry={loadFeeStructure} />;
+    return (
+      <ApiError
+        title="Fee Structure Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={loadFeeStructure}
+      />
+    );
   }
 
   if (!fee) {
@@ -1061,82 +1092,74 @@ export default function ViewFeeStructure() {
           }
         }
         
-        /* ================= STATS GRID ================= */
-        .stats-grid-enterprise {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 2rem;
-        }
-        
-        @media (max-width: 1200px) {
-          .stats-grid-enterprise {
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          }
-        }
-        
-        .stat-card-enterprise {
-          background: #ffffff;
-          border-radius: 16px;
-          overflow: hidden;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-          border: 1px solid rgba(0, 0, 0, 0.04);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .stat-card-enterprise:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-        }
-        
-        .stat-card-body {
-          padding: 1.5rem;
-          display: flex;
-          gap: 1rem;
-        }
-        
-        .stat-card-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.5rem;
-          flex-shrink: 0;
-          transition: all 0.3s ease;
-        }
-        
-        .stat-card-enterprise:hover .stat-card-icon {
-          transform: scale(1.1);
-        }
-        
-        .stat-card-content {
-          flex: 1;
-          min-width: 0;
-          overflow: hidden;
-        }
+         /* ================= STATS GRID ================= */
+         .stats-grid-enterprise {
+           display: grid;
+           grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+           gap: 1rem;
+           margin-bottom: 2rem;
+         }
+         
+         .stat-card-enterprise {
+           background: #ffffff;
+           border-radius: 12px;
+           overflow: hidden;
+           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+           border: 1px solid rgba(0, 0, 0, 0.04);
+           transition: all 0.3s ease;
+         }
+         
+         .stat-card-enterprise:hover {
+           transform: translateY(-2px);
+           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+         }
+         
+         .stat-card-body {
+           padding: 1rem;
+           display: flex;
+           gap: 0.75rem;
+           align-items: center;
+         }
+         
+         .stat-card-icon {
+           width: 32px;
+           height: 32px;
+           border-radius: 6px;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-size: 0.85rem;
+           flex-shrink: 0;
+           transition: all 0.3s ease;
+         }
+         
+         .stat-card-enterprise:hover .stat-card-icon {
+           transform: scale(1.05);
+         }
+         
+         .stat-card-content {
+           flex: 1;
+           min-width: 0;
+           overflow: hidden;
+         }
 
-        .stat-card-label {
-          font-size: 0.8125rem;
-          color: #6b7280;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 0.5rem;
-          white-space: nowrap;
-        }
+         .stat-card-label {
+           font-size: 0.75rem;
+           color: #6b7280;
+           font-weight: 600;
+           margin-bottom: 0.25rem;
+           line-height: 1.2;
+           white-space: nowrap;
+         }
 
-        .stat-card-value {
-          font-size: 1.125rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          margin-bottom: 0.25rem;
-          line-height: 1.3;
-          word-wrap: break-word;
-          overflow-wrap: break-word;
-          hyphens: auto;
-        }
+         .stat-card-value {
+           font-size: 1.25rem;
+           font-weight: 700;
+           line-height: 1.2;
+           white-space: nowrap;
+           overflow: hidden;
+           text-overflow: ellipsis;
+         }
 
         .stat-card-sub {
           font-size: 0.8125rem;

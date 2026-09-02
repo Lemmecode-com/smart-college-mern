@@ -33,7 +33,7 @@
   --navbar-info: #17a2b8;
 
   /* Spacing */
-  --navbar-height: 64px;
+  --navbar-height: var(--erp-navbar-height);
   --navbar-padding-x: 1.5rem;
   --navbar-item-gap: 1rem;
 
@@ -60,21 +60,60 @@
   background: var(--navbar-bg-gradient) !important;
 }
 
-/* Navbar fluid container */
+/* Navbar fluid container — THE shared Navbar row.
+   Overrides Bootstrap's `.navbar > .container-fluid { flex-wrap: inherit }`
+   (which inherits `.navbar { flex-wrap: wrap }`) so the single Navbar row
+   NEVER breaks into multiple lines on any mobile viewport. */
 .navbar-fluid-container {
   padding-left: var(--navbar-padding-x) !important;
   padding-right: var(--navbar-padding-x) !important;
   max-width: 100%;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center;
+  height: 100%;
+  box-sizing: border-box;
 }
 
-/* Mobile responsive */
-@media (max-width: 575.98px) {
-  .navbar {
-    min-height: 56px;
+/* Mobile responsive — mobile breakpoint mirrors Layout.css (767.98px) so the
+   Navbar height token always matches the layout content offset. */
+@media (max-width: 767.98px) {
+  .navbar.bg-dark-navbar {
+    /* Canonical mobile height: definite height + max-height cap guarantees
+       the row can NEVER grow to 88px / two rows. Fixed layout preserved. */
+    height: var(--erp-navbar-height-mobile);
+    min-height: var(--erp-navbar-height-mobile);
+    max-height: var(--erp-navbar-height-mobile);
+    padding: 0 !important;
+    box-sizing: border-box;
   }
   .navbar-fluid-container {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    height: 100%;
+    padding-left: calc(1rem + var(--erp-safe-left)) !important;
+    padding-right: calc(1rem + var(--erp-safe-right)) !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  .navbar-left-group {
+    gap: 0.25rem !important;
+    flex-wrap: nowrap;
+  }
+  .navbar-right-group {
+    gap: 0.5rem !important;
+    flex-wrap: nowrap;
+  }
+  .nav-items-gap {
+    gap: 0.5rem !important;
+    flex-wrap: nowrap;
+  }
+  .navbar-icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .navbar-toggler {
+    flex: 0 0 auto;
+    flex-shrink: 0;
   }
 }
 
@@ -100,9 +139,70 @@
   }
 }
 
-/* ================= NAV ITEMS GAP ================= */
+/* ================= NAVBAR LEFT GROUP (FLEXIBLE AREA) ================= */
+.navbar-left-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+/* ================= NAVBAR RIGHT ACTION GROUP (FIXED RIGHT AREA) ================= */
+.navbar-right-group {
+  margin-left: auto;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  display: flex;
+  gap: var(--navbar-item-gap);
+  flex-wrap: nowrap;
+}
+
+/* ================= COLLEGE BRAND NAME ================= */
+.navbar-brand {
+  font-weight: 700;
+  color: var(--navbar-text-light) !important;
+  font-size: 1.25rem;
+  letter-spacing: -0.025em;
+  transition: var(--navbar-transition);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.navbar-brand:hover {
+  color: var(--navbar-primary) !important;
+  transform: translateX(-2px);
+}
+
+@media (max-width: 767.98px) {
+  .navbar-brand {
+    font-size: 1rem;
+  }
+}
+
+/* ================= COLLEGE NAME TRUNCATION ================= */
+.navbar-left-group .navbar-brand {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  margin-right: 0;
+  padding: 0;
+}
+
+/* ================= NAV ITEMS GAP (RIGHT ACTION GROUP) ================= */
 .nav-items-gap {
   gap: var(--navbar-item-gap) !important;
+  flex-shrink: 0;
+  flex: 0 0 auto;
+  margin-left: auto;
+  flex-wrap: nowrap;
 }
 
 /* ================= ICON BUTTONS (Bell, Profile) ================= */
@@ -241,17 +341,17 @@
     Arial, sans-serif;
 }
 
-/* Profile Dropdown Specific Positioning */
+/* Profile Dropdown - viewport-safe positioning */
 .profile-dropdown {
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  right: 0 !important;
-  left: auto !important;
-  width: 280px;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: auto;
+  width: min(280px, calc(100vw - 2.5rem));
   max-height: 420px;
   overflow-y: auto;
   overflow-x: hidden;
-  transform: none !important;
+  transform: none;
   will-change: transform;
   background: #ffffff;
   backdrop-filter: blur(8px);
@@ -260,18 +360,18 @@
     Arial, sans-serif;
 }
 
-/* Notification Dropdown Specific Positioning */
+/* Notification Dropdown - viewport-safe positioning */
 .notification-dropdown {
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  right: 0 !important;
-  left: auto !important;
-  width: 350px;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  left: auto;
+  width: min(350px, calc(100vw - 2.5rem));
   max-height: 450px;
   overflow-y: auto;
   overflow-x: hidden;
-  transform: none !important;
-  z-index: 1040 !important;
+  transform: none;
+  z-index: 1040;
   background: #ffffff;
   backdrop-filter: blur(8px);
   font-family:
@@ -281,14 +381,14 @@
 
 @media (max-width: 575.98px) {
   .profile-dropdown {
-    right: -10px !important;
-    width: 260px;
+    right: 0;
+    width: min(260px, calc(100vw - 2rem));
     max-height: 380px;
   }
 
   .notification-dropdown {
-    right: -20px !important;
-    width: 300px;
+    right: 0;
+    width: min(300px, calc(100vw - 2rem));
   }
 }
 
@@ -360,22 +460,7 @@
   text-align: center;
 }
 
-/* ================= NOTIFICATION DROPDOWN ================= */
-.notification-dropdown {
-  width: 350px;
-  max-height: 450px;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-@media (max-width: 575.98px) {
-  .notification-dropdown {
-    width: 300px;
-    max-height: 400px;
-  }
-}
-
-/* Notification Card */
+/* ================= NOTIFICATION CARD ================= */
 .notification-card {
   background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
   border: 1px solid var(--navbar-border);
@@ -497,18 +582,7 @@
   scrollbar-color: var(--navbar-primary) #f8fafc;
 }
 
-/* ================= PROFILE DROPDOWN ================= */
-.profile-dropdown {
-  width: 280px;
-  max-height: 420px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
-}
-
-/* Profile Header - Compact Enterprise SaaS Layout */
+/* ================= PROFILE HEADER ================= */
 .profile-header {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   padding: 0.875rem 1rem;

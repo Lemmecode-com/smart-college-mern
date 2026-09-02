@@ -2,6 +2,8 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaBookOpen,
@@ -22,6 +24,17 @@ import {
 export default function AddCourse() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
@@ -142,6 +155,12 @@ export default function AddCourse() {
       return;
     }
 
+    const maxStudentsNum = Number(formData.maxStudents);
+    if (!Number.isInteger(maxStudentsNum) || maxStudentsNum <= 0) {
+      setError("Maximum Students must be greater than 0");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -164,10 +183,25 @@ export default function AddCourse() {
         navigate("/courses");
       }, 1500);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        "Failed to create course. Please try again."
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const errorMessage = err.response?.data?.message;
+      
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error creating course:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else if (errorCode === "DUPLICATE_COURSE_CODE") {
+        setError("duplicate course code");
+      } else {
+        setError(
+          errorMessage ||
+          "Failed to create course. Please try again."
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -187,6 +221,15 @@ export default function AddCourse() {
 
   return (
     <div className="container-fluid py-4">
+      {error && typeof error === 'object' && !loading && (
+        <ApiError
+          title="Course Creation Error"
+          message={error.message}
+          statusCode={error.statusCode}
+          errorCode={error.errorCode}
+          onGoBack={() => navigate(-1)}
+        />
+      )}
       {/* HEADER */}
       <div className="header-section mb-4">
         <div className="d-flex align-items-center justify-content-between">
@@ -199,19 +242,19 @@ export default function AddCourse() {
               Create and manage academic courses
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-outline-light btn-sm"
-            onClick={() => navigate("/courses")}
-          >
-            <FaArrowLeft className="me-1" />
-            Back to Courses
-          </button>
+            <button
+              type="button"
+              className="btn btn-outline-light d-flex align-items-center gap-2 px-3 py-2 hover-lift"
+              onClick={() => navigate("/courses")}
+            >
+              <FaArrowLeft className="me-1" />
+              Back to Courses
+            </button>
         </div>
       </div>
 
       {/* ALERTS */}
-      {error && (
+      {error && typeof error === 'string' && (
         <div className="alert alert-danger alert-dismissible fade show animate-alert" role="alert">
           <div className="d-flex align-items-center">
             <FaExclamationTriangle className="me-2" size={20} />
@@ -232,7 +275,7 @@ export default function AddCourse() {
 
       {/* FORM CARD */}
       <div className="form-container">
-        <form onSubmit={handleSubmit} className="form-wrapper">
+        <form onSubmit={handleSubmit} className="form-wrapper" noValidate>
           <div className="form-header">
             <h5 className="mb-0">
               <FaGraduationCap className="me-2 text-primary" />
@@ -679,6 +722,11 @@ export default function AddCourse() {
         .btn-secondary:hover {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .hover-lift:hover { animation: lift 0.3s ease forwards; }
+        @keyframes lift {
+          to { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); }
         }
 
         /* RESPONSIVE */

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/validators");
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -10,13 +11,24 @@ const notificationSchema = new mongoose.Schema(
 
     createdByRole: {
       type: String,
-      enum: ["COLLEGE_ADMIN", "TEACHER"],
+      enum: ["COLLEGE_ADMIN", "TEACHER", "HOD"],
       required: true,
     },
 
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
+    },
+
+    // Department scope of the creator.
+    // Set ONLY for HOD-created notifications (from the authenticated HOD's
+    // resolved department). Never accepted from the client. Used by the
+    // visibility service to enforce HOD department isolation. Optional for
+    // backward-compatibility with existing COLLEGE_ADMIN/TEACHER notifications.
+    createdByDepartment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      default: null,
     },
 
     // 📢 Notification Content
@@ -46,10 +58,17 @@ const notificationSchema = new mongoose.Schema(
       default: "GENERAL",
     },
 
+    // Priority level for notifications
+    priority: {
+      type: String,
+      enum: ["LOW", "NORMAL", "MEDIUM", "HIGH", "URGENT"],
+      default: "NORMAL",
+    },
+
     // 🎯 Target audience (enhanced for granular targeting - FIX: Issue #7)
     target: {
       type: String,
-      enum: ["ALL", "STUDENTS", "TEACHERS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"],
+      enum: ["ALL", "STUDENTS", "TEACHERS", "HOD", "PARENTS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"],
       required: true,
       default: "ALL",
     },
@@ -82,7 +101,16 @@ const notificationSchema = new mongoose.Schema(
 
     // Optional metadata
     actionUrl: String, // frontend redirect
-    expiresAt: Date,
+    expiresAt: {
+      type: Date,
+      validate: {
+        validator: function (value) {
+          if (!value) return true;
+          return validateExpiryDate(value);
+        },
+        message: props => `${props.value} is not a valid expiry date. ${expiryDateValidatorMessage}`
+      }
+    },
 
     isActive: {
       type: Boolean,
@@ -104,10 +132,33 @@ notificationSchema.index({ college_id: 1, isActive: 1 }); // Active notification
 notificationSchema.index({ target: 1, type: 1 }); // Target and type filtering
 // New indexes for granular targeting
 notificationSchema.index({ college_id: 1, target_department: 1 }); // Department targeting
+// Department scope of the HOD creator (for HOD department-isolation scoping)
+notificationSchema.index({ college_id: 1, createdByRole: 1, createdByDepartment: 1 }); // HOD department scoping
 notificationSchema.index({ college_id: 1, target_course: 1 }); // Course targeting
 notificationSchema.index({ college_id: 1, target_semester: 1 }); // Semester targeting
 // Optimized compound index for dashboard queries
 notificationSchema.index({ college_id: 1, target: 1, isActive: 1 }); // Exact match for dashboard
 notificationSchema.index({ college_id: 1, isActive: 1, createdAt: -1 }); // Active notifications sorted
+// Index for INDIVIDUAL targeting
+notificationSchema.index({ college_id: 1, target_users: 1 }); // Individual user targeting
+// Unique index to prevent duplicate notifications for same workflow action
+notificationSchema.index(
+  {
+    college_id: 1,
+    createdByRole: 1,
+    target: 1,
+    target_users: 1,
+    title: 1,
+    createdAt: 1
+  },
+  {
+    name: "idx_notification_dedupe",
+    unique: true,
+    partialFilterExpression: {
+      target: "INDIVIDUAL",
+      isActive: true
+    }
+  }
+);
 
 module.exports = mongoose.model("Notification", notificationSchema);

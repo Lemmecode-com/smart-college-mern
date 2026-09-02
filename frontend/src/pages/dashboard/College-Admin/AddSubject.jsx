@@ -3,6 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaBookOpen,
@@ -94,6 +96,17 @@ export default function AddSubject() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
@@ -151,9 +164,10 @@ export default function AddSubject() {
           `/courses/department/${formData.department_id}`,
         );
         // Ensure courses is always an array
-        const coursesData = Array.isArray(res.data)
+        const coursesData = (Array.isArray(res.data)
           ? res.data
-          : res.data?.courses || [];
+          : res.data?.courses || [])
+          .filter((c) => c.status === "ACTIVE");
         setCourses(coursesData);
       } catch (err) {
         setCourses([]);
@@ -329,23 +343,26 @@ export default function AddSubject() {
         navigate(`/subjects/course/${courseId}`);
       }, 2000);
     } catch (err) {
-      let errorMessage = "Failed to create subject. Please try again.";
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error creating subject:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        const backendMessage = err.response?.data?.error?.message || err.response?.data?.message;
 
-      if (err.response) {
-        if (err.response.status === 500) {
+        let errorMessage = backendMessage || "Failed to create subject. Please try again.";
+
+        if (!backendMessage && err.response?.status === 500) {
           errorMessage = "Server error. Please contact system administrator.";
-        } else if (err.response.status === 400) {
-          errorMessage =
-            err.response.data?.message ||
-            "Invalid data submitted. Please check all fields.";
-        } else if (err.response.status === 409) {
-          errorMessage = "Subject with this code already exists.";
-        } else if (err.response.data?.message) {
-          errorMessage = err.response.data.message;
         }
-      }
 
-      setError(errorMessage);
+        setError(errorMessage);
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
@@ -358,8 +375,8 @@ export default function AddSubject() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        className="erp-page erp-viewport-min-100"
         style={{
-          minHeight: "100vh",
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
           paddingTop: "1.5rem",
           paddingBottom: "2rem",
@@ -368,6 +385,15 @@ export default function AddSubject() {
         }}
       >
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+          {error && typeof error === 'object' && !loading && (
+            <ApiError
+              title="Subject Creation Error"
+              message={error.message}
+              statusCode={error.statusCode}
+              errorCode={error.errorCode}
+              onGoBack={() => navigate(-1)}
+            />
+          )}
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -481,7 +507,7 @@ export default function AddSubject() {
           </motion.div>
 
           {/* ================= ALERTS ================= */}
-          {error && (
+          {error && typeof error === 'string' && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -658,8 +684,8 @@ export default function AddSubject() {
                       <div className="col-12 col-md-6 col-lg-4">
                         <FormField
                           icon={<FaChalkboardTeacher />}
-                          label="Teacher (Optional)"
-                          helperText="Assign a teacher now or later"
+                          label="Teacher"
+                          helperText="Assign a teacher"
                         >
                           <select
                             name="teacher_id"
@@ -668,7 +694,7 @@ export default function AddSubject() {
                             className="form-control"
                             disabled={!formData.course_id}
                           >
-                            <option value="">Select teacher (optional)</option>
+                            <option value="">Select teacher</option>
                             {Array.isArray(teachers) &&
                               teachers.map((teacher) => (
                                 <option key={teacher._id} value={teacher._id}>

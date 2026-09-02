@@ -3,6 +3,8 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaMoneyBillWave,
@@ -37,9 +39,20 @@ export default function EditFeeStructure() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+   /* ================= SECURITY ================= */
+   if (!user) return <Navigate to="/login" />;
+   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
+
+   const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= LOAD ================= */
   useEffect(() => {
@@ -53,7 +66,6 @@ export default function EditFeeStructure() {
         api.get("/departments"),
       ]);
 
-      // Handle both old format (direct object) and new format (wrapped in feeStructure key)
       const fee = feeRes.data.feeStructure || feeRes.data;
 
       setCategory(fee.category);
@@ -69,7 +81,19 @@ export default function EditFeeStructure() {
         loadCourses(fee.course_id.department_id);
       }
     } catch (err) {
-      setError("Failed to load fee structure details. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+        ? "Authentication error occurred."
+        : backendMessage || "Failed to load fee structure details. Please try again.";
+
+      logger.error("Error fetching fee structure:", statusCode, errorCode);
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
     } finally {
       setLoading(false);
     }
@@ -114,6 +138,21 @@ export default function EditFeeStructure() {
       return;
     }
 
+    for (let idx = 0; idx < installments.length; idx++) {
+      const inst = installments[idx];
+      if (!inst.dueDate) {
+        setError(`Please enter the Due Date for Installment ${idx + 1}`);
+        return;
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const selected = new Date(inst.dueDate + "T00:00:00");
+      if (selected < today) {
+        setError(`Installment ${idx + 1} Due Date cannot be earlier than today`);
+        return;
+      }
+    }
+
     if (installmentSum !== Number(totalFee)) {
       setError(`Installment total (₹${installmentSum}) must exactly match Total Fee (₹${totalFee})`);
       return;
@@ -135,7 +174,18 @@ export default function EditFeeStructure() {
       setSuccess("Fee structure updated successfully!");
       setTimeout(() => navigate("/fees/list"), 1500);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to update fee structure. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error updating fee structure:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        setError(err.response?.data?.message || "Failed to update fee structure. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
@@ -143,6 +193,19 @@ export default function EditFeeStructure() {
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading fee structure details..." />;
+  }
+
+  if (error && typeof error === 'object') {
+    return (
+      <ApiError
+        title="Fee Structure Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={loadData}
+        onGoBack={() => navigate(-1)}
+      />
+    );
   }
 
   return (
@@ -200,7 +263,7 @@ export default function EditFeeStructure() {
       </div>
 
       {/* ================= ALERTS ================= */}
-      {error && (
+      {error && typeof error === 'string' && (
         <div className="alert alert-danger d-flex align-items-center alert-dismissible fade show animate-slide-down" role="alert">
           <FaExclamationTriangle className="me-2" size={20} />
           <div><strong>Error:</strong> {error}</div>
@@ -379,6 +442,7 @@ export default function EditFeeStructure() {
                                 type="date"
                                 className="form-control form-control-sm shadow-none border"
                                 value={inst.dueDate?.substring(0, 10)}
+                                min={new Date().toISOString().split("T")[0]}
                                 onChange={(e) => handleInstallmentChange(idx, "dueDate", e.target.value)}
                               />
                             </td>

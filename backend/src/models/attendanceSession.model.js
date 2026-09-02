@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { SLOT_TYPE_VALUES } = require("../utils/constants");
 
 const attendanceSessionSchema = new mongoose.Schema(
   {
@@ -49,6 +50,18 @@ const attendanceSessionSchema = new mongoose.Schema(
     totalStudents: {
       type: Number,
       required: true,
+    },
+
+    presentCount: {
+      type: Number,
+      default: 0,
+      required: false,
+    },
+
+    absentCount: {
+      type: Number,
+      default: 0,
+      required: false,
     },
 
     status: {
@@ -107,7 +120,7 @@ const attendanceSessionSchema = new mongoose.Schema(
       room: String,
       slotType: {
         type: String,
-        enum: ["LECTURE", "LAB"],
+        enum: SLOT_TYPE_VALUES,
         required: true,
       }
     },
@@ -148,6 +161,14 @@ attendanceSessionSchema.index({ lectureDate: -1 });
 
 // College-wise date filtering
 attendanceSessionSchema.index({ college_id: 1, lectureDate: -1 });
+
+// Composite index for HOD Department Attendance Rollup
+// Supports: GET /hod/attendance-summary
+// Query pattern: { college_id, department_id, lectureDate }
+attendanceSessionSchema.index(
+  { college_id: 1, department_id: 1, lectureDate: -1 },
+  { background: true }
+);
 
 // Common filter combinations
 attendanceSessionSchema.index({ college_id: 1, status: 1 });

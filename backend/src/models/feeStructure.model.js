@@ -16,26 +16,36 @@ const feeStructureSchema = new mongoose.Schema({
       enum: ["GEN", "OBC", "SC", "ST", "EWS"],
       required: true,
     },
+    // Optional: target academic year (e.g. "2025-2026") for year-specific fee structures
+    academicYear: {
+      type: String,
+      default: null,
+    },
     totalFee: {
       type: Number,
       required: true,
     },
-    installments: [
-      {
-        name: {
-          type: String,
-          required: true,
+installments: [
+        {
+          name: {
+            type: String,
+            required: true,
+          },
+          amount: {
+            type: Number,
+            required: true,
+          },
+          dueDate: {
+            type: Date,
+            required: true,
+          },
+          // Installment order for sequential payment enforcement
+          order: {
+            type: Number,
+            required: true,
+          },
         },
-        amount: {
-          type: Number,
-          required: true,
-        },
-        dueDate: {
-          type: Date,
-          required: true,
-        },
-      },
-    ],
+      ],
   },
   { timestamps: true }
 );

@@ -1,12 +1,14 @@
-import { useContext, useEffect, useState, useRef } from "react";
+﻿import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import { motion } from "framer-motion";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
+import { logger } from "../../../utils/logger";
 
 import {
   FaMoneyBillWave,
@@ -23,6 +25,30 @@ import {
   FaShieldAlt,
   FaSync,
 } from "react-icons/fa";
+import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
+
+// Authentication / session error codes routed exclusively to ApiError.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
+// Extract status/code/message from an axios error and flag auth failures.
+const getErrorInfo = (err) => {
+  const statusCode = err?.response?.status;
+  const errorCode =
+    err?.response?.data?.error?.code || err?.response?.data?.code;
+  const backendMessage = err?.response?.data?.message;
+  const isAuth =
+    statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+  return { statusCode, errorCode, backendMessage, isAuth };
+};
 
 // Razorpay script loader
 const loadRazorpayScript = () => {
@@ -40,6 +66,7 @@ export default function MakePayments() {
   const navigate = useNavigate();
   const location = useLocation();
   const sessionTimeoutRef = useRef(null);
+  const fetchIdRef = useRef(0);
   const isRequestInProgressRef = useRef(false); // Prevent duplicate payment requests
 
   const [installmentName, setInstallmentName] = useState(
@@ -56,11 +83,16 @@ export default function MakePayments() {
   const [loadingMessage, setLoadingMessage] = useState(
     "Redirecting to Secure Checkout...",
   );
+  const [authError, setAuthError] = useState(null);
   const [result, setResult] = useState(null);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedGateway, setSelectedGateway] = useState(null);
+  
+  // Gateway configuration from college admin
+  const [availableGateways, setAvailableGateways] = useState([]);
+  const [gatewaysLoading, setGatewaysLoading] = useState(true);
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
@@ -74,13 +106,13 @@ export default function MakePayments() {
 
   /* ================= SESSION TIMEOUT ================= */
   useEffect(() => {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
     // Check if installment data exists
     if (!location.state?.installmentName) {
-      // Check if coming from Stripe redirect without state (normal flow)
       const searchParams = new URLSearchParams(location.search);
       const session_id = searchParams.get("session_id");
 
-      // If has session_id, redirect to payment-success page to handle it
       if (session_id) {
         navigate(`/student/payment-success?session_id=${session_id}`, {
           replace: true,
@@ -88,7 +120,7 @@ export default function MakePayments() {
         return;
       }
 
-      // No state and no session_id - show warning and redirect to fees
+      if (currentFetchId !== fetchIdRef.current) return;
       toast.warning(
         "No installment selected. Please select from fee dashboard.",
         {
@@ -101,9 +133,9 @@ export default function MakePayments() {
       return;
     }
 
-    // Set session timeout (15 minutes for payment)
     sessionTimeoutRef.current = setTimeout(
       () => {
+        if (currentFetchId !== fetchIdRef.current) return;
         toast.warning(
           "Payment session expired. Please select installment again.",
           {
@@ -124,9 +156,47 @@ export default function MakePayments() {
     };
   }, [location, navigate]);
 
+  /* ================= FETCH AVAILABLE GATEWAYS ================= */
+  useEffect(() => {
+    const fetchGateways = async () => {
+      fetchIdRef.current += 1;
+      const currentFetchId = fetchIdRef.current;
+      try {
+        setGatewaysLoading(true);
+        const response = await api.get("/admin/payment/gateways");
+
+        if (response.data.success) {
+          if (currentFetchId !== fetchIdRef.current) return;
+          const gateways = response.data.gateways || [];
+          setAvailableGateways(gateways.map(g => g.code));
+        }
+        setGatewaysLoading(false);
+       } catch (error) {
+          if (currentFetchId !== fetchIdRef.current) return;
+          const { statusCode, errorCode, backendMessage, isAuth } =
+            getErrorInfo(error);
+          logger.error("Error fetching gateways:", {
+            statusCode,
+            errorCode,
+            backendMessage,
+            page: "MakePayments",
+          });
+          if (isAuth) {
+            setAuthError({ statusCode, errorCode });
+            return;
+          }
+          setAvailableGateways(["stripe", "razorpay"]);
+         setAllowChoice(true);
+         setGatewaysLoading(false);
+       }
+    };
+
+    fetchGateways();
+  }, []);
+
   /* ======================================================
-     🔹 STRIPE PAYMENT HANDLER (REAL PAYMENT)
-     ====================================================== */
+      🔹 STRIPE PAYMENT HANDLER (REAL PAYMENT)
+      ====================================================== */
   const handleStripePayment = () => {
     // Prevent duplicate requests
     if (isRequestInProgressRef.current) {
@@ -161,7 +231,7 @@ export default function MakePayments() {
         autoClose: 3000,
         icon: <FaExclamationTriangle />,
       });
-      return;
+      return; 
     }
 
     // Check network status
@@ -327,10 +397,15 @@ export default function MakePayments() {
       }
 
       rzp.on("payment.failed", (response) => {
-        const errorCode = response.error.code;
-        const errorDescription = response.error.description;
+         const errorCode = response.error.code;
+         const errorDescription = response.error.description;
 
-        toast.error(`Payment failed: ${errorDescription}`, {
+         logger.error("[Razorpay] payment.failed:", {
+           errorCode,
+           errorDescription,
+         });
+
+         toast.error(`Payment failed: ${errorDescription}`, {
           position: "top-right",
           autoClose: 5000,
           icon: <FaTimesCircle />,
@@ -342,6 +417,11 @@ export default function MakePayments() {
             razorpay_order_id: orderId,
             error_code: errorCode,
             error_description: errorDescription,
+            error_reason: response.error.reason || "",
+            error_source: response.error.source || "",
+            error_step: response.error.step || "",
+            error_field: response.error.field || "",
+            error_metadata: response.error.metadata || {},
           })
           .catch(() => {}); // Ignore logging errors
 
@@ -351,6 +431,21 @@ export default function MakePayments() {
 
       rzp.open();
     } catch (err) {
+      const { statusCode, errorCode: authErrCode, backendMessage, isAuth } =
+        getErrorInfo(err);
+      if (isAuth) {
+        logger.error("Razorpay payment auth error:", {
+          statusCode,
+          errorCode: authErrCode,
+          backendMessage,
+          page: "MakePayments",
+        });
+        setAuthError({ statusCode, errorCode: authErrCode });
+        setLoading(false);
+        isRequestInProgressRef.current = false;
+        return;
+      }
+
       let errorMsg = "Payment initiation failed. Please try again.";
 
       // Extract error from standardized backend format
@@ -380,6 +475,9 @@ export default function MakePayments() {
       } else if (errorCode === "INSTALLMENT_NOT_FOUND") {
         errorMsg =
           "This installment has already been paid or is invalid. Please refresh the page.";
+      } else if (errorCode === "PREVIOUS_INSTALLMENTS_PENDING") {
+        errorMsg =
+          "Cannot pay this installment. Please pay previous installments first.";
       } else if (errorCode === "DECRYPTION_FAILED") {
         errorMsg = "Payment configuration error. Please contact support.";
       } else if (errorCode === "RAZORPAY_INIT_FAILED") {
@@ -452,6 +550,21 @@ export default function MakePayments() {
       // After payment, Stripe will redirect to /student/payment-success
       window.location.href = checkoutUrl;
     } catch (err) {
+      const { statusCode, errorCode: authErrCode, backendMessage, isAuth } =
+        getErrorInfo(err);
+      if (isAuth) {
+        logger.error("Stripe payment auth error:", {
+          statusCode,
+          errorCode: authErrCode,
+          backendMessage,
+          page: "MakePayments",
+        });
+        setAuthError({ statusCode, errorCode: authErrCode });
+        setLoading(false);
+        isRequestInProgressRef.current = false;
+        return;
+      }
+
       // Extract error message from various possible locations
       let errorMsg =
         err.response?.data?.error?.message || // Standardized error format
@@ -489,6 +602,14 @@ export default function MakePayments() {
       } else if (errorCode === "INSTALLMENT_NOT_FOUND") {
         errorMsg =
           "This installment has already been paid or is invalid. Please refresh the page.";
+        toast.error(errorMsg, {
+          position: "top-center",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+      } else if (errorCode === "PREVIOUS_INSTALLMENTS_PENDING") {
+        errorMsg =
+          "Cannot pay this installment. Please pay previous installments first.";
         toast.error(errorMsg, {
           position: "top-center",
           autoClose: 5000,
@@ -552,6 +673,19 @@ export default function MakePayments() {
       });
       setInstallmentName("");
     } catch (err) {
+      const { statusCode, errorCode, backendMessage, isAuth } =
+        getErrorInfo(err);
+      if (isAuth) {
+        logger.error("Mock payment auth error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "MakePayments",
+        });
+        setAuthError({ statusCode, errorCode });
+        setLoading(false);
+        return;
+      }
       const errorMsg =
         err.response?.data?.message || "Mock payment failed. Try again.";
       setErrorMessage(errorMsg);
@@ -578,14 +712,30 @@ export default function MakePayments() {
     });
   };
 
+  /* ================= AUTH / SESSION ERROR ================= */
+  if (authError) {
+    return (
+      <div className="container-fluid py-4 fade-in">
+        <ApiError
+          title="Payment Error"
+          message={
+            authError.message ||
+            "Your session has expired. Please sign in again to continue."
+          }
+          statusCode={authError.statusCode}
+          errorCode={authError.errorCode}
+          onGoBack={() => navigate("/student/fees")}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="container-fluid py-4 fade-in"
       role="main"
       aria-label="Payment page"
     >
-      <ToastContainer position="top-right" autoClose={3000} />
-
       {/* Skip Link for Screen Readers */}
       <a
         href="#payment-content"
@@ -721,16 +871,13 @@ export default function MakePayments() {
           </div>
 
           <h3 className="fw-bold mb-1 text-dark">
-            ₹{installmentDetails.amount?.toLocaleString()}
+            ₹{formatNumberIN(installmentDetails.amount)}
           </h3>
 
           <div className="text-muted small">
             Due on{" "}
             <strong>
-              {installmentDetails.dueDate
-                ? new Date(installmentDetails.dueDate).toLocaleDateString(
-                    "en-IN",
-                  )
+                ? formatDate(installmentDetails.dueDate)
                 : "N/A"}
             </strong>
           </div>
@@ -745,7 +892,7 @@ export default function MakePayments() {
           <div className="d-flex justify-content-between align-items-center mt-2">
             <span>Amount</span>
             <span className="fw-bold text-primary">
-              ₹{installmentDetails.amount?.toLocaleString()}
+              ₹{formatNumberIN(installmentDetails.amount)}
             </span>
           </div>
           <div className="d-flex justify-content-between align-items-center mt-2">
@@ -763,63 +910,83 @@ export default function MakePayments() {
             <div className="payment-methods-divider"></div>
           </div>
 
-          {/* ====== PAYMENT GATEWAYS GRID ====== */}
-          <div className="row w-100 g-3 mb-3">
-            {/* ====== STRIPE ====== */}
-            <div className="col-12 col-md-6">
-              <button
-                className="payment-gateway-btn stripe-gateway w-100"
-                onClick={handleStripePayment}
-                disabled={loading}
-                aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Stripe`}
-                aria-busy={loading}
-              >
-                <div className="gateway-icon-wrapper">
-                  <FaCreditCard className="gateway-icon" aria-hidden="true" />
-                </div>
-                <div className="gateway-content">
-                  <span className="gateway-name">Stripe</span>
-                  <span className="gateway-desc">Card / UPI / Net Banking</span>
-                </div>
-                <div className="gateway-action">
-                  {loading ? (
-                    <FaSpinner className="spin" aria-hidden="true" />
-                  ) : (
-                    <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
-                  )}
-                </div>
-              </button>
+          {/* ====== GATEWAYS LOADING OR AUTO-REDIRECT ====== */}
+          {gatewaysLoading ? (
+            <div className="text-center py-4">
+              <FaSpinner className="spin fa-2x text-primary" />
+              <p className="text-muted mt-2">Loading payment options...</p>
             </div>
+          ) : availableGateways.length > 0 ? (
+            // Show a Pay button for each available gateway (single or multiple)
+            <>
+              <div className="row w-100 g-3 mb-3">
+                {/* ====== STRIPE ====== */}
+                {availableGateways.includes("stripe") && (
+                  <div className="col-12 col-md-6">
+                    <button
+                      className="payment-gateway-btn stripe-gateway w-100"
+                      onClick={handleStripePayment}
+                      disabled={loading}
+                      aria-label={`Pay ${formatNumberIN(installmentDetails.amount)} rupees via Stripe`}
+                      aria-busy={loading}
+                    >
+                      <div className="gateway-icon-wrapper">
+                        <FaCreditCard className="gateway-icon" aria-hidden="true" />
+                      </div>
+                      <div className="gateway-content">
+                        <span className="gateway-name">Stripe</span>
+                        <span className="gateway-desc">Card / UPI / Net Banking</span>
+                      </div>
+                      <div className="gateway-action">
+                        {loading ? (
+                          <FaSpinner className="spin" aria-hidden="true" />
+                        ) : (
+                          <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                )}
 
-            {/* ====== RAZORPAY ====== */}
-            <div className="col-12 col-md-6">
-              <button
-                className="payment-gateway-btn razorpay-gateway w-100"
-                onClick={handleRazorpayPayment}
-                disabled={loading}
-                aria-label={`Pay ${installmentDetails.amount?.toLocaleString()} rupees via Razorpay`}
-                aria-busy={loading}
-              >
-                <div className="gateway-icon-wrapper razorpay">
-                  <FaMoneyBillWave
-                    className="gateway-icon"
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="gateway-content">
-                  <span className="gateway-name">Razorpay</span>
-                  <span className="gateway-desc">UPI / Cards / Wallets</span>
-                </div>
-                <div className="gateway-action">
-                  {loading ? (
-                    <FaSpinner className="spin" aria-hidden="true" />
-                  ) : (
-                    <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
-                  )}
-                </div>
-              </button>
+                {/* ====== RAZORPAY ====== */}
+                {availableGateways.includes("razorpay") && (
+                  <div className="col-12 col-md-6">
+                    <button
+                      className="payment-gateway-btn razorpay-gateway w-100"
+                      onClick={handleRazorpayPayment}
+                      disabled={loading}
+                      aria-label={`Pay ${formatNumberIN(installmentDetails.amount)} rupees via Razorpay`}
+                      aria-busy={loading}
+                    >
+                      <div className="gateway-icon-wrapper razorpay">
+                        <FaMoneyBillWave
+                          className="gateway-icon"
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <div className="gateway-content">
+                        <span className="gateway-name">Razorpay</span>
+                        <span className="gateway-desc">UPI / Cards / Wallets</span>
+                      </div>
+                      <div className="gateway-action">
+                        {loading ? (
+                          <FaSpinner className="spin" aria-hidden="true" />
+                        ) : (
+                          <FaArrowLeft className="rotate-arrow" aria-hidden="true" />
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            // No gateways configured
+            <div className="alert alert-warning text-center mb-4">
+              <FaExclamationTriangle className="me-2" />
+              No payment gateway configured by your college. Please contact administrator.
             </div>
-          </div>
+          )}
 
           {/* ====== SECURITY BADGES ====== */}
           <div className="security-badges-container mt-3">
@@ -921,7 +1088,7 @@ export default function MakePayments() {
                   </p>
                   <p className="mb-2">
                     <strong>Amount:</strong> ₹
-                    {result.installment.amount.toLocaleString()}
+                    {formatNumberIN(result.installment.amount)}
                   </p>
                   <p className="mb-2">
                     <strong>Status:</strong>{" "}
@@ -931,8 +1098,7 @@ export default function MakePayments() {
                   </p>
                   <p className="mb-3">
                     <strong>Paid At:</strong>{" "}
-                    {new Date(result.installment.paidAt).toLocaleString(
-                      "en-IN",
+                    {formatDateTime(result.installment.paidAt)}
                     )}
                   </p>
                 </div>
@@ -946,7 +1112,7 @@ export default function MakePayments() {
                       aria-hidden="true"
                     />
                     <p className="mb-0 fw-bold">
-                      ₹{result.totalFee?.toLocaleString()}
+                      ₹{formatNumberIN(result.totalFee)}
                     </p>
                     <small className="text-muted">Total</small>
                   </div>
@@ -956,7 +1122,7 @@ export default function MakePayments() {
                       aria-hidden="true"
                     />
                     <p className="mb-0 fw-bold">
-                      ₹{result.paidAmount?.toLocaleString()}
+                      ₹{formatNumberIN(result.paidAmount)}
                     </p>
                     <small className="text-muted">Paid</small>
                   </div>
@@ -966,7 +1132,7 @@ export default function MakePayments() {
                       aria-hidden="true"
                     />
                     <p className="mb-0 fw-bold">
-                      ₹{result.remainingAmount?.toLocaleString()}
+                      ₹{formatNumberIN(result.remainingAmount)}
                     </p>
                     <small className="text-muted">Remaining</small>
                   </div>
@@ -1385,14 +1551,12 @@ export default function MakePayments() {
             </div>
             <div className="mb-2">
               <strong>Amount:</strong> ₹
-              {installmentDetails.amount?.toLocaleString()}
+              {formatNumberIN(installmentDetails.amount)}
             </div>
             <div className="mb-2">
               <strong>Due Date:</strong>{" "}
               {installmentDetails.dueDate
-                ? new Date(installmentDetails.dueDate).toLocaleDateString(
-                    "en-IN",
-                  )
+                ? formatDate(installmentDetails.dueDate)
                 : "N/A"}
             </div>
             <div className="mb-3">

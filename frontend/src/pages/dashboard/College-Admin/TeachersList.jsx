@@ -1,11 +1,15 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import TeacherDeactivationModal from "../../../components/TeacherDeactivationModal";
+import ApiError from "../../../components/ApiError";
+import TeacherDeleteModal from "../../../components/TeacherDeleteModal";
 import { toast } from "react-toastify";
+import useRole from "../../../hooks/useRole";
+import { logger } from "../../../utils/logger";
 
 import {
   FaChalkboardTeacher,
@@ -16,9 +20,6 @@ import {
   FaSearch,
   FaFilter,
   FaSyncAlt,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaUserGraduate,
   FaUserCheck,
   FaUserTimes,
   FaEnvelope,
@@ -26,93 +27,187 @@ import {
   FaClock,
   FaChevronDown,
   FaChevronUp,
-  FaInfoCircle,
   FaSpinner,
-  FaBuilding,
   FaIdBadge,
-  FaArrowLeft,
-  FaGraduationCap,
-  FaMapMarkerAlt,
-  FaPhone,
+  FaAngleDoubleLeft,
+  FaAngleLeft,
+  FaAngleRight,
+  FaAngleDoubleRight,
 } from "react-icons/fa";
 
 export default function TeachersList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = useRole();
 
-  /* ================= SECURITY ================= */
+  /* ================= SECURITY =================*/
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= STATE ================= */
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [sortConfig, setSortConfig] = useState({
     key: "name",
     direction: "asc",
   });
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const filterGroupRef = useRef(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
     inactive: 0,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= DEACTIVATION MODAL STATE ================= */
   const [showDeactivationModal, setShowDeactivationModal] = useState(false);
   const [deactivationTeacher, setDeactivationTeacher] = useState(null);
 
-  /* ================= LOAD TEACHERS ================= */
-  const fetchTeachers = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await api.get("/teachers");
+  /* ================= DELETE MODAL STATE ================= */
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTeacherTarget, setDeleteTeacherTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-      // 🔧 Handle new paginated response structure
+  /* ================= LOAD TEACHERS ================= */
+  const fetchTeachers = async (page = 1, limit = itemsPerPage) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await api.get(`/teachers?page=${page}&limit=${limit}`);
+
       let data;
       if (res.data.data) {
-        // New format: { success: true, data: [...], pagination: {...} }
         data = res.data.data;
       } else if (Array.isArray(res.data)) {
-        // Old format: [...]
         data = res.data;
       } else {
         data = [];
       }
 
       setTeachers(data);
+      setCurrentPage(page);
 
-      // Calculate stats from fetched data (client-side only)
+      const pagination = res.data.pagination || {};
+      if (pagination.total !== undefined) {
+        setTotalItems(pagination.total);
+        setTotalPages(pagination.pages || Math.ceil(pagination.total / limit));
+      } else {
+        setTotalItems(data.length);
+        setTotalPages(1);
+      }
+
+      const allTeachers = res.data.data || res.data || [];
       setStats({
-        total: data.length,
-        active: data.filter((t) => t.status === "ACTIVE").length,
-        inactive: data.filter((t) => t.status === "INACTIVE").length,
+        total: totalItems,
+        active: allTeachers.filter((t) => t.status === "ACTIVE").length,
+        inactive: allTeachers.filter((t) => t.status === "INACTIVE").length,
       });
     } catch (err) {
-      setError("Failed to load teachers. Please try again.");
-      setTeachers([]);
-      setStats({ total: 0, active: 0, inactive: 0 });
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load teachers";
+
+      logger.error("Error fetching teachers:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTeachers();
-  }, []);
+    fetchTeachers(currentPage);
+  }, [currentPage, itemsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus]);
+
+  /* ================= CLICK OUTSIDE TO CLOSE FILTER ================= */
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterGroupRef.current && !filterGroupRef.current.contains(event.target)) {
+        setShowFilterDropdown(false);
+      }
+    };
+
+    if (showFilterDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showFilterDropdown]);
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      fetchTeachers();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
+    fetchTeachers(currentPage);
+  };
+
+  /* ================= PAGINATION HANDLERS ================= */
+  const handlePageChange = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchTeachers(page);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  };
+
+  const handleItemsPerPageChange = (e) => {
+    const newLimit = parseInt(e.target.value, 10);
+    setItemsPerPage(newLimit);
+    fetchTeachers(1);
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    const end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
   };
 
   /* ================= SORTING ================= */
@@ -153,17 +248,30 @@ export default function TeachersList() {
   };
 
   /* ================= DELETE ================= */
-  const deleteTeacher = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this teacher? This action cannot be undone.",
-    );
-    if (!confirmDelete) return;
+  const openDeleteModal = (teacher) => {
+    setDeleteTeacherTarget(teacher);
+    setShowDeleteModal(true);
+  };
 
+  const closeDeleteModal = () => {
+    if (deleting) return;
+    setShowDeleteModal(false);
+    setDeleteTeacherTarget(null);
+  };
+
+  const confirmDeleteTeacher = async () => {
+    if (!deleteTeacherTarget) return;
+
+    setDeleting(true);
     try {
-      await api.delete(`/teachers/${id}`);
+      await api.delete(`/teachers/${deleteTeacherTarget._id}`);
+      setShowDeleteModal(false);
+      setDeleteTeacherTarget(null);
       fetchTeachers();
     } catch (err) {
       alert("Failed to delete teacher. Please try again.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -252,30 +360,14 @@ export default function TeachersList() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Teachers Loading Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => navigate(-1)}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Teachers Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -289,7 +381,7 @@ export default function TeachersList() {
   const hasResults = filteredTeachers.length > 0;
 
   return (
-    <div className="erp-container">
+    <div className="erp-container erp-page erp-viewport-min-100">
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -300,25 +392,29 @@ export default function TeachersList() {
 
       {/* HEADER */}
       <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaChalkboardTeacher />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Teachers Management</h1>
-            <p className="erp-page-subtitle">
-              Manage faculty members and their academic assignments
-            </p>
+        <div className="erp-page-header-start">
+          <div className="erp-header-content">
+            <div className="erp-header-icon">
+              <FaChalkboardTeacher />
+            </div>
+            <div className="erp-header-text">
+              <h1 className="erp-page-title">Teachers Management</h1>
+              <p className="erp-page-subtitle">
+                Manage faculty members and their academic assignments
+              </p>
+            </div>
           </div>
         </div>
         <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={() => navigate("/teachers/add-teacher")}
-          >
-            <FaPlus className="erp-btn-icon" />
-            <span>Add New Teacher</span>
-          </button>
+          {canCreate('teachers') && (
+            <button
+              className="erp-btn erp-btn-primary"
+              onClick={() => navigate("/teachers/add-teacher")}
+            >
+              <FaPlus className="erp-btn-icon" />
+              <span>Add New Teacher</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -371,7 +467,7 @@ export default function TeachersList() {
       )}
 
       {/* FILTERS SECTION */}
-      <div className="erp-card animate-fade-in">
+      <div className="erp-card animate-fade-in filter-card">
         <div className="erp-card-body">
           <div className="filters-container">
             <div className="search-box">
@@ -385,15 +481,19 @@ export default function TeachersList() {
               />
             </div>
 
-            <div className="filter-group">
-              <button className="filter-btn" aria-label="Open status filter">
+            <div className="filter-group" ref={filterGroupRef}>
+              <button 
+                className="filter-btn" 
+                aria-label="Open status filter"
+                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              >
                 <FaFilter className="filter-icon" />
                 <span>
                   Filter: {filterStatus === "ALL" ? "All" : filterStatus}
                 </span>
                 <FaChevronDown className="filter-arrow" />
               </button>
-              <div className="filter-dropdown">
+              <div className={`filter-dropdown ${showFilterDropdown ? "show" : ""}`}>
                 <div className="filter-section">
                   <label>Status Filter</label>
                   <div className="filter-options">
@@ -404,7 +504,7 @@ export default function TeachersList() {
                           name="status"
                           value={status}
                           checked={filterStatus === status}
-                          onChange={(e) => setFilterStatus(e.target.value)}
+                          onChange={(e) => { setFilterStatus(e.target.value); setShowFilterDropdown(false); }}
                           aria-label={`Filter by ${status} teachers`}
                         />
                         <span>{status}</span>
@@ -454,14 +554,16 @@ export default function TeachersList() {
               <p className="empty-description">
                 There are no teachers registered in your college yet.
               </p>
-              <button
-                className="erp-btn erp-btn-primary empty-action"
-                onClick={() => navigate("/teachers/add-teacher")}
-                aria-label="Add your first teacher"
-              >
-                <FaPlus className="erp-btn-icon" />
-                Add Your First Teacher
-              </button>
+               {!hasTeachers && canCreate('teachers') && (
+                 <button
+                   className="erp-btn erp-btn-primary empty-action"
+                   onClick={() => navigate("/teachers/add-teacher")}
+                   aria-label="Add your first teacher"
+                 >
+                   <FaPlus className="erp-btn-icon" />
+                   Add Your First Teacher
+                 </button>
+               )}
             </div>
           ) : !hasResults ? (
             <div className="empty-state">
@@ -486,7 +588,7 @@ export default function TeachersList() {
               </button>
             </div>
           ) : (
-            <div className="table-container">
+            <div className="erp-table-responsive">
               <table className="erp-table">
                 <thead>
                   <tr>
@@ -597,50 +699,56 @@ export default function TeachersList() {
                           {teacher.status || "INACTIVE"}
                         </span>
                       </td>
-                      <td className="action-cell">
-                        <div className="action-buttons">
-                          <Link
-                            to={`/teachers/view/${teacher._id}`}
-                            className="action-btn view-btn"
-                            title="View Details"
-                            aria-label={`View details for ${teacher.name}`}
-                          >
-                            <FaEye />
-                          </Link>
-                          <Link
-                            to={`/teachers/edit/${teacher._id}`}
-                            className="action-btn edit-btn"
-                            title="Edit Teacher"
-                            aria-label={`Edit ${teacher.name}`}
-                          >
-                            <FaEdit />
-                          </Link>
-                          <button
-                            className={`action-btn ${teacher.status === "ACTIVE" ? "action-btn-deactivate" : "action-btn-reactivate"}`}
-                            title={
-                              teacher.status === "ACTIVE"
-                                ? "Deactivate Teacher"
-                                : "Reactivate Teacher"
-                            }
-                            onClick={() => handleToggleActive(teacher)}
-                            aria-label={`${teacher.status === "ACTIVE" ? "Deactivate" : "Reactivate"} ${teacher.name}`}
-                          >
-                            {teacher.status === "ACTIVE" ? (
-                              <FaUserTimes />
-                            ) : (
-                              <FaUserCheck />
+                       <td className="action-cell">
+                         <div className="action-buttons">
+                           <Link
+                             to={`/teachers/view/${teacher._id}`}
+                             className="action-btn view-btn"
+                             title="View Details"
+                             aria-label={`View details for ${teacher.name}`}
+                           >
+                             <FaEye />
+                           </Link>
+                           {canEdit('teachers') && (
+                             <Link
+                               to={`/teachers/edit/${teacher._id}`}
+                               className="action-btn edit-btn"
+                               title="Edit Teacher"
+                               aria-label={`Edit ${teacher.name}`}
+                             >
+                               <FaEdit />
+                             </Link>
+                           )}
+                           {canEdit('teachers') && (
+                             <button
+                               className={`action-btn ${teacher.status === "ACTIVE" ? "action-btn-deactivate" : "action-btn-reactivate"}`}
+                               title={
+                                 teacher.status === "ACTIVE"
+                                   ? "Deactivate Teacher"
+                                   : "Reactivate Teacher"
+                               }
+                               onClick={() => handleToggleActive(teacher)}
+                               aria-label={`${teacher.status === "ACTIVE" ? "Deactivate" : "Reactivate"} ${teacher.name}`}
+                             >
+                               {teacher.status === "ACTIVE" ? (
+                                 <FaUserTimes />
+                               ) : (
+                                 <FaUserCheck />
+                               )}
+                             </button>
+                           )}
+                            {canDelete('teachers') && (
+                              <button
+                                className="action-btn delete-btn"
+                                title="Delete Teacher"
+                                onClick={() => openDeleteModal(teacher)}
+                                aria-label={`Delete ${teacher.name}`}
+                              >
+                                <FaTrash />
+                              </button>
                             )}
-                          </button>
-                          <button
-                            className="action-btn delete-btn"
-                            title="Delete Teacher"
-                            onClick={() => deleteTeacher(teacher._id)}
-                            aria-label={`Delete ${teacher.name}`}
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      </td>
+                         </div>
+                       </td>
                     </tr>
                   ))}
                 </tbody>
@@ -649,6 +757,89 @@ export default function TeachersList() {
           )}
         </div>
       </div>
+
+      {/* PAGINATION */}
+      {totalPages > 1 && (
+        <div className="erp-card animate-fade-in">
+          <div className="erp-card-body">
+            <div className="pagination-container">
+              <div className="pagination-info">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} teachers
+              </div>
+              <div className="pagination-controls">
+                <button
+                  className="pagination-btn pagination-btn-first"
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  aria-label="First page"
+                >
+                  <FaAngleDoubleLeft />
+                </button>
+                <button
+                  className="pagination-btn pagination-btn-prev"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  aria-label="Previous page"
+                >
+                  <FaAngleLeft />
+                </button>
+
+                {getPageNumbers().map((page) => (
+                  <button
+                    key={page}
+                    className={`pagination-btn pagination-btn-page ${currentPage === page ? "active" : ""}`}
+                    onClick={() => handlePageChange(page)}
+                    aria-label={`Page ${page}`}
+                    aria-current={currentPage === page ? "page" : undefined}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+                <button
+                  className="pagination-btn pagination-btn-next"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  aria-label="Next page"
+                >
+                  <FaAngleRight />
+                </button>
+                <button
+                  className="pagination-btn pagination-btn-last"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  aria-label="Last page"
+                >
+                  <FaAngleDoubleRight />
+                </button>
+              </div>
+              <div className="pagination-limit">
+                <label htmlFor="items-per-page">Show:</label>
+                <select
+                  id="items-per-page"
+                  value={itemsPerPage}
+                  onChange={handleItemsPerPageChange}
+                  className="pagination-select"
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="25">25</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TEACHER DELETE MODAL */}
+      <TeacherDeleteModal
+        isOpen={showDeleteModal}
+        onClose={closeDeleteModal}
+        onConfirm={confirmDeleteTeacher}
+        teacherName={deleteTeacherTarget?.name}
+        loading={deleting}
+      />
 
       {/* TEACHER DEACTIVATION MODAL */}
       <TeacherDeactivationModal
@@ -668,7 +859,6 @@ export default function TeachersList() {
         .erp-container {
           padding: 1.5rem;
           background: #f5f7fa;
-          min-height: 100vh;
           animation: fadeIn 0.6s ease;
         }
         
@@ -679,9 +869,6 @@ export default function TeachersList() {
           margin-bottom: 1.5rem;
           box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
           color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
           animation: slideDown 0.6s ease;
         }
         
@@ -714,6 +901,45 @@ export default function TeachersList() {
           font-size: 1rem;
         }
         
+        .erp-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.875rem 1.75rem;
+          border: none;
+          border-radius: 10px;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          text-decoration: none;
+        }
+        
+        .erp-btn-icon {
+          font-size: 1.125rem;
+        }
+        
+        .erp-btn-primary {
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          color: white;
+        }
+        
+        .erp-btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(26, 75, 109, 0.4);
+        }
+        
+        .erp-btn-secondary {
+          background: white;
+          color: #1a4b6d;
+          border: 2px solid #e9ecef;
+        }
+        
+        .erp-btn-secondary:hover {
+          background: #f8f9fa;
+          border-color: #1a4b6d;
+        }
+        
         .erp-header-actions .erp-btn {
           background: white;
           color: #1a4b6d;
@@ -723,7 +949,7 @@ export default function TeachersList() {
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
           transition: all 0.3s ease;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 0.5rem;
         }
@@ -800,6 +1026,10 @@ export default function TeachersList() {
         
         .erp-card:hover {
           box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+        }
+        
+        .filter-card {
+          overflow: visible;
         }
         
         .erp-card-header {
@@ -926,7 +1156,7 @@ export default function TeachersList() {
           display: none;
         }
         
-        .filter-group:hover .filter-dropdown {
+        .filter-dropdown.show {
           display: block;
         }
         
@@ -985,8 +1215,7 @@ export default function TeachersList() {
         }
         
         /* TABLE */
-        .table-container {
-          overflow-x: auto;
+        .erp-table-responsive {
           border-radius: 0 0 16px 16px;
         }
         
@@ -1503,7 +1732,110 @@ export default function TeachersList() {
         .animate-fade-in {
           animation: fadeIn 0.6s ease;
         }
-        
+
+        /* PAGINATION */
+        .pagination-container {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 1rem;
+          padding: 0.5rem 0;
+        }
+
+        .pagination-info {
+          font-size: 0.9rem;
+          color: #666;
+          font-weight: 500;
+        }
+
+        .pagination-controls {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+        }
+
+        .pagination-btn {
+          min-width: 40px;
+          height: 40px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid #e9ecef;
+          background: white;
+          color: #1a4b6d;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          padding: 0 0.5rem;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+          border-color: #1a4b6d;
+          background: #f8f9fa;
+          transform: translateY(-1px);
+        }
+
+        .pagination-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .pagination-btn.active {
+          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          color: white;
+          border-color: #1a4b6d;
+          box-shadow: 0 4px 12px rgba(26, 75, 109, 0.3);
+        }
+
+        .pagination-limit {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.9rem;
+          color: #666;
+          font-weight: 500;
+        }
+
+        .pagination-select {
+          padding: 0.5rem 0.75rem;
+          border: 2px solid #e9ecef;
+          border-radius: 8px;
+          font-size: 0.9rem;
+          color: #2c3e50;
+          background: white;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .pagination-select:focus {
+          border-color: #1a4b6d;
+          outline: none;
+          box-shadow: 0 0 0 0.2rem rgba(26, 75, 109, 0.15);
+        }
+
+        @media (max-width: 768px) {
+          .pagination-container {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .pagination-controls {
+            flex-wrap: wrap;
+            justify-content: center;
+          }
+
+          .pagination-info {
+            text-align: center;
+          }
+
+          .pagination-limit {
+            justify-content: center;
+          }
+        }
+
         /* RESPONSIVE DESIGN */
         @media (max-width: 992px) {
           .filters-container {
@@ -1529,23 +1861,6 @@ export default function TeachersList() {
         @media (max-width: 768px) {
           .erp-container {
             padding: 1rem;
-          }
-          
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-          
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
           }
           
           .stats-grid {

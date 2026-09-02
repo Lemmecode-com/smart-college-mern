@@ -3,15 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import ApiError from "../../../../components/ApiError";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import { logger } from "../../../../utils/logger";
 
 import {
   FaCalendarAlt,
   FaCheckCircle,
   FaTrash,
   FaEye,
-  FaEdit,
   FaArrowLeft,
   FaSyncAlt,
   FaExclamationTriangle,
@@ -22,9 +23,12 @@ import {
   FaClock,
   FaInfoCircle,
   FaLock,
-  FaUnlock
+  FaUnlock,
+  FaArchive,
+  
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import "./TimetableList.css";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -74,12 +78,20 @@ export default function TimetableList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const isTeacher = user?.role === "TEACHER";
+  const isHOD = user?.role === "HOD";
 
   const [timetables, setTimetables] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [archivedTimetables, setArchivedTimetables] = useState([]);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [activeLoading, setActiveLoading] = useState(false);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [publishingId, setPublishingId] = useState(null);
+  const [archivingId, setArchivingId] = useState(null);
+  const [unarchivingId, setUnarchivingId] = useState(null);
+  const [activeTab, setActiveTab] = useState("active");
+  const [stats, setStats] = useState({ total: 0, published: 0, draft: 0, archived: 0 });
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     action: null,
@@ -89,23 +101,111 @@ export default function TimetableList() {
     type: "warning"
   });
 
-  /* ================= FETCH TIMETABLES ================= */
-  useEffect(() => {
-    fetchTimetables();
-  }, []);
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
-  const fetchTimetables = async () => {
+  /* ================= FETCH STATS ================= */
+  const fetchStats = async () => {
     try {
-      setLoading(true);
-      const res = await api.get("/timetable");
-      setTimetables(res.data.timetables || res.data);
-      setError("");
+      const res = await api.get("/timetable/stats");
+      setStats(res.data);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load timetables. Please try again.");
-    } finally {
-      setLoading(false);
+      logger.error("Failed to fetch timetable stats:", err.response?.status, err.response?.data?.code);
     }
   };
+
+  /* ================= FETCH ACTIVE TIMETABLES ================= */
+  const fetchTimetables = async () => {
+    try {
+      setActiveLoading(true);
+      setError(null);
+      const res = await api.get("/timetable");
+      const timetableData = res.data.data?.timetables || res.data.timetables || res.data || [];
+      const validTimetables = timetableData.filter(timetable => timetable && timetable._id);
+      setTimetables(validTimetables);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load timetables. Please try again.";
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      logger.error("Failed to fetch timetables:", statusCode, errorCode);
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setActiveLoading(false);
+      setInitialLoading(false);
+    }
+  };
+
+  /* ================= FETCH ARCHIVED TIMETABLES ================= */
+  const fetchArchivedTimetables = async () => {
+    try {
+      setArchivedLoading(true);
+      setError(null);
+      const res = await api.get("/timetable/archived");
+      const timetableData = res.data.data?.timetables || res.data.timetables || res.data || [];
+      const validTimetables = timetableData.filter(timetable => timetable && timetable._id);
+      setArchivedTimetables(validTimetables);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load archived timetables. Please try again.";
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      logger.error("Failed to fetch archived timetables:", statusCode, errorCode);
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setArchivedLoading(false);
+      setInitialLoading(false);
+    }
+  };
+
+  /* ================= TAB SWITCHING ================= */
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "active") {
+      fetchTimetables();
+    } else {
+      fetchArchivedTimetables();
+    }
+  }, [activeTab]);
 
   /* ================= PUBLISH TIMETABLE ================= */
   const showPublishConfirm = (id) => {
@@ -119,74 +219,194 @@ export default function TimetableList() {
     });
   };
 
-  const confirmPublishTimetable = async () => {
-    setPublishingId(confirmModal.id);
-    try {
-      await api.put(`/timetable/${confirmModal.id}/publish`);
-      fetchTimetables();
-      toast.success("Timetable published successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />
-      });
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to publish timetable. Please try again.";
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />
-      });
-    } finally {
-      setPublishingId(null);
-      setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
-    }
-  };
+   const confirmPublishTimetable = async () => {
+     setPublishingId(confirmModal.id);
+     try {
+        await api.put(`/timetable/${confirmModal.id}/publish`);
+       fetchTimetables();
+       toast.success("Timetable published successfully!", {
+         position: "top-right",
+         autoClose: 3000,
+         icon: <FaCheckCircle />
+       });
+     } catch (err) {
+       const statusCode = err.response?.status;
+       const errorCode = err.response?.data?.code;
+       const isAuthError =
+         statusCode === 401 ||
+         (errorCode && AUTH_ERROR_CODES.has(errorCode));
+       if (!isAuthError) {
+         const errorMsg = err.response?.data?.message || "Failed to publish timetable. Please try again.";
+         toast.error(errorMsg, {
+           position: "top-right",
+           autoClose: 5000,
+           icon: <FaExclamationTriangle />
+         });
+       }
+     } finally {
+       setPublishingId(null);
+       setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+     }
+   };
 
   /* ================= DELETE TIMETABLE ================= */
-  const showDeleteConfirm = (id) => {
-    setConfirmModal({
-      isOpen: true,
-      action: "delete",
-      id: id,
-      title: "Delete Timetable?",
-      message: "Are you sure you want to delete this timetable? This action cannot be undone.",
-      type: "danger"
-    });
-  };
+   const showDeleteConfirm = (id) => {
+     setConfirmModal({
+       isOpen: true,
+       action: "delete",
+       id: id,
+       title: "Delete Timetble?",
+       message: "Are you sure you want to delete this timetable? This action cannot be undone.",
+       type: "danger"
+     });
+   };
 
-  const confirmDeleteTimetable = async () => {
-    setDeletingId(confirmModal.id);
-    try {
-      await api.delete(`/timetable/${confirmModal.id}`);
-      fetchTimetables();
-      toast.success("Timetable deleted successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />
+   const showArchiveConfirm = (id) => {
+     setConfirmModal({
+       isOpen: true,
+       action: "archive",
+       id: id,
+       title: "Archive Timetable?",
+       message: "Are you sure you want to archive this timetable? It will be preserved for record-keeping and hidden from active schedules.",
+       type: "warning"
+     });
+   };
+
+   const confirmDeleteTimetable = async () => {
+     setDeletingId(confirmModal.id);
+     try {
+       await api.delete(`/timetable/${confirmModal.id}`);
+       fetchTimetables();
+       toast.success("Timetable deleted successfully!", {
+         position: "top-right",
+         autoClose: 3000,
+         icon: <FaCheckCircle />
+       });
+     } catch (err) {
+       const statusCode = err.response?.status;
+       const errorCode = err.response?.data?.code;
+       const isAuthError =
+         statusCode === 401 ||
+         (errorCode && AUTH_ERROR_CODES.has(errorCode));
+       if (!isAuthError) {
+         const errorMsg = err.response?.data?.message || "Failed to delete timetable. Please try again.";
+         toast.error(errorMsg, {
+           position: "top-right",
+           autoClose: 5000,
+           icon: <FaExclamationTriangle />
+         });
+       }
+     } finally {
+       setDeletingId(null);
+       setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+     }
+   };
+
+    /* ================= ARCHIVE TIMETABLE ================= */
+     const confirmArchiveTimetable = async () => {
+       setArchivingId(confirmModal.id);
+       try {
+         await api.put(`/timetable/${confirmModal.id}/archive`);
+         fetchTimetables();
+         fetchStats();
+         toast.success("Timetable archived successfully!", {
+           position: "top-right",
+           autoClose: 3000,
+           icon: <FaArchive />
+         });
+      } catch (err) {
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        if (!isAuthError) {
+          const errorMsg = err.response?.data?.message || "Failed to archive timetable. Please try again.";
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />
+          });
+        }
+      } finally {
+        setArchivingId(null);
+        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+      }
+     };
+
+    /* ================= UNARCHIVE TIMETABLE ================= */
+    const showUnarchiveConfirm = (id) => {
+      setConfirmModal({
+        isOpen: true,
+        action: "unarchive",
+        id: id,
+        title: "Unarchive Timetable?",
+        message: "Are you sure you want to unarchive this timetable? It will be restored to DRAFT status and can be edited and published again.",
+        type: "info"
       });
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to delete timetable. Please try again.";
-      toast.error(errorMsg, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />
-      });
-    } finally {
-      setDeletingId(null);
-      setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
-    }
-  };
+    };
 
-  /* ================= EDIT TIMETABLE ================= */
-  const editTimetable = (id) => {
-    navigate(`/timetable/${id}/edit`);
-  };
+    const confirmUnarchiveTimetable = async () => {
+      setUnarchivingId(confirmModal.id);
+      try {
+        await api.put(`/timetable/${confirmModal.id}/unarchive`);
+        fetchArchivedTimetables();
+        fetchStats();
+        toast.success("Timetable unarchived successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaUnlock />
+        });
+      } catch (err) {
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        if (!isAuthError) {
+          const errorMsg = err.response?.data?.message || "Failed to unarchive timetable. Please try again.";
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />
+          });
+        }
+      } finally {
+        setUnarchivingId(null);
+        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+      }
+    };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Timetables..." />;
-  }
+    const handleGoBack = () => {
+     navigate(-1);
+   };
 
-  return (
+   const handleRetry = () => {
+     if (activeTab === "active") {
+       fetchTimetables();
+     } else {
+       fetchArchivedTimetables();
+     }
+   };
+
+   if (initialLoading && timetables.length === 0 && archivedTimetables.length === 0) {
+     return <Loading fullScreen size="lg" text="Loading Timetables..." />;
+   }
+
+   if (error) {
+     return (
+       <ApiError
+         title="Unable to Load Timetable"
+         message={error.message}
+         statusCode={error.statusCode}
+         errorCode={error.errorCode}
+         onRetry={handleRetry}
+         onGoBack={handleGoBack}
+       />
+     );
+   }
+
+   return (
     <AnimatePresence mode="wait">
       <motion.div
         initial={{ opacity: 0 }}
@@ -260,7 +480,7 @@ export default function TimetableList() {
               gap: '1.5rem'
             }}
           >
-            <div style={{
+            <div className="erp-timetable-hero-inner" style={{
               padding: '2rem',
               background: BRAND_COLORS.primary.gradient,
               color: 'white',
@@ -275,6 +495,7 @@ export default function TimetableList() {
                   variants={pulseVariants}
                   initial="initial"
                   animate="pulse"
+                  className="erp-timetable-hero-icon"
                   style={{
                     width: '80px',
                     height: '80px',
@@ -290,8 +511,8 @@ export default function TimetableList() {
                 >
                   <FaCalendarAlt />
                 </motion.div>
-                <div>
-                  <h1 style={{
+                <div className="erp-timetable-hero-text">
+                  <h1 className="erp-timetable-hero-title" style={{
                     margin: 0,
                     fontSize: '2.25rem',
                     fontWeight: 700,
@@ -299,7 +520,7 @@ export default function TimetableList() {
                   }}>
                     Timetable Management
                   </h1>
-                  <p style={{
+                  <p className="erp-timetable-hero-desc" style={{
                     margin: '0.75rem 0 0 0',
                     opacity: 0.9,
                     fontSize: '1.25rem'
@@ -308,32 +529,35 @@ export default function TimetableList() {
                   </p>
                 </div>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/timetable/create-timetable')}
-                style={{
-                  backgroundColor: 'white',
-                  color: BRAND_COLORS.primary.main,
-                  border: '2px solid white',
-                  padding: '0.875rem 1.75rem',
-                  borderRadius: '14px',
-                  fontSize: '1.1rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
-                }}
-              >
-                <FaPlus /> Create Timetable
-              </motion.button>
+              {isHOD && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate('/timetable/create-timetable')}
+                  className="erp-timetable-hero-cta"
+                  style={{
+                    backgroundColor: 'white',
+                    color: BRAND_COLORS.primary.main,
+                    border: '2px solid white',
+                    padding: '0.875rem 1.75rem',
+                    borderRadius: '14px',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  <FaPlus /> Create Timetable
+                </motion.button>
+              )}
             </div>
             
             {/* Stats Bar */}
-            <div style={{
+            <div className="erp-timetable-stats" style={{
               padding: '1rem 2rem',
               backgroundColor: '#f8fafc',
               borderTop: '1px solid #e2e8f0',
@@ -343,27 +567,33 @@ export default function TimetableList() {
               flexWrap: 'wrap',
               gap: '1.5rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
+              <div className="erp-timetable-stats-grid" style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
                 <StatItem 
                   icon={<FaCalendarAlt />} 
-                  label="Total Timetables" 
-                  value={timetables.length} 
+                  label="Total" 
+                  value={stats.total} 
                   color={BRAND_COLORS.primary.main} 
                 />
                 <StatItem 
                   icon={<FaCheckCircle />} 
                   label="Published" 
-                  value={timetables.filter(t => t.status === "PUBLISHED").length} 
+                  value={stats.published} 
                   color={BRAND_COLORS.success.main} 
                 />
                 <StatItem 
                   icon={<FaClock />} 
                   label="Draft" 
-                  value={timetables.filter(t => t.status === "DRAFT").length} 
+                  value={stats.draft} 
                   color={BRAND_COLORS.warning.main} 
                 />
+                <StatItem 
+                  icon={<FaArchive />} 
+                  label="Archived" 
+                  value={stats.archived} 
+                  color={BRAND_COLORS.secondary.main} 
+                />
               </div>
-              <div style={{ 
+              <div className="erp-timetable-stats-tip" style={{ 
                 padding: '0.5rem 1.25rem',
                 borderRadius: '20px',
                 backgroundColor: '#dbeafe',
@@ -380,49 +610,6 @@ export default function TimetableList() {
             </div>
           </motion.div>
 
-          {/* ================= ERROR STATE ================= */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{
-                marginBottom: '1.5rem',
-                padding: '1.25rem',
-                borderRadius: '16px',
-                backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-                border: `1px solid ${BRAND_COLORS.danger.main}`,
-                color: BRAND_COLORS.danger.main,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                fontSize: '1.05rem',
-                fontWeight: 500
-              }}
-            >
-              <FaExclamationTriangle size={24} />
-              <div style={{ flex: 1 }}>{error}</div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={fetchTimetables}
-                style={{
-                  background: BRAND_COLORS.danger.main,
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <FaSyncAlt /> Retry
-              </motion.button>
-            </motion.div>
-          )}
-
           {/* ================= TIMETABLES CARD ================= */}
           <motion.div
             variants={fadeInVariants}
@@ -435,7 +622,7 @@ export default function TimetableList() {
               boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
               overflow: 'hidden'
             }}
-          >
+          />
             <div style={{
               padding: '1.75rem',
               borderBottom: '1px solid #e2e8f0',
@@ -472,239 +659,381 @@ export default function TimetableList() {
                 Click on any timetable to view weekly schedule
               </div>
             </div>
-            
-            {timetables.length > 0 ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={tableStyle}>
-                  <thead>
-                    <tr>
-                      <th style={headerCellStyle}>Timetable Name</th>
-                      <th style={headerCellStyle}>Semester</th>
-                      <th style={headerCellStyle}>Academic Year</th>
-                      <th style={headerCellStyle}>Status</th>
-                      <th style={{ ...headerCellStyle, minWidth: '280px', textAlign: 'center' }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {timetables.map((t, index) => (
-                      <motion.tr
-                        key={t._id}
-                        variants={fadeInVariants}
-                        custom={index * 0.03}
-                        initial="hidden"
-                        animate="visible"
-                        style={{
-                          backgroundColor: 'white',
-                          transition: 'background-color 0.3s ease'
-                        }}
-                        whileHover={{ backgroundColor: '#f8fafc' }}
-                      >
-                        <td style={cellStyle}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <div style={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '10px',
-                              backgroundColor: `${BRAND_COLORS.primary.main}10`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: BRAND_COLORS.primary.main,
-                              flexShrink: 0
-                            }}>
-                              <FaCalendarAlt size={16} />
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 600, color: '#1e293b' }}>{t.name}</div>
-                              <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-                                Created: {new Date(t.createdAt).toLocaleDateString()}
+
+            {/* ================= TAB SWITCHER ================= */}
+            <div style={{
+              padding: '0 1.75rem',
+              borderBottom: '1px solid #e2e8f0',
+              display: 'flex',
+              gap: '0.5rem'
+            }}>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setActiveTab("active")}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  border: 'none',
+                  borderBottom: activeTab === "active" ? '3px solid ' + BRAND_COLORS.primary.main : '3px solid transparent',
+                  backgroundColor: 'transparent',
+                  color: activeTab === "active" ? BRAND_COLORS.primary.main : '#64748b',
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Active Timetables
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setActiveTab("archived")}
+                style={{
+                  padding: '0.75rem 1.25rem',
+                  border: 'none',
+                  borderBottom: activeTab === "archived" ? '3px solid ' + BRAND_COLORS.secondary.main : '3px solid transparent',
+                  backgroundColor: 'transparent',
+                  color: activeTab === "archived" ? BRAND_COLORS.secondary.main : '#64748b',
+                  fontSize: '0.95rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Archived Timetables
+              </motion.button>
+            </div>
+
+            {/* ================= TIMETABLES CARD ================= */}
+            <motion.div
+              variants={fadeInVariants}
+              custom={0}
+              initial="hidden"
+              animate="visible"
+              style={{
+                backgroundColor: 'white',
+                borderRadius: '20px',
+                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{
+                padding: '1.75rem',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}>
+                <h2 style={{
+                  margin: 0,
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem'
+                }}>
+                  <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main }} /> 
+                  {activeTab === "active" ? "Active Timetables" : "Archived Timetables"}
+                </h2>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  backgroundColor: '#dbeafe',
+                  color: BRAND_COLORS.primary.main,
+                  padding: '0.5rem 1rem',
+                  borderRadius: '20px',
+                  fontSize: '0.9rem',
+                  fontWeight: 500
+                }}>
+                  <FaInfoCircle size={14} />
+                  {activeTab === "active" ? "Click on any timetable to view weekly schedule" : "Archived timetables are read-only records"}
+                </div>
+              </div>
+              
+              {(activeTab === "active" ? timetables : archivedTimetables).length > 0 ? (
+                <div className="erp-timetable-responsive">
+                  <table style={tableStyle}>
+                    <thead>
+                      <tr>
+                        <th style={headerCellStyle}>Timetable Name</th>
+                        <th style={headerCellStyle}>Semester</th>
+                        <th style={headerCellStyle}>Academic Year</th>
+                        <th style={headerCellStyle}>Status</th>
+                        <th style={{ ...headerCellStyle, minWidth: '280px', textAlign: 'center' }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(activeTab === "active" ? timetables : archivedTimetables).map((t, index) => (
+                        <motion.tr
+                          key={t._id}
+                          variants={fadeInVariants}
+                          custom={index * 0.03}
+                          initial="hidden"
+                          animate="visible"
+                          style={{
+                            backgroundColor: 'white',
+                            transition: 'background-color 0.3s ease'
+                          }}
+                          whileHover={{ backgroundColor: '#f8fafc' }}
+                        >
+                          <td style={cellStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div style={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '10px',
+                                backgroundColor: `${BRAND_COLORS.primary.main}10`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: BRAND_COLORS.primary.main,
+                                flexShrink: 0
+                              }}>
+                                <FaCalendarAlt size={16} />
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 600, color: '#1e293b' }}>{t.name}</div>
+                                <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
+                                  Created: {new Date(t.createdAt).toLocaleDateString()}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </td>
-                        
-                        <td style={cellStyle}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <FaLayerGroup size={16} style={{ color: BRAND_COLORS.warning.main }} />
-                            <span>{t.semester || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td style={cellStyle}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <FaClock size={16} style={{ color: BRAND_COLORS.info.main }} />
-                            <span>{t.academicYear || 'N/A'}</span>
-                          </div>
-                        </td>
-                        <td style={cellStyle}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.375rem',
-                            padding: '0.375rem 0.875rem',
-                            borderRadius: '20px',
-                            backgroundColor: t.status === "PUBLISHED" ? `${BRAND_COLORS.success.main}15` : `${BRAND_COLORS.warning.main}15`,
-                            color: t.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
-                            fontWeight: 600,
-                            fontSize: '0.85rem',
-                            border: `1px solid ${t.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main}30`
-                          }}>
-                            {t.status === "PUBLISHED" ? <FaCheckCircle size={12} /> : <FaClock size={12} />}
-                            {t.status}
-                          </span>
-                        </td>
-                        <td style={{ ...cellStyle, textAlign: 'center', padding: '0.75rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {/* VIEW BUTTON */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => navigate(`/timetable/${t._id}/weekly`)}
-                              title="View Weekly Timetable"
-                              style={{
-                                padding: '0.5rem 0.875rem',
-                                borderRadius: '10px',
-                                border: '1px solid #cbd5e1',
-                                backgroundColor: 'white',
-                                color: BRAND_COLORS.primary.main,
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <FaEye size={14} /> View
-                            </motion.button>
-                            
-                            {/* EDIT BUTTON */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => editTimetable(t._id)}
-                              disabled={t.status === "PUBLISHED"}
-                              title={t.status === "PUBLISHED" ? "Cannot edit published timetable" : "Edit Timetable"}
-                              style={{
-                                padding: '0.5rem 0.875rem',
-                                borderRadius: '10px',
-                                border: '1px solid #cbd5e1',
-                                backgroundColor: t.status === "PUBLISHED" ? '#f1f5f9' : '#dbeafe',
-                                color: t.status === "PUBLISHED" ? '#94a3b8' : BRAND_COLORS.primary.main,
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                cursor: t.status === "PUBLISHED" ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <FaEdit size={14} /> Edit
-                            </motion.button>
-                            
-                            {/* PUBLISH BUTTON (TEACHERS ONLY) */}
-                            {isTeacher && t.status === "DRAFT" && (
+                          </td>
+                          
+                          <td style={cellStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <FaLayerGroup size={16} style={{ color: BRAND_COLORS.warning.main }} />
+                              <span>{t.semester || 'N/A'}</span>
+                            </div>
+                          </td>
+                          <td style={cellStyle}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <FaClock size={16} style={{ color: BRAND_COLORS.info.main }} />
+                              <span>{t.academicYear || 'N/A'}</span>
+                            </div>
+                          </td>
+                          <td style={cellStyle}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.375rem',
+                              padding: '0.375rem 0.875rem',
+                              borderRadius: '20px',
+                              backgroundColor: t.status === "PUBLISHED" ? `${BRAND_COLORS.success.main}15` : t.status === "ARCHIVED" ? `${BRAND_COLORS.secondary.main}15` : `${BRAND_COLORS.warning.main}15`,
+                              color: t.status === "PUBLISHED" ? BRAND_COLORS.success.main : t.status === "ARCHIVED" ? BRAND_COLORS.secondary.main : BRAND_COLORS.warning.main,
+                              fontWeight: 600,
+                              fontSize: '0.85rem',
+                              border: `1px solid ${t.status === "PUBLISHED" ? BRAND_COLORS.success.main : t.status === "ARCHIVED" ? BRAND_COLORS.secondary.main : BRAND_COLORS.warning.main}30`
+                            }}>
+                              {t.status === "PUBLISHED" ? <FaCheckCircle size={12} /> : t.status === "ARCHIVED" ? <FaArchive size={12} /> : <FaClock size={12} />}
+                              {t.status}
+                            </span>
+                          </td>
+                          <td style={{ ...cellStyle, textAlign: 'center', padding: '0.75rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              {/* VIEW BUTTON */}
                               <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => showPublishConfirm(t._id)}
-                                disabled={publishingId === t._id}
-                                title="Publish Timetable"
+                                onClick={() => navigate(`/timetable/${t._id}/weekly${activeTab === "archived" ? "?includeArchived=true" : ""}`)}
+                                title="View Weekly Timetable"
                                 style={{
                                   padding: '0.5rem 0.875rem',
                                   borderRadius: '10px',
-                                  border: 'none',
-                                  backgroundColor: publishingId === t._id ? '#94a3b8' : BRAND_COLORS.success.main,
-                                  color: 'white',
+                                  border: '1px solid #cbd5e1',
+                                  backgroundColor: 'white',
+                                  color: BRAND_COLORS.primary.main,
                                   fontSize: '0.875rem',
                                   fontWeight: 600,
-                                  cursor: publishingId === t._id ? 'not-allowed' : 'pointer',
+                                  cursor: 'pointer',
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: '0.375rem',
-                                  transition: 'all 0.2s ease',
-                                  boxShadow: publishingId === t._id ? 'none' : '0 2px 8px rgba(40, 167, 69, 0.3)'
+                                  transition: 'all 0.2s ease'
                                 }}
                               >
-                                {publishingId === t._id ? (
-                                  <motion.div variants={spinVariants} animate="animate">
-                                    <FaSyncAlt size={14} />
-                                  </motion.div>
-                                ) : (
-                                  <FaCheckCircle size={14} />
-                                )}
-                                {publishingId === t._id ? 'Publishing...' : 'Publish'}
-                              </motion.button>
-                            )}
-                            
-                            {/* DELETE BUTTON */}
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => showDeleteConfirm(t._id)}
-                              disabled={deletingId === t._id}
-                              title="Delete Timetable"
-                              style={{
-                                padding: '0.5rem 0.875rem',
-                                borderRadius: '10px',
-                                border: '1px solid #fecaca',
-                                backgroundColor: deletingId === t._id ? '#94a3b8' : BRAND_COLORS.danger.main,
-                                color: 'white',
-                                fontSize: '0.875rem',
-                                fontWeight: 600,
-                                cursor: deletingId === t._id ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.375rem',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              {deletingId === t._id ? (
-                                <motion.div variants={spinVariants} animate="animate">
-                                  <FaSyncAlt size={14} />
-                                </motion.div>
-                              ) : (
-                                <FaTrash size={14} />
+                                 <FaEye size={14} /> View
+                               </motion.button>
+
+                               {/* UNARCHIVE BUTTON (HOD ONLY) — shown for archived timetables */}
+                               {activeTab === "archived" && isHOD && t.status === "ARCHIVED" && (
+                                 <motion.button
+                                   whileHover={{ scale: 1.05 }}
+                                   whileTap={{ scale: 0.95 }}
+                                   onClick={() => showUnarchiveConfirm(t._id)}
+                                   disabled={unarchivingId === t._id}
+                                   title="Unarchive Timetable"
+                                   style={{
+                                     padding: '0.5rem 0.875rem',
+                                     borderRadius: '10px',
+                                     border: '1px solid #cbd5e1',
+                                     backgroundColor: unarchivingId === t._id ? '#94a3b8' : BRAND_COLORS.info.main,
+                                     color: 'white',
+                                     fontSize: '0.875rem',
+                                     fontWeight: 600,
+                                     cursor: unarchivingId === t._id ? 'not-allowed' : 'pointer',
+                                     display: 'flex',
+                                     alignItems: 'center',
+                                     gap: '0.375rem',
+                                     transition: 'all 0.2s ease',
+                                     boxShadow: unarchivingId === t._id ? 'none' : '0 2px 8px rgba(23, 162, 184, 0.3)'
+                                   }}
+                                 >
+                                   {unarchivingId === t._id ? (
+                                     <motion.div variants={spinVariants} animate="animate">
+                                       <FaSyncAlt size={14} />
+                                     </motion.div>
+                                   ) : (
+                                     <FaUnlock size={14} />
+                                   )}
+                                   {unarchivingId === t._id ? 'Unarchiving...' : 'Unarchive'}
+                                 </motion.button>
+                               )
+}
+                              {/* PUBLISH BUTTON (HOD ONLY) — hidden for archived */}
+                              {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => showPublishConfirm(t._id)}
+                                  disabled={publishingId === t._id}
+                                  title="Publish Timetable"
+                                  style={{
+                                    padding: '0.5rem 0.875rem',
+                                    borderRadius: '10px',
+                                    border: 'none',
+                                    backgroundColor: publishingId === t._id ? '#94a3b8' : BRAND_COLORS.success.main,
+                                    color: 'white',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    cursor: publishingId === t._id ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.375rem',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: publishingId === t._id ? 'none' : '0 2px 8px rgba(40, 167, 69, 0.3)'
+                                  }}
+                                >
+                                  {publishingId === t._id ? (
+                                    <motion.div variants={spinVariants} animate="animate">
+                                      <FaSyncAlt size={14} />
+                                    </motion.div>
+                                  ) : (
+                                    <FaCheckCircle size={14} />
+                                  )}
+                                  {publishingId === t._id ? 'Publishing...' : 'Publish'}
+                                </motion.button>
                               )}
-                              {deletingId === t._id ? 'Deleting...' : 'Delete'}
-                            </motion.button>
-                          </div>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
+                              
+                              {/* ARCHIVE BUTTON (HOD ONLY) — hidden for archived */}
+                              {activeTab !== "archived" && isHOD && t.status === "PUBLISHED" && (
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => showArchiveConfirm(t._id)}
+                                  disabled={archivingId === t._id}
+                                  title="Archive Timetable"
+                                  style={{
+                                    padding: '0.5rem 0.875rem',
+                                    borderRadius: '10px',
+                                    border: '1px solid #cbd5e1',
+                                    backgroundColor: archivingId === t._id ? '#94a3b8' : BRAND_COLORS.secondary.main,
+                                    color: 'white',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    cursor: archivingId === t._id ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.375rem',
+                                    transition: 'all 0.2s ease',
+                                    boxShadow: archivingId === t._id ? 'none' : '0 2px 8px rgba(108, 117, 125, 0.3)'
+                                  }}
+                                >
+                                  {archivingId === t._id ? (
+                                    <motion.div variants={spinVariants} animate="animate">
+                                      <FaSyncAlt size={14} />
+                                    </motion.div>
+                                  ) : (
+                                    <FaArchive size={14} />
+                                  )}
+                                  {archivingId === t._id ? 'Archiving...' : 'Archive'}
+                                </motion.button>
+                              )}
+                              
+                              {/* DELETE BUTTON — hidden for archived */}
+                              {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                  onClick={() => showDeleteConfirm(t._id)}
+                                  disabled={deletingId === t._id}
+                                  title="Delete Timetable"
+                                  style={{
+                                    padding: '0.5rem 0.875rem',
+                                    borderRadius: '10px',
+                                    border: '1px solid #fecaca',
+                                    backgroundColor: deletingId === t._id ? '#94a3b8' : BRAND_COLORS.danger.main,
+                                    color: 'white',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600,
+                                    cursor: deletingId === t._id ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.375rem',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                >
+                                  {deletingId === t._id ? (
+                                    <motion.div variants={spinVariants} animate="animate">
+                                      <FaSyncAlt size={14} />
+                                    </motion.div>
+                                  ) : (
+                                    <FaTrash size={14} />
+                                  )}
+                                  {deletingId === t._id ? 'Deleting...' : 'Delete'}
+                                </motion.button>
+                              )}
+                            </div>
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <EmptyState 
+                  icon={<FaCalendarAlt />} 
+                  title={activeTab === "active" ? "No Active Timetables" : "No Archived Timetables"} 
+                  message={activeTab === "active" ? "Create your first academic timetable to get started" : "Archived timetables will appear here after being archived"} 
+                  actionText={activeTab === "active" && isHOD ? "Create Timetable" : ""} 
+                  onAction={activeTab === "active" && isHOD ? () => navigate('/timetable/create-timetable') : undefined} 
+                />
+              )}
+              
+              <div style={{ 
+                padding: '1.5rem',
+                borderTop: '1px solid #f1f5f9',
+                backgroundColor: '#f8fafc',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '1rem',
+                flexWrap: 'wrap'
+              }}>
+                <FaInfoCircle style={{ color: BRAND_COLORS.primary.main }} />
+                <div style={{ color: '#4a5568', fontSize: '0.95rem' }}>
+                  <strong>Tip:</strong> Timetables in <span style={{ color: BRAND_COLORS.success.main, fontWeight: 600 }}>Published</span> status are visible to students. 
+                  <span style={{ display: 'block', marginTop: '0.25rem' }}>
+                    {isHOD ? "As HOD, you can publish draft timetables after finalizing the schedule." : "As an admin, you can manage all timetables across departments."}
+                  </span>
+                </div>
               </div>
-            ) : (
-              <EmptyState 
-                icon={<FaCalendarAlt />} 
-                title="No Timetables Found" 
-                message="Create your first academic timetable to get started" 
-                actionText="Create Timetable" 
-                onAction={() => navigate('/timetable/create-timetable')} 
-              />
-            )}
-            
-            <div style={{ 
-              padding: '1.5rem',
-              borderTop: '1px solid #f1f5f9',
-              backgroundColor: '#f8fafc',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '1rem',
-              flexWrap: 'wrap'
-            }}>
-              <FaInfoCircle style={{ color: BRAND_COLORS.primary.main }} />
-              <div style={{ color: '#4a5568', fontSize: '0.95rem' }}>
-                <strong>Tip:</strong> Timetables in <span style={{ color: BRAND_COLORS.success.main, fontWeight: 600 }}>Published</span> status are visible to students. 
-                <span style={{ display: 'block', marginTop: '0.25rem' }}>
-                  {isTeacher ? "As a teacher, you can publish draft timetables after finalizing the schedule." : "As an admin, you can manage all timetables across departments."}
-                </span>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
         </div>
       </motion.div>
 
@@ -712,12 +1041,36 @@ export default function TimetableList() {
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" })}
-        onConfirm={confirmModal.action === "publish" ? confirmPublishTimetable : confirmDeleteTimetable}
+        onConfirm={
+          confirmModal.action === "publish"
+            ? confirmPublishTimetable
+            : confirmModal.action === "archive"
+              ? confirmArchiveTimetable
+              : confirmModal.action === "unarchive"
+                ? confirmUnarchiveTimetable
+                : confirmDeleteTimetable
+        }
         title={confirmModal.title}
         message={confirmModal.message}
         type={confirmModal.type}
-        confirmText={confirmModal.action === "publish" ? "Publish" : "Delete"}
-        isLoading={confirmModal.action === "publish" ? publishingId === confirmModal.id : deletingId === confirmModal.id}
+        confirmText={
+          confirmModal.action === "publish"
+            ? "Publish"
+            : confirmModal.action === "archive"
+              ? "Archive"
+              : confirmModal.action === "unarchive"
+                ? "Unarchive"
+                : "Delete"
+        }
+        isLoading={
+          confirmModal.action === "publish"
+            ? publishingId === confirmModal.id
+            : confirmModal.action === "archive"
+              ? archivingId === confirmModal.id
+              : confirmModal.action === "unarchive"
+                ? unarchivingId === confirmModal.id
+                : deletingId === confirmModal.id
+        }
       />
     </AnimatePresence>
   );
@@ -774,10 +1127,9 @@ function EmptyState({ icon, title, message, actionText, onAction }) {
         {title}
       </h3>
       <p style={{ 
-        margin: '0 0 2rem 0', 
+        margin: '0 auto 2rem', 
         fontSize: '1.1rem',
-        maxWidth: '600px',
-        margin: '0 auto 2rem'
+        maxWidth: '600px'
       }}>
         {message}
       </p>

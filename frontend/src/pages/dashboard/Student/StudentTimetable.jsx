@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaCalendarAlt,
@@ -26,6 +27,8 @@ import { motion } from "framer-motion";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const PAGE_LOAD_TOAST_ID = "student-timetable-load";
+
 // Brand Color Palette
 const BRAND_COLORS = {
   primary: "#1a4b6d",
@@ -41,6 +44,19 @@ const BRAND_COLORS = {
     PRACTICAL: { bg: "#f3e5f5", text: "#6a1b9a", border: "#ce93d8" },
   },
 };
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 // Animation Variants
 const fadeInVariants = {
@@ -72,7 +88,7 @@ export const DAY_MAP = {
   6: "SAT",
 };
 
-const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const DAY_NAMES = [
   "Monday",
   "Tuesday",
@@ -80,7 +96,10 @@ const DAY_NAMES = [
   "Thursday",
   "Friday",
   "Saturday",
+  "Sunday",
 ];
+const ALL_DAYS = DAYS;
+const DAY_NAMES_FULL = DAY_NAMES;
 
 // Validation helper function
 const validateTimetableSlot = (slot) => {
@@ -153,6 +172,20 @@ const parseLocalDate = (dateStr) => {
   return new Date(y, m - 1, d); // month is 0-indexed
 };
 
+const getCurrentWeekDateRange = () => {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return {
+    startDate: toLocalDateStr(monday),
+    endDate: toLocalDateStr(sunday),
+  };
+};
+
 export default function StudentTimetable() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -174,20 +207,7 @@ export default function StudentTimetable() {
   const [scheduleData, setScheduleData] = useState(null);
   const [timetableId, setTimetableId] = useState(null);
   const [dateRange, setDateRange] = useState(() => {
-    // Default to current week (Monday to Sunday) using LOCAL dates to avoid UTC shifts
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    return {
-      startDate: toLocalDateStr(monday),
-      endDate: toLocalDateStr(sunday),
-    };
+    return getCurrentWeekDateRange();
   });
   const [scheduleSummary, setScheduleSummary] = useState(null);
   const [activePeriod, setActivePeriod] = useState({
@@ -195,6 +215,10 @@ export default function StudentTimetable() {
     endDate: null,
   });
   const [isOutsideActiveRange, setIsOutsideActiveRange] = useState(false);
+
+  const [fullWeekView, setFullWeekView] = useState(false);
+  const displayDays = fullWeekView ? ALL_DAYS : DAYS;
+  const displayDayNames = fullWeekView ? DAY_NAMES_FULL : DAY_NAMES;
 
   // Security check
   if (!user) return <Navigate to="/login" />;
@@ -222,12 +246,13 @@ export default function StudentTimetable() {
     return () => clearInterval(refreshInterval);
   }, []);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeout and page-load toast on unmount
   useEffect(() => {
     return () => {
       if (loadTimeoutRef.current) {
         clearTimeout(loadTimeoutRef.current);
       }
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
   }, []);
 
@@ -238,7 +263,7 @@ export default function StudentTimetable() {
 
     // Group by day
     const weeklyData = {};
-    DAYS.forEach((day) => {
+    ALL_DAYS.forEach((day) => {
       weeklyData[day] = validatedSlots.filter((slot) => slot.day === day);
     });
     setWeekly(weeklyData);
@@ -256,7 +281,7 @@ export default function StudentTimetable() {
   const processNewFormatSchedule = (schedule) => {
     // Convert new schedule format to existing weekly format
     const weeklyData = {};
-    DAYS.forEach((day) => {
+    ALL_DAYS.forEach((day) => {
       weeklyData[day] = [];
     });
 
@@ -299,9 +324,10 @@ export default function StudentTimetable() {
     const validatedSlots = allWeeklySlots.filter(validateTimetableSlot);
 
     // Update weekly data with validated slots
-    DAYS.forEach((day) => {
+    ALL_DAYS.forEach((day) => {
       weeklyData[day] = validatedSlots.filter((slot) => slot.day === day);
     });
+
 
     // Validate today slots too
     todaySlotsList = todaySlotsList.filter(validateTimetableSlot);
@@ -323,15 +349,25 @@ export default function StudentTimetable() {
 
     // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
-      setError(
-        "Request timed out. Please check your connection and try again.",
-      );
-      setLoading(false);
-      toast.error("Request timed out. Please try again.", {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaExclamationTriangle />,
+      logger.warn("Student timetable request timed out", {
+        page: "StudentTimetable",
+        role: user?.role,
       });
+      setError({
+        message:
+          "Request timed out. Please check your connection and try again.",
+        statusCode: undefined,
+        errorCode: undefined,
+      });
+      setLoading(false);
+      if (!toastShown.error) {
+        toast.error("Request timed out. Please try again.", {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+        });
+        setToastShown({ ...toastShown, error: true });
+      }
     }, 30000);
 
     try {
@@ -442,6 +478,7 @@ export default function StudentTimetable() {
           position: "top-right",
           autoClose: 3000,
           icon: <FaCheckCircle />,
+          toastId: PAGE_LOAD_TOAST_ID,
         });
         setToastShown({ ...toastShown, success: true });
       }
@@ -452,14 +489,29 @@ export default function StudentTimetable() {
       }
 
       const statusCode = err.response?.status;
-      const errorMsg =
-        err.response?.data?.message ||
-        "Failed to load timetable. Please check your connection.";
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
 
-      setError({ message: errorMsg, statusCode });
+      logger.error("Student timetable load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "StudentTimetable",
+        role: user?.role,
+      });
 
-      if (!toastShown.error) {
-        toast.error(errorMsg, {
+      setError({
+        message:
+          "Failed to load timetable. Please check your connection and try again.",
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError && !toastShown.error) {
+        toast.error("Failed to load timetable. Please try again.", {
           position: "top-right",
           autoClose: 5000,
           icon: <FaExclamationTriangle />,
@@ -505,14 +557,6 @@ export default function StudentTimetable() {
     const newStartStr = toLocalDateStr(start);
     const newEndStr = toLocalDateStr(end);
 
-    if (!isDateWithinActiveRange(newStartStr, newEndStr)) {
-      toast.info("No timetable available for this week.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-
     setDateRange({ startDate: newStartStr, endDate: newEndStr });
   };
 
@@ -524,40 +568,17 @@ export default function StudentTimetable() {
     const newStartStr = toLocalDateStr(start);
     const newEndStr = toLocalDateStr(end);
 
-    if (!isDateWithinActiveRange(newStartStr, newEndStr)) {
-      toast.info("No timetable available for this week.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-      return;
-    }
-
     setDateRange({ startDate: newStartStr, endDate: newEndStr });
   };
 
   const goToCurrentWeek = () => {
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    setDateRange({
-      startDate: toLocalDateStr(monday),
-      endDate: toLocalDateStr(sunday),
-    });
+    setDateRange(getCurrentWeekDateRange());
     // Reset toast so success shows
     setToastShown({ success: false, error: false });
   };
 
   const goToToday = () => {
-    const todayStr = toLocalDateStr(new Date());
-    setDateRange({ startDate: todayStr, endDate: todayStr });
-    // Reset toast so success shows
-    setToastShown({ success: false, error: false });
+    goToCurrentWeek();
   };
 
   // Use a ref to track if timetable has been loaded
@@ -591,18 +612,22 @@ export default function StudentTimetable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange.startDate, dateRange.endDate]);
 
-  // Get current day
-  const today = new Date();
-  const currentDayAbbr = DAY_MAP[today.getDay()];
-
   // Helper: Get the date for a specific day code within the current date range
-  const getDateForDay = (dayCode) => {
-    const dayIndex = DAYS.indexOf(dayCode);
+   const getDateForDay = (dayCode) => {
+    const dayIndex = displayDays.indexOf(dayCode);
     if (dayIndex === -1) return null;
     const [year, month, day] = dateRange.startDate.split("-").map(Number);
     const targetDate = new Date(year, month - 1, day + dayIndex);
     return targetDate;
   };
+
+  const isCurrentWeek = (() => {
+    const current = getCurrentWeekDateRange();
+    return (
+      current.startDate === dateRange.startDate &&
+      current.endDate === dateRange.endDate
+    );
+  });
 
   // Helper: Format date as DD/MM/YYYY
   const formatDateDDMMYYYY = (date) => {
@@ -613,27 +638,47 @@ export default function StudentTimetable() {
     return `${dd}/${mm}/${yyyy}`;
   };
 
-  // Generate dynamic time rows based on actual slot data
-  const generateTimeRows = () => {
+  const { timeRows: dynamicTimeRows, fullDayHolidays } = (() => {
     const timeSet = new Set();
+    const fullDayHolidays = {}; // Track days with full-day holidays
 
+     // First pass: Identify full-day holidays for each day
+    ALL_DAYS.forEach((day) => {
+      const daySlots = weekly[day] || [];
+      const holidaySlot = daySlots.find(
+        (s) =>
+          s.status === "HOLIDAY" &&
+          s.startTime === "00:00" &&
+          s.endTime === "23:59",
+      );
+      if (holidaySlot) {
+        fullDayHolidays[day] = holidaySlot;
+      }
+    });
+
+    // Second pass: Collect all unique time ranges (excluding full-day holidays)
     Object.values(weekly).forEach((daySlots) => {
       daySlots.forEach((slot) => {
         if (slot.startTime && slot.endTime) {
-          timeSet.add(`${slot.startTime}-${slot.endTime}`);
+          const timeKey = `${slot.startTime}-${slot.endTime}`;
+          // Only add if it's not a full-day holiday time range
+          if (timeKey !== "00:00-23:59") {
+            timeSet.add(timeKey);
+          }
         }
       });
     });
 
-    return Array.from(timeSet)
+    // Generate sorted time rows
+    const filteredTimeRows = Array.from(timeSet)
       .map((timeRange) => {
         const [start, end] = timeRange.split("-");
         return { start, end, key: timeRange };
       })
       .sort((a, b) => a.start.localeCompare(b.start));
-  };
 
-  const dynamicTimeRows = generateTimeRows();
+    return { timeRows: filteredTimeRows, fullDayHolidays };
+  })();
 
   // Get course info - Updated to use timetableId and scheduleData
   const renderFirstSlot =
@@ -650,9 +695,33 @@ export default function StudentTimetable() {
     scheduleData?.timetable?.academicYear ||
     renderFirstSlot?.timetable_id?.academicYear ||
     "";
+  const division =
+    scheduleData?.timetable?.division ||
+    renderFirstSlot?.timetable_id?.division ||
+    "";
+  const yearLabel =
+    scheduleData?.timetable?.yearLabel ||
+    renderFirstSlot?.yearLabel ||
+    "";
 
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading Your Timetable..." />;
+  }
+
+  if (error) {
+    return (
+      <ApiError
+        title="Timetable Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={handleGoBack}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={isRetrying}
+      />
+    );
   }
 
   return (
@@ -690,8 +759,12 @@ export default function StudentTimetable() {
               {courseName && (
                 <>
                   <FaBook className="st-subtitle-icon" /> {courseName}
+                  {yearLabel && <span className="st-sep">•</span>}
+                  {yearLabel && <span>{yearLabel}</span>}
                   {semester && <span className="st-sep">•</span>}
                   {semester && <span>Sem {semester}</span>}
+                  {division && <span className="st-sep">•</span>}
+                  {division && <span>Div {division}</span>}
                   {academicYear && <span className="st-sep">•</span>}
                   {academicYear && <span>{academicYear}</span>}
                 </>
@@ -714,7 +787,10 @@ export default function StudentTimetable() {
             </div>
           </div>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              setToastShown({ success: false, error: false });
+              loadTimetable(true);
+            }}
             className="st-refresh-btn"
           >
             <FaSyncAlt className={loading ? "st-spin" : ""} />
@@ -735,7 +811,7 @@ export default function StudentTimetable() {
           </button>
           <button
             onClick={goToCurrentWeek}
-            className="st-nav-btn st-nav-today"
+            className={`st-nav-btn st-nav-today${isCurrentWeek ? " st-nav-today--active" : ""}`}
             title="Go to Current Week"
           >
             <FaCalendarAlt /> Current Week
@@ -750,12 +826,12 @@ export default function StudentTimetable() {
           <div className="st-date-range">
             <FaCalendarAlt className="st-date-icon" />
             <span>
-              {new Date(dateRange.startDate).toLocaleDateString("en-US", {
+              {parseLocalDate(dateRange.startDate).toLocaleDateString("en-IN", {
                 month: "short",
                 day: "numeric",
               })}{" "}
               -{" "}
-              {new Date(dateRange.endDate).toLocaleDateString("en-US", {
+              {parseLocalDate(dateRange.endDate).toLocaleDateString("en-IN", {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
@@ -772,7 +848,10 @@ export default function StudentTimetable() {
             <FaSun /> Today
           </button>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => {
+              setToastShown({ success: false, error: false });
+              loadTimetable(true);
+            }}
             className="st-nav-btn"
             title="Refresh"
           >
@@ -802,7 +881,7 @@ export default function StudentTimetable() {
                   {" "}
                   Your timetable is active from{" "}
                   {parseLocalDate(activePeriod.startDate).toLocaleDateString(
-                    "en-US",
+                    "en-IN",
                     {
                       day: "numeric",
                       month: "short",
@@ -811,7 +890,7 @@ export default function StudentTimetable() {
                   )}{" "}
                   to{" "}
                   {parseLocalDate(activePeriod.endDate).toLocaleDateString(
-                    "en-US",
+                    "en-IN",
                     {
                       day: "numeric",
                       month: "short",
@@ -859,7 +938,7 @@ export default function StudentTimetable() {
           <div className="st-stat-info">
             <span className="st-stat-value">
               {scheduleSummary?.workingDays ||
-                DAYS.filter((day) => weekly[day]?.length > 0).length}
+                displayDays.filter((day) => weekly[day]?.length > 0).length}
             </span>
             <span className="st-stat-label">Working Days</span>
           </div>
@@ -909,28 +988,6 @@ export default function StudentTimetable() {
           </>
         )}
       </div>
-
-      {/* Error Banner */}
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="st-error-banner"
-          role="alert"
-          aria-live="assertive"
-        >
-          <FaExclamationTriangle className="st-error-icon" aria-hidden="true" />
-          <span>{typeof error === "object" ? error.message : error}</span>
-          <button
-            onClick={handleRetry}
-            disabled={isRetrying}
-            className="st-error-close"
-            aria-label="Retry loading timetable"
-          >
-            <FaSyncAlt /> {isRetrying ? "Loading..." : "Retry"}
-          </button>
-        </motion.div>
-      )}
 
       {/* Today's Classes - Phase 4: Improved empty state */}
       {todaySlots.length === 0 ? (
@@ -995,8 +1052,14 @@ export default function StudentTimetable() {
             >
               <FaInfoCircle aria-hidden="true" />
               <span>
-                {todaySlots.length}{" "}
-                {todaySlots.length === 1 ? "class" : "classes"}
+                {todaySlots.length === 1 &&
+                todaySlots[0].status === "HOLIDAY" &&
+                todaySlots[0].startTime === "00:00" &&
+                todaySlots[0].endTime === "23:59"
+                  ? "Full Day Holiday"
+                  : `${todaySlots.length} ${
+                      todaySlots.length === 1 ? "class" : "classes"
+                    }`}
               </span>
             </div>
           </div>
@@ -1004,9 +1067,24 @@ export default function StudentTimetable() {
             className="st-today-grid"
             aria-labelledby="todays-classes-heading"
           >
-            {todaySlots.map((slot, idx) => (
-              <TodaySlotCard key={slot._id} slot={slot} index={idx} />
-            ))}
+            {(() => {
+              // Check if today is a full-day holiday
+              const isFullDayHoliday =
+                todaySlots.length === 1 &&
+                todaySlots[0].status === "HOLIDAY" &&
+                todaySlots[0].startTime === "00:00" &&
+                todaySlots[0].endTime === "23:59";
+
+              if (isFullDayHoliday) {
+                // Render special full-day holiday card
+                return <TodayHolidayCard slot={todaySlots[0]} index={0} />;
+              }
+
+              // Otherwise, render regular slot cards
+              return todaySlots.map((slot, idx) => (
+                <TodaySlotCard key={slot._id} slot={slot} index={idx} />
+              ));
+            })()}
           </div>
         </motion.div>
       )}
@@ -1032,13 +1110,25 @@ export default function StudentTimetable() {
             <FaCalendarAlt className="st-section-icon" aria-hidden="true" />
             <h2 id="weekly-schedule-heading">Weekly Schedule</h2>
           </div>
-          <div className="st-section-badge" aria-label="Full week view">
+          <div
+            className={`st-section-badge st-full-week-toggle ${fullWeekView ? "st-active" : ""}`}
+            aria-label="Full week view"
+            role="button"
+            tabIndex={0}
+            onClick={() => setFullWeekView((prev) => !prev)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setFullWeekView((prev) => !prev);
+              }
+            }}
+          >
             <FaBook aria-hidden="true" />
             <span>Full Week View</span>
           </div>
         </div>
         <div
-          className="st-table-container"
+          className="st-table-container erp-timetable-responsive"
           role="region"
           aria-labelledby="weekly-schedule-heading"
           aria-label="Weekly timetable"
@@ -1046,28 +1136,29 @@ export default function StudentTimetable() {
           <table className="st-timetable-table" role="table">
             <thead>
               <tr>
-                <th className="st-time-col-header" scope="col">
+                <th className="st-time-col-header erp-timetable-time" scope="col">
                   <FaClock aria-hidden="true" /> Time
                 </th>
-                {DAYS.map((day, idx) => {
+                {displayDays.map((day, idx) => {
                   const dayDate = getDateForDay(day);
                   const dateStr = formatDateDDMMYYYY(dayDate);
-                  const isToday = day === currentDayAbbr;
+                  const todayDayCode = DAY_MAP[new Date().getDay()];
+                  const isToday = day === todayDayCode;
                   return (
                     <th
                       key={day}
-                      className={`st-day-col-header ${isToday ? "st-today-col" : ""}`}
+                      className={`st-day-col-header ${isToday ? "st-today-col" : ""} erp-timetable-day`}
                       scope="col"
-                      aria-label={`${DAY_NAMES[idx]}${isToday ? " (Today)" : ""}`}
-                    >
-                      <div className="st-day-header-content">
-                        <span className="st-day-name">{DAY_NAMES[idx]}</span>
+                       aria-label={`${displayDayNames[idx]}${isToday ? " (Today)" : ""}`}
+                     >
+                       <div className="st-day-header-content">
+                         <span className="st-day-name">{displayDayNames[idx]}</span>
                         {dateStr && (
                           <span className="st-day-date">
                             {dateStr}
-                            {isToday && (
-                              <span className="st-today-badge"> (Today)</span>
-                            )}
+                             {isToday && (
+                               <span className="st-today-badge"> (Today)</span>
+                             )}
                           </span>
                         )}
                       </div>
@@ -1079,7 +1170,7 @@ export default function StudentTimetable() {
             <tbody>
               {dynamicTimeRows.length === 0 ? (
                 <tr>
-                  <td className="st-time-cell" colSpan={DAYS.length + 1}>
+                  <td className="st-time-cell" colSpan={displayDays.length + 1}>
                     <div className="st-no-slots">
                       <FaCalendarAlt className="st-no-slots-icon" />
                       <span>No classes scheduled for this week</span>
@@ -1087,26 +1178,70 @@ export default function StudentTimetable() {
                   </td>
                 </tr>
               ) : (
-                dynamicTimeRows.map((timeRow) => {
+                dynamicTimeRows.map((timeRow, rowIndex) => {
                   const timeStr = `${formatTime12Hour(timeRow.start)} - ${formatTime12Hour(timeRow.end)}`;
                   return (
                     <tr key={timeRow.key}>
-                      <td className="st-time-cell" scope="row">
+                      <td className="st-time-cell erp-timetable-time" scope="row">
                         {timeStr}
                       </td>
-                      {DAYS.map((day) => {
-                        const slot = (weekly[day] || []).find(
+                      {displayDays.map((day) => {
+                        // Check if this day has a full-day holiday
+                        const holidaySlot = fullDayHolidays[day];
+
+                        if (holidaySlot) {
+                          // Only render holiday card in the first row
+                          if (rowIndex === 0) {
+                            return (
+                              <td
+                                key={`${day}-${timeRow.key}`}
+                                className="st-slot-cell erp-timetable-cell"
+                                rowSpan={dynamicTimeRows.length}
+                                style={{ verticalAlign: "top" }}
+                              >
+                                <WeeklySlotCard slot={holidaySlot} />
+                              </td>
+                            );
+                          } else {
+                            // Skip this cell in subsequent rows (it's covered by rowSpan)
+                            return null;
+                          }
+                        }
+
+                        // Regular slot logic for non-holiday days
+                        const matchingSlots = (weekly[day] || []).filter(
                           (s) =>
                             s.startTime === timeRow.start &&
                             s.endTime === timeRow.end,
                         );
+                        const hasConflict = matchingSlots.length > 1;
                         return (
                           <td
                             key={`${day}-${timeRow.key}`}
-                            className="st-slot-cell"
+                            className={`st-slot-cell erp-timetable-cell ${hasConflict ? "st-slot-cell--conflict" : ""}`}
                           >
-                            {slot ? (
-                              <WeeklySlotCard slot={slot} />
+                            {matchingSlots.length > 0 ? (
+                              <div
+                                className={`st-slot-stack ${hasConflict ? "st-slot-stack--conflict" : ""}`}
+                              >
+                                {hasConflict && (
+                                  <div className="st-conflict-badge">
+                                    <FaExclamationTriangle />{" "}
+                                    {matchingSlots.length} classes overlap
+                                  </div>
+                                )}
+                                {matchingSlots.map((slot, idx) => (
+                                  <div
+                                    key={
+                                      slot._id ||
+                                      `${slot.subject_id?.name}-${idx}-${timeRow.key}`
+                                    }
+                                    className="st-slot-item"
+                                  >
+                                    <WeeklySlotCard slot={slot} />
+                                  </div>
+                                ))}
+                              </div>
                             ) : (
                               <div
                                 className="st-empty-cell"
@@ -1252,7 +1387,7 @@ function TodaySlotCard({ slot, index }) {
             {exception.rescheduledTo && (
               <span className="st-rescheduled-info">
                 →{" "}
-                {new Date(exception.rescheduledTo).toLocaleDateString("en-US", {
+                {new Date(exception.rescheduledTo).toLocaleDateString("en-IN", {
                   month: "short",
                   day: "numeric",
                 })}
@@ -1260,6 +1395,82 @@ function TodaySlotCard({ slot, index }) {
             )}
           </div>
         )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ================= TODAY HOLIDAY CARD ================= */
+function TodayHolidayCard({ slot, index }) {
+  const exception = slot.exception;
+  const holidayReason = exception?.reason || slot.subject_id?.name || "Holiday";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: index * 0.05 }}
+      className="st-today-holiday-card"
+    >
+      {/* Holiday Banner */}
+      <div className="st-holiday-banner">
+        <div className="st-holiday-icon-wrapper">
+          <FaSun className="st-holiday-main-icon" />
+        </div>
+        <div className="st-holiday-content">
+          <h3 className="st-holiday-title">
+            <FaCalendarAlt className="st-holiday-title-icon" />
+            Full Day Holiday
+          </h3>
+          <p className="st-holiday-reason">
+            <FaInfoCircle className="st-holiday-reason-icon" />
+            {holidayReason}
+          </p>
+        </div>
+      </div>
+
+      {/* Holiday Details */}
+      <div className="st-holiday-details">
+        <div className="st-holiday-detail-item">
+          <FaClock className="st-holiday-detail-icon" />
+          <div>
+            <span className="st-holiday-detail-label">Duration</span>
+            <span className="st-holiday-detail-value">
+              12:00 AM - 11:59 PM (Full Day)
+            </span>
+          </div>
+        </div>
+        {slot.teacher_id && (
+          <div className="st-holiday-detail-item">
+            <FaChalkboardTeacher className="st-holiday-detail-icon" />
+            <div>
+              <span className="st-holiday-detail-label">Contact</span>
+              <span className="st-holiday-detail-value">
+                {slot.teacher_id.name}
+              </span>
+            </div>
+          </div>
+        )}
+        {exception?.approvedBy && (
+          <div className="st-holiday-detail-item">
+            <FaCheckCircle className="st-holiday-detail-icon" />
+            <div>
+              <span className="st-holiday-detail-label">Approved By</span>
+              <span className="st-holiday-detail-value">
+                {exception.approvedBy.name || "HOD"}
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Holiday Message */}
+      <div className="st-holiday-message">
+        <FaInfoCircle className="st-holiday-message-icon" />
+        <span>
+          Enjoy your holiday! No classes are scheduled for today. Use this time
+          to rest and prepare for upcoming sessions.
+        </span>
       </div>
     </motion.div>
   );
@@ -1344,17 +1555,27 @@ function WeeklySlotCard({ slot }) {
       >
         {slot.subject_id?.name}
       </div>
+      <div
+        className="st-weekly-slot-time"
+        style={{ opacity: isCancelled ? 0.5 : 1 }}
+      >
+        <FaClock className="st-weekly-icon" />
+        <span>
+          {formatTime12Hour(slot.startTime)} -{" "}
+          {formatTime12Hour(slot.endTime)}
+        </span>
+      </div>
       <div className="st-weekly-slot-footer">
         <div className="st-weekly-detail">
           <FaChalkboardTeacher className="st-weekly-icon" />
           <span className="st-weekly-teacher">
-            {slot.teacher_id?.name?.split(" ")[0]}
+            {slot.teacher_id?.name || "TBA"}
           </span>
         </div>
         {slot.room && (
           <div className="st-weekly-detail">
             <FaDoorOpen className="st-weekly-icon" />
-            <span>{slot.room}</span>
+            <span>Room {slot.room}</span>
           </div>
         )}
         {/* Phase 3: Exception reason tooltip */}
@@ -1594,6 +1815,11 @@ const componentStyles = `
     background: #2d6f8f;
   }
 
+  .st-nav-today--active {
+    background: #1565c0;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4);
+  }
+
   .st-date-range {
     background: #e3f2fd;
     padding: 0.6rem 1rem;
@@ -1805,37 +2031,6 @@ const componentStyles = `
   .st-stat-label {
     font-size: 0.85rem;
     color: #64748b;
-  }
-
-  /* ================= ERROR BANNER ================= */
-  .st-error-banner {
-    background: #fee2e2;
-    border: 1px solid #fecaca;
-    color: #dc2626;
-    padding: 1rem;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .st-error-icon {
-    font-size: 1.25rem;
-  }
-
-  .st-error-close {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: #dc2626;
-    cursor: pointer;
-    font-size: 1.5rem;
-    padding: 0.25rem;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
   }
 
   /* ================= OUTSIDE RANGE BANNER ================= */
@@ -2054,6 +2249,31 @@ const componentStyles = `
     border-radius: 20px;
     font-size: 0.9rem;
     font-weight: 500;
+  }
+
+  .st-full-week-toggle {
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+  }
+
+  .st-full-week-toggle:hover {
+    background: #e2e8f0;
+    color: #33415a;
+  }
+
+  .st-full-week-toggle:focus {
+    outline: 2px solid #4fc3f7;
+    outline-offset: 2px;
+  }
+
+  .st-full-week-toggle.st-active {
+    background: #1a4b6d;
+    color: #ffffff;
+  }
+
+  .st-full-week-toggle.st-active:hover {
+    background: #2d6f8f;
   }
 
   /* ================= TODAY'S GRID ================= */
@@ -2310,6 +2530,18 @@ const componentStyles = `
     overflow: visible;
   }
 
+  .st-weekly-slot-time {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .st-weekly-slot-footer {
     display: flex;
     flex-direction: column;
@@ -2405,5 +2637,209 @@ const componentStyles = `
       align-items: flex-start;
       gap: 1rem;
     }
+  }
+
+  /* ================= TODAY HOLIDAY CARD ================= */
+  .st-today-holiday-card {
+    background: linear-gradient(135deg, #fef9e7 0%, #fef3c7 100%);
+    border: 2px solid #f59e0b;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+    transition: all 0.3s ease;
+  }
+
+  .st-today-holiday-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(245, 158, 11, 0.2);
+  }
+
+  .st-holiday-banner {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px dashed #fcd34d;
+  }
+
+  .st-holiday-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+
+  .st-holiday-main-icon {
+    font-size: 2rem;
+    color: white;
+  }
+
+  .st-holiday-content {
+    flex: 1;
+  }
+
+  .st-holiday-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #92400e;
+  }
+
+  .st-holiday-title-icon {
+    font-size: 1.25rem;
+    color: #f59e0b;
+  }
+
+  .st-holiday-reason {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-size: 1.1rem;
+    color: #b45309;
+    font-weight: 500;
+  }
+
+  .st-holiday-reason-icon {
+    color: #f59e0b;
+    font-size: 1rem;
+  }
+
+  .st-holiday-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .st-holiday-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+  }
+
+  .st-holiday-detail-icon {
+    font-size: 1.25rem;
+    color: #f59e0b;
+    flex-shrink: 0;
+  }
+
+  .st-holiday-detail-item > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .st-holiday-detail-label {
+    font-size: 0.75rem;
+    color: #92400e;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .st-holiday-detail-value {
+    font-size: 0.95rem;
+    color: #78350f;
+    font-weight: 500;
+  }
+
+  .st-holiday-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.5);
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #f59e0b;
+  }
+
+  .st-holiday-message-icon {
+    font-size: 1.25rem;
+    color: #f59e0b;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  .st-holiday-message span {
+    font-size: 0.95rem;
+    color: #78350f;
+    line-height: 1.5;
+  }
+
+  /* Mobile responsive for holiday card */
+  @media (max-width: 768px) {
+    .st-holiday-banner {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .st-holiday-title {
+      justify-content: center;
+    }
+
+    .st-holiday-reason {
+      justify-content: center;
+    }
+
+    .st-holiday-details {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ================= OVERLAPPING CLASS CONFLICT ================= */
+  .st-slot-cell--conflict {
+    background: #fef9e7 !important;
+    border-color: #fcd34d !important;
+    overflow: hidden;
+  }
+
+  .st-slot-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    height: 100%;
+  }
+
+  .st-slot-stack--conflict {
+    overflow-y: auto;
+    padding-right: 0.25rem;
+    max-height: 140px;
+  }
+
+  .st-slot-item {
+    flex-shrink: 0;
+  }
+
+  .st-conflict-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #92400e;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  .st-conflict-badge svg {
+    font-size: 0.75rem;
+    color: #f59e0b;
   }
 `;

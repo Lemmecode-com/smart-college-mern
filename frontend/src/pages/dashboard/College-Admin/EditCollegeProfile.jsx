@@ -2,6 +2,8 @@ import { useEffect, useState, useRef } from "react";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 import {
   FaUniversity,
   FaSave,
@@ -15,10 +17,39 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaTimes,
+  FaImage,
+  FaUpload,
+  FaKey,
+  FaShieldAlt,
+  FaLock,
+  FaEye,
+  FaEyeSlash,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import LogoImage from "../../../components/common/LogoImage";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
+const LOGO_MAX_SIZE = 5 * 1024 * 1024;
+const LOGO_ALLOWED_TYPES = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+];
 
 export default function EditCollegeProfile() {
   const navigate = useNavigate();
@@ -42,8 +73,28 @@ export default function EditCollegeProfile() {
   const [touchedFields, setTouchedFields] = useState({});
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  const [errorDetails, setErrorDetails] = useState({
+    statusCode: null,
+    errorCode: null,
+  });
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [hasUserModified, setHasUserModified] = useState(false);
+  const [logoFile, setLogoFile] = useState(null);
+  const [logoError, setLogoError] = useState("");
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [existingLogoDocumentId, setExistingLogoDocumentId] = useState(null);
+
+  // ================= EMAIL CHANGE MODAL STATE =================
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailChangeStep, setEmailChangeStep] = useState(1); // 1: new email + password, 2: OTP
+  const [emailChangeForm, setEmailChangeForm] = useState({
+    newEmail: "",
+    currentPassword: "",
+    otp: "",
+  });
+  const [emailChangeErrors, setEmailChangeErrors] = useState({});
+  const [emailChangeSaving, setEmailChangeSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // ================= LOAD COLLEGE =================
   useEffect(() => {
@@ -89,6 +140,7 @@ export default function EditCollegeProfile() {
           logo: null,
         };
         setForm(emptyForm);
+        setExistingLogoDocumentId(null);
         setHasUserModified(false);
         return;
       }
@@ -98,47 +150,66 @@ export default function EditCollegeProfile() {
         name: typeof collegeData.name === "string" ? collegeData.name : "",
         code: typeof collegeData.code === "string" ? collegeData.code : "",
         email: typeof collegeData.email === "string" ? collegeData.email : "",
-        contactNumber: typeof collegeData.contactNumber === "string" ? collegeData.contactNumber : "",
+        contactNumber:
+          typeof collegeData.contactNumber === "string"
+            ? collegeData.contactNumber
+            : "",
         address: typeof collegeData.address === "string" ? collegeData.address : "",
         establishedYear: collegeData.establishedYear != null
           ? String(collegeData.establishedYear)
           : "",
-        logo: null,
+        logo: collegeData.logo || null,
       };
       
       setForm(formData);
+      setExistingLogoDocumentId(collegeData.logoDocumentId || null);
       setHasUserModified(false);
     } catch (err) {
       // Defensive: Handle different error types
-      const errorMessage =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to load college profile";
+      const statusCode = err?.response?.status;
+      const errorCode = err?.response?.data?.code;
+      const backendMessage =
+        err?.response?.data?.message || err?.message;
 
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        icon: <FaExclamationTriangle />,
+      logger.error("Edit college profile load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "EditCollegeProfile",
       });
 
-      setFetchError(true);
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
-      // Set empty form state on error
-      const emptyForm = {
-        name: "",
-        code: "",
-        email: "",
-        contactNumber: "",
-        address: "",
-        establishedYear: "",
-        logo: null,
-      };
-      setForm(emptyForm);
-      setHasUserModified(false);
+      setFetchError(true);
+      setErrorDetails({ statusCode, errorCode });
+
+      // Authentication failures are routed to ApiError; never surface a toast.
+      if (!isAuthError) {
+        toast.error("Failed to load college profile. Please try again.", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          icon: <FaExclamationTriangle />,
+        });
+      }
+
+// Set empty form state on error
+       const emptyForm = {
+         name: "",
+         code: "",
+         email: "",
+         contactNumber: "",
+         address: "",
+         establishedYear: "",
+         logo: null,
+       };
+       setForm(emptyForm);
+       setExistingLogoDocumentId(null);
+       setHasUserModified(false);
     } finally {
       setLoading(false);
     }
@@ -158,12 +229,6 @@ export default function EditCollegeProfile() {
         }
         if (!/^[A-Z0-9-]+$/i.test(value)) {
           return "Code can only contain letters, numbers, and hyphens";
-        }
-        break;
-      case "email":
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!value || !emailRegex.test(value)) {
-          return "Please enter a valid email address";
         }
         break;
       case "contactNumber":
@@ -246,6 +311,44 @@ export default function EditCollegeProfile() {
     }
   };
 
+  const handleLogoChange = (e) => {
+    const file = e.target.files[0];
+    setLogoError("");
+    setLogoPreview(null);
+
+    if (!file) {
+      setLogoFile(null);
+      return;
+    }
+
+    if (!LOGO_ALLOWED_TYPES.includes(file.type)) {
+      setLogoError("Only PNG, JPG, JPEG, and WEBP formats are allowed");
+      setLogoFile(null);
+      return;
+    }
+
+    if (file.size > LOGO_MAX_SIZE) {
+      setLogoError("Logo file size must be less than 5MB");
+      setLogoFile(null);
+      return;
+    }
+
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    setLogoError("");
+  };
+
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview);
+    };
+  }, [logoPreview]);
+
   // ================= SUBMIT HANDLER =================
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -268,29 +371,35 @@ export default function EditCollegeProfile() {
     setSaving(true);
 
     try {
-      const payload = {
-        name: form.name.trim(),
-        code: form.code.trim(),
-        email: form.email.trim().toLowerCase(),
-        contactNumber: form.contactNumber.replace(/\s/g, ""),
-        address: form.address.trim(),
-        establishedYear: Number(form.establishedYear),
-        logo: null,
-      };
+       const payload = new FormData();
+      payload.append("name", form.name.trim());
+      payload.append("code", form.code.trim());
+      payload.append(
+        "contactNumber",
+        form.contactNumber.replace(/\s/g, "")
+      );
+      payload.append("address", form.address.trim());
+      payload.append("establishedYear", Number(form.establishedYear));
+      if (logoFile) {
+        payload.append("logo", logoFile);
+      }
 
       const res = await api.put("/college/edit/my-college", payload);
 
-      toast.success(res.data.message || "Profile updated successfully!", {
+      setValidationErrors({});
+      setUnsavedChanges(false);
+      setHasUserModified(false);
+
+      toast.success(res.data?.message || "Profile updated successfully!", {
         position: "top-right",
         autoClose: 3000,
         icon: <FaCheckCircle />,
         progressStyle: { background: "#28a745" },
-        onClose: () => {
-          setUnsavedChanges(false);
-          setHasUserModified(false);
-          navigate("/college/profile");
-        },
       });
+
+      setTimeout(() => {
+        navigate("/college/profile");
+      }, 300);
     } catch (err) {
       toast.error(
         err.response?.data?.message || "Failed to update college profile",
@@ -325,6 +434,138 @@ export default function EditCollegeProfile() {
     setShowDiscardModal(false);
   };
 
+  // ================= EMAIL CHANGE HANDLERS =================
+  const validateEmailChangeField = (name, value) => {
+    switch (name) {
+      case "newEmail": {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!value || !emailRegex.test(value)) {
+          return "Please enter a valid email address";
+        }
+        return "";
+      }
+      case "currentPassword":
+        return !value ? "Current password is required" : "";
+      case "otp":
+        return !value || value.length !== 6
+          ? "Please enter the 6-digit OTP"
+          : "";
+      default:
+        return "";
+    }
+  };
+
+  const validateEmailChangeForm = () => {
+    const errors = {};
+    const fields = emailChangeStep === 1 ? ["newEmail", "currentPassword"] : ["otp"];
+    fields.forEach((field) => {
+      const error = validateEmailChangeField(field, emailChangeForm[field]);
+      if (error) errors[field] = error;
+    });
+    setEmailChangeErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleEmailChangeSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateEmailChangeForm()) {
+      toast.error("Please fix the errors before submitting.", {
+        position: "top-right",
+        autoClose: 4000,
+        icon: <FaExclamationTriangle />,
+      });
+      return;
+    }
+
+    if (emailChangeStep === 1) {
+      setEmailChangeSaving(true);
+      try {
+        const res = await api.post("/college/change-email/request", {
+          email: emailChangeForm.newEmail.trim().toLowerCase(),
+          currentPassword: emailChangeForm.currentPassword,
+        });
+
+        if (res.data?.success) {
+          toast.success(res.data.message || "OTP sent successfully to your email.", {
+            position: "top-right",
+            autoClose: 3000,
+            icon: <FaCheckCircle />,
+            progressStyle: { background: "#28a745" },
+          });
+          setEmailChangeStep(2);
+        }
+      } catch (err) {
+        const msg =
+          err.response?.data?.message ||
+          err.response?.data?.error?.message ||
+          "Failed to send OTP. Please try again.";
+        toast.error(msg, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+          progressStyle: { background: "#dc3545" },
+        });
+      } finally {
+        setEmailChangeSaving(false);
+      }
+    } else if (emailChangeStep === 2) {
+      setEmailChangeSaving(true);
+      try {
+        const res = await api.post("/college/change-email/verify", {
+          email: emailChangeForm.newEmail.trim().toLowerCase(),
+          otp: emailChangeForm.otp,
+        });
+
+        if (res.data?.success) {
+          toast.success("College email updated successfully.", {
+            position: "top-right",
+            autoClose: 3000,
+            icon: <FaCheckCircle />,
+            progressStyle: { background: "#28a745" },
+          });
+          setEmailModalOpen(false);
+          setEmailChangeStep(1);
+          fetchCollege();
+        }
+      } catch (err) {
+        const code = err.response?.data?.code;
+        const msg =
+          err.response?.data?.message ||
+          err.response?.data?.error?.message ||
+          "Failed to verify OTP. Please try again.";
+        toast.error(msg, {
+          position: "top-right",
+          autoClose: 5000,
+          icon: <FaExclamationTriangle />,
+          progressStyle: { background: "#dc3545" },
+        });
+
+        if (code === "OTP_MAX_ATTEMPTS") {
+          setEmailModalOpen(false);
+          setEmailChangeStep(1);
+          setEmailChangeForm({ newEmail: "", currentPassword: "", otp: "" });
+          setEmailChangeErrors({});
+        }
+      } finally {
+        setEmailChangeSaving(false);
+      }
+    }
+  };
+
+  const handleEmailChangeInputChange = (e) => {
+    const { name, value } = e.target;
+    setEmailChangeForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const closeEmailModal = () => {
+    setEmailModalOpen(false);
+    setEmailChangeStep(1);
+    setEmailChangeForm({ newEmail: "", currentPassword: "", otp: "" });
+    setEmailChangeErrors({});
+    setShowPassword(false);
+  };
+
   // ================= LOADING STATE =================
   if (loading) {
     return <Loading fullScreen size="lg" text="Loading college profile..." />;
@@ -333,103 +574,22 @@ export default function EditCollegeProfile() {
   // ================= ERROR STATE =================
   if (fetchError) {
     return (
-      <div className="edit-college-profile-container">
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
-        <header className="glass-header mb-4">
-          <div className="header-content">
-            <div className="header-left">
-              <button
-                className="btn-back"
-                onClick={handleBack}
-                aria-label="Go back"
-              >
-                <FaArrowLeft />
-              </button>
-              <div>
-                <h1 className="header-title">
-                  <FaUniversity className="header-icon blink" aria-hidden="true" />
-                  Edit Institute Profile
-                </h1>
-                <p className="header-subtitle">Unable to load profile data</p>
-              </div>
-            </div>
-          </div>
-        </header>
-        <main className="form-wrapper">
-          <div className="row justify-content-center">
-            <div className="col-lg-8">
-              <div className="glass-card">
-                <div className="error-state">
-                  <FaExclamationTriangle className="error-icon" size={48} />
-                  <h3>Failed to Load Profile</h3>
-                  <p>Unable to fetch college profile data. This could be due to:</p>
-                  <ul className="error-reasons">
-                    <li>No college profile exists yet</li>
-                    <li>Network connectivity issues</li>
-                    <li>Server is temporarily unavailable</li>
-                  </ul>
-                  <div className="error-actions">
-                    <button
-                      className="btn btn-outline-secondary"
-                      onClick={handleBack}
-                    >
-                      <FaArrowLeft className="me-2" aria-hidden="true" />
-                      Go Back
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={fetchCollege}
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <FaSpinner className="spin me-2" aria-hidden="true" />
-                          Retrying...
-                        </>
-                      ) : (
-                        <>
-                          <FaCheckCircle className="me-2" aria-hidden="true" />
-                          Try Again
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
+      <ApiError
+        title="Profile Loading Error"
+        message="Failed to load college profile. Please try again."
+        statusCode={errorDetails.statusCode}
+        errorCode={errorDetails.errorCode}
+        onRetry={fetchCollege}
+        onGoBack={handleBack}
+        retryCount={0}
+        maxRetry={3}
+        isRetryLoading={loading}
+      />
     );
   }
 
   return (
     <div className="edit-college-profile-container">
-      {/* Toast Container */}
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
-
       {/* HEADER */}
       <header className="glass-header mb-4">
         <div className="header-content">
@@ -537,7 +697,7 @@ export default function EditCollegeProfile() {
                   <small className="form-hint">Use letters, numbers, and hyphens only</small>
                 </div>
 
-                {/* EMAIL */}
+                {/* EMAIL — read-only with secure change flow */}
                 <div className="form-group">
                   <label htmlFor="email" className="form-label">
                     <FaEnvelope className="me-2 text-success blink" aria-hidden="true" />
@@ -548,29 +708,34 @@ export default function EditCollegeProfile() {
                       type="email"
                       id="email"
                       name="email"
-                      className={`form-control ${validationErrors.email && touchedFields.email ? "is-invalid" : ""} ${
-                        touchedFields.email && !validationErrors.email ? "is-valid" : ""
-                      }`}
-                      value={form.email}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      placeholder="college@example.com"
-                      disabled={saving}
-                      required
-                      aria-required="true"
-                      aria-invalid={!!(validationErrors.email && touchedFields.email)}
-                      aria-describedby={validationErrors.email ? "email-error" : undefined}
+                      className="form-control"
+                      value={form.email || ""}
+                      readOnly
+                      disabled
+                      aria-readonly="true"
+                      aria-describedby="email-change-help"
+                      style={{ backgroundColor: "#f8f9fa", cursor: "not-allowed" }}
                     />
-                    {touchedFields.email && !validationErrors.email && (
-                      <FaCheckCircle className="validation-icon valid" aria-hidden="true" />
-                    )}
+                    <FaShieldAlt className="validation-icon" aria-hidden="true" style={{ color: "#28a745" }} />
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-primary position-absolute top-50 end-0 translate-middle-y me-2"
+                      style={{ zIndex: 1 }}
+                      onClick={() => {
+                        setEmailChangeStep(1);
+                        setEmailChangeForm({ newEmail: "", currentPassword: "", otp: "" });
+                        setEmailChangeErrors({});
+                        setShowPassword(false);
+                        setEmailModalOpen(true);
+                      }}
+                      aria-label="Change official email"
+                    >
+                      Change Official Email
+                    </button>
                   </div>
-                  {validationErrors.email && touchedFields.email && (
-                    <div id="email-error" className="invalid-feedback" role="alert">
-                      <FaExclamationTriangle className="me-1" aria-hidden="true" />
-                      {validationErrors.email}
-                    </div>
-                  )}
+                  <small id="email-change-help" className="form-hint">
+                    Official college email cannot be edited directly. Click "Change Official Email" to use the secure verification flow.
+                  </small>
                 </div>
 
                 {/* PHONE */}
@@ -718,11 +883,72 @@ export default function EditCollegeProfile() {
                         Year college was founded (1900-{new Date().getFullYear()})
                       </small>
                     )}
-                  </div>
-                </div>
+                   </div>
+                 </div>
 
-                {/* ACTION BUTTONS */}
-                <div className="form-actions">
+                 {/* COLLEGE LOGO UPLOAD */}
+                 <div className="form-group">
+                   <label htmlFor="logo" className="form-label">
+                     <FaImage className="me-2 text-primary blink" aria-hidden="true" />
+                     College Logo
+                   </label>
+                   <div className="logo-upload-area">
+                     {logoPreview ? (
+                       <div className="logo-preview-container">
+                         <img
+                           src={logoPreview}
+                           alt="New logo preview"
+                           className="logo-preview-img"
+                         />
+                         <button
+                           type="button"
+                           className="logo-remove-btn"
+                           onClick={removeLogo}
+                           aria-label="Remove logo"
+                         >
+                           <FaTimes />
+                         </button>
+                       </div>
+                      ) : existingLogoDocumentId ? (
+                        <div className="logo-preview-container">
+                          <LogoImage
+                            documentId={existingLogoDocumentId}
+                            alt="Current logo"
+                            size={80}
+                          />
+                          <span className="text-muted ms-2">
+                            Current logo (select a new file to replace)
+                          </span>
+                        </div>
+                      ) : (
+                       <div className="logo-upload-placeholder">
+                         <FaUpload className="logo-upload-icon" />
+                         <span>Click to upload or drag and drop</span>
+                         <span className="logo-upload-hint">
+                           PNG, JPG, JPEG, WEBP (max 5MB)
+                         </span>
+                       </div>
+                     )}
+                     <input
+                       type="file"
+                       id="logo"
+                       name="logo"
+                       accept=".png,.jpg,.jpeg,.webp"
+                       className="logo-file-input"
+                       onChange={handleLogoChange}
+                       aria-label="Upload college logo"
+                     />
+                   </div>
+                   {logoError && (
+                     <div className="invalid-feedback d-block mt-1">
+                       <FaExclamationTriangle className="me-1" aria-hidden="true" />
+                       {logoError}
+                     </div>
+                   )}
+                 </div>
+
+                 {/* ACTION BUTTONS */}
+                 <div className="form-actions">
                   <button
                     type="button"
                     className="btn btn-outline-secondary"
@@ -735,7 +961,7 @@ export default function EditCollegeProfile() {
                   <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={saving || Object.keys(validationErrors).length > 0}
+                    disabled={saving}
                   >
                     {saving ? (
                       <>
@@ -767,6 +993,200 @@ export default function EditCollegeProfile() {
         confirmText="Yes, Discard"
         cancelText="No, Keep Editing"
       />
+
+      {/* COLLEGE OFFICIAL EMAIL CHANGE MODAL */}
+      {emailModalOpen && (
+        <div className="email-modal-overlay" onClick={closeEmailModal}>
+          <div
+            className="email-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            aria-modal="true"
+            role="dialog"
+          >
+            <div className="email-modal-header">
+              <h3 className="email-modal-title">
+                <FaShieldAlt className="me-2 text-primary" aria-hidden="true" />
+                Change Official Email
+              </h3>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={closeEmailModal}
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="email-modal-body">
+              {emailChangeStep === 1 && (
+                <>
+                  <p className="email-modal-intro">
+                    Enter your new official college email and current password to receive a verification OTP.
+                  </p>
+
+                  <div className="form-group">
+                    <label htmlFor="newEmail" className="form-label">
+                      <FaEnvelope className="me-2 text-success" aria-hidden="true" />
+                      New Official Email
+                    </label>
+                    <input
+                      type="email"
+                      id="newEmail"
+                      name="newEmail"
+                      className={`form-control ${emailChangeErrors.newEmail ? "is-invalid" : ""}`}
+                      value={emailChangeForm.newEmail}
+                      onChange={handleEmailChangeInputChange}
+                      placeholder="newcollege@example.com"
+                      disabled={emailChangeSaving}
+                      aria-invalid={!!emailChangeErrors.newEmail}
+                      aria-describedby={emailChangeErrors.newEmail ? "newEmail-error" : undefined}
+                    />
+                    {emailChangeErrors.newEmail && (
+                      <div id="newEmail-error" className="invalid-feedback" role="alert">
+                        <FaExclamationTriangle className="me-1" aria-hidden="true" />
+                        {emailChangeErrors.newEmail}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="currentPassword" className="form-label">
+                      <FaKey className="me-2 text-warning" aria-hidden="true" />
+                      Current Password
+                    </label>
+                    <div className="input-wrapper">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        id="currentPassword"
+                        name="currentPassword"
+                        className={`form-control ${emailChangeErrors.currentPassword ? "is-invalid" : ""}`}
+                        value={emailChangeForm.currentPassword}
+                        onChange={handleEmailChangeInputChange}
+                        placeholder="Enter your current password"
+                        disabled={emailChangeSaving}
+                        aria-invalid={!!emailChangeErrors.currentPassword}
+                        aria-describedby={emailChangeErrors.currentPassword ? "currentPassword-error" : undefined}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle-btn"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        disabled={emailChangeSaving}
+                      >
+                        {showPassword ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                    </div>
+                    {emailChangeErrors.currentPassword && (
+                      <div id="currentPassword-error" className="invalid-feedback" role="alert">
+                        <FaExclamationTriangle className="me-1" aria-hidden="true" />
+                        {emailChangeErrors.currentPassword}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={closeEmailModal}
+                      disabled={emailChangeSaving}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleEmailChangeSubmit}
+                      disabled={emailChangeSaving}
+                    >
+                      {emailChangeSaving ? (
+                        <>
+                          <FaSpinner className="spin me-2" aria-hidden="true" />
+                          Sending OTP...
+                        </>
+                      ) : (
+                        <>
+                          <FaShieldAlt className="me-2" aria-hidden="true" />
+                          Send OTP
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {emailChangeStep === 2 && (
+                <>
+                  <p className="email-modal-intro">
+                    Enter the 6-digit OTP sent to <strong>{emailChangeForm.newEmail}</strong>.
+                  </p>
+
+                  <div className="form-group">
+                    <label htmlFor="otp" className="form-label">
+                      <FaKey className="me-2 text-primary" aria-hidden="true" />
+                      Verification OTP
+                    </label>
+                    <input
+                      type="text"
+                      id="otp"
+                      name="otp"
+                      className={`form-control otp-input ${emailChangeErrors.otp ? "is-invalid" : ""}`}
+                      value={emailChangeForm.otp}
+                      onChange={handleEmailChangeInputChange}
+                      placeholder="______"
+                      maxLength={6}
+                      disabled={emailChangeSaving}
+                      aria-invalid={!!emailChangeErrors.otp}
+                      aria-describedby={emailChangeErrors.otp ? "otp-error" : undefined}
+                    />
+                    {emailChangeErrors.otp && (
+                      <div id="otp-error" className="invalid-feedback" role="alert">
+                        <FaExclamationTriangle className="me-1" aria-hidden="true" />
+                        {emailChangeErrors.otp}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="form-actions">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => {
+                        setEmailChangeStep(1);
+                        setEmailChangeForm((prev) => ({ ...prev, otp: "" }));
+                        setEmailChangeErrors({});
+                      }}
+                      disabled={emailChangeSaving}
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleEmailChangeSubmit}
+                      disabled={emailChangeSaving || emailChangeForm.otp.length !== 6}
+                    >
+                      {emailChangeSaving ? (
+                        <>
+                          <FaSpinner className="spin me-2" aria-hidden="true" />
+                          Verifying...
+                        </>
+                      ) : (
+                        <>
+                          <FaCheckCircle className="me-2" aria-hidden="true" />
+                          Verify &amp; Change Email
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CSS */}
       <style>{`
@@ -1319,6 +1739,201 @@ export default function EditCollegeProfile() {
           clip: rect(0, 0, 0, 0);
           white-space: nowrap;
           border: 0;
+        }
+        /* ================= LOGO UPLOAD ================= */
+        .logo-upload-area {
+          position: relative;
+          border: 2px dashed #e9ecef;
+          border-radius: 12px;
+          padding: 1.5rem;
+          background: #f8f9fa;
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
+
+        /* ================= EMAIL CHANGE MODAL ================= */
+        .email-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 1rem;
+        }
+
+        .email-modal-content {
+          background: rgba(255, 255, 255, 0.98);
+          border-radius: 20px;
+          max-width: 500px;
+          width: 100%;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          animation: fadeUp 0.3s ease;
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          max-height: 80vh;
+        }
+
+        .email-modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem 2rem;
+          background: linear-gradient(180deg, #0f3a4a, #134952);
+          color: white;
+        }
+
+        .email-modal-title {
+          margin: 0;
+          font-size: 1.25rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .email-modal-header .btn {
+          flex-shrink: 0;
+        }
+
+        .email-modal-body {
+          padding: 1.5rem 2rem;
+          overflow-y: auto;
+          flex: 1;
+        }
+
+        .email-modal-intro {
+          color: #6c757d;
+          font-size: 0.9rem;
+          margin-bottom: 1.5rem;
+          line-height: 1.5;
+        }
+
+        .password-toggle-btn {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          color: #6c757d;
+          cursor: pointer;
+          padding: 0;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .password-toggle-btn:hover {
+          color: #1a4b6d;
+        }
+
+        .otp-input {
+          font-family: "Courier New", monospace;
+          font-size: 1.5rem;
+          text-align: center;
+          letter-spacing: 0.5rem;
+          padding: 0.75rem 1rem;
+        }
+
+        .email-modal-body .form-actions {
+          margin-top: 0;
+          padding-top: 0;
+          border-top: none;
+        }
+
+        @media (max-width: 768px) {
+          .email-modal-content {
+            max-width: 95vw;
+            max-height: 85vh;
+          }
+
+          .email-modal-header {
+            padding: 1rem 1.5rem;
+          }
+
+          .email-modal-body {
+            padding: 1rem 1.5rem;
+          }
+        }
+
+
+        .logo-upload-area:hover {
+          border-color: #1a4b6d;
+          background: rgba(26, 75, 109, 0.02);
+        }
+
+        .logo-file-input {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          cursor: pointer;
+        }
+
+        .logo-upload-placeholder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 1rem;
+          pointer-events: none;
+        }
+
+        .logo-upload-icon {
+          font-size: 2rem;
+          color: #1a4b6d;
+          opacity: 0.5;
+        }
+
+        .logo-upload-placeholder span {
+          font-size: 0.9rem;
+          color: #6c757d;
+        }
+
+        .logo-upload-hint {
+          font-size: 0.8rem !important;
+          color: #adb5bd !important;
+        }
+
+        .logo-preview-container {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 0.5rem;
+        }
+
+        .logo-preview-img {
+          width: 80px;
+          height: 80px;
+          object-fit: cover;
+          border-radius: 10px;
+          border: 2px solid #e9ecef;
+        }
+
+        .logo-remove-btn {
+          background: rgba(220, 53, 69, 0.1);
+          border: 1px solid rgba(220, 53, 69, 0.3);
+          color: #dc3545;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          flex-shrink: 0;
+        }
+
+        .logo-remove-btn:hover {
+          background: rgba(220, 53, 69, 0.2);
+          border-color: #dc3545;
+          transform: scale(1.1);
         }
       `}</style>
     </div>

@@ -3,6 +3,7 @@ import { AuthContext } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { logger } from "../utils/logger";
+import { getDashboardPath } from "../components/Sidebar/config/navigation.config";
 import {
   FaBell,
   FaCheck,
@@ -10,10 +11,7 @@ import {
   FaUser,
   FaSignOutAlt,
   FaCog,
-  FaKey,
-  FaChevronLeft,
   FaChevronRight,
-  FaChevronDown,
 } from "react-icons/fa";
 import { Dropdown, Badge, Navbar, Container, Nav } from "react-bootstrap";
 import ConfirmModal from "./ConfirmModal";
@@ -43,6 +41,12 @@ export default function NavbarComponent({
   const [backoffUntil, setBackoffUntil] = useState(null);
 
   const prevCount = useRef(0);
+  const notifTriggerRef = useRef(null);
+  const profileTriggerRef = useRef(null);
+  const notifMenuRef = useRef(null);
+  const profileMenuRef = useRef(null);
+  const [notifMenuStyle, setNotifMenuStyle] = useState({});
+  const [profileMenuStyle, setProfileMenuStyle] = useState({});
 
   // Handle window resize
   useEffect(() => {
@@ -53,6 +57,81 @@ export default function NavbarComponent({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  /* ================= DROPDOWN VIEWPORT POSITIONING ================= */
+  const positionDropdown = (triggerRef, menuRef, setMenuStyle) => {
+    if (!triggerRef.current || !menuRef.current) return;
+    const triggerRect = triggerRef.current.getBoundingClientRect();
+    const menuRect = menuRef.current.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const safeMargin = 8;
+
+    let left = triggerRect.left;
+    let top = triggerRect.bottom + 8;
+
+    // Ensure dropdown doesn't overflow right edge
+    if (left + menuRect.width > viewportWidth - safeMargin) {
+      left = viewportWidth - safeMargin - menuRect.width;
+    }
+
+    // Ensure dropdown doesn't overflow left edge
+    if (left < safeMargin) {
+      left = safeMargin;
+    }
+
+    // Ensure dropdown doesn't overflow bottom
+    if (top + menuRect.height > window.innerHeight - safeMargin) {
+      top = triggerRect.top - menuRect.height - 8;
+    }
+
+    setMenuStyle({
+      position: "fixed",
+      left: `${left}px`,
+      top: `${top}px`,
+      transform: "none",
+    });
+  };
+
+  useEffect(() => {
+    if (notifOpen && notifTriggerRef.current && notifMenuRef.current) {
+      positionDropdown(notifTriggerRef, notifMenuRef, setNotifMenuStyle);
+    }
+  }, [notifOpen]);
+
+  useEffect(() => {
+    if (profileOpen && profileTriggerRef.current && profileMenuRef.current) {
+      positionDropdown(profileTriggerRef, profileMenuRef, setProfileMenuStyle);
+    }
+  }, [profileOpen]);
+
+  useEffect(() => {
+    if (!notifOpen && !profileOpen) return;
+
+    const handleScroll = () => {
+      if (notifOpen && notifTriggerRef.current && notifMenuRef.current) {
+        positionDropdown(notifTriggerRef, notifMenuRef, setNotifMenuStyle);
+      }
+      if (profileOpen && profileTriggerRef.current && profileMenuRef.current) {
+        positionDropdown(profileTriggerRef, profileMenuRef, setProfileMenuStyle);
+      }
+    };
+
+    const handleResize = () => {
+      if (notifOpen && notifTriggerRef.current && notifMenuRef.current) {
+        positionDropdown(notifTriggerRef, notifMenuRef, setNotifMenuStyle);
+      }
+      if (profileOpen && profileTriggerRef.current && profileMenuRef.current) {
+        positionDropdown(profileTriggerRef, profileMenuRef, setProfileMenuStyle);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [notifOpen, profileOpen]);
 
   if (!user) return null;
 
@@ -69,47 +148,65 @@ export default function NavbarComponent({
     }
   }, [rateLimitBackoff, backoffUntil]);
 
-  // Fetch college information when user is available
-  useEffect(() => {
-    const fetchCollegeInfo = async () => {
-      setLoading(true);
-      try {
-        let response;
+   // Fetch college information when user is available
+   useEffect(() => {
+     const fetchCollegeInfo = async () => {
+       setLoading(true);
+       try {
+         let response;
 
-        if (user.role === "COLLEGE_ADMIN") {
-          response = await api.get("/college/my-college");
-          setCollege(response.data);
-        } else if (user.role === "TEACHER") {
-          response = await api.get("/teachers/my-profile");
-          if (
-            response.data &&
-            response.data.teacher &&
-            response.data.teacher.college_id
-          ) {
-            setCollege(response.data.teacher.college_id);
-          }
-        } else if (user.role === "STUDENT") {
-          response = await api.get("/students/my-profile");
-          if (response.data && response.data.college) {
-            setCollege(response.data.college);
-          }
-        }
-      } catch (error) {
-        if (error.response?.status !== 403 && error.response?.status !== 401) {
-          logger.error("Error fetching college info:", error);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+         // If user has no college_id (e.g., SUPER_ADMIN), skip fetch
+         if (!user.college_id) {
+           setCollege(null);
+           return;
+         }
 
-    fetchCollegeInfo();
-  }, [user.college_id, user.role]);
+         // Teachers: use rich endpoint (includes dept, courses, subjects)
+         if (user.role === "TEACHER") {
+           response = await api.get("/teachers/my-profile");
+           if (response.data?.teacher?.college_id) {
+             setCollege(response.data.teacher.college_id);
+           }
+           return;
+         }
 
-  /* ================= FETCH COUNT (UNREAD ONLY) ================= */
-  const fetchCount = async (silent = false) => {
+         // Students: use rich endpoint (includes dept, course, fees, attendance)
+         if (user.role === "STUDENT") {
+           response = await api.get("/students/my-profile");
+           if (response.data?.college) {
+             setCollege(response.data.college);
+           }
+           return;
+         }
+
+         // All other staff with college_id (COLLEGE_ADMIN, PRINCIPAL, HOD, ACCOUNTANT,
+         // ADMISSION_OFFICER, EXAM_COORDINATOR, PARENT_GUARDIAN, PLATFORM_SUPPORT)
+         // Use simple college endpoint
+         response = await api.get("/college/my-college");
+         setCollege(response.data);
+
+       } catch (error) {
+         if (error.response?.status !== 403 && error.response?.status !== 401) {
+           logger.error("Error fetching college info:", error);
+         }
+       } finally {
+         setLoading(false);
+       }
+     };
+
+     fetchCollegeInfo();
+   }, [user.college_id, user.role]);
+
+/* ================= FETCH COUNT (UNREAD ONLY) ================= */
+   const fetchCount = async (silent = false) => {
     // Skip if in backoff period
     if (rateLimitBackoff && backoffUntil && Date.now() < backoffUntil) {
+      return;
+    }
+
+    // Only supported roles have notification endpoints
+    const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
+    if (!supportedRoles.includes(user.role)) {
       return;
     }
 
@@ -120,8 +217,12 @@ export default function NavbarComponent({
         res = await api.get("/notifications/count/admin");
       if (user.role === "TEACHER")
         res = await api.get("/notifications/count/teacher");
+      if (user.role === "HOD")
+        res = await api.get("/notifications/count/hod");
       if (user.role === "STUDENT")
         res = await api.get("/notifications/count/student");
+      if (user.role === "PARENT_GUARDIAN")
+        res = await api.get("/notifications/count/parent");
 
       const total = res?.data?.total || 0;
 
@@ -143,6 +244,12 @@ export default function NavbarComponent({
         setBackoffUntil(null);
       }
     } catch (err) {
+      // Handle auth errors (401/403) - stop polling, token is invalid/missing
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        // Don't poll again if token is missing/expired
+        logger.warn("Notification auth failed - stopping polling");
+        return;
+      }
       // Handle rate limit (429) - stop polling temporarily
       if (err.response?.status === 429) {
         const backoffMs = 30000; // 30 second backoff for notification polling
@@ -159,9 +266,15 @@ export default function NavbarComponent({
     }
   };
 
-  /* ================= FETCH UNREAD FOR BELL ================= */
-  const fetchNotes = async () => {
-    setFetchingNotes(true);
+/* ================= FETCH UNREAD FOR BELL ================= */
+   const fetchNotes = async () => {
+     // Only supported roles have notification endpoints
+      const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
+      if (!supportedRoles.includes(user.role)) {
+        setNotes([]);
+        return;
+      }
+     setFetchingNotes(true);
     try {
       const res = await api.get("/notifications/unread/bell");
       // Backend now returns array directly: [...]
@@ -179,16 +292,13 @@ export default function NavbarComponent({
   const markAsRead = async (id) => {
     setMarkingRead(id);
     try {
-      // Use correct endpoint parameter name: notificationId
       await api.post(`/notifications/${id}/mark-read`);
 
-      // Optimistic update - remove from list immediately
       setNotes((prev) => prev.filter((n) => n._id !== id));
+      setCount((prev) => Math.max(0, prev - 1));
 
-      // Update count in background
       fetchCount();
 
-      // Show success feedback
       setToast("✅ Notification marked as read");
       setTimeout(() => setToast(null), 2000);
     } catch (err) {
@@ -203,53 +313,63 @@ export default function NavbarComponent({
   /* ================= MARK ALL AS READ ================= */
   const markAllAsRead = async () => {
     try {
-      // Optimistic update - clear all notifications immediately
-      const previousNotes = [...notes];
+      await api.post("/notifications/mark-all-read");
       setNotes([]);
       setCount(0);
-
-      // Mark all as read in background
-      const promises = previousNotes.map((n) =>
-        api.post(`/notifications/${n._id}/read`),
-      );
-      await Promise.all(promises);
-
-      // Refresh count to ensure sync
-      fetchCount();
-
       setToast("✅ All notifications marked as read");
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
       logger.error("Mark all read failed", err);
       setToast("❌ Failed to mark all as read");
       setTimeout(() => setToast(null), 3000);
-      // Revert optimistic update on error
       fetchNotes();
       fetchCount();
     }
   };
 
   /* ================= ROLE BASED VIEW ALL ================= */
-  const goToNotificationList = () => {
-    setNotifOpen(false);
-    if (user.role === "COLLEGE_ADMIN") {
-      navigate("/notification/list");
-    } else if (user.role === "TEACHER") {
-      navigate("/teacher/notifications/list");
-    } else if (user.role === "STUDENT") {
-      navigate("/notification/student");
-    }
-  };
+   const goToNotificationList = () => {
+     setNotifOpen(false);
+     if (user.role === "COLLEGE_ADMIN") {
+       navigate("/notification/list");
+     } else if (user.role === "TEACHER") {
+       navigate("/teacher/notifications/list");
+     } else if (user.role === "HOD") {
+       navigate("/hod/notifications/list");
+     } else if (user.role === "STUDENT") {
+       navigate("/notification/student");
+     } else if (user.role === "PARENT_GUARDIAN") {
+       navigate("/parent/notifications");
+     }
+   };
 
   /* ================= PROFILE NAVIGATION ================= */
   const goToProfile = () => {
     setProfileOpen(false);
-    if (user.role === "COLLEGE_ADMIN") {
+    if (user.role === "SUPER_ADMIN") {
+      navigate("/super-admin/dashboard");
+    } else if (user.role === "COLLEGE_ADMIN") {
       navigate("/college/profile");
     } else if (user.role === "TEACHER") {
       navigate("/profile/my-profile");
     } else if (user.role === "STUDENT") {
       navigate("/student/profile");
+    } else if (user.role === "PARENT_GUARDIAN") {
+      navigate("/dashboard/parent/profile");
+    } else if (user.role === "HOD") {
+      navigate("/hod/profile");
+    } else if (user.role === "PRINCIPAL") {
+      navigate("/dashboard/principal");
+    } else if (user.role === "ACCOUNTANT") {
+      navigate("/dashboard/accountant");
+    } else if (user.role === "ADMISSION_OFFICER") {
+      navigate("/dashboard/admission");
+    } else if (user.role === "EXAM_COORDINATOR") {
+      navigate("/dashboard/exam");
+    } else if (user.role === "PLATFORM_SUPPORT") {
+      navigate("/platform-support/dashboard");
+    } else {
+      navigate("/");
     }
   };
 
@@ -263,6 +383,8 @@ export default function NavbarComponent({
       navigate("/teacher/dashboard");
     } else if (user.role === "STUDENT") {
       navigate("/student/dashboard");
+    } else if (user.role === "PARENT_GUARDIAN") {
+      navigate("/dashboard/parent");
     }
   };
 
@@ -411,8 +533,6 @@ export default function NavbarComponent({
         className="bg-dark-navbar"
         style={{
           zIndex: 1020,
-          width: "100%",
-          minHeight: "var(--navbar-height, 64px)",
         }}
         role="navigation"
         aria-label="Main navigation"
@@ -422,7 +542,7 @@ export default function NavbarComponent({
           className="navbar-fluid-container d-flex justify-content-between align-items-center"
         >
           {/* LEFT - With Mobile Toggle */}
-          <div className="d-flex align-items-center gap-3">
+          <div className="d-flex align-items-center gap-3 navbar-left-group">
             {/* MOBILE HAMBURGER BUTTON - Visible only on mobile */}
             {isMobile && (
               <button
@@ -433,28 +553,6 @@ export default function NavbarComponent({
                 style={{ minWidth: "44px", minHeight: "44px" }}
               >
                 <FaBars size={20} />
-              </button>
-            )}
-
-            {/* DESKTOP SIDEBAR COLLAPSE TOGGLE - Visible only on desktop/tablet */}
-            {!isMobile && onToggleCollapse && (
-              <button
-                className="sidebar-collapse-toggle-navbar"
-                onClick={onToggleCollapse}
-                aria-label={
-                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                }
-                aria-expanded={!isSidebarCollapsed}
-                type="button"
-                title={
-                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-                }
-              >
-                {isSidebarCollapsed ? (
-                  <FaChevronRight size={16} />
-                ) : (
-                  <FaChevronLeft size={16} />
-                )}
               </button>
             )}
 
@@ -489,10 +587,12 @@ export default function NavbarComponent({
           </div>
 
           {/* RIGHT */}
-          <Nav className="nav-items-gap d-flex align-items-center flex-row">
-            {/* BELL NOTIFICATION - Clickable Icon with Dropdown */}
-            <Dropdown
-              show={notifOpen}
+          <Nav className="nav-items-gap navbar-right-group d-flex align-items-center flex-row">
+            {user.role !== "SUPER_ADMIN" && (
+              <>
+                {/* BELL NOTIFICATION - Opens dropdown panel */}
+                <Dropdown
+                  show={notifOpen}
               onToggle={(isOpen) => {
                 setNotifOpen(isOpen);
                 if (isOpen) {
@@ -503,25 +603,26 @@ export default function NavbarComponent({
               }}
               align="end"
             >
-              <div
-                className="navbar-icon-button notification-bell"
-                role="button"
-                aria-label="Notifications"
-                tabIndex={0}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setNotifOpen(!notifOpen);
-                  if (!notifOpen) fetchNotes();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
+                <div
+                 ref={notifTriggerRef}
+                 className="navbar-icon-button notification-bell"
+                 role="button"
+                 aria-label="Notifications"
+                 tabIndex={0}
+                  onClick={(e) => {
                     e.preventDefault();
-                    setNotifOpen((prev) => !prev);
+                    e.stopPropagation();
+                    setNotifOpen(!notifOpen);
                     if (!notifOpen) fetchNotes();
-                  }
-                }}
-              >
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setNotifOpen((prev) => !prev);
+                      if (!notifOpen) fetchNotes();
+                    }
+                  }}
+               >
                 <FaBell
                   size={isMobile ? 18 : 20}
                   className={notifOpen ? "text-primary" : "text-secondary"}
@@ -542,6 +643,8 @@ export default function NavbarComponent({
               </div>
 
               <Dropdown.Menu
+                ref={notifMenuRef}
+                style={notifMenuStyle}
                 className="notification-dropdown shadow-lg"
                 role="menu"
                 aria-label="Notification menu"
@@ -585,6 +688,12 @@ export default function NavbarComponent({
                         key={n._id}
                         className="notification-card"
                         role="menuitem"
+                        onClick={async () => {
+                          setNotifOpen(false);
+                          await markAsRead(n._id);
+                          navigate(`/notification/view/${n._id}`);
+                        }}
+                        style={{ cursor: "pointer" }}
                       >
                         <div className="d-flex justify-content-between align-items-start gap-2">
                           <strong className="notification-card-title flex-grow-1">
@@ -611,7 +720,10 @@ export default function NavbarComponent({
                           )}
                           <button
                             className="notification-mark-read-btn ms-auto"
-                            onClick={() => markAsRead(n._id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markAsRead(n._id);
+                            }}
                             disabled={markingRead === n._id}
                             aria-label={`Mark ${n.title} as read`}
                             title="Mark as read"
@@ -634,7 +746,9 @@ export default function NavbarComponent({
                   </button>
                 </div>
               </Dropdown.Menu>
-            </Dropdown>
+                </Dropdown>
+              </>
+            )}
 
             {/* User Profile Dropdown - Clickable Icon */}
             <Dropdown
@@ -647,6 +761,7 @@ export default function NavbarComponent({
               drop="down"
             >
               <Dropdown.Toggle
+                ref={profileTriggerRef}
                 as="div"
                 className="navbar-user-dropdown p-0"
                 id="profile-dropdown-toggle"
@@ -672,11 +787,11 @@ export default function NavbarComponent({
                 <span className="user-name-display d-none d-lg-block">
                   {getUserDisplayName()}
                 </span>
-                {/* Chevron Down */}
-                <FaChevronDown className="user-dropdown-chevron d-none d-lg-block" />
               </Dropdown.Toggle>
 
               <Dropdown.Menu
+                ref={profileMenuRef}
+                style={profileMenuStyle}
                 className="profile-dropdown shadow-lg"
                 role="menu"
                 aria-label="Profile menu"
@@ -724,53 +839,42 @@ export default function NavbarComponent({
                           My Profile
                         </span>
                         <span className="profile-menu-item-subtitle">
-                          View and edit your profile
+                          View your profile
                         </span>
                       </div>
                       <FaChevronRight className="profile-menu-item-arrow" />
                     </button>
-                    <button
-                      className="profile-menu-item"
-                      // // onClick={() => {
-                      // //   setProfileOpen(false);
-                      // //   navigate("/settings");
-                      // }}
-                      role="menuitem"
-                    >
-                      <div className="profile-menu-item-icon">
-                        <FaCog />
-                      </div>
-                      <div className="profile-menu-item-content">
-                        <span className="profile-menu-item-title">
-                          Settings
-                        </span>
-                        <span className="profile-menu-item-subtitle">
-                          Manage preferences
-                        </span>
-                      </div>
-                      <FaChevronRight className="profile-menu-item-arrow" />
-                    </button>
-                    <button
-                      className="profile-menu-item"
-                      // onClick={() => {
-                      //   setProfileOpen(false);
-                      //   navigate("/change-password");
-                      // }}
-                      role="menuitem"
-                    >
-                      <div className="profile-menu-item-icon">
-                        <FaKey />
-                      </div>
-                      <div className="profile-menu-item-content">
-                        <span className="profile-menu-item-title">
-                          Change Password
-                        </span>
-                        <span className="profile-menu-item-subtitle">
-                          Update your password
-                        </span>
-                      </div>
-                      <FaChevronRight className="profile-menu-item-arrow" />
-                    </button>
+                    {user.role !== "STUDENT" && (
+                      <button
+                        className="profile-menu-item"
+                        onClick={() => {
+                          setProfileOpen(false);
+                          if (user.role === "SUPER_ADMIN") {
+                            navigate("/super-admin/system-settings/general");
+                          } else if (
+                            ["COLLEGE_ADMIN", "PRINCIPAL"].includes(user.role)
+                          ) {
+                            navigate("/system-settings/general");
+                          } else {
+                            navigate(getDashboardPath(user.role));
+                          }
+                        }}
+                        role="menuitem"
+                      >
+                        <div className="profile-menu-item-icon">
+                          <FaCog />
+                        </div>
+                        <div className="profile-menu-item-content">
+                          <span className="profile-menu-item-title">
+                            Settings
+                          </span>
+                          <span className="profile-menu-item-subtitle">
+                            Manage preferences
+                          </span>
+                        </div>
+                        <FaChevronRight className="profile-menu-item-arrow" />
+                      </button>
+                    )}
                   </div>
 
                   <div className="profile-menu-divider" />

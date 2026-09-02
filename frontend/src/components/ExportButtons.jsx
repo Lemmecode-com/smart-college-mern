@@ -92,8 +92,8 @@ export default function ExportButtons({
 
   return (
     <div
-      className="export-buttons"
-      style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
+      className="export-buttons erp-actions-stack-mobile"
+      style={{ display: "flex", gap: "0.5rem" }}
     >
       {showPDF && (
         <button
@@ -155,7 +155,7 @@ const exportButtonStyle = {
   fontSize: "0.875rem",
   transition: "all 0.2s ease",
   backgroundColor: "#f8f9fa",
-  color: "white",
+  color: "black",
 };
 
 // Add CSS styles for export buttons

@@ -2,7 +2,12 @@ import { useContext, useEffect, useState } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { getDocumentViewUrl, getDocumentDownloadUrl } from "../../../utils/documentUrl";
+import { toast } from "react-toastify";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaUserTie,
@@ -28,29 +33,50 @@ import {
   FaPhone,
   FaCalendarAlt,
   FaUsers,
-  FaInfoCircle,
-  FaBookOpen
+  FaBookOpen,
+  FaEye,
+  FaDownload,
+  FaTrash
 } from "react-icons/fa";
+
+const DOCUMENT_TYPE_LABELS = {
+  aadhaarCard: "Aadhaar Card",
+  panCard: "PAN Card",
+  degreeCertificate: "Degree Certificate",
+  passportPhoto: "Passport Photo",
+};
 
 export default function ViewTeacher() {
   const { user } = useContext(AuthContext);
   const { id } = useParams();
   const navigate = useNavigate();
+  const { canEdit } = useRole();
 
   const [teacher, setTeacher] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (!["COLLEGE_ADMIN", "SUPER_ADMIN"].includes(user.role))
-    return <Navigate to="/" />;
+  if (!["COLLEGE_ADMIN", "SUPER_ADMIN", "PRINCIPAL"].includes(user.role))
+    return <Navigate to="/" replace />;
 
   /* ================= FETCH TEACHER ================= */
   const fetchTeacher = async () => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
       const res = await api.get(`/teachers/${id}`);
 
@@ -60,7 +86,18 @@ export default function ViewTeacher() {
       setTeacher(teacherData);
       setRetryCount(0);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load teacher profile. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load teacher profile. Please try again.";
+
+      logger.error("Error fetching teacher:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
     } finally {
       setLoading(false);
     }
@@ -76,8 +113,35 @@ export default function ViewTeacher() {
       setRetryCount(prev => prev + 1);
       fetchTeacher();
     } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
+      setError((prev) => ({ ...(prev || {}), message: "Maximum retry attempts reached. Please check your connection." }));
     }
+  };
+
+  /* ================= DOCUMENT HANDLERS ================= */
+  const handleViewDocument = (documentId) => {
+    if (!documentId) {
+      toast.error("Document not available for viewing.");
+      return;
+    }
+    const url = getDocumentViewUrl(documentId);
+    if (!url) {
+      toast.error("Document not available for viewing.");
+      return;
+    }
+    window.open(url, "_blank");
+  };
+
+  const handleDownloadDocument = (documentId) => {
+    if (!documentId) {
+      toast.error("Document not available for downloading.");
+      return;
+    }
+    const url = getDocumentDownloadUrl(documentId);
+    if (!url) {
+      toast.error("Document not available for downloading.");
+      return;
+    }
+    window.open(url, "_blank");
   };
 
   /* ================= LOADING SKELETON ================= */
@@ -126,32 +190,18 @@ export default function ViewTeacher() {
   );
 
   /* ================= ERROR STATE ================= */
-  if (error && !loading) {
+  if (error) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Teacher Profile Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button 
-            className="erp-btn erp-btn-secondary" 
-            onClick={() => navigate(-1)}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button 
-            className="erp-btn erp-btn-primary" 
-            onClick={handleRetry}
-            disabled={retryCount >= 3}
-          >
-            <FaSyncAlt className="erp-btn-icon" />
-            {retryCount >= 3 ? "Max Retries" : `Retry (${retryCount}/3)`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Teacher Profile Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+        retryCount={retryCount}
+        maxRetry={3}
+      />
     );
   }
 
@@ -174,7 +224,7 @@ export default function ViewTeacher() {
   }
 
   return (
-    <div className="erp-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "#f5f7fa" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -394,69 +444,77 @@ export default function ViewTeacher() {
           </div>
 
           {/* DOCUMENTS SECTION */}
-          <div className="erp-card">
-            <div className="erp-card-header">
-              <h3>
-                <FaFileAlt className="erp-card-icon" />
-                Uploaded Documents
-              </h3>
-            </div>
-            <div className="erp-card-body">
-              <div className="erp-table-container">
-                <table className="erp-documents-table">
-                  <thead>
-                    <tr>
-                      <th>Document</th>
-                      <th>Type</th>
-                      <th>Size</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <DocumentRow 
-                      title="Aadhar Card" 
-                      icon={<FaFilePdf />} 
-                      type="PDF" 
-                      size="245 KB" 
-                    />
-                    <DocumentRow 
-                      title="PAN Card" 
-                      icon={<FaFilePdf />} 
-                      type="PDF" 
-                      size="189 KB" 
-                    />
-                    <DocumentRow 
-                      title="Degree Certificate" 
-                      icon={<FaFileImage />} 
-                      type="JPG" 
-                      size="1.2 MB" 
-                    />
-                    <DocumentRow 
-                      title="Passport Photo" 
-                      icon={<FaUserTie />} 
-                      type="PNG" 
-                      size="320 KB" 
-                    />
-                  </tbody>
-                </table>
+          {teacher.documents && teacher.documents.length > 0 && (
+            <div className="erp-card">
+              <div className="erp-card-header">
+                <h3>
+                  <FaFileAlt className="erp-card-icon" />
+                  Uploaded Documents
+                </h3>
               </div>
-              <div className="documents-note">
-                <FaInfoCircle className="note-icon" />
-                <span>Note: Document previews require backend integration. Contact system administrator for access.</span>
+              <div className="erp-card-body">
+                <div className="erp-table-container">
+                  <table className="erp-documents-table">
+                    <thead>
+                      <tr>
+                        <th>Document</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teacher.documents.map((doc, index) => (
+                        <tr key={index}>
+                          <td>
+                            <div className="doc-name">
+                              <span className="doc-icon">
+                                {doc.mimetype.includes('pdf') ? <FaFilePdf /> : <FaFileImage />}
+                              </span>
+                              {doc.originalName}
+                            </div>
+                          </td>
+                          <td>
+                            <span className="doc-type">
+                              {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
+                            </span>
+                          </td>
+                          <td className="doc-size">
+                            {(doc.size / 1024).toFixed(1)} KB
+                          </td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              <button
+                                onClick={() => handleViewDocument(doc.documentId)}
+                                className="btn btn-sm btn-outline-primary"
+                                title="Preview"
+                                type="button"
+                              >
+                                <FaEye />
+                              </button>
+                              <button
+                                onClick={() => handleDownloadDocument(doc.documentId)}
+                                className="btn btn-sm btn-outline-success"
+                                title="Download"
+                                type="button"
+                              >
+                                <FaDownload />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* STYLES */}
       <style>{`
-        .erp-container {
-          padding: 1.5rem;
-          background: #f5f7fa;
-          min-height: 100vh;
-          animation: fadeIn 0.6s ease;
-        }
-
         .erp-page-header {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
           padding: 1.75rem;
@@ -749,11 +807,6 @@ export default function ViewTeacher() {
           font-weight: 500;
         }
         
-        .doc-row {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr;
-        }
-        
         .doc-name {
           display: flex;
           align-items: center;
@@ -789,25 +842,6 @@ export default function ViewTeacher() {
         .doc-size {
           color: #6c757d;
           font-size: 0.9rem;
-        }
-        
-        .documents-note {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.75rem;
-          padding: 1rem 1.75rem;
-          background: #e3f2fd;
-          border-radius: 0 0 16px 16px;
-          border-left: 4px solid #2196F3;
-          font-size: 0.9rem;
-          color: #1a4b6d;
-          margin-top: 1rem;
-        }
-        
-        .note-icon {
-          font-size: 1.25rem;
-          margin-top: 0.125rem;
-          flex-shrink: 0;
         }
         
         /* SKELETON LOADING */
@@ -1134,10 +1168,6 @@ export default function ViewTeacher() {
         }
         
         @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-          
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;
@@ -1168,10 +1198,6 @@ export default function ViewTeacher() {
           .erp-documents-table td {
             padding: 0.875rem 1.25rem;
             font-size: 0.9rem;
-          }
-          
-          .doc-row {
-            grid-template-columns: 1.5fr 1fr 0.75fr;
           }
           
           .erp-skeleton-container {
@@ -1210,10 +1236,6 @@ export default function ViewTeacher() {
           
           .erp-card-header .erp-card-icon {
             font-size: 1.1rem;
-          }
-          
-          .doc-row {
-            grid-template-columns: 1fr;
           }
           
           .erp-documents-table thead {
@@ -1266,21 +1288,6 @@ function DetailRow({ label, value, icon, isEmail = false, isMultiline = false })
       <td className={`detail-value ${isEmail ? 'email' : ''} ${isMultiline ? 'multiline' : ''}`}>
         {value}
       </td>
-    </tr>
-  );
-}
-
-function DocumentRow({ title, icon, type, size }) {
-  return (
-    <tr className="doc-row">
-      <td className="doc-name">
-        <span className="doc-icon">{icon}</span>
-        {title}
-      </td>
-      <td>
-        <span className="doc-type">{type}</span>
-      </td>
-      <td className="doc-size">{size}</td>
     </tr>
   );
 }
