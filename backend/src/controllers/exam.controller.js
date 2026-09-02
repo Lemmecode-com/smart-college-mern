@@ -229,6 +229,75 @@ exports.getDashboard = async (req, res, next) => {
 };
 
 /**
+ * PUBLISH EXAM
+ * DRAFT -> PUBLISHED only. Idempotent if already PUBLISHED.
+ */
+exports.publishExam = async (req, res, next) => {
+  try {
+    const exam = await Exam.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    });
+
+    if (!exam) {
+      return res.status(404).json({ message: "Exam not found" });
+    }
+
+    const previousStatus = exam.status;
+
+    if (exam.status === "PUBLISHED") {
+      return res.status(200).json({
+        success: true,
+        message: "Exam is already published",
+        exam,
+      });
+    }
+
+    exam.status = "PUBLISHED";
+    exam.updatedBy = req.user.id;
+    await exam.save();
+
+    const updated = await Exam.findById(exam._id)
+      .populate("course_id", "name code")
+      .populate("subjects.subject", "name code teacher_id subjectType");
+
+    auditLogService
+      .logAudit({
+        collegeId: req.college_id,
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        action: "EXAM_PUBLISHED",
+        resourceType: "Exam",
+        resourceId: exam._id,
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get("user-agent"),
+        endpoint: req.originalUrl,
+        method: req.method,
+        statusCode: 200,
+        oldValues: { status: previousStatus },
+        newValues: { status: updated.status },
+        metadata: {
+          examName: updated.name,
+          courseId: updated.course_id,
+          semester: updated.semester,
+          academicYear: updated.academicYear,
+          subjectCount: updated.subjects.length,
+        },
+      })
+      .catch((err) => console.error("Audit log failed:", err));
+
+    res.json({
+      success: true,
+      message: "Exam published successfully",
+      exam: updated,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * UPDATE EXAM
  * Only name, course_id, semester, academicYear and subjects are editable.
  * All relationships are re-validated server-side.
