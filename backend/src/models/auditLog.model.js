@@ -90,6 +90,7 @@ const auditLogSchema = new mongoose.Schema(
         "LEAVE_CANCELLED",
         // Exam module actions (foundation for later steps)
         "EXAM_CREATED",
+        "EXAM_PUBLISHED",
         "MARKS_ENTERED",
         "MARKS_UPDATED",
         "RESULT_LOCKED",
