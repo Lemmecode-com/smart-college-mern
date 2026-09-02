@@ -34,6 +34,46 @@ router.get(
   semesterResultController.getMyResults,
 );
 
+// ── Exam-level Coordinator workflow ──────────────────────────────────────
+// All four MUST be declared before /:resultId so "generate-exam",
+// "lock-exam", "publish-exam" and the query-based listing are not captured
+// as a resultId path param.
+// ── List all results for an exam (summary + rows) ──
+router.get(
+  "/",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  semesterResultController.getResultsByExam,
+);
+
+// ── Bulk generate results for every eligible student in an exam ──
+router.post(
+  "/generate-exam",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  semesterResultController.generateResultsForExam,
+);
+
+// ── Bulk lock all DRAFT results for an exam ──
+router.post(
+  "/lock-exam",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  semesterResultController.lockResultsForExam,
+);
+
+// ── Bulk publish all LOCKED results for an exam ──
+router.post(
+  "/publish-exam",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  semesterResultController.publishResultsForExam,
+);
+
 // Review a single semester result (college-scoped)
 router.get(
   "/:resultId",
