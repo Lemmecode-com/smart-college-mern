@@ -1,9 +1,10 @@
 import axios from "axios";
+import { broadcastAuthInvalidation } from "../utils/authSync";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 
 if (!baseURL) {
-  throw new Error(
+  console.error(
     "VITE_API_BASE_URL is not defined. Please set it in your .env file.",
   );
 }
@@ -13,9 +14,29 @@ const api = axios.create({
   withCredentials: true, // Enable sending cookies with requests
 });
 
+const AUTH_ERROR_CODES = new Set([
+  "SESSION_INVALIDATED",
+  "SESSION_TERMINATED",
+  "TOKEN_INVALIDATED",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_MISSING",
+  "INVALID_TOKEN",
+  "TOKEN_EXPIRED",
+  "UNAUTHORIZED",
+]);
+
+let responseInterceptor401CallCount = 0;
+
 // Request interceptor - ensure credentials are always sent
 api.interceptors.request.use(
   (config) => {
+    // Mark logout requests so the response interceptor can skip broadcasting
+    // auth errors for them. This prevents infinite broadcast loops when
+    // performSessionInvalidation calls /auth/logout on other tabs.
+    if (config.url === "/auth/logout") {
+      config._skipAuthBroadcast = true;
+    }
+
     // No need to manually add Authorization header with httpOnly cookies
     // The browser automatically sends cookies with requests
     return config;
@@ -38,6 +59,10 @@ api.interceptors.response.use(
       // Case 1: Response has array data - return array directly for backward compatibility
       if (Array.isArray(data)) {
         response.data = data; // Return: [...]
+        response.data.pagination = pagination;
+        response.data.success = success;
+        response.data.message = message;
+        response.data.error = error;
       }
       // Case 2: Response has nested 'data' object
       else if (data && typeof data === "object") {
@@ -82,8 +107,18 @@ api.interceptors.response.use(
 
     // Handle 401 errors globally
     if (error.response?.status === 401) {
-      // Optionally: Clear any local storage if you store anything there
-      // localStorage.removeItem('someKey');
+      responseInterceptor401CallCount++;
+      const errorCode = error.response?.data?.code;
+      const now = new Date().toISOString();
+      const requestUrl = error.config?.url || "unknown";
+
+      console.log(
+        `[AxiosResponseInterceptor] Time=${now} | URL=${requestUrl} | Status=401 | ErrorCode=${errorCode || "NONE"} | CallCount=${responseInterceptor401CallCount} | SkipBroadcast=${error.config?._skipAuthBroadcast || false}`
+      );
+
+      if (errorCode && AUTH_ERROR_CODES.has(errorCode) && !error.config?._skipAuthBroadcast) {
+        broadcastAuthInvalidation(errorCode);
+      }
     }
 
     return Promise.reject(error);

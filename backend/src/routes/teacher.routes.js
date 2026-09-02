@@ -5,6 +5,13 @@ const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
 const teacherMiddleware = require("../middlewares/teacher.middleware");
+const { uploadTeacherDocuments } = require("../middlewares/upload.middleware");
+const { ROLE } = require("../utils/constants");
+
+const {
+  validateTeacherCreation,
+  validateTeacherProfileUpdate,
+} = require("../middlewares/validators/teacher.validator");
 
 const {
   createTeacher,
@@ -19,6 +26,7 @@ const {
   getTeacherReassignmentData,
   getAvailableTeachersForReassignment,
   deactivateTeacherWithReassignment,
+  getTeacherDocument,
 } = require("../controllers/teacher.controller");
 
 /* =========================================================
@@ -37,18 +45,19 @@ router.put(
   auth,
   collegeMiddleware,
   teacherMiddleware,
+  validateTeacherProfileUpdate,
   updateMyProfile,
 );
 
 /* =========================================================
    CRUD
 ========================================================= */
-router.post("/", auth, role("COLLEGE_ADMIN"), collegeMiddleware, createTeacher);
+router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, uploadTeacherDocuments, validateTeacherCreation, createTeacher);
 
 router.get(
   "/",
   auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeachers,
 );
@@ -61,7 +70,7 @@ router.get(
 router.get(
   "/department/:departmentId",
   auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeachersByDepartment,
 );
@@ -70,7 +79,7 @@ router.get(
 router.get(
   "/course/:courseId",
   auth,
-  role("COLLEGE_ADMIN", "TEACHER"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeachersByCourse,
 );
@@ -79,7 +88,7 @@ router.get(
 router.get(
   "/available-for-reassignment",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.TEACHER, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getAvailableTeachersForReassignment,
 );
@@ -88,11 +97,19 @@ router.get(
    /:id ROUTES (must be AFTER specific routes above)
 ========================================================= */
 
-/* GET TEACHER BY ID */
+/* GET TEACHER DOCUMENT — SECURE FILE ACCESS */
+router.get(
+  "/:id/documents/:filename",
+  auth,
+  collegeMiddleware,
+  getTeacherDocument,
+);
+
+/* GET TEACHER BY ID — COLLEGE_ADMIN, HOD, PRINCIPAL, EXAM_COORDINATOR (read-only) */
 router.get(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeacherById,
 );
@@ -101,34 +118,35 @@ router.get(
 router.get(
   "/:id/reassignment-data",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.HOD, ROLE.PRINCIPAL, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   getTeacherReassignmentData,
 );
 
-/* UPDATE TEACHER */
+/* UPDATE TEACHER — COLLEGE_ADMIN only */
 router.put(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
+  uploadTeacherDocuments,
   updateTeacher,
 );
 
-/* DEACTIVATE TEACHER WITH RESOURCE REASSIGNMENT */
+/* DEACTIVATE TEACHER WITH RESOURCE REASSIGNMENT — COLLEGE_ADMIN only */
 router.put(
   "/:id/deactivate-with-reassignment",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   deactivateTeacherWithReassignment,
 );
 
-/* DELETE TEACHER */
+/* DELETE TEACHER — COLLEGE_ADMIN only */
 router.delete(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   deleteTeacher,
 );

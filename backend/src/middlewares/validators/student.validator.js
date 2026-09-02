@@ -8,6 +8,44 @@
  */
 
 const { body, param, query, validationResult } = require('express-validator');
+const { validatePassword, passwordValidationMessage, validateIndianMobile, mobileValidatorMessage, validateIndianPincode, pincodeValidatorMessage } = require('../../utils/validators');
+
+const validateMobileCustom = (field, optional = false) => {
+  const rule = body(field)
+    .trim()
+    .custom((value) => {
+      if (!value) return true;
+      if (!/^\d+$/.test(value)) {
+        throw new Error('Mobile number must contain only digits');
+      }
+      if (value.length !== 10) {
+        throw new Error('Mobile number must be exactly 10 digits');
+      }
+      if (!/^[6-9]/.test(value)) {
+        throw new Error('Mobile number must start with 6, 7, 8, or 9');
+      }
+      return true;
+    });
+  if (optional) rule.optional({ checkFalsy: true });
+  return rule;
+};
+
+const validatePincodeCustom = (field, optional = false) => {
+  const rule = body(field)
+    .trim()
+    .custom((value) => {
+      if (!value) return true;
+      if (!/^\d+$/.test(value)) {
+        throw new Error('Pincode must contain only digits');
+      }
+      if (value.length !== 6) {
+        throw new Error('Pincode must be exactly 6 digits');
+      }
+      return true;
+    });
+  if (optional) rule.optional({ checkFalsy: true });
+  return rule;
+};
 
 /**
  * Handle validation errors
@@ -17,8 +55,10 @@ exports.handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     console.error('❌ Validation Errors:', errors.array());
+    const errorMessages = errors.array().map((err) => err.msg);
     return res.status(400).json({
       success: false,
+      message: errorMessages[0] || 'Validation failed',
       errors: errors.array().map(err => ({
         field: err.path,
         message: err.msg
@@ -47,12 +87,10 @@ exports.validateStudentRegistration = [
 
   body('password')
     .notEmpty().withMessage('Password is required')
-    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    .custom(validatePassword).withMessage(passwordValidationMessage),
 
-  body('mobileNumber')
-    .trim()
-    .notEmpty().withMessage('Mobile number is required')
-    .matches(/^[6-9]\d{9}$/).withMessage('Please provide a valid 10-digit Indian mobile number (must start with 6-9)'),
+  validateMobileCustom('mobileNumber')
+    .notEmpty().withMessage('Mobile number is required'),
 
   body('gender')
     .notEmpty().withMessage('Gender is required')
@@ -96,10 +134,8 @@ exports.validateStudentRegistration = [
     .notEmpty().withMessage('State is required')
     .isLength({ min: 2, max: 100 }).withMessage('State name must be between 2 and 100 characters'),
 
-  body('pincode')
-    .trim()
-    .notEmpty().withMessage('Pincode is required')
-    .matches(/^\d{6}$/).withMessage('Please provide a valid 6-digit Indian pincode'),
+  validatePincodeCustom('pincode')
+    .notEmpty().withMessage('Pincode is required'),
 
   // Academic Details
   body('department_id')
@@ -124,9 +160,7 @@ exports.validateStudentRegistration = [
     .isIn(['GEN', 'OBC', 'SC', 'ST', 'OTHER']).withMessage('Category must be GEN, OBC, SC, ST, or OTHER'),
 
   // Optional fields with validation
-  body('alternateMobile')
-    .optional()
-    .matches(/^[6-9]\d{9}$/).withMessage('Alternate mobile must be a valid 10-digit Indian number'),
+  validateMobileCustom('alternateMobile', true),
 
   body('sscPercentage')
     .optional({ checkFalsy: true })
@@ -152,18 +186,14 @@ exports.validateStudentRegistration = [
     .trim()
     .isLength({ min: 3, max: 100 }).withMessage('Father\'s name must be between 3 and 100 characters'),
 
-  body('fatherMobile')
-    .optional({ checkFalsy: true })
-    .matches(/^[6-9]\d{9}$/).withMessage('Father\'s mobile must be a valid 10-digit Indian number'),
+  validateMobileCustom('fatherMobile', true),
 
   body('motherName')
     .optional({ checkFalsy: true })
     .trim()
     .isLength({ min: 3, max: 100 }).withMessage('Mother\'s name must be between 3 and 100 characters'),
 
-  body('motherMobile')
-    .optional({ checkFalsy: true })
-    .matches(/^[6-9]\d{9}$/).withMessage('Mother\'s mobile must be a valid 10-digit Indian number'),
+  validateMobileCustom('motherMobile', true),
 
   // Handle validation errors
   exports.handleValidationErrors
@@ -181,14 +211,14 @@ exports.validateStudentUpdateByAdmin = [
 
   body('email')
     .optional()
-    .trim()
-    .isEmail().withMessage('Please provide a valid email address')
-    .normalizeEmail(),
+    .custom((value) => {
+      if (value) {
+        throw new Error('Email cannot be updated here. Use the secure email-change flow.');
+      }
+      return true;
+    }),
 
-  body('mobileNumber')
-    .optional()
-    .trim()
-    .matches(/^[6-9]\d{9}$/).withMessage('Please provide a valid 10-digit Indian mobile number'),
+  validateMobileCustom('mobileNumber', true),
 
   body('gender')
     .optional()
@@ -210,6 +240,9 @@ exports.validateStudentUpdateByAdmin = [
       if (age < 14 || age > 100) {
         throw new Error('Age must be between 14 and 100 years');
       }
+      if (birthDate > today) {
+        throw new Error('Date of birth cannot be in the future');
+      }
       return true;
     }),
 
@@ -228,10 +261,7 @@ exports.validateStudentUpdateByAdmin = [
     .trim()
     .isLength({ min: 2, max: 100 }).withMessage('State name must be between 2 and 100 characters'),
 
-  body('pincode')
-    .optional()
-    .trim()
-    .matches(/^\d{6}$/).withMessage('Please provide a valid 6-digit Indian pincode'),
+  validatePincodeCustom('pincode', true),
 
   body('admissionYear')
     .optional()
@@ -246,6 +276,11 @@ exports.validateStudentUpdateByAdmin = [
     .optional()
     .isIn(['GEN', 'OBC', 'SC', 'ST', 'OTHER']).withMessage('Category must be GEN, OBC, SC, ST, or OTHER'),
 
+  body('division')
+    .optional({ checkFalsy: true })
+    .trim()
+    .isLength({ max: 10 }).withMessage('Division must be at most 10 characters'),
+
   body('sscPercentage')
     .optional({ checkFalsy: true })
     .isFloat({ min: 0, max: 100 }).withMessage('SSC percentage must be between 0 and 100'),
@@ -256,8 +291,12 @@ exports.validateStudentUpdateByAdmin = [
 
   // Explicitly block password update
   body('password')
+    .optional()
     .custom((value) => {
-      throw new Error('Password cannot be updated here. Use the password reset feature.');
+      if (value) {
+        throw new Error('Password cannot be updated here. Use the password reset feature.');
+      }
+      return true;
     }),
 
   // Handle validation errors
@@ -274,14 +313,9 @@ exports.validateStudentProfileUpdate = [
     .trim()
     .isLength({ min: 3, max: 100 }).withMessage('Full name must be between 3 and 100 characters'),
 
-  body('mobileNumber')
-    .optional()
-    .trim()
-    .matches(/^[6-9]\d{9}$/).withMessage('Please provide a valid 10-digit Indian mobile number'),
+  validateMobileCustom('mobileNumber', true),
 
-  body('alternateMobile')
-    .optional({ checkFalsy: true })
-    .matches(/^[6-9]\d{9}$/).withMessage('Alternate mobile must be a valid 10-digit Indian number'),
+  validateMobileCustom('alternateMobile', true),
 
   body('addressLine')
     .optional()
@@ -303,13 +337,10 @@ exports.validateStudentProfileUpdate = [
     .trim()
     .isLength({ min: 2, max: 100 }).withMessage('State name must be between 2 and 100 characters'),
 
-  body('pincode')
-    .optional()
-    .trim()
-    .matches(/^\d{6}$/).withMessage('Please provide a valid 6-digit Indian pincode'),
+  validatePincodeCustom('pincode', true),
 
   body('bloodGroup')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isIn(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']).withMessage('Blood group must be valid (e.g., A+, B-, O+, etc.)'),
 
@@ -318,30 +349,21 @@ exports.validateStudentProfileUpdate = [
     .trim()
     .isLength({ min: 3, max: 100 }).withMessage('Father\'s name must be between 3 and 100 characters'),
 
-  body('fatherMobile')
-    .optional()
-    .trim()
-    .matches(/^[6-9]\d{9}$/).withMessage('Father\'s mobile must be a valid 10-digit Indian number'),
+  validateMobileCustom('fatherMobile', true),
 
   body('motherName')
     .optional()
     .trim()
     .isLength({ min: 3, max: 100 }).withMessage('Mother\'s name must be between 3 and 100 characters'),
 
-  body('motherMobile')
-    .optional()
-    .trim()
-    .matches(/^[6-9]\d{9}$/).withMessage('Mother\'s mobile must be a valid 10-digit Indian number'),
+  validateMobileCustom('motherMobile', true),
 
   body('emergencyContactName')
     .optional()
     .trim()
     .isLength({ min: 3, max: 100 }).withMessage('Emergency contact name must be between 3 and 100 characters'),
 
-  body('emergencyContactNumber')
-    .optional()
-    .trim()
-    .matches(/^[6-9]\d{9}$/).withMessage('Emergency contact must be a valid 10-digit Indian number'),
+  validateMobileCustom('emergencyContactNumber', true),
 
   // Handle validation errors
   exports.handleValidationErrors
@@ -349,14 +371,22 @@ exports.validateStudentProfileUpdate = [
 
 /**
  * Student ID Parameter Validation
- * Used in: GET/PUT/DELETE /api/students/:id
+ * Used in: GET/PUT/DELETE /api/students/:id and /:studentId/approve etc.
+ * Accepts either 'id' or 'studentId' param to cover all route patterns
  */
 exports.validateStudentId = [
-  param('studentId')
-    .notEmpty().withMessage('Student ID is required')
-    .isMongoId().withMessage('Invalid student ID format'),
-
-  exports.handleValidationErrors
+  (req, res, next) => {
+    // Support both :id and :studentId route params
+    const studentId = req.params.studentId || req.params.id;
+    if (!studentId || !studentId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid student ID is required',
+        errors: [{ field: 'studentId', message: 'Valid student ID is required' }],
+      });
+    }
+    next();
+  },
 ];
 
 /**

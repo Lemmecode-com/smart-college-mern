@@ -1,12 +1,29 @@
-import { useContext, useEffect, useState, useRef } from "react";
+﻿import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
+const PAGE_LOAD_TOAST_ID = "student-fees-load";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 import {
   FaMoneyCheckAlt,
@@ -110,10 +127,15 @@ export default function StudentFees() {
 
     // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
+      logger.warn("Student fees request timed out", {
+        page: "StudentFees",
+        role: user?.role,
+      });
       setError({
         message:
           "Request timed out. Please check your connection and try again.",
         statusCode: 408,
+        errorCode: undefined,
       });
       setLoading(false);
       toast.error("Request timed out. Please try again.", {
@@ -141,15 +163,7 @@ export default function StudentFees() {
 
       setDashboard(res.data);
 
-      // Show success toast only once per session
-      if (!toastShown.success) {
-        toast.success("Fee dashboard loaded successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaCheckCircle />,
-        });
-        setToastShown({ ...toastShown, success: true });
-      }
+      // Page-load success toast removed (requirement 8)
 
       // Clear timeout on success
       if (loadTimeoutRef.current) {
@@ -162,19 +176,28 @@ export default function StudentFees() {
       }
 
       const statusCode = err.response?.status;
-      const errorMsg =
-        statusCode === 401
-          ? "Session expired. Please login again."
-          : statusCode === 404
-            ? "Fee structure not found for your course. Contact administration."
-            : err.response?.data?.message ||
-              "Unable to load fee dashboard. Please try again.";
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
 
-      setError({ message: errorMsg, statusCode });
+      logger.error("Student fees load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "StudentFees",
+        role: user?.role,
+      });
 
-      // Show error toast only once per session
-      if (!toastShown.error) {
-        toast.error(errorMsg, {
+      setError({
+        message: "Unable to load fee dashboard. Please try again.",
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError && !toastShown.error) {
+        toast.error("Unable to load fee dashboard. Please try again.", {
           position: "top-right",
           autoClose: 5000,
           icon: <FaExclamationTriangle />,
@@ -202,6 +225,9 @@ export default function StudentFees() {
 
   useEffect(() => {
     loadFees();
+    return () => {
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -215,6 +241,15 @@ export default function StudentFees() {
       : dashboard?.totalPaid === 0
         ? 100
         : 0;
+
+  // Check if installment can be paid (previous installments must be paid first)
+  const canPayInstallment = (installment) => {
+    const order = installment.order || 0;
+    if (order <= 1) return true;
+    return !dashboard.installments.some(
+      (i) => i.order < order && i.status !== "PAID",
+    );
+  };
 
   // Copy to clipboard handler
   const copyToClipboard = async (text, id) => {
@@ -263,12 +298,24 @@ export default function StudentFees() {
       return;
     }
 
+    // Check if previous installments are paid
+    if (!canPayInstallment(installment)) {
+      toast.error(
+        "Cannot pay this installment. Please pay previous installments first.",
+        {
+          toastId: "order-error",
+        },
+      );
+      return;
+    }
+
     navigate("/student/make-payment", {
       state: {
         installmentId: installment._id,
         installmentName: installment.name,
         amount: installment.amount,
         dueDate: installment.dueDate,
+        order: installment.order || 0,
       },
     });
   };
@@ -287,6 +334,7 @@ export default function StudentFees() {
           error.message || "Unable to load fee dashboard. Please try again."
         }
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -298,7 +346,7 @@ export default function StudentFees() {
 
   if (!dashboard) {
     return (
-      <div className="fees-container">
+      <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%)" }}>
         <div className="empty-wrapper fade-in">
           <div className="empty-content">
             <FaMoneyCheckAlt className="empty-icon" />
@@ -321,7 +369,7 @@ export default function StudentFees() {
   }
 
   return (
-    <div className="fees-container" role="main">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%)" }}>
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -462,16 +510,29 @@ export default function StudentFees() {
             subtitle="Remaining payment amount"
             delay="0.3s"
           />
-          <FeeSummaryCard
-            title="Payment Progress"
-            amount={`${progress}%`}
-            icon={<FaCreditCard aria-hidden="true" />}
-            color={
-              progress === 100 ? "success" : progress > 50 ? "warning" : "info"
-            }
-            subtitle={`${dashboard.totalPaid.toLocaleString()}/${dashboard.totalFee.toLocaleString()} paid`}
-            delay="0.4s"
-          />
+          <div
+            className="fee-summary-card scale-on-hover"
+            style={{ animationDelay: "0.4s" }}
+          >
+            <div
+              className={`fs-2 text-${
+                progress === 100 ? "success" : progress > 50 ? "warning" : "info"
+              }`}
+            >
+              <FaCreditCard aria-hidden="true" />
+            </div>
+            <h6 className="text-muted mb-1">Payment Progress</h6>
+            <div
+              className={`amount text-${
+                progress === 100 ? "success" : progress > 50 ? "warning" : "info"
+              }`}
+            >
+              {progress}%
+            </div>
+            <div className="subtitle text-muted mt-1">
+              {`${formatNumberIN(dashboard.totalPaid)}/${formatNumberIN(dashboard.totalFee)} paid`}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -630,11 +691,11 @@ export default function StudentFees() {
                       >
                         <td className="cell-installment">{installment.name}</td>
                         <td className="cell-amount">
-                          ₹{installment.amount.toLocaleString()}
+                          ₹{formatNumberIN(installment.amount)}
                         </td>
                         <td className="cell-due">
                           <div className="due-date">
-                            {new Date(installment.dueDate).toLocaleDateString()}
+                            {formatDate(installment.dueDate)}
                           </div>
                           {isNearDue(installment.dueDate) &&
                             installment.status !== "PAID" && (
@@ -686,9 +747,7 @@ export default function StudentFees() {
                             <div className="payment-info">
                               <div className="payment-date">
                                 {installment.paidAt
-                                  ? new Date(installment.paidAt).toLocaleString(
-                                      "en-IN",
-                                    )
+                                  ? formatDateTime(installment.paidAt)
                                   : "N/A"}
                               </div>
                               <small className="payment-ref">
@@ -755,31 +814,40 @@ export default function StudentFees() {
                             <span className="not-paid">Not paid yet</span>
                           )}
                         </td>
-                        <td className="cell-action">
-                          {installment.status === "PAID" ? (
-                            <button
-                              className="btn-receipt"
-                              onClick={() =>
-                                navigate(
-                                  `/student/fee-receipt/${installment._id}`,
-                                )
-                              }
-                              aria-label={`View receipt for ${installment.name}`}
-                              title="View Receipt"
-                            >
-                              <FaReceipt aria-hidden="true" /> Receipt
-                            </button>
-                          ) : (
-                            <button
-                              className="btn-pay"
-                              onClick={() => handleRedirectPayment(installment)}
-                              aria-label={`Pay ${installment.name} - ₹${installment.amount}`}
-                              title="Pay Now"
-                            >
-                              <FaCreditCard aria-hidden="true" /> Pay
-                            </button>
-                          )}
-                        </td>
+<td className="cell-action">
+                           {installment.status === "PAID" ? (
+                             <button
+                               className="btn-receipt"
+                               onClick={() =>
+                                 navigate(
+                                   `/student/fee-receipt/${installment._id}`,
+                                 )
+                               }
+                               aria-label={`View receipt for ${installment.name}`}
+                               title="View Receipt"
+                             >
+                               <FaReceipt aria-hidden="true" /> Receipt
+                             </button>
+                           ) : canPayInstallment(installment) ? (
+                             <button
+                               className="btn-pay"
+                               onClick={() => handleRedirectPayment(installment)}
+                               aria-label={`Pay ${installment.name} - ₹${installment.amount}`}
+                               title="Pay Now"
+                             >
+                               <FaCreditCard aria-hidden="true" /> Pay
+                             </button>
+                           ) : (
+                             <button
+                               className="btn-pay"
+                               disabled
+                               aria-label={`Cannot pay ${installment.name} - previous installments pending`}
+                               title="Pay previous installments first"
+                             >
+                               <FaCreditCard aria-hidden="true" /> Pay
+                             </button>
+                           )}
+                         </td>
                       </tr>
                     ))}
                   </tbody>
@@ -804,7 +872,7 @@ export default function StudentFees() {
               <small>
                 <FaSync className="spin-icon me-1" />
                 Fee data last updated:{" "}
-                <strong>{new Date().toLocaleString()}</strong>
+                <strong>{formatDateTime(new Date())}</strong>
               </small>
             </p>
           </div>
@@ -829,13 +897,6 @@ export default function StudentFees() {
 
       {/* ================= CSS ================= */}
       <style>{`
-        /* ================= CONTAINER ================= */
-        .fees-container {
-          padding: 2rem;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-          min-height: 100vh;
-        }
-
         /* ================= LOADING ================= */
         .loading-wrapper {
           display: flex;
@@ -1799,10 +1860,6 @@ export default function StudentFees() {
 
         /* ================= RESPONSIVE ================= */
         @media (max-width: 1024px) {
-          .fees-container {
-            padding: 1rem;
-          }
-
           .fees-header {
             padding: 1.25rem;
             flex-direction: column;
@@ -1920,11 +1977,6 @@ export default function StudentFees() {
 
         /* ================= PRINT STYLES ================= */
         @media print {
-          .fees-container {
-            background: white;
-            padding: 0;
-          }
-
           .fees-header {
             background: #1a4b6d !important;
             -webkit-print-color-adjust: exact;
@@ -2011,7 +2063,7 @@ function FeeSummaryCard({ title, amount, icon, color, subtitle, delay }) {
       <div className={`fs-2 text-${color}`}>{icon}</div>
       <h6 className="text-muted mb-1">{title}</h6>
       <div className={`amount text-${color}`}>
-        ₹{typeof amount === "number" ? amount.toLocaleString() : amount}
+        {formatINR(amount)}
       </div>
       {subtitle && <div className="subtitle text-muted mt-1">{subtitle}</div>}
     </div>

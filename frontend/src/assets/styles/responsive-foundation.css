@@ -1,0 +1,669 @@
+/* =====================================================
+   NOVAA ERP - CENTRAL RESPONSIVE FOUNDATION (Phase 1)
+   -----------------------------------------------------
+   Purpose: A single, centralized, reusable, presentation-
+   layer-only responsive foundation shared system-wide by
+   ALL roles (SUPER_ADMIN, COLLEGE_ADMIN, PRINCIPAL, HOD,
+   ACCOUNTANT, ADMISSION_OFFICER, EXAM_COORDINATOR,
+   PARENT_GUARDIAN, PLATFORM_SUPPORT, TEACHER, STUDENT).
+
+   Design principles:
+   * Backward-compatible: uses --erp-* tokens and erp-*
+     utility classes that do NOT collide with existing
+     legacy tokens (--sidebar-width, --primary-color,
+     --header-height, etc.) or existing page classes
+     (.erp-container, .erp-page-header, .erp-form-group,
+     .erp-section-title, etc.). Therefore importing this
+     file has ZERO visual effect on pages that do not opt
+     into the new utilities.
+   * Device-independent: one breakpoint strategy, no
+     iPhone/Samsung/Z-Fold specific CSS.
+   * Coexists with Bootstrap 5 (576/768/992/1200/1400).
+   * No global element overrides (img, table, button,
+     input, *, body { overflow-x:hidden } are NOT used).
+   * No !important anywhere in this foundation.
+   ===================================================== */
+
+/* =====================================================
+  1. RESPONSIVE DESIGN TOKENS (Layout only)
+  -----------------------------------------------------
+  Color tokens are intentionally NOT redefined here to
+  preserve the existing NOVAA ERP color combination.
+  Spacing/typography are also left to existing files;
+  these tokens cover layout geometry only.
+  Reference breakpoint tokens are also exposed for JS
+  consumers (e.g. role detection < 768). They are NOT
+  used inside @media declarations because custom
+  properties are not reliably honored in media query
+  feature values; literal pixel values are used there.
+  ===================================================== */
+:root {
+  /* Breakpoint reference tokens (sm/md/lg/xl match Bootstrap 5.3) */
+  --erp-breakpoint-sm: 576px;
+  --erp-breakpoint-md: 768px;
+  --erp-breakpoint-lg: 992px;
+  --erp-breakpoint-xl: 1200px;
+
+  /* Layout geometry (aligned to current active shell:
+     Sidebar.css --sidebar-width-expanded (250px),
+     Sidebar.css --sidebar-width-collapsed (80px),
+     Layout.css  --navbar-height (60px).) */
+  --erp-sidebar-width: 250px;
+  --erp-sidebar-collapsed-width: 80px;
+  --erp-navbar-height: 60px;
+  --erp-navbar-height-mobile: 56px;
+
+  /* Page padding (mobile-first, overridden below) */
+  --erp-page-padding: 1rem;
+  --erp-page-padding-tablet: 1.5rem;
+  --erp-page-padding-desktop: 2rem;
+
+  /* Content / section rhythm (mobile-first) */
+  --erp-content-gap: 1.5rem;
+  --erp-section-gap: 1.5rem;
+
+  /* Centered content ceiling (matches Dashboard.css .dashboard-container-inner) */
+  --erp-container-max-width: 1400px;
+
+  /* Safe-area insets (fallback 0 on non-notched devices) */
+  --erp-safe-top: env(safe-area-inset-top, 0);
+  --erp-safe-right: env(safe-area-inset-right, 0);
+  --erp-safe-bottom: env(safe-area-inset-bottom, 0);
+  --erp-safe-left: env(safe-area-inset-left, 0);
+}
+
+/* Mobile refinements for geometry rhythm */
+@media (max-width: 767.98px) {
+  :root {
+    --erp-content-gap: 1rem;
+    --erp-section-gap: 1rem;
+  }
+}
+
+/* =====================================================
+  2. BREAKPOINT STRATEGY (canonical, device-independent)
+  -----------------------------------------------------
+  Mobile (xs):            < 576px
+  Large mobile / tablet:  576px – 767px
+  Tablet (md):            768px – 991px
+  Compact desktop (lg):   992px – 1199px
+  Desktop (xl):           1200px – 1399px
+  Wide desktop (xxl):     1400px+
+  No device-specific breakpoints.
+  ===================================================== */
+
+/* =====================================================
+  3. BOX-SIZING SENTINEL (opt-in)
+  -----------------------------------------------------
+  Apply to root containers to guarantee predictable
+  sizing. Does NOT override the project reset; it is an
+  explicit opt-in class so legacy markup is untouched.
+  ===================================================== */
+.erp-box {
+  box-sizing: border-box;
+}
+
+/* =====================================================
+  4. CENTRAL PAGE CONTAINER FOUNDATION
+  -----------------------------------------------------
+  Ensures width:100%, max-width:100%, min-width:0 and
+  responsive horizontal padding with NO page-level
+  horizontal overflow. .erp-page is NOT constrained by a
+  max-width ceiling (dashboards stay full-width);
+  .erp-page-content adds an optional centered ceiling.
+  ===================================================== */
+.erp-page {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding-left: var(--erp-page-padding);
+  padding-right: var(--erp-page-padding);
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .erp-page {
+    padding-left: var(--erp-page-padding-tablet);
+    padding-right: var(--erp-page-padding-tablet);
+  }
+}
+
+@media (min-width: 1200px) {
+  .erp-page {
+    padding-left: var(--erp-page-padding-desktop);
+    padding-right: var(--erp-page-padding-desktop);
+  }
+}
+
+.erp-page-content {
+  width: 100%;
+  max-width: var(--erp-container-max-width);
+  min-width: 0;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--erp-page-padding);
+  padding-right: var(--erp-page-padding);
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .erp-page-content {
+    padding-left: var(--erp-page-padding-tablet);
+    padding-right: var(--erp-page-padding-tablet);
+  }
+}
+
+@media (min-width: 1200px) {
+  .erp-page-content {
+    padding-left: var(--erp-page-padding-desktop);
+    padding-right: var(--erp-page-padding-desktop);
+  }
+}
+
+.erp-section {
+  width: 100%;
+  min-width: 0;
+  margin-bottom: var(--erp-section-gap);
+  box-sizing: border-box;
+}
+
+/* =====================================================
+  5. RESPONSIVE GRID FOUNDATION
+  -----------------------------------------------------
+  CSS Grid, mobile-first, no fixed card widths.
+  .erp-grid: 1 column -> 2 columns on tablet+.
+  .erp-grid-auto: auto-fit minmax (responsive cards).
+  Explicit column modifiers are opt-in.
+  ===================================================== */
+.erp-grid {
+  display: grid;
+  width: 100%;
+  gap: var(--erp-content-gap);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .erp-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.erp-grid-cols-1 { grid-template-columns: 1fr; }
+@media (min-width: 576px) {
+  .erp-grid-sm-2 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 768px) {
+  .erp-grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .erp-grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .erp-grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .erp-grid-md-2 { grid-template-columns: repeat(2, 1fr); }
+  .erp-grid-md-3 { grid-template-columns: repeat(3, 1fr); }
+  .erp-grid-md-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Auto-fit grid with safe minimum widths (no overflow) */
+.erp-grid-auto {
+  display: grid;
+  width: 100%;
+  gap: var(--erp-content-gap);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+
+.erp-grid,
+.erp-grid-auto,
+.erp-grid > *,
+.erp-grid-auto > * {
+  min-width: 0;
+}
+
+/* =====================================================
+  6. RESPONSIVE FLEX / ACTION GROUP FOUNDATION
+  -----------------------------------------------------
+  Desktop: inline actions. Narrow mobile: wrap
+  safely (no fixed widths). .erp-actions-stack forces
+  a full-width vertical stack on mobile only.
+  ===================================================== */
+.erp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--erp-content-gap);
+}
+
+@media (max-width: 767.98px) {
+  .erp-actions {
+    gap: 0.75rem;
+  }
+}
+
+.erp-actions-start { justify-content: flex-start; }
+.erp-actions-center { justify-content: center; }
+.erp-actions-end { justify-content: flex-end; }
+.erp-actions-between { justify-content: space-between; }
+
+.erp-actions-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .erp-actions-stack {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* Explicit responsive visibility helpers (device-independent) */
+.erp-hide-mobile { display: none; }
+@media (min-width: 768px) {
+  .erp-hide-mobile { display: inline; }
+}
+
+/* =====================================================
+  7. RESPONSIVE FORM FOUNDATION
+  -----------------------------------------------------
+  Prevents fixed input widths, overflowing controls and
+  non-wrapping form rows. No change to validation,
+  field names, submit handlers or business logic.
+  ===================================================== */
+.erp-form-row {
+  display: grid;
+  width: 100%;
+  gap: var(--erp-content-gap);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .erp-form-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.erp-form-field {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.erp-form-field > * {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* =====================================================
+  8. RESPONSIVE TABLE WRAPPER (opt-in)
+  -----------------------------------------------------
+  ONE centralized, opt-in overflow wrapper. It does NOT
+  globally force every <table> to scroll and does NOT
+  alter table display. Pages adopt it progressively.
+  Reuses the Bootstrap-compatible .table-responsive
+  behavior under a canonical erp- name to avoid
+  overriding the live Bootstrap/utility rules.
+  ===================================================== */
+.erp-table-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* =====================================================
+  9. RESPONSIVE MEDIA FOUNDATION (opt-in)
+  -----------------------------------------------------
+  Explicit classes only; the global img/table/button
+  rules are intentionally left untouched so icons and
+  intentionally fixed assets are unaffected.
+  ===================================================== */
+.erp-media,
+.erp-img {
+  max-width: 100%;
+  height: auto;
+}
+
+.erp-img {
+  display: block;
+  vertical-align: middle;
+}
+
+.erp-logo {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* =====================================================
+  10. RESPONSIVE OVERFLOW / TRUNCATION UTILITIES
+  -----------------------------------------------------
+  No global overflow-x:hidden on body/html; overflow is
+  tamed at its source via explicit opt-in classes.
+  ===================================================== */
+.erp-min-zero { min-width: 0; }
+.erp-max-full { max-width: 100%; }
+.erp-overflow-x-auto { overflow-x: auto; }
+.erp-overflow-x-visible { overflow-x: visible; }
+
+.erp-text-wrap {
+  white-space: normal;
+}
+
+.erp-text-nowrap {
+  white-space: nowrap;
+}
+
+.erp-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =====================================================
+  11. MOBILE VIEWPORT FOUNDATION (100vh safe pattern)
+  -----------------------------------------------------
+  Modern dynamic viewport units with a 100vh fallback
+  for older browsers. Does NOT rewrite existing 100vh
+  occurrences; components adopt .erp-viewport-min-100
+  progressively in later phases.
+  ===================================================== */
+.erp-viewport-min-100 {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* =====================================================
+  12. SAFE-AREA FOUNDATION (opt-in)
+  -----------------------------------------------------
+  Available for fixed/mobile shell components. Does NOT
+  add global padding to every page and does NOT change
+  desktop spacing.
+  ===================================================== */
+.erp-safe-top { padding-top: var(--erp-safe-top); }
+.erp-safe-right { padding-right: var(--erp-safe-right); }
+.erp-safe-bottom { padding-bottom: var(--erp-safe-bottom); }
+.erp-safe-left { padding-left: var(--erp-safe-left); }
+
+.erp-safe-area {
+  padding: var(--erp-safe-top) var(--erp-safe-right) var(--erp-safe-bottom) var(--erp-safe-left);
+}
+
+/* =====================================================
+   13. RESPONSIVE SHIM (gap) UTILITY
+   -----------------------------------------------------
+   Consistent rhythm utility tied to the foundation
+   content gap token.
+   ===================================================== */
+.erp-gap {
+  gap: var(--erp-content-gap);
+}
+
+@media (max-width: 767.98px) {
+  .erp-gap {
+    gap: 0.75rem;
+  }
+}
+
+/* =====================================================
+   14. RESPONSIVE BREADCRUMB FOUNDATION (opt-in)
+   -----------------------------------------------------
+   Prevents breadcrumb overflow by allowing safe wrapping
+   and truncation. Does NOT change routing, labels,
+   colors, or accessibility behavior.
+   ===================================================== */
+.erp-breadcrumb {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.erp-breadcrumb-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.erp-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.erp-breadcrumb-link {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erp-breadcrumb-current {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.erp-breadcrumb-separator {
+  flex-shrink: 0;
+  user-select: none;
+}
+
+/* =====================================================
+   15. RESPONSIVE PAGE HEADER FOUNDATION (opt-in)
+   -----------------------------------------------------
+   Reusable header pattern: title/subtitle + actions.
+   Desktop: inline. Mobile: stacks safely with wrap.
+   Does NOT change button labels, colors, permissions,
+   or event handlers.
+   ===================================================== */
+.erp-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--erp-content-gap);
+  width: 100%;
+  min-width: 0;
+}
+
+.erp-page-header-start {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.erp-page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--erp-content-gap);
+  flex-shrink: 0;
+}
+
+@media (max-width: 767.98px) {
+  .erp-page-header {
+    gap: 0.75rem;
+  }
+
+  .erp-page-header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .erp-page-header-actions > * {
+    width: 100%;
+  }
+}
+
+/* =====================================================
+   16. RESPONSIVE MODAL FOUNDATION (opt-in)
+   -----------------------------------------------------
+   Viewport-safe modal sizing. Does NOT change modal
+   business logic, confirm/cancel handlers, or colors.
+   ===================================================== */
+.erp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: var(--erp-page-padding);
+}
+
+.erp-modal {
+  background: white;
+  border-radius: 20px;
+  width: calc(100% - 2rem);
+  max-width: 500px;
+  max-height: calc(100dvh - 2rem);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.erp-modal-header {
+  padding: 2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.erp-modal-body {
+  padding: 2rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.erp-modal-footer {
+  padding: 1.5rem 2rem;
+  display: flex;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 767.98px) {
+  .erp-modal {
+    width: calc(100% - 1rem);
+    max-height: calc(100dvh - 1rem);
+    border-radius: 16px;
+  }
+
+  .erp-modal-header {
+    padding: 1.5rem;
+  }
+
+  .erp-modal-body {
+    padding: 1.5rem;
+  }
+
+  .erp-modal-footer {
+    flex-direction: column;
+    padding: 1rem 1.5rem 1.5rem;
+  }
+
+  .erp-modal-footer > * {
+    width: 100%;
+  }
+}
+
+/* =====================================================
+   17. RESPONSIVE ACTION GROUP FOUNDATION (opt-in)
+   -----------------------------------------------------
+   Reusable button group pattern. Desktop: inline.
+   Narrow mobile: wraps safely. Full-width mobile only
+   where explicitly requested via .erp-actions-stack.
+   ===================================================== */
+.erp-actions-stack-mobile {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 767.98px) {
+  .erp-actions-stack-mobile {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .erp-actions-stack-mobile > * {
+    width: 100%;
+  }
+}
+
+/* =====================================================
+   18. RESPONSIVE TIMETABLE FOUNDATION (opt-in)
+   -----------------------------------------------------
+   Specialized utilities for data-dense timetable/schedule
+   grids. Reuses the centralized local-scroll pattern but
+   adds cell-level containment so timetable cells with
+   min-width / white-space:nowrap do NOT force page-level
+   horizontal overflow. The timetable's justified minimum
+   grid width is preserved INSIDE the scroll container.
+
+   Design principles:
+   * No global table/overflow overrides.
+   * No !important.
+   * No device-specific breakpoints.
+   * Reuses existing --erp-content-gap and breakpoint tokens.
+   ===================================================== */
+
+/* Local horizontal scroll wrapper for timetable tables.
+   The PAGE itself never horizontally scrolls; only the
+   timetable grid scrolls inside this container. */
+.erp-timetable-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Cell containment: prevent inner flex/grid children from
+   forcing overflow. Applied to specific cell elements. */
+.erp-timetable-responsive > * {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Safe cell content wrapping for timetable cells that
+   contain subject names, teacher names, room numbers, etc.
+   Uses normal white-space so text wraps naturally instead
+   of expanding the grid. */
+.erp-timetable-cell {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Time column: keep readable fixed width on all viewports.
+   Prevents collapse to unreadable slivers while not
+   consuming unnecessary mobile space. */
+.erp-timetable-time {
+  width: 140px;
+  min-width: 120px;
+  max-width: 140px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Day header: preserve full day names (Monday, Tuesday...)
+   across all widths. min-width now matches the colgroup width
+   so columns don't collapse below the space needed for two
+   action buttons (Edit + Delete) inside subject cards. */
+.erp-timetable-day {
+  min-width: 230px;
+  white-space: nowrap;
+  text-align: center;
+}

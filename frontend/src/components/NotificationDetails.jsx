@@ -16,14 +16,10 @@ import {
   FaCalendarAlt,
   FaInfoCircle,
   FaExclamationTriangle,
-  FaGraduationCap,
-  FaMoneyBillWave,
-  FaUserCheck,
-  FaBullhorn,
-  FaClipboardList,
   FaUser,
   FaSpinner,
 } from "react-icons/fa";
+import { NOTIFICATION_TYPES } from "../utils/notificationTypes";
 
 /**
  * Notification Details Page
@@ -47,57 +43,8 @@ export default function NotificationDetails() {
     type: null, // 'delete' or 'back'
   });
 
-  // Notification type configurations
-  const typeConfig = {
-    GENERAL: {
-      icon: FaInfoCircle,
-      color: "#3b82f6",
-      bg: "#dbeafe",
-      label: "General",
-    },
-    ACADEMIC: {
-      icon: FaGraduationCap,
-      color: "#8b5cf6",
-      bg: "#ede9fe",
-      label: "Academic",
-    },
-    EXAM: {
-      icon: FaCalendarAlt,
-      color: "#ec4899",
-      bg: "#fce7f3",
-      label: "Exam",
-    },
-    FEE: {
-      icon: FaMoneyBillWave,
-      color: "#f59e0b",
-      bg: "#ffedd5",
-      label: "Fee",
-    },
-    ATTENDANCE: {
-      icon: FaUserCheck,
-      color: "#10b981",
-      bg: "#dcfce7",
-      label: "Attendance",
-    },
-    EVENT: {
-      icon: FaBullhorn,
-      color: "#ef4444",
-      bg: "#fee2e2",
-      label: "Event",
-    },
-    ASSIGNMENT: {
-      icon: FaClipboardList,
-      color: "#6366f1",
-      bg: "#eef2ff",
-      label: "Assignment",
-    },
-    URGENT: {
-      icon: FaExclamationTriangle,
-      color: "#dc2626",
-      bg: "#fee2e2",
-      label: "Urgent",
-    },
-  };
+  // Notification type configurations (shared single source of truth)
+  const typeConfig = NOTIFICATION_TYPES;
 
   const priorityConfig = {
     LOW: { color: "#64748b", bg: "#f1f5f9", label: "Low Priority" },
@@ -125,61 +72,17 @@ export default function NotificationDetails() {
       setLoading(true);
       setError(null);
 
-      // Determine API endpoint based on user role
-      let endpoint;
-      if (user?.role === "TEACHER") {
-        endpoint = "/notifications/teacher/read";
-      } else if (user?.role === "STUDENT") {
-        endpoint = "/notifications/student/read";
-      } else {
-        endpoint = "/notifications/admin/read";
-      }
-
-      const res = await api.get(endpoint);
-
-      // Search for the notification in all possible arrays
-      let found = null;
-      let isOwnerCheck = false;
-
-      if (res.data.myNotifications) {
-        found = res.data.myNotifications.find((n) => n._id === id);
-        if (found) isOwnerCheck = true;
-      }
-
-      if (!found && res.data.staffNotifications) {
-        found = res.data.staffNotifications.find((n) => n._id === id);
-        isOwnerCheck = false;
-      }
-
-      if (!found && res.data.adminNotifications) {
-        found = res.data.adminNotifications.find((n) => n._id === id);
-        isOwnerCheck = false;
-      }
-
-      if (!found && res.data.teacherNotifications) {
-        found = res.data.teacherNotifications.find((n) => n._id === id);
-        isOwnerCheck = false;
-      }
-
-      if (!found) {
-        // Try direct fetch
-        try {
-          const directRes = await api.get(`/notifications/${id}`);
-          found = directRes.data;
-          isOwnerCheck =
-            found.createdBy === user?.id || found.createdBy === user?._id;
-        } catch (err) {
-          setError("Notification not found");
-          setLoading(false);
-          return;
-        }
-      }
+      const res = await api.get(`/notifications/${id}`);
+      const found = res.data.notification;
 
       setNotification(found);
-      setIsOwner(isOwnerCheck);
+      setIsOwner(
+        String(found.createdBy) === String(user?.id) ||
+        String(found.createdBy) === String(user?._id),
+      );
     } catch (err) {
       console.error("Error fetching notification:", err);
-      setError(err.response?.data?.message || "Failed to load notification");
+      setError(err.response?.data?.error?.message || "Failed to load notification");
       toast.error("Failed to load notification details");
     } finally {
       setLoading(false);
@@ -339,7 +242,9 @@ export default function NotificationDetails() {
             path:
               user?.role === "TEACHER"
                 ? "/teacher/notifications/list"
-                : "/notification/list",
+                : user?.role === "STUDENT"
+                  ? "/notification/student"
+                  : "/notification/list",
           },
           { label: notification.title?.substring(0, 30) || "Details" },
         ]}

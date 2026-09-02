@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import { AuthContext } from "../../../auth/AuthContext";
+import { logger } from "../../../utils/logger";
 import {
   FaUserGraduate,
   FaBook,
@@ -49,8 +51,24 @@ import {
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+const PAGE_LOAD_TOAST_ID = "student-dashboard-load";
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -75,61 +93,70 @@ export default function StudentDashboard() {
     semester: 1,
   };
 
-  // Defensive: Safe access to pie chart data
-  const attendanceData = [
-    {
-      name: "Present",
-      value: attendanceSummary.present || 0,
-    },
-    {
-      name: "Absent",
-      value: attendanceSummary.absent || 0,
-    },
-  ];
+  // Defensive: Safe access to pie chart data (handled via attendancePieData below)
 
   useEffect(() => {
-    fetchDashboardData();
+    let isCancelled = false;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.get("/dashboard/student");
+        if (!isCancelled) {
+          setDashboardData(response.data);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          const statusCode = err.response?.status;
+          const errorCode = err.response?.data?.code;
+          const backendMessage = err.response?.data?.message;
+
+          logger.error("Student dashboard load error:", {
+            statusCode,
+            errorCode,
+            backendMessage,
+            page: "StudentDashboard",
+            role: user?.role,
+          });
+
+          setError({
+            message:
+              "Failed to load dashboard. Please check your connection and try again.",
+            statusCode,
+            errorCode,
+          });
+
+          const isAuthError =
+            statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+          if (!isAuthError) {
+            toast.error("Failed to load dashboard. Please try again.", {
+              position: "top-right",
+              autoClose: 5000,
+              icon: <FaExclamationTriangle />,
+            });
+          }
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      isCancelled = true;
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
+    };
   }, [retryCount]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get("/dashboard/student");
-      setDashboardData(response.data);
-
-      // Show success toast only on successful load (not initial)
-      if (dashboardData) {
-        toast.success("Dashboard loaded successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-          icon: <FaCheckCircle />,
-        });
-      }
-    } catch (err) {
-      // Silently handle auth errors
-      if (err.response?.status !== 403 && err.response?.status !== 401) {
-        const statusCode = err.response?.status;
-        const errorMsg =
-          err.response?.data?.message ||
-          "Failed to load dashboard. Please check your connection and try again.";
-        setError({ message: errorMsg, statusCode });
-        toast.error(errorMsg, {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaExclamationTriangle />,
-        });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleRetry = async () => {
     if (retryCount >= 3) return;
     setIsRetrying(true);
     setRetryCount((prev) => prev + 1);
-    await fetchDashboard();
     setIsRetrying(false);
   };
 
@@ -205,6 +232,7 @@ export default function StudentDashboard() {
         title="Dashboard Loading Error"
         message={error.message || "Failed to load dashboard. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -220,11 +248,15 @@ export default function StudentDashboard() {
   // No need to destructure again - attendanceSummary, studentData already defined
 
   const {
-    subjectWiseAttendance,
-    todayTimetable,
+    subjectWiseAttendance = [],
+    todaysTimetable = [],
     feeSummary,
-    latestNotifications,
+    latestNotifications = [],
   } = dashboardData || {};
+
+  // Keep external references in sync. The backend response key is
+  // `todaysTimetable`; the rest of the component renders `todayTimetable`.
+  const todayTimetable = todaysTimetable;
 
   // Set default values for feeSummary if not available
   const safeFeeSummary = feeSummary || {
@@ -259,6 +291,7 @@ export default function StudentDashboard() {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
@@ -267,7 +300,7 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="student-dashboard-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%)" }}>
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -295,9 +328,6 @@ export default function StudentDashboard() {
           <button className="btn-refresh" onClick={handleRetry}>
             <FaSync className={loading ? "spinning" : ""} /> Refresh
           </button>
-          <Link to="/student/make-payment" className="btn-primary">
-            <FaWallet /> Pay Fees
-          </Link>
         </div>
       </div>
 
@@ -664,14 +694,20 @@ export default function StudentDashboard() {
               </div>
 
               {/* Enhanced Subject List with Teacher Info and Trends */}
-              <div
-                className="subject-list"
-                role="list"
-                aria-label="Subject-wise attendance list"
-              >
-                {subjectWiseAttendance
-                  .sort((a, b) => a.percentage - b.percentage) // Sort by attendance (lowest first)
-                  .map((subject, index) => {
+              {subjectWiseAttendance.length === 0 ? (
+                <div className="no-data">
+                  <FaChartBar className="no-data-icon" />
+                  <p>No subject attendance data available</p>
+                </div>
+              ) : (
+                <div
+                  className="subject-list"
+                  role="list"
+                  aria-label="Subject-wise attendance list"
+                >
+                  {(subjectWiseAttendance || [])
+                    .sort((a, b) => a.percentage - b.percentage) // Sort by attendance (lowest first)
+                    .map((subject, index) => {
                     const attendanceColor = getAttendanceWarningColor(
                       subject.percentage,
                     );
@@ -742,7 +778,8 @@ export default function StudentDashboard() {
                       </div>
                     );
                   })}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -769,7 +806,7 @@ export default function StudentDashboard() {
                 </div>
               ) : (
                 <div className="timetable-list">
-                  {todayTimetable.map((slot, index) => (
+                  {[...todayTimetable].sort((a, b) => a.startTime.localeCompare(b.startTime)).map((slot, index) => (
                     <div key={index} className="timetable-slot">
                       <div className="slot-time">
                         <FaClock className="time-icon" />
@@ -898,7 +935,7 @@ export default function StudentDashboard() {
             </div>
 
             <div className="card-body">
-              {latestNotifications.length === 0 ? (
+              {latestNotifications?.length === 0 ? (
                 <div className="no-data">
                   <FaBell className="no-data-icon" />
                   <p>No new notifications</p>
@@ -944,13 +981,6 @@ export default function StudentDashboard() {
 
       {/* ================= STYLES ================= */}
       <style>{`
-        /* ================= CONTAINER ================= */
-        .student-dashboard-container {
-          padding: 1.5rem;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-          min-height: 100vh;
-        }
-
         /* ================= LOADING STATE ================= */
         .dashboard-loading {
           display: flex;
@@ -2174,10 +2204,6 @@ export default function StudentDashboard() {
 
         /* ================= RESPONSIVE ================= */
         @media (max-width: 768px) {
-          .student-dashboard-container {
-            padding: 1rem;
-          }
-
           .dashboard-header {
             flex-direction: column;
             gap: 1rem;

@@ -1,0 +1,1587 @@
+rank,severity,title,labels,body
+1,Critical,[SuperAdmin] Admin Email format & duplicate validation,"bug,P0,role:superadmin,security,validation","**Source:** SuperAdmin role test suite — Test Case `TC-040`
+**Module:** Add College
+**Original QA Priority:** High
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Admin Email format & duplicate validation
+
+**Expected Result:**
+Proper validation error should be shown
+
+**Actual Result / QA Notes:**
+Duplicate email correctly prevents college creation, but the error message is not shown properly. It displays a raw backend error (""Validation Error: E11000 duplicate key error collection: SMARTCOLLEGE.colleges index: email_1 dup key: { email: 'tccollege@gmail.com' }"") instead of a proper, user-friendly validation message.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+2,Critical,[Admin Officer] Verify Pending Fee Students Cannot Be Promoted,"bug,P0,role:admin-officer","**Source:** Admin Officer role test suite — Test Case `ADM-TC-020`
+**Module:** Student Promotion
+**Original QA Priority:** High
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Verify Pending Fee Students Cannot Be Promoted
+
+**Expected Result:**
+System blocks promotion or flags student as ineligible due to unmet fee/attendance criteria
+
+**Actual Result / QA Notes:**
+The system does not display the reason why the student was not promoted
+
+**Status in QA sheet:** fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+3,Critical,[Student] Session expiry / token expiry,"bug,P0,role:student,security,ui-state","**Source:** Student role test suite — Test Case `TC-007`
+**Module:** Login/Auth
+**Original QA Priority:** Medium
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Session expiry / token expiry
+
+**Expected Result:**
+User redirected to login with session-expired message
+
+**Actual Result / QA Notes:**
+When the session/token expires, the app does not properly redirect to the login page or show any clear indication that the session has expired. The user is left confused about why they've been logged out. Only after manually refreshing the page does it redirect to the login screen — there's no proactive session-expired message or automatic redirect when the token actually expires
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+4,Critical,[Student] Apply Filters functionality,"bug,P0,role:student,security,ui-state","**Source:** Student role test suite — Test Case `TC-089`
+**Module:** Attendance
+**Original QA Priority:** Medium
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Apply Filters functionality
+
+**Expected Result:**
+Report data filters to show only matching records, counters recalculate for filtered range
+
+**Actual Result / QA Notes:**
+Failure reason: ""Applying a date range filter that excludes the only existing attendance session (Jul 6) still shows the unfiltered data (1 lecture, 100%). The 'Filters applied successfully' toast appears, but the underlying data/UI does not actually update to reflect the filter. Confirmed with two separate test ranges (07/10-07/18 and 07/01-07/04), both excluding Jul 6, both showing stale unfiltered results.  Applying date range filters correctly updates the backend query (confirmed via Download Report PDF showing accurate 0/0/0% for filtered range), but the on-screen UI (counters, subject-wise table, session-wise report) does NOT refresh/re-render with the filtered data — it continues showing stale unfiltered results. This is a frontend UI-state bug, not a backend filtering bug
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+5,Critical,[SuperAdmin] Toggle college status (Active -> Inactive),"bug,P0,role:superadmin","**Source:** SuperAdmin role test suite — Test Case `TC-056`
+**Module:** Colleges List
+**Original QA Priority:** High
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Toggle college status (Active -> Inactive)
+
+**Expected Result:**
+Status should change, confirmation dialog should appear, college admin/users access should be disabled
+
+**Actual Result / QA Notes:**
+When the user clicks the Deactivate button for a college, the system first displays a Server Error message. After that, the Deactivate College confirmation dialog appears. Upon confirming the deactivation, the system displays a ""Colleges Loading Error"" message before finally marking the college as Inactive.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+6,Critical,[SuperAdmin] Toggle college status back (Inactive -> Active),"bug,P0,role:superadmin","**Source:** SuperAdmin role test suite — Test Case `TC-057`
+**Module:** Colleges List
+**Original QA Priority:** High
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Toggle college status back (Inactive -> Active)
+
+**Expected Result:**
+Status should become Active and access should resume
+
+**Actual Result / QA Notes:**
+When the user clicks the active button for a college, the system first displays a Server Error message. After that, the activate College confirmation dialog appears. Upon confirming the activation, the system displays a ""Colleges Loading Error"" message before finally marking the college as active.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+7,Critical,[SuperAdmin] Filter by College,"bug,P0,role:superadmin,security,ui-state","**Source:** SuperAdmin role test suite — Test Case `TC-072`
+**Module:** Security Audit
+**Original QA Priority:** High
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Filter by College
+
+**Expected Result:**
+Only events related to that college should be shown
+
+**Actual Result / QA Notes:**
+Only one college's audit logs are displayed in the Security Audit module. The College filter is not functioning as expected because audit records for other colleges are not available, making it impossible to verify whether the filter correctly displays events for the selected college.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+8,Critical,[SuperAdmin] Sensitive data exposure check (user email truncation),"bug,P0,role:superadmin,security","**Source:** SuperAdmin role test suite — Test Case `TC-083`
+**Module:** Security Audit
+**Original QA Priority:** Medium
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Sensitive data exposure check (user email truncation)
+
+**Expected Result:**
+Full email should be shown securely or restricted per access control
+
+**Actual Result / QA Notes:**
+Truncated email in the User column does not show the full email on hover or click — no tooltip or expand functionality exists
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+9,Critical,[SuperAdmin] Real-time monitoring update,"bug,P0,role:superadmin,security,ui-state","**Source:** SuperAdmin role test suite — Test Case `TC-084`
+**Module:** Security Audit
+**Original QA Priority:** Medium
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Real-time monitoring update
+
+**Expected Result:**
+New event should appear in the list
+
+**Actual Result / QA Notes:**
+New login event (Accountant login at Test College) did not appear in Security Events Log after refreshing the page — real-time monitoring is not updating with new events.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+10,Critical,[SuperAdmin] Verify User email/identifier is displayed correctly,"bug,P0,role:superadmin,security","**Source:** SuperAdmin role test suite — Test Case `TC-086`
+**Module:** Security Audit
+**Original QA Priority:** High
+**Assigned Severity:** P0 (Critical)
+
+**Test Scenario:** Verify User email/identifier is displayed correctly
+
+**Expected Result:**
+The complete user email or configured user identifier should be displayed correctly without unexpected truncation or corruption.
+
+**Actual Result / QA Notes:**
+On the Security Audit page, the User column displays encrypted or truncated values (e.g., enc:+r3ao7qhoikelf9c...) instead of the actual user email or username, making it difficult for administrators to identify which user performed the action.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+11,High,[Parent] Click 'Logout',"bug,P1,role:parent,security","**Source:** Parent role test suite — Test Case `PDASH-13`
+**Module:** 1. Parent Dashboard
+**Original QA Priority:** Medium
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Click 'Logout'
+
+**Expected Result:**
+Session ends; user is redirected to login page
+
+**Actual Result / QA Notes:**
+No session expiration message is displayed, and the user is not redirected to the login page after the session expires.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+12,High,[Parent] Verify Detailed Attendance History table,"bug,P1,role:parent","**Source:** Parent role test suite — Test Case `CATT-04`
+**Module:** 5. Child Attendance
+**Original QA Priority:** Medium
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Verify Detailed Attendance History table
+
+**Expected Result:**
+Displays session-wise date, subject, and status (Present/Absent) correctly
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+13,High,[Parent] Verify data updates after new attendance is marked,"bug,P1,role:parent","**Source:** Parent role test suite — Test Case `CATT-06`
+**Module:** 5. Child Attendance
+**Original QA Priority:** Medium
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Verify data updates after new attendance is marked
+
+**Expected Result:**
+Attendance Records page reflects the new session immediately or on refresh
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+14,High,[Student] Personal info tab displays correct data,"bug,P1,role:student","**Source:** Student role test suite — Test Case `TC-034`
+**Module:** Profile
+**Original QA Priority:** High
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Personal info tab displays correct data
+
+**Expected Result:**
+Full Name, DOB, Gender, Nationality, Religion, Category, Blood Group displayed correctly
+
+**Actual Result / QA Notes:**
+During student registration, the system does not collect the student's Blood Group or Religion. As a result, these fields are displayed as null in the student's profile details.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+15,High,[Student] Academic info tab shows correct course/dept/semester,"bug,P1,role:student,validation","**Source:** Student role test suite — Test Case `TC-041`
+**Module:** Profile
+**Original QA Priority:** High
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Academic info tab shows correct course/dept/semester
+
+**Expected Result:**
+Department, Course, Course Code, Current Semester, Admission Year, Academic Status all correct & read-only (not student-editable)
+
+**Actual Result / QA Notes:**
+Academic Details section allows student to edit both ""Admission Year"" and ""Current Semester,"" which should be read-only/admin-controlled fields. Additionally, no validation exists — a future Admission Year (e.g., 2027, ahead of current date 7/7/2026) was accepted and successfully saved without any error, allowing students to create logically invalid academic records. Department and Course fields are correctly locked, but Admission Year and Current Semester need the same protection plus backend validation.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+16,High,[Student] Duplicate email validation,"bug,P1,role:student,validation,ui-state","**Source:** Student role test suite — Test Case `TC-045`
+**Module:** Profile
+**Original QA Priority:** Medium
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Duplicate email validation
+
+**Expected Result:**
+Error - email already in use
+
+**Actual Result / QA Notes:**
+beacuse student profile is not updated email address
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+17,High,[Student] Document upload flow (when required),"bug,P1,role:student","**Source:** Student role test suite — Test Case `TC-049`
+**Module:** Profile
+**Original QA Priority:** High
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Document upload flow (when required)
+
+**Expected Result:**
+File uploads successfully, appears in list with pending/verified status
+
+**Actual Result / QA Notes:**
+Documents uploaded by the student during registration are not displayed in the Uploaded Documents section after the registration process is completed.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+18,High,[Student] Classes This Week / Today's Classes / Working Days counters accurate,"bug,P1,role:student","**Source:** Student role test suite — Test Case `TC-062`
+**Module:** Timetable
+**Original QA Priority:** High
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Classes This Week / Today's Classes / Working Days counters accurate
+
+**Expected Result:**
+Counts match actual number of classes/working days in the displayed week
+
+**Actual Result / QA Notes:**
+timetable not show on student side
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+19,High,[Student] Zero lectures held edge case,"bug,P1,role:student","**Source:** Student role test suite — Test Case `TC-084`
+**Module:** Attendance
+**Original QA Priority:** High
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Zero lectures held edge case
+
+**Expected Result:**
+Shows 0 for all counters, 0.00% or N/A (not NaN/undefined), no crash
+
+**Actual Result / QA Notes:**
+requires fresh student account with zero attendance records, not available in current test environment
+
+**Status in QA sheet:** Blocked
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+20,High,[Student] API/server down graceful handling,"bug,P1,role:student","**Source:** Student role test suite — Test Case `TC-106`
+**Module:** Cross-Cutting
+**Original QA Priority:** High
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** API/server down graceful handling
+
+**Expected Result:**
+User-friendly error message/toast shown, retry option available, app doesn't crash/white-screen
+
+**Actual Result / QA Notes:**
+When the network is offline and the page is reloaded, the app does not handle it gracefully. Instead of showing a user-friendly error message with a retry option, the browser's default ""No internet"" (ERR_INTERNET_DISCONNECTED) page is shown. The app has no custom offline/error-state handling for this scenario
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+21,High,[SuperAdmin] Session timeout check,"bug,P1,role:superadmin,security","**Source:** SuperAdmin role test suite — Test Case `TC-007`
+**Module:** Login
+**Original QA Priority:** Medium
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Session timeout check
+
+**Expected Result:**
+Session should expire and redirect to login page
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+22,High,[SuperAdmin] Monthly Admissions - month selector,"bug,P1,role:superadmin","**Source:** SuperAdmin role test suite — Test Case `TC-065`
+**Module:** Admission Reports
+**Original QA Priority:** High
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Monthly Admissions - month selector
+
+**Expected Result:**
+Admissions data for the selected month should update
+
+**Actual Result / QA Notes:**
+Month selector is not clickable — clicking the calendar icon does nothing
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+23,High,[SuperAdmin] Invalid date range (End < Start),"bug,P1,role:superadmin,validation,ui-state","**Source:** SuperAdmin role test suite — Test Case `TC-076`
+**Module:** Security Audit
+**Original QA Priority:** Medium
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Invalid date range (End < Start)
+
+**Expected Result:**
+Validation error should be shown, invalid range should be blocked
+
+**Actual Result / QA Notes:**
+The system does not validate the selected date range. If the user selects the End Date as the Start Date and the Start Date as the End Date (i.e., the start date is later than the end date), the filter is still applied instead of displaying a validation error
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+24,High,[Teacher] Teacher - Create Attendance Session,"bug,P1,role:teacher,security","**Source:** Teacher role test suite — Test Case `ATT-TC-001`
+**Module:** ATTENDANCE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P1 (High)
+
+**Test Scenario:** Teacher - Create Attendance Session
+
+**Expected Result:**
+Session created with OPEN status
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+25,Medium,[Admin] Duplicate Course Code,"bug,P2,role:admin","**Source:** Admin role test suite — Test Case `CRS-TC-002`
+**Module:** COURSE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Duplicate Course Code
+
+**Expected Result:**
+Error ""duplicate course code""
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+26,Medium,[Admin Officer] Select Student for Promotion,"bug,P2,role:admin-officer","**Source:** Admin Officer role test suite — Test Case `ADM-TC-018`
+**Module:** Student Promotion
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Select Student for Promotion
+
+**Expected Result:**
+Row gets selected/highlighted for promotion action
+
+**Actual Result / QA Notes:**
+Beacuse of student 6 sem not complete
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+27,Medium,[Admin Officer] Select Ineligible Student for Promotion,"bug,P2,role:admin-officer","**Source:** Admin Officer role test suite — Test Case `ADM-TC-019`
+**Module:** Student Promotion
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Select Ineligible Student for Promotion
+
+**Expected Result:**
+System should prevent selection or warn user that student doesn't meet promotion criteria
+
+**Actual Result / QA Notes:**
+The system should display the warning message ""This student is not eligible for promotion."" instead of ""0 students promoted successfully.""
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+28,Medium,[Parent] Click 'Refresh' on Dashboard,"bug,P2,role:parent,ui-state","**Source:** Parent role test suite — Test Case `PDASH-02`
+**Module:** 1. Parent Dashboard
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Click 'Refresh' on Dashboard
+
+**Expected Result:**
+All widgets (Total Children, Active Students, Avg Attendance, Pending Fees) reload with latest data; Current Time updates
+
+**Actual Result / QA Notes:**
+Not show count accurate of active student ,pending fee, or attendence
+
+**Status in QA sheet:** fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+29,Medium,[Parent] Apply 'All Status' filter dropdown,"bug,P2,role:parent,ui-state","**Source:** Parent role test suite — Test Case `MCL-06`
+**Module:** 2. My Children - Children List
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Apply 'All Status' filter dropdown
+
+**Expected Result:**
+List filters correctly to show only children matching the selected status
+
+**Actual Result / QA Notes:**
+If a student has not been approved by the College Admin (i.e., the student's status is Pending), the student does not appear in the Parent List. As a result, the Parent List remains empty for pending students, making the option unnecessary or confusing at this stage of the workflow.
+
+**Status in QA sheet:** fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+30,Medium,[Parent] Click 'Attendance' tab,"bug,P2,role:parent","**Source:** Parent role test suite — Test Case `CPRO-05`
+**Module:** 3. Child Profile - Overview & Tabs
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Click 'Attendance' tab
+
+**Expected Result:**
+Displays attendance summary and history for that child
+
+**Actual Result / QA Notes:**
+Attendence not show properly
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+31,Medium,[Principal] Custom Range - Invalid Date Order,"bug,P2,role:principal,validation","**Source:** Principal role test suite — Test Case `PRIN-TC-040`
+**Module:** Payment Reports
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Custom Range - Invalid Date Order
+
+**Expected Result:**
+Validation error shown, or no data returned; report doesn't silently miscalculate
+
+**Actual Result / QA Notes:**
+no any validation to custome range date
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+32,Medium,[Student] Classes today display correctly,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-025`
+**Module:** Dashboard
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Classes today display correctly
+
+**Expected Result:**
+Lists subject, time, room for each class in chronological order
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+33,Medium,[Student] Dashboard load time under slow network,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-033`
+**Module:** Dashboard
+**Original QA Priority:** Low
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Dashboard load time under slow network
+
+**Expected Result:**
+Page loads within acceptable time (<5s), shows loading skeletons, no crash
+
+**Actual Result / QA Notes:**
+Page load time on throttled network (Slow 4G) is far above acceptable limits and keeps increasing over time instead of stabilizing — Load time went from 12s to 6 minutes on repeated testing of the same page. Network tab shows the same API endpoints (student, my-profile, me) being called repeatedly (10+ times) for identical data, with request count growing the longer the page stays open (98 → 233 requests). This points to a duplicate-call/polling bug (likely a missing cleanup on an interval or a useEffect re-fetch loop), not just normal network slowness.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+34,Medium,[Student] Save edited personal info updates 'Last updated' timestamp,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-037`
+**Module:** Profile
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Save edited personal info updates 'Last updated' timestamp
+
+**Expected Result:**
+Data saved, 'Last updated' timestamp refreshes to current date/time
+
+**Actual Result / QA Notes:**
+We  Not edited the DOB in profile edit form
+
+**Status in QA sheet:** Fail/Not Executable
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+35,Medium,[Student] Invalid DOB entry validation,"bug,P2,role:student,validation","**Source:** Student role test suite — Test Case `TC-038`
+**Module:** Profile
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Invalid DOB entry validation
+
+**Expected Result:**
+Validation error shown, save blocked
+
+**Actual Result / QA Notes:**
+Future DOB (2030) accepted — no validation error shown, save succeeded instead of being blocked
+
+**Status in QA sheet:** Fail/Not Executable
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+36,Medium,[Student] Mobile number format validation,"bug,P2,role:student,validation","**Source:** Student role test suite — Test Case `TC-040`
+**Module:** Profile
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Mobile number format validation
+
+**Expected Result:**
+Validation error - mobile must be 10 digits
+
+**Actual Result / QA Notes:**
+Parent Details fields are not editable — no edit option available on this tab, so mobile number validation could not be tested
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+37,Medium,[Student] Update email triggers verification,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-044`
+**Module:** Profile
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Update email triggers verification
+
+**Expected Result:**
+Verification email sent / confirmation flow triggered before email updates fully, or update reflected properly
+
+**Actual Result / QA Notes:**
+System shows 'Profile updated successfully' but only mobile number gets updated — email change is silently ignored and not saved, with no error or warning shown
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+38,Medium,[Student] Pincode validation,"bug,P2,role:student,validation","**Source:** Student role test suite — Test Case `TC-047`
+**Module:** Profile
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Pincode validation
+
+**Expected Result:**
+Validation error - pincode must be numeric/6 digits
+
+**Actual Result / QA Notes:**
+Save is blocked for invalid pincode (good), but system shows only a generic 'Failed to update profile' message instead of a specific error like 'Pincode must be 6 digits' — user can't tell which field caused the failure
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+39,Medium,[Student] Reject non-PDF file,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-051`
+**Module:** Profile
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Reject non-PDF file
+
+**Expected Result:**
+Error shown - only PDF format allowed
+
+**Actual Result / QA Notes:**
+when we uplode png format it uploded successfully not show any error message
+
+**Status in QA sheet:** 
+Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+40,Medium,[Student] Current week loads by default,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-056`
+**Module:** Timetable
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Current week loads by default
+
+**Expected Result:**
+Shows 'Current Week' selected, correct date range (e.g. Jul 6 - Jul 12, 2026)
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+41,Medium,[Student] Navigate to next/previous week,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-058`
+**Module:** Timetable
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Navigate to next/previous week
+
+**Expected Result:**
+Date range updates correctly, corresponding week's schedule loads
+
+**Actual Result / QA Notes:**
+Date range and weekly schedule correctly update when navigating to next/previous week. However, the '(Today)' label incorrectly still appears on Tuesday in the next week's schedule (14/07/2026), even though the actual current date is 7/7/2026 — 'Today' should only be shown on the real current date, not repeat in future/past weeks.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+42,Medium,[Student] Full Week View toggle,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-063`
+**Module:** Timetable
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Full Week View toggle
+
+**Expected Result:**
+Expanded view showing all days including weekend if applicable, all class slots visible
+
+**Actual Result / QA Notes:**
+Clicking 'Full Week View' button does nothing — no expanded view opens, button appears non-functional
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+43,Medium,"[Student] Class details show subject, time, room, teacher","bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-064`
+**Module:** Timetable
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Class details show subject, time, room, teacher
+
+**Expected Result:**
+Each class slot shows subject name, time range, room number, faculty name clearly
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+44,Medium,[Student] Attendance below 75% shows warning status,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-087`
+**Module:** Attendance
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Attendance below 75% shows warning status
+
+**Expected Result:**
+Status column shows warning indicator (e.g. red/orange), consistent with 'Minimum 75% required' note
+
+**Actual Result / QA Notes:**
+Requires test data with attendance <75% in at least one subject — current test account (Ram Deshmukh) has 100% attendance in the only subject enrolled. Needs admin to create low-attendance scenario for proper testing
+
+**Status in QA sheet:** Blocked
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+45,Medium,[SuperAdmin] Responsive layout check,"bug,P2,role:superadmin","**Source:** SuperAdmin role test suite — Test Case `TC-027`
+**Module:** Dashboard
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Responsive layout check
+
+**Expected Result:**
+Layout should remain properly responsive, no overlapping elements
+
+**Actual Result / QA Notes:**
+Some words or tables not show proper format
+
+**Status in QA sheet:** 
+fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+46,Medium,[SuperAdmin] Status filter - Active/Inactive,"bug,P2,role:superadmin,ui-state","**Source:** SuperAdmin role test suite — Test Case `TC-052`
+**Module:** Colleges List
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Status filter - Active/Inactive
+
+**Expected Result:**
+Only colleges with the selected status should be displayed
+
+**Actual Result / QA Notes:**
+Active status filter not  working in college list page
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+47,Medium,[SuperAdmin] Dashboard load & metrics accuracy,"bug,P2,role:superadmin","**Source:** SuperAdmin role test suite — Test Case `TC-061`
+**Module:** Admission Reports
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Dashboard load & metrics accuracy
+
+**Expected Result:**
+All counts should be accurate and real-time
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+48,Medium,[SuperAdmin] Approval Rate % calculation check,"bug,P2,role:superadmin","**Source:** SuperAdmin role test suite — Test Case `TC-062`
+**Module:** Admission Reports
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Approval Rate % calculation check
+
+**Expected Result:**
+Percentage calculation should be accurate
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+49,Medium,[SuperAdmin] Rejection Rate % calculation check,"bug,P2,role:superadmin","**Source:** SuperAdmin role test suite — Test Case `TC-063`
+**Module:** Admission Reports
+**Original QA Priority:** High
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Rejection Rate % calculation check
+
+**Expected Result:**
+Percentage should be accurate
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+50,Medium,[SuperAdmin] IP Address masking/display check,"bug,P2,role:superadmin,security","**Source:** SuperAdmin role test suite — Test Case `TC-082`
+**Module:** Security Audit
+**Original QA Priority:** Low
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** IP Address masking/display check
+
+**Expected Result:**
+Should show correct IPv4 format, no truncation issues
+
+**Actual Result / QA Notes:**
+The IP Address column displays masked values (e.g., 172.69.***.***) instead of the complete client IP address, making it difficult to investigate security events.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+51,Medium,[Admin] Admin - Approve Student,"bug,P2,role:admin","**Source:** Admin role test suite — Test Case `STU-TC-008`
+**Module:** STUDENT MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Admin - Approve Student
+
+**Expected Result:**
+Student status changes to APPROVED, enrollment number assigned
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+52,Medium,[Admin] Admin - Create Course,"bug,P2,role:admin","**Source:** Admin role test suite — Test Case `CRS-TC-001`
+**Module:** COURSE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Admin - Create Course
+
+**Expected Result:**
+Course created, durationYears auto-calculated as 4
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+53,Medium,[Admin] Admin - Create Notification,"bug,P2,role:admin","**Source:** Admin role test suite — Test Case `NOT-TC-001`
+**Module:** NOTIFICATION SYSTEM
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Admin - Create Notification
+
+**Expected Result:**
+Notification created and sent
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+54,Medium,[Parent] Verify Notifications bell icon,"bug,P2,role:parent","**Source:** Parent role test suite — Test Case `PDASH-11`
+**Module:** 1. Parent Dashboard
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Verify Notifications bell icon
+
+**Expected Result:**
+Shows correct unread notification count for the parent; clicking navigates to notifications
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+55,Medium,[Parent] Navigate to Child Profile from Children List,"bug,P2,role:parent","**Source:** Parent role test suite — Test Case `CPRO-01`
+**Module:** 3. Child Profile - Overview & Tabs
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Navigate to Child Profile from Children List
+
+**Expected Result:**
+Page loads with child's name, course, semester, and status in the header banner
+
+**Actual Result / QA Notes:**
+Child name is not properly shown
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+56,Medium,[Parent] Verify no direct payment action on this page,"bug,P2,role:parent","**Source:** Parent role test suite — Test Case `CFEE-08`
+**Module:** 4. Child Profile - Fees & Payments Tab
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Verify no direct payment action on this page
+
+**Expected Result:**
+Confirm whether a payment action exists; if absent, verify this is by design and not a missing feature
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+57,Medium,[Parent] Verify summary cards,"bug,P2,role:parent","**Source:** Parent role test suite — Test Case `CATT-02`
+**Module:** 5. Child Attendance
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Verify summary cards
+
+**Expected Result:**
+All four cards show correct values matching underlying attendance data
+
+**Actual Result / QA Notes:**
+Failed to load attendence data this error message shown
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+58,Medium,[Parent] Verify Attendance Rate calculation,"bug,P2,role:parent","**Source:** Parent role test suite — Test Case `CATT-05`
+**Module:** 5. Child Attendance
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Verify Attendance Rate calculation
+
+**Expected Result:**
+Displayed rate matches the manual calculation
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+59,Medium,[Principal] Filter Courses,"bug,P2,role:principal,ui-state","**Source:** Principal role test suite — Test Case `PRIN-TC-017`
+**Module:** Course Management
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Filter Courses
+
+**Expected Result:**
+Only courses matching filter criteria displayed
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+60,Medium,[Principal] View College Admission Analytics,"bug,P2,role:principal","**Source:** Principal role test suite — Test Case `PRIN-TC-033`
+**Module:** Admission Reports
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** View College Admission Analytics
+
+**Expected Result:**
+Total Students, Approved Students, Pending Approvals cards display accurate values with correct rates (e.g., Approval Rate 17%)
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+61,Medium,[Principal] Verify Admission Metrics Breakdown,"bug,P2,role:principal","**Source:** Principal role test suite — Test Case `PRIN-TC-034`
+**Module:** Admission Reports
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Verify Admission Metrics Breakdown
+
+**Expected Result:**
+Approval Rate, Pending Rate, Total Applications shown consistently with summary cards above (e.g., ""1 out of 6 applications approved"")
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+62,Medium,[Principal] Verify Admission Status Overview Bars,"bug,P2,role:principal","**Source:** Principal role test suite — Test Case `PRIN-TC-035`
+**Module:** Admission Reports
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Verify Admission Status Overview Bars
+
+**Expected Result:**
+Approved, Pending, Total Students bars reflect correct counts and proportional bar lengths
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+63,Medium,[Principal] Refresh Admission Report,"bug,P2,role:principal,ui-state","**Source:** Principal role test suite — Test Case `PRIN-TC-036`
+**Module:** Admission Reports
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Refresh Admission Report
+
+**Expected Result:**
+Data reloads and ""Last refreshed"" timestamp updates to current date/time
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+64,Medium,[Student] Reject oversized file,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-050`
+**Module:** Profile
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Reject oversized file
+
+**Expected Result:**
+Error shown - file exceeds 5MB limit, upload blocked
+
+**Actual Result / QA Notes:**
+Cannot test oversized file rejection — document upload option is not available since college has not configured document requirements
+
+**Status in QA sheet:** Fail/Not Executable
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+65,Medium,[Student] Profile header enrollment badge & semester tags accurate,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-055`
+**Module:** Profile
+**Original QA Priority:** Low
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Profile header enrollment badge & semester tags accurate
+
+**Expected Result:**
+Shows ENROLLED badge, Semester 1 tags (x2), Admitted year 2026 correctly, avatar icon shown
+
+**Actual Result / QA Notes:**
+Semester 1' tag is shown twice in the header with different icons, but no tooltip or label differentiates them — appears to be a duplicate/redundant display, confusing for the user.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+66,Medium,[Student] 'Today' button resets to current week,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-059`
+**Module:** Timetable
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** 'Today' button resets to current week
+
+**Expected Result:**
+View resets to current week highlighting today's column
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+67,Medium,[Student] Today's column highlighted correctly,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-061`
+**Module:** Timetable
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Today's column highlighted correctly
+
+**Expected Result:**
+Tuesday column header highlighted/marked '(Today)'
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+68,Medium,[Student] Currency/date formats correct for India locale,"bug,P2,role:student","**Source:** Student role test suite — Test Case `TC-112`
+**Module:** Cross-Cutting
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Currency/date formats correct for India locale
+
+**Expected Result:**
+Consistent INR currency symbol & Indian date format throughout, no US format leakage
+
+**Actual Result / QA Notes:**
+Date format is inconsistent and uses US-style (MM/DD/YYYY) in places — e.g., Fee Installment due date shown as '7/25/2026' instead of Indian format '25/07/2026'. Also, Payment Progress card incorrectly shows '₹0%' with rupee symbol wrongly applied to a percentage.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+69,Medium,[SuperAdmin] Status filter dropdown (All Status),"bug,P2,role:superadmin,ui-state","**Source:** SuperAdmin role test suite — Test Case `TC-019`
+**Module:** Dashboard
+**Original QA Priority:** s
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Status filter dropdown (All Status)
+
+**Expected Result:**
+Correctly filtered colleges should be displayed
+
+**Actual Result / QA Notes:**
+This issue is present on both the Dashboard and the College tab.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+70,Medium,[SuperAdmin] Quick Action - Platform Support Config,"bug,P2,role:superadmin","**Source:** SuperAdmin role test suite — Test Case `TC-023`
+**Module:** Dashboard
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Quick Action - Platform Support Config
+
+**Expected Result:**
+Relevant config page should open (verify functionality)
+
+**Actual Result / QA Notes:**
+Role has not been implemented for this feature.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+71,Medium,[SuperAdmin] Sorting check (if name/date column is sortable),"bug,P2,role:superadmin,ui-state","**Source:** SuperAdmin role test suite — Test Case `TC-059`
+**Module:** Colleges List
+**Original QA Priority:** Low
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Sorting check (if name/date column is sortable)
+
+**Expected Result:**
+Ascending/Descending sort should work correctly
+
+**Actual Result / QA Notes:**
+Sorting functionality is not available — clicking on column headers does not reorder the list
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+72,Medium,[SuperAdmin] Growth (30 days) trend calculation,"bug,P2,role:superadmin","**Source:** SuperAdmin role test suite — Test Case `TC-064`
+**Module:** Admission Reports
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Growth (30 days) trend calculation
+
+**Expected Result:**
+Correct calculation and correct arrow direction (up/down) should be shown
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+73,Medium,[Teacher] Teacher - Update My Profile,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `TCH-TC-006`
+**Module:** TEACHER MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - Update My Profile
+
+**Expected Result:**
+Profile updated
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+74,Medium,[Teacher] Attendance Already Saved Prevention,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `ATT-TC-003`
+**Module:** ATTENDANCE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Attendance Already Saved Prevention
+
+**Expected Result:**
+Error ""Attendance already saved. Use Edit option""
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+75,Medium,[Teacher] Mark All Students Feature,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `ATT-TC-006`
+**Module:** ATTENDANCE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Mark All Students Feature
+
+**Expected Result:**
+All students marked, undo available for 5 seconds
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+76,Medium,[Teacher] Teacher - Create Timetable,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `TTB-TC-001`
+**Module:** TIMETABLE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - Create Timetable
+
+**Expected Result:**
+Timetable created in DRAFT status
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+77,Medium,[Teacher] Teacher - Publish Timetable,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `TTB-TC-002`
+**Module:** TIMETABLE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - Publish Timetable
+
+**Expected Result:**
+Status changes to PUBLISHED
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+78,Medium,[Teacher] Teacher - Archive Timetable,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `TTB-TC-003`
+**Module:** TIMETABLE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - Archive Timetable
+
+**Expected Result:**
+Timetable archived, no longer editable
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+79,Medium,[Teacher] Teacher - Add Timetable Slot,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `TTB-TC-004`
+**Module:** TIMETABLE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - Add Timetable Slot
+
+**Expected Result:**
+Slot added to timetable
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+80,Medium,[Teacher] Teacher - Create Timetable With No Assigned Course,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `TTB-TC-010`
+**Module:** TIMETABLE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - Create Timetable With No Assigned Course
+
+**Expected Result:**
+Course dropdown is empty (""Select course""), Semester shows ""N/A"", Create Timetable button remains disabled
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+81,Medium,[Teacher] Teacher - Add Slot With No Subjects Available,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `TTB-TC-011`
+**Module:** TIMETABLE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - Add Slot With No Subjects Available
+
+**Expected Result:**
+Subject dropdown shows ""No subjects available for this course"", Assigned Teacher field stays blank, ""Add Timetable Slot"" button remains disabled
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+82,Medium,[Teacher] Teacher - View Own Timetable Before Publish,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `TTB-TC-012`
+**Module:** TIMETABLE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - View Own Timetable Before Publish
+
+**Expected Result:**
+Slot displays with a ""Timetable not published"" warning badge; slot not visible to students
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+83,Medium,[Teacher] Teacher - View Timetable Management Summary,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `TTB-TC-013`
+**Module:** TIMETABLE MANAGEMENT
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - View Timetable Management Summary
+
+**Expected Result:**
+Counters and tab contents accurately reflect each timetable's status; View/Edit actions available per row
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+84,Medium,[Teacher] Teacher - Target Audience - Specific Department,"bug,P2,role:teacher","**Source:** Teacher role test suite — Test Case `NOT-TC-009`
+**Module:** NOTIFICATION SYSTEM
+**Original QA Priority:** Medium
+**Assigned Severity:** P2 (Medium)
+
+**Test Scenario:** Teacher - Target Audience - Specific Department
+
+**Expected Result:**
+Department selector appears only when ""Specific Department"" is chosen; notification is sent only to students of the selected department
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+85,Low,[Parent] Verify 'My Children' section with 0 children,"bug,P3,role:parent","**Source:** Parent role test suite — Test Case `PDASH-08`
+**Module:** 1. Parent Dashboard
+**Original QA Priority:** Low
+**Assigned Severity:** P3 (Low)
+
+**Test Scenario:** Verify 'My Children' section with 0 children
+
+**Expected Result:**
+Displays an appropriate empty state message
+
+**Actual Result / QA Notes:**
+Parent credentials should be generated only after the College Admin approves the student's admission.
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+86,Low,[Parent] Verify 'No Attendance Records' empty state,"bug,P3,role:parent","**Source:** Parent role test suite — Test Case `CATT-03`
+**Module:** 5. Child Attendance
+**Original QA Priority:** Low
+**Assigned Severity:** P3 (Low)
+
+**Test Scenario:** Verify 'No Attendance Records' empty state
+
+**Expected Result:**
+Correct empty state message and icon are shown: 'Attendance data will appear here once classes begin'
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+87,Low,[Student] Refresh button reloads timetable data,"bug,P3,role:student,ui-state","**Source:** Student role test suite — Test Case `TC-060`
+**Module:** Timetable
+**Original QA Priority:** Low
+**Assigned Severity:** P3 (Low)
+
+**Test Scenario:** Refresh button reloads timetable data
+
+**Expected Result:**
+Data reloads, loading indicator shown briefly, counters update if data changed
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** Fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
+88,Low,[Student] Overlapping/conflicting class handling,"bug,P3,role:student","**Source:** Student role test suite — Test Case `TC-065`
+**Module:** Timetable
+**Original QA Priority:** Low
+**Assigned Severity:** P3 (Low)
+
+**Test Scenario:** Overlapping/conflicting class handling
+
+**Expected Result:**
+UI handles gracefully - both shown side by side or warning indicator, no layout break
+
+**Actual Result / QA Notes:**
+(no additional QA comment — see Expected Result vs actual observed behavior)
+
+**Status in QA sheet:** fail
+
+---
+_Auto-generated from Novaa_QA_TestCases_RoleWise.xlsx. Reference project: Smart College MERN._
+"
