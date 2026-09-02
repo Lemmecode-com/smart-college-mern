@@ -898,5 +898,230 @@ describe("STEP 6 — SemesterResult generation", () => {
       expect(res.body.data.exam_id).toBeDefined();
       expect(res.body.data.student_id).toBeDefined();
     });
+
+    // ── Regression: generate-exam must include APPROVED, ENROLLED, OFFER_MADE ──
+
+    it("S16. POST /api/results/generate-exam includes APPROVED, ENROLLED and OFFER_MADE students", async () => {
+      // Self-contained setup WITHOUT students (baseSetup creates APPROVED students)
+      const college = await createCollege({
+        code: `S16${Date.now()}`,
+        email: `s16.${Date.now()}@test.com`,
+      });
+
+      const { agent } = await setupCoordinator(college._id);
+
+      const department = await createDepartment({
+        college_id: college._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        name: "Computer Science",
+        code: "CS",
+        type: "ACADEMIC",
+        status: "ACTIVE",
+        programsOffered: ["UG"],
+        startYear: 2021,
+        sanctionedFacultyCount: 10,
+        sanctionedStudentIntake: 60,
+      });
+
+      const course = await createCourse({
+        college_id: college._id,
+        department_id: department._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        name: "B.Tech CSE",
+        code: "BTECH-CSE",
+        type: "THEORY",
+        programLevel: "UG",
+        durationSemesters: 8,
+        credits: 120,
+        maxStudents: 60,
+      });
+
+      const theorySubject = await createSubject({
+        college_id: college._id,
+        course_id: course._id,
+        department_id: department._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        name: "Theory Subject S16",
+        code: `TH-S16-${Date.now()}`,
+        semester: 3,
+        credits: 4,
+        subjectType: "THEORY",
+        internalMaxMarks: 30,
+        externalMaxMarks: 70,
+        internalPassMarks: 12,
+        externalPassMarks: 28,
+        passMarks: 40,
+      });
+
+      const exam = await agent
+        .post("/api/exam")
+        .send({
+          name: "Semester 3 Bulk Exam",
+          course_id: course._id,
+          semester: 3,
+          academicYear: "2026-27",
+          subjects: [theorySubject._id],
+        })
+        .expect(201);
+
+      const examId = exam.body.exam._id;
+
+      // Create students with three different eligible statuses
+      const approvedStudent = await createStudent({
+        college_id: college._id,
+        department_id: department._id,
+        course_id: course._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        fullName: "Approved Student",
+        email: `approved.${Date.now()}@test.com`,
+        currentSemester: 3,
+        status: "APPROVED",
+      });
+
+      const enrolledStudent = await createStudent({
+        college_id: college._id,
+        department_id: department._id,
+        course_id: course._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        fullName: "Enrolled Student",
+        email: `enrolled.${Date.now()}@test.com`,
+        currentSemester: 3,
+        status: "ENROLLED",
+      });
+
+      const offerMadeStudent = await createStudent({
+        college_id: college._id,
+        department_id: department._id,
+        course_id: course._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        fullName: "Offer Made Student",
+        email: `offer.${Date.now()}@test.com`,
+        currentSemester: 3,
+        status: "OFFER_MADE",
+      });
+
+      // Enter marks for all three students
+      await agent.post("/api/marks/bulk").send({
+        examId,
+        subjectId: theorySubject._id,
+        marks: [
+          { studentId: approvedStudent._id, internalMarks: 25, externalMarks: 60 },
+          { studentId: enrolledStudent._id, internalMarks: 20, externalMarks: 50 },
+          { studentId: offerMadeStudent._id, internalMarks: 15, externalMarks: 30 },
+        ],
+      }).expect(200);
+
+      const res = await agent
+        .post("/api/results/generate-exam")
+        .send({ examId })
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.generated).toBe(3);
+      expect(res.body.data.totalStudents).toBe(3);
+
+      // Verify all three results were persisted
+      const resultCount = await SemesterResult.countDocuments({
+        college_id: college._id,
+        exam_id: examId,
+      });
+      expect(resultCount).toBe(3);
+    });
+
+    it("S17. POST /api/results/generate-exam excludes students with ineligible status (PENDING only)", async () => {
+      // Self-contained setup WITHOUT students (baseSetup creates APPROVED students)
+      const college = await createCollege({
+        code: `S17${Date.now()}`,
+        email: `s17.${Date.now()}@test.com`,
+      });
+
+      const { agent } = await setupCoordinator(college._id);
+
+      const department = await createDepartment({
+        college_id: college._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        name: "Computer Science",
+        code: "CS",
+        type: "ACADEMIC",
+        status: "ACTIVE",
+        programsOffered: ["UG"],
+        startYear: 2021,
+        sanctionedFacultyCount: 10,
+        sanctionedStudentIntake: 60,
+      });
+
+      const course = await createCourse({
+        college_id: college._id,
+        department_id: department._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        name: "B.Tech CSE",
+        code: "BTECH-CSE",
+        type: "THEORY",
+        programLevel: "UG",
+        durationSemesters: 8,
+        credits: 120,
+        maxStudents: 60,
+      });
+
+      const theorySubject = await createSubject({
+        college_id: college._id,
+        course_id: course._id,
+        department_id: department._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        name: "Theory Subject S17",
+        code: `TH-S17-${Date.now()}`,
+        semester: 3,
+        credits: 4,
+        subjectType: "THEORY",
+        internalMaxMarks: 30,
+        externalMaxMarks: 70,
+        internalPassMarks: 12,
+        externalPassMarks: 28,
+        passMarks: 40,
+      });
+
+      const exam = await agent
+        .post("/api/exam")
+        .send({
+          name: "Semester 3 Filter Exam",
+          course_id: course._id,
+          semester: 3,
+          academicYear: "2026-27",
+          subjects: [theorySubject._id],
+        })
+        .expect(201);
+
+      const examId = exam.body.exam._id;
+
+      // Create only ineligible students (PENDING and REJECTED status)
+      await createStudent({
+        college_id: college._id,
+        department_id: department._id,
+        course_id: course._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        fullName: "Pending Student",
+        email: `pending.${Date.now()}@test.com`,
+        currentSemester: 3,
+        status: "PENDING",
+      });
+
+      await createStudent({
+        college_id: college._id,
+        department_id: department._id,
+        course_id: course._id,
+        createdBy: new mongoose.Types.ObjectId(),
+        fullName: "Rejected Student",
+        email: `rejected.${Date.now()}@test.com`,
+        currentSemester: 3,
+        status: "REJECTED",
+      });
+
+      const res = await agent
+        .post("/api/results/generate-exam")
+        .send({ examId })
+        .expect(400);
+
+      expect(res.body.error.code).toBe("NO_ELIGIBLE_STUDENTS");
+    });
   });
 });

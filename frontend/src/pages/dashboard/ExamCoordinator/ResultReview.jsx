@@ -5,6 +5,7 @@ import { getResult, lockResult, unlockResult, publishResult } from "../../../api
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import Loading from "../../../components/Loading";
+import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import {
@@ -211,13 +212,15 @@ export default function ResultReview() {
   const [showUnlockForm, setShowUnlockForm] = useState(false);
   const [unlockReason, setUnlockReason] = useState("");
   const [unlockReasonError, setUnlockReasonError] = useState("");
+  const [showLockConfirm, setShowLockConfirm] = useState(false);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
 
   const load = async () => {
     setLoading(true);
     setFetchError(null);
     try {
       const res = await getResult(resultId);
-      setResult(res.data);
+      setResult(res);
     } catch (err) {
       const code = err.response?.data?.code;
       const msg = err.response?.data?.message || "Failed to load result.";
@@ -235,7 +238,7 @@ export default function ResultReview() {
     setActionError(null);
     try {
       const res = await fn();
-      setResult(res.data);
+      setResult(res);
       toast.success(successMsg);
     } catch (err) {
       const msg = err.response?.data?.message || "Action failed.";
@@ -246,7 +249,12 @@ export default function ResultReview() {
     }
   };
 
-  const handleLock = () => runAction(() => lockResult(resultId), "Result locked successfully.");
+  const handleLock = () => setShowLockConfirm(true);
+
+  const confirmLock = async () => {
+    setShowLockConfirm(false);
+    await runAction(() => lockResult(resultId), "Result locked successfully.");
+  };
 
   const handleUnlock = async () => {
     if (!unlockReason.trim()) { setUnlockReasonError("Unlock reason is required."); return; }
@@ -256,7 +264,12 @@ export default function ResultReview() {
     setUnlockReason("");
   };
 
-  const handlePublish = () => runAction(() => publishResult(resultId), "Result published successfully.");
+  const handlePublish = () => setShowPublishConfirm(true);
+
+  const confirmPublish = async () => {
+    setShowPublishConfirm(false);
+    await runAction(() => publishResult(resultId), "Result published successfully.");
+  };
 
   const statusPillClass = (s) =>
     s === "PUBLISHED" ? "pill-published" : s === "LOCKED" ? "pill-locked" : "pill-draft";
@@ -298,6 +311,27 @@ export default function ResultReview() {
         { label: "Generate Result", path: "/dashboard/exam/results/generate" },
         { label: "Review Result" },
       ]} />
+
+      <ConfirmModal
+        isOpen={showLockConfirm}
+        onClose={() => setShowLockConfirm(false)}
+        onConfirm={confirmLock}
+        title="Lock Result"
+        message="Locking this result will prevent further marks modifications. Continue?"
+        type="warning"
+        confirmText="Lock"
+        isLoading={actionBusy}
+      />
+      <ConfirmModal
+        isOpen={showPublishConfirm}
+        onClose={() => setShowPublishConfirm(false)}
+        onConfirm={confirmPublish}
+        title="Publish Result"
+        message="Publishing this result will make it visible to eligible students. Continue?"
+        type="success"
+        confirmText="Publish"
+        isLoading={actionBusy}
+      />
 
       <div className="row justify-content-center">
         <div className="col-lg-10">
