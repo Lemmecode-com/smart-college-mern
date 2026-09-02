@@ -5,7 +5,9 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
+import { publishExam } from "../../../api/exam";
 import { logger } from "../../../utils/logger";
+import ConfirmModal from "../../../components/ConfirmModal";
 
 import {
   FaBookOpen,
@@ -19,6 +21,7 @@ import {
   FaAward,
   FaCheckCircle,
   FaExclamationTriangle,
+  FaSpinner,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -316,6 +319,9 @@ export default function ViewExam() {
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState(null);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
 
   /* ================= FETCH EXAM ================= */
   useEffect(() => {
@@ -366,6 +372,29 @@ export default function ViewExam() {
       COMPOSITE: "type-composite",
     };
     return <span className={`pill pill-sm ${variants[type] || "type-default"}`}>{type || "N/A"}</span>;
+  };
+
+  const handlePublishClick = () => {
+    if (exam.status === "PUBLISHED") return;
+    setShowPublishConfirm(true);
+    setActionError(null);
+  };
+
+  const confirmPublish = async () => {
+    setShowPublishConfirm(false);
+    setActionBusy(true);
+    setActionError(null);
+    try {
+      const res = await publishExam(exam._id);
+      toast.success(res.message || "Exam published successfully");
+      setExam((prev) => ({ ...prev, status: "PUBLISHED" }));
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to publish exam.";
+      setActionError(msg);
+      toast.error(msg);
+    } finally {
+      setActionBusy(false);
+    }
   };
 
   /* ================= RENDER ================= */
@@ -421,6 +450,17 @@ export default function ViewExam() {
   return (
     <div className="exam-view container-fluid p-4">
       <style>{viewStyles}</style>
+
+      <ConfirmModal
+        isOpen={showPublishConfirm}
+        onClose={() => setShowPublishConfirm(false)}
+        onConfirm={confirmPublish}
+        title="Publish Exam"
+        message={`Are you sure you want to publish "${exam.name}"? Once published, the exam will be available as a published exam and should no longer be treated as a draft.`}
+        type="success"
+        confirmText="Publish Exam"
+        isLoading={actionBusy}
+      />
 
       <Breadcrumb
         items={[
@@ -558,13 +598,21 @@ export default function ViewExam() {
                   <FaArrowLeft />
                   Back to Exams
                 </button>
-                <button
-                  className="btn-edx-primary"
-                  onClick={() => navigate(`/dashboard/exam/edit/${id}`)}
-                >
-                  <FaEdit />
-                  Edit Exam
-                </button>
+                <div className="d-flex gap-2">
+                  {exam.status === "DRAFT" && (
+                    <button className="btn-edx-primary" onClick={handlePublishClick} disabled={actionBusy}>
+                      {actionBusy ? <FaSpinner className="spin" /> : <FaCheckCircle />}
+                      {actionBusy ? "Publishing..." : "Publish Exam"}
+                    </button>
+                  )}
+                  <button
+                    className="btn-edx-primary"
+                    onClick={() => navigate(`/dashboard/exam/edit/${id}`)}
+                  >
+                    <FaEdit />
+                    Edit Exam
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>

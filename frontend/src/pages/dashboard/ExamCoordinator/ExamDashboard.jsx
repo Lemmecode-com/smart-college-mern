@@ -5,8 +5,10 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
+import { publishExam } from "../../../api/exam";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
+import ConfirmModal from "../../../components/ConfirmModal";
 
 import {
   FaClock,
@@ -20,6 +22,7 @@ import {
   FaGraduationCap,
   FaExclamationTriangle,
   FaTimes,
+  FaCheckCircle,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -398,6 +401,10 @@ export default function ExamDashboard() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [actionBusy, setActionBusy] = useState(null);
+  const [actionError, setActionError] = useState(null);
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [publishTarget, setPublishTarget] = useState(null);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -481,6 +488,35 @@ export default function ExamDashboard() {
     navigate("/dashboard/exam/create");
   };
 
+  const handlePublishClick = (exam) => {
+    if (exam.status === "PUBLISHED") return;
+    setPublishTarget(exam);
+    setShowPublishConfirm(true);
+    setActionError(null);
+  };
+
+  const confirmPublish = async () => {
+    if (!publishTarget) return;
+    const examId = publishTarget._id;
+    setShowPublishConfirm(false);
+    setActionBusy(examId);
+    setActionError(null);
+    try {
+      const res = await publishExam(examId);
+      toast.success(res.message || "Exam published successfully");
+      setExams((prev) =>
+        prev.map((e) => (e._id === examId ? { ...e, status: "PUBLISHED" } : e)),
+      );
+    } catch (err) {
+      const msg = err.response?.data?.message || "Failed to publish exam.";
+      setActionError(msg);
+      toast.error(msg);
+    } finally {
+      setActionBusy(null);
+      setPublishTarget(null);
+    }
+  };
+
   const getStatusBadge = (status) => {
     if (status === "PUBLISHED") {
       return (
@@ -527,6 +563,23 @@ export default function ExamDashboard() {
   return (
     <div className="exam-dashboard container-fluid p-4">
       <style>{dashboardStyles}</style>
+
+      <ConfirmModal
+        isOpen={showPublishConfirm}
+        onClose={() => { setShowPublishConfirm(false); setPublishTarget(null); }}
+        onConfirm={confirmPublish}
+        title="Publish Exam"
+        message={`Are you sure you want to publish "${publishTarget?.name || "this exam"}"? Once published, the exam will be available as a published exam and should no longer be treated as a draft.`}
+        type="success"
+        confirmText="Publish Exam"
+        isLoading={actionBusy === publishTarget?._id}
+      />
+
+      {actionError && (
+        <div className="edx-alert mb-3">
+          <FaExclamationTriangle /> {actionError}
+        </div>
+      )}
 
       {/* Header */}
       <motion.div
@@ -715,24 +768,35 @@ export default function ExamDashboard() {
                       </span>
                     </td>
                     <td>{getStatusBadge(exam.status)}</td>
-                    <td>
-                      <div className="d-flex gap-2">
-                        <button
-                          className="icon-btn icon-btn-view"
-                          onClick={() => handleViewExam(exam._id)}
-                          title="View Exam"
-                        >
-                          <FaEye />
-                        </button>
-                        <button
-                          className="icon-btn icon-btn-edit"
-                          onClick={() => handleEditExam(exam._id)}
-                          title="Edit Exam"
-                        >
-                          <FaEdit />
-                        </button>
-                      </div>
-                    </td>
+                     <td>
+                       <div className="d-flex gap-2">
+                         {exam.status === "DRAFT" && (
+                           <button
+                             className="icon-btn"
+                             style={{ color: "var(--edx-green-600)", borderColor: "var(--edx-green-500)" }}
+                             onClick={() => handlePublishClick(exam)}
+                             title="Publish Exam"
+                             disabled={actionBusy === exam._id}
+                           >
+                             <FaCheckCircle />
+                           </button>
+                         )}
+                         <button
+                           className="icon-btn icon-btn-view"
+                           onClick={() => handleViewExam(exam._id)}
+                           title="View Exam"
+                         >
+                           <FaEye />
+                         </button>
+                         <button
+                           className="icon-btn icon-btn-edit"
+                           onClick={() => handleEditExam(exam._id)}
+                           title="Edit Exam"
+                         >
+                           <FaEdit />
+                         </button>
+                       </div>
+                     </td>
                   </tr>
                 ))}
               </tbody>

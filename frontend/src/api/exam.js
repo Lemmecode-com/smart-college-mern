@@ -46,3 +46,13 @@ export const updateExam = async (examId, data) => {
   const response = await api.put(`${EXAM_BASE_URL}/${examId}`, data);
   return response.data;
 };
+
+/**
+ * Publish an exam (DRAFT -> PUBLISHED)
+ * @param {string} examId - Exam ID
+ * @returns {Promise}
+ */
+export const publishExam = async (examId) => {
+  const response = await api.put(`${EXAM_BASE_URL}/${examId}/publish`);
+  return response.data;
+};

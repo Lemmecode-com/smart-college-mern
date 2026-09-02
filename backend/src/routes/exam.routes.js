@@ -32,5 +32,6 @@ router.get("/:id", auth, role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR), collegeMiddl
 // Write routes: EXAM_COORDINATOR only
 router.post("/", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.createExam);
 router.put("/:id", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.updateExam);
+router.put("/:id/publish", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.publishExam);
 
 module.exports = router;
