@@ -999,6 +999,12 @@ export const navigationConfig = {
         defaultOpen: true,
         items: [
           {
+            path: "/dashboard/exam/results",
+            icon: FaChartBar,
+            label: "Results Dashboard",
+            exact: true,
+          },
+          {
             path: "/dashboard/exam/results/generate",
             icon: FaFileAlt,
             label: "Generate Result",
