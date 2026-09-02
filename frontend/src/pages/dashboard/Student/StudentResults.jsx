@@ -21,6 +21,7 @@ import {
   FaTrophy,
   FaInfoCircle,
   FaTable,
+  FaCalendarAlt
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 

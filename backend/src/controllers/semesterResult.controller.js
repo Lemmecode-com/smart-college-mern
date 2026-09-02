@@ -1,6 +1,7 @@
 const SemesterResultService = require("../services/semesterResult.service");
 const auditLogService = require("../services/auditLog.service");
 const AppError = require("../utils/AppError");
+const logger = require("../utils/logger");
 
 /**
  * POST /api/results/generate
@@ -200,6 +201,185 @@ exports.getMyResults = async (req, res, next) => {
     res.json({
       success: true,
       data: results,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/results?examId=xxx
+ *
+ * Exam-level result listing for the Coordinator. Returns a summary
+ * (total/passed/failed/lastUpdated) plus every SemesterResult row for the exam,
+ * college-scoped. Read-only.
+ */
+exports.getResultsByExam = async (req, res, next) => {
+  try {
+    const { examId } = req.query;
+
+    if (!examId) {
+      throw new AppError("examId query parameter is required", 400, "MISSING_EXAM_ID");
+    }
+
+    const data = await SemesterResultService.getResultsByExam({
+      collegeId: req.college_id,
+      examId,
+    });
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/results/generate-exam
+ *
+ * Generate SemesterResults for every approved student in the exam. Body: { examId }.
+ * Reuses the per-student generation service; LOCKED/PUBLISHED results are skipped.
+ */
+exports.generateResultsForExam = async (req, res, next) => {
+  try {
+    const { examId } = req.body;
+
+    if (!examId || typeof examId !== "string" || !examId.trim()) {
+      logger.logWarning("generateResultsForExam called with missing/invalid examId", {
+        endpoint: req.originalUrl,
+        method: req.method,
+        userId: req.user?.id,
+        collegeId: req.college_id,
+        bodyKeys: Object.keys(req.body || {}),
+      });
+      throw new AppError("examId is required", 400, "MISSING_EXAM_ID");
+    }
+
+    const summary = await SemesterResultService.generateResultsForExam({
+      collegeId: req.college_id,
+      examId,
+      userId: req.user.id,
+    });
+
+    await auditLogService.logAudit({
+      collegeId: req.college_id,
+      userId: req.user.id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      action: "RESULT_LOCKED",
+      resourceType: "Exam",
+      resourceId: examId,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      metadata: {
+        totalStudents: summary.totalStudents,
+        generated: summary.generated,
+        skipped: summary.skipped,
+        errorCount: summary.errors.length,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: `Results generated: ${summary.generated} generated, ${summary.skipped} skipped`,
+      data: summary,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/results/lock-exam
+ *
+ * Lock every DRAFT SemesterResult for the exam (DRAFT -> LOCKED, bulk).
+ * Body: { examId }.
+ */
+exports.lockResultsForExam = async (req, res, next) => {
+  try {
+    const { examId } = req.body;
+
+    if (!examId) {
+      throw new AppError("examId is required", 400, "MISSING_EXAM_ID");
+    }
+
+    const result = await SemesterResultService.lockResultsForExam({
+      collegeId: req.college_id,
+      examId,
+      userId: req.user.id,
+    });
+
+    await auditLogService.logAudit({
+      collegeId: req.college_id,
+      userId: req.user.id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      action: "RESULT_LOCKED",
+      resourceType: "Exam",
+      resourceId: examId,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      metadata: { lockedCount: result.modified },
+    });
+
+    res.json({
+      success: true,
+      message: `${result.modified} result(s) locked`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/results/publish-exam
+ *
+ * Publish every LOCKED SemesterResult for the exam (LOCKED -> PUBLISHED, bulk).
+ * Body: { examId }.
+ */
+exports.publishResultsForExam = async (req, res, next) => {
+  try {
+    const { examId } = req.body;
+
+    if (!examId) {
+      throw new AppError("examId is required", 400, "MISSING_EXAM_ID");
+    }
+
+    const result = await SemesterResultService.publishResultsForExam({
+      collegeId: req.college_id,
+      examId,
+      userId: req.user.id,
+    });
+
+    await auditLogService.logAudit({
+      collegeId: req.college_id,
+      userId: req.user.id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      action: "RESULT_PUBLISHED",
+      resourceType: "Exam",
+      resourceId: examId,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      metadata: { publishedCount: result.modified },
+    });
+
+    res.json({
+      success: true,
+      message: `${result.modified} result(s) published`,
+      data: result,
     });
   } catch (error) {
     next(error);

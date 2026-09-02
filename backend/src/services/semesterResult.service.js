@@ -373,3 +373,205 @@ exports.getMyResults = async ({ collegeId, userId }) => {
     .sort({ createdAt: -1 })
     .lean();
 };
+
+// ---------------------------------------------------------------------------
+// STEP 7b — Exam-level result operations (Coordinator workflow)
+//
+// These operate on every SemesterResult that belongs to a given Exam, always
+// scoped to the authenticated college. They power the Coordinator's
+// exam-centric dashboard / review / lock / publish screens.
+// ---------------------------------------------------------------------------
+
+/**
+ * List every SemesterResult for an Exam (college-scoped) plus a summary.
+ *
+ * Summary counts:
+ *   totalStudents      — total result rows for this exam
+ *   generated          — students with a result (any status)
+ *   passed / failed    — by overallResult
+ *   byStatus           — { DRAFT, LOCKED, PUBLISHED } counts
+ *   lastUpdated        — newest calculatedAt across the set
+ */
+exports.getResultsByExam = async ({ collegeId, examId }) => {
+  const exam = await Exam.findOne({ _id: examId, college_id: collegeId });
+  if (!exam) {
+    throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+  }
+
+  const results = await SemesterResult.find({
+    college_id: collegeId,
+    exam_id: examId,
+  })
+    .populate("student_id", "fullName enrollmentNumber rollNumber")
+    .sort({ "student_id.fullName": 1 })
+    .lean();
+
+  const byStatus = { DRAFT: 0, LOCKED: 0, PUBLISHED: 0 };
+  let passed = 0;
+  let failed = 0;
+  let lastUpdated = null;
+
+  for (const r of results) {
+    if (r.status && byStatus[r.status] !== undefined) byStatus[r.status]++;
+    if (r.overallResult === "PASS") passed++;
+    else if (r.overallResult === "FAIL") failed++;
+    if (r.calculatedAt && (!lastUpdated || new Date(r.calculatedAt) > new Date(lastUpdated))) {
+      lastUpdated = r.calculatedAt;
+    }
+  }
+
+  return {
+    exam: {
+      _id: exam._id,
+      name: exam.name,
+      course_id: exam.course_id,
+      semester: exam.semester,
+      academicYear: exam.academicYear,
+      subjectCount: (exam.subjects || []).length,
+      status: exam.status,
+    },
+    summary: {
+      totalStudents: results.length,
+      passed,
+      failed,
+      incomplete: results.length - passed - failed,
+      byStatus,
+      lastUpdated,
+    },
+    results,
+  };
+};
+
+/**
+ * Generate (or regenerate) SemesterResults for EVERY eligible student in an
+ * Exam. Reuses the per-student generateSemesterResult so all calculation,
+ * validation and lifecycle rules stay in one place.
+ *
+ * Students already having a LOCKED or PUBLISHED result are skipped (they are
+ * immutable); DRAFT results are regenerated in place.
+ *
+ * Returns a summary of what was done.
+ */
+exports.generateResultsForExam = async ({ collegeId, examId, userId }) => {
+  const exam = await Exam.findOne({ _id: examId, college_id: collegeId });
+  if (!exam) {
+    throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+  }
+
+  const examSubjects = exam.subjects || [];
+  if (examSubjects.length === 0) {
+    throw new AppError("Exam has no subjects", 400, "EXAM_NO_SUBJECTS");
+  }
+
+  const students = await Student.find({
+    college_id: collegeId,
+    course_id: exam.course_id,
+    currentSemester: exam.semester,
+    status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE"] },
+  }).select("_id");
+
+  if (students.length === 0) {
+    throw new AppError(
+      "No approved students found for this exam's course and semester",
+      400,
+      "NO_ELIGIBLE_STUDENTS",
+    );
+  }
+
+  let generated = 0;
+  let skipped = 0;
+  const errors = [];
+
+  for (const student of students) {
+    try {
+      const existing = await SemesterResult.findOne({
+        college_id: collegeId,
+        student_id: student._id,
+        exam_id: examId,
+      });
+
+      if (existing && existing.status !== RESULT_STATUS.DRAFT) {
+        skipped++;
+        continue;
+      }
+
+      await exports.generateSemesterResult({
+        collegeId,
+        studentId: student._id,
+        examId,
+        userId,
+      });
+      generated++;
+    } catch (err) {
+      errors.push({ studentId: student._id, message: err.message });
+    }
+  }
+
+  return {
+    examId,
+    totalStudents: students.length,
+    generated,
+    skipped,
+    errors,
+  };
+};
+
+/**
+ * Lock every DRAFT SemesterResult for an Exam (college-scoped).
+ * LOCKED / PUBLISHED results are left untouched.
+ */
+exports.lockResultsForExam = async ({ collegeId, examId, userId }) => {
+  const exam = await Exam.findOne({ _id: examId, college_id: collegeId });
+  if (!exam) {
+    throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+  }
+
+  const now = new Date();
+  const updateResult = await SemesterResult.updateMany(
+    { college_id: collegeId, exam_id: examId, status: RESULT_STATUS.DRAFT },
+    {
+      $set: {
+        status: RESULT_STATUS.LOCKED,
+        lockedBy: userId,
+        lockedAt: now,
+        updatedBy: userId,
+      },
+    },
+  );
+
+  return {
+    examId,
+    matched: updateResult.matchedCount || 0,
+    modified: updateResult.modifiedCount || 0,
+  };
+};
+
+/**
+ * Publish every LOCKED SemesterResult for an Exam (college-scoped).
+ * DRAFT / PUBLISHED results are left untouched.
+ */
+exports.publishResultsForExam = async ({ collegeId, examId, userId }) => {
+  const exam = await Exam.findOne({ _id: examId, college_id: collegeId });
+  if (!exam) {
+    throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+  }
+
+  const now = new Date();
+  const updateResult = await SemesterResult.updateMany(
+    { college_id: collegeId, exam_id: examId, status: RESULT_STATUS.LOCKED },
+    {
+      $set: {
+        status: RESULT_STATUS.PUBLISHED,
+        publishedBy: userId,
+        publishedAt: now,
+        updatedBy: userId,
+      },
+    },
+  );
+
+  return {
+    examId,
+    matched: updateResult.matchedCount || 0,
+    modified: updateResult.modifiedCount || 0,
+  };
+};

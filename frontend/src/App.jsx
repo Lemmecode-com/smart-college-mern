@@ -177,6 +177,8 @@ const EditExam = lazy(() => import("./pages/dashboard/ExamCoordinator/EditExam")
 const ViewExam = lazy(() => import("./pages/dashboard/ExamCoordinator/ViewExam"));
 const ResultGeneration = lazy(() => import("./pages/dashboard/ExamCoordinator/ResultGeneration"));
 const ResultReview = lazy(() => import("./pages/dashboard/ExamCoordinator/ResultReview"));
+const ExamResultsDashboard = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamResultsDashboard"));
+const ExamResultReview = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamResultReview"));
 
 /* ================= HOD (LAZY) ================= */
 const HodDashboard = lazy(() => import("./pages/dashboard/HOD/HodDashboard"));
@@ -1063,6 +1065,22 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
                   <ResultGeneration />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/results/review/:examId"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ExamResultReview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/results"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ExamResultsDashboard />
                 </ProtectedRoute>
               }
             />

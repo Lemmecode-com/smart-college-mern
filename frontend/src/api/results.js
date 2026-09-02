@@ -19,3 +19,17 @@ export const publishResult = (resultId) =>
 
 export const getMyResults = () =>
   api.get(`${BASE}/my-results`).then((r) => r.data);
+
+// ── Exam-level Coordinator workflow ──────────────────────────────────────
+
+export const getResultsByExam = (examId) =>
+  api.get(`${BASE}/`, { params: { examId } }).then((r) => r.data);
+
+export const generateResultsForExam = (examId) =>
+  api.post(`${BASE}/generate-exam`, { examId }).then((r) => r.data);
+
+export const lockResultsForExam = (examId) =>
+  api.post(`${BASE}/lock-exam`, { examId }).then((r) => r.data);
+
+export const publishResultsForExam = (examId) =>
+  api.post(`${BASE}/publish-exam`, { examId }).then((r) => r.data);

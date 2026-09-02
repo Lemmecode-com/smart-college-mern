@@ -1,10 +1,11 @@
 import { useContext, useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
-import { generateResult } from "../../../api/results";
+import { generateResult, generateResultsForExam } from "../../../api/results";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
+import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import {
@@ -17,6 +18,8 @@ import {
   FaUserGraduate,
   FaEye,
   FaLayerGroup,
+  FaUsers,
+  FaCog,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -53,18 +56,14 @@ const styles = `
   color: var(--edx-slate-900);
 }
 .rgen .rgen-card {
-  background: #fff;
-  border-radius: 16px;
+  background: #fff; border-radius: 16px;
   border: 1px solid var(--edx-slate-100);
-  box-shadow: 0 4px 18px rgba(12,43,71,0.08);
-  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(12,43,71,0.08); overflow: hidden;
 }
 .rgen .rgen-card-header {
   background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
+  padding: 1.25rem 1.5rem; display: flex;
+  align-items: center; gap: 0.85rem;
 }
 .rgen .rgen-card-header-icon {
   width: 42px; height: 42px; border-radius: 11px;
@@ -98,6 +97,42 @@ const styles = `
 .rgen .alert-edx-danger { background: var(--edx-red-50); color: var(--edx-red-500); border-color: rgba(229,72,77,0.25); }
 .rgen .alert-edx-success { background: var(--edx-green-50); color: var(--edx-green-600); border-color: rgba(42,168,118,0.3); }
 .rgen .alert-edx-warning { background: var(--edx-amber-50); color: var(--edx-amber-600); border-color: rgba(232,165,49,0.3); }
+.rgen .alert-edx-info { background: var(--edx-cyan-50); color: var(--edx-cyan-600); border-color: rgba(23,174,203,0.3); }
+.rgen .mode-toggle {
+  display: flex; border: 1px solid var(--edx-slate-200); border-radius: 10px; overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.rgen .mode-btn {
+  flex: 1; padding: 0.7rem 1rem; border: none; background: #fff; cursor: pointer;
+  font-weight: 600; font-size: 0.88rem; color: var(--edx-slate-600);
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  transition: all 0.15s ease;
+}
+.rgen .mode-btn-active { background: var(--edx-navy-900); color: #fff; }
+.rgen .mode-btn:not(.mode-btn-active):hover { background: var(--edx-slate-100); }
+.rgen .exam-details {
+  background: var(--edx-bg); border: 1px solid var(--edx-slate-100);
+  border-radius: 12px; padding: 1.1rem 1.25rem; margin-bottom: 1.5rem;
+}
+.rgen .exam-details-title {
+  font-weight: 700; font-size: 0.95rem; color: var(--edx-navy-900);
+  margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+}
+.rgen .exam-details-title svg { color: var(--edx-cyan-600); }
+.rgen .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+.rgen .detail-item { font-size: 0.88rem; }
+.rgen .detail-label { color: var(--edx-slate-600); font-size: 0.78rem; display: block; }
+.rgen .detail-value { color: var(--edx-slate-900); font-weight: 600; display: block; }
+.rgen .validation-list { list-style: none; padding: 0; margin: 0; }
+.rgen .validation-item {
+  display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0;
+  font-size: 0.88rem; border-bottom: 1px solid var(--edx-slate-100);
+}
+.rgen .validation-item:last-child { border-bottom: none; }
+.rgen .validation-icon { flex-shrink: 0; }
+.rgen .validation-ok { color: var(--edx-green-600); }
+.rgen .validation-warn { color: var(--edx-amber-600); }
+.rgen .validation-err { color: var(--edx-red-500); }
 .rgen .result-summary {
   border: 1px solid var(--edx-slate-200); border-radius: 12px; overflow: hidden; margin-top: 1.5rem;
 }
@@ -107,22 +142,15 @@ const styles = `
   display: flex; align-items: center; gap: 0.5rem;
 }
 .rgen .result-summary-header svg { color: var(--edx-cyan-600); }
-.rgen .result-stats {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
-  border-bottom: 1px solid var(--edx-slate-200);
-}
-.rgen .stat-cell {
-  padding: 1rem; text-align: center; border-right: 1px solid var(--edx-slate-200);
-}
+.rgen .result-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-bottom: 1px solid var(--edx-slate-200); }
+.rgen .stat-cell { padding: 1rem; text-align: center; border-right: 1px solid var(--edx-slate-200); }
 .rgen .stat-cell:last-child { border-right: none; }
 .rgen .stat-cell-label { font-size: 0.75rem; color: var(--edx-slate-600); display: block; margin-bottom: 0.25rem; }
 .rgen .stat-cell-value { font-size: 1.4rem; font-weight: 700; color: var(--edx-navy-950); }
 .rgen .stat-cell-value.pass { color: var(--edx-green-600); }
 .rgen .stat-cell-value.fail { color: var(--edx-red-500); }
 .rgen .stat-cell-value.incomplete { color: var(--edx-amber-600); }
-.rgen .overall-row {
-  padding: 0.85rem 1.1rem; display: flex; align-items: center; justify-content: space-between;
-}
+.rgen .overall-row { padding: 0.85rem 1.1rem; display: flex; align-items: center; justify-content: space-between; }
 .rgen .overall-label { font-weight: 600; color: var(--edx-slate-600); font-size: 0.9rem; }
 .rgen .pill {
   display: inline-flex; align-items: center; gap: 0.35rem;
@@ -131,9 +159,7 @@ const styles = `
 .rgen .pill-pass { background: var(--edx-green-50); color: var(--edx-green-600); }
 .rgen .pill-fail { background: var(--edx-red-50); color: var(--edx-red-500); }
 .rgen .pill-incomplete { background: var(--edx-amber-50); color: var(--edx-amber-600); }
-.rgen .form-actions {
-  display: flex; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;
-}
+.rgen .form-actions { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
 .rgen .btn-edx-primary {
   display: inline-flex; align-items: center; gap: 0.5rem;
   background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
@@ -142,10 +168,7 @@ const styles = `
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease;
   box-shadow: 0 2px 6px rgba(12,43,71,0.18);
 }
-.rgen .btn-edx-primary:hover:not(:disabled) {
-  transform: translateY(-1px); box-shadow: 0 8px 18px rgba(23,174,203,0.28);
-  background: linear-gradient(135deg, var(--edx-navy-800), var(--edx-cyan-600));
-}
+.rgen .btn-edx-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(23,174,203,0.28); background: linear-gradient(135deg, var(--edx-navy-800), var(--edx-cyan-600)); }
 .rgen .btn-edx-primary:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
 .rgen .btn-edx-outline {
   display: inline-flex; align-items: center; gap: 0.5rem;
@@ -168,6 +191,7 @@ const styles = `
 @media (max-width: 576px) {
   .rgen .rgen-card-body { padding: 1.25rem; }
   .rgen .result-stats { grid-template-columns: repeat(2, 1fr); }
+  .rgen .detail-grid { grid-template-columns: 1fr; }
   .rgen .form-actions { flex-direction: column-reverse; }
   .rgen .btn-edx-primary, .rgen .btn-edx-outline, .rgen .btn-edx-success { width: 100%; justify-content: center; }
 }
@@ -179,10 +203,12 @@ const styles = `
 export default function ResultGeneration() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "EXAM_COORDINATOR") return <Navigate to="/dashboard/exam" replace />;
 
+  const [mode, setMode] = useState("exam");
   const [exams, setExams] = useState([]);
   const [students, setStudents] = useState([]);
   const [loadingExams, setLoadingExams] = useState(true);
@@ -190,71 +216,102 @@ export default function ResultGeneration() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [generatedResult, setGeneratedResult] = useState(null);
+  const [bulkSummary, setBulkSummary] = useState(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [examId, setExamId] = useState("");
   const [studentId, setStudentId] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
 
-  /* ── load exams ── */
+  const selectedExam = exams.find((e) => e._id === examId);
+
   useEffect(() => {
+    const preferredExamId = searchParams.get("examId");
     api.get("/exam")
       .then((r) => {
         const data = Array.isArray(r.data) ? r.data
           : Array.isArray(r.data?.data) ? r.data.data : [];
         setExams(data);
+        if (preferredExamId && data.some((e) => e._id === preferredExamId)) {
+          setExamId(preferredExamId);
+        }
       })
       .catch(() => setExams([]))
       .finally(() => setLoadingExams(false));
-  }, []);
+  }, [searchParams]);
 
-  /* ── load students when exam changes ── */
   useEffect(() => {
     if (!examId) { setStudents([]); setStudentId(""); return; }
-    const exam = exams.find((e) => e._id === examId);
-    if (!exam) return;
-
-    setLoadingStudents(true);
-    setStudentId("");
-    setGeneratedResult(null);
-
-    api.get("/students/approved-students", {
-      params: {
-        course_id: exam.course_id?._id || exam.course_id,
-        semester: exam.semester,
-        limit: 500,
-      },
-    })
-      .then((r) => {
-        const data = Array.isArray(r.data?.data) ? r.data.data
-          : Array.isArray(r.data?.students) ? r.data.students
-          : Array.isArray(r.data) ? r.data : [];
-        setStudents(data);
+    if (mode === "single") {
+      setLoadingStudents(true);
+      setStudentId("");
+      setGeneratedResult(null);
+      api.get("/students/approved-students", {
+        params: {
+          course_id: selectedExam?.course_id?._id || selectedExam?.course_id,
+          semester: selectedExam?.semester,
+          limit: 500,
+        },
       })
-      .catch(() => setStudents([]))
-      .finally(() => setLoadingStudents(false));
-  }, [examId, exams]);
+        .then((r) => {
+          const data = Array.isArray(r.data?.data) ? r.data.data
+            : Array.isArray(r.data?.students) ? r.data.students
+            : Array.isArray(r.data) ? r.data : [];
+          setStudents(data);
+        })
+        .catch(() => setStudents([]))
+        .finally(() => setLoadingStudents(false));
+    }
+  }, [examId, mode, selectedExam]);
 
   const validate = () => {
     const errs = {};
     if (!examId) errs.examId = "Please select an exam";
-    if (!studentId) errs.studentId = "Please select a student";
+    if (mode === "single" && !studentId) errs.studentId = "Please select a student";
     setValidationErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleGenerate = async () => {
+  const handleGenerateSingle = async () => {
     if (!validate()) return;
     setSubmitting(true);
     setError(null);
     setGeneratedResult(null);
     try {
       const res = await generateResult({ examId, studentId });
-      setGeneratedResult(res.data);
+      setGeneratedResult(res);
       toast.success("Result generated successfully!");
     } catch (err) {
       const code = err.response?.data?.code;
       const msg = err.response?.data?.message || "Failed to generate result.";
       logger.error("generateResult error:", err.response?.status, code);
+      if (AUTH_ERROR_CODES.has(code)) {
+        setError({ isAuthError: true, statusCode: err.response?.status, errorCode: code, message: msg });
+      } else {
+        setError({ message: msg });
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGenerateExam = async () => {
+    setShowConfirm(true);
+  };
+
+  const confirmGenerateExam = async () => {
+    setShowConfirm(false);
+    setSubmitting(true);
+    setError(null);
+    setBulkSummary(null);
+    try {
+      const res = await generateResultsForExam(examId);
+      setBulkSummary(res);
+      toast.success(`Results generated: ${res.generated} generated, ${res.skipped} skipped`);
+    } catch (err) {
+      const code = err.response?.data?.code;
+      const msg = err.response?.data?.message || "Failed to generate results.";
+      logger.error("generateResultsForExam error:", err.response?.status, code);
       if (AUTH_ERROR_CODES.has(code)) {
         setError({ isAuthError: true, statusCode: err.response?.status, errorCode: code, message: msg });
       } else {
@@ -276,9 +333,20 @@ export default function ResultGeneration() {
     <div className="rgen container-fluid p-4">
       <style>{styles}</style>
 
+      <ConfirmModal
+        isOpen={showConfirm}
+        onClose={() => setShowConfirm(false)}
+        onConfirm={confirmGenerateExam}
+        title="Generate Results for Entire Exam"
+        message={`This will generate results for ALL approved students in "${selectedExam?.name || "this exam"}". Existing locked or published results will be skipped. Continue?`}
+        type="warning"
+        confirmText="Generate All"
+        isLoading={submitting}
+      />
+
       <Breadcrumb items={[
-        { label: "Exam Dashboard", path: "/dashboard/exam" },
-        { label: "Generate Result", path: "/dashboard/exam/results/generate" },
+        { label: "Exam Results", path: "/dashboard/exam/results" },
+        { label: "Generate Result" },
       ]} />
 
       <div className="row justify-content-center">
@@ -302,74 +370,115 @@ export default function ResultGeneration() {
                 </div>
               )}
 
+              {/* Mode toggle */}
+              <div className="mode-toggle" role="tablist" aria-label="Generation mode">
+                <button
+                  className={`mode-btn ${mode === "exam" ? "mode-btn-active" : ""}`}
+                  onClick={() => { setMode("exam"); setGeneratedResult(null); setBulkSummary(null); setError(null); }}
+                  role="tab"
+                  aria-selected={mode === "exam"}
+                >
+                  <FaUsers /> Whole Exam
+                </button>
+                <button
+                  className={`mode-btn ${mode === "single" ? "mode-btn-active" : ""}`}
+                  onClick={() => { setMode("single"); setGeneratedResult(null); setBulkSummary(null); setError(null); }}
+                  role="tab"
+                  aria-selected={mode === "single"}
+                >
+                  <FaUserGraduate /> Single Student
+                </button>
+              </div>
+
               {/* Exam select */}
               <div className="field-group">
-                <label className="field-label">
-                  <FaGraduationCap />
-                  Exam
-                </label>
+                <label className="field-label"><FaGraduationCap /> Exam</label>
                 <select
                   className={`field-input ${validationErrors.examId ? "is-invalid" : ""}`}
                   value={examId}
-                  onChange={(e) => { setExamId(e.target.value); setGeneratedResult(null); setError(null); }}
+                  onChange={(e) => { setExamId(e.target.value); setGeneratedResult(null); setBulkSummary(null); setError(null); }}
                   disabled={loadingExams || submitting}
                 >
-                  <option value="">
-                    {loadingExams ? "Loading exams…" : "Select Exam"}
-                  </option>
+                  <option value="">{loadingExams ? "Loading exams…" : "Select Exam"}</option>
                   {exams.map((ex) => (
                     <option key={ex._id} value={ex._id}>
                       {ex.name} — {ex.course_id?.name || "N/A"} · Sem {ex.semester} · {ex.academicYear}
                     </option>
                   ))}
                 </select>
-                {validationErrors.examId && (
-                  <div className="field-feedback">{validationErrors.examId}</div>
-                )}
+                {validationErrors.examId && <div className="field-feedback">{validationErrors.examId}</div>}
               </div>
 
-              {/* Student select */}
-              <div className="field-group">
-                <label className="field-label">
-                  <FaUserGraduate />
-                  Student
-                </label>
-                <select
-                  className={`field-input ${validationErrors.studentId ? "is-invalid" : ""}`}
-                  value={studentId}
-                  onChange={(e) => { setStudentId(e.target.value); setGeneratedResult(null); setError(null); }}
-                  disabled={!examId || loadingStudents || submitting}
-                >
-                  <option value="">
-                    {!examId ? "Select an exam first"
-                      : loadingStudents ? "Loading students…"
-                      : students.length === 0 ? "No eligible students found"
-                      : "Select Student"}
-                  </option>
-                  {students.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.fullName || s.user_id?.name || s._id}
-                      {s.rollNumber ? ` (${s.rollNumber})` : ""}
-                    </option>
-                  ))}
-                </select>
-                {validationErrors.studentId && (
-                  <div className="field-feedback">{validationErrors.studentId}</div>
-                )}
-              </div>
-
-              {/* Generated result summary */}
-              {generatedResult && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="result-summary"
-                >
-                  <div className="result-summary-header">
-                    <FaCheckCircle />
-                    Result Generated
+              {/* Exam details + pre-generation validation */}
+              {selectedExam && (
+                <div className="exam-details">
+                  <div className="exam-details-title"><FaCog /> Exam Details &amp; Readiness</div>
+                  <div className="detail-grid">
+                    <div className="detail-item">
+                      <span className="detail-label">Course</span>
+                      <span className="detail-value">{selectedExam.course_id?.name || "N/A"}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Semester</span>
+                      <span className="detail-value">Sem {selectedExam.semester}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Academic Year</span>
+                      <span className="detail-value">{selectedExam.academicYear}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Subjects</span>
+                      <span className="detail-value">{selectedExam.subjects?.length || 0} subjects</span>
+                    </div>
                   </div>
+                  <ul className="validation-list mt-3">
+                    <li className="validation-item">
+                      <FaCheckCircle className="validation-icon validation-ok" />
+                      <span>Exam has {selectedExam.subjects?.length || 0} subject(s) configured</span>
+                    </li>
+                    <li className="validation-item">
+                      <FaCheckCircle className="validation-icon validation-ok" />
+                      <span>Calculation engine ready (server-side pass/fail)</span>
+                    </li>
+                    <li className="validation-item">
+                      <FaExclamationTriangle className="validation-icon validation-warn" />
+                      <span>Ensure all student marks have been entered before generating</span>
+                    </li>
+                  </ul>
+                </div>
+              )}
+
+              {/* Student select (single mode) */}
+              {mode === "single" && (
+                <div className="field-group">
+                  <label className="field-label"><FaUserGraduate /> Student</label>
+                  <select
+                    className={`field-input ${validationErrors.studentId ? "is-invalid" : ""}`}
+                    value={studentId}
+                    onChange={(e) => { setStudentId(e.target.value); setGeneratedResult(null); setError(null); }}
+                    disabled={!examId || loadingStudents || submitting}
+                  >
+                    <option value="">
+                      {!examId ? "Select an exam first"
+                        : loadingStudents ? "Loading students…"
+                        : students.length === 0 ? "No eligible students found"
+                        : "Select Student"}
+                    </option>
+                    {students.map((s) => (
+                      <option key={s._id} value={s._id}>
+                        {s.fullName || s.user_id?.name || s._id}
+                        {s.rollNumber ? ` (${s.rollNumber})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {validationErrors.studentId && <div className="field-feedback">{validationErrors.studentId}</div>}
+                </div>
+              )}
+
+              {/* Single result summary */}
+              {generatedResult && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="result-summary">
+                  <div className="result-summary-header"><FaCheckCircle /> Result Generated</div>
                   <div className="result-stats">
                     <div className="stat-cell">
                       <span className="stat-cell-label">Total</span>
@@ -390,43 +499,70 @@ export default function ResultGeneration() {
                   </div>
                   <div className="overall-row">
                     <span className="overall-label">Overall Result</span>
-                    <span className={`pill ${overallPillClass(generatedResult.overallResult)}`}>
-                      {generatedResult.overallResult}
-                    </span>
+                    <span className={`pill ${overallPillClass(generatedResult.overallResult)}`}>{generatedResult.overallResult}</span>
                   </div>
+                </motion.div>
+              )}
+
+              {/* Bulk result summary */}
+              {bulkSummary && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="result-summary">
+                  <div className="result-summary-header"><FaCheckCircle /> Bulk Generation Complete</div>
+                  <div className="result-stats">
+                    <div className="stat-cell">
+                      <span className="stat-cell-label">Total Students</span>
+                      <span className="stat-cell-value">{bulkSummary.totalStudents}</span>
+                    </div>
+                    <div className="stat-cell">
+                      <span className="stat-cell-label">Generated</span>
+                      <span className="stat-cell-value pass">{bulkSummary.generated}</span>
+                    </div>
+                    <div className="stat-cell">
+                      <span className="stat-cell-label">Skipped</span>
+                      <span className="stat-cell-value incomplete">{bulkSummary.skipped}</span>
+                    </div>
+                    <div className="stat-cell">
+                      <span className="stat-cell-label">Errors</span>
+                      <span className="stat-cell-value fail">{bulkSummary.errors.length}</span>
+                    </div>
+                  </div>
+                  {bulkSummary.errors.length > 0 && (
+                    <div className="alert-edx alert-edx-warning mt-2 mb-0">
+                      <FaExclamationTriangle />
+                      {bulkSummary.errors.length} student(s) could not be generated. Check marks entry.
+                    </div>
+                  )}
                 </motion.div>
               )}
 
               {/* Actions */}
               <div className="form-actions">
-                <button
-                  className="btn-edx-outline"
-                  onClick={() => navigate("/dashboard/exam")}
-                  disabled={submitting}
-                >
-                  <FaArrowLeft />
-                  Back
+                <button className="btn-edx-outline" onClick={() => navigate("/dashboard/exam/results")} disabled={submitting}>
+                  <FaArrowLeft /> Back
                 </button>
                 <div className="d-flex gap-2 flex-wrap">
-                  <button
-                    className="btn-edx-primary"
-                    onClick={handleGenerate}
-                    disabled={submitting || loadingExams}
-                  >
-                    {submitting ? (
-                      <><FaSpinner className="spin" /> Generating…</>
-                    ) : (
-                      <><FaClipboardList /> {generatedResult ? "Regenerate" : "Generate Result"}</>
-                    )}
-                  </button>
-                  {generatedResult && (
-                    <button
-                      className="btn-edx-success"
-                      onClick={() => navigate(`/dashboard/exam/results/${generatedResult._id}`)}
-                    >
-                      <FaEye />
-                      Review Result
-                    </button>
+                  {mode === "single" ? (
+                    <>
+                      <button className="btn-edx-primary" onClick={handleGenerateSingle} disabled={submitting || loadingExams}>
+                        {submitting ? <><FaSpinner className="spin" /> Generating…</> : <><FaClipboardList /> {generatedResult ? "Regenerate" : "Generate Result"}</>}
+                      </button>
+                      {generatedResult && (
+                        <button className="btn-edx-success" onClick={() => navigate(`/dashboard/exam/results/${generatedResult._id}`)}>
+                          <FaEye /> Review Result
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <button className="btn-edx-primary" onClick={handleGenerateExam} disabled={submitting || !examId || loadingExams}>
+                        {submitting ? <><FaSpinner className="spin" /> Generating…</> : <><FaUsers /> Generate All Results</>}
+                      </button>
+                      {bulkSummary && bulkSummary.generated > 0 && (
+                        <button className="btn-edx-success" onClick={() => navigate(`/dashboard/exam/results/review/${examId}`)}>
+                          <FaEye /> Review Results
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
