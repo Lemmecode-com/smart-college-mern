@@ -963,31 +963,13 @@ export const navigationConfig = {
           {
             path: "/dashboard/exam",
             icon: FaListOl,
-            label: "Exam Dashboard",
+            label: "Exam List",
             exact: true,
           },
           {
             path: "/dashboard/exam/create",
             icon: FaPlus,
             label: "Create Exam",
-            exact: true,
-          },
-          {
-            path: "/students/approved-students",
-            icon: FaUserGraduate,
-            label: "Approved Students",
-            exact: true,
-          },
-          {
-            path: "/teachers",
-            icon: FaChalkboardTeacher,
-            label: "Teachers",
-            exact: true,
-          },
-          {
-            path: "/timetable/list",
-            icon: FaCalendarAlt,
-            label: "Timetable",
             exact: true,
           },
         ],
