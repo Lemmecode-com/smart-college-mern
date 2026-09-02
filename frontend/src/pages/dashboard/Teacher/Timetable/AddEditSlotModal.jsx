@@ -187,11 +187,11 @@ export default function AddEditSlotModal({
               required
             >
               <option value="">Select teacher</option>
-              {teachers.map(teacher => (
-                <option key={teacher._id} value={teacher._id}>
-                  {teacher.name} ({teacher.department})
-                </option>
-              ))}
+{teachers.map(teacher => (
+                 <option key={teacher._id} value={teacher._id}>
+                   {teacher.name} ({teacher.department_id?.name || "N/A"})
+                 </option>
+               ))}
             </select>
           </div>
 

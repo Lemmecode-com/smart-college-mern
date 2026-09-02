@@ -79,11 +79,11 @@ exports.autoCloseAttendanceSessions = async () => {
           continue;
         }
 
-        // ✅ Step 4: Get all students for this course
+        // ✅ Step 4: Get all students for this course (include APPROVED and ENROLLED)
         const students = await Student.find({
           college_id: session.college_id,
           course_id: session.course_id,
-          status: 'APPROVED'
+          status: { $in: ['APPROVED', 'ENROLLED'] }
         });
 
         // console.log(`   📚 Total students: ${students.length}`);

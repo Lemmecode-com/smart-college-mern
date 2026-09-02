@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const PasswordReset = require("../models/passwordReset.model");
+const User = require("../models/user.model");
 const { sendOTPEmail } = require("./email.service");
 
 /**
@@ -26,12 +27,17 @@ exports.generateOTP = () => {
  * Create and send OTP
  * @param {string} email - User's email
  * @param {string} userType - Type of user (for email template)
+ * @param {string} [collegeId] - Optional college ID (used when email is not yet in User collection)
  * @returns {Promise<{success: boolean, message: string, otp?: string}>}
  */
-exports.createAndSendOTP = async (email, userType = "User") => {
+exports.createAndSendOTP = async (email, userType = "User", collegeId) => {
   try {
+    // Lookup user to get collegeId (if not provided explicitly)
+    const user = await User.findOne({ email }).select("college_id role").lean();
+    const resolvedCollegeId = collegeId || user?.college_id;
+    
     // Generate OTP
-    const otp = this.generateOTP();
+    const otp = exports.generateOTP();
     
     // Set expiration (10 minutes from now)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
@@ -42,7 +48,7 @@ exports.createAndSendOTP = async (email, userType = "User") => {
     // Create new OTP record
     const passwordReset = await PasswordReset.create({
       email,
-      otp,
+      otpHash: otp,
       expiresAt,
       isUsed: false,
     });
@@ -54,6 +60,7 @@ exports.createAndSendOTP = async (email, userType = "User") => {
         otp,
         userType,
         expiresIn: 10,
+        collegeId: resolvedCollegeId,
       });
       // console.log(`✅ Email sent to: ${email}`);
     } catch (emailError) {
@@ -82,29 +89,63 @@ exports.createAndSendOTP = async (email, userType = "User") => {
  */
 exports.verifyOTP = async (email, otp) => {
   try {
-    // Find OTP record
     const record = await PasswordReset.findOne({
       email,
-      otp,
-      isUsed: false,
+      expiresAt: { $gt: new Date() },
     });
 
-    // Check if record exists
     if (!record) {
       return {
         valid: false,
         message: "Invalid OTP",
+        code: "INVALID_OTP",
       };
     }
 
-    // Check if expired
-    if (!record.isValid()) {
-      // Delete expired OTP
-      await PasswordReset.deleteOne({ _id: record._id });
-      
+    if (record.isUsed) {
+      if (record.failedAttempts >= record.maxAttempts) {
+        return {
+          valid: false,
+          message: "OTP blocked",
+          code: "OTP_MAX_ATTEMPTS",
+        };
+      }
       return {
         valid: false,
-        message: "OTP expired. Please request a new one.",
+        message: "Invalid OTP",
+        code: "INVALID_OTP",
+      };
+    }
+
+    if (record.failedAttempts >= record.maxAttempts) {
+      return {
+        valid: false,
+        message: "OTP blocked",
+        code: "OTP_MAX_ATTEMPTS",
+      };
+    }
+
+    const isMatch = await record.compareOTP(otp);
+    if (!isMatch) {
+      const updated = await PasswordReset.findOneAndUpdate(
+        { _id: record._id },
+        { $inc: { failedAttempts: 1 } },
+        { new: true },
+      );
+
+      if (updated.failedAttempts >= updated.maxAttempts) {
+        await PasswordReset.findByIdAndUpdate(record._id, { isUsed: true });
+        return {
+          valid: false,
+          message: "OTP blocked",
+          code: "OTP_MAX_ATTEMPTS",
+        };
+      }
+
+      return {
+        valid: false,
+        message: "Invalid OTP",
+        code: "INVALID_OTP",
       };
     }
 

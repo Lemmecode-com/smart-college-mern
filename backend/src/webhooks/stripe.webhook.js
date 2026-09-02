@@ -206,6 +206,7 @@ exports.handleStripeWebhook = async (req, res) => {
                 totalFee: studentFee.totalFee,
                 paidAmount: studentFee.paidAmount,
                 remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+                collegeId: student.college_id?._id || student.college_id,
               });
 
               // Mark email as sent
@@ -245,27 +246,24 @@ exports.handleStripeWebhook = async (req, res) => {
           return res.send("Already paid (email checked)");
         }
 
-        // 🔒 IDEMPOTENCY: Check if stripeSessionId already matches (Layer 2)
-        if (installment.stripeSessionId === session.id) {
-          logger.logWarning(
-            "⚠️ Webhook already processed (duplicate session ID)",
-            {
-              studentId,
-              stripeSessionId: session.id,
-            },
-          );
-          return res.send("Already processed");
-        }
+        // 🔒 IDEMPOTENCY: Check if already paid (Layer 1 - handles case where confirm-payment already processed)
+        // Note: Layer 2 (stripeSessionId check) removed - it was causing early-return before payment verification
+        // The atomic update with status:PENDING check handles race conditions
 
         // 🔒 IDEMPOTENCY: Atomic update to prevent race conditions
-        // Only update if status is still PENDING (handles concurrent webhook calls)
+        // Only update if status is still PENDING (primary idempotency guard)
+        // Note: stripeSessionId was set during create-checkout-session, so $ne check is INVALID
+
+        const webhookStartTime = Date.now();
+
+        const webhookUpdateQuery = {
+          _id: studentFee._id,
+          "installments._id": installment._id,
+          "installments.status": "PENDING",
+        };
+
         const updateResult = await StudentFee.updateOne(
-          {
-            _id: studentFee._id,
-            "installments._id": installment._id,
-            "installments.status": "PENDING", // ← Atomic condition
-            "installments.stripeSessionId": { $ne: session.id }, // ← Prevent duplicate session processing
-          },
+          webhookUpdateQuery,
           {
             $set: {
               "installments.$.status": "PAID",
@@ -294,10 +292,19 @@ exports.handleStripeWebhook = async (req, res) => {
           return res.send("Already processed (race condition prevented)");
         }
 
+        // 🔒 Recalculate paidAmount from all PAID installments (source of truth)
+        const updatedFee = await StudentFee.findById(studentFee._id);
+        updatedFee.paidAmount = updatedFee.installments
+          .filter((i) => i.status === "PAID")
+          .reduce((sum, i) => sum + i.amount, 0);
+        await updatedFee.save();
+
         logger.logInfo("✅ Payment recorded atomically via webhook", {
           studentId,
           sessionId: session.id,
           paymentIntent: session.payment_intent,
+          paidAmount: updatedFee.paidAmount,
+          remainingAmount: updatedFee.totalFee - updatedFee.paidAmount,
         });
 
         // 📧 WEBHOOK PRIMARY: Send receipt email (source of truth)
@@ -316,22 +323,16 @@ exports.handleStripeWebhook = async (req, res) => {
                 paidAt: new Date(),
                 transactionId: session.payment_intent,
               },
-              totalFee: studentFee.totalFee,
-              paidAmount: studentFee.paidAmount,
-              remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+              totalFee: updatedFee.totalFee,
+              paidAmount: updatedFee.paidAmount,
+              remainingAmount: updatedFee.totalFee - updatedFee.paidAmount,
+              collegeId: student.college_id?._id || student.college_id,
             });
 
             // Mark email as sent in database (tracks that webhook sent it)
             await StudentFee.updateOne(
-              {
-                _id: studentFee._id,
-                "installments._id": installment._id,
-              },
-              {
-                $set: {
-                  "installments.$.receiptEmailSentAt": new Date(),
-                },
-              },
+              { _id: studentFee._id, "installments._id": installment._id },
+              { $set: { "installments.$.receiptEmailSentAt": new Date() } },
             );
 
             logger.logInfo("✅ Receipt email sent by webhook (primary)", {

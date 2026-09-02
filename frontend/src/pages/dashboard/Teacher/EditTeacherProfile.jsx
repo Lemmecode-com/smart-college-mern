@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ChangeEmailModal from "../../../components/ChangeEmailModal";
 import {
   FaUserTie,
   FaEnvelope,
@@ -21,7 +22,7 @@ import {
   FaCalendarAlt,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 // Brand Colors
@@ -54,7 +55,7 @@ export default function EditTeacherProfile() {
 
   const [form, setForm] = useState({
     name: "",
-    email: "",
+    email: "", // display only — not sent in profile update payload
     employeeId: "",
     designation: "",
     qualification: "",
@@ -76,6 +77,8 @@ export default function EditTeacherProfile() {
     action: null,
   });
 
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
@@ -84,16 +87,10 @@ export default function EditTeacherProfile() {
     fetchProfile();
   }, []);
 
-  // Track unsaved changes
+  // Track unsaved changes (email excluded — changed via ChangeEmailModal only)
   useEffect(() => {
     if (!loading) {
-      const editableFields = [
-        "name",
-        "email",
-        "experienceYears",
-        "mobileNumber",
-        "joiningDate",
-      ];
+      const editableFields = ["name", "experienceYears", "mobileNumber", "joiningDate"];
       const hasChanges = editableFields.some(
         (key) => form[key] !== "" && form[key] !== null,
       );
@@ -143,11 +140,6 @@ export default function EditTeacherProfile() {
         if (!value || value.trim().length < 3)
           return "Name must be at least 3 characters";
         break;
-      case "email":
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!value || !emailRegex.test(value))
-          return "Please enter a valid email address";
-        break;
       case "experienceYears":
         const exp = parseInt(value);
         if (isNaN(exp) || exp < 0 || exp > 50)
@@ -168,13 +160,8 @@ export default function EditTeacherProfile() {
 
   const validateForm = () => {
     const errors = {};
-    const editableFields = [
-      "name",
-      "email",
-      "experienceYears",
-      "mobileNumber",
-      "joiningDate",
-    ];
+    // email is NOT validated here — it is changed only via ChangeEmailModal
+    const editableFields = ["name", "experienceYears", "mobileNumber", "joiningDate"];
 
     editableFields.forEach((key) => {
       const error = validateField(key, form[key]);
@@ -221,9 +208,9 @@ export default function EditTeacherProfile() {
     setSaving(true);
 
     try {
+      // email is intentionally excluded — must go through /api/auth/change-email flow
       const payload = {
         name: form.name.trim(),
-        email: form.email.trim().toLowerCase(),
         experienceYears: parseInt(form.experienceYears) || 0,
         mobileNumber: form.mobileNumber.trim() || null,
         joiningDate: form.joiningDate || null,
@@ -283,19 +270,6 @@ export default function EditTeacherProfile() {
         padding: "2rem 1rem",
       }}
     >
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="colored"
-      />
-
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         {/* Header */}
         <motion.div
@@ -479,7 +453,7 @@ export default function EditTeacherProfile() {
                   )}
                 </div>
 
-                {/* Email */}
+                {/* Email — read-only; change via ChangeEmailModal */}
                 <div>
                   <label
                     htmlFor="email"
@@ -491,45 +465,45 @@ export default function EditTeacherProfile() {
                       marginBottom: "0.5rem",
                     }}
                   >
-                    Email Address <span style={{ color: "#dc3545" }}>*</span>
+                    Email Address{" "}
+                    <span style={{ color: "#64748b", fontWeight: 400 }}>(Read-only)</span>
                   </label>
                   <input
                     type="email"
                     id="email"
                     name="email"
                     value={form.email}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    disabled={saving}
-                    className={`form-control ${
-                      validationErrors.email && touchedFields.email
-                        ? "is-invalid"
-                        : ""
-                    }`}
+                    disabled
+                    readOnly
                     style={{
                       width: "100%",
                       padding: "0.75rem 1rem",
-                      border: `1px solid ${
-                        validationErrors.email && touchedFields.email
-                          ? "#dc3545"
-                          : "#e2e8f0"
-                      }`,
+                      border: "1px solid #e2e8f0",
                       borderRadius: "8px",
                       fontSize: "0.95rem",
+                      backgroundColor: "#f8fafc",
+                      color: "#64748b",
+                      cursor: "not-allowed",
                     }}
-                    placeholder="your.email@example.com"
                   />
-                  {validationErrors.email && touchedFields.email && (
-                    <div
-                      style={{
-                        color: "#dc3545",
-                        fontSize: "0.8rem",
-                        marginTop: "0.25rem",
-                      }}
-                    >
-                      {validationErrors.email}
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary btn-sm mt-2"
+                    onClick={() => setShowChangeEmailModal(true)}
+                    disabled={saving}
+                  >
+                    Change Email
+                  </button>
+                  <small
+                    style={{
+                      display: "block",
+                      color: "#64748b",
+                      fontSize: "0.8rem",
+                      marginTop: "0.25rem",
+                    }}
+                  >
+                    Use "Change Email" to update your email with verification.
+                  </small>
                 </div>
 
                 {/* Employee ID - Read Only */}
@@ -968,11 +942,13 @@ export default function EditTeacherProfile() {
                 paddingTop: "1.5rem",
                 borderTop: "1px solid #e2e8f0",
               }}
+              className="erp-edit-profile-actions"
             >
               <button
                 type="button"
                 onClick={handleBack}
                 disabled={saving}
+                className="erp-edit-profile-cancel-btn"
                 style={{
                   padding: "0.875rem 2rem",
                   backgroundColor: "white",
@@ -993,6 +969,7 @@ export default function EditTeacherProfile() {
               <button
                 type="submit"
                 disabled={saving}
+                className="erp-edit-profile-save-btn"
                 style={{
                   padding: "0.875rem 2.5rem",
                   background: BRAND_COLORS.primary.gradient,
@@ -1058,7 +1035,36 @@ export default function EditTeacherProfile() {
         .form-control.is-invalid:focus {
           box-shadow: 0 0 0 3px #dc354520 !important;
         }
+        @media (max-width: 767.98px) {
+          .erp-edit-profile-actions {
+            flex-direction: column;
+            align-items: stretch;
+            width: 100%;
+            max-width: 100%;
+          }
+          .erp-edit-profile-save-btn,
+          .erp-edit-profile-cancel-btn {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            white-space: nowrap;
+          }
+          .erp-edit-profile-save-btn {
+            order: 1;
+          }
+          .erp-edit-profile-cancel-btn {
+            order: 2;
+          }
+        }
       `}</style>
+
+      <ChangeEmailModal
+        show={showChangeEmailModal}
+        onClose={() => setShowChangeEmailModal(false)}
+        userRole={user?.role}
+        currentEmail={form.email}
+      />
     </motion.div>
   );
 }

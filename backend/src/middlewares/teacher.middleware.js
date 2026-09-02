@@ -4,7 +4,7 @@ const AppError = require("../utils/AppError");
 module.exports = async (req, res, next) => {
   try {
     // Auth must already populate req.user
-    if (!req.user || req.user.role !== "TEACHER") {
+    if (!req.user || !["TEACHER", "HOD"].includes(req.user.role)) {
       throw new AppError("Access denied: teacher only", 403, "TEACHER_ROLE_REQUIRED");
     }
 

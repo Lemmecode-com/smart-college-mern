@@ -4,6 +4,10 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
 
 import {
   FaBook,
@@ -29,6 +33,18 @@ import {
 export default function SubjectList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = useRole();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -45,21 +61,39 @@ export default function SubjectList() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH DEPARTMENTS ================= */
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
         const res = await api.get("/departments");
-        // Handle different API response formats
         const departmentsData = Array.isArray(res.data) ? res.data :
                                 Array.isArray(res.data.departments) ? res.data.departments :
                                 Array.isArray(res.data.data) ? res.data.data : [];
         setDepartments(departmentsData);
       } catch (err) {
-        setError("Failed to load departments. Please try again.");
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage = backendMessage || "Failed to load departments.";
+
+        logger.error("Error fetching departments:", statusCode, errorCode);
+
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
+
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          toast.error(errorMessage);
+        }
       } finally {
         setLoading(false);
       }
@@ -72,7 +106,6 @@ export default function SubjectList() {
   const fetchCourses = async (deptId) => {
     try {
       const res = await api.get(`/courses/department/${deptId}`);
-      // Handle different API response formats
       const coursesData = Array.isArray(res.data) ? res.data :
                           Array.isArray(res.data.courses) ? res.data.courses :
                           Array.isArray(res.data.data) ? res.data.data : [];
@@ -80,7 +113,26 @@ export default function SubjectList() {
       setSelectedCourse("");
       setSubjects([]);
     } catch (err) {
-      setError("Failed to load courses. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load courses.";
+
+      logger.error("Error fetching courses:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
       setCourses([]);
     }
   };
@@ -91,13 +143,31 @@ export default function SubjectList() {
     setError(null);
     try {
       const res = await api.get(`/subjects/course/${courseId}`);
-      // Handle different API response formats
       const subjectsData = Array.isArray(res.data) ? res.data :
                            Array.isArray(res.data.subjects) ? res.data.subjects :
                            Array.isArray(res.data.data) ? res.data.data : [];
       setSubjects(subjectsData);
     } catch (err) {
-      setError("Failed to load subjects. Please try again.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load subjects.";
+
+      logger.error("Error fetching subjects:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
       setSubjects([]);
     } finally {
       setLoadingSubjects(false);
@@ -172,20 +242,18 @@ export default function SubjectList() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Oops! Something went wrong</h3>
-        <p>{error}</p>
-        <button 
-          className="erp-btn erp-btn-primary" 
-          onClick={() => window.location.reload()}
-        >
-          <FaSyncAlt className="erp-btn-icon" />
-          Refresh Page
-        </button>
-      </div>
+      <ApiError
+        title="Subject Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={() => {
+          setError(null);
+          if (selectedDepartment) fetchCourses(selectedDepartment);
+          if (selectedCourse) fetchSubjects(selectedCourse);
+        }}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -199,7 +267,7 @@ export default function SubjectList() {
   const selectedCourseName = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse)?.name || "Select Course" : "Select Course";
 
   return (
-    <div className="erp-container">
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -301,13 +369,15 @@ export default function SubjectList() {
 
             {selectedCourse && (
               <div className="filter-actions">
-                <button
-                  className="add-subject-btn"
-                  onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
-                >
-                  <FaPlus className="erp-btn-icon" />
-                  <span>Add Subject</span>
-                </button>
+                {canCreate('subjects') && (
+                  <button
+                    className="add-subject-btn"
+                    onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
+                  >
+                    <FaPlus className="erp-btn-icon" />
+                    <span>Add Subject</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -342,7 +412,7 @@ export default function SubjectList() {
 
           <div className="erp-card-body">
             {/* TABLE */}
-            <div className="table-container">
+            <div className="erp-table-responsive table-container">
               {loadingSubjects ? (
                 renderSkeleton()
               ) : filteredSubjects.length === 0 ? (
@@ -356,15 +426,15 @@ export default function SubjectList() {
                       ? "No subjects match your search criteria." 
                       : `No subjects found for ${selectedCourseName}.`}
                   </p>
-                  {!searchTerm && (
-                    <button
-                      className="add-subject-btn large"
-                      onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
-                    >
-                      <FaPlus className="erp-btn-icon" />
-                      Add Your First Subject
-                    </button>
-                  )}
+                   {!searchTerm && canCreate('subjects') && (
+                     <button
+                       className="add-subject-btn large"
+                       onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
+                     >
+                       <FaPlus className="erp-btn-icon" />
+                       Add Your First Subject
+                     </button>
+                   )}
                 </div>
               ) : (
                 <table className="erp-table">
@@ -454,20 +524,24 @@ export default function SubjectList() {
                             >
                               <FaEye />
                             </button>
-                            <button 
-                              className="action-btn edit-btn"
-                              title="Edit Subject"
-                              onClick={() => navigate(`/subjects/edit/${subject._id}`)}
-                            >
-                              <FaEdit />
-                            </button>
-                            <button 
-                              className="action-btn delete-btn"
-                              title="Delete Subject"
-                              onClick={() => handleDeleteClick(subject)}
-                            >
-                              <FaTrash />
-                            </button>
+                            {canEdit('subjects') && (
+                              <button 
+                                className="action-btn edit-btn"
+                                title="Edit Subject"
+                                onClick={() => navigate(`/subjects/edit/${subject._id}`)}
+                              >
+                                <FaEdit />
+                              </button>
+                            )}
+                            {canDelete('subjects') && (
+                              <button 
+                                className="action-btn delete-btn"
+                                title="Delete Subject"
+                                onClick={() => handleDeleteClick(subject)}
+                              >
+                                <FaTrash />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -549,13 +623,6 @@ export default function SubjectList() {
           --sidebar-active: rgba(61, 181, 230, 0.2);
           --card-shadow: 0 4px 20px rgba(15, 58, 74, 0.08);
           --card-hover-shadow: 0 8px 30px rgba(15, 58, 74, 0.12);
-        }
-
-        .erp-container {
-          padding: 1.5rem;
-          background: linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%);
-          min-height: 100vh;
-          animation: fadeIn 0.6s ease;
         }
 
         .erp-page-header {
@@ -1524,10 +1591,6 @@ export default function SubjectList() {
         }
         
         @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-          
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;

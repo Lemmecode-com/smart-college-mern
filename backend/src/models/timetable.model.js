@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-
 const TimetableSchema = new mongoose.Schema(
   {
     college_id: {
@@ -23,6 +22,16 @@ const TimetableSchema = new mongoose.Schema(
     semester: {
       type: Number,
       required: true,
+    },
+
+    division: {
+      type: String,
+      default: null,
+      trim: true,
+      set: (v) => {
+        if (v === null || v === undefined || v === "") return v;
+        return String(v).trim().toUpperCase();
+      },
     },
 
     academicYear: {
@@ -121,7 +130,34 @@ const TimetableSchema = new mongoose.Schema(
 
 // ================= INDEXES =================
 
-// Unique constraint: One timetable per department/course/semester/year
+// Partial unique constraint: only ONE non-ARCHIVED timetable per academic
+// context. ARCHIVED timetables are historical records and must NOT block
+// creation of a new active/draft timetable for the same context.
+//
+// NOTE: MongoDB does not allow mixing "partialFilterExpression" with "sparse",
+// and "$ne" is not supported in partial indexes. So the null-division case is
+// handled explicitly via $type: "string" (division present) vs division: null
+// (division absent), instead of the sparse flag.
+TimetableSchema.index(
+  {
+    college_id: 1,
+    department_id: 1,
+    course_id: 1,
+    semester: 1,
+    academicYear: 1,
+    division: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      division: { $type: "string" },
+      status: { $in: ["DRAFT", "PUBLISHED"] },
+    },
+    name: "uniq_active_timetable_with_division",
+  },
+);
+
+// Backward-compatible partial index for timetables without division (division: null)
 TimetableSchema.index(
   {
     college_id: 1,
@@ -130,8 +166,18 @@ TimetableSchema.index(
     semester: 1,
     academicYear: 1,
   },
-  { unique: true },
+  {
+    unique: true,
+    partialFilterExpression: {
+      division: null,
+      status: { $in: ["DRAFT", "PUBLISHED"] },
+    },
+    name: "uniq_active_timetable_no_division",
+  },
 );
+
+// Index for division-based student timetable lookups
+TimetableSchema.index({ college_id: 1, course_id: 1, semester: 1, division: 1, status: 1 });
 
 // Index for date-range queries (finding active timetables)
 TimetableSchema.index({ college_id: 1, startDate: 1, endDate: 1, status: 1 });
@@ -147,19 +193,17 @@ TimetableSchema.index({ course_id: 1, status: 1 });
 
 // ================= PRE-SAVE VALIDATION =================
 
-TimetableSchema.pre("save", function (next) {
-  // Validate date range length (max 2 years)
+TimetableSchema.pre("save", function () {
   if (this.startDate && this.endDate) {
     const start = new Date(this.startDate);
     const end = new Date(this.endDate);
     const diffYears = (end - start) / (1000 * 60 * 60 * 24 * 365);
 
     if (diffYears > 2) {
-      return next(new Error("Timetable date range cannot exceed 2 years"));
+      throw new Error("Timetable date range cannot exceed 2 years");
     }
   }
 
-  // Trim metadata
   if (this.metadata && typeof this.metadata === "object") {
     Object.keys(this.metadata).forEach((key) => {
       if (typeof this.metadata[key] === "string") {
@@ -167,8 +211,6 @@ TimetableSchema.pre("save", function (next) {
       }
     });
   }
-
-  next();
 });
 
 module.exports = mongoose.model("Timetable", TimetableSchema);

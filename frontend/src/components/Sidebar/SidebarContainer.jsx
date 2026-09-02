@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../../auth/AuthContext";
 import { toast } from "react-toastify";
 import { Offcanvas } from "react-bootstrap";
-import { FaGraduationCap } from "react-icons/fa";
 import SidebarNav from "./SidebarNav";
 import SidebarLogo from "./SidebarLogo";
 import SidebarFooter from "./SidebarFooter";
@@ -183,12 +182,13 @@ export default function SidebarContainer({
         scroll={true}
         aria-label={ARIA_LABELS.MOBILE_NAVIGATION}
       >
-        <Offcanvas.Header closeButton className="border-0 pb-0">
+        <Offcanvas.Header closeButton className="border-0 pb-0 offcanvas-header-brand">
           <Offcanvas.Title>
-            <div className="d-flex align-items-center gap-2">
-              <FaGraduationCap size={24} className="text-primary" />
-              <span className="fw-bold">NOVAA</span>
-            </div>
+            <img
+              src="/novaaa.png"
+              alt="NOVAA"
+              className="offcanvas-logo-image"
+            />
           </Offcanvas.Title>
         </Offcanvas.Header>
         <Offcanvas.Body className="p-0">

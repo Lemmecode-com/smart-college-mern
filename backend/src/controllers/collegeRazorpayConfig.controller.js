@@ -33,6 +33,7 @@ exports.getRazorpayConfig = async (req, res, next) => {
       return res.status(200).json({
         success: true,
         configured: false,
+        isActive: false,
         message: "Razorpay is not configured for this college",
       });
     }
@@ -42,13 +43,14 @@ exports.getRazorpayConfig = async (req, res, next) => {
     res.status(200).json({
       success: true,
       configured: true,
+      isActive: config.isActive,
       config: {
         id: config._id,
         gatewayCode: config.gatewayCode,
         credentials: {
-          keyId: config.credentials.keyId,
-          hasSecret: !!config.credentials.keySecret,
-          hasWebhookSecret: !!config.credentials.webhookSecret,
+          keyId: config.credentials?.keyId,
+          hasSecret: !!config.credentials?.keySecret,
+          hasWebhookSecret: !!config.credentials?.webhookSecret,
         },
         configuration: config.configuration,
         isActive: config.isActive,
@@ -57,6 +59,73 @@ exports.getRazorpayConfig = async (req, res, next) => {
         updatedAt: config.updatedAt,
         isTestMode,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Toggle Razorpay active status
+ * @route PATCH /api/admin/razorpay/config/status
+ * @access Private (College Admin)
+ */
+exports.toggleRazorpayActive = async (req, res, next) => {
+  try {
+    const collegeId = req.college_id;
+    const { isActive } = req.body;
+
+    if (typeof isActive !== "boolean") {
+      throw new AppError(
+        "isActive must be a boolean value",
+        400,
+        "VALIDATION_ERROR",
+      );
+    }
+
+    let config = await CollegePaymentConfig.findOne({
+      collegeId,
+      gatewayCode: "razorpay",
+    });
+
+    if (!config) {
+      config = await CollegePaymentConfig.create({
+        collegeId,
+        gatewayCode: "razorpay",
+        isActive,
+        credentials: {
+          keyId: "temp_" + Date.now(),
+          keySecret: "temp_" + Date.now(),
+        },
+        configuration: {
+          currency: "INR",
+          enabled: isActive,
+          testMode: true,
+        },
+      });
+    } else {
+      config.isActive = isActive;
+      config.configuration.enabled = isActive;
+      config.configuration.currency = config.configuration.currency || "INR";
+      config.configuration.testMode = config.configuration.testMode ?? true;
+      await config.save();
+    }
+
+    if (!isActive) {
+      invalidateRazorpayInstanceCache(collegeId.toString());
+    }
+
+    logger.logInfo("Razorpay active status toggled", {
+      collegeId,
+      isActive,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: isActive
+        ? "Razorpay gateway enabled"
+        : "Razorpay gateway disabled",
+      isActive: config.isActive,
     });
   } catch (error) {
     next(error);

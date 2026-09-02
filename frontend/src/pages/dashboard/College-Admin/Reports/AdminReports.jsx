@@ -1,5 +1,10 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { showSuccess, showError } from "../../../../utils/toast";
 import { toast } from "react-toastify";
+import ApiError from "../../../../components/ApiError";
+import { logger } from "../../../../utils/logger";
+
+const PAGE_LOAD_TOAST_ID = "college-admin-reports-load";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
@@ -10,25 +15,15 @@ import {
   FaHourglassHalf,
   FaChartPie,
   FaSyncAlt,
-  FaExclamationTriangle,
   FaInfoCircle,
   FaGraduationCap,
-  FaArrowLeft,
   FaUniversity,
+  FaTimesCircle,
 } from "react-icons/fa";
 
 /* ================= CONSTANTS & CONFIGURATION ================= */
 const CONFIG = {
   MAX_RETRY: 3,
-  TOAST: {
-    position: "top-right",
-    autoClose: 3000,
-    hideProgressBar: true,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-    theme: "colored",
-  },
   THEME: {
     PRIMARY: "#0f3a4a",
     PRIMARY_DARK: "#0c2d3a",
@@ -41,63 +36,93 @@ const CONFIG = {
   },
 };
 
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 /* ================= MODULE-LEVEL FLAG (Persists across re-renders) ================= */
-let hasFetchedData = false;
 
 export default function AdminReports() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [lastRefresh, setLastRefresh] = useState(null);
   const hasLoadedRef = useRef(false);
+  const fetchIdRef = useRef(0);
 
   /* ================= FETCH ADMISSION SUMMARY ================= */
   const fetchSummary = useCallback(async () => {
-    // Prevent duplicate fetches - check both module flag and ref
-    if (hasFetchedData || hasLoadedRef.current) {
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+
+    if (hasLoadedRef.current && currentFetchId === fetchIdRef.current) {
       return;
     }
-    
+
     try {
       setLoading(true);
-      setError("");
+      setError(null);
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       const res = await api.get("/reports/admissions/college-admin-summary");
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       setData(res.data);
       setRetryCount(0);
-      
-      // Show success toast with unique ID to prevent duplicates
+      setLastRefresh(new Date());
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
       toast.success("Admission reports loaded successfully!", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-success",
+        toastId: PAGE_LOAD_TOAST_ID,
+        autoClose: 3000,
       });
-      
-      // Set both flags to prevent any duplicate calls
-      hasFetchedData = true;
-      hasLoadedRef.current = true;
     } catch (err) {
-      console.error("Reports fetch error:", err);
-      setError(
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      logger.error("Reports fetch error:", statusCode, errorCode);
+      const errorMessage =
         err.response?.data?.message ||
-          "Failed to load admission summary. Please try again.",
-      );
-      // Show error toast with unique ID to prevent duplicates
-      toast.error("Failed to load admission reports.", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-error",
-      });
-      hasFetchedData = true;
-      hasLoadedRef.current = true;
+        "Failed to load admission summary. Please try again.";
+      setError({ message: errorMessage, statusCode, errorCode });
+
+      if (currentFetchId !== fetchIdRef.current) return;
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        showError("Failed to load admission reports.");
+      }
     } finally {
-      setLoading(false);
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+        hasLoadedRef.current = true;
+      }
     }
   }, []);
 
+  const handleRefresh = useCallback(() => {
+    hasLoadedRef.current = false;
+    fetchSummary();
+  }, [fetchSummary]);
+
   useEffect(() => {
     fetchSummary();
-    // Cleanup function to reset flags on unmount - fixes blank page on second navigation
     return () => {
-      hasFetchedData = false;
       hasLoadedRef.current = false;
+      toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -106,16 +131,11 @@ export default function AdminReports() {
   const handleRetry = useCallback(() => {
     if (retryCount < CONFIG.MAX_RETRY) {
       setRetryCount((prev) => prev + 1);
-      // Reset both flags to allow retry
-      hasFetchedData = false;
       hasLoadedRef.current = false;
       fetchSummary();
     } else {
-      toast.error("Maximum retry attempts reached.", {
-        ...CONFIG.TOAST,
-        toastId: "admin-reports-max-retry",
-      });
-      setError("Maximum retry attempts reached. Please check your connection.");
+      showError("Maximum retry attempts reached.");
+      setError({ message: "Maximum retry attempts reached. Please check your connection." });
     }
   }, [retryCount, fetchSummary]);
 
@@ -139,6 +159,12 @@ export default function AdminReports() {
           ? `${Math.round((data.pending / data.total) * 100)}%`
           : "0%",
       },
+      {
+        metric: "Rejected Rate",
+        value: data.rejected && data.total
+          ? `${Math.round((data.rejected / data.total) * 100)}%`
+          : "0%",
+      },
     ];
   };
 
@@ -151,6 +177,7 @@ export default function AdminReports() {
       ["Total Students", data.total || 0],
       ["Approved Students", data.approved || 0],
       ["Pending Approvals", data.pending || 0],
+      ["Rejected", data.rejected || 0],
       [
         "Approval Rate",
         data.approved && data.total
@@ -161,6 +188,12 @@ export default function AdminReports() {
         "Pending Rate",
         data.pending && data.total
           ? `${Math.round((data.pending / data.total) * 100)}%`
+          : "0%",
+      ],
+      [
+        "Rejected Rate",
+        data.rejected && data.total
+          ? `${Math.round((data.rejected / data.total) * 100)}%`
           : "0%",
       ],
     ];
@@ -185,46 +218,40 @@ export default function AdminReports() {
 
   /* ================= CALCULATED METRICS (MEMOIZED) ================= */
   const approvalRate = useMemo(() => 
-    data?.approved && data?.total
-      ? Math.round((data.approved / data.total) * 100)
+    data?.approved && data?.totalApplications
+      ? Math.round((data.approved / data.totalApplications) * 100)
       : 0,
-    [data?.approved, data?.total]
+    [data?.approved, data?.totalApplications]
   );
 
   const pendingRate = useMemo(() =>
-    data?.pending && data?.total
-      ? Math.round((data.pending / data.total) * 100)
+    data?.pending && data?.totalApplications
+      ? Math.round((data.pending / data.totalApplications) * 100)
       : 0,
-    [data?.pending, data?.total]
+    [data?.pending, data?.totalApplications]
+  );
+
+  const rejectedRate = useMemo(() =>
+    data?.rejected && data?.totalApplications
+      ? Math.round((data.rejected / data.totalApplications) * 100)
+      : 0,
+    [data?.rejected, data?.totalApplications]
   );
 
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle className="shake" />
-        </div>
-        <h3>Reports Loading Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => window.history.back()}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            Go Back
-          </button>
-          <button
-            className="erp-btn erp-btn-primary"
-            onClick={handleRetry}
-            disabled={retryCount >= CONFIG.MAX_RETRY}
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            {retryCount >= CONFIG.MAX_RETRY ? "Max Retries" : `Retry (${retryCount}/${CONFIG.MAX_RETRY})`}
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Reports Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => window.history.back()}
+        retryCount={retryCount}
+        maxRetry={3}
+        isRetryLoading={loading}
+      />
     );
   }
 
@@ -277,15 +304,6 @@ export default function AdminReports() {
               showExcel={true}
             />
           </div>
-          <button
-            className="btn-refresh"
-            onClick={fetchSummary}
-            title="Refresh report data"
-            aria-label="Refresh admission reports"
-          >
-            <FaSyncAlt className="spin-icon" />
-            <span>Refresh</span>
-          </button>
         </div>
       </div>
 
@@ -359,6 +377,25 @@ export default function AdminReports() {
             </div>
           </div>
         </div>
+
+        {/* REJECTED STUDENTS */}
+        <div className="stat-card">
+          <div className="stat-card-header">
+            <div className="stat-icon-wrapper rejected">
+              <FaTimesCircle className="stat-icon" />
+            </div>
+            <div className="stat-title">Rejected Applications</div>
+          </div>
+          <div className="stat-card-body">
+            <div className="stat-value rejected">
+              {data.rejected?.toLocaleString() || 0}
+            </div>
+            <div className="stat-trend negative">
+              <FaTimesCircle className="trend-icon" />
+              Rejected Rate: {rejectedRate}%
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* DETAILED METRICS SECTION */}
@@ -394,6 +431,19 @@ export default function AdminReports() {
                 <div className="metric-value">{pendingRate}%</div>
                 <div className="metric-description">
                   {data.pending || 0} applications awaiting review
+                </div>
+              </div>
+            </div>
+
+            <div className="metric-item">
+              <div className="metric-icon rejected">
+                <FaTimesCircle />
+              </div>
+              <div className="metric-content">
+                <div className="metric-label">Rejected Rate</div>
+                <div className="metric-value">{rejectedRate}%</div>
+                <div className="metric-description">
+                  {data.rejected || 0} applications not approved
                 </div>
               </div>
             </div>
@@ -454,6 +504,20 @@ export default function AdminReports() {
               ></div>
             </div>
 
+            <div className="status-item rejected">
+              <div className="status-icon">
+                <FaTimesCircle />
+              </div>
+              <div className="status-content">
+                <div className="status-count">{data.rejected || 0}</div>
+                <div className="status-label">Rejected</div>
+              </div>
+              <div
+                className="status-bar"
+                style={{ width: `${rejectedRate}%` }}
+              ></div>
+            </div>
+
             <div className="status-item total">
               <div className="status-icon">
                 <FaUsers />
@@ -480,6 +544,10 @@ export default function AdminReports() {
                 <span className="legend-color pending"></span>
                 Pending
               </span>
+              <span className="legend-item rejected">
+                <span className="legend-color rejected"></span>
+                Rejected
+              </span>
             </div>
           </div>
         </div>
@@ -488,17 +556,17 @@ export default function AdminReports() {
       {/* FOOTER NOTE */}
       <div className="footer-note animate-fade-in">
         <FaInfoCircle className="note-icon" />
-        <span>
-          This report shows real-time admission status for your college. Data is
-          automatically updated. Last refreshed: {new Date().toLocaleString()}
-        </span>
-        <button
-          className="refresh-btn"
-          onClick={fetchSummary}
-          title="Refresh data"
-        >
-          <FaSyncAlt className="refresh-icon spin" />
-        </button>
+          <span>
+            This report shows real-time admission status for your college. Data is
+            automatically updated. Last refreshed: {lastRefresh ? lastRefresh.toLocaleString() : "Never"}
+          </span>
+          <button
+            className="refresh-btn"
+            onClick={handleRefresh}
+            title="Refresh data"
+          >
+            <FaSyncAlt className="refresh-icon spin" />
+          </button>
       </div>
 
       {/* STYLES */}
@@ -785,6 +853,8 @@ export default function AdminReports() {
           display: flex;
           flex-direction: column;
           animation: fadeIn 0.5s ease forwards;
+          height: 88%;
+          width: 90%;
         }
 
         .stat-card:hover {
@@ -800,6 +870,9 @@ export default function AdminReports() {
         }
         .stat-card:nth-child(3) {
           animation-delay: 0.3s;
+        }
+        .stat-card:nth-child(4) {
+          animation-delay: 0.4s;
         }
 
         .stat-card-header {
@@ -829,6 +902,9 @@ export default function AdminReports() {
         }
         .stat-icon-wrapper.pending {
           background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+        .stat-icon-wrapper.rejected {
+          background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
         }
 
         .stat-icon {
@@ -864,6 +940,9 @@ export default function AdminReports() {
         .stat-value.pending {
           color: #ff9800;
         }
+        .stat-value.rejected {
+          color: #dc3545;
+        }
 
         .stat-trend {
           display: flex;
@@ -878,6 +957,9 @@ export default function AdminReports() {
         }
         .stat-trend.warning {
           color: #ff9800;
+        }
+        .stat-trend.negative {
+          color: #dc3545;
         }
         .stat-trend.neutral {
           color: #6c757d;
@@ -962,6 +1044,10 @@ export default function AdminReports() {
           background: rgba(255, 152, 0, 0.15);
           color: #ff9800;
         }
+        .metric-icon.rejected {
+          background: rgba(220, 53, 69, 0.15);
+          color: #dc3545;
+        }
         .metric-icon.total {
           background: rgba(102, 126, 234, 0.15);
           color: #667eea;
@@ -1026,6 +1112,9 @@ export default function AdminReports() {
         .status-item.pending::before {
           --status-color: #ff9800;
         }
+        .status-item.rejected::before {
+          --status-color: #dc3545;
+        }
         .status-item.total::before {
           --status-color: #667eea;
         }
@@ -1048,6 +1137,10 @@ export default function AdminReports() {
         .status-item.pending .status-icon {
           background: rgba(255, 152, 0, 0.15);
           color: #ff9800;
+        }
+        .status-item.rejected .status-icon {
+          background: rgba(220, 53, 69, 0.15);
+          color: #dc3545;
         }
         .status-item.total .status-icon {
           background: rgba(102, 126, 234, 0.15);
@@ -1085,6 +1178,9 @@ export default function AdminReports() {
         }
         .status-item.pending .status-bar {
           --bar-color: #ff9800;
+        }
+        .status-item.rejected .status-bar {
+          --bar-color: #dc3545;
         }
         .status-item.total .status-bar {
           --bar-color: #667eea;
@@ -1141,6 +1237,9 @@ export default function AdminReports() {
         }
         .legend-color.pending {
           background: #ff9800;
+        }
+        .legend-color.rejected {
+          background: #dc3545;
         }
 
         /* FOOTER NOTE */

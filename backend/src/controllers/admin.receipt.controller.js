@@ -23,7 +23,8 @@ exports.getAdminReceipt = async (req, res, next) => {
           model: "Department",
         },
       })
-      .populate("college_id");
+      .populate("college_id")
+      .populate("installments.markedByAdmin", "fullName email");
 
     if (!studentFee) {
       throw new AppError("Receipt not found", 404, "RECEIPT_NOT_FOUND");
@@ -52,6 +53,10 @@ exports.getAdminReceipt = async (req, res, next) => {
       paidAt: installment.paidAt,
       status: "SUCCESS",
       paymentGateway: installment.paymentGateway || "STRIPE",
+      paymentMode: installment.paymentMode || "ONLINE",
+      referenceNumber: installment.referenceNumber || null,
+      remarks: installment.remarks || null,
+      markedByAdmin: installment.markedByAdmin || null,
 
       student: {
         name: studentFee.student_id?.fullName || "N/A",

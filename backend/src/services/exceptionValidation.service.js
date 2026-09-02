@@ -1,5 +1,6 @@
 const TimetableSlot = require("../models/timetableSlot.model");
 const TimetableException = require("../models/timetableException.model");
+const Leave = require("../models/leave.model");
 const { parseLocalDateSafe } = require("../utils/date.utils");
 
 
@@ -332,6 +333,24 @@ exports.checkTeacherAvailability = async (teacherId, date, collegeId) => {
       return {
         available: false,
         reason: "Teacher has cancelled classes on this date",
+      };
+    }
+
+    // Check if teacher has an approved Leave covering this date
+    const approvedLeave = await Leave.findOne({
+      college_id: collegeId,
+      teacher_id: teacherId,
+      status: "APPROVED",
+      startDate: { $lte: dateObj },
+      endDate: { $gte: dateObj },
+      isActive: true,
+    });
+
+    if (approvedLeave) {
+      return {
+        available: false,
+        reason: `Teacher is on approved ${approvedLeave.leaveType} leave`,
+        leaveType: approvedLeave.leaveType,
       };
     }
 

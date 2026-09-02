@@ -37,6 +37,7 @@ const Teacher = require("../src/models/teacher.model");
 const Subject = require("../src/models/subject.model");
 const FeeStructure = require("../src/models/feeStructure.model");
 const DocumentConfig = require("../src/models/documentConfig.model");
+const StudentFee = require("../src/models/studentFee.model");
 
 // ==========================================
 // CONFIGURATION
@@ -121,6 +122,7 @@ const stats = {
   courses: { created: 0, existing: 0, errors: 0 },
   teachers: { created: 0, existing: 0, errors: 0 },
   students: { created: 0, existing: 0, errors: 0 },
+  payments: { created: 0, errors: 0 },
   startTime: Date.now()
 };
 
@@ -440,6 +442,87 @@ async function seedStudents() {
   }
 }
 
+async function seedPayments() {
+  if (!config._colleges || config._colleges.length === 0) {
+    log("No colleges available for payment seeding", "warning");
+    return;
+  }
+
+  log("\n💳 Seeding Sample Payment Data...", "info");
+
+  const college = config._colleges[0];
+  const students = await Student.find({ college_id: college._id }).limit(10);
+
+  if (students.length === 0) {
+    log("No students available for payment seeding", "warning");
+    return;
+  }
+
+  // Sample fee structures
+  const feeStructures = await FeeStructure.find({ college_id: college._id });
+
+  for (const student of students) {
+    try {
+      // Check if student already has fee data
+      const existingFee = await StudentFee.findOne({ student_id: student._id });
+      if (existingFee) continue;
+
+      // Create sample fee structure with installments
+      const totalFee = Math.floor(Math.random() * 50000) + 20000; // 20k-70k
+
+      const installments = [];
+      const numInstallments = Math.floor(Math.random() * 3) + 3; // 3-5 installments
+      const installmentAmount = Math.floor(totalFee / numInstallments);
+
+      for (let i = 0; i < numInstallments; i++) {
+        const dueDate = new Date(2026, i, 15); // Due dates throughout 2026
+        let status = "PENDING";
+        let paidAt = null;
+
+        // Make some installments paid (about 60% chance)
+        if (Math.random() > 0.4) {
+          status = "PAID";
+          // Random payment date within the last few months
+          const paymentMonth = Math.floor(Math.random() * 5); // 0-4 months ago
+          paidAt = new Date(2026, 11 - paymentMonth, Math.floor(Math.random() * 28) + 1);
+        }
+
+        installments.push({
+          name: `Installment ${i + 1}`,
+          amount: installmentAmount,
+          dueDate,
+          status,
+          paidAt,
+          paymentMode: status === "PAID" ? (Math.random() > 0.5 ? "ONLINE" : "CASH") : "ONLINE",
+          paymentGateway: "STRIPE",
+          transactionId: status === "PAID" ? `TXN_${Math.random().toString(36).substr(2, 9).toUpperCase()}` : undefined
+        });
+      }
+
+      // Calculate paid amount
+      const paidAmount = installments
+        .filter(inst => inst.status === "PAID")
+        .reduce((sum, inst) => sum + inst.amount, 0);
+
+      await StudentFee.create({
+        student_id: student._id,
+        college_id: college._id,
+        course_id: student.course_id,
+        totalFee,
+        paidAmount,
+        installments
+      });
+
+      log(`Created payment data for ${student.fullName}`, "create");
+      stats.payments = stats.payments || { created: 0 };
+      stats.payments.created++;
+
+    } catch (err) {
+      log(`Failed to create payment data for ${student.fullName}: ${err.message}`, "error");
+    }
+  }
+}
+
 async function seedFeeStructures() {
   if (!config._colleges || config._colleges.length === 0) {
     return;
@@ -588,6 +671,7 @@ async function runSeed() {
     if (config.mode === "full") {
       await seedTeachers();
       await seedStudents();
+      await seedPayments();
       await seedFeeStructures();
       await seedDocumentConfigs();
     }
@@ -595,6 +679,7 @@ async function runSeed() {
     if (config.mode === "users") {
       await seedTeachers();
       await seedStudents();
+      await seedPayments();
     }
 
     // Final summary
@@ -609,6 +694,7 @@ async function runSeed() {
     console.log(`✅ Courses: ${stats.courses.created} created, ${stats.courses.existing} existing, ${stats.courses.errors} errors`);
     console.log(`✅ Teachers: ${stats.teachers.created} created, ${stats.teachers.existing} existing, ${stats.teachers.errors} errors`);
     console.log(`✅ Students: ${stats.students.created} created, ${stats.students.existing} existing, ${stats.students.errors} errors`);
+    console.log(`💳 Payments: ${stats.payments?.created || 0} created, ${stats.payments?.errors || 0} errors`);
     console.log(`⏱️  Duration: ${duration}s`);
     console.log("=".repeat(70));
 

@@ -1,9 +1,11 @@
 const FeeStructure = require("../../src/models/feeStructure.model");
 const Course = require("../../src/models/course.model");
+const Student = require("../../src/models/student.model");
 const StudentFee = require("../../src/models/studentFee.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
+const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/validators");
 
 /**
  * CREATE Fee Structure
@@ -55,12 +57,28 @@ exports.createFeeStructure = async (req, res, next) => {
       );
     }
 
+    for (const inst of installments) {
+      if (!validateExpiryDate(inst.dueDate)) {
+        throw new AppError(
+          "Installment due date cannot be earlier than today",
+          400,
+          "PAST_DUE_DATE",
+        );
+      }
+    }
+
+    // Auto-assign order based on index if not provided
+    const installmentsWithOrder = installments.map((i, idx) => ({
+      ...i,
+      order: i.order || idx + 1,
+    }));
+
     const feeStructure = await FeeStructure.create({
       college_id: req.college_id,
       course_id,
       category,
       totalFee,
-      installments,
+      installments: installmentsWithOrder,
     });
 
     // 📝 Audit log - Fee structure creation
@@ -127,8 +145,40 @@ exports.updateFeeStructure = async (req, res, next) => {
       );
     }
 
+    const existingInstallmentsMap = new Map();
+    for (const inst of feeStructure.installments) {
+      existingInstallmentsMap.set(inst._id.toString(), inst);
+    }
+
+    for (const inst of installments) {
+      const existingInst = inst._id
+        ? existingInstallmentsMap.get(inst._id.toString())
+        : null;
+
+      if (existingInst) {
+        const oldDueDate = new Date(existingInst.dueDate);
+        if (oldDueDate < new Date()) {
+          continue;
+        }
+      }
+
+      if (!validateExpiryDate(inst.dueDate)) {
+        throw new AppError(
+          "Installment due date cannot be earlier than today",
+          400,
+          "PAST_DUE_DATE",
+        );
+      }
+    }
+
     feeStructure.totalFee = totalFee;
-    feeStructure.installments = installments;
+
+    const installmentsWithOrder = installments.map((i, idx) => ({
+      ...i,
+      order: i.order || idx + 1,
+    }));
+
+    feeStructure.installments = installmentsWithOrder;
 
     await feeStructure.save();
 
@@ -167,18 +217,35 @@ exports.deleteFeeStructure = async (req, res, next) => {
       );
     }
 
-    // Safety check: prevent deletion of fee structure assigned to students
-    const inUse = await StudentFee.exists({
+    // Safety check: prevent deletion of a fee structure still assigned to students.
+    // Fee structures are matched to students by course + category (students with
+    // category OTHER use the GEN structure during approval), so we only block
+    // deletion when a student of the matching category actually holds fees in this
+    // course. This replaces the previous course-only check that wrongly blocked
+    // deletion of unused category-specific structures.
+    const studentIds = await StudentFee.distinct("student_id", {
       college_id: req.college_id,
       course_id: feeStructure.course_id,
     });
 
-    if (inUse) {
-      throw new AppError(
-        "Cannot delete fee structure that is currently assigned to students. Please reassign or remove students first.",
-        400,
-        "FEE_STRUCTURE_IN_USE",
-      );
+    if (studentIds.length > 0) {
+      const matchingCategories =
+        feeStructure.category === "GEN"
+          ? ["GEN", "OTHER"]
+          : [feeStructure.category];
+
+      const inUse = await Student.exists({
+        _id: { $in: studentIds },
+        category: { $in: matchingCategories },
+      });
+
+      if (inUse) {
+        throw new AppError(
+          "Cannot delete fee structure that is currently assigned to students. Please reassign or remove students first.",
+          400,
+          "FEE_STRUCTURE_IN_USE",
+        );
+      }
     }
 
     // 📝 Audit log - Fee structure deletion

@@ -29,6 +29,17 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 // Brand Color Palette
 const BRAND_COLORS = {
   primary: {
@@ -119,7 +130,7 @@ export default function SessionDetails() {
         err.response?.data?.message ||
         "Failed to load session details. Please try again.";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
+      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
     }
   };
 
@@ -133,7 +144,7 @@ export default function SessionDetails() {
         err.response?.data?.message ||
         "Failed to load attendance records. Please try again.";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
+      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
     }
   };
 
@@ -157,7 +168,7 @@ export default function SessionDetails() {
         err.response?.data?.message ||
         "Failed to load student list. Please try again.";
       const statusCode = err.response?.status;
-      setError({ message: errorMessage, statusCode });
+      setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
     }
   };
 
@@ -195,7 +206,7 @@ export default function SessionDetails() {
           err.response?.data?.message ||
           "Failed to load session data. Please try again.";
         const statusCode = err.response?.status;
-        setError({ message: errorMessage, statusCode });
+        setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
       } finally {
         setLoading(false);
       }
@@ -223,15 +234,22 @@ export default function SessionDetails() {
       });
       navigate("/attendance/sessions");
     } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to delete session. Please try again.",
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(
+          err.response?.data?.message ||
+            "Failed to delete session. Please try again.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaTimesCircle />,
+          },
+        );
+      }
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
@@ -270,15 +288,22 @@ export default function SessionDetails() {
       fetchRecords();
       setAttendance({});
     } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to save attendance. Please try again.",
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(
+          err.response?.data?.message ||
+            "Failed to save attendance. Please try again.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaTimesCircle />,
+          },
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -298,15 +323,22 @@ export default function SessionDetails() {
       await fetchSession();
       await fetchRecords();
     } catch (err) {
-      toast.error(
-        err.response?.data?.message ||
-          "Failed to close session. Please try again.",
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+      if (!isAuthError) {
+        toast.error(
+          err.response?.data?.message ||
+            "Failed to close session. Please try again.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaTimesCircle />,
+          },
+        );
+      }
     } finally {
       setClosing(false);
       setShowCloseConfirm(false);
@@ -323,6 +355,7 @@ export default function SessionDetails() {
         title="Error Loading Session"
         message={error.message || "Failed to load session. Please try again."}
         statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -906,7 +939,7 @@ export default function SessionDetails() {
                     <tbody>
                       {records.map((record, idx) => (
                         <RecordRow
-                          key={record._id || idx}
+                          key={record._id || record.student_id?._id || `record-${idx}`}
                           record={record}
                           delay={idx * 0.03}
                         />
@@ -1346,10 +1379,9 @@ function EmptyState({ icon, title, message }) {
       </h3>
       <p
         style={{
-          margin: 0,
+          margin: "0 auto",
           fontSize: "1.1rem",
           maxWidth: "600px",
-          margin: "0 auto",
           lineHeight: 1.6,
         }}
       >

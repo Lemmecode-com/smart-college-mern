@@ -4,6 +4,9 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import useRole from "../../../hooks/useRole";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaBookOpen,
@@ -12,7 +15,6 @@ import {
   FaPlus,
   FaLayerGroup,
   FaSearch,
-  FaFilter,
   FaSyncAlt,
   FaEye,
   FaCheckCircle,
@@ -56,7 +58,7 @@ const StatCard = ({ icon: Icon, label, value, color, subValue }) => (
 );
 
 // Course Table Component
-const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete }) => {
+const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, canEdit, canDelete }) => {
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) return null;
     return sortConfig.direction === "asc" ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />;
@@ -82,7 +84,7 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete }) 
       <table className="modern-table">
         <thead>
           <tr>
-            <th className="col-index">#</th>
+            <th className="col-index">Sr.No.</th>
             <th className="col-course sortable" onClick={() => onSort('name')}>
               <div className="th-content">
                 <FaGraduationCap className="th-icon" />
@@ -219,34 +221,38 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete }) 
                     </div>
                   </div>
                 </td>
-                <td className="col-actions">
-                  <div className="action-group">
-                    <button
-                      className="action-btn action-view"
-                      title="View Details"
-                      aria-label={`View ${course.name} details`}
-                      onClick={() => onView(course._id)}
-                    >
-                      <FaEye />
-                    </button>
-                    <button
-                      className="action-btn action-edit"
-                      title="Edit Course"
-                      aria-label={`Edit ${course.name}`}
-                      onClick={() => onEdit(course._id)}
-                    >
-                      <FaEdit />
-                    </button>
-                    <button
-                      className="action-btn action-delete"
-                      title="Delete Course"
-                      aria-label={`Delete ${course.name}`}
-                      onClick={() => onDelete(course)}
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </td>
+                 <td className="col-actions">
+                   <div className="action-group">
+                     <button
+                       className="action-btn action-view"
+                       title="View Details"
+                       aria-label={`View ${course.name} details`}
+                       onClick={() => onView(course._id)}
+                     >
+                       <FaEye />
+                     </button>
+                     {canEdit && (
+                       <button
+                         className="action-btn action-edit"
+                         title="Edit Course"
+                         aria-label={`Edit ${course.name}`}
+                         onClick={() => onEdit(course._id)}
+                       >
+                         <FaEdit />
+                       </button>
+                     )}
+                     {canDelete && (
+                       <button
+                         className="action-btn action-delete"
+                         title="Delete Course"
+                         aria-label={`Delete ${course.name}`}
+                         onClick={() => onDelete(course)}
+                       >
+                         <FaTrash />
+                       </button>
+                     )}
+                   </div>
+                 </td>
               </tr>
             );
           })}
@@ -349,67 +355,6 @@ const DeleteModal = ({ course, departmentName, onConfirm, onCancel, isDeleting }
   );
 };
 
-// Filter Dropdown Component
-const FilterDropdown = ({ filterStatus, setFilterStatus }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="dropdown-container">
-      <button 
-        className="dropdown-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        aria-haspopup="true"
-      >
-        <FaFilter className="dropdown-icon" />
-        <span>Filter</span>
-        <FaChevronDown className={`dropdown-arrow ${isOpen ? 'is-open' : ''}`} />
-      </button>
-      {isOpen && (
-        <>
-          <div className="dropdown-backdrop" onClick={() => setIsOpen(false)} />
-          <div className="dropdown-menu">
-            <div className="dropdown-header">
-              <span>Filter by Status</span>
-            </div>
-            <div className="dropdown-options" role="radiogroup">
-              {[
-                { value: 'ALL', label: 'All Courses', icon: FaBookOpen, color: '#6B7280' },
-                { value: 'ACTIVE', label: 'Active', icon: FaCheckCircle, color: '#22C55E' },
-                { value: 'INACTIVE', label: 'Inactive', icon: FaTimes, color: '#9CA3AF' }
-              ].map(({ value, label, icon: Icon, color }) => (
-                <label 
-                  key={value} 
-                  className={`dropdown-option ${filterStatus === value ? 'is-selected' : ''}`}
-                  role="radio"
-                  aria-checked={filterStatus === value}
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      setFilterStatus(value);
-                      setIsOpen(false);
-                    }
-                  }}
-                  onClick={() => {
-                    setFilterStatus(value);
-                    setIsOpen(false);
-                  }}
-                >
-                  <Icon className="option-icon" style={{ color }} />
-                  <span className="option-label">{label}</span>
-                  {filterStatus === value && (
-                    <FaCheckCircle className="option-check" style={{ color }} />
-                  )}
-                </label>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
 // Skeleton Loader Component
 const SkeletonLoader = () => (
   <div className="skeleton-wrapper">
@@ -440,7 +385,7 @@ const SkeletonLoader = () => (
 );
 
 // Empty State Component
-const EmptyState = ({ hasDepartment, onAddCourse }) => (
+const EmptyState = ({ hasDepartment, onAddCourse, allowAdd }) => (
   <div className="empty-state-wrapper">
     <div className="empty-state-icon">
       <div className="empty-icon-circle">
@@ -455,7 +400,7 @@ const EmptyState = ({ hasDepartment, onAddCourse }) => (
         ? "There are no courses in this department yet. Get started by adding your first course."
         : "Choose a department from the dropdown above to view and manage courses."}
     </p>
-    {hasDepartment && (
+    {hasDepartment && allowAdd && (
       <button
         className="btn btn-primary btn-lg"
         onClick={onAddCourse}
@@ -467,35 +412,27 @@ const EmptyState = ({ hasDepartment, onAddCourse }) => (
   </div>
 );
 
-// Toast Notification Component
-const Toast = ({ message, type, onClose }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 4000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div className={`toast toast-${type}`}>
-      <div className="toast-icon">
-        {type === 'success' ? <FaCheckCircle /> : <FaExclamationTriangle />}
-      </div>
-      <span className="toast-message">{message}</span>
-      <button className="toast-close" onClick={onClose}>
-        <FaTimes />
-      </button>
-    </div>
-  );
-};
-
-/* ================= MAIN COMPONENT ================= */
+// Empty State Component
 export default function CourseList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete } = useRole();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN")
-    return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= STATE ================= */
   const [departments, setDepartments] = useState([]);
@@ -508,11 +445,9 @@ export default function CourseList() {
   const [departmentsError, setDepartmentsError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ALL");
   const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState(null);
-  const [toast, setToast] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -540,12 +475,26 @@ export default function CourseList() {
         setDepartmentsError(null);
       } catch (err) {
         if (err.name !== 'AbortError') {
-          setDepartmentsError("Failed to load departments");
-          // Show toast instead of blocking the page
-          setToast({ 
-            type: 'error', 
-            message: 'Unable to load departments. Please select a department manually.' 
+          const statusCode = err.response?.status;
+          const errorCode = err.response?.data?.code;
+          const backendMessage = err.response?.data?.message;
+          const errorMessage = backendMessage || "Failed to load departments.";
+
+          logger.error("Error fetching departments:", statusCode, errorCode);
+
+          setDepartmentsError({
+            message: errorMessage,
+            statusCode,
+            errorCode,
           });
+
+          const isAuthError =
+            statusCode === 401 ||
+            (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+          if (!isAuthError) {
+            toast.error(errorMessage);
+          }
         }
       } finally {
         setLoading(false);
@@ -578,8 +527,26 @@ export default function CourseList() {
         setCoursesError(null);
       } catch (err) {
         if (err.name !== 'AbortError') {
-          setCoursesError("Failed to load courses. Please try again.");
-          setToast({ type: 'error', message: 'Unable to load courses for this department.' });
+          const statusCode = err.response?.status;
+          const errorCode = err.response?.data?.code;
+          const backendMessage = err.response?.data?.message;
+          const errorMessage = backendMessage || "Failed to load courses.";
+
+          logger.error("Error fetching courses:", statusCode, errorCode);
+
+          setCoursesError({
+            message: errorMessage,
+            statusCode,
+            errorCode,
+          });
+
+          const isAuthError =
+            statusCode === 401 ||
+            (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+          if (!isAuthError) {
+            toast.error(errorMessage);
+          }
         }
         setCourses([]);
       } finally {
@@ -622,9 +589,6 @@ export default function CourseList() {
       .filter(course =>
         course.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
         course.code?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-      )
-      .filter(course =>
-        filterStatus === "ALL" || course.status === filterStatus
       );
 
     result = [...result].sort((a, b) => {
@@ -637,7 +601,7 @@ export default function CourseList() {
     });
 
     return result;
-  }, [courses, debouncedSearchTerm, filterStatus, sortConfig]);
+  }, [courses, debouncedSearchTerm, sortConfig]);
 
   /* ================= DELETE HANDLER ================= */
   const handleDeleteClick = (course) => {
@@ -654,9 +618,9 @@ export default function CourseList() {
       setCourses(prev => prev.filter(c => c._id !== courseToDelete._id));
       setShowDeleteModal(false);
       setCourseToDelete(null);
-      setToast({ type: 'success', message: 'Course deleted successfully!' });
+      toast.success('Course deleted successfully!');
     } catch (err) {
-      setToast({ type: 'error', message: 'Failed to delete course. Please try again.' });
+      toast.error('Failed to delete course. Please try again.');
     } finally {
       setDeleting(false);
     }
@@ -665,7 +629,7 @@ export default function CourseList() {
   /* ================= EXPORT HANDLER ================= */
   const handleExport = useCallback(() => {
     if (courses.length === 0) {
-      setToast({ type: 'error', message: 'No courses to export.' });
+      toast.error('No courses to export.');
       return;
     }
 
@@ -695,7 +659,7 @@ export default function CourseList() {
     link.click();
     document.body.removeChild(link);
     
-    setToast({ type: 'success', message: 'Courses exported successfully!' });
+    toast.success('Courses exported successfully!');
   }, [courses, selectedDepartment]);
 
   /* ================= NAVIGATION HANDLERS ================= */
@@ -717,24 +681,14 @@ export default function CourseList() {
   /* ================= COURSES ERROR STATE ================= */
   if (coursesError && selectedDepartment && !loadingCourses) {
     return (
-      <div className="error-page-wrapper">
-        <div className="error-page-content">
-          <div className="error-page-icon">
-            <FaExclamationTriangle />
-          </div>
-          <h3>Something went wrong</h3>
-          <p>{coursesError}</p>
-          <div className="error-actions">
-            <button className="btn btn-primary" onClick={handleRetry}>
-              <FaSyncAlt className="btn-icon" />
-              Try Again
-            </button>
-            <button className="btn btn-secondary" onClick={() => setSelectedDepartment("")}>
-              Select Different Department
-            </button>
-          </div>
-        </div>
-      </div>
+      <ApiError
+        title="Course Loading Error"
+        message={coursesError.message}
+        statusCode={coursesError.statusCode}
+        errorCode={coursesError.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -746,16 +700,7 @@ export default function CourseList() {
   const selectedDeptName = departments.find(d => d._id === selectedDepartment)?.name || "Select Department";
 
   return (
-    <div className="dashboard-container">
-      {/* TOAST NOTIFICATION */}
-      {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
-        />
-      )}
-
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -787,14 +732,16 @@ export default function CourseList() {
             <FaArrowLeft className="btn-icon" />
             <span>Back</span>
           </button>
-          <button
-            className="btn btn-primary"
-            onClick={handleAddCourse}
-            aria-label="Add New Course"
-          >
-            <FaPlus className="btn-icon" />
-            <span>Add Course</span>
-          </button>
+          {canCreate('courses') && (
+            <button
+              className="btn btn-primary"
+              onClick={handleAddCourse}
+              aria-label="Add New Course"
+            >
+              <FaPlus className="btn-icon" />
+              <span>Add Course</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -898,10 +845,6 @@ export default function CourseList() {
                   </button>
                 )}
               </div>
-              <FilterDropdown 
-                filterStatus={filterStatus} 
-                setFilterStatus={setFilterStatus} 
-              />
               <button 
                 className="btn btn-outline" 
                 onClick={handleExport}
@@ -944,13 +887,14 @@ export default function CourseList() {
             </div>
 
             {/* TABLE */}
-            <div className="table-wrapper">
+            <div className="erp-table-responsive table-wrapper">
               {loadingCourses ? (
                 <SkeletonLoader />
               ) : filteredCourses.length === 0 ? (
                 <EmptyState 
                   hasDepartment={true} 
-                  onAddCourse={handleAddCourse} 
+                  onAddCourse={handleAddCourse}
+                  allowAdd={canCreate('courses')}
                 />
               ) : (
                 <CourseTable
@@ -960,6 +904,8 @@ export default function CourseList() {
                   onView={handleViewCourse}
                   onEdit={handleEditCourse}
                   onDelete={handleDeleteClick}
+                  canEdit={canEdit('courses')}
+                  canDelete={canDelete('courses')}
                 />
               )}
             </div>
@@ -1010,12 +956,6 @@ export default function CourseList() {
         /* ================= BASE STYLES ================= */
         * {
           box-sizing: border-box;
-        }
-
-        .dashboard-container {
-          min-height: 100vh;
-          background: var(--bg-primary);
-          padding: 1.5rem;
         }
 
         /* ================= TOAST NOTIFICATIONS ================= */
@@ -1205,12 +1145,12 @@ export default function CourseList() {
         }
 
         .btn-ghost {
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
+          background: var(--bg-tertiary);
+          color: var(--text-secondary);
         }
 
         .btn-ghost:hover:not(:disabled) {
-          background: rgba(255, 255, 255, 0.2);
+          background: var(--border-medium);
         }
 
         .btn-lg {
@@ -1474,122 +1414,6 @@ export default function CourseList() {
 
         .search-clear:hover {
           color: var(--text-primary);
-        }
-
-        /* ================= DROPDOWN ================= */
-        .dropdown-container {
-          position: relative;
-        }
-
-        .dropdown-trigger {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.625rem 1rem;
-          background: var(--bg-secondary);
-          border: 2px solid var(--border-light);
-          border-radius: 10px;
-          font-weight: 600;
-          color: var(--text-secondary);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .dropdown-trigger:hover {
-          border-color: var(--border-medium);
-          color: var(--text-primary);
-        }
-
-        .dropdown-icon {
-          font-size: 0.9rem;
-        }
-
-        .dropdown-arrow {
-          font-size: 0.7rem;
-          transition: transform 0.2s;
-        }
-
-        .dropdown-arrow.is-open {
-          transform: rotate(180deg);
-        }
-
-        .dropdown-backdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 99;
-        }
-
-        .dropdown-menu {
-          position: absolute;
-          top: calc(100% + 0.5rem);
-          right: 0;
-          min-width: 200px;
-          background: var(--bg-secondary);
-          border-radius: 12px;
-          box-shadow: var(--shadow-xl);
-          border: 1px solid var(--border-light);
-          z-index: 100;
-          animation: dropdownSlideIn 0.2s ease;
-          overflow: hidden;
-        }
-
-        @keyframes dropdownSlideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .dropdown-header {
-          padding: 0.75rem 1rem;
-          border-bottom: 1px solid var(--border-light);
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .dropdown-options {
-          padding: 0.5rem;
-        }
-
-        .dropdown-option {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 0.75rem 1rem;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: background 0.2s;
-          color: var(--text-secondary);
-        }
-
-        .dropdown-option:hover {
-          background: var(--bg-tertiary);
-          color: var(--text-primary);
-        }
-
-        .dropdown-option.is-selected {
-          background: rgba(79, 70, 229, 0.1);
-          color: var(--primary);
-        }
-
-        .option-icon {
-          font-size: 1rem;
-        }
-
-        .option-label {
-          flex: 1;
-          font-weight: 500;
-        }
-
-        .option-check {
-          font-size: 1rem;
         }
 
         /* ================= STATS GRID ================= */
@@ -2359,10 +2183,6 @@ export default function CourseList() {
         }
 
         @media (max-width: 768px) {
-          .dashboard-container {
-            padding: 1rem;
-          }
-
           .page-header {
             flex-direction: column;
             align-items: flex-start;

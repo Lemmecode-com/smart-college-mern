@@ -3,6 +3,9 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
+import { useNavigate } from "react-router-dom";
 import {
   FaUserGraduate,
   FaClipboardList,
@@ -20,7 +23,6 @@ import {
   FaUniversity,
   FaLayerGroup,
   FaDownload,
-  FaPrint,
   FaQuestionCircle,
   FaLightbulb,
   FaBell,
@@ -38,6 +40,19 @@ const BRAND_COLORS = {
   danger: { main: '#dc3545', gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' },
   secondary: { main: '#6c757d', gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)' }
 };
+
+// Authentication / session error codes that must NOT surface a toast.
+// These are routed exclusively to ApiError for a friendly mapped screen.
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 // Animation Variants
 const fadeInVariants = {
@@ -81,10 +96,12 @@ const scaleVariants = {
 
 export default function StudentAttendanceReport() {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const loadTimeoutRef = useRef(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
+  const [dateRangeError, setDateRangeError] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     subjectId: "",
@@ -96,8 +113,7 @@ export default function StudentAttendanceReport() {
   const [showTooltip, setShowTooltip] = useState(null);
   const [tooltipContent, setTooltipContent] = useState("");
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
-
-  /* ================= DATA VALIDATION HELPER ================= */
+/* ================= DATA VALIDATION HELPER ================= */
   const validateAttendanceData = (data) => {
     const errors = [];
     
@@ -137,7 +153,7 @@ export default function StudentAttendanceReport() {
 
   /* ================= RETRY & REFRESH HANDLERS ================= */
   const handleRetry = () => {
-    setError("");
+    setError(null);
     setLoading(true);
     addToast("Retrying...", "info");
     
@@ -157,7 +173,7 @@ export default function StudentAttendanceReport() {
     }));
   };
 
-  /* ================= DOWNLOAD & PRINT HANDLERS ================= */
+/* ================= DOWNLOAD HANDLER ================= */
   const handleDownloadReport = async () => {
     try {
       addToast("Generating PDF report...", "info");
@@ -181,21 +197,42 @@ export default function StudentAttendanceReport() {
     }
   };
 
-  const handlePrintReport = () => {
-    window.print();
-    addToast("Opening print dialog...", "info");
-  };
-
   /* ================= LOAD DATA ================= */
   useEffect(() => {
-    // Clear any existing timeout
+    let cancelled = false;
+    const fetchSubjects = async () => {
+      try {
+        const res = await api.get("/attendance/student");
+        const subjectsFromAttendance = (res.data.subjectWise || []).map((subj, index) => ({
+          _id: subj._id || `subject-${index}`,
+          name: subj.subject || subj.name,
+          code: subj.code,
+        }));
+        if (!cancelled) setSubjects(subjectsFromAttendance);
+      } catch {
+        // ignore
+      }
+    };
+    fetchSubjects();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
     if (loadTimeoutRef.current) {
       clearTimeout(loadTimeoutRef.current);
     }
 
     // Set timeout for 30 seconds
     loadTimeoutRef.current = setTimeout(() => {
-      setError("Request timed out. Please check your connection and try again.");
+      logger.warn("Student attendance request timed out", {
+        page: "MyAttendance",
+        role: user?.role,
+      });
+      setError({
+        message: "Request timed out. Please check your connection and try again.",
+        statusCode: undefined,
+        errorCode: undefined,
+      });
       setLoading(false);
       addToast("Request timed out. Please try again.", "error");
     }, 30000);
@@ -212,25 +249,7 @@ export default function StudentAttendanceReport() {
         }
 
         setData(reportRes.data);
-        // Extract subjects from attendance API response (subjectWise array)
-        // Backend returns: {subject, code, total, present, absent, percentage}
-        // Frontend needs: {_id, name, code} for dropdown
-        const subjectsFromAttendance = (reportRes.data.subjectWise || []).map((subj, index) => ({
-          _id: subj._id || `subject-${index}`,  // Use index as fallback ID
-          name: subj.subject || subj.name,      // Backend uses 'subject' field
-          code: subj.code,
-          total: subj.total,
-          present: subj.present,
-          absent: subj.absent,
-          percentage: subj.percentage
-        }));
-        setSubjects(subjectsFromAttendance);
-        setError("");
-
-        // Show success toast only on subsequent loads (not initial)
-        if (data) {
-          addToast("Attendance report updated successfully!", "success");
-        }
+        setError(null);
 
         // Clear timeout on success
         if (loadTimeoutRef.current) {
@@ -242,9 +261,31 @@ export default function StudentAttendanceReport() {
           clearTimeout(loadTimeoutRef.current);
         }
 
-        const errorMsg = err.response?.data?.message || err.message || "Failed to load attendance report. Please try again later.";
-        setError(errorMsg);
-        addToast(errorMsg, "error");
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+
+        logger.error("Student attendance load error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "MyAttendance",
+          role: user?.role,
+        });
+
+        setError({
+          message: "Failed to load attendance report. Please try again later.",
+          statusCode,
+          errorCode,
+        });
+
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          addToast("Failed to load attendance report. Please try again later.", "error");
+        }
       } finally {
         setLoading(false);
       }
@@ -264,10 +305,18 @@ export default function StudentAttendanceReport() {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
+    if (name === "startDate" || name === "endDate") {
+      setDateRangeError("");
+    }
   };
 
   const applyFilters = () => {
-    // Data will reload automatically due to useEffect dependency
+    if (filters.startDate && filters.endDate && new Date(filters.startDate) > new Date(filters.endDate)) {
+      setDateRangeError("Start date must be before or equal to end date");
+      addToast("Invalid date range: start date must be before or equal to end date", "error");
+      return;
+    }
+    setDateRangeError("");
     addToast("Filters applied successfully!", "success");
   };
 
@@ -277,7 +326,7 @@ export default function StudentAttendanceReport() {
       startDate: "",
       endDate: ""
     });
-    addToast("Filters reset successfully!", "info");
+addToast("Filters reset successfully!", "info");
   };
 
   /* ================= TOOLTIP HANDLERS WITH BOUNDARY CHECKS ================= */
@@ -311,6 +360,19 @@ export default function StudentAttendanceReport() {
     return <Loading fullScreen size="lg" text="Loading Attendance Report..." />;
   }
 
+  if (error) {
+    return (
+      <ApiError
+        title="Attendance Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate("/student/dashboard")}
+      />
+    );
+  }
+
   const summary = data?.summary || {
     totalLectures: 0,
     present: 0,
@@ -324,13 +386,13 @@ export default function StudentAttendanceReport() {
 
   return (
     <AnimatePresence mode="wait">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
+       <motion.div
+         initial={{ opacity: 0 }}
+         animate={{ opacity: 1 }}
+         exit={{ opacity: 0 }}
+         className="erp-page erp-viewport-min-100"
+         style={{
+           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
           paddingTop: '1.5rem',
           paddingBottom: '2rem',
           paddingLeft: '1rem',
@@ -590,19 +652,24 @@ export default function StudentAttendanceReport() {
                     />
                   </FormField>
                   
-                  <FormField 
-                    icon={<FaCalendarAlt />} 
-                    label="End Date" 
-                  >
-                    <input
-                      type="date"
-                      name="endDate"
-                      value={filters.endDate}
-                      onChange={handleFilterChange}
-                      style={inputStyle}
-                    />
-                  </FormField>
-                </div>
+<FormField 
+                     icon={<FaCalendarAlt />} 
+                     label="End Date" 
+                   >
+                     <input
+                       type="date"
+                       name="endDate"
+                       value={filters.endDate}
+                       onChange={handleFilterChange}
+                       style={inputStyle}
+                     />
+                   </FormField>
+                   {dateRangeError && (
+                     <div className="erp-alert erp-alert-danger">
+                       {dateRangeError}
+                     </div>
+                   )}
+                 </div>
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                   <motion.button
                     whileHover={{ scale: 1.03 }}
@@ -693,52 +760,6 @@ export default function StudentAttendanceReport() {
             </div>
           </motion.div>
 
-          {/* ================= ERROR STATE ================= */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{
-                marginBottom: '1.5rem',
-                padding: '1.25rem',
-                borderRadius: '16px',
-                backgroundColor: `${BRAND_COLORS.danger.main}0a`,
-                border: `1px solid ${BRAND_COLORS.danger.main}`,
-                color: BRAND_COLORS.danger.main,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                fontSize: '1.05rem',
-                fontWeight: 500
-              }}
-              role="alert"
-              aria-live="assertive"
-            >
-              <FaExclamationTriangle size={24} aria-hidden="true" />
-              <div style={{ flex: 1 }}>{error}</div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleRetry}
-                style={{
-                  background: BRAND_COLORS.danger.main,
-                  color: 'white',
-                  border: 'none',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-                aria-label="Retry loading attendance report"
-              >
-                <FaSyncAlt aria-hidden="true" /> Retry
-              </motion.button>
-            </motion.div>
-          )}
-
           {/* ================= TODAY'S ATTENDANCE ================= */}
           <motion.div
             variants={fadeInVariants}
@@ -811,9 +832,8 @@ export default function StudentAttendanceReport() {
                     </h3>
                     <p style={{ 
                       color: '#64748b', 
-                      margin: 0,
-                      maxWidth: '600px',
-                      margin: '0 auto'
+                      margin: '0 auto',
+                      maxWidth: '600px'
                     }}>
                       You don't have any scheduled classes today. Enjoy your day off!
                     </p>
@@ -1189,30 +1209,8 @@ export default function StudentAttendanceReport() {
                     aria-label="Download attendance report as PDF"
                   >
                     <FaDownload size={16} aria-hidden="true" /> Download Report
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handlePrintReport}
-                    style={{
-                      padding: '0.625rem 1.25rem',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: 'white',
-                      color: BRAND_COLORS.primary.main,
-                      fontSize: '0.95rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.2s ease'
-                    }}
-                    aria-label="Print attendance report"
-                  >
-                    <FaPrint size={16} aria-hidden="true" /> Print Report
-                  </motion.button>
-                </div>
+                   </motion.button>
+                 </div>
               </div>
             </div>
           </motion.div>
@@ -1295,14 +1293,14 @@ export default function StudentAttendanceReport() {
                       >
                         <td style={cellStyle}>
                           <div style={{ fontWeight: 600 }}>
-                            {new Date(session.date).toLocaleDateString('en-US', {
+                            {new Date(session.date).toLocaleDateString('en-IN', {
                               weekday: 'short',
                               month: 'short',
                               day: 'numeric'
                             })}
                           </div>
                           <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-                            {new Date(session.date).toLocaleDateString()}
+                            {new Date(session.date).toLocaleDateString('en-IN')}
                           </div>
                         </td>
                         <td style={cellStyle}>

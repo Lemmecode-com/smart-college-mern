@@ -3,6 +3,8 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaBookOpen,
@@ -20,6 +22,17 @@ export default function EditCourse() {
   if (user.role !== "COLLEGE_ADMIN")
     return <Navigate to="/dashboard" />;
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   /* ================= STATE ================= */
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -27,17 +40,30 @@ export default function EditCourse() {
   const [error, setError] = useState("");
 
   /* ================= LOAD COURSE ================= */
+  const fetchCourse = async () => {
+    try {
+      const res = await api.get(`/courses/${id}`);
+      setFormData(res.data.course);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))
+        ? "Authentication error occurred."
+        : backendMessage || "Course not found";
+
+      logger.error("Error fetching course:", statusCode, errorCode);
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchCourse = async () => {
-      try {
-        const res = await api.get(`/courses/${id}`);
-        setFormData(res.data);
-      } catch {
-        setError("Course not found");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchCourse();
   }, [id]);
 
@@ -55,6 +81,17 @@ export default function EditCourse() {
     setSaving(true);
     setError("");
 
+    const maxStudentsNum = Number(formData.maxStudents);
+    if (
+      formData.maxStudents === "" ||
+      !Number.isInteger(maxStudentsNum) ||
+      maxStudentsNum <= 0
+    ) {
+      setError("Maximum Students must be greater than 0");
+      setSaving(false);
+      return;
+    }
+
     try {
       await api.put(`/courses/${id}`, {
         name: formData.name,
@@ -69,10 +106,21 @@ export default function EditCourse() {
 
       navigate("/courses");
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        "Failed to update course"
-      );
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
+        logger.error("Auth error updating course:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
+        });
+      } else {
+        setError(
+          err.response?.data?.message ||
+          "Failed to update course"
+        );
+      }
     } finally {
       setSaving(false);
     }
@@ -83,13 +131,25 @@ export default function EditCourse() {
     return <Loading fullScreen size="lg" text="Loading course details..." />;
   }
 
+  if (error && typeof error === 'object') {
+    return (
+      <ApiError
+        title="Course Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchCourse}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
+
   if (!formData) {
     return <div className="text-danger">Course not found</div>;
   }
 
   return (
     <div className="container-fluid">
-
       {/* HEADER */}
       <div className="gradient-header p-4 rounded-4 text-white shadow mb-4">
         <h3 className="fw-bold">
@@ -102,7 +162,7 @@ export default function EditCourse() {
       </div>
 
       {/* ERROR */}
-      {error && (
+      {error && typeof error === 'string' && (
         <div className="alert alert-danger">{error}</div>
       )}
 
@@ -126,7 +186,7 @@ export default function EditCourse() {
 
               <Input label="Program Duration (Semesters)" type="number" name="durationSemesters" value={formData.durationSemesters} onChange={handleChange} min="1" max="8" />
               <Input label="Credits" type="number" name="credits" value={formData.credits} onChange={handleChange} />
-              <Input label="Max Students" type="number" name="maxStudents" value={formData.maxStudents} onChange={handleChange} />
+              <Input label="Max Students" type="number" name="maxStudents" value={formData.maxStudents} onChange={handleChange} min="1" step="1" />
             </div>
 
           </div>

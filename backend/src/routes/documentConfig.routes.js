@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const collegeMiddleware = require("../middlewares/college.middleware");
+const normalizeCollegeCode = require("../middlewares/normalizeCollegeCode.middleware");
 
 const {
   getDocumentConfig,
@@ -16,10 +17,10 @@ const {
 // ================= PUBLIC ROUTES =================
 
 // Get document config for a college (used during student registration)
-router.get("/:collegeCode", getDocumentConfig);
+router.get("/:collegeCode", normalizeCollegeCode, getDocumentConfig);
 
 // Validate documents before submission
-router.post("/validate", validateDocuments);
+router.post("/validate", normalizeCollegeCode, validateDocuments);
 
 // ================= COLLEGE ADMIN ROUTES =================
 

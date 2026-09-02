@@ -1,3 +1,6 @@
+const { initGlitchtip, Sentry } = require('./src/utils/glitchtip');
+initGlitchtip();
+
 const express = require("express");
 const cors = require("cors");
 const crypto = require("crypto");
@@ -82,7 +85,12 @@ app.use("/api/", globalLimiter);
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
 app.use("/api/college", require("./src/routes/college.routes"));
+app.use("/api/college", require("./src/routes/staff.routes")); // Staff account management
+app.use("/api/staff", require("./src/routes/staffProfile.routes")); // Staff extended profiles
 app.use("/api/master", require("./src/routes/master.routes"));
+app.use("/api/hod", require("./src/routes/hod.routes")); // HOD module
+app.use("/api/hod/reports", require("./src/routes/hodReport.routes")); // HOD Reports
+app.use("/api/college", require("./src/routes/parentManagement.routes")); // Parent/Guardian management
 
 /* ================= ACADEMICS ================= */
 app.use("/api/departments", require("./src/routes/department.routes"));
@@ -90,8 +98,13 @@ app.use("/api/courses", require("./src/routes/course.routes"));
 app.use("/api/teachers", require("./src/routes/teacher.routes"));
 app.use("/api/subjects", require("./src/routes/subject.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
+app.use("/api/admission", require("./src/routes/admission.routes"));
+app.use("/api/exam", require("./src/routes/exam.routes"));
+app.use("/api/parent", require("./src/routes/parent.routes")); // Parent Guardian
 app.use("/api/users", require("./src/routes/user.routes"));
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
+app.use("/api/leave", require("./src/routes/leave.routes"));
+app.use("/api/admin/email", require("./src/routes/collegeEmailConfig.routes"));
 
 /* ================= ATTENDANCE ================= */
 app.use("/api/attendance", require("./src/routes/attendance.routes"));
@@ -102,10 +115,13 @@ app.use(
   require("./src/routes/student.payment.routes"),
 );
 app.use("/api/admin/payments", require("./src/routes/admin.payment.routes"));
+app.use("/api/admin/payment", require("./src/routes/paymentConfig.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
+app.use("/api/accountant", require("./src/routes/accountant.routes")); // Accountant module
 
 /* ================= STUDENT PROMOTION ================= */
 app.use("/api/promotion", require("./src/routes/promotion.routes"));
+app.use("/api/promotion-policy", require("./src/routes/promotionPolicy.routes"));
 
 /* ================= REPORTS & DASHBOARD ================= */
 app.use(
@@ -121,6 +137,12 @@ app.use("/api/security-audit", require("./src/routes/securityAudit.routes"));
 
 /* ================= AUDIT LOGS (Admin Actions) ================= */
 app.use("/api/audit-logs", require("./src/routes/auditLog.routes"));
+
+/* ================= PLATFORM SUPPORT ================= */
+app.use(
+  "/api/platform-support",
+  require("./src/routes/platformSupport.routes")
+);
 
 /* ================= STRIPE ================= */
 app.use("/api/stripe", require("./src/routes/stripe.routes"));
@@ -149,11 +171,11 @@ app.use("/api/public", require("./src/routes/public.department.course.routes"));
 /* ================= DOCUMENT CONFIGURATION ================= */
 app.use("/api/document-config", require("./src/routes/documentConfig.routes"));
 
-/* ================= STATIC FILES (PROTECTED) ================= */
-// Only serve college QR codes publicly (safe — just college code)
-// Student documents are served via secure API endpoint /api/students/documents/:filename
-app.use("/uploads/college-qrs", express.static("uploads/college-qrs"));
-// NOTE: /uploads/students/ is NOT served statically — it's protected by the secure API endpoint
+/* ================= DOCUMENTS ================= */
+app.use("/api/documents", require("./src/routes/document.routes"));
+
+/* ================= GENERAL SETTINGS ================= */
+app.use("/api/general-settings", require("./src/routes/generalSettings.routes"));
 
 /* ================= HEALTH CHECK ROUTE ================= */
 // Health check endpoint (must be before 404 handler)
@@ -175,8 +197,24 @@ app.use((req, res, next) => {
   next(error);
 });
 
+/* ================= MULTER ERROR HANDLER ================= */
+// Convert upload rejections (disallowed file type / size) into clean 400s
+// instead of generic 500s, so the frontend can show a helpful message.
+app.use((err, req, res, next) => {
+  if (err && err.name === "MulterError") {
+    return res
+      .status(400)
+      .json({ success: false, message: err.message || "File upload failed" });
+  }
+  if (err && /file (type|extension)/i.test(err.message || "")) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+  next(err);
+});
+
 /* ================= GLOBAL ERROR HANDLER ================= */
 // Must be last - handles all errors from above routes
+// Note: Sentry v7+ doesn't use expressErrorHandler() - error capture is handled in error.middleware.js
 app.use(require("./src/middlewares/error.middleware"));
 
 module.exports = app;

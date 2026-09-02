@@ -4,12 +4,14 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
+import useRole from "../../../hooks/useRole";
 
 import {
   FaBuilding,
   FaEdit,
   FaTrash,
   FaUserTie,
+  FaUserSlash,
   FaSearch,
   FaPlus,
   FaInfoCircle,
@@ -27,11 +29,245 @@ import {
   FaTimes,
 } from "react-icons/fa";
 
+import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { toast } from "react-toastify";
+import { logger } from "../../../utils/logger";
+
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
+/* ==========================================================================
+   Design tokens — same palette used across the department pages, so this
+   list and the detail view read as one consistent product.
+   ========================================================================== */
+const T = {
+  navy: "#1e3a5f",
+  navyDark: "#14293f",
+  navyTint: "#eaf0f6",
+  teal: "#2d6e7e",
+  tealTint: "#e5f1f3",
+  amber: "#b56a1f",
+  amberTint: "#fdf0e3",
+  danger: "#b3261e",
+  dangerTint: "#fbe9e7",
+  bg: "#f6f7f9",
+  surface: "#ffffff",
+  border: "#e6e8ec",
+  text: "#1f2530",
+  textMuted: "#6b7280",
+  success: "#157a4a",
+  successBg: "#e3f6ec",
+  inactive: "#6b7280",
+  inactiveBg: "#eef0f2",
+  radiusLg: 14,
+  radiusMd: 10,
+  radiusSm: 7,
+  shadow: "0 1px 2px rgba(20,27,41,0.04), 0 2px 8px rgba(20,27,41,0.05)",
+  font: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+};
+
+/* ================= small presentational helpers (inline styles only) ================= */
+
+function useViewportWidth() {
+  const [width, setWidth] = useState(
+    typeof window !== "undefined" ? window.innerWidth : 1280
+  );
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return width;
+}
+
+function Btn({ children, onClick, variant = "outline", color = T.navy, tint, disabled, title, type = "button" }) {
+  const [hover, setHover] = useState(false);
+  const solid = {
+    background: hover ? T.navyDark : color,
+    color: "#fff",
+    border: `1px solid ${hover ? T.navyDark : color}`,
+    boxShadow: hover ? "0 4px 10px rgba(20,27,41,0.18)" : "none",
+  };
+  const outline = {
+    background: hover ? (tint || T.navyTint) : T.surface,
+    color,
+    border: `1px solid ${hover ? color : T.border}`,
+  };
+  return (
+    <button
+      type={type}
+      title={title}
+      disabled={disabled}
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        fontSize: "0.85rem",
+        fontWeight: 600,
+        borderRadius: T.radiusSm,
+        padding: "0.6rem 1.1rem",
+        cursor: disabled ? "not-allowed" : "pointer",
+        transition: "background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease",
+        opacity: disabled ? 0.6 : 1,
+        transform: hover && !disabled ? "translateY(-1px)" : "translateY(0)",
+        whiteSpace: "nowrap",
+        ...(variant === "solid" ? solid : outline),
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function IconAction({ icon, onClick, title, color, tint }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 32,
+        height: 32,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: T.radiusSm,
+        border: `1px solid ${hover ? color : T.border}`,
+        background: hover ? tint : T.surface,
+        color,
+        cursor: "pointer",
+        transition: "all 0.15s ease",
+      }}
+    >
+      {icon}
+    </button>
+  );
+}
+
+function Chip({ children, bg, color, dot }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        padding: "0.28rem 0.65rem",
+        borderRadius: 999,
+        fontSize: "0.72rem",
+        fontWeight: 600,
+        letterSpacing: "0.02em",
+        textTransform: "uppercase",
+        background: bg,
+        color,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {dot && <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />}
+      {children}
+    </span>
+  );
+}
+
+function Pill({ children, bg, color, mono }) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "0.25rem 0.6rem",
+        borderRadius: 999,
+        fontSize: "0.75rem",
+        fontWeight: 500,
+        background: bg,
+        color,
+        whiteSpace: "nowrap",
+        fontFamily: mono ? "ui-monospace, SFMono-Regular, Menlo, monospace" : undefined,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function FilterBadge({ label, onClear }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "0.3rem 0.5rem 0.3rem 0.75rem",
+        borderRadius: 999,
+        fontSize: "0.78rem",
+        fontWeight: 500,
+        background: T.navyTint,
+        color: T.navyDark,
+      }}
+    >
+      {label}
+      <button
+        onClick={onClear}
+        style={{
+          width: 16,
+          height: 16,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: "50%",
+          background: "rgba(20,41,63,0.12)",
+          color: T.navyDark,
+          border: "none",
+          cursor: "pointer",
+          padding: 0,
+        }}
+      >
+        <FaTimes size={8} />
+      </button>
+    </span>
+  );
+}
+
+const inputStyle = {
+  width: "100%",
+  border: `1px solid ${T.border}`,
+  borderRadius: T.radiusSm,
+  padding: "0.55rem 0.75rem",
+  fontSize: "0.88rem",
+  color: T.text,
+  background: T.surface,
+  outline: "none",
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: "0.75rem",
+  fontWeight: 600,
+  color: T.textMuted,
+  marginBottom: "0.4rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.03em",
+};
+
 export default function DepartmentList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canCreate, canEdit, canDelete, hasAccess } = useRole();
 
   const [departments, setDepartments] = useState([]);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
@@ -39,18 +275,52 @@ export default function DepartmentList() {
   const [showHelp, setShowHelp] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5); // Fixed at 5 records per page
+  const [showRemoveHodModal, setShowRemoveHodModal] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
+  const [removingHod, setRemovingHod] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = useState(null);
+  const [deletingDepartment, setDeletingDepartment] = useState(false);
+
+  const [hoveredRow, setHoveredRow] = useState(null);
+  const [mounted, setMounted] = useState(false);
+  const width = useViewportWidth();
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL") return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH ================= */
   const fetchDepartments = async () => {
     try {
+      logger.info('Fetching departments...');
       const res = await api.get("/departments");
+      logger.info('Departments API response received');
       setDepartments(res.data || []);
     } catch (err) {
-      setDepartments([]);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load departments. Please try again later.";
+
+      logger.error("Error fetching departments:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 5000,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -60,20 +330,55 @@ export default function DepartmentList() {
     fetchDepartments();
   }, []);
 
-  /* ================= DELETE ================= */
-  const handleDelete = async (id) => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this department? This action cannot be undone.",
-      )
-    )
-      return;
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 10);
+    return () => clearTimeout(t);
+  }, []);
 
+  /* ================= DELETE ================= */
+  const handleDeleteClick = (department) => {
+    setDepartmentToDelete(department);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!departmentToDelete) return;
+
+    setDeletingDepartment(true);
     try {
-      await api.delete(`/departments/${id}`);
+      await api.delete(`/departments/${departmentToDelete._id}`);
+      toast.success(
+        `Department "${departmentToDelete.name}" deleted successfully.`,
+        { position: "top-right", autoClose: 5000 },
+      );
+      setShowDeleteModal(false);
+      setDepartmentToDelete(null);
       fetchDepartments();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to delete department");
+      const errorMessage =
+        err.response?.data?.message ||
+        "Failed to delete department. Please try again.";
+      logger.error("Error deleting department:", err.response?.status, err.response?.data?.code);
+      toast.error(errorMessage, { position: "top-right", autoClose: 5000 });
+    } finally {
+      setDeletingDepartment(false);
+    }
+  };
+
+  /* ================= REMOVE HOD ================= */
+  const handleRemoveHod = async () => {
+    if (!selectedDepartment) return;
+
+    setRemovingHod(true);
+    try {
+      await api.delete(`/departments/${selectedDepartment._id}/hod`);
+      setShowRemoveHodModal(false);
+      setSelectedDepartment(null);
+      fetchDepartments();
+    } catch {
+      alert("Failed to remove HOD. Please try again.");
+    } finally {
+      setRemovingHod(false);
     }
   };
 
@@ -136,115 +441,191 @@ export default function DepartmentList() {
     return <Loading fullScreen size="lg" text="Loading Departments..." />;
   }
 
+  /* ================= ERROR STATE ================= */
+  if (error) {
+    return (
+      <ApiError
+        title="Department Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={fetchDepartments}
+        onGoBack={() => navigate(-1)}
+      />
+    );
+  }
+
+  const hasActiveFilters = search || statusFilter !== "All" || typeFilter !== "All";
+
+  // Responsive column visibility — fixes the old CSS breakpoints, which
+  // accidentally hid the Actions column on tablet widths.
+  const showSrNo = width >= 576;
+  const showCode = width >= 576;
+  const showType = width >= 768;
+  const showFaculty = width >= 768;
+  const showPrograms = width >= 992;
+  const showStartYear = width >= 992;
+  const showStudents = width >= 992;
+
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in">
-      {/* ================= TOP BAR ================= */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-        <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
-          <div className="header-icon-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
-            <FaBuilding size={28} />
-          </div>
-          <div>
-            <h1 className="h4 h3-md fw-bold mb-1 text-dark">
-              Department Management
-            </h1>
-            <p className="text-muted mb-0 small">
-              <FaGraduationCap className="me-1" />
-              Manage academic departments and faculty assignments
-            </p>
-          </div>
-        </div>
-
-        <div className="d-flex align-items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setShowHelp(!showHelp)}
-            className="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Department Management Help"
-          >
-            <FaInfoCircle size={16} /> Help
-          </button>
-          <button
-            onClick={() => navigate("/departments/add")}
-            className="btn btn-success d-flex align-items-center gap-2 px-4 py-2 pulse-button"
-          >
-            <FaPlus size={16} /> Add Department
-          </button>
-        </div>
-      </div>
-
-      {/* ================= HELP TOOLTIP ================= */}
-      {showHelp && (
-        <div className="alert alert-info border-0 bg-info bg-opacity-10 rounded-4 mb-3 mb-md-4 animate-fade-in">
-          <div className="d-flex align-items-start gap-2">
-            <FaInfoCircle className="mt-1 flex-shrink-0" size={20} />
+    <div
+      style={{
+        background: T.bg,
+        minHeight: "100vh",
+        fontFamily: T.font,
+        color: T.text,
+        opacity: mounted ? 1 : 0,
+        transform: mounted ? "translateY(0)" : "translateY(8px)",
+        transition: "opacity 0.4s ease, transform 0.4s ease",
+      }}
+    >
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
+        {/* ================= TOP BAR ================= */}
+        <div
+          style={{
+            background: T.surface,
+            border: `1px solid ${T.border}`,
+            borderRadius: T.radiusLg,
+            boxShadow: T.shadow,
+            padding: "1.5rem 1.75rem",
+            marginBottom: "1.25rem",
+            position: "relative",
+            overflow: "hidden",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "1rem",
+          }}
+        >
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: T.navy }} />
+          <div style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: T.radiusMd,
+                background: T.navyTint,
+                color: T.navy,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.35rem",
+                flexShrink: 0,
+              }}
+            >
+              <FaBuilding />
+            </div>
             <div>
-              <h6 className="fw-bold mb-1">Department Management Tips</h6>
-              <ul className="mb-0 small ps-3">
+              <h1 style={{ fontSize: "1.4rem", fontWeight: 700, margin: 0, color: T.text }}>
+                Department Management
+              </h1>
+              <p style={{ margin: "0.3rem 0 0", fontSize: "0.85rem", color: T.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
+                <FaGraduationCap size={13} />
+                Manage academic departments and faculty assignments
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+            <Btn onClick={() => setShowHelp(!showHelp)} color={T.teal} tint={T.tealTint} title="Department Management Help">
+              <FaInfoCircle size={15} /> Help
+            </Btn>
+            {canCreate('departments') && (
+              <Btn onClick={() => navigate("/departments/add")} variant="solid" color={T.navy}>
+                <FaPlus size={14} /> Add Department
+              </Btn>
+            )}
+          </div>
+        </div>
+
+        {/* ================= HELP TOOLTIP ================= */}
+        {showHelp && (
+          <div
+            style={{
+              background: T.tealTint,
+              borderRadius: T.radiusLg,
+              padding: "1.1rem 1.35rem",
+              marginBottom: "1.25rem",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "0.75rem",
+            }}
+          >
+            <FaInfoCircle style={{ color: T.teal, marginTop: 3, flexShrink: 0 }} size={18} />
+            <div>
+              <h6 style={{ fontWeight: 700, margin: "0 0 0.5rem", fontSize: "0.92rem", color: T.text }}>
+                Department Management Tips
+              </h6>
+              <ul style={{ margin: 0, paddingLeft: "1.1rem", fontSize: "0.85rem", color: T.text, lineHeight: 1.9 }}>
                 <li>Use search to find departments by name, code, or type</li>
                 <li>Filter by status (Active/Inactive) or department type</li>
                 <li>
-                  Click <FaEdit className="mx-1" size={12} /> to edit department
-                  details
-                </li>
-                <li>
-                  Click <FaUserTie className="mx-1" size={12} /> to assign Head
-                  of Department (HOD)
+                  Click <FaEdit style={{ margin: "0 4px" }} size={12} /> to edit department details
                 </li>
                 <li>Only departments with no students can be deleted</li>
               </ul>
-              <button
-                onClick={() => setShowHelp(false)}
-                className="btn btn-sm btn-outline-info mt-2 px-3"
-              >
-                Got it!
-              </button>
+              <div style={{ marginTop: "0.75rem" }}>
+                <Btn onClick={() => setShowHelp(false)} color={T.teal} tint={T.surface}>
+                  Got it!
+                </Btn>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ================= SEARCH & FILTER BAR ================= */}
-      <div
-        className="card border-0 shadow-lg rounded-4 mb-3 mb-md-4 animate-fade-in-up"
-        style={{ animationDelay: "0.1s" }}
-      >
-        <div className="card-body p-3 p-md-4">
-          <div className="row g-3 align-items-end">
-            <div className="col-md-6 col-lg-4">
-              <label className="form-label fw-semibold text-dark small">
-                Search Departments
-              </label>
-              <div className="input-group search-container">
-                <span className="input-group-text bg-light border-end-0">
-                  <FaSearch className="text-muted blink-slow" />
-                </span>
+        {/* ================= SEARCH & FILTER BAR ================= */}
+        <div
+          style={{
+            background: T.surface,
+            border: `1px solid ${T.border}`,
+            borderRadius: T.radiusLg,
+            boxShadow: T.shadow,
+            padding: "1.35rem",
+            marginBottom: "1.25rem",
+          }}
+        >
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "flex-end" }}>
+            <div style={{ flex: "2 1 260px", minWidth: 220 }}>
+              <label style={labelStyle}>Search Departments</label>
+              <div style={{ position: "relative" }}>
+                <FaSearch
+                  style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: T.textMuted, fontSize: 13 }}
+                />
                 <input
                   type="text"
-                  className="form-control border-start-0 ps-0 shadow-none"
                   placeholder="Search by name, code, or type..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
+                  style={{ ...inputStyle, paddingLeft: 34, paddingRight: search ? 34 : 12 }}
                 />
                 {search && (
                   <button
-                    className="btn btn-sm btn-outline-secondary position-absolute end-0 me-3"
                     onClick={() => setSearch("")}
-                    style={{ zIndex: 10 }}
+                    style={{
+                      position: "absolute",
+                      right: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      border: "none",
+                      background: "transparent",
+                      color: T.textMuted,
+                      cursor: "pointer",
+                      display: "flex",
+                    }}
                   >
-                    <FaTimes size={10} />
+                    <FaTimes size={12} />
                   </button>
                 )}
               </div>
             </div>
 
-            <div className="col-md-6 col-lg-3">
-              <label className="form-label fw-semibold text-dark small">
-                Filter by Status
-              </label>
+            <div style={{ flex: "1 1 160px", minWidth: 160 }}>
+              <label style={labelStyle}>Filter by Status</label>
               <select
-                className="form-select shadow-none"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
+                style={{ ...inputStyle, cursor: "pointer" }}
               >
                 <option value="All">All Statuses</option>
                 <option value="ACTIVE">Active</option>
@@ -252,14 +633,12 @@ export default function DepartmentList() {
               </select>
             </div>
 
-            <div className="col-md-6 col-lg-3">
-              <label className="form-label fw-semibold text-dark small">
-                Filter by Type
-              </label>
+            <div style={{ flex: "1 1 160px", minWidth: 160 }}>
+              <label style={labelStyle}>Filter by Type</label>
               <select
-                className="form-select shadow-none"
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
+                style={{ ...inputStyle, cursor: "pointer" }}
               >
                 <option value="All">All Types</option>
                 {getUniqueTypes().map((type, idx) => (
@@ -270,233 +649,225 @@ export default function DepartmentList() {
               </select>
             </div>
 
-            <div className="col-md-6 col-lg-2 d-flex align-items-end">
-              <div className="w-100 d-grid gap-2">
-                <button
-                  className="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-1 w-100"
-                  onClick={resetFilters}
-                >
-                  <FaTimes size={12} /> Reset Filters
-                </button>
-              </div>
+            <div style={{ flex: "0 0 auto" }}>
+              <Btn onClick={resetFilters} color={T.textMuted}>
+                <FaTimes size={12} /> Reset Filters
+              </Btn>
             </div>
           </div>
+
           {/* ================= ACTIVE FILTERS BADGES ================= */}
-          {(search || statusFilter !== "All" || typeFilter !== "All") && (
-            <div className="mt-3 pt-3 border-top">
-              <div className="d-flex flex-wrap gap-2 align-items-center">
-                <small className="text-muted me-2">Active Filters:</small>
-                {search && (
-                  <span className="badge bg-primary">
-                    Search: "{search}"
-                    <button
-                      onClick={() => setSearch("")}
-                      className="ms-2 btn-close btn-close-white"
-                      style={{ fontSize: "0.6rem" }}
-                    ></button>
-                  </span>
-                )}
-                {statusFilter !== "All" && (
-                  <span className="badge bg-success">
-                    Status: {statusFilter}
-                    <button
-                      onClick={() => setStatusFilter("All")}
-                      className="ms-2 btn-close btn-close-white"
-                      style={{ fontSize: "0.6rem" }}
-                    ></button>
-                  </span>
-                )}
-                {typeFilter !== "All" && (
-                  <span className="badge bg-info text-dark">
-                    Type: {typeFilter}
-                    <button
-                      onClick={() => setTypeFilter("All")}
-                      className="ms-2 btn-close"
-                      style={{ fontSize: "0.6rem" }}
-                    ></button>
-                  </span>
-                )}
+          {hasActiveFilters && (
+            <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: `1px solid ${T.border}` }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+                <span style={{ fontSize: "0.78rem", color: T.textMuted, marginRight: 4 }}>Active Filters:</span>
+                {search && <FilterBadge label={`Search: "${search}"`} onClear={() => setSearch("")} />}
+                {statusFilter !== "All" && <FilterBadge label={`Status: ${statusFilter}`} onClear={() => setStatusFilter("All")} />}
+                {typeFilter !== "All" && <FilterBadge label={`Type: ${typeFilter}`} onClear={() => setTypeFilter("All")} />}
               </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* ================= DEPARTMENTS TABLE ================= */}
-      <div
-        className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up"
-        style={{ animationDelay: "0.2s" }}
-      >
-        <div className="card-header bg-gradient-primary text-white py-3 py-md-4">
-          <div className="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-3">
-            <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
-              <FaBuilding /> Department List
-              <span className="badge bg-light text-dark">
-                {currentItems.length} of {filteredDepartments.length} departments
-              </span>
-            </h2>
+        {/* ================= DEPARTMENTS TABLE ================= */}
+        <div
+          style={{
+            background: T.surface,
+            border: `1px solid ${T.border}`,
+            borderRadius: T.radiusLg,
+            boxShadow: T.shadow,
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              padding: "1.1rem 1.35rem",
+              borderBottom: `1px solid ${T.border}`,
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <FaBuilding style={{ color: T.navy }} />
+            <h2 style={{ fontSize: "0.98rem", fontWeight: 700, margin: 0, color: T.text }}>Department List</h2>
+            <Pill bg={T.navyTint} color={T.navyDark}>
+              {currentItems.length} of {filteredDepartments.length} departments
+            </Pill>
           </div>
-        </div>
 
-        <div className="card-body p-0">
           {filteredDepartments.length === 0 ? (
-            <div className="text-center py-5 px-3">
-              <FaBuilding className="text-muted mb-3" size={64} />
-              <h5 className="text-muted mb-2">No Departments Found</h5>
-              <p className="text-muted mb-4">
-                {search || statusFilter !== "All" || typeFilter !== "All"
+            <div style={{ textAlign: "center", padding: "3.5rem 1.5rem" }}>
+              <FaBuilding style={{ color: T.textMuted, opacity: 0.4 }} size={56} />
+              <h5 style={{ color: T.textMuted, margin: "1rem 0 0.4rem", fontWeight: 600 }}>No Departments Found</h5>
+              <p style={{ color: T.textMuted, marginBottom: "1.5rem", fontSize: "0.88rem" }}>
+                {hasActiveFilters
                   ? "Try adjusting your filters or search criteria"
                   : "No departments available in the system"}
               </p>
-              {(search || statusFilter !== "All" || typeFilter !== "All") && (
-                <button
-                  onClick={resetFilters}
-                  className="btn btn-outline-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto mb-3"
-                >
-                  <FaTimes size={14} /> Clear Filters
-                </button>
-              )}
-              <button
-                onClick={() => navigate("/departments/add")}
-                className="btn btn-primary px-4 py-2 d-flex align-items-center gap-2 mx-auto"
-              >
-                <FaPlus /> Add Department
-              </button>
+              <div style={{ display: "flex", justifyContent: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+                {hasActiveFilters && (
+                  <Btn onClick={resetFilters} color={T.navy}>
+                    <FaTimes size={13} /> Clear Filters
+                  </Btn>
+                )}
+                {canCreate('departments') && (
+                  <Btn onClick={() => navigate("/departments/add")} variant="solid" color={T.navy}>
+                    <FaPlus size={13} /> Add Department
+                  </Btn>
+                )}
+              </div>
             </div>
           ) : (
-            <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0">
-                <thead className="table-light">
-                  <tr>
-                    <th width="5%" className="ps-4">
-                      Sr.No
-                    </th>
-                    <th width="20%">Department</th>
-                    <th width="10%">Code</th>
-                    <th width="10%">Type</th>
-                    <th width="10%">Status</th>
-                    <th width="12%">Programs</th>
-                    <th width="8%">Start Year</th>
-                    <th width="8%">Faculty</th>
-                    <th width="8%">Students</th>
-                    <th width="10%" className="text-center pe-4">
-                      Actions
-                    </th>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.87rem" }}>
+                <thead>
+                  <tr style={{ background: "#fafbfc", borderBottom: `1px solid ${T.border}` }}>
+                    {showSrNo && <th style={thStyle("3.5rem")}>Sr.No</th>}
+                    <th style={thStyle("20%")}>Department</th>
+                    {showCode && <th style={thStyle("10%")}>Code</th>}
+                    {showType && <th style={thStyle("10%")}>Type</th>}
+                    <th style={thStyle("10%")}>Status</th>
+                    {showPrograms && <th style={thStyle("14%")}>Programs</th>}
+                    {showStartYear && <th style={thStyle("7%")}>Start Year</th>}
+                    {showFaculty && <th style={thStyle("7%")}>Faculty</th>}
+                    {showStudents && <th style={thStyle("7%")}>Students</th>}
+                    <th style={{ ...thStyle("10%"), textAlign: "center" }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {currentItems.map((d, index) => {
-                    const globalIndex = indexOfFirstItem + index; // Calculate global index for sr.no
+                    const globalIndex = indexOfFirstItem + index;
+                    const isActive = d.status === "ACTIVE";
+                    const isHovered = hoveredRow === d._id;
                     return (
                       <tr
                         key={d._id}
-                        className="animate-fade-in"
-                        style={{ animationDelay: `${index * 0.05}s` }}
+                        onMouseEnter={() => setHoveredRow(d._id)}
+                        onMouseLeave={() => setHoveredRow(null)}
+                        style={{
+                          background: isHovered ? "#f7f9fb" : "transparent",
+                          borderBottom: `1px solid ${T.border}`,
+                          transition: "background 0.15s ease",
+                        }}
                       >
-                        <td className="ps-4 fw-medium">{globalIndex + 1}</td>
-                        <td>
-                          <div className="d-flex align-items-center gap-2">
+                        {showSrNo && <td style={tdStyle}>{globalIndex + 1}</td>}
+                        <td style={tdStyle}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                             <div
-                              className="department-icon bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center"
-                              style={{ width: "36px", height: "36px" }}
+                              style={{
+                                width: 34,
+                                height: 34,
+                                borderRadius: "50%",
+                                background: T.tealTint,
+                                color: T.teal,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
                             >
-                              <FaGraduationCap size={16} />
+                              <FaGraduationCap size={15} />
                             </div>
                             <div>
-                              <div className="fw-bold">{d.name}</div>
-                              <div className="text-muted small">
-                                {d.establishedYear}
-                              </div>
+                              <div style={{ fontWeight: 600, color: T.text }}>{d.name}</div>
+                              <div style={{ fontSize: "0.76rem", color: T.textMuted }}>{d.establishedYear}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="fw-medium">{d.code}</td>
-                        <td>
-                          <span className="badge bg-info bg-opacity-25 text-info">
-                            {d.type}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`badge ${
-                              d.status === "ACTIVE"
-                                ? "bg-success"
-                                : d.status === "INACTIVE"
-                                  ? "bg-secondary"
-                                  : "bg-warning"
-                            }`}
-                          >
-                            {d.status === "ACTIVE" && (
-                              <FaCheckCircle className="me-1" />
-                            )}
-                            {d.status === "INACTIVE" && (
-                              <FaTimesCircle className="me-1" />
-                            )}
+                        {showCode && (
+                          <td style={tdStyle}>
+                            <Pill bg={T.navyTint} color={T.navyDark} mono>
+                              {d.code}
+                            </Pill>
+                          </td>
+                        )}
+                        {showType && (
+                          <td style={tdStyle}>
+                            <Chip bg={T.tealTint} color={T.teal}>
+                              {d.type}
+                            </Chip>
+                          </td>
+                        )}
+                        <td style={tdStyle}>
+                          <Chip bg={isActive ? T.successBg : T.inactiveBg} color={isActive ? T.success : T.inactive} dot>
                             {d.status}
-                          </span>
+                          </Chip>
                         </td>
-                        <td>
-                          <div className="d-flex flex-wrap gap-1">
-                            {(d.programsOffered || [])
-                              .slice(0, 2)
-                              .map((prog, i) => (
-                                <span
-                                  key={i}
-                                  className="badge bg-light text-dark border"
-                                >
+                        {showPrograms && (
+                          <td style={tdStyle}>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                              {(d.programsOffered || []).slice(0, 2).map((prog, i) => (
+                                <Pill key={i} bg="#f1f2f4" color={T.text}>
                                   {prog}
-                                </span>
+                                </Pill>
                               ))}
-                            {(d.programsOffered || []).length > 2 && (
-                              <span className="badge bg-secondary">
-                                +{(d.programsOffered || []).length - 2}
-                              </span>
+                              {(d.programsOffered || []).length > 2 && (
+                                <Pill bg={T.inactiveBg} color={T.textMuted}>
+                                  +{(d.programsOffered || []).length - 2}
+                                </Pill>
+                              )}
+                            </div>
+                          </td>
+                        )}
+                        {showStartYear && <td style={tdStyle}>{d.startYear || "N/A"}</td>}
+                        {showFaculty && (
+                          <td style={tdStyle}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                              <FaChalkboardTeacher style={{ color: T.teal }} size={13} />
+                              <span>{d.sanctionedFacultyCount || 0}</span>
+                            </div>
+                          </td>
+                        )}
+                        {showStudents && (
+                          <td style={tdStyle}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                              <FaGraduationCap style={{ color: T.navy }} size={13} />
+                              <span>{d.sanctionedStudentIntake || 0}</span>
+                            </div>
+                          </td>
+                        )}
+                        <td style={{ ...tdStyle, textAlign: "center" }}>
+                          <div style={{ display: "flex", justifyContent: "center", gap: "0.4rem" }}>
+                            {(hasAccess('departments') || hasAccess('departments-view')) && (
+                              <IconAction
+                                icon={<FaEye size={13} />}
+                                title="View Department"
+                                color={T.teal}
+                                tint={T.tealTint}
+                                onClick={() => navigate(`/departments/view/${d._id}`)}
+                              />
                             )}
-                          </div>
-                        </td>
-                        <td>{d.startYear || "N/A"}</td>
-                        <td>
-                          <div className="d-flex align-items-center gap-1">
-                            <FaChalkboardTeacher
-                              className="text-primary"
-                              size={14}
-                            />
-                            <span>{d.sanctionedFacultyCount || 0}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="d-flex align-items-center gap-1">
-                            <FaGraduationCap className="text-success" size={14} />
-                            <span>{d.sanctionedStudentIntake || 0}</span>
-                          </div>
-                        </td>
-                        <td className="text-center pe-4">
-                          <div className="d-flex justify-content-center gap-1">
-                            <button
-                              className="btn btn-sm btn-outline-primary hover-lift"
-                              title="Edit Department"
-                              onClick={() =>
-                                navigate(`/departments/edit/${d._id}`)
-                              }
-                            >
-                              <FaEdit size={14} />
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-warning hover-lift"
-                              title="Assign HOD"
-                              onClick={() =>
-                                navigate(`/departments/assign-hod/${d._id}`)
-                              }
-                            >
-                              <FaUserTie size={14} />
-                            </button>
-                            <button
-                              className="btn btn-sm btn-outline-danger hover-lift"
-                              title="Delete Department"
-                              onClick={() => handleDelete(d._id)}
-                            >
-                              <FaTrash size={14} />
-                            </button>
+                            {canEdit('departments') && (
+                              <IconAction
+                                icon={<FaEdit size={13} />}
+                                title="Edit Department"
+                                color={T.navy}
+                                tint={T.navyTint}
+                                onClick={() => navigate(`/departments/edit/${d._id}`)}
+                              />
+                            )}
+                            {canEdit('departments') && d.hod_id && (
+                              <IconAction
+                                icon={<FaUserSlash size={13} />}
+                                title="Remove HOD"
+                                color={T.textMuted}
+                                tint={T.inactiveBg}
+                                onClick={() => {
+                                  setSelectedDepartment(d);
+                                  setShowRemoveHodModal(true);
+                                }}
+                              />
+                            )}
+                            {canDelete('departments') && (
+                              <IconAction
+                                icon={<FaTrash size={13} />}
+                                title="Delete Department"
+                                color={T.danger}
+                                tint={T.dangerTint}
+                                onClick={() => handleDeleteClick(d)}
+                              />
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -506,218 +877,111 @@ export default function DepartmentList() {
               </table>
             </div>
           )}
-        </div>
-        {/* ================= TABLE FOOTER ================= */}
-        {filteredDepartments.length > 0 && (
-          <div className="card-footer bg-light py-3">
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-              <div className="text-muted small">
-                Showing <strong>{Math.min(indexOfLastItem, filteredDepartments.length)}</strong> of{" "}
-                <strong>{filteredDepartments.length}</strong> departments
+
+          {/* ================= TABLE FOOTER ================= */}
+          {filteredDepartments.length > 0 && (
+            <div
+              style={{
+                background: "#fafbfc",
+                borderTop: `1px solid ${T.border}`,
+                padding: "1rem 1.35rem",
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "0.75rem",
+              }}
+            >
+              <div style={{ fontSize: "0.8rem", color: T.textMuted }}>
+                Showing <strong style={{ color: T.text }}>{Math.min(indexOfLastItem, filteredDepartments.length)}</strong> of{" "}
+                <strong style={{ color: T.text }}>{filteredDepartments.length}</strong> departments
               </div>
-              <Pagination 
-                page={currentPage} 
-                totalPages={totalPages} 
-                setPage={setCurrentPage} 
-              />
+              <Pagination page={currentPage} totalPages={totalPages} setPage={setCurrentPage} />
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* ================= FOOTER ================= */}
-      <div
-        className="card border-0 shadow-lg rounded-4 overflow-hidden mt-3 mt-md-4 animate-fade-in-up"
-        style={{ animationDelay: "0.3s" }}
-      >
-        <div className="card-body p-3 p-md-4 bg-light">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-            <div className="text-center text-md-start">
-              <p className="mb-1">
-                <small className="text-muted">
-                  <FaBuilding className="me-1" />
-                  Department Management System | Smart College ERP
-                </small>
-              </p>
-             
-            </div>
-            <div className="d-flex gap-2 flex-wrap justify-content-center">
-              <button
-                className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
-                onClick={() => navigate("/dashboard")}
-              >
-                <FaArrowLeft size={12} /> Back to Dashboard
-              </button>
-            </div>
-          </div>
+        {/* ================= FOOTER ================= */}
+        <div
+          style={{
+            background: T.surface,
+            border: `1px solid ${T.border}`,
+            borderRadius: T.radiusLg,
+            boxShadow: T.shadow,
+            padding: "1.1rem 1.35rem",
+            marginTop: "1.25rem",
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "0.75rem",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: "0.8rem", color: T.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
+            <FaBuilding size={12} />
+            Department Management System | Smart College ERP
+          </p>
+          <Btn onClick={() => navigate("/dashboard")} color={T.navy}>
+            <FaArrowLeft size={12} /> Back to Dashboard
+          </Btn>
         </div>
       </div>
 
-      {/* ================= STYLES ================= */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
+      <ConfirmModal
+        isOpen={showRemoveHodModal}
+        onClose={() => {
+          setShowRemoveHodModal(false);
+          setSelectedDepartment(null);
+        }}
+        onConfirm={handleRemoveHod}
+        title="Remove HOD"
+        message={
+          selectedDepartment
+            ? `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
+            : ""
         }
-        @keyframes slideDown {
-          from { opacity: 0; transform: translateY(-20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulse {
-          0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 75, 109, 0.4); }
-          70% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(26, 75, 109, 0); }
-          100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(26, 75, 109, 0); }
-        }
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-        @keyframes lift {
-          to { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
+        type="warning"
+        confirmText="Remove HOD"
+        cancelText="Cancel"
+        isLoading={removingHod}
+      />
 
-        .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
-        .animate-slide-down { animation: slideDown 0.5s ease-out forwards; }
-        .animate-fade-in-up { animation: slideUp 0.6s ease-out forwards; }
-        .pulse-icon { animation: pulse 2s infinite; }
-        .blink { animation: blink 1.5s infinite; }
-        .blink-slow { animation: blink 2.5s infinite; }
-        .hover-lift:hover { animation: lift 0.3s ease forwards; }
-        .spin-icon { animation: spin 1s linear infinite; }
-        .float-badge { animation: float 3s ease-in-out infinite; }
-        .pulse-button { position: relative; overflow: hidden; }
-        .pulse-button::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 5px;
-          height: 5px;
-          background: rgba(255,255,255,0.5);
-          opacity: 0;
-          border-radius: 100%;
-          transform: scale(1, 1) translate(-50%);
-          transform-origin: 50% 50%;
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setDepartmentToDelete(null);
+        }}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Department"
+        message={
+          departmentToDelete
+            ? `Are you sure you want to delete "${departmentToDelete.name}"? This action cannot be undone.`
+            : ""
         }
-        .pulse-button:focus:not(:active)::after {
-          animation: ripple 1s ease-out;
-        }
-        @keyframes ripple {
-          0% { transform: scale(0, 0); opacity: 0.5; }
-          100% { transform: scale(100, 100); opacity: 0; }
-        }
-
-        .bg-gradient-primary {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          background-size: 200% 200%;
-          animation: gradientShift 8s ease infinite;
-        }
-        @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-
-        .header-icon-container {
-          width: 60px;
-          height: 60px;
-          box-shadow: 0 8px 25px rgba(26, 75, 109, 0.4);
-        }
-
-        .search-container {
-          position: relative;
-        }
-        .search-container .btn {
-          position: absolute;
-          right: 10px;
-          top: 50%;
-          transform: translateY(-50%);
-          z-index: 10;
-        }
-
-        .department-icon {
-          font-size: 18px;
-        }
-
-        .table thead th {
-          font-weight: 600;
-          color: #495057;
-          font-size: 0.9rem;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .table tbody tr:hover {
-          background-color: rgba(248, 249, 250, 0.7);
-          transform: translateX(5px);
-          transition: all 0.3s ease;
-        }
-        .table td {
-          vertical-align: middle;
-          padding: 1rem 0.75rem;
-        }
-        .table .badge {
-          font-size: 0.75rem;
-          padding: 0.4rem 0.6rem;
-        }
-
-        .pagination .page-item.active .page-link {
-          background-color: #1a4b6d;
-          border-color: #1a4b6d;
-        }
-        .pagination .page-link {
-          color: #1a4b6d;
-        }
-        .pagination .page-link:hover {
-          background-color: #e9ecef;
-        }
-
-        @media (max-width: 992px) {
-          .table thead th:nth-child(n+6),
-          .table tbody td:nth-child(n+6) {
-            display: none;
-          }
-          .header-icon-container {
-            width: 50px;
-            height: 50px;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .table thead th:nth-child(n+5),
-          .table tbody td:nth-child(n+5) {
-            display: none;
-          }
-          .h3-md {
-            font-size: 1.5rem !important;
-          }
-        }
-
-        @media (max-width: 576px) {
-          .table thead th:nth-child(n+4),
-          .table tbody td:nth-child(n+4) {
-            display: none;
-          }
-          .header-icon-container {
-            width: 45px;
-            height: 45px;
-          }
-          .btn-sm {
-            padding: 0.25rem 0.5rem !important;
-            font-size: 0.75rem !important;
-          }
-        }
-      `}</style>
+        type="danger"
+        confirmText="Delete Department"
+        cancelText="Cancel"
+        isLoading={deletingDepartment}
+      />
     </div>
   );
 }
+
+const thStyle = (width) => ({
+  width,
+  textAlign: "left",
+  padding: "0.85rem 1rem",
+  fontSize: "0.72rem",
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+  color: "#495057",
+  whiteSpace: "nowrap",
+});
+
+const tdStyle = {
+  padding: "0.85rem 1rem",
+  verticalAlign: "middle",
+  color: "#1f2530",
+};

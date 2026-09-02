@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FaChevronLeft,
   FaChevronRight,
@@ -5,7 +6,169 @@ import {
   FaAngleDoubleRight,
 } from "react-icons/fa";
 
+const COLORS = {
+  primary: "#3db5e6",
+  primaryDark: "#1a4b6d",
+  text: "#1e293b",
+  textMuted: "#64748b",
+  border: "#cbd5e1",
+  track: "#e2e8f0",
+  bg: "#f8fafc",
+  white: "#ffffff",
+  shadowInset: "rgba(0, 0, 0, 0.04)",
+};
+
+const pageBtnBase = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: "44px",
+  minHeight: "44px",
+  padding: "8px 12px",
+  fontSize: "14px",
+  fontWeight: 500,
+  lineHeight: 1,
+  borderRadius: "10px",
+  border: `1px solid ${COLORS.border}`,
+  background: COLORS.white,
+  color: COLORS.text,
+  boxShadow: `0 1px 2px ${COLORS.shadowInset}`,
+  transition: "all 0.15s cubic-bezier(0.4, 0, 0.2, 1)",
+  cursor: "pointer",
+  outline: "none",
+  userSelect: "none",
+};
+
+const btnStyle = ({ isCurrent, isDisabled, hovered, focused }) => {
+  if (isDisabled) {
+    return {
+      ...pageBtnBase,
+      opacity: 0.45,
+      cursor: "not-allowed",
+      transform: "none",
+    };
+  }
+
+  const interactive = hovered || focused;
+
+  if (isCurrent) {
+    return {
+      ...pageBtnBase,
+      background: COLORS.primary,
+      color: COLORS.white,
+      borderColor: COLORS.primary,
+      fontWeight: 600,
+      boxShadow: interactive
+        ? `0 0 0 3px ${COLORS.primary}44`
+        : `0 2px 6px ${COLORS.primary}33`,
+    };
+  }
+
+  return {
+    ...pageBtnBase,
+    ...(hovered
+      ? {
+          transform: "translateY(-1px)",
+          borderColor: COLORS.primary,
+          color: COLORS.primaryDark,
+          boxShadow: `0 4px 12px ${COLORS.primary}22`,
+        }
+      : {}),
+    ...(focused
+      ? {
+          boxShadow: `0 0 0 3px ${COLORS.primary}33, 0 1px 2px ${COLORS.shadowInset}`,
+        }
+      : {}),
+  };
+};
+
+const ellipsisStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minWidth: "44px",
+  minHeight: "44px",
+  fontSize: "14px",
+  fontWeight: 600,
+  color: COLORS.textMuted,
+  cursor: "default",
+  userSelect: "none",
+};
+
+const containerStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "8px",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: "12px 16px",
+  margin: "20px 0",
+  borderRadius: "14px",
+  background: COLORS.bg,
+  border: `1px solid ${COLORS.track}`,
+};
+
+const pageRowStyle = {
+  display: "inline-flex",
+  flexWrap: "wrap",
+  gap: "6px",
+  alignItems: "center",
+};
+
+const infoStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "6px",
+  marginLeft: "8px",
+  padding: "6px 14px",
+  borderRadius: "20px",
+  background: COLORS.white,
+  border: `1px solid ${COLORS.border}`,
+  color: COLORS.textMuted,
+  fontSize: "13px",
+  fontWeight: 600,
+};
+
+function NavButton({
+  id,
+  icon,
+  label,
+  onClick,
+  isCurrent,
+  isDisabled,
+  hovered,
+  focused,
+  onHover,
+  onFocus,
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={isDisabled}
+      aria-current={isCurrent ? "page" : undefined}
+      style={btnStyle({
+        isCurrent,
+        isDisabled,
+        hovered: hovered === id,
+        focused: focused === id,
+      })}
+      onMouseEnter={() => onHover(id)}
+      onMouseLeave={() => onHover(null)}
+      onFocus={() => onFocus(id)}
+      onBlur={() => onFocus(null)}
+      onClick={onClick}
+    >
+      {icon}
+    </button>
+  );
+}
+
 export default function Pagination({ page, totalPages, setPage }) {
+  const [hovered, setHovered] = useState(null);
+  const [focused, setFocused] = useState(null);
+
   // Generate page numbers to display with ellipsis logic
   const getPageNumbers = () => {
     const pages = [];
@@ -51,95 +214,94 @@ export default function Pagination({ page, totalPages, setPage }) {
   if (totalPages <= 1) return null;
 
   return (
-    <div className="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+    <div
+      className="erp-pagination"
+      role="navigation"
+      aria-label="Pagination"
+      style={containerStyle}
+    >
       {/* First page button */}
-      <button
-        className="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center hover-lift"
-        disabled={page === 1}
+      <NavButton
+        id="first"
+        label="First page"
+        icon={<FaAngleDoubleLeft size={14} />}
+        isDisabled={page === 1}
         onClick={() => handlePageChange(1)}
-        title="First page"
-        aria-label="First page"
-        style={{ minWidth: "44px", minHeight: "44px" }}
-      >
-        <FaAngleDoubleLeft size={14} />
-      </button>
+        hovered={hovered}
+        focused={focused}
+        onHover={setHovered}
+        onFocus={setFocused}
+      />
 
       {/* Previous page button */}
-      <button
-        className="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center hover-lift"
-        disabled={page === 1}
+      <NavButton
+        id="prev"
+        label="Previous page"
+        icon={<FaChevronLeft size={14} />}
+        isDisabled={page === 1}
         onClick={() => handlePageChange(page - 1)}
-        title="Previous page"
-        aria-label="Previous page"
-        style={{ minWidth: "44px", minHeight: "44px" }}
-      >
-        <FaChevronLeft size={14} />
-      </button>
+        hovered={hovered}
+        focused={focused}
+        onHover={setHovered}
+        onFocus={setFocused}
+      />
 
       {/* Page numbers */}
-      <div className="d-flex gap-1">
+      <div className="erp-pagination__pages" style={pageRowStyle}>
         {pageNumbers.map((pageNum, index) =>
           pageNum === "..." ? (
             <span
               key={`ellipsis-${index}`}
-              className="btn btn-sm btn-light d-flex align-items-center justify-content-center"
-              style={{
-                cursor: "default",
-                minWidth: "44px",
-                minHeight: "44px",
-                border: "1px solid transparent",
-              }}
+              aria-hidden="true"
+              style={ellipsisStyle}
             >
-              ...
+              &#8230;
             </span>
           ) : (
-            <button
+            <NavButton
               key={pageNum}
-              className={`btn btn-sm d-flex align-items-center justify-content-center transition-all ${
-                pageNum === page
-                  ? "btn-primary shadow-sm"
-                  : "btn-outline-primary hover-lift"
-              }`}
+              id={`page-${pageNum}`}
+              label={`Page ${pageNum}`}
+              icon={<span>{pageNum}</span>}
+              isCurrent={pageNum === page}
               onClick={() => handlePageChange(pageNum)}
-              aria-current={pageNum === page ? "page" : undefined}
-              style={{
-                minWidth: "44px",
-                minHeight: "44px",
-                fontWeight: pageNum === page ? "600" : "400",
-              }}
-            >
-              {pageNum}
-            </button>
+              hovered={hovered}
+              focused={focused}
+              onHover={setHovered}
+              onFocus={setFocused}
+            />
           ),
         )}
       </div>
 
       {/* Next page button */}
-      <button
-        className="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center hover-lift"
-        disabled={page === totalPages}
+      <NavButton
+        id="next"
+        label="Next page"
+        icon={<FaChevronRight size={14} />}
+        isDisabled={page === totalPages}
         onClick={() => handlePageChange(page + 1)}
-        title="Next page"
-        aria-label="Next page"
-        style={{ minWidth: "44px", minHeight: "44px" }}
-      >
-        <FaChevronRight size={14} />
-      </button>
+        hovered={hovered}
+        focused={focused}
+        onHover={setHovered}
+        onFocus={setFocused}
+      />
 
       {/* Last page button */}
-      <button
-        className="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center hover-lift"
-        disabled={page === totalPages}
+      <NavButton
+        id="last"
+        label="Last page"
+        icon={<FaAngleDoubleRight size={14} />}
+        isDisabled={page === totalPages}
         onClick={() => handlePageChange(totalPages)}
-        title="Last page"
-        aria-label="Last page"
-        style={{ minWidth: "44px", minHeight: "44px" }}
-      >
-        <FaAngleDoubleRight size={14} />
-      </button>
+        hovered={hovered}
+        focused={focused}
+        onHover={setHovered}
+        onFocus={setFocused}
+      />
 
       {/* Page info badge */}
-      <span className="ms-2 px-3 py-1 bg-light rounded-pill text-muted small fw-semibold">
+      <span style={infoStyle}>
         Page {page} of {totalPages}
       </span>
     </div>

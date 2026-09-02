@@ -1,5 +1,28 @@
 const DocumentConfig = require("../models/documentConfig.model");
 const College = require("../models/college.model");
+const { validateFile, expandAllowedFormats } = require("../utils/fileValidation");
+
+/**
+ * Normalize document configurations: expand JPG/JPEG equivalence
+ * so both extensions appear when either is configured.
+ * Handles both Mongoose subdocuments and plain objects.
+ */
+const normalizeDocuments = (documents) => {
+  if (!Array.isArray(documents)) return documents;
+  return documents.map((doc) => {
+    // Convert Mongoose subdocuments to plain objects before spreading.
+    // Spreading a Mongoose subdocument directly ({ ...doc }) only copies
+    // internal Mongoose properties (__parentArray, $__, _doc, etc.) and
+    // omits actual schema fields like type, enabled, label.
+    const docObj = doc.toObject ? doc.toObject() : doc;
+    return {
+      ...docObj,
+      allowedFormats: docObj.allowedFormats
+        ? expandAllowedFormats(docObj.allowedFormats)
+        : docObj.allowedFormats,
+    };
+  });
+};
 
 /**
  * Get document configuration for a college (public - used during student registration)
@@ -9,18 +32,12 @@ exports.getDocumentConfig = async (req, res) => {
   try {
     const { collegeCode } = req.params;
 
-    console.log("📄 Document Config Request - College Code:", collegeCode);
-
-    // Case-insensitive search for college code
     const config = await DocumentConfig.findOne({
-      collegeCode: { $regex: new RegExp(`^${collegeCode}$`, 'i') },
+      collegeCode,
       isActive: true
     }).select("documents collegeCode");
 
-    console.log("📄 Database Response:", config ? "Config Found" : "Config Not Found");
-
     if (!config) {
-      console.log("⚠️ No config found - returning EMPTY documents array (admin must configure first)");
       // If no config exists, return empty array - admin must configure documents first
       return res.json({
         collegeCode,
@@ -30,10 +47,10 @@ exports.getDocumentConfig = async (req, res) => {
       });
     }
 
-    // Return only enabled documents from config
-    const enabledDocuments = config.documents.filter(doc => doc.enabled);
-
-    console.log("✅ Returning", enabledDocuments.length, "enabled documents out of", config.documents.length, "total");
+    // Return only enabled documents from config, with JPG/JPEG normalized
+    const enabledDocuments = normalizeDocuments(
+      config.documents.filter(doc => doc.enabled)
+    );
 
     res.json({
       collegeCode,
@@ -41,7 +58,6 @@ exports.getDocumentConfig = async (req, res) => {
       isDefault: false
     });
   } catch (error) {
-    console.error("❌ Error in getDocumentConfig:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -73,7 +89,9 @@ exports.getDocumentConfigForAdmin = async (req, res) => {
       });
     }
 
-    res.json({ config });
+    const configObj = config.toObject();
+    configObj.documents = normalizeDocuments(configObj.documents);
+    res.json({ config: configObj });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -89,9 +107,6 @@ exports.upsertDocumentConfig = async (req, res) => {
     const collegeCode = req.collegeCode;
     const { documents } = req.body;
     const userId = req.user.id;
-
-    console.log("💾 Saving Document Config - College ID:", college_id, "Code:", collegeCode);
-    console.log("📋 Documents count:", documents?.length);
 
     // Validate documents array
     if (!documents || !Array.isArray(documents)) {
@@ -119,8 +134,7 @@ exports.upsertDocumentConfig = async (req, res) => {
       "sports_quota_certificate",
       "nri_sponsor_certificate",
       "gap_certificate",
-      "affidavit",
-      "custom_document"
+      "affidavit"
     ];
 
     for (const doc of documents) {
@@ -129,8 +143,10 @@ exports.upsertDocumentConfig = async (req, res) => {
           message: "Each document must have a type and label"
         });
       }
-      
-      if (doc.type !== "custom_document" && !allowedDocumentTypes.includes(doc.type)) {
+
+      // Allow any type starting with "custom_" (covers both "custom_document"
+      // and dynamically generated types like "custom_1776491446976")
+      if (!doc.type.startsWith("custom_") && !allowedDocumentTypes.includes(doc.type)) {
         return res.status(400).json({
           message: `Invalid document type: ${doc.type}`
         });
@@ -149,12 +165,20 @@ exports.upsertDocumentConfig = async (req, res) => {
       }
     }
 
+    // Normalize allowedFormats: expand JPG/JPEG equivalence so both
+    // extensions are stored when either is configured.
+    const { expandAllowedFormats } = require("../utils/fileValidation");
+    for (const doc of documents) {
+      if (doc.allowedFormats && Array.isArray(doc.allowedFormats)) {
+        doc.allowedFormats = expandAllowedFormats(doc.allowedFormats);
+      }
+    }
+
     // Check if config exists
     let config = await DocumentConfig.findOne({ college_id, isActive: true });
 
     if (config) {
       // Update existing config
-      console.log("✏️ Updating existing config");
       config.documents = documents;
       config.updatedBy = userId;
       config.updatedAt = new Date();
@@ -165,7 +189,6 @@ exports.upsertDocumentConfig = async (req, res) => {
       
       if (inactiveConfig) {
         // Reactivate and update the inactive config
-        console.log("♻️ Reactivating inactive config");
         inactiveConfig.documents = documents;
         inactiveConfig.updatedBy = userId;
         inactiveConfig.isActive = true;
@@ -174,7 +197,6 @@ exports.upsertDocumentConfig = async (req, res) => {
         config = inactiveConfig;
       } else {
         // Create new config
-        console.log("✨ Creating new config");
         config = await DocumentConfig.create({
           college_id,
           collegeCode,
@@ -185,14 +207,11 @@ exports.upsertDocumentConfig = async (req, res) => {
       }
     }
 
-    console.log("✅ Config saved successfully");
-
     res.json({
       message: "Document configuration saved successfully",
       config
     });
   } catch (error) {
-    console.error("❌ Error in upsertDocumentConfig:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -207,17 +226,19 @@ exports.resetToEmpty = async (req, res) => {
     const collegeCode = req.collegeCode;
     const userId = req.user.id;
 
-    // Delete existing config
+    // Soft-delete existing active config
     await DocumentConfig.findOneAndUpdate(
-      { college_id },
+      { college_id, isActive: true },
       { isActive: false, updatedAt: new Date() }
     );
 
-    // Create EMPTY config (no documents)
-    const config = await DocumentConfig.createEmptyConfig(
+    // Create a brand new EMPTY config (no documents)
+    const config = await DocumentConfig.create({
       college_id,
-      collegeCode
-    );
+      collegeCode,
+      documents: [],
+      isActive: true
+    });
 
     res.json({
       message: "Configuration reset to empty successfully. No documents are required.",
@@ -231,6 +252,7 @@ exports.resetToEmpty = async (req, res) => {
 /**
  * Validate uploaded documents against config
  * This will be used during student registration
+ * Validates both mandatory documents AND file formats (extension + MIME type)
  */
 exports.validateDocuments = async (req, res) => {
   try {
@@ -259,6 +281,30 @@ exports.validateDocuments = async (req, res) => {
       }
     }
 
+    // Validate file formats (extension + MIME type) for uploaded files
+    for (const docConfig of enabledDocs) {
+      const file = uploadedFiles[docConfig.type];
+      if (!file) continue;
+
+      const originalName = file.originalname || file.name || file.fileName;
+      const mimeType = file.mimetype || file.mimeType || file.type;
+
+      if (originalName && mimeType) {
+        const result = validateFile(
+          originalName,
+          mimeType,
+          docConfig.allowedFormats || []
+        );
+        if (!result.valid) {
+          errors.push({
+            type: docConfig.type,
+            label: docConfig.label,
+            message: result.error
+          });
+        }
+      }
+    }
+
     if (errors.length > 0) {
       return res.status(400).json({
         valid: false,
@@ -268,7 +314,7 @@ exports.validateDocuments = async (req, res) => {
 
     res.json({
       valid: true,
-      message: "All required documents uploaded"
+      message: "All required documents uploaded and validated"
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

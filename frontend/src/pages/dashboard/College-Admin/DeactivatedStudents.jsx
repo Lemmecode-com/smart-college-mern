@@ -1,10 +1,12 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+﻿import { useContext, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import { toast } from "react-toastify";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaSearch,
@@ -21,7 +23,18 @@ import {
 
 const PAGE_SIZE = 5;
 
-export default function DeactivatedStudents() {
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
+export default function DeactivatedStudents({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
@@ -29,18 +42,20 @@ export default function DeactivatedStudents() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
+  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+    return <Navigate to="/dashboard" />;
+  }
+  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
 
   /* ================= FETCH DEACTIVATED STUDENTS ================= */
   const fetchDeactivatedStudents = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
       const res = await api.get("/students/deactivated");
 
       let data;
@@ -53,9 +68,28 @@ export default function DeactivatedStudents() {
       }
 
       setStudents(data);
-      setRetryCount(0);
+
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to load deactivated students.");
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load deactivated students.";
+
+      logger.error("Error fetching deactivated students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -67,12 +101,7 @@ export default function DeactivatedStudents() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      fetchDeactivatedStudents();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    fetchDeactivatedStudents();
   };
 
   /* ================= SEARCH ================= */
@@ -108,19 +137,14 @@ export default function DeactivatedStudents() {
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon"><FaExclamationTriangle /></div>
-        <h3>Deactivated Students Error</h3>
-        <p>{error}</p>
-        <div className="error-actions">
-          <button className="erp-btn erp-btn-secondary" onClick={() => navigate(-1)}>
-            <FaSyncAlt className="erp-btn-icon" /> Go Back
-          </button>
-          <button className="erp-btn erp-btn-primary" onClick={handleRetry} disabled={retryCount >= 3}>
-            <FaSyncAlt className="erp-btn-icon" /> Retry
-          </button>
-        </div>
-      </div>
+      <ApiError
+        title="Deactivated Students Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -128,12 +152,19 @@ export default function DeactivatedStudents() {
     return <Loading fullScreen size="lg" text="Loading deactivated students..." />;
   }
 
-  return (
-    <div className="erp-container">
-      <Breadcrumb items={[
-        { label: "Dashboard", path: "/dashboard" },
-        { label: "Deactivated Students" },
-      ]} />
+   return (
+     <div className="erp-container">
+       <Breadcrumb items={admissionOfficerMode
+         ? [
+             { label: "Dashboard", path: "/dashboard/admission" },
+             { label: "Admissions", path: "/admission/applications" },
+             { label: "Deactivated Students" },
+           ]
+         : [
+             { label: "Dashboard", path: "/dashboard" },
+             { label: "Deactivated Students" },
+           ]
+       } />
 
       <div className="erp-page-header">
         <div className="erp-header-content">
@@ -216,7 +247,7 @@ export default function DeactivatedStudents() {
                         <span className="badge badge-course">{student.course_id?.name || "N/A"}</span>
                       </td>
                       <td className="cell-department">
-                        <span className="department-name">{student.department_id?.name || "N/A"}</span>
+                        <span className="department-name">{student.department_id?.name || student.course_id?.name || "N/A"}</span>
                       </td>
                       <td className="cell-year">
                         <span className="badge badge-graduation-year">

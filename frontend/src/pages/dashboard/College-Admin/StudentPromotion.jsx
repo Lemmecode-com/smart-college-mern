@@ -13,6 +13,8 @@ import { moveToAlumni } from "../../../api/alumni";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
 
 import {
   FaGraduationCap,
@@ -46,29 +48,77 @@ function getOrdinalSuffix(num) {
   return "th";
 }
 
-export default function StudentPromotion() {
+const ATTENDANCE_STATUS = {
+  ELIGIBLE: "ELIGIBLE",
+  NOT_ELIGIBLE: "NOT_ELIGIBLE",
+  ATTENDANCE_NOT_AVAILABLE: "ATTENDANCE_NOT_AVAILABLE",
+};
+
+function formatStatus(status) {
+  return status ? status.replace(/_/g, " ") : "-";
+}
+
+function getAttendanceStatusBadge(status) {
+  switch (status) {
+    case ATTENDANCE_STATUS.ELIGIBLE:
+      return "badge badge-success";
+    case ATTENDANCE_STATUS.NOT_ELIGIBLE:
+      return "badge badge-danger";
+    case ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE:
+      return "badge badge-warning";
+    default:
+      return "badge badge-secondary";
+  }
+}
+
+function isStudentPromotable(student) {
+  if (!student) return false;
+  const feeOk = student.allInstallmentsPaid;
+  const attendanceOk = student.attendanceStatus === ATTENDANCE_STATUS.ELIGIBLE;
+  return feeOk && attendanceOk;
+}
+
+export default function StudentPromotion({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
 
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("ALL");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [promotionRemarks, setPromotionRemarks] = useState("");
   const [overrideFeeCheck, setOverrideFeeCheck] = useState(false);
+  const [overrideAttendanceCheck, setOverrideAttendanceCheck] = useState(false);
+  const [overrideAttendanceReason, setOverrideAttendanceReason] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [promotionHistory, setPromotionHistory] = useState([]);
-  const [retryCount, setRetryCount] = useState(0);
   const [promotedByName, setPromotedByName] = useState(user?.name || "Admin");
   const [showAlumniModal, setShowAlumniModal] = useState(false);
   const [alumniStudent, setAlumniStudent] = useState(null);
   const [graduationYear, setGraduationYear] = useState(new Date().getFullYear());
+  const [promotionThreshold, setPromotionThreshold] = useState(75);
+
+  // Bulk Result Modal State
+  const [showBulkResultModal, setShowBulkResultModal] = useState(false);
+  const [bulkResultData, setBulkResultData] = useState(null);
+  const [bulkSuccessCount, setBulkSuccessCount] = useState(0);
 
   // Confirm Modal State
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -86,13 +136,10 @@ export default function StudentPromotion() {
   };
 
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN") return <Navigate to="/dashboard" />;
-
-  // 🎓 HELPER: Calculate academic year number from semester & admission year
-  const getAcademicYear = (semester, admissionYear) => {
-    const yearNumber = Math.ceil(semester / 2); // Sem 1-2 = Year 1, Sem 3-4 = Year 2
-    return `Year ${yearNumber}`;
-  };
+  if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
+    return <Navigate to="/dashboard" />;
+  }
+  // When admissionOfficerMode is true, we allow ADMISSION_OFFICER (ProtectedRoute already validated)
 
   // 🎓 HELPER: Calculate next academic year string (e.g., "2024-2025" → "2025-2026")
   const getNextAcademicYear = (currentYear) => {
@@ -105,25 +152,35 @@ export default function StudentPromotion() {
   const fetchEligibleStudents = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
 
       const res = await getPromotionEligibleStudents();
 
-      // Check if students array exists and has data
-      if (!res.students || res.students.length === 0) {
-        // No students found - this is OK, not an error
-      }
-
       setStudents(res.students || []);
-      setRetryCount(0);
+      if (res.promotionThreshold) {
+        setPromotionThreshold(res.promotionThreshold);
+      }
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Failed to load students for promotion.",
-      );
-      toast.error(err.response?.data?.message || "Failed to load students", {
-        position: "top-right",
-        autoClose: 4000,
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load students for promotion.";
+
+      logger.error("Error fetching promotion eligible students:", statusCode, errorCode);
+
+      setError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
       });
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -143,12 +200,7 @@ export default function StudentPromotion() {
   }, []);
 
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      fetchEligibleStudents();
-    } else {
-      setError("Maximum retry attempts reached.");
-    }
+    fetchEligibleStudents();
   };
 
   const filteredStudents = useMemo(() => {
@@ -194,6 +246,8 @@ export default function StudentPromotion() {
     setSelectedStudent(student);
     setPromotionRemarks("");
     setOverrideFeeCheck(false);
+    setOverrideAttendanceCheck(false);
+    setOverrideAttendanceReason("");
     setShowPromoteModal(true);
   };
 
@@ -201,23 +255,28 @@ export default function StudentPromotion() {
     try {
       setLoading(true);
 
+      if (
+        selectedStudent.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
+        overrideAttendanceCheck &&
+        overrideAttendanceReason.trim().length < 10
+      ) {
+        toast.error("Attendance override reason must be at least 10 characters.", {
+          position: "top-right",
+          autoClose: 5000,
+        });
+        return;
+      }
+
       const response = await promoteStudent(selectedStudent._id, {
         remarks: promotionRemarks,
         overrideFeeCheck,
+        overrideAttendanceCheck,
+        overrideAttendanceReason: overrideAttendanceCheck ? overrideAttendanceReason.trim() : "",
       });
 
-      // ✅ Updated success message with year-wise info
-      const currentYear = getAcademicYear(
-        selectedStudent.currentSemester,
-        selectedStudent.admissionYear,
-      );
-      const nextYear = getAcademicYear(
-        selectedStudent.currentSemester + 1,
-        selectedStudent.admissionYear,
-      );
-
+      // ✅ Updated success message with year-wise info from API
       setSuccessMessage(
-        `${selectedStudent.fullName} promoted successfully from ${currentYear} (Sem ${selectedStudent.currentSemester}) to ${nextYear} (Sem ${selectedStudent.currentSemester + 1})`,
+        `${selectedStudent.fullName} promoted successfully from ${selectedStudent.academicYearLabel} (Sem ${selectedStudent.currentSemester}) to Sem ${selectedStudent.currentSemester + 1}`,
       );
       setShowPromoteModal(false);
       fetchEligibleStudents();
@@ -226,6 +285,13 @@ export default function StudentPromotion() {
         position: "top-right",
         autoClose: 4000,
       });
+      // Warn admin if fee structure was not found for new semester
+      if (response?.promotion?.feeAssignmentWarning) {
+        toast.warn(response.promotion.feeAssignmentWarning, {
+          position: "top-right",
+          autoClose: 8000,
+        });
+      }
     } catch (err) {
       // Show specific error message
       const errorMessage = err.response?.data?.message || err.message || "Failed to promote student.";
@@ -275,21 +341,85 @@ export default function StudentPromotion() {
 
   const handleBulkPromote = async () => {
     try {
+      // Check if any selected students are ineligible before proceeding
+      const ineligibleStudents = selectedStudents.filter((id) => {
+        const student = students.find((s) => s._id === id);
+        if (!student) return false;
+        // Check fee eligibility
+        const feeIneligible = !student.allInstallmentsPaid && !overrideFeeCheck;
+        // Check attendance eligibility
+        const attendanceIneligible = 
+          student.attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE ||
+          (student.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE && !overrideAttendanceCheck);
+        return feeIneligible || attendanceIneligible;
+      });
+
+      if (ineligibleStudents.length > 0) {
+        const ineligibleCount = ineligibleStudents.length;
+        const totalSelected = selectedStudents.length;
+        
+        toast.error(
+          `${ineligibleCount} of ${totalSelected} selected student(s) are not eligible for promotion. ` +
+          `Please deselect students with pending fees or insufficient attendance, or use override options.`,
+          {
+            position: "top-right",
+            autoClose: 8000,
+          }
+        );
+        return;
+      }
+
       setLoading(true);
+      if (
+        overrideAttendanceCheck &&
+        overrideAttendanceReason.trim().length < 10
+      ) {
+        toast.error("Attendance override reason must be at least 10 characters.", {
+          position: "top-right",
+          autoClose: 5000,
+        });
+        return;
+      }
+
       const res = await bulkPromoteStudents({
         studentIds: selectedStudents,
         overrideFeeCheck,
+        overrideAttendanceCheck,
+        overrideAttendanceReason: overrideAttendanceCheck ? overrideAttendanceReason.trim() : "",
       });
-      setSuccessMessage(
-        `${res.results.success.length} students promoted successfully!`,
-      );
+      const successCount = res.results.success.length;
+      const failCount = res.results.failed ? res.results.failed.length : 0;
       setSelectedStudents([]);
       fetchEligibleStudents();
-      setTimeout(() => setSuccessMessage(""), 5000);
-      toast.success(`${res.results.success.length} students promoted successfully!`, {
-        position: "top-right",
-        autoClose: 4000,
-      });
+      if (successCount > 0) {
+        setSuccessMessage(
+          `${successCount} student${successCount > 1 ? "s" : ""} promoted successfully${failCount > 0 ? `, ${failCount} failed` : ""}!`,
+        );
+        setTimeout(() => setSuccessMessage(""), 5000);
+        toast.success(`${successCount} student${successCount > 1 ? "s" : ""} promoted successfully!`, {
+          position: "top-right",
+          autoClose: 4000,
+        });
+      }
+      if (failCount > 0) {
+        setBulkSuccessCount(successCount);
+        setBulkResultData(res.results.failed);
+        setShowBulkResultModal(true);
+        const summaryMessage = `${failCount} student${failCount > 1 ? "s" : ""} could not be promoted.`;
+        toast.warn(summaryMessage + "see the reasons.", {
+          position: "top-right",
+          autoClose: 6000,
+        });
+        setError(summaryMessage);
+      }
+      // Warn if any promoted students had missing fee structures
+      const feeWarnings = res.results.success.filter(s => s.feeAssignmentWarning);
+      if (feeWarnings.length > 0) {
+        toast.warn(`${feeWarnings.length} student(s) promoted but fee structure not found for new semester. Please assign fees manually.`, {
+          position: "top-right",
+          autoClose: 8000,
+        });
+      }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to promote students.";
       setError(errorMessage);
@@ -313,6 +443,9 @@ export default function StudentPromotion() {
   const pendingCount = students.filter(
     (s) => s.feeStatus !== "FULLY_PAID",
   ).length;
+  const selectedAttendanceNotAvailableCount = selectedStudents.filter((id) =>
+    students.find((student) => student._id === id)?.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
+  ).length;
 
   const getFeeStatusBadge = (status) => {
     switch (status) {
@@ -327,28 +460,32 @@ export default function StudentPromotion() {
 
   if (error && !loading && students.length === 0) {
     return (
-      <div className="erp-error-container">
-        <div className="erp-error-icon">
-          <FaExclamationTriangle />
-        </div>
-        <h3>Student Promotion Error</h3>
-        <p>{error}</p>
-        <button onClick={handleRetry} className="btn btn-primary">
-          <FaSyncAlt /> Retry
-        </button>
-      </div>
+      <ApiError
+        title="Student Promotion Loading Error"
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
+        onRetry={handleRetry}
+        onGoBack={() => navigate(-1)}
+      />
     );
   }
 
   return (
     <div className="page-container">
-      {/* Breadcrumb */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Student Promotion" },
-        ]}
-      />
+       {/* Breadcrumb */}
+       <Breadcrumb
+         items={admissionOfficerMode
+           ? [
+               { label: "Dashboard", path: "/dashboard/admission" },
+               { label: "Student Promotion" },
+             ]
+           : [
+               { label: "Dashboard", path: "/dashboard" },
+               { label: "Student Promotion" },
+             ]
+         }
+       />
 
       {/* Page Header */}
       <div className="page-header">
@@ -362,7 +499,7 @@ export default function StudentPromotion() {
           </p>
         </div>
         <div className="header-actions">
-          <button onClick={viewHistory} className="btn btn-outline-primary">
+          <button onClick={viewHistory} className="btn btn-outline-secondary">
             <FaHistory /> View History
           </button>
         </div>
@@ -372,13 +509,6 @@ export default function StudentPromotion() {
       {successMessage && (
         <div className="alert alert-success">
           <FaCheckCircle /> {successMessage}
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="alert alert-danger">
-          <FaExclamationTriangle /> {error}
         </div>
       )}
 
@@ -438,6 +568,41 @@ export default function StudentPromotion() {
           >
             <FaArrowUp /> {loading ? "Processing..." : "Promote All Selected"}
           </button>
+          {!admissionOfficerMode && (
+            <label className="custom-checkbox-label">
+              <input
+                type="checkbox"
+                checked={overrideFeeCheck}
+                onChange={(e) => setOverrideFeeCheck(e.target.checked)}
+                className="custom-checkbox"
+              />
+              <span>Override fee check</span>
+            </label>
+          )}
+          {selectedAttendanceNotAvailableCount > 0 && (
+            <div className="bulk-action-overrides">
+              <label className="custom-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={overrideAttendanceCheck}
+                  onChange={(e) => setOverrideAttendanceCheck(e.target.checked)}
+                  className="custom-checkbox"
+                />
+                <span>Override attendance check for {selectedAttendanceNotAvailableCount} student(s) with no attendance records</span>
+              </label>
+              {overrideAttendanceCheck && (
+                <input
+                  type="text"
+                  value={overrideAttendanceReason}
+                  onChange={(e) => setOverrideAttendanceReason(e.target.value)}
+                  className="form-control"
+                  placeholder="Attendance override reason (minimum 10 characters)"
+                  minLength={10}
+                  required
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -488,95 +653,214 @@ export default function StudentPromotion() {
 
       {/* History View */}
       {showHistory ? (
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">
-              <FaGraduationCap /> Promotion History
-            </h3>
-            <button
-              onClick={() => setShowHistory(false)}
-              className="btn btn-outline-secondary"
-            >
-              ← Back to Students
-            </button>
-          </div>
-          <div className="card-body">
-            <div className="table-responsive">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Student</th>
-                    <th>Promotion</th>
-                    <th>Fee Status</th>
-                    <th>Date</th>
-                    <th>Promoted By</th>
-                    <th>Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {promotionHistory && promotionHistory.length > 0 ? (
-                    promotionHistory.map((record) => (
-                      <tr key={record._id}>
-                        <td>
-                          <div className="student-name">
-                            {record.student_id?.fullName}
-                          </div>
-                          <div className="student-email">
-                            {record.student_id?.email}
-                          </div>
-                        </td>
-                        <td>
-                          <div>
-                            <span className="text-muted">
-                              {record.fromAcademicYear ||
-                                `Sem ${record.fromSemester}`}
-                            </span>
-                            <span className="mx-2">→</span>
-                            <span className="text-primary fw-bold">
-                              {record.toAcademicYear ||
-                                `Sem ${record.toSemester}`}
-                            </span>
-                          </div>
-                          <div
-                            className="text-muted"
-                            style={{ fontSize: "11px" }}
-                          >
-                            Sem {record.fromSemester} → Sem {record.toSemester}
-                          </div>
-                          {record.isFinalSemesterPromotion && (
-                            <span className="badge badge-warning mt-1" style={{ fontSize: "10px" }}>
-                              <FaGraduationCap className="mr-1" /> Final Year
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <span
-                            className={`badge ${getFeeStatusBadge(record.feeStatus)}`}
-                          >
-                            {record.feeStatus.replace("_", " ")}
-                          </span>
-                        </td>
-                        <td className="text-muted">
-                          {new Date(record.promotionDate).toLocaleDateString()}
-                        </td>
-                        <td className="text-muted">
-                          {record.promotedByName || "-"}
-                        </td>
-                        <td className="text-muted">{record.remarks || "-"}</td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="6" className="text-center" style={{ padding: "40px" }}>
-                        No promotion history found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+        <>
+          {/* History Page Header */}
+          <div className="erp-page-header">
+            <div className="erp-header-content">
+              <div className="erp-header-icon">
+                <FaHistory />
+              </div>
+              <div className="erp-header-text">
+                <h1 className="erp-page-title">Promotion History</h1>
+                <p className="erp-page-subtitle">
+                  View all student promotion records across the college
+                </p>
+              </div>
+            </div>
+            <div className="header-actions">
+              <button
+                onClick={() => setShowHistory(false)}
+                className="history-back-btn"
+              >
+                ← Back to Students
+              </button>
             </div>
           </div>
-        </div>
+
+          {/* History Stats */}
+          <div className="stats-grid animate-fade-in">
+            <div className="stat-card">
+              <div
+                className="stat-card-icon"
+                style={{
+                  background: "linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%)",
+                }}
+              >
+                <FaHistory />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-label">Total Promotions</div>
+                <div className="stat-card-value">
+                  {promotionHistory.length}
+                </div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div
+                className="stat-card-icon"
+                style={{
+                  background: "linear-gradient(135deg, #FF9800 0%, #F57C00 100%)",
+                }}
+              >
+                <FaGraduationCap />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-label">Final Year Promotions</div>
+                <div className="stat-card-value">
+                  {promotionHistory.filter((r) => r.isFinalSemesterPromotion).length}
+                </div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div
+                className="stat-card-icon"
+                style={{
+                  background: "linear-gradient(135deg, #4CAF50 0%, #43A047 100%)",
+                }}
+              >
+                <FaCheckCircle />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-label">Fully Paid</div>
+                <div className="stat-card-value">
+                  {promotionHistory.filter((r) => r.feeStatus === "FULLY_PAID").length}
+                </div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div
+                className="stat-card-icon"
+                style={{
+                  background: "linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)",
+                }}
+              >
+                <FaUsers />
+              </div>
+              <div className="stat-card-content">
+                <div className="stat-card-label">Unique Students</div>
+                <div className="stat-card-value">
+                  {new Set(promotionHistory.map((r) => r.student_id?._id)).size}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* History Table */}
+          <div className="erp-card animate-fade-in">
+            <div className="erp-card-header">
+              <h3>
+                <FaHistory className="erp-card-icon" />
+                Promotion History Records
+              </h3>
+              <span className="record-count">
+                {promotionHistory.length}{" "}
+                {promotionHistory.length === 1 ? "Record" : "Records"}
+              </span>
+            </div>
+            <div className="erp-card-body">
+              <div className="table-container">
+                {promotionHistory && promotionHistory.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>Student</th>
+                          <th>Promotion</th>
+                          <th>Fee Status</th>
+                          <th>Attendance</th>
+                          <th>Override</th>
+                          <th>Date</th>
+                          <th>Promoted By</th>
+                          <th>Remarks</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {promotionHistory.map((record) => (
+                          <tr key={record._id}>
+                            <td>
+                              <div className="student-name">
+                                {record.student_id?.fullName}
+                              </div>
+                              <div className="student-email">
+                                {record.student_id?.email}
+                              </div>
+                            </td>
+                            <td>
+                              <div>
+                                <span className="text-muted">
+                                  {record.fromAcademicYear ||
+                                    `Sem ${record.fromSemester}`}
+                                </span>
+                                <span className="mx-2">→</span>
+                                <span className="text-primary fw-bold">
+                                  {record.toAcademicYear ||
+                                    `Sem ${record.toSemester}`}
+                                </span>
+                              </div>
+                              <div
+                                className="text-muted"
+                                style={{ fontSize: "11px" }}
+                              >
+                                Sem {record.fromSemester} → Sem {record.toSemester}
+                              </div>
+                              {record.isFinalSemesterPromotion && (
+                                <span className="badge badge-warning mt-1" style={{ fontSize: "10px" }}>
+                                  <FaGraduationCap className="mr-1" /> Final Year
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              <span
+                                className={`badge ${getFeeStatusBadge(record.feeStatus)}`}
+                              >
+                                {record.feeStatus.replace("_", " ")}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className={`badge ${getAttendanceStatusBadge(record.attendanceStatus)}`}
+                              >
+                                {formatStatus(record.attendanceStatus)}
+                              </span>
+                              <div className="text-muted" style={{ fontSize: "11px" }}>
+                                {record.attendancePercentage ?? 0}%
+                              </div>
+                              {record.attendanceCheckedAt && (
+                                <div className="text-muted" style={{ fontSize: "11px" }}>
+                                  {new Date(record.attendanceCheckedAt).toLocaleString()}
+                                </div>
+                              )}
+                            </td>
+                            <td className="text-muted">
+                              {record.attendanceOverridden
+                                ? record.attendanceOverrideReason || "Attendance override recorded"
+                                : "-"}
+                            </td>
+                            <td className="text-muted">
+                              {new Date(record.promotionDate).toLocaleDateString()}
+                            </td>
+                            <td className="text-muted">
+                              {record.promotedByName || "-"}
+                            </td>
+                            <td className="text-muted">{record.remarks || "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    <FaHistory className="empty-icon" />
+                    <p className="empty-title">No Promotion History</p>
+                    <p className="empty-text">
+                      No promotion records have been created yet. Promote students to start building history.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
       ) : (
         /* Students Table */
         <div className="card">
@@ -585,6 +869,9 @@ export default function StudentPromotion() {
             <div className="card-header-actions">
               <span className="text-muted">
                 {filteredStudents.length} of {students.length} students
+              </span>
+              <span className="badge badge-info ml-2">
+                Attendance threshold: {promotionThreshold}%
               </span>
             </div>
           </div>
@@ -661,6 +948,8 @@ export default function StudentPromotion() {
                       <th>Total Fee</th>
                       <th>Paid Amount</th>
                       <th>Status</th>
+                      <th>Attendance %</th>
+                      <th>Attendance Status</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -682,10 +971,7 @@ export default function StudentPromotion() {
                         <td>
                           <div>
                             <span className="badge badge-info">
-                              {getAcademicYear(
-                                student.currentSemester,
-                                student.admissionYear,
-                              )}
+                              {student.academicYearLabel}
                             </span>
                             <div
                               className="text-muted"
@@ -724,19 +1010,31 @@ export default function StudentPromotion() {
                           </span>
                         </td>
                         <td>
+                          <span className="fw-bold">
+                            {student.attendancePercentage ?? 0}%
+                          </span>
+                        </td>
+                        <td>
+                          <span
+                            className={`badge ${getAttendanceStatusBadge(student.attendanceStatus)}`}
+                          >
+                            {formatStatus(student.attendanceStatus)}
+                          </span>
+                        </td>
+                        <td>
                           <div className="d-flex" style={{ gap: "8px" }}>
                             <button
                               onClick={() => openPromoteModal(student)}
-                              disabled={!student.allInstallmentsPaid}
                               className={`btn btn-sm ${
-                                student.allInstallmentsPaid
-                                  ? "btn-primary"
-                                  : "btn-secondary disabled"
+                                student.isFinalYear
+                                  ? "btn-secondary disabled"
+                                  : "btn-primary"
                               }`}
+                              disabled={student.isFinalYear}
                               title={
-                                student.allInstallmentsPaid
-                                  ? "Click to promote"
-                                  : "Fees pending - cannot promote"
+                                student.isFinalYear
+                                  ? "Student in final year - use Move to Alumni"
+                                  : "Click to promote"
                               }
                             >
                               <FaArrowUp /> Promote
@@ -800,16 +1098,9 @@ export default function StudentPromotion() {
                 <div className="student-email">{selectedStudent.email}</div>
                 <div className="promotion-info">
                   <span className="badge badge-info">
-                    {getAcademicYear(
-                      selectedStudent.currentSemester,
-                      selectedStudent.admissionYear,
-                    )}
+                    {selectedStudent.academicYearLabel}
                     (Sem {selectedStudent.currentSemester}) →
-                    {getAcademicYear(
-                      selectedStudent.currentSemester + 1,
-                      selectedStudent.admissionYear,
-                    )}
-                    (Sem {selectedStudent.currentSemester + 1})
+                    {selectedStudent.nextAcademicYearLabel || `Sem ${selectedStudent.currentSemester + 1}`}
                   </span>
                   <span
                     className={`badge ${getFeeStatusBadge(selectedStudent.feeStatus)}`}
@@ -858,6 +1149,56 @@ export default function StudentPromotion() {
                 )}
               </div>
 
+              <div className="attendance-details">
+                <div className="attendance-row">
+                  <span className="attendance-label">Attendance Percentage:</span>
+                  <span className="attendance-value fw-bold">
+                    {selectedStudent.attendancePercentage ?? 0}%
+                  </span>
+                </div>
+                <div className="attendance-row">
+                  <span className="attendance-label">Attendance Status:</span>
+                  <span
+                    className={`badge ${getAttendanceStatusBadge(selectedStudent.attendanceStatus)}`}
+                  >
+                    {formatStatus(selectedStudent.attendanceStatus)}
+                  </span>
+                </div>
+                {selectedStudent.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE && (
+                  <div className="attendance-override">
+                    <label className="custom-checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={overrideAttendanceCheck}
+                        onChange={(e) => setOverrideAttendanceCheck(e.target.checked)}
+                        className="custom-checkbox"
+                      />
+                      <span>Override Attendance Check</span>
+                    </label>
+                    <p className="alert-text" style={{ marginTop: "8px" }}>
+                      Attendance Override Reason is required. Minimum 10 characters.
+                    </p>
+                    {overrideAttendanceCheck && (
+                      <input
+                        type="text"
+                        value={overrideAttendanceReason}
+                        onChange={(e) => setOverrideAttendanceReason(e.target.value)}
+                        className="form-control"
+                        placeholder="Reason (minimum 10 characters)"
+                        minLength={10}
+                        required
+                        aria-label="Attendance override reason"
+                      />
+                    )}
+                    {overrideAttendanceCheck && overrideAttendanceReason.trim().length > 0 && overrideAttendanceReason.trim().length < 10 && (
+                      <p className="alert-text text-danger" style={{ marginTop: "8px" }}>
+                        Attendance override reason must be at least 10 characters.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Promoted By */}
               <div className="promoted-by-info">
                 <div className="info-row">
@@ -884,8 +1225,8 @@ export default function StudentPromotion() {
                 />
               </div>
 
-              {/* Override Checkbox */}
-              {!selectedStudent.allInstallmentsPaid && (
+              {/* Override Checkbox - College Admin only */}
+              {!admissionOfficerMode && !selectedStudent.allInstallmentsPaid && (
                 <div className="alert alert-warning">
                   <label className="custom-checkbox-label">
                     <input
@@ -906,7 +1247,14 @@ export default function StudentPromotion() {
             <div className="modal-footer">
               <button
                 onClick={handlePromoteStudent}
-                disabled={loading}
+                disabled={
+                  loading ||
+                  !selectedStudent ||
+                  (!selectedStudent.allInstallmentsPaid && !overrideFeeCheck) ||
+                  selectedStudent.attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE ||
+                  (selectedStudent.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
+                    (!overrideAttendanceCheck || overrideAttendanceReason.trim().length < 10))
+                }
                 className="btn btn-primary"
               >
                 {loading ? (
@@ -1016,20 +1364,122 @@ export default function StudentPromotion() {
         </div>
       )}
 
-      {/* Confirm Modal */}
-      {showConfirmModal && (
-        <ConfirmModal
-          isOpen={showConfirmModal}
-          onClose={() => setShowConfirmModal(false)}
-          onConfirm={() => {
-            confirmConfig.onConfirm();
-            setShowConfirmModal(false);
-          }}
-          title={confirmConfig.title}
-          message={confirmConfig.message}
-          type={confirmConfig.type}
-        />
-      )}
+{/* Confirm Modal */}
+       {showConfirmModal && (
+         <ConfirmModal
+           isOpen={showConfirmModal}
+           onClose={() => setShowConfirmModal(false)}
+           onConfirm={() => {
+             confirmConfig.onConfirm();
+             setShowConfirmModal(false);
+           }}
+           title={confirmConfig.title}
+           message={confirmConfig.message}
+           type={confirmConfig.type}
+         />
+       )}
+
+       {/* Bulk Promotion Result Modal */}
+       {showBulkResultModal && bulkResultData && (
+         <div
+           className="modal-overlay"
+           onClick={() => setShowBulkResultModal(false)}
+           role="dialog"
+           aria-modal="true"
+           aria-label="Bulk Promotion Result"
+         >
+           <div
+             className="modal-content"
+             onClick={(e) => e.stopPropagation()}
+             style={{ maxWidth: "700px", width: "calc(100% - 2rem)" }}
+           >
+             <div className="modal-header">
+               <h4 className="modal-title">
+                 <FaGraduationCap /> Bulk Promotion Result
+               </h4>
+               <button
+                 onClick={() => setShowBulkResultModal(false)}
+                 className="modal-close"
+                 aria-label="Close"
+               >
+                 <FaTimes />
+               </button>
+             </div>
+             <div className="modal-body">
+               {/* Summary */}
+               <div className="bulk-result-summary">
+                 <div className="bulk-result-stat">
+                   <span className="bulk-result-count text-success">
+                     {bulkSuccessCount}
+                   </span>
+                   <span className="bulk-result-label">
+                     Promoted Successfully
+                   </span>
+                 </div>
+                 <div className="bulk-result-stat">
+                   <span className="bulk-result-count text-danger">
+                     {bulkResultData.length}
+                   </span>
+                   <span className="bulk-result-label">
+                     Could Not Be Promoted
+                   </span>
+                 </div>
+               </div>
+
+{/* Failed Students Table */}
+                {bulkResultData.length > 0 && (
+                  <div className="bulk-result-failed">
+                    <h5 className="bulk-result-failed-title">
+                      <FaExclamationTriangle className="text-warning" /> Students
+                      Not Promoted
+                    </h5>
+                    <div className="table-responsive">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Student Name</th>
+                            <th>Reason(s)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {bulkResultData.map((f, index) => {
+                            const reasons = f.reasons || (f.reason ? [f.reason] : []);
+                            return (
+                              <tr key={index}>
+                                <td>
+                                  <div className="student-name">
+                                    {f.studentName || "Unknown"}
+                                  </div>
+                                </td>
+                                <td>
+                                  <ul className="bulk-reason-list">
+                                    {reasons.map((r, i) => (
+                                      <li key={i} className="text-danger">
+                                        {r || "Promotion failed"}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+             </div>
+             <div className="modal-footer">
+               <button
+                 onClick={() => setShowBulkResultModal(false)}
+                 className="btn btn-primary"
+               >
+                 Close
+               </button>
+             </div>
+           </div>
+         </div>
+       )}
 
       {/* Custom Styles */}
       <style>{`
@@ -1074,14 +1524,199 @@ export default function StudentPromotion() {
           font-weight: 400;
         }
 
+        .erp-page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+          flex-wrap: wrap;
+          margin-bottom: 24px;
+          background: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
+          padding: 28px 32px;
+          border-radius: 16px;
+          box-shadow: 0 8px 24px rgba(15, 58, 74, 0.3);
+          color: white;
+        }
+
         .header-actions {
           display: flex;
           gap: 12px;
         }
 
-        .btn-outline-primary {
+        .history-back-btn {
           background: rgba(255, 255, 255, 0.15);
+          color: #ffffff;
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          backdrop-filter: blur(10px);
+          padding: 10px 20px;
+          border-radius: 10px;
+          font-weight: 600;
+          font-size: 14px;
+          transition: all 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          text-decoration: none;
+          line-height: 1.4;
+        }
+
+        .history-back-btn:hover {
+          background: rgba(255, 255, 255, 0.25);
+          border-color: rgba(255, 255, 255, 0.6);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+          color: #ffffff;
+        }
+
+        .erp-header-content {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .erp-header-icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 26px;
           color: white;
+          backdrop-filter: blur(10px);
+          flex-shrink: 0;
+        }
+
+        .erp-header-text {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .erp-page-title {
+          font-size: 26px;
+          font-weight: 700;
+          color: white;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .erp-page-subtitle {
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 14px;
+          margin: 0;
+          font-weight: 400;
+        }
+
+        .record-count {
+          background: rgba(61, 181, 230, 0.15);
+          color: #0f3a4a;
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .animate-fade-in {
+          animation: fadeIn 0.4s ease-in;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .table-container {
+          background: white;
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid #e2e8f0;
+        }
+
+        .erp-card {
+          background: white;
+          border-radius: 16px;
+          box-shadow: 0 4px 16px rgba(15, 58, 74, 0.06);
+          border: 1px solid #e2e8f0;
+          overflow: hidden;
+        }
+
+        .erp-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 18px 24px;
+          background: #f8fafc;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .erp-card-header h3 {
+          font-size: 18px;
+          font-weight: 700;
+          color: #0f3a4a;
+          margin: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .erp-card-icon {
+          color: #3db5e6;
+          font-size: 20px;
+        }
+
+        .erp-card-body {
+          padding: 0;
+        }
+
+        .erp-card-body .table-responsive {
+          border-radius: 0;
+        }
+
+        .stat-card-icon {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          flex-shrink: 0;
+          color: white;
+        }
+
+        .stat-card-content {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .stat-card-label {
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .stat-card-value {
+          font-size: 28px;
+          font-weight: 800;
+          color: #0f3a4a;
+          line-height: 1;
+        }
+          background: rgba(255, 255, 255, 0.15);
+          color: skyblue;
           border: 2px solid rgba(255, 255, 255, 0.4);
           backdrop-filter: blur(10px);
           padding: 12px 20px;
@@ -1099,6 +1734,8 @@ export default function StudentPromotion() {
           border-color: rgba(255, 255, 255, 0.6);
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+          color: skyblue;
+          font-weight: bold;
         }
 
         .stats-grid {
@@ -1388,6 +2025,62 @@ export default function StudentPromotion() {
           background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
           color: #ffffff;
           box-shadow: 0 2px 6px rgba(15, 58, 74, 0.3);
+        }
+
+        .badge-secondary {
+          background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(107, 114, 128, 0.3);
+        }
+
+        .attendance-details {
+          background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+          padding: 16px;
+          border-radius: 12px;
+          margin-bottom: 20px;
+          border: 1px solid #bae6fd;
+        }
+
+        .attendance-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 10px 0;
+          border-bottom: 1px solid #bae6fd;
+        }
+
+        .attendance-row:last-child {
+          border-bottom: none;
+        }
+
+        .attendance-label {
+          color: #64748b;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .attendance-value {
+          font-weight: 700;
+          color: #0f3a4a;
+          font-size: 15px;
+        }
+
+        .attendance-override {
+          margin-top: 14px;
+          padding-top: 14px;
+          border-top: 1px solid #bae6fd;
+        }
+
+        .bulk-action-overrides {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          min-width: 280px;
+          padding: 10px;
+          border: 1px dashed #f59e0b;
+          border-radius: 12px;
+          background: #fffbeb;
         }
 
         .btn {
@@ -1803,11 +2496,10 @@ export default function StudentPromotion() {
         .card-footer {
           padding: 20px 24px;
           border-top: 2px solid #e2e8f0;
-          display: flex;
-          justify-content: space-between;
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
           align-items: center;
           background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-          flex-wrap: wrap;
           gap: 16px;
         }
 
@@ -1893,7 +2585,8 @@ export default function StudentPromotion() {
           }
 
           .card-footer {
-            flex-direction: column;
+            grid-template-columns: 1fr;
+            justify-items: center;
             text-align: center;
           }
 
@@ -1920,54 +2613,141 @@ export default function StudentPromotion() {
           }
         }
 
-        @media (max-width: 480px) {
-          .page-container {
-            padding: 16px;
+@media (max-width: 480px) {
+           .page-container {
+             padding: 16px;
+           }
+
+           .page-header {
+             padding: 20px 16px;
+           }
+
+           .page-title {
+             font-size: 20px;
+           }
+
+           .header-icon {
+             font-size: 28px;
+           }
+
+           .stats-grid {
+             gap: 16px;
+           }
+
+           .stat-card {
+             gap: 16px;
+           }
+
+           .stat-label {
+             font-size: 12px;
+           }
+
+           .stat-value {
+             font-size: 24px;
+           }
+
+           .card-header {
+             padding: 16px 18px;
+           }
+
+           .card-body {
+             padding: 16px;
+           }
+
+           .modal-header,
+           .modal-body,
+           .modal-footer {
+             padding: 18px 16px;
+           }
+
+           .bulk-result-summary {
+             flex-direction: column;
+             gap: 12px;
+           }
+
+           .bulk-result-failed-title {
+             font-size: 14px;
+           }
+         }
+
+         .bulk-result-summary {
+           display: flex;
+           gap: 24px;
+           justify-content: center;
+           align-items: center;
+           padding: 20px;
+           background: #f8fafc;
+           border-radius: 12px;
+           margin-bottom: 20px;
+         }
+
+         .bulk-result-stat {
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           gap: 4px;
+         }
+
+         .bulk-result-count {
+           font-size: 2rem;
+           font-weight: 700;
+           line-height: 1;
+         }
+
+         .bulk-result-label {
+           font-size: 0.85rem;
+           color: #64748b;
+           font-weight: 500;
+         }
+
+         .bulk-result-failed {
+           margin-top: 16px;
+         }
+
+         .bulk-result-failed-title {
+           font-size: 16px;
+           font-weight: 600;
+           color: #1e293b;
+           margin-bottom: 12px;
+           display: flex;
+           align-items: center;
+           gap: 8px;
+         }
+
+         .bulk-result-failed .data-table {
+           font-size: 13px;
+         }
+
+         .bulk-result-failed .data-table thead th {
+           background: #f1f5f9;
+           color: #475569;
+           font-weight: 600;
+           font-size: 12px;
+           text-transform: uppercase;
+           letter-spacing: 0.5px;
+         }
+
+         .bulk-result-failed .data-table tbody tr:hover {
+           background: #f8fafc;
+         }
+
+.bulk-result-failed .text-danger {
+            color: #dc2626 !important;
+            font-weight: 500;
           }
 
-          .page-header {
-            padding: 20px 16px;
+          .bulk-reason-list {
+            margin: 0;
+            padding-left: 18px;
+            list-style-type: disc;
           }
 
-          .page-title {
-            font-size: 20px;
-          }
-
-          .header-icon {
-            font-size: 28px;
-          }
-
-          .stats-grid {
-            gap: 16px;
-          }
-
-          .stat-card {
-            gap: 16px;
-          }
-
-          .stat-label {
+          .bulk-reason-list li {
+            margin-bottom: 2px;
             font-size: 12px;
+            line-height: 1.5;
           }
-
-          .stat-value {
-            font-size: 24px;
-          }
-
-          .card-header {
-            padding: 16px 18px;
-          }
-
-          .card-body {
-            padding: 16px;
-          }
-
-          .modal-header,
-          .modal-body,
-          .modal-footer {
-            padding: 18px 16px;
-          }
-        }
-      `}</style>
+        `}</style>
     </div>
   );
 }

@@ -15,7 +15,8 @@ const collegeSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    lowercase: true,
+    trim: true,
+    lowercase: true
   },
   email: {
     type: String,
@@ -25,6 +26,17 @@ const collegeSchema = new mongoose.Schema({
       validator: validateEmail,
       message: emailValidatorMessage,
     },
+  },
+  admin_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    index: true,
+  },
+  adminEmail: {
+    type: String,
+  },
+  adminName: {
+    type: String,
   },
   contactNumber: {
     type: String,
@@ -47,6 +59,32 @@ const collegeSchema = new mongoose.Schema({
   logo: {
     type: String, // file path or URL
   },
+  logoDocumentId: {
+    type: String,
+  },
+  registrationQr: {
+    type: String, // file path of QR image
+  },
+  registrationQrDocumentId: {
+    type: String,
+  },
+  // 🏢 ERP Document References
+  documentRefs: [
+    {
+      documentId: {
+        type: String,
+        required: true,
+      },
+      documentType: {
+        type: String,
+        required: true,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
   isActive: {
     type: Boolean,
     default: true,
@@ -63,14 +101,45 @@ const collegeSchema = new mongoose.Schema({
     type: String, // file path of QR image
     required: true,
   },
+  setupCompleted: {
+    type: Boolean,
+    default: false,
+  },
+
+  subscription: {
+    plan: {
+      type: String,
+      enum: ["TRIAL", "BASIC", "PRO", "ENTERPRISE"],
+      default: "TRIAL",
+    },
+    status: {
+      type: String,
+      enum: ["ACTIVE", "EXPIRED", "CANCELLED", "PAST_DUE"],
+      default: "ACTIVE",
+    },
+    currentPeriodStart: {
+      type: Date,
+    },
+    currentPeriodEnd: {
+      type: Date,
+    },
+    trialEndsAt: {
+      type: Date,
+    },
+    cancelAtPeriodEnd: {
+      type: Boolean,
+      default: false,
+    },
+  },
 });
 
 // 🔒 SOFT DELETE: Cascade isActive=false to all related data when college is deactivated
 collegeSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate();
+  const isActiveValue = update?.isActive ?? update?.$set?.isActive;
 
   // Only trigger soft delete when isActive is being set to false
-  if (update.isActive === false) {
+  if (isActiveValue === false) {
     try {
       const college = await this.model.findOne(this.getQuery());
       if (!college) {
@@ -96,12 +165,12 @@ collegeSchema.pre("findOneAndUpdate", async function () {
           .model("Course")
           .updateMany({ college_id: collegeId }, { $set: { isActive: false } }),
 
-        // 3. Deactivate students (set status to INACTIVE if exists, else isActive)
+        // 3. Deactivate students (only APPROVED; snapshot status so restore is exact)
         mongoose
           .model("Student")
           .updateMany(
-            { college_id: collegeId },
-            { $set: { status: "INACTIVE" } },
+            { college_id: collegeId, status: "APPROVED" },
+            { $set: { status: "INACTIVE", suspendedFromStatus: "APPROVED" } },
           ),
 
         // 4. Deactivate teachers
@@ -174,9 +243,10 @@ collegeSchema.pre("findOneAndUpdate", async function () {
 // 🔄 RESTORE: Cascade isActive=true when college is reactivated
 collegeSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate();
+  const isActiveValue = update?.isActive ?? update?.$set?.isActive;
 
   // Only trigger restore when isActive is being set to true
-  if (update.isActive === true) {
+  if (isActiveValue === true) {
     try {
       const college = await this.model.findOne(this.getQuery());
       if (!college) {
@@ -199,12 +269,12 @@ collegeSchema.pre("findOneAndUpdate", async function () {
           .model("Course")
           .updateMany({ college_id: collegeId }, { $set: { isActive: true } }),
 
-        // 3. Activate students (only those who were set to INACTIVE by cascade)
+        // 3. Restore only students suspended by college cascade (not PENDING/REJECTED/etc.)
         mongoose
           .model("Student")
           .updateMany(
-            { college_id: collegeId, status: "INACTIVE" },
-            { $set: { status: "APPROVED" } },
+            { college_id: collegeId, status: "INACTIVE", suspendedFromStatus: "APPROVED" },
+            { $set: { status: "APPROVED", suspendedFromStatus: null } },
           ),
 
         // 4. Activate teachers

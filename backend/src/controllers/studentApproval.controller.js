@@ -6,15 +6,21 @@ const FeeStructure = require("../models/feeStructure.model");
 const StudentFee = require("../models/studentFee.model");
 const {
   sendAdmissionApprovalEmail,
+  sendAdmissionOfferEmail,
   sendAdmissionRejectionEmail,
 } = require("../services/email.service");
 const AppError = require("../utils/AppError");
 const { buildFrontendUrl } = require("../utils/urlBuilder");
 const auditLogService = require("../services/auditLog.service");
+const securityAuditService = require("../services/securityAudit.service");
+const parentCreationService = require("../services/parentCreation.service");
+const DocumentService = require("../services/document.service");
 
 exports.approveStudent = async (req, res, next) => {
   try {
     const { studentId } = req.params;
+    let tempPassword = null;
+    let emailResult = { success: false };
 
     // 1️⃣ Find pending student
     const student = await Student.findOne({
@@ -48,7 +54,7 @@ exports.approveStudent = async (req, res, next) => {
       } else {
         // Create new User account
         // Generate a temporary password (student will reset via forgot password)
-        const tempPassword = "TempPass" + Math.random().toString(36).slice(-8);
+        tempPassword = "TempPass" + Math.random().toString(36).slice(-8);
 
         const newUser = await User.create({
           name: student.fullName,
@@ -98,104 +104,158 @@ exports.approveStudent = async (req, res, next) => {
     const approvedCount = await Student.countDocuments({
       course_id: student.course_id,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
     });
 
-    if (approvedCount >= course.maxStudents) {
+     if (approvedCount >= course.maxStudents) {
+       throw new AppError(
+         "Admission capacity reached for this course",
+         409,
+         "CAPACITY_REACHED",
+       );
+     }
+
+    // ✅ Document Verification Gate: a PENDING student may only be approved once
+    // all mandatory documents configured for the college are VERIFIED.
+    const unverifiedRequiredDocs = await DocumentService.getUnverifiedRequiredDocumentTypes(
+      student.college_id,
+      student._id,
+    );
+    if (unverifiedRequiredDocs.length > 0) {
       throw new AppError(
-        "Admission capacity reached for this course",
-        409,
-        "CAPACITY_REACHED",
+        "Required documents are not verified. Please verify all required documents before approving.",
+        400,
+        "DOCUMENTS_NOT_VERIFIED",
       );
     }
 
     // 4️⃣ Prevent duplicate fee record
-    const existingFee = await StudentFee.findOne({
+    let studentFee = await StudentFee.findOne({
       student_id: student._id,
     });
 
-    if (existingFee) {
-      throw new AppError(
-        "Student fee record already exists",
-        409,
-        "DUPLICATE_FEE_RECORD",
-      );
+    if (!studentFee) {
+      // 5️⃣ Find fee structure (with OTHER category fallback to GEN)
+      let feeCategory = student.category;
+      if (feeCategory === "OTHER") {
+        feeCategory = "GEN";
+      }
+
+      const feeStructure = await FeeStructure.findOne({
+        college_id: student.college_id,
+        course_id: student.course_id,
+        category: feeCategory,
+      });
+
+      if (!feeStructure) {
+        throw new AppError(
+          `No fee structure found for ${course.name} (${student.category} category). Please go to Fee Management → Create Fee Structure before approving this student.`,
+          404,
+          "FEE_STRUCTURE_NOT_FOUND",
+        );
+      }
+
+      const installments = feeStructure.installments.map((inst) => ({
+        name: inst.name,
+        amount: inst.amount,
+        dueDate: inst.dueDate,
+        status: "PENDING",
+      }));
+
+      studentFee = await StudentFee.create({
+        student_id: student._id,
+        college_id: student.college_id,
+        course_id: student.course_id,
+        totalFee: feeStructure.totalFee,
+        paidAmount: 0,
+        installments,
+      });
     }
 
-    // 5️⃣ Find fee structure (correct)
-    const feeStructure = await FeeStructure.findOne({
-      college_id: student.college_id,
-      course_id: student.course_id,
-      category: student.category,
-    });
-
-    if (!feeStructure) {
-      throw new AppError(
-        `No fee structure found for ${course.name} (${student.category} category). Please go to Fee Management → Create Fee Structure before approving this student.`,
-        404,
-        "FEE_STRUCTURE_NOT_FOUND",
-      );
+// 6️⃣ Generate enrollment number (ensure uniqueness)
+    const collegeData = await College.findById(student.college_id).select("code");
+    const courseData = await Course.findById(student.course_id).select("code");
+    
+    const basePrefix = `${collegeData.code}-${courseData.code}${student.admissionYear}-`;
+    let sequence = 1;
+    let enrollmentNumber = `${basePrefix}${String(sequence).padStart(4, "0")}`;
+    
+    while (await Student.findOne({ enrollmentNumber })) {
+      sequence += 1;
+      enrollmentNumber = `${basePrefix}${String(sequence).padStart(4, "0")}`;
     }
+    
+    student.enrollmentNumber = enrollmentNumber;
 
-    // ✅ Create student fee
-    const installments = feeStructure.installments.map((inst) => ({
-      name: inst.name,
-      amount: inst.amount,
-      dueDate: inst.dueDate,
-      status: "PENDING",
-    }));
-
-    const studentFee = await StudentFee.create({
-      student_id: student._id,
-      college_id: student.college_id,
-      course_id: student.course_id,
-      totalFee: feeStructure.totalFee,
-      paidAmount: 0,
-      installments,
-    });
-
-    // 7️⃣ Approve student (AFTER fee allocation)
+    // 7️⃣ Approve student (set to APPROVED status)
     student.status = "APPROVED";
-    student.approvedBy = req.user.id;
     student.approvedAt = new Date();
     await student.save();
 
-    // 📝 Audit log - Student approval
+
+    // 📝 Audit log - Offer made
     auditLogService
-      .logStudentApproval(student, req.user, req)
+      .logStudentOfferMade(student, req.user, req)
       .catch((err) => console.error("Audit log failed:", err));
 
-    // 📧 Send admission approval email (non-blocking)
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "MEDIUM",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: student.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: `/api/students/${studentId}/approve`,
+        method: "PUT",
+        statusCode: 200,
+        metadata: {
+          action: "APPROVE_STUDENT",
+          studentId: student._id,
+          studentEmail: student.email,
+          studentName: student.fullName,
+          courseId: student.course_id,
+          enrollmentNumber: student.enrollmentNumber,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
+    // 📧 Send offer email to student (non-blocking so the response returns immediately)
     (async () => {
       try {
         const college = await College.findById(student.college_id).select(
           "name email",
         );
-        const course = await Course.findById(student.course_id).select("name");
-        // Build dynamic login URL using utility function
+        const crs = await Course.findById(student.course_id).select("name");
         const loginUrl = buildFrontendUrl("/login");
 
-        await sendAdmissionApprovalEmail({
+        emailResult = await sendAdmissionOfferEmail({
           to: student.email,
           studentName: student.fullName,
-          courseName: course?.name || "N/A",
+          courseName: crs?.name || "N/A",
           collegeName: college?.name || "Our College",
           admissionYear: student.admissionYear,
           enrollmentNumber: student.enrollmentNumber,
-          loginUrl: loginUrl,
+          loginUrl,
           email: student.email,
+          collegeId: student.college_id,
         });
-        console.log(`✅ Admission approval email sent to ${student.email}`);
-      } catch (emailError) {
-        console.error(
-          "❌ Failed to send admission approval email:",
-          emailError.message,
-        );
+        console.log(`📧 Admission offer email sent to ${student.email}`);
+      } catch (e) {
+        console.error("❌ Admission offer email failed:", e.message);
       }
     })();
 
+    const message = "Student approved successfully!";
+
     res.json({
-      message: "Student approved and fee allocated successfully",
+      message,
+      emailDelivered: null,
+      emailError: null,
+      temporaryPassword: tempPassword,
 
       student: {
         id: student._id,
@@ -206,7 +266,8 @@ exports.approveStudent = async (req, res, next) => {
         status: student.status,
         course: student.course_id,
         department: student.department_id,
-        approvedAt: student.approvedAt,
+        enrollmentNumber: student.enrollmentNumber,
+        offerMadeAt: student.offerMadeAt,
       },
 
       fee: {
@@ -257,7 +318,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
           continue;
         }
 
-        // ── 2. Ensure student has user_id ──
+        // ── 3. Ensure student has user_id ──
         if (!student.user_id) {
           const existingUser = await User.findOne({ email: student.email });
 
@@ -316,7 +377,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
         const approvedCount = await Student.countDocuments({
           course_id: student.course_id,
           college_id: req.college_id,
-          status: "APPROVED",
+          status: { $in: ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
         });
 
         if (approvedCount >= course.maxStudents) {
@@ -328,7 +389,21 @@ exports.bulkApproveStudents = async (req, res, next) => {
           continue;
         }
 
-        // ── 5. Prevent duplicate fee record ──
+        // ── 5. Document Verification Gate ──
+        const unverified = await DocumentService.getUnverifiedRequiredDocumentTypes(
+          student.college_id,
+          student._id,
+        );
+        if (unverified.length > 0) {
+          results.failed.push({
+            studentId,
+            fullName: student.fullName,
+            reason: `Required documents not verified: ${unverified.join(", ")}`,
+          });
+          continue;
+        }
+
+        // ── 6. Prevent duplicate fee record ──
         const existingFee = await StudentFee.findOne({
           student_id: student._id,
         });
@@ -340,13 +415,18 @@ exports.bulkApproveStudents = async (req, res, next) => {
             reason: "Fee record already exists",
           });
           continue;
+}
+
+        // ── 6. Find fee structure (with OTHER category fallback to GEN) ──
+        let feeCategory = student.category;
+        if (feeCategory === "OTHER") {
+          feeCategory = "GEN";
         }
 
-        // ── 6. Find fee structure ──
         const feeStructure = await FeeStructure.findOne({
           college_id: student.college_id,
           course_id: student.course_id,
-          category: student.category,
+          category: feeCategory,
         });
 
         if (!feeStructure) {
@@ -358,7 +438,23 @@ exports.bulkApproveStudents = async (req, res, next) => {
           continue;
         }
 
-        // ── 7. Create student fee ──
+        // ── 7. Generate enrollment number (FIX: Issue #6) ──
+        const collegeData = await College.findById(student.college_id).select(
+          "code",
+        );
+        const courseData = await Course.findById(student.course_id).select(
+          "code",
+        );
+
+        const existingCount = await Student.countDocuments({
+          course_id: student.course_id,
+          admissionYear: student.admissionYear,
+          status: { $in: ["APPROVED", "ALUMNI", "DEACTIVATED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"] },
+        });
+        const sequence = String(existingCount + 1).padStart(4, "0");
+        student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
+
+        // ── 8. Create student fee ──
         const installments = feeStructure.installments.map((inst) => ({
           name: inst.name,
           amount: inst.amount,
@@ -375,13 +471,12 @@ exports.bulkApproveStudents = async (req, res, next) => {
           installments,
         });
 
-        // ── 8. Approve student ──
+        // ── 9. Approve student ──
         student.status = "APPROVED";
-        student.approvedBy = req.user.id;
         student.approvedAt = new Date();
         await student.save();
 
-        // ── 9. Send email (non-blocking) ──
+        // ── 10. Send offer email (non-blocking) ──
         (async () => {
           try {
             const college = await College.findById(student.college_id).select(
@@ -390,7 +485,7 @@ exports.bulkApproveStudents = async (req, res, next) => {
             const crs = await Course.findById(student.course_id).select("name");
             const loginUrl = buildFrontendUrl("/login");
 
-            await sendAdmissionApprovalEmail({
+            await sendAdmissionOfferEmail({
               to: student.email,
               studentName: student.fullName,
               courseName: crs?.name || "N/A",
@@ -399,9 +494,10 @@ exports.bulkApproveStudents = async (req, res, next) => {
               enrollmentNumber: student.enrollmentNumber,
               loginUrl,
               email: student.email,
+              collegeId: student.college_id,
             });
           } catch (e) {
-            console.error("❌ Bulk email failed:", e.message);
+            console.error("❌ Bulk offer email failed:", e.message);
           }
         })();
 
@@ -425,6 +521,29 @@ exports.bulkApproveStudents = async (req, res, next) => {
         results.failed.length,
       )
       .catch((err) => console.error("Audit log failed:", err));
+
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "MEDIUM",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: req.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: "/api/students/bulk-approve",
+        method: "POST",
+        statusCode: 200,
+        metadata: {
+          action: "BULK_APPROVE_STUDENTS",
+          approvedCount: results.approved.length,
+          failedCount: results.failed.length,
+          approvedStudentIds: results.approved.map((s) => s.studentId),
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
 
     res.json({
       message: `Bulk approval done: ${results.approved.length} approved, ${results.failed.length} failed`,
@@ -477,6 +596,31 @@ exports.rejectStudent = async (req, res, next) => {
       .logStudentRejection(student, req.user, req, reason)
       .catch((err) => console.error("Audit log failed:", err));
 
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "HIGH",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: student.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: `/api/students/${studentId}/reject`,
+        method: "PUT",
+        statusCode: 200,
+        metadata: {
+          action: "REJECT_STUDENT",
+          studentId: student._id,
+          studentEmail: student.email,
+          studentName: student.fullName,
+          reason: reason || "Not specified",
+          allowReapply: student.canReapply,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
     // 📧 Send rejection email (non-blocking)
     (async () => {
       try {
@@ -493,6 +637,7 @@ exports.rejectStudent = async (req, res, next) => {
               ? student.rejectionReason
               : null,
           canReapply: student.canReapply,
+          collegeId: student.college_id,
         });
         console.log(`✅ Admission rejection email sent to ${student.email}`);
       } catch (emailError) {
@@ -539,6 +684,148 @@ exports.rejectStudent = async (req, res, next) => {
         status: student.status,
         rejectionReason: student.rejectionReason,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * CONFIRM ENROLLMENT
+ * Transitions student from APPROVED/OFFER_MADE → ENROLLED
+ * Called when student confirms their seat and completes enrollment
+ */
+exports.confirmEnrollment = async (req, res, next) => {
+  try {
+    const { studentId } = req.params;
+
+    // Find student with APPROVED or OFFER_MADE status
+    const student = await Student.findOne({
+      _id: studentId,
+      college_id: req.college_id,
+      status: { $in: ["APPROVED", "OFFER_MADE"] },
+    });
+
+    if (!student) {
+      throw new AppError(
+        "Student not found or not in APPROVED/OFFER_MADE status",
+        404,
+        "STUDENT_NOT_FOUND",
+      );
+    }
+
+    // ✅ Business Rule: Division must be assigned before enrollment
+    if (!student.division || student.division.toString().trim() === "") {
+      throw new AppError(
+        "Student must have a division assigned before enrollment. Please assign a division first.",
+        400,
+        "DIVISION_NOT_ASSIGNED",
+      );
+    }
+
+    // Check if student has made payment (at least first installment)
+    const studentFee = await StudentFee.findOne({
+      student_id: student._id,
+      college_id: student.college_id,
+    });
+
+    if (studentFee && studentFee.paidAmount < (studentFee.totalFee * 0.25)) {
+      // Allow enrollment even without 25% payment for now (can be enforced later)
+    }
+
+    // Transition to ENROLLED (student confirmed seat)
+    student.status = "ENROLLED";
+    student.seatConfirmedAt = student.seatConfirmedAt || new Date();
+    student.enrollmentConfirmedAt = new Date();
+    student.enrollmentDate = new Date();
+    student.approvedBy = req.user.id;
+    student.approvedAt = new Date();
+    await student.save();
+
+    let parentCreationResult = null;
+    try {
+      parentCreationResult = await parentCreationService.createParentUsers(student);
+      if (parentCreationResult.count > 0) {
+        console.log(`✅ Created ${parentCreationResult.count} parent accounts for ${student.fullName}`);
+      }
+    } catch (error) {
+      console.error(
+        "❌ Failed to create parent accounts:",
+        error.message,
+      );
+      parentCreationResult = { count: 0, parents: [], error: error.message };
+    }
+
+    // 📝 Audit log - Enrollment confirmed
+    auditLogService
+      .logStudentEnrollment(student, req.user, req)
+      .catch((err) => console.error("Audit log failed:", err));
+
+    securityAuditService
+      .logEvent({
+        eventType: "ADMIN_ACTION",
+        category: "DATA_MODIFICATION",
+        severity: "HIGH",
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        collegeId: student.college_id,
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        endpoint: `/api/students/${studentId}/confirm-enrollment`,
+        method: "PUT",
+        statusCode: 200,
+        metadata: {
+          action: "CONFIRM_ENROLLMENT",
+          studentId: student._id,
+          studentEmail: student.email,
+          studentName: student.fullName,
+          enrollmentNumber: student.enrollmentNumber,
+        },
+      })
+      .catch((err) => console.error("Security audit log failed:", err.message));
+
+    // 📧 Send enrollment confirmation email
+    (async () => {
+      try {
+        const college = await College.findById(student.college_id).select(
+          "name email",
+        );
+        const crs = await Course.findById(student.course_id).select("name");
+        const loginUrl = buildFrontendUrl("/login");
+
+        await sendAdmissionApprovalEmail({
+          to: student.email,
+          studentName: student.fullName,
+          courseName: crs?.name || "N/A",
+          collegeName: college?.name || "Our College",
+          admissionYear: student.admissionYear,
+          enrollmentNumber: student.enrollmentNumber,
+          loginUrl,
+          email: student.email,
+          collegeId: student.college_id,
+        });
+        console.log(`📧 Enrollment confirmation email sent to ${student.email}`);
+      } catch (e) {
+        console.error("❌ Enrollment email failed:", e.message);
+      }
+    })();
+
+    res.json({
+      message: "Enrollment confirmed successfully",
+      student: {
+        id: student._id,
+        fullName: student.fullName,
+        email: student.email,
+        status: student.status,
+        enrollmentNumber: student.enrollmentNumber,
+        enrollmentDate: student.enrollmentDate,
+      },
+      parentAccounts: parentCreationResult ? {
+        created: parentCreationResult.count,
+        parents: parentCreationResult.parents,
+        error: parentCreationResult.error,
+      } : null,
     });
   } catch (error) {
     next(error);

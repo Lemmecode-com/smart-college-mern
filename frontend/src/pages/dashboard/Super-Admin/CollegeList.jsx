@@ -13,6 +13,9 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ApiError from "../../../components/ApiError";
+import { logger } from "../../../utils/logger";
+import { toast } from "react-toastify";
+import { exportToExcel, exportToPDF } from "../../../utils/exportHelpers";
 
 import {
   FaUniversity,
@@ -27,7 +30,6 @@ import {
   FaSyncAlt,
   FaInfoCircle,
   FaDownload,
-  FaFilter,
   FaChevronDown,
   FaChevronUp,
   FaChevronRight,
@@ -44,15 +46,25 @@ export default function CollegeList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  const AUTH_ERROR_CODES = new Set([
+    "TOKEN_MISSING",
+    "TOKEN_EXPIRED",
+    "INVALID_TOKEN",
+    "TOKEN_BLACKLISTED",
+    "TOKEN_INVALIDATED",
+    "USER_NOT_FOUND",
+    "ACCOUNT_DEACTIVATED",
+    "UNAUTHORIZED",
+  ]);
+
   const [colleges, setColleges] = useState([]);
   const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCollege, setSelectedCollege] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(false);
   const [toggleData, setToggleData] = useState({
     id: null,
     currentStatus: null,
@@ -73,28 +85,39 @@ export default function CollegeList() {
 
   /* ================= FETCH COLLEGES ================= */
   const fetchColleges = async (forceRefresh = false) => {
-    // Prevent duplicate fetches in Strict Mode (unless force refresh)
     if (!forceRefresh && hasLoadedRef.current) return;
 
     try {
       setLoading(true);
-      setError("");
-      // Fetch all colleges including inactive ones for Super Admin
+      setError(null);
       const res = await api.get("/master/get/colleges?includeInactive=true");
 
       const collegesData = res.data.colleges || res.data || [];
       setColleges(Array.isArray(collegesData) ? collegesData : []);
-      setRetryCount(0);
       hasLoadedRef.current = true;
       setHasLoaded(true);
     } catch (err) {
-      // Only show error if not already loaded
       if (!hasLoadedRef.current) {
-        const errorMsg =
-          err.response?.data?.message ||
-          err.response?.data?.error?.message ||
-          "Failed to load colleges. Please try again.";
-        setError(errorMsg);
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        const errorMessage = backendMessage || "Failed to load colleges. Please try again.";
+
+        logger.error("Error fetching colleges:", statusCode, errorCode);
+
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
+
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (!isAuthError) {
+          toast.error(errorMessage);
+        }
       }
     } finally {
       setLoading(false);
@@ -136,12 +159,8 @@ export default function CollegeList() {
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = () => {
-    if (retryCount < 3) {
-      setRetryCount((prev) => prev + 1);
-      fetchColleges();
-    } else {
-      setError("Maximum retry attempts reached. Please check your connection.");
-    }
+    hasLoadedRef.current = false;
+    fetchColleges(true);
   };
 
   /* ================= REFRESH HANDLER ================= */
@@ -159,15 +178,8 @@ export default function CollegeList() {
           college.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
           college.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
           college.contactNumber.includes(debouncedSearch),
-      )
-      .filter((college) =>
-        filterStatus === "ALL"
-          ? true
-          : filterStatus === "ACTIVE"
-            ? college.isActive
-            : !college.isActive,
       );
-  }, [colleges, debouncedSearch, filterStatus]);
+  }, [colleges, debouncedSearch]);
 
   const totalPages = Math.ceil(filteredColleges.length / ITEMS_PER_PAGE);
   const paginatedColleges = filteredColleges.slice(
@@ -185,25 +197,38 @@ export default function CollegeList() {
     const { id, currentStatus } = toggleData;
     const action = currentStatus ? "deactivate" : "activate";
 
+    setToggleLoading(true);
     try {
       if (currentStatus) {
-        // College is ACTIVE - Deactivate it
         await api.delete(`/master/${id}`);
       } else {
-        // College is INACTIVE - Activate it
         await api.patch(`/master/${id}/restore`);
       }
 
       setColleges((prev) =>
         prev.map((c) => (c._id === id ? { ...c, isActive: !c.isActive } : c)),
       );
+      toast.success(`College ${action}d successfully`);
     } catch (err) {
-      const errorMsg =
-        err.response?.data?.message || `Failed to ${action} college`;
-      setError(errorMsg);
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || `Failed to ${action} college`;
+
+      const isAuthError =
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      logger.error(`Error ${action}ing college:`, statusCode, errorCode);
+
+      if (!isAuthError) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setShowConfirmModal(false);
+      setToggleData({ id: null, currentStatus: null });
+      setToggleLoading(false);
     }
-    setShowConfirmModal(false);
-    setToggleData({ id: null, currentStatus: null });
   };
 
   /* ================= EXPORT FUNCTIONALITY ================= */
@@ -213,25 +238,34 @@ export default function CollegeList() {
       setShowExportMenu(false);
 
       try {
-        // Prepare data for export
         const exportData = filteredColleges.map((college) => ({
           "College Name": college.name,
           Email: college.email,
           Contact: college.contactNumber,
           Established: college.establishedYear,
           Status: college.isActive ? "Active" : "Inactive",
-          Created: new Date(college.createdAt).toLocaleDateString(),
+          Created: new Date(college.createdAt).toLocaleDateString("en-IN"),
         }));
 
+        const columns = [
+          { header: "College Name", key: "College Name" },
+          { header: "Email", key: "Email" },
+          { header: "Contact", key: "Contact" },
+          { header: "Established", key: "Established" },
+          { header: "Status", key: "Status" },
+          { header: "Created", key: "Created" },
+        ];
+
         if (format === "excel") {
-          // Excel export logic (you can integrate with ExcelJS)
-          console.log("Excel export coming soon!");
+          await exportToExcel("Colleges List", columns, exportData, "colleges.xlsx");
+          toast.success("Excel exported successfully");
         } else if (format === "pdf") {
-          // PDF export logic (you can integrate with jsPDF)
-          console.log("PDF export coming soon!");
+          await exportToPDF("Colleges List", columns, exportData, "colleges.pdf");
+          toast.success("PDF exported successfully");
         }
       } catch (err) {
-        console.error("Export failed. Please try again.");
+        logger.error("Export failed:", err);
+        toast.error("Export failed. Please try again.");
       } finally {
         setExporting(false);
       }
@@ -244,12 +278,11 @@ export default function CollegeList() {
     return (
       <ApiError
         title="Colleges Loading Error"
-        message={error}
+        message={error.message}
+        statusCode={error.statusCode}
+        errorCode={error.errorCode}
         onRetry={handleRetry}
         onGoBack={() => navigate("/super-admin/dashboard")}
-        retryCount={retryCount}
-        maxRetry={3}
-        isRetryLoading={loading}
       />
     );
   }
@@ -271,6 +304,7 @@ export default function CollegeList() {
         type="warning"
         confirmText={toggleData.currentStatus ? "Deactivate" : "Activate"}
         cancelText="Cancel"
+        isLoading={toggleLoading}
       />
 
       {/* BREADCRUMBS */}
@@ -373,31 +407,6 @@ export default function CollegeList() {
                 )}
               </div>
 
-              <div className="filter-dropdown">
-                <button className="filter-btn" aria-label="Open status filter">
-                  <FaFilter className="filter-icon" />
-                  <span>
-                    {filterStatus === "ALL" ? "All Statuses" : filterStatus}
-                  </span>
-                  <FaChevronDown className="filter-arrow" />
-                </button>
-                <div className="filter-menu">
-                  {["ALL", "ACTIVE", "INACTIVE"].map((status) => (
-                    <button
-                      key={status}
-                      className={`filter-option ${filterStatus === status ? "active" : ""}`}
-                      onClick={() => {
-                        setFilterStatus(status);
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {status === "ALL" ? "All Statuses" : status}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             <div className="actions-group">
               <button
                 className="refresh-btn"
@@ -410,6 +419,7 @@ export default function CollegeList() {
             </div>
           </div>
         </div>
+       </div>
       </div>
 
       {/* COLLEGES TABLE */}
@@ -433,11 +443,11 @@ export default function CollegeList() {
               </div>
               <h3>No Colleges Found</h3>
               <p className="empty-description">
-                {search || filterStatus !== "ALL"
-                  ? "No colleges match your search criteria. Try adjusting your filters."
+                {search
+                  ? "No colleges match your search criteria. Try adjusting your search."
                   : "There are no colleges registered yet. Create your first college to get started."}
               </p>
-              {!search && filterStatus === "ALL" && (
+              {!search && (
                 <button
                   className="erp-btn erp-btn-primary empty-action"
                   onClick={() => navigate("/super-admin/create-college")}
