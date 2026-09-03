@@ -1,8 +1,7 @@
-import { useContext, useEffect, useState, useMemo } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
-import { getResultsByExam } from "../../../api/results";
+import { getResultsByExam, getExamResultSummaries, lockResultsForExam, unlockResult, publishResultsForExam } from "../../../api/results";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
@@ -150,11 +149,7 @@ const styles = `
 `;
 
 export default function ExamResultsDashboard() {
-  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "EXAM_COORDINATOR") return <Navigate to="/dashboard/exam" replace />;
 
   const [exams, setExams] = useState([]);
   const [resultMap, setResultMap] = useState({});
@@ -169,23 +164,15 @@ export default function ExamResultsDashboard() {
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   useEffect(() => {
-    const fetchExams = async () => {
+    const fetchExamsAndSummaries = async () => {
       try {
         const res = await api.get("/exam");
         const examsData = Array.isArray(res.data) ? res.data :
-                          Array.isArray(res.data.data) ? res.data.data : [];
+                        Array.isArray(res.data.data) ? res.data.data : [];
         setExams(examsData);
 
-        const map = {};
-        await Promise.all(examsData.map(async (exam) => {
-          try {
-            const r = await getResultsByExam(exam._id);
-            map[exam._id] = r;
-          } catch {
-            map[exam._id] = null;
-          }
-        }));
-        setResultMap(map);
+        const summaries = await getExamResultSummaries();
+        setResultMap(buildResultMap(summaries));
       } catch (err) {
         const statusCode = err.response?.status;
         const errorCode = err.response?.data?.code;
@@ -201,8 +188,16 @@ export default function ExamResultsDashboard() {
         setLoading(false);
       }
     };
-    fetchExams();
+    fetchExamsAndSummaries();
   }, []);
+
+  const buildResultMap = (summaries) => {
+    const map = {};
+    for (const s of summaries) {
+      map[s.examId] = { summary: s.summary };
+    }
+    return map;
+  };
 
   const filteredExams = useMemo(() => {
     let result = exams;
@@ -228,10 +223,10 @@ export default function ExamResultsDashboard() {
     return result;
   }, [exams, searchTerm, statusFilter, resultMap]);
 
-  const refreshResult = async (examId) => {
+  const refreshResult = async () => {
     try {
-      const r = await getResultsByExam(examId);
-      setResultMap((prev) => ({ ...prev, [examId]: r }));
+      const summaries = await getExamResultSummaries();
+      setResultMap(buildResultMap(summaries));
     } catch { /* ignore refresh error */ }
   };
 
@@ -246,7 +241,6 @@ export default function ExamResultsDashboard() {
   const handleLock = async (examId) => {
     setActionBusy(examId);
     try {
-      const { lockResultsForExam } = await import("../../../api/results");
       await lockResultsForExam(examId);
       toast.success("All draft results locked.");
       await refreshResult(examId);
@@ -262,7 +256,6 @@ export default function ExamResultsDashboard() {
     if (!reason || !reason.trim()) return;
     setActionBusy(examId);
     try {
-      const { getResultsByExam, unlockResult } = await import("../../../api/results");
       const info = await getResultsByExam(examId);
       const lockedResults = info.results.filter((r) => r.status === "LOCKED");
       for (const r of lockedResults) {
@@ -280,7 +273,6 @@ export default function ExamResultsDashboard() {
   const handlePublish = async (examId) => {
     setActionBusy(examId);
     try {
-      const { publishResultsForExam } = await import("../../../api/results");
       await publishResultsForExam(examId);
       toast.success("All locked results published.");
       await refreshResult(examId);

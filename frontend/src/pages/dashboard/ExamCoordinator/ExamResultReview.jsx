@@ -1,7 +1,6 @@
-import { useContext, useEffect, useState, useMemo } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
-import { getResultsByExam } from "../../../api/results";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { getResultsByExam, lockResultsForExam, publishResultsForExam, unlockResult } from "../../../api/results";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import Loading from "../../../components/Loading";
@@ -193,11 +192,7 @@ const styles = `
 
 export default function ExamResultReview() {
   const { examId } = useParams();
-  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "EXAM_COORDINATOR") return <Navigate to="/dashboard/exam" replace />;
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -257,7 +252,6 @@ export default function ExamResultReview() {
     setActionBusy(true);
     setActionError(null);
     try {
-      const { lockResultsForExam } = await import("../../../api/results");
       const res = await lockResultsForExam(examId);
       toast.success(`${res.modified} result(s) locked.`);
       await load();
@@ -275,7 +269,6 @@ export default function ExamResultReview() {
     setActionBusy(true);
     setActionError(null);
     try {
-      const { publishResultsForExam } = await import("../../../api/results");
       const res = await publishResultsForExam(examId);
       toast.success(`${res.modified} result(s) published.`);
       await load();
@@ -294,7 +287,6 @@ export default function ExamResultReview() {
     setActionBusy(true);
     setActionError(null);
     try {
-      const { unlockResult } = await import("../../../api/results");
       const lockedResults = data.results.filter((r) => r.status === "LOCKED");
       for (const r of lockedResults) {
         await unlockResult(r._id, unlockReason.trim());

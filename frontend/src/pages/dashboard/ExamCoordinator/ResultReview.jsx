@@ -1,6 +1,5 @@
-import { useContext, useEffect, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { getResult, lockResult, unlockResult, publishResult } from "../../../api/results";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
@@ -198,11 +197,7 @@ const styles = `
 
 export default function ResultReview() {
   const { resultId } = useParams();
-  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "EXAM_COORDINATOR") return <Navigate to="/dashboard/exam" replace />;
 
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);

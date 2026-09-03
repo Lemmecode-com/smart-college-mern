@@ -38,6 +38,15 @@ router.get(
 // All four MUST be declared before /:resultId so "generate-exam",
 // "lock-exam", "publish-exam" and the query-based listing are not captured
 // as a resultId path param.
+// ── Single-call exam-level result summaries (replaces N+1 per-exam calls) ──
+router.get(
+  "/exam-summaries",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  semesterResultController.getExamResultSummaries,
+);
+
 // ── List all results for an exam (summary + rows) ──
 router.get(
   "/",

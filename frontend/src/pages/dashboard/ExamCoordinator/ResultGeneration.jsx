@@ -1,6 +1,5 @@
-import { useContext, useEffect, useState } from "react";
-import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../../api/axios";
 import { generateResult, generateResultsForExam } from "../../../api/results";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -201,12 +200,8 @@ const styles = `
 `;
 
 export default function ResultGeneration() {
-  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "EXAM_COORDINATOR") return <Navigate to="/dashboard/exam" replace />;
 
   const [mode, setMode] = useState("exam");
   const [exams, setExams] = useState([]);
