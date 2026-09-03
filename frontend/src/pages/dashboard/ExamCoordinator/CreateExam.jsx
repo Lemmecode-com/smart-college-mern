@@ -1,6 +1,5 @@
-import { useContext, useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
@@ -372,11 +371,7 @@ const formStyles = `
 `;
 
 export default function CreateExam() {
-  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "EXAM_COORDINATOR") return <Navigate to="/dashboard/exam" replace />;
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -453,9 +448,17 @@ export default function CreateExam() {
   /* ================= HANDLERS ================= */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const resetsSubjects = name === "course_id" || name === "semester";
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(resetsSubjects ? { subjects: [] } : {}),
+    }));
     if (validationErrors[name]) {
       setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+    if (resetsSubjects && validationErrors.subjects) {
+      setValidationErrors((prev) => ({ ...prev, subjects: "" }));
     }
   };
 
@@ -774,10 +777,10 @@ export default function CreateExam() {
                                   {subject.credits} credits
                                 </span>
                               </div>
-                              {subject.teacher_id && (
+                              {subject.teacher_id?.name && (
                                 <div className="subject-teacher">
                                   <FaChalkboardTeacher />
-                                  {typeof subject.teacher_id === "object" ? subject.teacher_id.name : subject.teacher_id}
+                                  {subject.teacher_id.name}
                                 </div>
                               )}
                             </div>
