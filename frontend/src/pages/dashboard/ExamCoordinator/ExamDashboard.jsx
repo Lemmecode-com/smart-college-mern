@@ -5,12 +5,13 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { publishExam } from "../../../api/exam";
+import { getExamResultSummaries } from "../../../api/results";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import ConfirmModal from "../../../components/ConfirmModal";
 
 import {
-  FaClock, 
+  FaClock,
   FaPlus,
   FaSearch,
   FaEye,
@@ -22,6 +23,14 @@ import {
   FaExclamationTriangle,
   FaTimes,
   FaCheckCircle,
+  FaCog,
+  FaLock,
+  FaGlobe,
+  FaChevronRight,
+  FaStream,
+  FaTasks,
+  FaClipboardCheck,
+  FaBullhorn,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -161,9 +170,235 @@ const dashboardStyles = `
 .exam-dashboard .stat-icon-primary { background: var(--edx-cyan-50); color: var(--edx-navy-800); border-left: 3px solid var(--edx-navy-800); }
 .exam-dashboard .stat-icon-warning { background: var(--edx-amber-50); color: var(--edx-amber-600); border-left: 3px solid var(--edx-amber-500); }
 .exam-dashboard .stat-icon-success { background: var(--edx-green-50); color: var(--edx-green-600); border-left: 3px solid var(--edx-green-500); }
+.exam-dashboard .stat-icon-info { background: rgba(12,43,71,0.08); color: var(--edx-navy-800); border-left: 3px solid var(--edx-cyan-500); }
 .exam-dashboard .stat-card-details { display: flex; flex-direction: column; }
 .exam-dashboard .stat-label { color: var(--edx-slate-600); font-size: 0.85rem; }
 .exam-dashboard .stat-value { color: var(--edx-navy-950); font-size: 1.65rem; font-weight: 700; line-height: 1.2; }
+
+/* ---------- Lifecycle + Action Required cards ---------- */
+.exam-dashboard .overview-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--edx-slate-100);
+  box-shadow: 0 1px 3px rgba(12, 43, 71, 0.06);
+  padding: 1.25rem 1.4rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.exam-dashboard .overview-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+.exam-dashboard .overview-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  color: var(--edx-cyan-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.exam-dashboard .overview-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--edx-navy-950);
+  margin: 0;
+  line-height: 1.2;
+}
+.exam-dashboard .overview-card-subtitle {
+  color: var(--edx-slate-600);
+  font-size: 0.8rem;
+  margin: 0.1rem 0 0;
+}
+
+/* Lifecycle track */
+.exam-dashboard .lifecycle-track {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+  align-items: stretch;
+  flex: 1;
+}
+.exam-dashboard .lifecycle-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--edx-slate-100);
+  border: 1px solid var(--edx-slate-200);
+  border-radius: 10px;
+  padding: 0.75rem 0.4rem;
+  position: relative;
+  min-height: 88px;
+}
+.exam-dashboard .lifecycle-step.is-active {
+  background: var(--edx-cyan-50);
+  border-color: var(--edx-cyan-500);
+}
+.exam-dashboard .lifecycle-step-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  background: #fff;
+  color: var(--edx-slate-400);
+  margin-bottom: 0.4rem;
+  border: 1px solid var(--edx-slate-200);
+}
+.exam-dashboard .lifecycle-step.is-active .lifecycle-step-icon {
+  background: var(--edx-navy-900);
+  color: var(--edx-cyan-500);
+  border-color: var(--edx-navy-900);
+}
+.exam-dashboard .lifecycle-step-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--edx-slate-600);
+  line-height: 1.15;
+}
+.exam-dashboard .lifecycle-step.is-active .lifecycle-step-label {
+  color: var(--edx-navy-900);
+}
+.exam-dashboard .lifecycle-step-count {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--edx-navy-950);
+  margin-top: 0.15rem;
+  line-height: 1;
+}
+.exam-dashboard .lifecycle-step.is-active .lifecycle-step-count {
+  color: var(--edx-navy-900);
+}
+.exam-dashboard .lifecycle-legend {
+  margin-top: 0.85rem;
+  font-size: 0.75rem;
+  color: var(--edx-slate-600);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Action required list */
+.exam-dashboard .action-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  flex: 1;
+}
+.exam-dashboard .action-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  background: var(--edx-slate-100);
+  border: 1px solid var(--edx-slate-200);
+  border-radius: 10px;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  color: inherit;
+}
+.exam-dashboard .action-item:hover {
+  background: var(--edx-cyan-50);
+  border-color: var(--edx-cyan-500);
+  transform: translateY(-1px);
+}
+.exam-dashboard .action-item:focus-visible {
+  outline: 2px solid var(--edx-cyan-500);
+  outline-offset: 2px;
+}
+.exam-dashboard .action-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--edx-cyan-50);
+  color: var(--edx-navy-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.exam-dashboard .action-item-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.exam-dashboard .action-item-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--edx-slate-900);
+  line-height: 1.2;
+}
+.exam-dashboard .action-item-sub {
+  color: var(--edx-slate-600);
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.exam-dashboard .action-item-chevron {
+  color: var(--edx-slate-400);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+.exam-dashboard .action-item:hover .action-item-chevron { color: var(--edx-cyan-600); }
+
+.exam-dashboard .action-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem 0.75rem;
+  color: var(--edx-slate-600);
+}
+.exam-dashboard .action-empty-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--edx-green-50);
+  color: var(--edx-green-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.7rem;
+  font-size: 1.2rem;
+}
+.exam-dashboard .action-empty-title {
+  font-weight: 700;
+  color: var(--edx-navy-950);
+  margin-bottom: 0.25rem;
+}
+.exam-dashboard .action-empty-text {
+  font-size: 0.82rem;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+@media (max-width: 991.98px) {
+  .exam-dashboard .lifecycle-track {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 575.98px) {
+  .exam-dashboard .lifecycle-track {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
 /* ---------- Filter card ---------- */
 .exam-dashboard .filter-card {
@@ -392,6 +627,7 @@ export default function ExamDashboard() {
   const navigate = useNavigate();
 
   const [exams, setExams] = useState([]);
+  const [resultMap, setResultMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -425,6 +661,22 @@ export default function ExamDashboard() {
         const examsData = Array.isArray(res.data) ? res.data :
                           Array.isArray(res.data.data) ? res.data.data : [];
         setExams(examsData);
+
+        // Best-effort: load exam-level result summaries so the
+        // "Processing" KPI can reflect exams that have started
+        // generating results. Failures are non-fatal — KPI will
+        // fall back to zero rather than blocking the page.
+        try {
+          const summaries = await getExamResultSummaries();
+          const map = {};
+          for (const s of Array.isArray(summaries) ? summaries : []) {
+            map[s.examId] = s.summary;
+          }
+          setResultMap(map);
+        } catch (summaryErr) {
+          logger.error("Error fetching exam result summaries:", summaryErr?.response?.status);
+          setResultMap({});
+        }
       } catch (err) {
         const statusCode = err.response?.status;
         const errorCode = err.response?.data?.code;
@@ -478,6 +730,138 @@ export default function ExamDashboard() {
 
     return result;
   }, [exams, searchTerm, statusFilter]);
+
+  /* ================= LIFECYCLE COUNTS =================
+     The exam model exposes only DRAFT / PUBLISHED. There is
+     no marks-entry progress or start/end date in the API, so
+     each lifecycle bucket is mapped ONLY to fields that are
+     reliably available. Counts are derived from the exam list
+     + the per-exam result summary (byStatus).
+       DRAFT              -> exam.status === "DRAFT"
+       MARKS ENTRY        -> PUBLISHED exam that has NO results yet
+       RESULT GENERATION  -> PUBLISHED exam with DRAFT results
+       REVIEW             -> PUBLISHED exam with LOCKED results
+                             (and no DRAFT or PUBLISHED results)
+       LOCKED             -> PUBLISHED exam that is fully LOCKED
+       PUBLISHED          -> PUBLISHED exam that is fully PUBLISHED
+     "Processing" KPI (top of page) and the cards below stay
+     consistent with the same source of truth.
+  */
+  const lifecycleCounts = useMemo(() => {
+    const counts = {
+      draft: 0,
+      marksEntry: 0,
+      generation: 0,
+      review: 0,
+      locked: 0,
+      published: 0,
+    };
+    for (const exam of exams) {
+      const summary = resultMap[exam._id];
+      const total = summary ? summary.totalStudents : 0;
+      const by = summary ? summary.byStatus || {} : {};
+      const draft = by.DRAFT || 0;
+      const locked = by.LOCKED || 0;
+      const published = by.PUBLISHED || 0;
+
+      if (exam.status === "DRAFT") {
+        counts.draft += 1;
+        continue;
+      }
+      // exam.status === "PUBLISHED" from here on
+      if (total === 0) {
+        counts.marksEntry += 1;
+      } else if (draft > 0) {
+        counts.generation += 1;
+      } else if (published === total) {
+        counts.published += 1;
+      } else if (locked === total) {
+        counts.locked += 1;
+      } else if (locked > 0 && draft === 0 && published === 0) {
+        counts.review += 1;
+      } else {
+        // Mixed-state (e.g. some locked + some published):
+        // group under REVIEW as the active review stage.
+        counts.review += 1;
+      }
+    }
+    return counts;
+  }, [exams, resultMap]);
+
+  /* ================= ACTION REQUIRED =================
+     Built from real, currently-actionable items. Order of
+     priority (most urgent first), capped at 6 entries.
+       1. Draft exams awaiting publish       -> /dashboard/exam
+       2. PUBLISHED exams with no results    -> generate results
+       3. PUBLISHED exams with DRAFT results -> review results
+       4. PUBLISHED exams fully LOCKED       -> publish results
+     Uses existing routes only; no new APIs.
+  */
+  const actionItems = useMemo(() => {
+    const items = [];
+    for (const exam of exams) {
+      const summary = resultMap[exam._id];
+      const total = summary ? summary.totalStudents : 0;
+      const by = summary ? summary.byStatus || {} : {};
+      const draft = by.DRAFT || 0;
+      const locked = by.LOCKED || 0;
+      const published = by.PUBLISHED || 0;
+      const courseName = exam.course_id?.name || "Course";
+      const courseLine = `${courseName} · Sem ${exam.semester} · ${exam.academicYear}`;
+
+      if (exam.status === "DRAFT") {
+        items.push({
+          key: `draft-${exam._id}`,
+          priority: 1,
+          icon: "edit",
+          title: `Review draft exam: ${exam.name}`,
+          sub: courseLine,
+          to: `/dashboard/exam/edit/${exam._id}`,
+        });
+        continue;
+      }
+      if (exam.status === "PUBLISHED") {
+        if (total === 0) {
+          items.push({
+            key: `gen-${exam._id}`,
+            priority: 2,
+            icon: "cog",
+            title: `Generate results for ${exam.name}`,
+            sub: courseLine,
+            to: `/dashboard/exam/results/generate?examId=${exam._id}`,
+          });
+        } else if (draft > 0) {
+          items.push({
+            key: `rev-${exam._id}`,
+            priority: 3,
+            icon: "eye",
+            title: `Review results for ${exam.name}`,
+            sub: `${draft} draft result${draft === 1 ? "" : "s"} pending`,
+            to: `/dashboard/exam/results/review/${exam._id}`,
+          });
+        } else if (locked === total && published < total) {
+          items.push({
+            key: `pub-${exam._id}`,
+            priority: 4,
+            icon: "globe",
+            title: `Publish results for ${exam.name}`,
+            sub: `${locked} locked result${locked === 1 ? "" : "s"} ready to publish`,
+            to: `/dashboard/exam/results`,
+          });
+        }
+      }
+    }
+    items.sort((a, b) => a.priority - b.priority);
+    return items.slice(0, 6);
+  }, [exams, resultMap]);
+
+  const actionIcon = (kind) => {
+    if (kind === "edit") return <FaEdit />;
+    if (kind === "cog") return <FaCog />;
+    if (kind === "eye") return <FaEye />;
+    if (kind === "globe") return <FaGlobe />;
+    return <FaChevronRight />;
+  };
 
   /* ================= ACTIONS ================= */
   const handleViewExam = (examId) => {
@@ -604,8 +988,8 @@ export default function ExamDashboard() {
             <FaClock />
           </div>
           <div>
-            <h2 className="edx-title">Exam Management</h2>
-            <p className="edx-subtitle">Create and manage exams for your college</p>
+            <h2 className="edx-title">Exam Coordinator Overview</h2>
+            <p className="edx-subtitle">Monitor examinations, marks and result processing</p>
           </div>
         </div>
         <button className="btn-edx-primary" onClick={handleCreateExam}>
@@ -622,7 +1006,7 @@ export default function ExamDashboard() {
         transition={{ duration: 0.35, delay: 0.05, ease: "easeOut" }}
         className="row mb-4 g-3"
       >
-        <div className="col-md-4">
+        <div className="col-xl-3 col-md-6">
           <div className="stat-card">
             <div className="stat-card-header">
               <div className="stat-icon stat-icon-primary">
@@ -635,7 +1019,7 @@ export default function ExamDashboard() {
             </div>
           </div>
         </div>
-        <div className="col-md-4">
+        <div className="col-xl-3 col-md-6">
           <div className="stat-card">
             <div className="stat-card-header">
               <div className="stat-icon stat-icon-warning">
@@ -650,7 +1034,32 @@ export default function ExamDashboard() {
             </div>
           </div>
         </div>
-        <div className="col-md-4">
+        <div className="col-xl-3 col-md-6">
+          <div className="stat-card">
+            <div className="stat-card-header">
+              <div className="stat-icon stat-icon-info">
+                <FaCog />
+              </div>
+              <div className="stat-card-details">
+                <span className="stat-label">Processing</span>
+                <span className="stat-value">
+                  {exams.filter((e) => {
+                    const summary = resultMap[e._id];
+                    if (!summary) return false;
+                    if (summary.totalStudents === 0) return false;
+                    const { byStatus } = summary;
+                    if (byStatus.PUBLISHED === summary.totalStudents) return false;
+                    const draft = byStatus.DRAFT || 0;
+                    const locked = byStatus.LOCKED || 0;
+                    const published = byStatus.PUBLISHED || 0;
+                    return draft > 0 || (locked > 0 && published > 0) || (locked > 0 && draft > 0);
+                  }).length}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-xl-3 col-md-6">
           <div className="stat-card">
             <div className="stat-card-header">
               <div className="stat-icon stat-icon-success">
@@ -663,6 +1072,105 @@ export default function ExamDashboard() {
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Lifecycle + Action Required */}
+      <motion.div
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.1, ease: "easeOut" }}
+        className="row mb-4 g-3"
+      >
+        <div className="col-lg-6">
+          <div className="overview-card">
+            <div className="overview-card-header">
+              <div className="overview-card-icon"><FaStream /></div>
+              <div>
+                <h3 className="overview-card-title">Exam Lifecycle</h3>
+                <p className="overview-card-subtitle">Current state across all exams</p>
+              </div>
+            </div>
+            <div className="lifecycle-track" role="list">
+              <div className="lifecycle-step" role="listitem" title="Exams saved as draft, not yet published">
+                <div className="lifecycle-step-icon"><FaEdit /></div>
+                <div className="lifecycle-step-label">DRAFT</div>
+                <div className="lifecycle-step-count">{lifecycleCounts.draft}</div>
+              </div>
+              <div className="lifecycle-step" role="listitem" title="Published exams awaiting marks entry / result generation">
+                <div className="lifecycle-step-icon"><FaTasks /></div>
+                <div className="lifecycle-step-label">MARKS ENTRY</div>
+                <div className="lifecycle-step-count">{lifecycleCounts.marksEntry}</div>
+              </div>
+              <div className="lifecycle-step" role="listitem" title="Published exams with draft results (generation in progress)">
+                <div className="lifecycle-step-icon"><FaCog /></div>
+                <div className="lifecycle-step-label">RESULT GENERATION</div>
+                <div className="lifecycle-step-count">{lifecycleCounts.generation}</div>
+              </div>
+              <div className="lifecycle-step" role="listitem" title="Exams with locked or mixed results awaiting review">
+                <div className="lifecycle-step-icon"><FaClipboardCheck /></div>
+                <div className="lifecycle-step-label">REVIEW</div>
+                <div className="lifecycle-step-count">{lifecycleCounts.review}</div>
+              </div>
+              <div className="lifecycle-step" role="listitem" title="Exams whose results are fully locked, ready to publish">
+                <div className="lifecycle-step-icon"><FaLock /></div>
+                <div className="lifecycle-step-label">LOCKED</div>
+                <div className="lifecycle-step-count">{lifecycleCounts.locked}</div>
+              </div>
+              <div className="lifecycle-step" role="listitem" title="Exams whose results are fully published">
+                <div className="lifecycle-step-icon"><FaBullhorn /></div>
+                <div className="lifecycle-step-label">PUBLISHED</div>
+                <div className="lifecycle-step-count">{lifecycleCounts.published}</div>
+              </div>
+            </div>
+            <div className="lifecycle-legend">
+              <FaCheckCircle style={{ color: "var(--edx-cyan-600)" }} />
+              Buckets are derived from exam status and per-exam result status counts.
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-6">
+          <div className="overview-card">
+            <div className="overview-card-header">
+              <div className="overview-card-icon"><FaTasks /></div>
+              <div>
+                <h3 className="overview-card-title">Action Required</h3>
+                <p className="overview-card-subtitle">
+                  {actionItems.length > 0
+                    ? `${actionItems.length} item${actionItems.length === 1 ? "" : "s"} need your attention`
+                    : "Nothing requires your attention right now"}
+                </p>
+              </div>
+            </div>
+            {actionItems.length === 0 ? (
+              <div className="action-empty">
+                <div className="action-empty-icon"><FaCheckCircle /></div>
+                <div className="action-empty-title">All caught up</div>
+                <p className="action-empty-text">
+                  There are no examination actions requiring your attention.
+                </p>
+              </div>
+            ) : (
+              <ul className="action-list">
+                {actionItems.map((a) => (
+                  <li key={a.key}>
+                    <button
+                      type="button"
+                      className="action-item"
+                      onClick={() => navigate(a.to)}
+                    >
+                      <span className="action-item-icon">{actionIcon(a.icon)}</span>
+                      <span className="action-item-body">
+                        <span className="action-item-title">{a.title}</span>
+                        <span className="action-item-sub">{a.sub}</span>
+                      </span>
+                      <span className="action-item-chevron"><FaChevronRight /></span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       </motion.div>
