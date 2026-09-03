@@ -4,24 +4,17 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
-import { publishExam } from "../../../api/exam";
 import { getExamResultSummaries } from "../../../api/results";
-import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
-import ConfirmModal from "../../../components/ConfirmModal";
 
 import {
   FaClock,
   FaPlus,
-  FaSearch,
   FaEye,
   FaEdit,
-  FaFilter,
   FaBookOpen,
   FaLayerGroup,
-  FaGraduationCap,
   FaExclamationTriangle,
-  FaTimes,
   FaCheckCircle,
   FaCog,
   FaLock,
@@ -31,6 +24,8 @@ import {
   FaTasks,
   FaClipboardCheck,
   FaBullhorn,
+  FaChartBar,
+  FaBolt,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -68,6 +63,9 @@ const dashboardStyles = `
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--edx-slate-900);
 }
+
+/* ---------- Breadcrumb spacing ---------- */
+.exam-dashboard nav.erp-breadcrumb { margin-bottom: 1.1rem; }
 
 /* ---------- Header ---------- */
 .exam-dashboard .edx-header {
@@ -400,6 +398,351 @@ const dashboardStyles = `
   }
 }
 
+/* ---------- Recent / Active Exams card ---------- */
+.exam-dashboard .recent-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--edx-slate-100);
+  box-shadow: 0 1px 3px rgba(12, 43, 71, 0.06);
+  overflow: hidden;
+}
+.exam-dashboard .recent-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid var(--edx-slate-100);
+  flex-wrap: wrap;
+}
+.exam-dashboard .recent-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.exam-dashboard .recent-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  color: var(--edx-cyan-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+.exam-dashboard .recent-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--edx-navy-950);
+  margin: 0;
+  line-height: 1.2;
+}
+.exam-dashboard .recent-card-subtitle {
+  color: var(--edx-slate-600);
+  font-size: 0.8rem;
+  margin: 0.1rem 0 0;
+}
+.exam-dashboard .recent-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--edx-slate-200);
+  color: var(--edx-navy-800);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.exam-dashboard .recent-view-all:hover {
+  background: var(--edx-cyan-50);
+  border-color: var(--edx-cyan-500);
+  color: var(--edx-cyan-600);
+}
+.exam-dashboard .recent-view-all:focus-visible {
+  outline: 2px solid var(--edx-cyan-500);
+  outline-offset: 2px;
+}
+.exam-dashboard .recent-table {
+  margin-bottom: 0;
+}
+.exam-dashboard .recent-table thead th {
+  background: var(--edx-slate-100);
+  color: var(--edx-navy-900);
+  font-weight: 600;
+  font-size: 0.78rem;
+  border-bottom: 2px solid var(--edx-cyan-500) !important;
+  padding: 0.7rem 1rem;
+  white-space: nowrap;
+}
+.exam-dashboard .recent-table tbody td {
+  padding: 0.7rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--edx-slate-100);
+  font-size: 0.88rem;
+}
+.exam-dashboard .recent-table tbody tr { transition: background 0.12s ease; }
+.exam-dashboard .recent-table tbody tr:hover { background: var(--edx-cyan-50); }
+.exam-dashboard .recent-table tbody tr:last-child td { border-bottom: none; }
+.exam-dashboard .recent-row-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--edx-cyan-50);
+  color: var(--edx-navy-800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+.exam-dashboard .recent-row-title {
+  font-weight: 600;
+  color: var(--edx-slate-900);
+  font-size: 0.88rem;
+  line-height: 1.2;
+}
+.exam-dashboard .recent-course-name {
+  font-weight: 600;
+  color: var(--edx-slate-900);
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+.exam-dashboard .recent-course-code {
+  color: var(--edx-slate-600);
+  font-size: 0.72rem;
+}
+.exam-dashboard .recent-year {
+  color: var(--edx-slate-600);
+  font-size: 0.85rem;
+}
+.exam-dashboard .recent-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+.exam-dashboard .recent-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fff;
+  border: 1px solid var(--edx-slate-200);
+  color: var(--edx-slate-600);
+  border-radius: 8px;
+  padding: 0.32rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.exam-dashboard .recent-mini-btn:hover {
+  border-color: var(--edx-cyan-500);
+  color: var(--edx-cyan-600);
+  background: var(--edx-cyan-50);
+}
+.exam-dashboard .recent-mini-btn-edit:hover {
+  border-color: var(--edx-navy-700);
+  color: var(--edx-navy-800);
+  background: var(--edx-slate-100);
+}
+.exam-dashboard .recent-mini-btn:focus-visible {
+  outline: 2px solid var(--edx-cyan-500);
+  outline-offset: 2px;
+}
+.exam-dashboard .recent-empty {
+  text-align: center;
+  padding: 2.25rem 1rem;
+  color: var(--edx-slate-600);
+}
+.exam-dashboard .recent-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.7rem;
+  font-size: 1.25rem;
+}
+.exam-dashboard .recent-empty-title {
+  font-weight: 700;
+  color: var(--edx-navy-950);
+  margin-bottom: 0.2rem;
+}
+.exam-dashboard .recent-empty-text {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* Mobile card treatment (replaces table) */
+.exam-dashboard .recent-mobile-list {
+  display: none;
+  flex-direction: column;
+}
+.exam-dashboard .recent-mobile-item {
+  padding: 0.9rem 1.1rem;
+  border-bottom: 1px solid var(--edx-slate-100);
+}
+.exam-dashboard .recent-mobile-item:last-child { border-bottom: none; }
+.exam-dashboard .recent-mobile-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+}
+.exam-dashboard .recent-mobile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--edx-slate-600);
+  margin-bottom: 0.6rem;
+}
+.exam-dashboard .recent-mobile-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+@media (max-width: 767.98px) {
+  .exam-dashboard .recent-table-wrap { display: none; }
+  .exam-dashboard .recent-mobile-list { display: flex; }
+  .exam-dashboard .recent-card-header { padding: 0.95rem 1.1rem; }
+  .exam-dashboard .recent-card-header-left { flex: 1; min-width: 0; }
+}
+
+/* ---------- Result Processing + Quick Actions ---------- */
+.exam-dashboard .rproc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+.exam-dashboard .rproc-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--edx-slate-900);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.exam-dashboard .rproc-label .rproc-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.exam-dashboard .rproc-label .rproc-dot-draft { background: var(--edx-amber-500); }
+.exam-dashboard .rproc-label .rproc-dot-locked { background: var(--edx-navy-800); }
+.exam-dashboard .rproc-label .rproc-dot-published { background: var(--edx-green-500); }
+.exam-dashboard .rproc-value {
+  color: var(--edx-navy-950);
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.exam-dashboard .rproc-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--edx-slate-100);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+}
+.exam-dashboard .rproc-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+.exam-dashboard .rproc-bar-fill-draft { background: linear-gradient(90deg, var(--edx-amber-500), var(--edx-amber-600)); }
+.exam-dashboard .rproc-bar-fill-locked { background: linear-gradient(90deg, var(--edx-navy-800), var(--edx-navy-900)); }
+.exam-dashboard .rproc-bar-fill-published { background: linear-gradient(90deg, var(--edx-green-500), var(--edx-green-600)); }
+.exam-dashboard .rproc-empty {
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  color: var(--edx-slate-600);
+}
+.exam-dashboard .rproc-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.6rem;
+  font-size: 1.05rem;
+}
+.exam-dashboard .rproc-empty-title {
+  font-weight: 700;
+  color: var(--edx-navy-950);
+  margin-bottom: 0.2rem;
+}
+.exam-dashboard .rproc-empty-text {
+  font-size: 0.82rem;
+  margin: 0;
+}
+.exam-dashboard .rproc-footer {
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--edx-slate-100);
+  display: flex;
+  justify-content: flex-end;
+}
+.exam-dashboard .rproc-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid var(--edx-slate-200);
+  color: var(--edx-navy-800);
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.exam-dashboard .rproc-view-all:hover {
+  background: var(--edx-cyan-50);
+  border-color: var(--edx-cyan-500);
+  color: var(--edx-cyan-600);
+}
+.exam-dashboard .rproc-view-all:focus-visible {
+  outline: 2px solid var(--edx-cyan-500);
+  outline-offset: 2px;
+}
+
+/* Quick action rows reuse action-item styling; minor variant */
+.exam-dashboard .qa-icon {
+  background: var(--edx-cyan-50);
+  color: var(--edx-navy-800);
+}
+.exam-dashboard .qa-icon-warning {
+  background: var(--edx-amber-50);
+  color: var(--edx-amber-600);
+}
+.exam-dashboard .qa-icon-success {
+  background: var(--edx-green-50);
+  color: var(--edx-green-600);
+}
+.exam-dashboard .qa-icon-info {
+  background: rgba(12, 43, 71, 0.08);
+  color: var(--edx-navy-800);
+}
+
 /* ---------- Filter card ---------- */
 .exam-dashboard .filter-card {
   background: #fff;
@@ -630,12 +973,6 @@ export default function ExamDashboard() {
   const [resultMap, setResultMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [actionBusy, setActionBusy] = useState(null);
-  const [actionError, setActionError] = useState(null);
-  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
-  const [publishTarget, setPublishTarget] = useState(null);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -697,39 +1034,6 @@ export default function ExamDashboard() {
 
     fetchExams();
   }, []);
-
-  /* ================= FILTERED EXAMS ================= */
-  const filteredExams = useMemo(() => {
-    let result = exams;
-
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter((exam) => {
-        const courseName = exam.course_id?.name || "";
-        const courseCode = exam.course_id?.code || "";
-        const matchesSubject = (exam.subjects || []).some((s) => {
-          const subjectName = s.subject?.name || "";
-          const subjectCode = s.subject?.code || "";
-          return (
-            subjectName.toLowerCase().includes(term) ||
-            subjectCode.toLowerCase().includes(term)
-          );
-        });
-        return (
-          exam.name?.toLowerCase().includes(term) ||
-          courseName.toLowerCase().includes(term) ||
-          courseCode.toLowerCase().includes(term) ||
-          matchesSubject
-        );
-      });
-    }
-
-    if (statusFilter !== "ALL") {
-      result = result.filter((exam) => exam.status === statusFilter);
-    }
-
-    return result;
-  }, [exams, searchTerm, statusFilter]);
 
   /* ================= LIFECYCLE COUNTS =================
      The exam model exposes only DRAFT / PUBLISHED. There is
@@ -863,49 +1167,25 @@ export default function ExamDashboard() {
     return <FaChevronRight />;
   };
 
-  /* ================= ACTIONS ================= */
-  const handleViewExam = (examId) => {
-    navigate(`/dashboard/exam/view/${examId}`);
-  };
+  /* ================= RECENT EXAMS =================
+     The exam API does not expose a date or "active" flag,
+     so we surface the most recent/relevant exams using only
+     what the GET /exam payload already gives us. DRAFT exams
+     are prioritised (they need attention), then PUBLISHED
+     exams, taking the first 5 records (server's existing
+     order, no fabrication of dates or status).
+  */
+  const recentExams = useMemo(() => {
+    if (!Array.isArray(exams) || exams.length === 0) return [];
+    const ordered = [...exams].sort((a, b) => {
+      const aDraft = a.status === "DRAFT" ? 0 : 1;
+      const bDraft = b.status === "DRAFT" ? 0 : 1;
+      return aDraft - bDraft;
+    });
+    return ordered.slice(0, 5);
+  }, [exams]);
 
-  const handleEditExam = (examId) => {
-    navigate(`/dashboard/exam/edit/${examId}`);
-  };
-
-  const handleCreateExam = () => {
-    navigate("/dashboard/exam/create");
-  };
-
-  const handlePublishClick = (exam) => {
-    if (exam.status === "PUBLISHED") return;
-    setPublishTarget(exam);
-    setShowPublishConfirm(true);
-    setActionError(null);
-  };
-
-  const confirmPublish = async () => {
-    if (!publishTarget) return;
-    const examId = publishTarget._id;
-    setShowPublishConfirm(false);
-    setActionBusy(examId);
-    setActionError(null);
-    try {
-      const res = await publishExam(examId);
-      toast.success(res.message || "Exam published successfully");
-      setExams((prev) =>
-        prev.map((e) => (e._id === examId ? { ...e, status: "PUBLISHED" } : e)),
-      );
-    } catch (err) {
-      const msg = err.response?.data?.message || "Failed to publish exam.";
-      setActionError(msg);
-      toast.error(msg);
-    } finally {
-      setActionBusy(null);
-      setPublishTarget(null);
-    }
-  };
-
-  const getStatusBadge = (status) => {
+  const getRecentStatusPill = (status) => {
     if (status === "PUBLISHED") {
       return (
         <span className="pill pill-success">
@@ -920,6 +1200,75 @@ export default function ExamDashboard() {
         Draft
       </span>
     );
+  };
+
+  /* ================= RESULT TOTALS =================
+     Sum DRAFT / LOCKED / PUBLISHED result counts across
+     every exam, derived from the existing
+     getExamResultSummaries() payload (byStatus per exam).
+     The maximum is used only to scale the bar widths
+     (no percentages or invented ratios are shown).
+  */
+  const resultTotals = useMemo(() => {
+    let draft = 0;
+    let locked = 0;
+    let published = 0;
+    let total = 0;
+    for (const examId in resultMap) {
+      const summary = resultMap[examId];
+      if (!summary) continue;
+      const by = summary.byStatus || {};
+      draft += by.DRAFT || 0;
+      locked += by.LOCKED || 0;
+      published += by.PUBLISHED || 0;
+      total += summary.totalStudents || 0;
+    }
+    return { draft, locked, published, total };
+  }, [resultMap]);
+
+  const resultBarWidth = (value) => {
+    if (resultTotals.total <= 0) return 0;
+    return Math.max(0, Math.min(100, (value / resultTotals.total) * 100));
+  };
+
+  const quickActions = [
+    {
+      key: "create-exam",
+      title: "Create Exam",
+      sub: "Set up a new examination",
+      icon: <FaPlus />,
+      iconClass: "qa-icon",
+      to: "/dashboard/exam/create",
+    },
+    {
+      key: "manage-exams",
+      title: "Manage Exams",
+      sub: "View and manage exams",
+      icon: <FaClipboardCheck />,
+      iconClass: "qa-icon qa-icon-info",
+      to: "/dashboard/exam",
+    },
+    {
+      key: "review-results",
+      title: "Review Results",
+      sub: "Review examination results",
+      icon: <FaEye />,
+      iconClass: "qa-icon qa-icon-success",
+      to: "/dashboard/exam/results",
+    },
+    {
+      key: "generate-results",
+      title: "Generate Results",
+      sub: "Generate examination results",
+      icon: <FaCog />,
+      iconClass: "qa-icon qa-icon-warning",
+      to: "/dashboard/exam/results/generate",
+    },
+  ];
+
+  /* ================= ACTIONS ================= */
+  const handleCreateExam = () => {
+    navigate("/dashboard/exam/create");
   };
 
   /* ================= RENDER ================= */
@@ -954,27 +1303,10 @@ export default function ExamDashboard() {
 
       <Breadcrumb
         items={[
-          { label: "Exam Dashboard", path: "/dashboard/exam" },
-          { label: "Exam List" },
+          { label: "Home", path: "/dashboard" },
+          { label: "Exam Dashboard" },
         ]}
       />
-
-      <ConfirmModal
-        isOpen={showPublishConfirm}
-        onClose={() => { setShowPublishConfirm(false); setPublishTarget(null); }}
-        onConfirm={confirmPublish}
-        title="Publish Exam"
-        message={`Are you sure you want to publish "${publishTarget?.name || "this exam"}"? Once published, the exam will be available as a published exam and should no longer be treated as a draft.`}
-        type="success"
-        confirmText="Publish Exam"
-        isLoading={actionBusy === publishTarget?._id}
-      />
-
-      {actionError && (
-        <div className="edx-alert mb-3">
-          <FaExclamationTriangle /> {actionError}
-        </div>
-      )}
 
       {/* Header */}
       <motion.div
@@ -992,10 +1324,6 @@ export default function ExamDashboard() {
             <p className="edx-subtitle">Monitor examinations, marks and result processing</p>
           </div>
         </div>
-        <button className="btn-edx-primary" onClick={handleCreateExam}>
-          <FaPlus />
-          Create Exam
-        </button>
       </motion.div>
       <div className="edx-divider" />
 
@@ -1076,11 +1404,129 @@ export default function ExamDashboard() {
         </div>
       </motion.div>
 
-      {/* Lifecycle + Action Required */}
+      {/* Result Processing + Quick Actions */}
       <motion.div
         initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.1, ease: "easeOut" }}
+        className="row mb-4 g-3"
+      >
+        <div className="col-lg-6">
+          <div className="overview-card">
+            <div className="overview-card-header">
+              <div className="overview-card-icon"><FaChartBar /></div>
+              <div>
+                <h3 className="overview-card-title">Result Processing</h3>
+                <p className="overview-card-subtitle">
+                  Totals across all exam results
+                </p>
+              </div>
+            </div>
+
+            {resultTotals.total === 0 ? (
+              <div className="rproc-empty">
+                <div className="rproc-empty-icon"><FaClipboardCheck /></div>
+                <div className="rproc-empty-title">No results yet</div>
+                <p className="rproc-empty-text">
+                  Generate results for a published exam to see processing totals here.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="rproc-row">
+                  <span className="rproc-label">
+                    <span className="rproc-dot rproc-dot-draft" />
+                    Draft Results
+                  </span>
+                  <span className="rproc-value">{resultTotals.draft}</span>
+                </div>
+                <div className="rproc-bar">
+                  <div
+                    className="rproc-bar-fill rproc-bar-fill-draft"
+                    style={{ width: `${resultBarWidth(resultTotals.draft)}%` }}
+                  />
+                </div>
+
+                <div className="rproc-row">
+                  <span className="rproc-label">
+                    <span className="rproc-dot rproc-dot-locked" />
+                    Locked Results
+                  </span>
+                  <span className="rproc-value">{resultTotals.locked}</span>
+                </div>
+                <div className="rproc-bar">
+                  <div
+                    className="rproc-bar-fill rproc-bar-fill-locked"
+                    style={{ width: `${resultBarWidth(resultTotals.locked)}%` }}
+                  />
+                </div>
+
+                <div className="rproc-row">
+                  <span className="rproc-label">
+                    <span className="rproc-dot rproc-dot-published" />
+                    Published Results
+                  </span>
+                  <span className="rproc-value">{resultTotals.published}</span>
+                </div>
+                <div className="rproc-bar">
+                  <div
+                    className="rproc-bar-fill rproc-bar-fill-published"
+                    style={{ width: `${resultBarWidth(resultTotals.published)}%` }}
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="rproc-footer">
+              <button
+                type="button"
+                className="rproc-view-all"
+                onClick={() => navigate("/dashboard/exam/results")}
+              >
+                View Results <FaChevronRight />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-lg-6">
+          <div className="overview-card">
+            <div className="overview-card-header">
+              <div className="overview-card-icon"><FaBolt /></div>
+              <div>
+                <h3 className="overview-card-title">Quick Actions</h3>
+                <p className="overview-card-subtitle">
+                  Jump to common examination tasks
+                </p>
+              </div>
+            </div>
+            <ul className="action-list">
+              {quickActions.map((qa) => (
+                <li key={qa.key}>
+                  <button
+                    type="button"
+                    className="action-item"
+                    onClick={() => navigate(qa.to)}
+                  >
+                    <span className={`action-item-icon ${qa.iconClass}`}>{qa.icon}</span>
+                    <span className="action-item-body">
+                      <span className="action-item-title">{qa.title}</span>
+                      <span className="action-item-sub">{qa.sub}</span>
+                    </span>
+                    <span className="action-item-chevron"><FaChevronRight /></span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Lifecycle + Action Required */}
+      <motion.div
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.15, ease: "easeOut" }}
         className="row mb-4 g-3"
       >
         <div className="col-lg-6">
@@ -1175,154 +1621,163 @@ export default function ExamDashboard() {
         </div>
       </motion.div>
 
-      {/* Filters */}
-      <div className="filter-card mb-4">
-        <div className="filter-card-label">
-          <FaFilter />
-          Search &amp; filter exams
-        </div>
-        <div className="filter-row">
-          <div className="search-box">
-            <FaSearch />
-            <input
-              type="text"
-              placeholder="Search exams by name, course..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                className="search-clear"
-                onClick={() => setSearchTerm("")}
-                title="Clear search"
-              >
-                <FaTimes />
-              </button>
-            )}
-          </div>
-          <div className="select-box">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="ALL">All status</option>
-              <option value="DRAFT">Draft</option>
-              <option value="PUBLISHED">Published</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Exams Table */}
-      <div className="table-card">
-        {filteredExams.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">
-              <FaClock size={26} />
+      {/* Recent / Active Exams */}
+      <motion.div
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.2, ease: "easeOut" }}
+        className="recent-card mb-4"
+      >
+        <div className="recent-card-header">
+          <div className="recent-card-header-left">
+            <div className="recent-card-icon"><FaClipboardCheck /></div>
+            <div>
+              <h3 className="recent-card-title">Recent / Active Exams</h3>
+              <p className="recent-card-subtitle">Quick access to your most recent exams</p>
             </div>
-            <h5 className="empty-title">No exams found</h5>
-            <p className="empty-text">
-              {exams.length === 0
-                ? "You have not created any exams yet. Click \u2018Create Exam\u2019 to get started."
-                : "No exams match your search criteria."}
-            </p>
-            {exams.length === 0 && (
-              <button className="btn-edx-primary mt-3" onClick={handleCreateExam}>
-                <FaPlus />
-                Create Your First Exam
-              </button>
-            )}
+          </div>
+          <button
+            type="button"
+            className="recent-view-all"
+            onClick={() => navigate("/dashboard/exam/list")}
+          >
+            View All <FaChevronRight />
+          </button>
+        </div>
+
+        {recentExams.length === 0 ? (
+          <div className="recent-empty">
+            <div className="recent-empty-icon"><FaClock size={22} /></div>
+            <div className="recent-empty-title">No examinations available</div>
+            <p className="recent-empty-text">Create an exam to see it appear here.</p>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="table mb-0">
-              <thead>
-                <tr>
-                  <th>Exam Name</th>
-                  <th>Course</th>
-                  <th>Semester</th>
-                  <th>Academic Year</th>
-                  <th>Subjects</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredExams.map((exam) => (
-                  <tr key={exam._id}>
-                    <td>
-                      <div className="d-flex align-items-center gap-2">
-                        <div className="row-icon">
-                          <FaClock />
-                        </div>
-                        <span className="row-title">{exam.name}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="d-flex align-items-center gap-2">
-                        <FaGraduationCap className="course-cell-icon" />
-                        <div>
-                          <div className="course-name">
-                            {exam.course_id?.name || "N/A"}
-                          </div>
-                          <div className="course-code">
-                            {exam.course_id?.code || ""}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span className="pill pill-cyan">
-                        <FaLayerGroup size={10} />
-                        Sem {exam.semester}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="year-cell">{exam.academicYear}</span>
-                    </td>
-                    <td>
-                      <span className="pill pill-slate">
-                        {exam.subjects?.length || 0} subjects
-                      </span>
-                    </td>
-                    <td>{getStatusBadge(exam.status)}</td>
-                     <td>
-                       <div className="d-flex gap-2">
-                         {exam.status === "DRAFT" && (
-                           <button
-                             className="icon-btn"
-                             style={{ color: "var(--edx-green-600)", borderColor: "var(--edx-green-500)" }}
-                             onClick={() => handlePublishClick(exam)}
-                             title="Publish Exam"
-                             disabled={actionBusy === exam._id}
-                           >
-                             <FaCheckCircle />
-                           </button>
-                         )}
-                         <button
-                           className="icon-btn icon-btn-view"
-                           onClick={() => handleViewExam(exam._id)}
-                           title="View Exam"
-                         >
-                           <FaEye />
-                         </button>
-                         <button
-                           className="icon-btn icon-btn-edit"
-                           onClick={() => handleEditExam(exam._id)}
-                           title="Edit Exam"
-                         >
-                           <FaEdit />
-                         </button>
-                       </div>
-                     </td>
+          <>
+            {/* Desktop / tablet table */}
+            <div className="table-responsive recent-table-wrap">
+              <table className="table recent-table mb-0">
+                <thead>
+                  <tr>
+                    <th>Exam</th>
+                    <th>Course</th>
+                    <th>Semester</th>
+                    <th>Academic Year</th>
+                    <th>Status</th>
+                    <th>Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recentExams.map((exam) => (
+                    <tr key={exam._id}>
+                      <td>
+                        <div className="d-flex align-items-center gap-2">
+                          <div className="recent-row-icon"><FaClock /></div>
+                          <span className="recent-row-title">{exam.name}</span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="recent-course-name">
+                          {exam.course_id?.name || "N/A"}
+                        </div>
+                        <div className="recent-course-code">
+                          {exam.course_id?.code || ""}
+                        </div>
+                      </td>
+                      <td>
+                        <span className="pill pill-cyan">
+                          <FaLayerGroup size={10} />
+                          Sem {exam.semester}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="recent-year">{exam.academicYear}</span>
+                      </td>
+                      <td>{getRecentStatusPill(exam.status)}</td>
+                      <td>
+                        <div className="recent-actions">
+                          {exam.status === "DRAFT" ? (
+                            <button
+                              type="button"
+                              className="recent-mini-btn recent-mini-btn-edit"
+                              onClick={() => navigate(`/dashboard/exam/edit/${exam._id}`)}
+                            >
+                              <FaEdit /> Edit
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="recent-mini-btn"
+                              onClick={() => navigate(`/dashboard/exam/view/${exam._id}`)}
+                            >
+                              <FaEye /> View
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="recent-mini-btn"
+                            onClick={() => navigate(`/dashboard/exam/view/${exam._id}`)}
+                          >
+                            <FaEye /> Review
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile card list (replaces table) */}
+            <div className="recent-mobile-list">
+              {recentExams.map((exam) => (
+                <div key={exam._id} className="recent-mobile-item">
+                  <div className="recent-mobile-head">
+                    <div className="recent-row-icon"><FaClock /></div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div className="recent-row-title">{exam.name}</div>
+                      <div className="recent-course-name" style={{ fontSize: "0.78rem" }}>
+                        {exam.course_id?.name || "N/A"}
+                        {exam.course_id?.code ? ` · ${exam.course_id.code}` : ""}
+                      </div>
+                    </div>
+                    {getRecentStatusPill(exam.status)}
+                  </div>
+                  <div className="recent-mobile-meta">
+                    <span><FaLayerGroup size={10} /> Sem {exam.semester}</span>
+                    <span>{exam.academicYear}</span>
+                  </div>
+                  <div className="recent-mobile-actions">
+                    {exam.status === "DRAFT" ? (
+                      <button
+                        type="button"
+                        className="recent-mini-btn recent-mini-btn-edit"
+                        onClick={() => navigate(`/dashboard/exam/edit/${exam._id}`)}
+                      >
+                        <FaEdit /> Edit
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="recent-mini-btn"
+                        onClick={() => navigate(`/dashboard/exam/view/${exam._id}`)}
+                      >
+                        <FaEye /> View
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="recent-mini-btn"
+                      onClick={() => navigate(`/dashboard/exam/view/${exam._id}`)}
+                    >
+                      <FaEye /> Review
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
