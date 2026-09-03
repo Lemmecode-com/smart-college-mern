@@ -25,6 +25,15 @@ export const getMyResults = () =>
 export const getResultsByExam = (examId) =>
   api.get(`${BASE}/`, { params: { examId } }).then((r) => r.data);
 
+/**
+ * Single-call exam-level result summaries for the Coordinator dashboard.
+ * Replaces N+1 per-exam getResultsByExam calls.
+ * Returns an array of { examId, summary: { totalStudents, passed, failed,
+ * incomplete, byStatus, lastUpdated } }.
+ */
+export const getExamResultSummaries = () =>
+  api.get(`${BASE}/exam-summaries`).then((r) => r.data);
+
 export const generateResultsForExam = (examId) =>
   api.post(`${BASE}/generate-exam`, { examId }).then((r) => r.data);
 

@@ -237,6 +237,31 @@ exports.getResultsByExam = async (req, res, next) => {
 };
 
 /**
+ * GET /api/results/exam-summaries
+ *
+ * Single-call exam-level result summaries for the Coordinator dashboard.
+ * Replaces the N+1 pattern of calling GET /results?examId=xxx once per exam.
+ *
+ * Returns only aggregate counts — no result documents — scoped to the
+ * authenticated college. Authentication + EXAM_COORDINATOR role + college
+ * isolation are enforced by the route middleware chain.
+ */
+exports.getExamResultSummaries = async (req, res, next) => {
+  try {
+    const summaries = await SemesterResultService.getExamResultSummaries({
+      collegeId: req.college_id,
+    });
+
+    res.json({
+      success: true,
+      data: { summaries },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * POST /api/results/generate-exam
  *
  * Generate SemesterResults for every approved student in the exam. Body: { examId }.

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const SemesterResult = require("../models/semesterResult.model");
 const Exam = require("../models/exam.model");
 const Student = require("../models/student.model");
@@ -440,6 +441,77 @@ exports.getResultsByExam = async ({ collegeId, examId }) => {
     },
     results,
   };
+};
+
+/**
+ * GET /api/results/exam-summaries
+ *
+ * Return exam-level result summaries for EVERY exam that has at least one
+ * SemesterResult in the authenticated college — in a single aggregation.
+ *
+ * This replaces the N+1 pattern where the coordinator dashboard called
+ * getResultsByExam once per exam. The aggregation groups by exam_id and
+ * computes the same summary shape used by getResultsByExam, without
+ * transferring full result documents or student populates.
+ *
+ * Summary per exam:
+ *   totalStudents      — total result rows for this exam
+ *   passed / failed    — by overallResult
+ *   incomplete         — remainder (INCOMPLETE)
+ *   byStatus           — { DRAFT, LOCKED, PUBLISHED } counts
+ *   lastUpdated        — newest calculatedAt across the set
+ *
+ * @param {Object} params
+ * @param {ObjectId|string} params.collegeId  from collegeMiddleware
+ * @returns {Promise<Array<{examId, summary}>>}
+ */
+exports.getExamResultSummaries = async ({ collegeId }) => {
+  const pipeline = [
+    { $match: { college_id: new mongoose.Types.ObjectId(collegeId) } },
+    {
+      $group: {
+        _id: "$exam_id",
+        totalStudents: { $sum: 1 },
+        passed: {
+          $sum: { $cond: [{ $eq: ["$overallResult", "PASS"] }, 1, 0] },
+        },
+        failed: {
+          $sum: { $cond: [{ $eq: ["$overallResult", "FAIL"] }, 1, 0] },
+        },
+        incomplete: {
+          $sum: { $cond: [{ $eq: ["$overallResult", "INCOMPLETE"] }, 1, 0] },
+        },
+        draftCount: {
+          $sum: { $cond: [{ $eq: ["$status", RESULT_STATUS.DRAFT] }, 1, 0] },
+        },
+        lockedCount: {
+          $sum: { $cond: [{ $eq: ["$status", RESULT_STATUS.LOCKED] }, 1, 0] },
+        },
+        publishedCount: {
+          $sum: { $cond: [{ $eq: ["$status", RESULT_STATUS.PUBLISHED] }, 1, 0] },
+        },
+        lastUpdated: { $max: "$calculatedAt" },
+      },
+    },
+  ];
+
+  const aggregated = await SemesterResult.aggregate(pipeline);
+
+  return aggregated.map((item) => ({
+    examId: item._id,
+    summary: {
+      totalStudents: item.totalStudents,
+      passed: item.passed,
+      failed: item.failed,
+      incomplete: item.incomplete,
+      byStatus: {
+        [RESULT_STATUS.DRAFT]: item.draftCount,
+        [RESULT_STATUS.LOCKED]: item.lockedCount,
+        [RESULT_STATUS.PUBLISHED]: item.publishedCount,
+      },
+      lastUpdated: item.lastUpdated,
+    },
+  }));
 };
 
 /**

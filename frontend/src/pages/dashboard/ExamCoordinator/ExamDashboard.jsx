@@ -1,6 +1,5 @@
-import { useContext, useEffect, useState, useMemo } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
-import { AuthContext } from "../../../auth/AuthContext";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -11,7 +10,7 @@ import { logger } from "../../../utils/logger";
 import ConfirmModal from "../../../components/ConfirmModal";
 
 import {
-  FaClock,
+  FaClock, 
   FaPlus,
   FaSearch,
   FaEye,
@@ -390,11 +389,7 @@ const dashboardStyles = `
 `;
 
 export default function ExamDashboard() {
-  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "EXAM_COORDINATOR") return <Navigate to="/home" replace />;
 
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -460,10 +455,19 @@ export default function ExamDashboard() {
       result = result.filter((exam) => {
         const courseName = exam.course_id?.name || "";
         const courseCode = exam.course_id?.code || "";
+        const matchesSubject = (exam.subjects || []).some((s) => {
+          const subjectName = s.subject?.name || "";
+          const subjectCode = s.subject?.code || "";
+          return (
+            subjectName.toLowerCase().includes(term) ||
+            subjectCode.toLowerCase().includes(term)
+          );
+        });
         return (
           exam.name?.toLowerCase().includes(term) ||
           courseName.toLowerCase().includes(term) ||
-          courseCode.toLowerCase().includes(term)
+          courseCode.toLowerCase().includes(term) ||
+          matchesSubject
         );
       });
     }
@@ -563,6 +567,13 @@ export default function ExamDashboard() {
   return (
     <div className="exam-dashboard container-fluid p-4">
       <style>{dashboardStyles}</style>
+
+      <Breadcrumb
+        items={[
+          { label: "Exam Dashboard", path: "/dashboard/exam" },
+          { label: "Exam List" },
+        ]}
+      />
 
       <ConfirmModal
         isOpen={showPublishConfirm}
