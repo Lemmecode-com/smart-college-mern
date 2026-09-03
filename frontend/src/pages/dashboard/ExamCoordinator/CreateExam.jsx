@@ -97,6 +97,9 @@ const formStyles = `
   color: var(--edx-slate-900);
 }
 
+/* ---------- Breadcrumb spacing ---------- */
+.exam-form nav.erp-breadcrumb { margin-bottom: 1.1rem; }
+
 /* ---------- Card shell ---------- */
 .exam-form .exam-card {
   background: #fff;

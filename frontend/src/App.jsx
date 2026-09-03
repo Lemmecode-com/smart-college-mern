@@ -172,6 +172,7 @@ const ConfigurationViewer = lazy(() => import("./pages/dashboard/PlatformSupport
 
 /* ================= EXAM COORDINATOR (LAZY) ================= */
 const ExamDashboard = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamDashboard"));
+const ExamList = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamList"));
 const CreateExam = lazy(() => import("./pages/dashboard/ExamCoordinator/CreateExam"));
 const EditExam = lazy(() => import("./pages/dashboard/ExamCoordinator/EditExam"));
 const ViewExam = lazy(() => import("./pages/dashboard/ExamCoordinator/ViewExam"));
@@ -1033,6 +1034,14 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
                   <ExamDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/list"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ExamList />
                 </ProtectedRoute>
               }
             />

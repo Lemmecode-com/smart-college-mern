@@ -54,6 +54,10 @@ const styles = `
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--edx-slate-900);
 }
+
+/* ---------- Breadcrumb spacing ---------- */
+.rgen nav.erp-breadcrumb { margin-bottom: 1.1rem; }
+
 .rgen .rgen-card {
   background: #fff; border-radius: 16px;
   border: 1px solid var(--edx-slate-100);
