@@ -961,7 +961,7 @@ export const navigationConfig = {
         defaultOpen: true,
         items: [
           {
-            path: "/dashboard/exam",
+            path: "/dashboard/exam/list",
             icon: FaListOl,
             label: "Exam List",
             exact: true,

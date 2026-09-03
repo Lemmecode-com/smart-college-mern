@@ -86,6 +86,9 @@ const viewStyles = `
   color: var(--edx-slate-900);
 }
 
+/* ---------- Breadcrumb spacing ---------- */
+.exam-view nav.erp-breadcrumb { margin-bottom: 1.1rem; }
+
 /* ---------- Card shell ---------- */
 .exam-view .exam-card {
   background: #fff;

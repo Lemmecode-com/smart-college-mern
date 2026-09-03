@@ -59,6 +59,10 @@ const styles = `
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--edx-slate-900);
 }
+
+/* ---------- Breadcrumb spacing ---------- */
+.erd nav.erp-breadcrumb { margin-bottom: 1.1rem; }
+
 .erd .edx-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
 .erd .erd-icon {
   width: 48px; height: 48px; border-radius: 12px;
