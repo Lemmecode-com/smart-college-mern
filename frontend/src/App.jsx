@@ -180,6 +180,7 @@ const ResultGeneration = lazy(() => import("./pages/dashboard/ExamCoordinator/Re
 const ResultReview = lazy(() => import("./pages/dashboard/ExamCoordinator/ResultReview"));
 const ExamResultsDashboard = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamResultsDashboard"));
 const ExamResultReview = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamResultReview"));
+const ExamSchedulePage = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamSchedulePage"));
 
 /* ================= HOD (LAZY) ================= */
 const HodDashboard = lazy(() => import("./pages/dashboard/HOD/HodDashboard"));
@@ -196,6 +197,7 @@ const SessionDetails = lazy(() => import("./pages/dashboard/Teacher/SessionDetai
 const EditAttendanceModal = lazy(() => import("./pages/dashboard/Teacher/EditAttendanceModal"));
 const AttendanceReport = lazy(() => import("./pages/dashboard/Teacher/Attendance/AttendanceReport"));
 const MySessions = lazy(() => import("./pages/dashboard/Teacher/Attendance/MySessions"));
+const CloseSession = lazy(() => import("./pages/dashboard/Teacher/Attendance/CloseSession"));
 const MyProfile = lazy(() => import("./pages/dashboard/Teacher/MyProfile"));
 const EditTeacherProfile = lazy(() => import("./pages/dashboard/Teacher/EditTeacherProfile"));
 const TimetableList = lazy(() => import("./pages/dashboard/Teacher/Timetable/TimetableList"));
@@ -1070,6 +1072,14 @@ function AppContent({
               }
             />
             <Route
+              path="/dashboard/exam/schedule/:examId"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ExamSchedulePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/exam/results/generate"
               element={
                 <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
@@ -1437,7 +1447,16 @@ function AppContent({
              />
 
             {/* ================= ATTENDANCE ================= */}
-<Route
+             <Route
+               path="/session/close/:sessionId"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <CloseSession />
+                 </ProtectedRoute>
+               }
+             />
+
+             <Route
                path="/attendance/my-sessions-list"
                element={
                  <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
