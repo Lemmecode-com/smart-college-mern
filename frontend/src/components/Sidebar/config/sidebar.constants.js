@@ -172,6 +172,7 @@ export const DEFAULT_OPEN_SECTIONS = {
     'timetable-student': false,
     'fees-student': false,
     'attendance-student': false,
+    'results-student': false,
     'notifications-student': false
   },
   PARENT_GUARDIAN: {
