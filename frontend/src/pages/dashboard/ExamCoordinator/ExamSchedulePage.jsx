@@ -96,7 +96,8 @@ const buildRowsFromExam = (examSubjects, scheduleSubjects) => {
   });
 };
 
-const extractApiError = (err) => {
+// eslint-disable-next-line react-refresh/only-export-components
+export const extractApiError = (err) => {
   const statusCode = err?.response?.status;
   const errorCode = err?.response?.data?.code;
   const message =
@@ -111,7 +112,8 @@ const extractApiError = (err) => {
  * the fields the backend actually rejects. We intentionally do NOT block
  * Save Draft on missing date or incomplete rows (backend permits drafts).
  */
-const validateRowsForSave = (rows) => {
+// eslint-disable-next-line react-refresh/only-export-components
+export const validateRowsForSave = (rows) => {
   const errors = [];
   const rowErrors = new Map();
 
