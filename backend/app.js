@@ -100,6 +100,9 @@ app.use("/api/subjects", require("./src/routes/subject.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
 app.use("/api/admission", require("./src/routes/admission.routes"));
 app.use("/api/exam", require("./src/routes/exam.routes"));
+app.use("/api/exam-schedule", require("./src/routes/examSchedule.routes")); // Exam Timetable (Step 1)
+app.use("/api/marks", require("./src/routes/marks.routes"));
+app.use("/api/results", require("./src/routes/semesterResult.routes"));
 app.use("/api/parent", require("./src/routes/parent.routes")); // Parent Guardian
 app.use("/api/users", require("./src/routes/user.routes"));
 app.use("/api/timetable", require("./src/routes/timetable.routes"));

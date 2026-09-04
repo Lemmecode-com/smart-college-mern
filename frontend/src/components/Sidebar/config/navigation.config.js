@@ -31,7 +31,7 @@ import {
   FaChartLine,
   FaMoneyBill,
   FaFileAlt,
-  FaUser,
+   FaUser,
   FaEdit,
   FaClock,
   FaChartBar,
@@ -98,6 +98,20 @@ export const navigationConfig = {
             path: "/admin/security-audit",
             icon: FaCheckCircle,
             label: "Security Audit",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "super-platform",
+        title: "Platform Support",
+        icon: FaShieldAlt,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/super-admin/platform-support-config",
+            icon: FaCog,
+            label: "Platform Support Config",
             exact: true,
           },
         ],
@@ -477,7 +491,21 @@ export const navigationConfig = {
           {
             path: "/timetable/weekly-timetable",
             icon: FaClock,
-            label: "Mark Attendance",
+            label: "Weekly Schedule",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "exam-teacher",
+        title: "Exam",
+        icon: FaClipboardList,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/teacher/exam-timetable",
+            icon: FaCalendarAlt,
+            label: "Exam Timetable",
             exact: true,
           },
         ],
@@ -512,6 +540,20 @@ export const navigationConfig = {
             path: "/attendance/my-sessions-list",
             icon: FaListOl,
             label: "My Sessions",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "marks-teacher",
+        title: "Marks Entry",
+        icon: FaEdit,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/teacher/marks-entry",
+            icon: FaEdit,
+            label: "Enter Marks",
             exact: true,
           },
         ],
@@ -590,6 +632,12 @@ export const navigationConfig = {
             label: "My Timetable",
             exact: true,
           },
+          {
+            path: "/student/exam-timetable",
+            icon: FaCalendarAlt,
+            label: "Exam Timetable",
+            exact: true,
+          },
         ],
       },
       {
@@ -616,6 +664,20 @@ export const navigationConfig = {
             path: "/my-attendance",
             icon: FaClipboardList,
             label: "View Attendance",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "results-student",
+        title: "Exam Results",
+        icon: FaFileAlt,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/student/results",
+            icon: FaFileAlt,
+            label: "My Results",
             exact: true,
           },
         ],
@@ -917,7 +979,7 @@ export const navigationConfig = {
 
   /**
    * EXAM_COORDINATOR Navigation
-   * Placeholder until V1.1
+   * Exam management and planning
    */
   EXAM_COORDINATOR: {
     dashboard: {
@@ -928,32 +990,47 @@ export const navigationConfig = {
     sections: [
       {
         id: "exam",
-        title: "Exam Planning",
+        title: "Exam Management",
+        icon: FaClipboardList,
+        defaultOpen: true,
+        matchPath: "/dashboard/exam",
+        items: [
+          {
+            path: "/dashboard/exam/list",
+            icon: FaListOl,
+            label: "Exam List",
+            exact: true,
+          },
+          {
+            path: "/dashboard/exam/create",
+            icon: FaPlus,
+            label: "Create Exam",
+            exact: true,
+          },
+          {
+            path: "/dashboard/exam/list",
+            icon: FaCalendarAlt,
+            label: "Exam Timetable",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "exam-results",
+        title: "Results",
         icon: FaClipboardList,
         defaultOpen: true,
         items: [
           {
-            path: "/dashboard/exam",
-            icon: FaExclamationTriangle,
-            label: "Exam Dashboard",
+            path: "/dashboard/exam/results",
+            icon: FaChartBar,
+            label: "Results Dashboard",
             exact: true,
           },
           {
-            path: "/students/approved-students",
-            icon: FaUserGraduate,
-            label: "Approved Students",
-            exact: true,
-          },
-          {
-            path: "/teachers",
-            icon: FaChalkboardTeacher,
-            label: "Teachers",
-            exact: true,
-          },
-          {
-            path: "/timetable/list",
-            icon: FaCalendarAlt,
-            label: "Timetable",
+            path: "/dashboard/exam/results/generate",
+            icon: FaFileAlt,
+            label: "Generate Result",
             exact: true,
           },
         ],
@@ -1231,6 +1308,20 @@ export const navigationConfig = {
               path: "/hod/exception-approvals",
               icon: FaExclamationTriangle,
               label: "Exception Approvals",
+              exact: true,
+            },
+          ],
+        },
+       {
+          id: "hod-exam",
+          title: "Exam",
+          icon: FaClipboardList,
+          defaultOpen: true,
+          items: [
+            {
+              path: "/hod/exam-timetable",
+              icon: FaCalendarAlt,
+              label: "Exam Timetable",
               exact: true,
             },
           ],

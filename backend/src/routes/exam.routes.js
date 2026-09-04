@@ -8,10 +8,48 @@ const { ROLE } = require("../utils/constants");
 
 const examController = require("../controllers/exam.controller");
 
-// All exam coordinator routes
-router.use(auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware);
+// ==================== AUTHORIZATION ARCHITECTURE ====================
+// Authentication (auth) and college/tenant isolation (collegeMiddleware) are
+// applied on every route. Role-based authorization is applied PER ROUTE so
+// that future Exam functionality can mix roles:
+//   - Coordinator-level management routes:  EXAM_COORDINATOR
+//   - Future marks routes:                TEACHER + EXAM_COORDINATOR
+//   - Published visibility routes:        STUDENT + TEACHER + HOD
+// ====================================================================
 
-// Dashboard — placeholder
-router.get("/dashboard", examController.getDashboard);
+// Coordinator dashboard placeholder (kept for backward compatibility / Step 1 tests)
+router.get(
+  "/dashboard",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  examController.getDashboard,
+);
+
+// Published visibility routes (must come before /:id to avoid route conflicts)
+router.get(
+  "/published",
+  auth,
+  role(ROLE.STUDENT, ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  examController.getPublishedExams
+);
+
+router.get(
+  "/published/:id",
+  auth,
+  role(ROLE.STUDENT, ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  examController.getPublishedExamById
+);
+
+// Read routes: TEACHER needs exam list/detail to populate Marks Entry UI
+router.get("/", auth, role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExams);
+router.get("/:id", auth, role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExamById);
+
+// Write routes: EXAM_COORDINATOR only
+router.post("/", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.createExam);
+router.put("/:id", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.updateExam);
+router.put("/:id/publish", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.publishExam);
 
 module.exports = router;

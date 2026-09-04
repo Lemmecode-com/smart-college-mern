@@ -415,7 +415,7 @@ export default function AuditLogsViewer() {
                     </td>
                     <td>
                       {log.college_id ? (
-                        <Link to={`/colleges/${log.college_id._id}`} className="text-decoration-none">
+                        <Link to={`/super-admin/college/${log.college_id._id}`} className="text-decoration-none">
                           {log.college_id.name || log.college_id.code}
                         </Link>
                       ) : (

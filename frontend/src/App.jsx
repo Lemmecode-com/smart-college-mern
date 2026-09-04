@@ -172,6 +172,15 @@ const ConfigurationViewer = lazy(() => import("./pages/dashboard/PlatformSupport
 
 /* ================= EXAM COORDINATOR (LAZY) ================= */
 const ExamDashboard = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamDashboard"));
+const ExamList = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamList"));
+const CreateExam = lazy(() => import("./pages/dashboard/ExamCoordinator/CreateExam"));
+const EditExam = lazy(() => import("./pages/dashboard/ExamCoordinator/EditExam"));
+const ViewExam = lazy(() => import("./pages/dashboard/ExamCoordinator/ViewExam"));
+const ResultGeneration = lazy(() => import("./pages/dashboard/ExamCoordinator/ResultGeneration"));
+const ResultReview = lazy(() => import("./pages/dashboard/ExamCoordinator/ResultReview"));
+const ExamResultsDashboard = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamResultsDashboard"));
+const ExamResultReview = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamResultReview"));
+const ExamSchedulePage = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamSchedulePage"));
 
 /* ================= HOD (LAZY) ================= */
 const HodDashboard = lazy(() => import("./pages/dashboard/HOD/HodDashboard"));
@@ -180,6 +189,7 @@ const HodDepartment = lazy(() => import("./pages/dashboard/HOD/HodDepartment"));
 const HodProfile = lazy(() => import("./pages/dashboard/HOD/HodProfile"));
 const HodExceptionApprovals = lazy(() => import("./pages/dashboard/HOD/HodExceptionApprovals"));
 const HodReports = lazy(() => import("./pages/dashboard/HOD/HodReports"));
+const HodExamTimetable = lazy(() => import("./pages/dashboard/HOD/Timetable/HodExamTimetable"));
 
 /* ================= TEACHER (LAZY) ================= */
 const TeacherDashboard = lazy(() => import("./pages/dashboard/Teacher/TeacherDashboard"));
@@ -188,6 +198,7 @@ const SessionDetails = lazy(() => import("./pages/dashboard/Teacher/SessionDetai
 const EditAttendanceModal = lazy(() => import("./pages/dashboard/Teacher/EditAttendanceModal"));
 const AttendanceReport = lazy(() => import("./pages/dashboard/Teacher/Attendance/AttendanceReport"));
 const MySessions = lazy(() => import("./pages/dashboard/Teacher/Attendance/MySessions"));
+const CloseSession = lazy(() => import("./pages/dashboard/Teacher/Attendance/CloseSession"));
 const MyProfile = lazy(() => import("./pages/dashboard/Teacher/MyProfile"));
 const EditTeacherProfile = lazy(() => import("./pages/dashboard/Teacher/EditTeacherProfile"));
 const TimetableList = lazy(() => import("./pages/dashboard/Teacher/Timetable/TimetableList"));
@@ -195,8 +206,10 @@ const AddTimetableSlot = lazy(() => import("./pages/dashboard/Teacher/Timetable/
 const MySchedule = lazy(() => import("./pages/dashboard/Teacher/Timetable/MySchedule"));
 const WeeklyTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/WeeklyTimetable"));
 const MyTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/MyTimetable"));
+const TeacherExamTimetable = lazy(() => import("./pages/dashboard/Teacher/Timetable/TeacherExamTimetable"));
 const CreateException = lazy(() => import("./pages/dashboard/Teacher/Timetable/CreateException"));
 const ExceptionManagement = lazy(() => import("./pages/dashboard/Teacher/Timetable/ExceptionManagement"));
+const MarksEntry = lazy(() => import("./pages/dashboard/Teacher/MarksEntry"));
 const CreateTimetable = lazy(() => import("./pages/dashboard/HOD/Timetable/CreateTimetable"));
 
 /* ================= STUDENT (LAZY) ================= */
@@ -204,12 +217,14 @@ const StudentDashboard = lazy(() => import("./pages/dashboard/Student/StudentDas
 const StudentProfile = lazy(() => import("./pages/dashboard/Student/StudentProfile"));
 const EditStudentProfile = lazy(() => import("./pages/dashboard/Student/EditStudentProfile"));
 const StudentTimetable = lazy(() => import("./pages/dashboard/Student/StudentTimetable"));
+const StudentExamTimetable = lazy(() => import("./pages/dashboard/Student/StudentExamTimetable"));
 const StudentFees = lazy(() => import("./pages/dashboard/Student/StudentFees"));
 const MakePayments = lazy(() => import("./pages/dashboard/Student/MakePayments"));
 const FeeReceipt = lazy(() => import("./pages/dashboard/Student/FeeReceipt"));
 const PaymentSuccess = lazy(() => import("./pages/dashboard/Student/PaymentSuccess"));
 const PaymentCancel = lazy(() => import("./pages/dashboard/Student/PaymentCancel"));
 const MyAttendance = lazy(() => import("./pages/dashboard/Student/MyAttendance"));
+const StudentResults = lazy(() => import("./pages/dashboard/Student/StudentResults"));
 
 export default function App() {
   const { user } = useContext(AuthContext);
@@ -1027,6 +1042,78 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/dashboard/exam/list"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ExamList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/create"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <CreateExam />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/edit/:id"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <EditExam />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/view/:id"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ViewExam />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/schedule/:examId"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ExamSchedulePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/results/generate"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ResultGeneration />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/results/review/:examId"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ExamResultReview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/results"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ExamResultsDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/exam/results/:resultId"
+              element={
+                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
+                  <ResultReview />
+                </ProtectedRoute>
+              }
+            />
 
             {/* ================= HOD ================= */}
             <Route
@@ -1069,14 +1156,22 @@ function AppContent({
                 </ProtectedRoute>
               }
             />
-           <Route
-             path="/hod/reports"
-             element={
-               <ProtectedRoute allowedRoles={["HOD"]}>
-                 <HodReports />
-               </ProtectedRoute>
-             }
-           />
+            <Route
+              path="/hod/reports"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <HodReports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/hod/exam-timetable"
+              element={
+                <ProtectedRoute allowedRoles={["HOD"]}>
+                  <HodExamTimetable />
+                </ProtectedRoute>
+              }
+            />
             {/* ================= HOD NOTIFICATIONS ================= */}
             <Route
               path="/hod/notifications/create"
@@ -1108,6 +1203,22 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["TEACHER"]}>
                   <TeacherDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/marks-entry"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <MarksEntry />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher/exam-timetable"
+              element={
+                <ProtectedRoute allowedRoles={["TEACHER"]}>
+                  <TeacherExamTimetable />
                 </ProtectedRoute>
               }
             />
@@ -1186,6 +1297,14 @@ function AppContent({
               }
             />
             <Route
+              path="/student/exam-timetable"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <StudentExamTimetable />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/student/fees"
               element={
                 <ProtectedRoute allowedRoles={["STUDENT"]}>
@@ -1226,6 +1345,15 @@ function AppContent({
               element={
                 <ProtectedRoute allowedRoles={["STUDENT"]}>
                   <PaymentCancel />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/student/results"
+              element={
+                <ProtectedRoute allowedRoles={["STUDENT"]}>
+                  <StudentResults />
                 </ProtectedRoute>
               }
             />
@@ -1346,7 +1474,16 @@ function AppContent({
              />
 
             {/* ================= ATTENDANCE ================= */}
-<Route
+             <Route
+               path="/session/close/:sessionId"
+               element={
+                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                   <CloseSession />
+                 </ProtectedRoute>
+               }
+             />
+
+             <Route
                path="/attendance/my-sessions-list"
                element={
                  <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>

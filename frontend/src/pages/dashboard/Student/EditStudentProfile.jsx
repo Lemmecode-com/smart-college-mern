@@ -84,7 +84,7 @@ export default function EditStudentProfile() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
 
   const handleGoBack = () => {
     navigate("/student/profile");

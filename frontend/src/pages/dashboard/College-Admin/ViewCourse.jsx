@@ -221,7 +221,7 @@ export default function ViewCourse() {
                 label="Department"
                 value={course.department_id?.name || "Not assigned"}
                 isLink={!!course.department_id}
-                onClick={() => course.department_id && navigate(`/departments/${course.department_id._id}`)}
+                onClick={() => course.department_id && navigate(`/departments/view/${course.department_id._id}`)}
               />
               <OverviewItem
                 icon={<FaChalkboardTeacher />}

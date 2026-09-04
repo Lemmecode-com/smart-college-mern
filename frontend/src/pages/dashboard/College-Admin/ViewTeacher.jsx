@@ -71,7 +71,7 @@ export default function ViewTeacher() {
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (!["COLLEGE_ADMIN", "SUPER_ADMIN", "PRINCIPAL"].includes(user.role))
-    return <Navigate to="/" replace />;
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH TEACHER ================= */
   const fetchTeacher = async () => {
