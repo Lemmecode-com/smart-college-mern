@@ -1,0 +1,891 @@
+/* =========================================================
+   Exam Schedule page — same navy/cyan tokens as the rest
+   of the Exam module. Scoped under .exam-schedule-page.
+   ========================================================= */
+.exam-schedule-page {
+  --edx-bg: #f4f7fa;
+  --edx-navy-950: #06192c;
+  --edx-navy-900: #0c2b47;
+  --edx-navy-800: #123a5e;
+  --edx-navy-700: #1a4a73;
+  --edx-cyan-600: #0e93ab;
+  --edx-cyan-500: #17aecb;
+  --edx-cyan-50: #e7f7fa;
+  --edx-amber-600: #b6790d;
+  --edx-amber-500: #e8a531;
+  --edx-amber-50: #fdf1de;
+  --edx-green-600: #1f8a5f;
+  --edx-green-500: #2aa876;
+  --edx-green-50: #e5f6ee;
+  --edx-red-500: #e5484d;
+  --edx-red-50: #fdecec;
+  --edx-slate-900: #1d2733;
+  --edx-slate-600: #55677c;
+  --edx-slate-400: #8695a7;
+  --edx-slate-200: #dfe6ec;
+  --edx-slate-100: #eef2f6;
+
+  background: var(--edx-bg);
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--edx-slate-900);
+}
+
+.exam-schedule-page nav.erp-breadcrumb { margin-bottom: 1.1rem; }
+
+/* ---------- Card shell ---------- */
+.exam-schedule-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid var(--edx-slate-100);
+  box-shadow: 0 4px 18px rgba(12, 43, 71, 0.08);
+  overflow: hidden;
+}
+
+.exam-schedule-card-header {
+  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.exam-schedule-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.exam-schedule-card-header-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--edx-cyan-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.exam-schedule-card-title {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.exam-schedule-card-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  margin: 0.2rem 0 0;
+}
+
+.exam-schedule-card-body { padding: 1.75rem; }
+
+/* ---------- Pills (status + summary) ---------- */
+.exam-schedule-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.exam-schedule-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.exam-schedule-pill.success {
+  background: var(--edx-green-50);
+  color: var(--edx-green-600);
+}
+.exam-schedule-pill.success .exam-schedule-pill-dot { background: var(--edx-green-500); }
+
+.exam-schedule-pill.warning {
+  background: var(--edx-amber-50);
+  color: var(--edx-amber-600);
+}
+.exam-schedule-pill.warning .exam-schedule-pill-dot { background: var(--edx-amber-500); }
+
+.exam-schedule-pill.slate {
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-600);
+}
+.exam-schedule-pill.slate .exam-schedule-pill-dot { background: var(--edx-slate-400); }
+
+/* Solid background for pills placed on the dark header */
+.exam-schedule-card-header .exam-schedule-pill { background: #fff; }
+
+/* ---------- Info grid ---------- */
+.exam-schedule-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.exam-schedule-info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: var(--edx-bg);
+  border: 1px solid var(--edx-slate-100);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+
+.exam-schedule-info-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.exam-schedule-info-icon.primary { background: var(--edx-cyan-50); color: var(--edx-navy-800); }
+.exam-schedule-info-icon.info    { background: var(--edx-cyan-50); color: var(--edx-cyan-600); }
+.exam-schedule-info-icon.warning { background: var(--edx-amber-50); color: var(--edx-amber-600); }
+.exam-schedule-info-icon.success { background: var(--edx-green-50); color: var(--edx-green-600); }
+
+.exam-schedule-info-label {
+  color: var(--edx-slate-600);
+  font-size: 0.8rem;
+  display: block;
+}
+
+.exam-schedule-info-value {
+  color: var(--edx-slate-900);
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: block;
+}
+
+.exam-schedule-info-sub {
+  color: var(--edx-slate-400);
+  font-size: 0.78rem;
+  display: block;
+}
+
+/* ---------- Placeholder / summary card ---------- */
+.exam-schedule-placeholder-card {
+  border: 1px solid var(--edx-slate-100);
+  border-radius: 12px;
+  background: var(--edx-bg);
+  padding: 1.25rem 1.35rem;
+}
+
+.exam-schedule-placeholder-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.exam-schedule-placeholder-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.exam-schedule-placeholder-icon.info    { background: var(--edx-cyan-50); color: var(--edx-cyan-600); }
+.exam-schedule-placeholder-icon.success { background: var(--edx-green-50); color: var(--edx-green-600); }
+.exam-schedule-placeholder-icon.warning { background: var(--edx-amber-50); color: var(--edx-amber-600); }
+
+.exam-schedule-placeholder-title {
+  color: var(--edx-navy-950);
+  font-weight: 700;
+  font-size: 1.02rem;
+  margin: 0 0 0.25rem;
+}
+
+.exam-schedule-placeholder-text {
+  color: var(--edx-slate-600);
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* ---------- Summary list (existing schedule) ---------- */
+.exam-schedule-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-top: 0.5rem;
+}
+
+.exam-schedule-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid var(--edx-slate-100);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  flex-wrap: wrap;
+}
+
+.exam-schedule-summary-subject {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.exam-schedule-summary-name {
+  font-weight: 600;
+  color: var(--edx-slate-900);
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.exam-schedule-summary-code {
+  color: var(--edx-slate-600);
+  font-size: 0.78rem;
+}
+
+.exam-schedule-summary-when {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 200px;
+  color: var(--edx-slate-900);
+  font-size: 0.88rem;
+}
+
+.exam-schedule-summary-time {
+  color: var(--edx-slate-600);
+  font-size: 0.82rem;
+}
+
+.exam-schedule-summary-status {
+  margin-left: auto;
+}
+
+.exam-schedule-summary-empty {
+  color: var(--edx-slate-600);
+  font-size: 0.88rem;
+  padding: 0.5rem 0;
+}
+
+/* ---------- Buttons (fallback) ---------- */
+.exam-schedule-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-shadow: 0 2px 6px rgba(12, 43, 71, 0.18);
+}
+
+.exam-schedule-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(23, 174, 203, 0.28);
+  background: linear-gradient(135deg, var(--edx-navy-800), var(--edx-cyan-600));
+}
+
+.exam-schedule-btn-primary:focus-visible {
+  outline: 3px solid var(--edx-cyan-50);
+  outline-offset: 2px;
+}
+
+/* ---------- Fallback states ---------- */
+.exam-schedule-fallback {
+  max-width: 520px;
+  margin: 3rem auto;
+  text-align: center;
+}
+
+.exam-schedule-fallback-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  font-size: 1.6rem;
+}
+
+.exam-schedule-fallback-icon.danger  { background: var(--edx-red-50); color: var(--edx-red-500); }
+.exam-schedule-fallback-icon.warning { background: var(--edx-amber-50); color: var(--edx-amber-600); }
+
+.exam-schedule-fallback-title {
+  color: var(--edx-navy-950);
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.exam-schedule-fallback-text {
+  color: var(--edx-slate-600);
+  font-size: 0.92rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 767.98px) {
+  .exam-schedule-info-grid { grid-template-columns: 1fr; }
+  .exam-schedule-card-body { padding: 1.25rem; }
+  .exam-schedule-card-header { padding: 1.05rem 1.2rem; }
+  .exam-schedule-summary-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .exam-schedule-summary-status { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .exam-schedule-page *,
+  .exam-schedule-page *::before,
+  .exam-schedule-page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* =========================================================
+   Editor table (Step 4)
+   ========================================================= */
+.exam-schedule-table-card {
+  background: #fff;
+  border: 1px solid var(--edx-slate-100);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(12, 43, 71, 0.06);
+  overflow: hidden;
+}
+
+.exam-schedule-table-card.is-readonly {
+  background: var(--edx-bg);
+}
+
+/* ---------- Banner ---------- */
+.exam-schedule-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.1rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--edx-slate-100);
+}
+
+.exam-schedule-banner.is-editing {
+  background: var(--edx-amber-50);
+  color: var(--edx-amber-600);
+  border-bottom-color: rgba(232, 165, 49, 0.3);
+}
+
+.exam-schedule-banner.is-readonly {
+  background: var(--edx-green-50);
+  color: var(--edx-green-600);
+  border-bottom-color: rgba(42, 168, 118, 0.3);
+}
+
+.exam-schedule-banner-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+/* ---------- Summary strip ---------- */
+.exam-schedule-summary-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  background: var(--edx-bg);
+  border-bottom: 1px solid var(--edx-slate-100);
+}
+
+.exam-schedule-summary-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #fff;
+  border: 1px solid var(--edx-slate-100);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--edx-slate-600);
+  font-weight: 600;
+}
+
+.exam-schedule-summary-strip-item strong {
+  color: var(--edx-navy-900);
+  margin-left: 0.15rem;
+}
+
+.exam-schedule-summary-strip-icon.success { color: var(--edx-green-500); }
+.exam-schedule-summary-strip-icon.warning { color: var(--edx-amber-500); }
+
+/* ---------- Desktop table ---------- */
+.exam-schedule-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.exam-schedule-table {
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: collapse;
+}
+
+.exam-schedule-table thead th {
+  background: var(--edx-slate-100);
+  color: var(--edx-navy-900);
+  font-weight: 600;
+  font-size: 0.78rem;
+  border-bottom: 2px solid var(--edx-cyan-500);
+  padding: 0.7rem 0.75rem;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.exam-schedule-table tbody td {
+  padding: 0.65rem 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--edx-slate-100);
+  font-size: 0.86rem;
+}
+
+.exam-schedule-table tbody tr:last-child td { border-bottom: none; }
+.exam-schedule-table tbody tr.has-error td { background: rgba(229, 72, 77, 0.03); }
+
+.exam-schedule-table.is-readonly .exam-schedule-field {
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-600);
+  cursor: not-allowed;
+}
+
+.exam-schedule-subject-name {
+  display: block;
+  font-weight: 600;
+  color: var(--edx-slate-900);
+  line-height: 1.2;
+}
+
+.exam-schedule-subject-code {
+  display: inline-block;
+  margin-top: 0.15rem;
+  font-size: 0.74rem;
+  color: var(--edx-slate-600);
+  background: var(--edx-slate-100);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+/* ---------- Form fields ---------- */
+.exam-schedule-field {
+  width: 100%;
+  border: 1px solid var(--edx-slate-200);
+  border-radius: 8px;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.86rem;
+  color: var(--edx-slate-900);
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  min-width: 0;
+}
+
+.exam-schedule-field:focus {
+  outline: none;
+  border-color: var(--edx-cyan-500);
+  box-shadow: 0 0 0 3px var(--edx-cyan-50);
+}
+
+.exam-schedule-field:disabled {
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-600);
+  cursor: not-allowed;
+}
+
+.exam-schedule-field.is-invalid {
+  border-color: var(--edx-red-500);
+}
+
+.exam-schedule-field.is-invalid:focus {
+  box-shadow: 0 0 0 3px var(--edx-red-50);
+}
+
+select.exam-schedule-field {
+  appearance: none;
+  cursor: pointer;
+}
+
+/* ---------- Status pills (table) ---------- */
+.exam-schedule-pill.warning .exam-schedule-pill-icon { color: var(--edx-amber-500); }
+.exam-schedule-pill.danger .exam-schedule-pill-icon { color: var(--edx-red-500); }
+.exam-schedule-pill.success .exam-schedule-pill-icon { color: var(--edx-green-500); }
+.exam-schedule-pill.slate .exam-schedule-pill-icon { color: var(--edx-slate-400); }
+
+.exam-schedule-pill.type {
+  font-size: 0.72rem;
+  padding: 0.18rem 0.55rem;
+}
+.exam-schedule-pill.type.type-theory    { background: rgba(12, 43, 71, 0.08); color: var(--edx-navy-800); }
+.exam-schedule-pill.type.type-practical { background: var(--edx-cyan-50); color: var(--edx-cyan-600); }
+.exam-schedule-pill.type.type-composite { background: var(--edx-amber-50); color: var(--edx-amber-600); }
+.exam-schedule-pill.type.type-default   { background: var(--edx-slate-100); color: var(--edx-slate-600); }
+
+/* ---------- Mobile cards ---------- */
+.exam-schedule-mobile-list { display: none; flex-direction: column; gap: 0.75rem; padding: 1rem; background: var(--edx-bg); }
+
+.exam-schedule-mobile-card {
+  background: #fff;
+  border: 1px solid var(--edx-slate-100);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 1px 3px rgba(12, 43, 71, 0.06);
+}
+
+.exam-schedule-mobile-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.exam-schedule-mobile-card-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.exam-schedule-mobile-card-type { margin-bottom: 0.75rem; }
+
+.exam-schedule-mobile-card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.exam-schedule-mobile-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1 1 0;
+}
+
+.exam-schedule-mobile-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--edx-slate-600);
+}
+
+.exam-schedule-mobile-field-row {
+  display: flex;
+  gap: 0.65rem;
+}
+
+/* ---------- Empty ---------- */
+.exam-schedule-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+}
+
+.exam-schedule-empty-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.75rem;
+  font-size: 1.3rem;
+}
+
+.exam-schedule-empty-title {
+  color: var(--edx-navy-950);
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.exam-schedule-empty-text {
+  color: var(--edx-slate-600);
+  font-size: 0.88rem;
+  max-width: 380px;
+  margin: 0 auto;
+}
+
+/* ---------- Screen reader only ---------- */
+.exam-schedule-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 991.98px) {
+  .exam-schedule-table thead th { padding: 0.6rem 0.5rem; font-size: 0.74rem; }
+  .exam-schedule-table tbody td { padding: 0.5rem 0.5rem; font-size: 0.82rem; }
+  .exam-schedule-field { padding: 0.4rem 0.5rem; font-size: 0.82rem; }
+}
+
+@media (max-width: 767.98px) {
+  .exam-schedule-table-wrap { display: none; }
+  .exam-schedule-mobile-list { display: flex; }
+}
+
+/* =========================================================
+   Save Draft / actions footer (Step 5)
+   ========================================================= */
+.exam-schedule-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--edx-slate-100);
+}
+
+.exam-schedule-actions-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.exam-schedule-last-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--edx-green-50);
+  color: var(--edx-green-600);
+  border: 1px solid rgba(42, 168, 118, 0.3);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.exam-schedule-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fff;
+  color: var(--edx-navy-800);
+  border: 1px solid var(--edx-slate-200);
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.exam-schedule-btn-outline:hover:not(:disabled) {
+  border-color: var(--edx-navy-700);
+  background: var(--edx-slate-100);
+}
+
+.exam-schedule-btn-outline:focus-visible {
+  outline: 2px solid var(--edx-cyan-500);
+  outline-offset: 2px;
+}
+
+.exam-schedule-btn-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.exam-schedule-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 2px 6px rgba(12, 43, 71, 0.18);
+  font-family: inherit;
+}
+
+.exam-schedule-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(23, 174, 203, 0.28);
+  background: linear-gradient(135deg, var(--edx-navy-800), var(--edx-cyan-600));
+}
+
+.exam-schedule-btn-primary:focus-visible {
+  outline: 3px solid var(--edx-cyan-50);
+  outline-offset: 2px;
+}
+
+.exam-schedule-btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.exam-schedule-spin {
+  animation: exam-schedule-spin 0.8s linear infinite;
+}
+
+@keyframes exam-schedule-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ---------- Alert (top-of-card save error) ---------- */
+.exam-schedule-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font-size: 0.88rem;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+}
+
+.exam-schedule-alert.danger {
+  background: var(--edx-red-50);
+  color: var(--edx-red-500);
+  border-color: rgba(229, 72, 77, 0.25);
+}
+
+.exam-schedule-alert > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.exam-schedule-alert strong { font-weight: 700; }
+
+/* ---------- Publish readiness hint ---------- */
+.exam-schedule-readiness {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 1rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  border: 1px solid transparent;
+}
+
+.exam-schedule-readiness.is-ready {
+  background: var(--edx-green-50);
+  color: var(--edx-green-600);
+  border-color: rgba(42, 168, 118, 0.3);
+}
+
+.exam-schedule-readiness.is-pending {
+  background: var(--edx-cyan-50);
+  color: var(--edx-cyan-600);
+  border-color: rgba(23, 174, 203, 0.3);
+}
+
+.exam-schedule-readiness strong { color: inherit; font-weight: 700; }
+
+/* ---------- Per-field error text ---------- */
+.exam-schedule-field-error {
+  margin: 0.3rem 0 0;
+  color: var(--edx-red-500);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+  .exam-schedule-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .exam-schedule-actions-left { justify-content: space-between; }
+  .exam-schedule-actions-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .exam-schedule-btn-primary,
+  .exam-schedule-btn-outline,
+  .exam-schedule-btn-warning {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* =========================================================
+   Publish workflow (Step 6)
+   ========================================================= */
+.exam-schedule-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.exam-schedule-btn-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+  color: #1d2733;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.25);
+  font-family: inherit;
+}
+
+.exam-schedule-btn-warning:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(255, 193, 7, 0.4);
+  background: linear-gradient(135deg, #ffca2c 0%, #f0a800 100%);
+}
+
+.exam-schedule-btn-warning:focus-visible {
+  outline: 3px solid var(--edx-amber-50);
+  outline-offset: 2px;
+}
+
+.exam-schedule-btn-warning:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

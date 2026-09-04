@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { publishExam } from "../../../api/exam";
+import { getExamSchedule } from "../../../api/examSchedule";
 import { logger } from "../../../utils/logger";
 import ConfirmModal from "../../../components/ConfirmModal";
+import { computeRowStatus } from "./ExamScheduleTable";
 
 import {
   FaBookOpen,
@@ -21,6 +24,9 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaSpinner,
+  FaCalendarAlt,
+  FaEye,
+  FaRedo,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -295,15 +301,62 @@ const viewStyles = `
   background: var(--edx-slate-100);
 }
 
-.exam-view .fallback-wrap { max-width: 560px; margin: 2rem auto; }
+  .exam-view .fallback-wrap { max-width: 560px; margin: 2rem auto; }
 
-@media (max-width: 640px) {
-  .exam-view .info-grid { grid-template-columns: 1fr; }
-  .exam-view .exam-card-body { padding: 1.25rem; }
-  .exam-view .d-flex.justify-content-between.mt-4 { flex-direction: column-reverse; gap: 0.75rem; }
-  .exam-view .btn-edx-primary,
-  .exam-view .btn-edx-outline { width: 100%; justify-content: center; }
-}
+  /* ---------- Timetable card ---------- */
+  .exam-view .timetable-card-header-icon {
+    background: var(--edx-cyan-50);
+    color: var(--edx-cyan-600);
+  }
+  .exam-view .timetable-status-text {
+    color: var(--edx-slate-600);
+    font-size: 0.88rem;
+    margin: 0 0 0.75rem 0;
+  }
+  .exam-view .timetable-scheduled-count {
+    color: var(--edx-navy-900);
+    font-weight: 700;
+    font-size: 1.25rem;
+  }
+  .exam-view .timetable-scheduled-label {
+    color: var(--edx-slate-600);
+    font-size: 0.8rem;
+    display: block;
+  }
+  .exam-view .timetable-last-updated {
+    color: var(--edx-slate-400);
+    font-size: 0.78rem;
+    margin-top: 0.5rem;
+  }
+  .exam-view .timetable-loading {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--edx-slate-600);
+    font-size: 0.88rem;
+    padding: 1rem 0;
+  }
+  .exam-view .timetable-loading svg {
+    animation: edx-spin 0.8s linear infinite;
+  }
+  .exam-view .timetable-actions {
+    margin-top: 1.25rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  @keyframes edx-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 640px) {
+    .exam-view .info-grid { grid-template-columns: 1fr; }
+    .exam-view .exam-card-body { padding: 1.25rem; }
+    .exam-view .d-flex.justify-content-between.mt-4 { flex-direction: column-reverse; gap: 0.75rem; }
+    .exam-view .btn-edx-primary,
+    .exam-view .btn-edx-outline { width: 100%; justify-content: center; }
+    .exam-view .timetable-actions { flex-direction: column; }
+  }
 
 @media (prefers-reduced-motion: reduce) {
   .exam-view * { animation: none !important; transition: none !important; }
@@ -320,6 +373,10 @@ export default function ViewExam() {
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+
+  const [scheduleData, setScheduleData] = useState(null);
+  const [scheduleLoading, setScheduleLoading] = useState(true);
+  const [scheduleError, setScheduleError] = useState(null);
 
   /* ================= FETCH EXAM ================= */
   useEffect(() => {
@@ -343,7 +400,52 @@ export default function ViewExam() {
       }
     };
 
-    if (id) fetchExam();
+     if (id) fetchExam();
+   }, [id]);
+
+  /* ================= FETCH EXAM SCHEDULE (timetable) ================= */
+  useEffect(() => {
+    if (!id) return;
+
+    let isCancelled = false;
+
+    const fetchSchedule = async () => {
+      setScheduleLoading(true);
+      setScheduleError(null);
+      try {
+        const schedulePayload = await getExamSchedule(id);
+        const schedule =
+          schedulePayload?.schedule || schedulePayload || null;
+        if (!isCancelled) setScheduleData(schedule);
+      } catch (err) {
+        if (isCancelled) return;
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+
+        if (statusCode === 404 || errorCode === "SCHEDULE_NOT_FOUND") {
+          setScheduleData(null);
+        } else {
+          setScheduleError({
+            message: backendMessage || "Failed to load timetable.",
+            statusCode,
+            errorCode,
+          });
+          logger.error(
+            "Error fetching exam schedule:",
+            statusCode,
+            errorCode,
+          );
+        }
+      } finally {
+        if (!isCancelled) setScheduleLoading(false);
+      }
+    };
+
+    fetchSchedule();
+    return () => {
+      isCancelled = true;
+    };
   }, [id]);
 
   const getStatusBadge = (status) => {
@@ -370,6 +472,101 @@ export default function ViewExam() {
       COMPOSITE: "type-composite",
     };
     return <span className={`pill pill-sm ${variants[type] || "type-default"}`}>{type || "N/A"}</span>;
+  };
+
+  /* ================= TIMETABLE DERIVED STATE ================= */
+  const timetableStatus = scheduleData ? scheduleData.status : "NONE";
+  const totalSubjects = exam?.subjects?.length || 0;
+  const scheduledCount =
+    scheduleData?.subjects?.filter(
+      (entry) => computeRowStatus(entry) === "SCHEDULED",
+    ).length || 0;
+
+  const getTimetableStatusBadge = (status) => {
+    if (status === "PUBLISHED") {
+      return (
+        <span className="pill pill-success">
+          <span className="pill-dot" />
+          Published
+        </span>
+      );
+    }
+    if (status === "DRAFT") {
+      return (
+        <span className="pill pill-warning">
+          <span className="pill-dot" />
+          Draft
+        </span>
+      );
+    }
+    return (
+      <span className="pill pill-slate">
+        <span className="pill-dot" />
+        No Schedule
+      </span>
+    );
+  };
+
+  const getTimetableStatusText = (status) => {
+    if (status === "PUBLISHED") return "Timetable is published.";
+    if (status === "DRAFT") return "Timetable is in draft.";
+    return "Timetable not created yet.";
+  };
+
+  const getTimetableButtonLabel = (status) => {
+    if (status === "PUBLISHED") return "View Timetable";
+    if (status === "DRAFT") return "Manage Timetable";
+    return "Create Timetable";
+  };
+
+  const handleTimetableRetry = () => {
+    setScheduleError(null);
+    setScheduleData(null);
+    const retryFetch = async () => {
+      setScheduleLoading(true);
+      try {
+        const schedulePayload = await getExamSchedule(id);
+        const schedule =
+          schedulePayload?.schedule || schedulePayload || null;
+        setScheduleData(schedule);
+      } catch (err) {
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+        if (statusCode === 404 || errorCode === "SCHEDULE_NOT_FOUND") {
+          setScheduleData(null);
+        } else {
+          setScheduleError({
+            message: backendMessage || "Failed to load timetable.",
+            statusCode,
+            errorCode,
+          });
+        }
+      } finally {
+        setScheduleLoading(false);
+      }
+    };
+    retryFetch();
+  };
+
+  const formatTimetableUpdated = (dateValue) => {
+    if (!dateValue) return "";
+    try {
+      const d = new Date(dateValue);
+      if (Number.isNaN(d.getTime())) return "";
+      const datePart = d.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      const timePart = d.toLocaleTimeString(undefined, {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      return `Last updated: ${datePart}, ${timePart}`;
+    } catch {
+      return "";
+    }
   };
 
   const handlePublishClick = () => {
@@ -462,8 +659,10 @@ export default function ViewExam() {
 
       <Breadcrumb
         items={[
+          { label: "Home", path: "/dashboard/exam" },
           { label: "Exam Dashboard", path: "/dashboard/exam" },
-          { label: exam.name, path: `/dashboard/exam/view/${id}` },
+          { label: "Exam List", path: "/dashboard/exam/list" },
+          { label: exam.name },
         ]}
       />
 
@@ -613,9 +812,130 @@ export default function ViewExam() {
                 </div>
               </div>
             </div>
-          </motion.div>
-        </div>
+           </motion.div>
+
+           {/* Exam Timetable summary card */}
+           <motion.div
+             initial={{ opacity: 0, y: 20 }}
+             animate={{ opacity: 1, y: 0 }}
+             transition={{ duration: 0.5, delay: 0.1 }}
+             className="exam-card mt-3"
+           >
+             <div className="exam-card-header">
+               <div className="exam-card-header-left">
+                 <div className="exam-card-header-icon timetable-card-header-icon">
+                   <FaCalendarAlt aria-hidden="true" />
+                 </div>
+                 <h4 className="exam-card-title">Exam Timetable</h4>
+               </div>
+               {scheduleLoading ? (
+                 <span className="pill pill-slate" aria-label="Loading timetable status">
+                   <span className="pill-dot" />
+                   Loading
+                 </span>
+               ) : (
+                 getTimetableStatusBadge(timetableStatus)
+               )}
+             </div>
+
+             <div className="exam-card-body">
+               {scheduleLoading ? (
+                 <div
+                   className="timetable-loading"
+                   role="status"
+                   aria-live="polite"
+                   aria-label="Loading timetable details"
+                 >
+                   <FaSpinner className="spin" aria-hidden="true" />
+                   Loading timetable…
+                 </div>
+               ) : scheduleError ? (
+                 <>
+                   <div className="alert-edx alert-edx-danger mb-3" role="alert">
+                     <FaExclamationTriangle aria-hidden="true" />
+                     <div>
+                       <strong>Timetable load failed</strong>
+                       <span>{scheduleError.message}</span>
+                     </div>
+                   </div>
+                   <div className="timetable-actions">
+                     <button
+                       className="btn-edx-outline"
+                       onClick={handleTimetableRetry}
+                       aria-label="Retry loading timetable"
+                     >
+                       <FaRedo aria-hidden="true" />
+                       Retry
+                     </button>
+                   </div>
+                 </>
+               ) : (
+                 <>
+                   <p className="timetable-status-text">
+                     {getTimetableStatusText(timetableStatus)}
+                   </p>
+
+                   <div className="info-grid">
+                     <div className="info-item">
+                       <div className="info-icon info-icon-primary">
+                         <FaBook />
+                       </div>
+                       <div>
+                         <span className="info-label">Scheduled Subjects</span>
+                         <span className="info-value timetable-scheduled-count">
+                           {scheduledCount} / {totalSubjects}
+                         </span>
+                         <span className="info-sub">
+                           {totalSubjects === 0
+                             ? "No subjects in this exam"
+                             : `${scheduledCount} of ${totalSubjects} subjects have a date and time assigned`}
+                         </span>
+                       </div>
+                     </div>
+                   </div>
+
+                   {timetableStatus !== "NONE" && scheduleData?.updatedAt && (
+                     <p className="timetable-last-updated">
+                       {formatTimetableUpdated(
+                         timetableStatus === "PUBLISHED"
+                           ? scheduleData?.publishedAt || scheduleData?.updatedAt
+                           : scheduleData?.updatedAt,
+                       )}
+                     </p>
+                   )}
+
+                   <div className="timetable-actions">
+                     <button
+                       className={
+                         timetableStatus === "PUBLISHED"
+                           ? "btn-edx-outline"
+                           : "btn-edx-primary"
+                       }
+                       onClick={() =>
+                         navigate(`/dashboard/exam/schedule/${id}`)
+                       }
+                       aria-label={
+                         timetableStatus === "PUBLISHED"
+                           ? `View timetable for ${exam.name}`
+                           : timetableStatus === "DRAFT"
+                           ? `Manage timetable for ${exam.name}`
+                           : `Create timetable for ${exam.name}`
+                       }
+                     >
+                       {timetableStatus === "PUBLISHED" ? (
+                         <FaEye aria-hidden="true" />
+                       ) : (
+                         <FaCalendarAlt aria-hidden="true" />
+                       )}
+                       {getTimetableButtonLabel(timetableStatus)}
+                     </button>
+                   </div>
+                 </>
+               )}
+             </div>
+           </motion.div>
+         </div>
+       </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

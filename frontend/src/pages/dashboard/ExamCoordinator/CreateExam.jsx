@@ -582,8 +582,10 @@ export default function CreateExam() {
 
       <Breadcrumb
         items={[
+          { label: "Home", path: "/dashboard/exam" },
           { label: "Exam Dashboard", path: "/dashboard/exam" },
-          { label: "Create Exam", path: "/dashboard/exam/create" },
+          { label: "Exam List", path: "/dashboard/exam/list" },
+          { label: "Create Exam" },
         ]}
       />
 
