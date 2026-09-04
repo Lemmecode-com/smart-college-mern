@@ -103,6 +103,20 @@ export const navigationConfig = {
         ],
       },
       {
+        id: "super-platform",
+        title: "Platform Support",
+        icon: FaShieldAlt,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/super-admin/platform-support-config",
+            icon: FaCog,
+            label: "Platform Support Config",
+            exact: true,
+          },
+        ],
+      },
+      {
         id: "super-settings",
         title: "System Settings",
         icon: FaCog,
@@ -477,7 +491,7 @@ export const navigationConfig = {
           {
             path: "/timetable/weekly-timetable",
             icon: FaClock,
-            label: "Mark Attendance",
+            label: "Weekly Schedule",
             exact: true,
           },
         ],
@@ -959,6 +973,7 @@ export const navigationConfig = {
         title: "Exam Management",
         icon: FaClipboardList,
         defaultOpen: true,
+        matchPath: "/dashboard/exam",
         items: [
           {
             path: "/dashboard/exam/list",
@@ -970,6 +985,12 @@ export const navigationConfig = {
             path: "/dashboard/exam/create",
             icon: FaPlus,
             label: "Create Exam",
+            exact: true,
+          },
+          {
+            path: "/dashboard/exam/list",
+            icon: FaCalendarAlt,
+            label: "Exam Timetable",
             exact: true,
           },
         ],

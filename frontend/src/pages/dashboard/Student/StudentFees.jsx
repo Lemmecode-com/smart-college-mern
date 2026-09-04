@@ -71,7 +71,7 @@ export default function StudentFees() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
 
   /* ================= DATA VALIDATION HELPER ================= */
   const validateFeeDashboard = (data) => {

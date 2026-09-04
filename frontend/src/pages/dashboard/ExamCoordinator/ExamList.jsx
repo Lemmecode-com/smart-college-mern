@@ -12,9 +12,10 @@ import {
   FaClock,
   FaPlus,
   FaSearch,
-  FaEye,
+   FaEye,
   FaEdit,
   FaFilter,
+  FaCalendarAlt,
   FaBookOpen,
   FaLayerGroup,
   FaGraduationCap,
@@ -455,6 +456,10 @@ export default function ExamList() {
     navigate(`/dashboard/exam/edit/${examId}`);
   };
 
+  const handleTimetable = (examId) => {
+    navigate(`/dashboard/exam/schedule/${examId}`);
+  };
+
   const handleCreateExam = () => {
     navigate("/dashboard/exam/create");
   };
@@ -537,6 +542,7 @@ export default function ExamList() {
 
       <Breadcrumb
         items={[
+          { label: "Home", path: "/dashboard/exam" },
           { label: "Exam Dashboard", path: "/dashboard/exam" },
           { label: "Exam List" },
         ]}
@@ -714,6 +720,15 @@ export default function ExamList() {
                         >
                           <FaEye />
                         </button>
+                        {(exam.status === "PUBLISHED" || exam.status === "LOCKED") && (
+                          <button
+                            className="icon-btn icon-btn-schedule"
+                            onClick={() => handleTimetable(exam._id)}
+                            title="View Timetable"
+                          >
+                            <FaCalendarAlt />
+                          </button>
+                        )}
                         {exam.status === "DRAFT" && (
                           <button
                             className="icon-btn icon-btn-edit"

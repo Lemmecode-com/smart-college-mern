@@ -1246,7 +1246,7 @@ export default function ExamDashboard() {
       sub: "View and manage exams",
       icon: <FaClipboardCheck />,
       iconClass: "qa-icon qa-icon-info",
-      to: "/dashboard/exam",
+      to: "/dashboard/exam/list",
     },
     {
       key: "review-results",
@@ -1303,7 +1303,7 @@ export default function ExamDashboard() {
 
       <Breadcrumb
         items={[
-          { label: "Home", path: "/dashboard" },
+          { label: "Home", path: "/dashboard/exam" },
           { label: "Exam Dashboard" },
         ]}
       />

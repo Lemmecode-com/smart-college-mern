@@ -329,6 +329,14 @@ export default function ExamResultsDashboard() {
     <div className="erd container-fluid p-4">
       <style>{styles}</style>
 
+      <Breadcrumb
+        items={[
+          { label: "Home", path: "/dashboard/exam" },
+          { label: "Exam Dashboard", path: "/dashboard/exam" },
+          { label: "Results Dashboard" },
+        ]}
+      />
+
       <motion.div
         initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}

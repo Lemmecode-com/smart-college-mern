@@ -222,7 +222,7 @@ export default function StudentTimetable() {
 
   // Security check
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
 
   const isClient = typeof window !== "undefined";
 

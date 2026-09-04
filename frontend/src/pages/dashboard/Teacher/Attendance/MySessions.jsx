@@ -138,7 +138,7 @@ export default function MySessions() {
                         <button
                           className="btn btn-sm btn-warning"
                           onClick={() =>
-                            navigate(`/attendance/sessions/${s._id}/edit`)
+                            navigate(`/attendance/session/${s._id}/edit`)
                           }
                           title="Edit Attendance"
                         >
