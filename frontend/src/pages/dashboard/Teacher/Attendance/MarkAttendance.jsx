@@ -574,7 +574,7 @@ return (
                 <button
                   className="btn btn-warning w-100"
                   onClick={() =>
-                    navigate(`/attendance/sessions/${selectedSession}/edit`)
+                    navigate(`/attendance/session/${selectedSession}/edit`)
                   }
                   disabled={!selectedSession}
                   aria-label="Edit attendance for selected session"
