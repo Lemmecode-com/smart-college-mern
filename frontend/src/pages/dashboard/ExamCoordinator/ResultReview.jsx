@@ -306,7 +306,9 @@ export default function ResultReview() {
       <style>{styles}</style>
 
       <Breadcrumb items={[
+        { label: "Home", path: "/dashboard/exam" },
         { label: "Exam Dashboard", path: "/dashboard/exam" },
+        { label: "Results Dashboard", path: "/dashboard/exam/results" },
         { label: "Generate Result", path: "/dashboard/exam/results/generate" },
         { label: "Review Result" },
       ]} />

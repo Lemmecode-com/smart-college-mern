@@ -625,8 +625,10 @@ export default function EditExam() {
 
       <Breadcrumb
         items={[
+          { label: "Home", path: "/dashboard/exam" },
           { label: "Exam Dashboard", path: "/dashboard/exam" },
-          { label: exam?.name || "Edit Exam", path: `/dashboard/exam/edit/${id}` },
+          { label: "Exam List", path: "/dashboard/exam/list" },
+          { label: exam?.name || "Edit Exam" },
         ]}
       />
 
