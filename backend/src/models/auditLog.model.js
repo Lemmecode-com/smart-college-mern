@@ -28,7 +28,19 @@ const auditLogSchema = new mongoose.Schema(
 
     userRole: {
       type: String,
-      enum: ["SUPER_ADMIN", "COLLEGE_ADMIN", "HOD", "TEACHER", "STUDENT"],
+      enum: [
+        "SUPER_ADMIN",
+        "COLLEGE_ADMIN",
+        "HOD",
+        "TEACHER",
+        "STUDENT",
+        "PRINCIPAL",
+        "ACCOUNTANT",
+        "ADMISSION_OFFICER",
+        "EXAM_COORDINATOR",
+        "PARENT_GUARDIAN",
+        "PLATFORM_SUPPORT",
+      ],
       required: true,
     },
 
@@ -76,6 +88,14 @@ const auditLogSchema = new mongoose.Schema(
         "LEAVE_APPROVED",
         "LEAVE_REJECTED",
         "LEAVE_CANCELLED",
+        // Exam module actions (foundation for later steps)
+        "EXAM_CREATED",
+        "EXAM_PUBLISHED",
+        "MARKS_ENTERED",
+        "MARKS_UPDATED",
+        "RESULT_LOCKED",
+        "RESULT_UNLOCKED",
+        "RESULT_PUBLISHED",
       ],
       index: true,
     },
@@ -99,6 +119,10 @@ const auditLogSchema = new mongoose.Schema(
         "TimetableException",
         "College",
         "Leave",
+        // Exam module resource types (foundation for later steps)
+        "Exam",
+        "StudentMarks",
+        "SemesterResult",
       ],
       index: true,
     },
