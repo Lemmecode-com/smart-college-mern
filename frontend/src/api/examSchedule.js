@@ -48,3 +48,14 @@ export const publishExamSchedule = async (examId) => {
   const response = await api.post(`${SCHEDULE_BASE_URL}/${examId}/publish`);
   return response.data;
 };
+
+/**
+ * Get the published exam schedule for a specific exam (role-scoped).
+ * Returns null if the schedule is not visible to the current user.
+ * @param {string} examId - Exam ID
+ * @returns {Promise}
+ */
+export const getPublishedExamSchedule = async (examId) => {
+  const response = await api.get(`${SCHEDULE_BASE_URL}/published/${examId}`);
+  return response.data;
+};
