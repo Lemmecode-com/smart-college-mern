@@ -31,7 +31,7 @@ import {
   FaChartLine,
   FaMoneyBill,
   FaFileAlt,
-  FaUser,
+   FaUser,
   FaEdit,
   FaClock,
   FaChartBar,
@@ -517,6 +517,20 @@ export const navigationConfig = {
         ],
       },
       {
+        id: "marks-teacher",
+        title: "Marks Entry",
+        icon: FaEdit,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/teacher/marks-entry",
+            icon: FaEdit,
+            label: "Enter Marks",
+            exact: true,
+          },
+        ],
+      },
+      {
         id: "attendance-teacher",
         title: "Attendance",
         icon: FaClipboardList,
@@ -616,6 +630,20 @@ export const navigationConfig = {
             path: "/my-attendance",
             icon: FaClipboardList,
             label: "View Attendance",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "results-student",
+        title: "Exam Results",
+        icon: FaFileAlt,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/student/results",
+            icon: FaFileAlt,
+            label: "My Results",
             exact: true,
           },
         ],
@@ -917,7 +945,7 @@ export const navigationConfig = {
 
   /**
    * EXAM_COORDINATOR Navigation
-   * Placeholder until V1.1
+   * Exam management and planning
    */
   EXAM_COORDINATOR: {
     dashboard: {
@@ -928,32 +956,40 @@ export const navigationConfig = {
     sections: [
       {
         id: "exam",
-        title: "Exam Planning",
+        title: "Exam Management",
         icon: FaClipboardList,
         defaultOpen: true,
         items: [
           {
-            path: "/dashboard/exam",
-            icon: FaExclamationTriangle,
-            label: "Exam Dashboard",
+            path: "/dashboard/exam/list",
+            icon: FaListOl,
+            label: "Exam List",
             exact: true,
           },
           {
-            path: "/students/approved-students",
-            icon: FaUserGraduate,
-            label: "Approved Students",
+            path: "/dashboard/exam/create",
+            icon: FaPlus,
+            label: "Create Exam",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "exam-results",
+        title: "Results",
+        icon: FaClipboardList,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/exam/results",
+            icon: FaChartBar,
+            label: "Results Dashboard",
             exact: true,
           },
           {
-            path: "/teachers",
-            icon: FaChalkboardTeacher,
-            label: "Teachers",
-            exact: true,
-          },
-          {
-            path: "/timetable/list",
-            icon: FaCalendarAlt,
-            label: "Timetable",
+            path: "/dashboard/exam/results/generate",
+            icon: FaFileAlt,
+            label: "Generate Result",
             exact: true,
           },
         ],

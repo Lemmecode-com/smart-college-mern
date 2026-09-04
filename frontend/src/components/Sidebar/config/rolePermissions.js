@@ -149,6 +149,7 @@ export const rolePermissions = {
       "timetable-student",
       "fees-student",
       "attendance-student",
+      "results-student",
       "notifications-student",
     ],
     canCreate: [],
