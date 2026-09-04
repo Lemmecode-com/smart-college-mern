@@ -12,7 +12,17 @@ const examScheduleController = require("../controllers/examSchedule.controller")
 // Authentication (auth) and college/tenant isolation (collegeMiddleware) are
 // applied on every route. EXAM_COORDINATOR is the only role permitted to
 // create / read / update / publish exam schedules in this step.
+// Published visibility routes additionally allow STUDENT, TEACHER, HOD.
 // ====================================================================
+
+// Published visibility route (must come before /:examId)
+router.get(
+  "/published/:examId",
+  auth,
+  role(ROLE.STUDENT, ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  examScheduleController.getPublishedSchedule
+);
 
 router.post(
   "/",
