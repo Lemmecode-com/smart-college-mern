@@ -720,11 +720,15 @@ export default function ExamList() {
                         >
                           <FaEye />
                         </button>
-                        {(exam.status === "PUBLISHED" || exam.status === "LOCKED") && (
+                        {(exam.status === "PUBLISHED" || exam.status === "LOCKED" || exam.status === "DRAFT") && (
                           <button
                             className="icon-btn icon-btn-schedule"
                             onClick={() => handleTimetable(exam._id)}
-                            title="View Timetable"
+                            title={
+                              exam.status === "DRAFT"
+                                ? "Manage Timetable"
+                                : "View Timetable"
+                            }
                           >
                             <FaCalendarAlt />
                           </button>
