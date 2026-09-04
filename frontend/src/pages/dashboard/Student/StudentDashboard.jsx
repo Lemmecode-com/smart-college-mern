@@ -29,8 +29,9 @@ import {
   FaTrophy,
   FaStar,
   FaSync,
-  FaUniversity,
-  FaClipboardCheck,
+   FaUniversity,
+   FaClipboardCheck,
+   FaFileAlt,
 } from "react-icons/fa";
 import {
   PieChart,
@@ -66,6 +67,253 @@ const AUTH_ERROR_CODES = new Set([
   "UNAUTHORIZED",
 ]);
 
+/* ==========================================================================
+   Design tokens — same palette used across the app's other pages.
+   ========================================================================== */
+const T = {
+  navy: "#1e3a5f",
+  navyDark: "#14293f",
+  navyTint: "#eaf0f6",
+  teal: "#2d6e7e",
+  tealTint: "#e5f1f3",
+  amber: "#b56a1f",
+  amberTint: "#fdf0e3",
+  danger: "#b3261e",
+  dangerTint: "#fbe9e7",
+  bg: "#f6f7f9",
+  surface: "#ffffff",
+  row: "#fafbfc",
+  border: "#e6e8ec",
+  text: "#1f2530",
+  textMuted: "#6b7280",
+  success: "#157a4a",
+  successBg: "#e3f6ec",
+  inactive: "#6b7280",
+  inactiveBg: "#eef0f2",
+  radiusLg: 14,
+  radiusMd: 10,
+  radiusSm: 7,
+  shadow: "0 1px 2px rgba(20,27,41,0.04), 0 2px 8px rgba(20,27,41,0.05)",
+  font: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+};
+
+/* ================= small presentational helpers (inline styles only) ================= */
+
+function useMounted(delay = 10) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
+  return mounted;
+}
+
+const fadeStyle = (mounted, delay = 0) => ({
+  opacity: mounted ? 1 : 0,
+  transform: mounted ? "translateY(0)" : "translateY(14px)",
+  transition: `opacity 0.5s ease ${delay}s, transform 0.5s ease ${delay}s`,
+});
+
+function Btn({ children, onClick, color = T.navy, tint }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "0.5rem",
+        fontSize: "0.85rem",
+        fontWeight: 600,
+        borderRadius: T.radiusSm,
+        padding: "0.6rem 1.1rem",
+        cursor: "pointer",
+        color: hover ? "#fff" : color,
+        background: hover ? color : T.surface,
+        border: `1px solid ${color}`,
+        transition: "all 0.15s ease",
+        transform: hover ? "translateY(-1px)" : "translateY(0)",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Card({ icon, title, tooltip, action, children, delay = 0, mounted, style }) {
+  return (
+    <div
+      style={{
+        background: T.surface,
+        border: `1px solid ${T.border}`,
+        borderRadius: T.radiusLg,
+        boxShadow: T.shadow,
+        overflow: "hidden",
+        height: "100%",
+        ...fadeStyle(mounted, delay),
+        ...style,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "1.1rem 1.35rem",
+          borderBottom: `1px solid ${T.border}`,
+          flexWrap: "wrap",
+          gap: "0.5rem",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+          <span style={{ color: T.navy, fontSize: "1.05rem", display: "flex" }}>{icon}</span>
+          <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, color: T.text }}>{title}</h3>
+          {tooltip && <InfoTooltip message={tooltip} />}
+        </div>
+        {action}
+      </div>
+      <div style={{ padding: "1.35rem" }}>{children}</div>
+    </div>
+  );
+}
+
+function InfoTooltip({ message }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span
+      style={{ position: "relative", display: "inline-flex" }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      <FaInfoCircle style={{ color: T.textMuted, fontSize: 12, cursor: "pointer" }} />
+      {show && (
+        <span
+          style={{
+            position: "absolute",
+            top: "135%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: T.navyDark,
+            color: "#fff",
+            padding: "0.4rem 0.65rem",
+            borderRadius: 6,
+            fontSize: "0.72rem",
+            whiteSpace: "nowrap",
+            zIndex: 20,
+            boxShadow: T.shadow,
+          }}
+        >
+          {message}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function ViewAllLink({ to, children }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <Link
+      to={to}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        color: hover ? T.navyDark : T.navy,
+        fontSize: "0.8rem",
+        fontWeight: 600,
+        textDecoration: "none",
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function ProgressBar({ percent, color, thick }) {
+  const safePercent = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 0;
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: thick ? 14 : 8,
+        background: T.inactiveBg,
+        borderRadius: 999,
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          width: `${safePercent}%`,
+          height: "100%",
+          background: color,
+          borderRadius: 999,
+          transition: "width 0.8s ease",
+        }}
+      />
+    </div>
+  );
+}
+
+function Pill({ children, bg, color }) {
+  return (
+    <span
+      style={{
+        display: "inline-block",
+        padding: "0.22rem 0.55rem",
+        borderRadius: 999,
+        fontSize: "0.72rem",
+        fontWeight: 600,
+        background: bg,
+        color,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function EmptyRow({ icon, text }) {
+  return (
+    <div style={{ textAlign: "center", padding: "2.5rem 1rem", color: T.textMuted }}>
+      <div style={{ fontSize: "2.2rem", opacity: 0.35, marginBottom: "0.75rem", display: "flex", justifyContent: "center" }}>
+        {icon}
+      </div>
+      <p style={{ margin: 0, fontSize: "0.85rem" }}>{text}</p>
+    </div>
+  );
+}
+
+// Custom Tooltip for recharts
+function CustomTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    return (
+      <div
+        style={{
+          background: T.surface,
+          padding: "0.65rem 0.9rem",
+          borderRadius: T.radiusSm,
+          boxShadow: T.shadow,
+          border: `1px solid ${T.border}`,
+        }}
+      >
+        <p style={{ margin: "0 0 0.4rem", fontWeight: 700, color: T.text, fontSize: "0.8rem" }}>{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} style={{ margin: "0.15rem 0", fontSize: "0.75rem", color: entry.fill }}>
+            {entry.name}: {entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
@@ -74,6 +322,14 @@ export default function StudentDashboard() {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+
+  const [hoveredStat, setHoveredStat] = useState(null);
+  const [hoveredSubject, setHoveredSubject] = useState(null);
+  const [hoveredSlot, setHoveredSlot] = useState(null);
+  const [hoveredNotif, setHoveredNotif] = useState(null);
+  const [hoveredAction, setHoveredAction] = useState(null);
+  const [payHover, setPayHover] = useState(false);
+  const mounted = useMounted();
 
   // Defensive: Safe access to attendance data
   const attendanceSummary = dashboardData?.attendanceSummary || {
@@ -92,8 +348,6 @@ export default function StudentDashboard() {
     department: "Not Assigned",
     semester: 1,
   };
-
-  // Defensive: Safe access to pie chart data (handled via attendancePieData below)
 
   useEffect(() => {
     let isCancelled = false;
@@ -165,48 +419,17 @@ export default function StudentDashboard() {
     navigate("/student/dashboard");
   };
 
-  // Tooltip Component
-  const InfoTooltip = ({ message }) => (
-    <div className="info-tooltip-wrapper">
-      <FaInfoCircle className="info-icon" />
-      <div className="info-tooltip-content">
-        <span className="tooltip-text">{message}</span>
-      </div>
-    </div>
-  );
-
-  // Custom Tooltip for Charts
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="custom-chart-tooltip">
-          <p className="tooltip-label">{label}</p>
-          {payload.map((entry, index) => (
-            <p
-              key={index}
-              className="tooltip-value"
-              style={{ color: entry.fill }}
-            >
-              {entry.name}: {entry.value}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
   // Prepare Attendance Pie Chart Data (with defensive checks)
   const attendancePieData = [
     {
       name: "Present",
       value: attendanceSummary.present || 0,
-      color: "#28a745",
+      color: T.success,
     },
     {
       name: "Absent",
       value: attendanceSummary.absent || 0,
-      color: "#dc3545",
+      color: T.danger,
     },
   ];
 
@@ -244,9 +467,6 @@ export default function StudentDashboard() {
 
   if (!dashboardData) return null;
 
-  // Use the safe variables declared at the top (already have defaults)
-  // No need to destructure again - attendanceSummary, studentData already defined
-
   const {
     subjectWiseAttendance = [],
     todaysTimetable = [],
@@ -269,17 +489,17 @@ export default function StudentDashboard() {
   // Utility Functions
   const getFeeStatusColor = (status) => {
     const colors = {
-      PAID: "#28a745",
-      PARTIAL: "#ffc107",
-      DUE: "#dc3545",
+      PAID: T.success,
+      PARTIAL: T.amber,
+      DUE: T.danger,
     };
-    return colors[status] || "#6c757d";
+    return colors[status] || T.textMuted;
   };
 
   const getAttendanceWarningColor = (percentage) => {
-    if (percentage >= 75) return "#28a745";
-    if (percentage >= 60) return "#ffc107";
-    return "#dc3545";
+    if (percentage >= 75) return T.success;
+    if (percentage >= 60) return T.amber;
+    return T.danger;
   };
 
   const formatCurrency = (amount) => {
@@ -299,8 +519,33 @@ export default function StudentDashboard() {
     });
   };
 
+  const quickActions = [
+    { icon: <FaChartPie />, label: "Attendance", path: "/my-attendance" },
+    { icon: <FaCalendarAlt />, label: "Timetable", path: "/student/timetable" },
+    { icon: <FaWallet />, label: "Fees", path: "/student/fees" },
+    { icon: <FaFileAlt />, label: "My Results", path: "/student/results" },
+    { icon: <FaUserGraduate />, label: "Profile", path: "/student/profile" },
+    { icon: <FaBell />, label: "Notifications", path: "/notification/student" },
+  ];
+
+  const topInfoCards = [
+    { icon: <FaUserGraduate />, value: studentData.name, label: "Student Name", color: T.navy, tint: T.navyTint },
+    { icon: <FaGraduationCap />, value: studentData.course, label: "Current Course", color: T.teal, tint: T.tealTint },
+    { icon: <FaUniversity />, value: studentData.department, label: "Department", color: T.amber, tint: T.amberTint },
+    {
+      icon: <FaClipboardCheck />,
+      value: `${attendanceSummary.percentage}%`,
+      label: "Attendance",
+      color: getAttendanceWarningColor(attendanceSummary.percentage),
+      tint: T.inactiveBg,
+    },
+  ];
+
+  const maxSubjectTotal =
+    subjectBarData.length > 0 ? Math.max(...subjectBarData.map((s) => s.total)) : 0;
+
   return (
-    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%)" }}>
+    <div style={{ background: T.bg, minHeight: "100vh", fontFamily: T.font, color: T.text }}>
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -314,221 +559,190 @@ export default function StudentDashboard() {
         theme="colored"
       />
 
-      {/* ================= HEADER ================= */}
-      <div className="dashboard-header fade-in">
-        <div className="header-left">
-          <div className="header-icon-wrapper">
-            <FaGraduationCap />
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
+        {/* ================= HEADER ================= */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "1rem",
+            background: T.surface,
+            border: `1px solid ${T.border}`,
+            borderRadius: T.radiusLg,
+            boxShadow: T.shadow,
+            padding: "1.35rem 1.6rem",
+            marginBottom: "1.25rem",
+            ...fadeStyle(mounted, 0),
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div
+              style={{
+                width: 54,
+                height: 54,
+                borderRadius: T.radiusMd,
+                background: T.navyTint,
+                color: T.navy,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.6rem",
+                flexShrink: 0,
+              }}
+            >
+              <FaGraduationCap />
+            </div>
+            <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.text }}>
+              Welcome, {studentData.name}!
+            </h1>
           </div>
-          <div>
-            <h1 className="dashboard-title">Welcome, {studentData.name}!</h1>
-          </div>
+          <Btn onClick={handleRetry} color={T.navy}>
+            <FaSync size={13} /> Refresh
+          </Btn>
         </div>
-        <div className="header-right">
-          <button className="btn-refresh" onClick={handleRetry}>
-            <FaSync className={loading ? "spinning" : ""} /> Refresh
-          </button>
-        </div>
-      </div>
 
-      {/* ================= QUICK ACTIONS (MOVED TO TOP) ================= */}
-      <div
-        className="dashboard-card quick-actions-card fade-in-up"
-        style={{ marginBottom: "1.5rem" }}
-      >
-        <div className="card-header">
-          <div className="card-title-wrapper">
-            <FaStar className="card-icon blink-fast" />
-            <h3>Quick Actions</h3>
-            <InfoTooltip message="Frequently used actions" />
-          </div>
+        {/* ================= QUICK ACTIONS ================= */}
+        <div style={{ marginBottom: "1.25rem" }}>
+          <Card icon={<FaStar />} title="Quick Actions" tooltip="Frequently used actions" mounted={mounted} delay={0.05}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                gap: "0.85rem",
+              }}
+            >
+              {quickActions.map((qa, idx) => {
+                const hovered = hoveredAction === idx;
+                return (
+                  <Link
+                    key={idx}
+                    to={qa.path}
+                    onMouseEnter={() => setHoveredAction(idx)}
+                    onMouseLeave={() => setHoveredAction(null)}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "1.1rem 0.75rem",
+                      borderRadius: T.radiusMd,
+                      background: hovered ? T.navy : T.row,
+                      color: hovered ? "#fff" : T.navy,
+                      textDecoration: "none",
+                      border: `1px solid ${hovered ? T.navy : T.border}`,
+                      transition: "all 0.2s ease",
+                      transform: hovered ? "translateY(-3px)" : "translateY(0)",
+                    }}
+                  >
+                    <span style={{ fontSize: "1.4rem" }}>{qa.icon}</span>
+                    <span style={{ fontSize: "0.82rem", fontWeight: 600 }}>{qa.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </Card>
         </div>
 
-        <div className="card-body">
-          <div className="quick-actions-grid">
-            <Link
-              to="/my-attendance"
-              className="quick-action-item quick-action-blink"
+        {/* ================= INFO CARDS ROW ================= */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+            gap: "1rem",
+            marginBottom: "1.25rem",
+          }}
+        >
+          {topInfoCards.map((c, idx) => (
+            <div
+              key={idx}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.9rem",
+                padding: "1.1rem 1.25rem",
+                background: T.surface,
+                border: `1px solid ${T.border}`,
+                borderRadius: T.radiusLg,
+                boxShadow: T.shadow,
+                ...fadeStyle(mounted, 0.1 + idx * 0.03),
+              }}
             >
-              <FaChartPie className="action-icon" />
-              <span>Attendance</span>
-            </Link>
-            <Link
-              to="/student/timetable"
-              className="quick-action-item quick-action-blink"
-            >
-              <FaCalendarAlt className="action-icon" />
-              <span>Timetable</span>
-            </Link>
-            <Link
-              to="/student/fees"
-              className="quick-action-item quick-action-blink"
-            >
-              <FaWallet className="action-icon" />
-              <span>Fees</span>
-            </Link>
-            <Link
-              to="/student/profile"
-              className="quick-action-item quick-action-blink"
-            >
-              <FaUserGraduate className="action-icon" />
-              <span>Profile</span>
-            </Link>
-            <Link
-              to="/notification/student"
-              className="quick-action-item quick-action-blink"
-            >
-              <FaBell className="action-icon" />
-              <span>Notifications</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= INFO CARDS ROW ================= */}
-      <div className="row g-3 mb-4">
-        <div className="col-12 col-sm-6 col-lg-3">
-          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-body d-flex align-items-center gap-3 p-3">
               <div
-                className="card-icon-wrapper blue bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
+                style={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: T.radiusMd,
+                  background: c.tint,
+                  color: c.color,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.25rem",
+                  flexShrink: 0,
+                }}
               >
-                <FaUserGraduate />
+                {c.icon}
               </div>
-              <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{studentData.name}</h3>
-                <p className="text-muted small mb-0">Student Name</p>
+              <div>
+                <div style={{ fontSize: "1rem", fontWeight: 700, color: T.text }}>{c.value}</div>
+                <div style={{ fontSize: "0.78rem", color: T.textMuted }}>{c.label}</div>
               </div>
             </div>
-          </div>
+          ))}
         </div>
 
-        <div className="col-12 col-sm-6 col-lg-3">
-          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div
-                className="card-icon-wrapper green bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
-              >
-                <FaGraduationCap />
-              </div>
-              <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{studentData.course}</h3>
-                <p className="text-muted small mb-0">Current Course</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-sm-6 col-lg-3">
-          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div
-                className="card-icon-wrapper purple bg-info bg-opacity-10 text-info rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
-              >
-                <FaUniversity />
-              </div>
-              <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{studentData.department}</h3>
-                <p className="text-muted small mb-0">Department</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-sm-6 col-lg-3">
-          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div
-                className="card-icon-wrapper orange bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
-              >
-                <FaClipboardCheck />
-              </div>
-              <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">
-                  {attendanceSummary.percentage}%
-                </h3>
-                <p className="text-muted small mb-0">Attendance</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= MAIN CONTENT GRID - Bootstrap Row/Col ================= */}
-      <div className="row g-3 g-md-4">
-        {/* ================= ATTENDANCE SUMMARY ================= */}
-        <div className="col-12 col-lg-8">
-          <div className="dashboard-card attendance-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaChartPie className="card-icon" />
-                <h3>Attendance Summary</h3>
-                <InfoTooltip message="Your overall attendance statistics" />
-              </div>
-              <Link to="/my-attendance" className="view-all-link">
-                <FaEye /> View All
-              </Link>
-            </div>
-
-            <div className="card-body">
-              {/* Enhanced Stats with Hover Effects */}
-              <div className="attendance-stats">
-                <div
-                  className="stat-item stat-item-hover"
-                  role="listitem"
-                  aria-label={`${attendanceSummary.present} lectures present`}
-                >
-                  <FaCheckCircle
-                    className="stat-icon present"
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <span className="stat-value stat-value-large">
-                      {attendanceSummary.present}
-                    </span>
-                    <span className="stat-label">Present</span>
-                  </div>
-                </div>
-                <div
-                  className="stat-item stat-item-hover"
-                  role="listitem"
-                  aria-label={`${attendanceSummary.absent} lectures absent`}
-                >
-                  <FaTimesCircle
-                    className="stat-icon absent"
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <span className="stat-value stat-value-large">
-                      {attendanceSummary.absent}
-                    </span>
-                    <span className="stat-label">Absent</span>
-                  </div>
-                </div>
-                <div
-                  className="stat-item stat-item-hover"
-                  role="listitem"
-                  aria-label={`${attendanceSummary.total} total lectures`}
-                >
-                  <FaClock className="stat-icon total" aria-hidden="true" />
-                  <div>
-                    <span className="stat-value stat-value-large">
-                      {attendanceSummary.total}
-                    </span>
-                    <span className="stat-label">Total</span>
-                  </div>
-                </div>
+        {/* ================= MAIN CONTENT ================= */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem" }}>
+          {/* ATTENDANCE SUMMARY */}
+          <div style={{ flex: "2 1 560px" }}>
+            <Card
+              icon={<FaChartPie />}
+              title="Attendance Summary"
+              tooltip="Your overall attendance statistics"
+              action={<ViewAllLink to="/my-attendance"><FaEye size={12} /> View All</ViewAllLink>}
+              mounted={mounted}
+              delay={0.15}
+            >
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
+                {[
+                  { key: "present", icon: <FaCheckCircle />, value: attendanceSummary.present, label: "Present", color: T.success },
+                  { key: "absent", icon: <FaTimesCircle />, value: attendanceSummary.absent, label: "Absent", color: T.danger },
+                  { key: "total", icon: <FaClock />, value: attendanceSummary.total, label: "Total", color: T.navy },
+                ].map((stat) => {
+                  const hovered = hoveredStat === stat.key;
+                  return (
+                    <div
+                      key={stat.key}
+                      role="listitem"
+                      aria-label={`${stat.value} lectures ${stat.label.toLowerCase()}`}
+                      onMouseEnter={() => setHoveredStat(stat.key)}
+                      onMouseLeave={() => setHoveredStat(null)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.7rem",
+                        padding: "0.9rem",
+                        background: hovered ? T.navyTint : T.row,
+                        borderRadius: T.radiusMd,
+                        transition: "all 0.2s ease",
+                        transform: hovered ? "translateY(-2px)" : "translateY(0)",
+                      }}
+                    >
+                      <span style={{ fontSize: "1.3rem", color: stat.color, flexShrink: 0 }}>{stat.icon}</span>
+                      <div>
+                        <div style={{ fontSize: "1.5rem", fontWeight: 700, color: T.text, lineHeight: 1.1 }}>{stat.value}</div>
+                        <div style={{ fontSize: "0.68rem", color: T.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                          {stat.label}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Enhanced Pie Chart with better dimensions */}
-              <div
-                className="attendance-chart"
-                style={{ width: "100%", height: "300px", minHeight: "280px" }}
-              >
+              <div style={{ width: "100%", height: 280, marginBottom: "1.5rem" }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -551,1740 +765,405 @@ export default function StudentDashboard() {
                 </ResponsiveContainer>
               </div>
 
-              {/* Enhanced Progress Bar with Integrated Warning */}
-              <div className="attendance-percentage">
-                <div className="percentage-header">
-                  <span
-                    className="percentage-text percentage-text-large"
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    fontSize: "1.15rem",
+                    fontWeight: 700,
+                    color: getAttendanceWarningColor(attendanceSummary.percentage),
+                    marginBottom: "0.6rem",
+                  }}
+                >
+                  {attendanceSummary.percentage}% Overall Attendance
+                </div>
+                {attendanceSummary.warning && (
+                  <div
                     style={{
-                      color: getAttendanceWarningColor(
-                        attendanceSummary.percentage,
-                      ),
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.5rem 1rem",
+                      background: T.amberTint,
+                      color: T.amber,
+                      borderRadius: 20,
+                      fontSize: "0.78rem",
+                      fontWeight: 600,
+                      marginBottom: "0.85rem",
                     }}
                   >
-                    {attendanceSummary.percentage}% Overall Attendance
-                  </span>
-                  {attendanceSummary.warning && (
-                    <div className="attendance-warning attendance-warning-inline">
-                      <FaExclamationTriangle aria-hidden="true" />
-                      <span>
-                        Low Attendance! Minimum 75% required for exam
-                        eligibility.
-                      </span>
-                    </div>
-                  )}
-                </div>
+                    <FaExclamationTriangle aria-hidden="true" />
+                    <span>Low Attendance! Minimum 75% required for exam eligibility.</span>
+                  </div>
+                )}
                 <div
-                  className="progress-bar-wrapper progress-bar-thick"
                   role="progressbar"
                   aria-valuenow={attendanceSummary.percentage}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-label={`Attendance progress: ${attendanceSummary.percentage}%`}
+                  style={{ position: "relative", marginTop: "0.5rem" }}
                 >
-                  <div
-                    className="progress-bar progress-bar-animated"
-                    style={{
-                      width: `${attendanceSummary.percentage}%`,
-                      backgroundColor: getAttendanceWarningColor(
-                        attendanceSummary.percentage,
-                      ),
-                    }}
-                  />
+                  <ProgressBar percent={attendanceSummary.percentage} color={getAttendanceWarningColor(attendanceSummary.percentage)} thick />
+                  <div style={{ position: "absolute", left: "75%", top: -6, transform: "translateX(-50%)", width: 2, height: 14, background: T.danger }} />
                 </div>
-                <div className="progress-thresholds">
-                  <span className="threshold-marker" style={{ left: "75%" }}>
-                    <span className="threshold-line"></span>
-                    <span className="threshold-label">75% Min</span>
-                  </span>
-                </div>
+                <div style={{ fontSize: "0.7rem", color: T.danger, fontWeight: 600, marginTop: "0.3rem" }}>75% Minimum</div>
               </div>
-            </div>
+            </Card>
           </div>
-        </div>
 
-        {/* ================= SUBJECT-WISE ATTENDANCE ================= */}
-        <div className="col-12 col-lg-4">
-          <div className="dashboard-card subject-attendance-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaChartBar className="card-icon" />
-                <h3>Subject-wise Attendance</h3>
-                <InfoTooltip message="Attendance breakdown by subject. Subjects with low attendance are highlighted in red." />
-              </div>
-            </div>
-
-            <div className="card-body">
-              {/* Enhanced Bar Chart with Risk-Based Colors */}
-              <div
-                className="subject-chart"
-                style={{ width: "100%", height: "400px", minHeight: "350px" }}
-              >
+          {/* SUBJECT-WISE ATTENDANCE */}
+          <div style={{ flex: "1 1 360px" }}>
+            <Card
+              icon={<FaChartBar />}
+              title="Subject-wise Attendance"
+              tooltip="Attendance breakdown by subject. Subjects with low attendance are highlighted."
+              mounted={mounted}
+              delay={0.18}
+            >
+              <div style={{ width: "100%", height: 320, marginBottom: "1.5rem" }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={subjectBarData}
-                    margin={{ top: 10, right: 10, bottom: 20, left: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#f0f0f0"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="code"
-                      tick={{ fontSize: 11, fontWeight: 500 }}
-                      interval={0}
-                      height={50}
-                      tickLine={false}
-                    />
+                  <BarChart data={subjectBarData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
+                    <XAxis dataKey="code" tick={{ fontSize: 11, fontWeight: 500 }} interval={0} height={50} tickLine={false} />
                     <YAxis
                       tick={{ fontSize: 11 }}
                       tickLine={false}
                       axisLine={false}
-                      label={{
-                        value: "Lectures",
-                        angle: -90,
-                        position: "insideLeft",
-                        fontSize: 11,
-                      }}
+                      label={{ value: "Lectures", angle: -90, position: "insideLeft", fontSize: 11 }}
                     />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
-                    />
+                    <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
                     <ReferenceLine
-                      y={Math.max(...subjectBarData.map((s) => s.total)) * 0.75}
-                      stroke="#dc3545"
+                      y={maxSubjectTotal * 0.75}
+                      stroke={T.danger}
                       strokeDasharray="3 3"
-                      label={{
-                        value: "75% Target",
-                        fill: "#dc3545",
-                        fontSize: 10,
-                        position: "right",
-                      }}
+                      label={{ value: "75% Target", fill: T.danger, fontSize: 10, position: "right" }}
                     />
-                    <Bar
-                      dataKey="present"
-                      name="Present"
-                      radius={[6, 6, 0, 0]}
-                      animationDuration={1000}
-                    >
+                    <Bar dataKey="present" name="Present" radius={[6, 6, 0, 0]} animationDuration={1000}>
                       {subjectBarData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
-                          fill={
-                            entry.percentage >= 75
-                              ? "#28a745"
-                              : entry.percentage >= 60
-                                ? "#ffc107"
-                                : "#dc3545"
-                          }
+                          fill={entry.percentage >= 75 ? T.success : entry.percentage >= 60 ? T.amber : T.danger}
                         />
                       ))}
                     </Bar>
-                    <Bar
-                      dataKey="total"
-                      name="Total"
-                      fill="#80adda"
-                      radius={[6, 6, 0, 0]}
-                      animationDuration={1000}
-                    />
+                    <Bar dataKey="total" name="Total" fill="#aebdcc" radius={[6, 6, 0, 0]} animationDuration={1000} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
 
-              {/* Enhanced Subject List with Teacher Info and Trends */}
               {subjectWiseAttendance.length === 0 ? (
-                <div className="no-data">
-                  <FaChartBar className="no-data-icon" />
-                  <p>No subject attendance data available</p>
-                </div>
+                <EmptyRow icon={<FaChartBar />} text="No subject attendance data available" />
               ) : (
-                <div
-                  className="subject-list"
-                  role="list"
-                  aria-label="Subject-wise attendance list"
-                >
-                  {(subjectWiseAttendance || [])
-                    .sort((a, b) => a.percentage - b.percentage) // Sort by attendance (lowest first)
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }} role="list" aria-label="Subject-wise attendance list">
+                  {[...subjectWiseAttendance]
+                    .sort((a, b) => a.percentage - b.percentage)
                     .map((subject, index) => {
-                    const attendanceColor = getAttendanceWarningColor(
-                      subject.percentage,
-                    );
-                    const needsAttention = subject.percentage < 75;
-                    const lecturesNeeded = Math.ceil(
-                      (75 *
-                        (subject.present + subject.total - subject.present)) /
-                        25 -
-                        subject.present,
-                    );
-
-                    return (
-                      <div
-                        key={index}
-                        className={`subject-item subject-item-hover ${needsAttention ? "subject-item-warning" : ""}`}
-                        role="listitem"
-                        aria-label={`${subject.subject}: ${subject.percentage}% attendance`}
-                      >
-                        <div className="subject-info">
-                          <div className="subject-info-main">
-                            <span className="subject-name">
-                              {subject.subject}
-                            </span>
-                            <span className="subject-code">{subject.code}</span>
-                          </div>
-                          {needsAttention && (
-                            <div className="subject-attention-badge">
-                              <FaExclamationTriangle size={12} />
-                              <span>Needs Attention</span>
+                      const attendanceColor = getAttendanceWarningColor(subject.percentage);
+                      const needsAttention = subject.percentage < 75;
+                      const lecturesNeeded = Math.ceil(
+                        (75 * (subject.present + subject.total - subject.present)) / 25 - subject.present,
+                      );
+                      const hovered = hoveredSubject === index;
+                      return (
+                        <div
+                          key={index}
+                          role="listitem"
+                          aria-label={`${subject.subject}: ${subject.percentage}% attendance`}
+                          onMouseEnter={() => setHoveredSubject(index)}
+                          onMouseLeave={() => setHoveredSubject(null)}
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "0.6rem",
+                            padding: "1rem",
+                            borderRadius: T.radiusMd,
+                            background: needsAttention ? T.dangerTint : hovered ? T.navyTint : T.row,
+                            borderLeft: `4px solid ${needsAttention ? T.danger : "transparent"}`,
+                            transition: "all 0.2s ease",
+                            transform: hovered ? "translateX(4px)" : "translateX(0)",
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+                              <span style={{ fontWeight: 600, color: T.text, fontSize: "0.92rem" }}>{subject.subject}</span>
+                              <Pill bg={T.inactiveBg} color={T.textMuted}>{subject.code}</Pill>
                             </div>
-                          )}
-                        </div>
-                        <div className="subject-progress">
-                          <div
-                            className="progress-bar-wrapper progress-bar-thick"
-                            role="progressbar"
-                            aria-valuenow={subject.percentage}
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                          >
-                            <div
-                              className="progress-bar progress-bar-animated"
-                              style={{
-                                width: `${subject.percentage}%`,
-                                backgroundColor: attendanceColor,
-                              }}
-                            />
+                            {needsAttention && (
+                              <span
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  padding: "0.25rem 0.6rem",
+                                  background: T.danger,
+                                  color: "#fff",
+                                  borderRadius: 12,
+                                  fontSize: "0.65rem",
+                                  fontWeight: 700,
+                                  textTransform: "uppercase",
+                                }}
+                              >
+                                <FaExclamationTriangle size={10} /> Needs Attention
+                              </span>
+                            )}
                           </div>
-                          <div className="subject-progress-info">
-                            <span
-                              className="percentage-text percentage-text-bold"
-                              style={{ color: attendanceColor }}
-                            >
-                              {subject.percentage}%
-                            </span>
-                            <span className="subject-lectures-count">
-                              {subject.present}/{subject.total}
-                            </span>
-                          </div>
-                          {needsAttention &&
-                            lecturesNeeded > 0 &&
-                            lecturesNeeded < subject.total && (
-                              <div className="subject-action-needed">
+                          <div>
+                            <ProgressBar percent={subject.percentage} color={attendanceColor} thick />
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.4rem" }}>
+                              <span style={{ fontSize: "0.95rem", fontWeight: 700, color: attendanceColor }}>{subject.percentage}%</span>
+                              <span style={{ fontSize: "0.78rem", color: T.textMuted, fontWeight: 600 }}>
+                                {subject.present}/{subject.total}
+                              </span>
+                            </div>
+                            {needsAttention && lecturesNeeded > 0 && lecturesNeeded < subject.total && (
+                              <div
+                                style={{
+                                  fontSize: "0.72rem",
+                                  color: T.danger,
+                                  fontWeight: 600,
+                                  background: "rgba(179,38,30,0.08)",
+                                  padding: "0.35rem 0.65rem",
+                                  borderRadius: 6,
+                                  textAlign: "center",
+                                  marginTop: "0.4rem",
+                                }}
+                              >
                                 Need {lecturesNeeded} more to reach 75%
                               </div>
                             )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* TODAY'S TIMETABLE */}
+          <div style={{ flex: "1 1 440px" }}>
+            <Card
+              icon={<FaCalendarAlt />}
+              title="Today's Timetable"
+              tooltip="Your scheduled classes for today"
+              action={<ViewAllLink to="/student/timetable"><FaEye size={12} /> Full Timetable</ViewAllLink>}
+              mounted={mounted}
+              delay={0.21}
+            >
+              {todayTimetable.length === 0 ? (
+                <EmptyRow icon={<FaCalendarAlt />} text="No classes scheduled for today" />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                  {[...todayTimetable]
+                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                    .map((slot, index) => {
+                      const hovered = hoveredSlot === index;
+                      return (
+                        <div
+                          key={index}
+                          onMouseEnter={() => setHoveredSlot(index)}
+                          onMouseLeave={() => setHoveredSlot(null)}
+                          style={{
+                            display: "flex",
+                            gap: "1rem",
+                            padding: "1rem",
+                            borderRadius: T.radiusMd,
+                            background: hovered ? T.navyTint : T.row,
+                            borderLeft: `4px solid ${T.navy}`,
+                            transition: "all 0.2s ease",
+                            transform: hovered ? "translateX(4px)" : "translateX(0)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              minWidth: 84,
+                              padding: "0.6rem",
+                              background: T.surface,
+                              borderRadius: T.radiusSm,
+                              textAlign: "center",
+                              border: `1px solid ${T.border}`,
+                            }}
+                          >
+                            <FaClock style={{ color: T.navy, marginBottom: 4 }} />
+                            <div style={{ fontSize: "0.78rem", fontWeight: 700, color: T.navy }}>{slot.startTime}</div>
+                            <div style={{ fontSize: "0.68rem", color: T.textMuted }}>to {slot.endTime}</div>
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <h4 style={{ margin: "0 0 0.4rem", fontSize: "0.92rem", color: T.text, fontWeight: 700 }}>{slot.subject}</h4>
+                            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+                              <Pill bg={T.inactiveBg} color={T.textMuted}>{slot.code}</Pill>
+                              <Pill bg={T.navy} color="#fff">{slot.slotType}</Pill>
+                            </div>
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.9rem", fontSize: "0.78rem", color: T.textMuted }}>
+                              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                <FaChalkboardTeacher /> {slot.teacher}
+                              </span>
+                              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                                <FaMapMarkerAlt /> Room {slot.room}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {/* FEE SUMMARY */}
+          <div style={{ flex: "1 1 360px" }}>
+            <Card
+              icon={<FaWallet />}
+              title="Fee Summary"
+              tooltip="Your fee payment status"
+              action={<ViewAllLink to="/student/fees"><FaEye size={12} /> View Details</ViewAllLink>}
+              mounted={mounted}
+              delay={0.24}
+            >
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.65rem", marginBottom: "1.25rem" }}>
+                <div style={{ textAlign: "center", padding: "0.85rem", background: T.row, borderRadius: T.radiusMd }}>
+                  <div style={{ fontSize: "0.68rem", color: T.textMuted, marginBottom: "0.4rem", fontWeight: 600, textTransform: "uppercase" }}>
+                    Total Fee
+                  </div>
+                  <div style={{ fontSize: "1rem", fontWeight: 700, color: T.text }}>{formatCurrency(safeFeeSummary.totalFee)}</div>
+                </div>
+                <div style={{ textAlign: "center", padding: "0.85rem", background: T.row, borderRadius: T.radiusMd }}>
+                  <div style={{ fontSize: "0.68rem", color: T.textMuted, marginBottom: "0.4rem", fontWeight: 600, textTransform: "uppercase" }}>
+                    Paid
+                  </div>
+                  <div style={{ fontSize: "1rem", fontWeight: 700, color: T.success }}>{formatCurrency(safeFeeSummary.paid)}</div>
+                </div>
+                <div style={{ textAlign: "center", padding: "0.85rem", background: T.row, borderRadius: T.radiusMd }}>
+                  <div style={{ fontSize: "0.68rem", color: T.textMuted, marginBottom: "0.4rem", fontWeight: 600, textTransform: "uppercase" }}>
+                    Due
+                  </div>
+                  <div style={{ fontSize: "1rem", fontWeight: 700, color: T.danger }}>{formatCurrency(safeFeeSummary.due)}</div>
+                </div>
+              </div>
+
+              <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "0.45rem 1.2rem",
+                    borderRadius: 999,
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: "0.82rem",
+                    background: getFeeStatusColor(safeFeeSummary.paymentStatus),
+                  }}
+                >
+                  {safeFeeSummary.paymentStatus}
+                </span>
+              </div>
+
+              <div style={{ marginBottom: "1.25rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: T.textMuted, fontWeight: 600, marginBottom: "0.4rem" }}>
+                  <span>Payment Progress</span>
+                  <span>{Math.round((safeFeeSummary.paid / safeFeeSummary.totalFee) * 100)}%</span>
+                </div>
+                <ProgressBar
+                  percent={(safeFeeSummary.paid / safeFeeSummary.totalFee) * 100}
+                  color={getFeeStatusColor(safeFeeSummary.paymentStatus)}
+                />
+              </div>
+
+              {safeFeeSummary.paymentStatus !== "PAID" && (
+                <Link
+                  to="/student/make-payment"
+                  onMouseEnter={() => setPayHover(true)}
+                  onMouseLeave={() => setPayHover(false)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    padding: "0.85rem",
+                    background: payHover ? "#116139" : T.success,
+                    color: "#fff",
+                    borderRadius: T.radiusSm,
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    transition: "all 0.2s ease",
+                    transform: payHover ? "translateY(-1px)" : "translateY(0)",
+                  }}
+                >
+                  <FaRupeeSign /> Pay Now
+                </Link>
+              )}
+            </Card>
+          </div>
+
+          {/* LATEST NOTIFICATIONS */}
+          <div style={{ flex: "1 1 100%" }}>
+            <Card
+              icon={<FaBell />}
+              title="Latest Notifications"
+              tooltip="Recent announcements and updates"
+              action={<ViewAllLink to="/notification/student"><FaEye size={12} /> View All</ViewAllLink>}
+              mounted={mounted}
+              delay={0.27}
+            >
+              {latestNotifications?.length === 0 ? (
+                <EmptyRow icon={<FaBell />} text="No new notifications" />
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "0.85rem" }}>
+                  {latestNotifications.slice(0, 5).map((notification) => {
+                    const hovered = hoveredNotif === notification._id;
+                    return (
+                      <div
+                        key={notification._id}
+                        onMouseEnter={() => setHoveredNotif(notification._id)}
+                        onMouseLeave={() => setHoveredNotif(null)}
+                        style={{
+                          display: "flex",
+                          gap: "0.9rem",
+                          padding: "1rem",
+                          borderRadius: T.radiusMd,
+                          background: !notification.isRead ? T.navyTint : T.row,
+                          borderLeft: `4px solid ${!notification.isRead ? T.navy : T.border}`,
+                          transition: "all 0.2s ease",
+                          transform: hovered ? "translateX(4px)" : "translateX(0)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: "50%",
+                            background: T.surface,
+                            border: `1px solid ${T.border}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <FaBell style={{ color: notification.isRead ? T.textMuted : T.navy }} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <h4 style={{ margin: "0 0 0.25rem", fontSize: "0.9rem", color: T.text, fontWeight: 700 }}>{notification.title}</h4>
+                          <p style={{ margin: "0 0 0.5rem", fontSize: "0.82rem", color: T.textMuted, lineHeight: 1.5 }}>{notification.message}</p>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.72rem", flexWrap: "wrap", gap: "0.4rem" }}>
+                            <Pill bg={T.inactiveBg} color={T.textMuted}>{notification.type}</Pill>
+                            <span style={{ color: T.textMuted }}>{formatDate(notification.createdAt)}</span>
+                          </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-
-        {/* ================= TODAY'S TIMETABLE ================= */}
-        <div className="col-12 col-lg-6">
-          <div className="dashboard-card timetable-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaCalendarAlt className="card-icon" />
-                <h3>Today's Timetable</h3>
-                <InfoTooltip message="Your scheduled classes for today" />
-              </div>
-              <Link to="/student/timetable" className="view-all-link">
-                <FaEye /> Full Timetable
-              </Link>
-            </div>
-
-            <div className="card-body">
-              {todayTimetable.length === 0 ? (
-                <div className="no-data">
-                  <FaCalendarAlt className="no-data-icon" />
-                  <p>No classes scheduled for today</p>
-                </div>
-              ) : (
-                <div className="timetable-list">
-                  {[...todayTimetable].sort((a, b) => a.startTime.localeCompare(b.startTime)).map((slot, index) => (
-                    <div key={index} className="timetable-slot">
-                      <div className="slot-time">
-                        <FaClock className="time-icon" />
-                        <div className="time-range">
-                          <span className="start-time">{slot.startTime}</span>
-                          <span className="time-separator">-</span>
-                          <span className="end-time">{slot.endTime}</span>
-                        </div>
-                      </div>
-                      <div className="slot-details">
-                        <h4 className="slot-subject">{slot.subject}</h4>
-                        <div className="slot-meta">
-                          <span className="slot-code">{slot.code}</span>
-                          <span className="slot-type">{slot.slotType}</span>
-                        </div>
-                        <div className="slot-info">
-                          <span className="slot-teacher">
-                            <FaChalkboardTeacher /> {slot.teacher}
-                          </span>
-                          <span className="slot-room">
-                            <FaMapMarkerAlt /> Room {slot.room}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ================= FEE SUMMARY ================= */}
-        <div className="col-12 col-lg-6">
-          <div className="dashboard-card fee-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaWallet className="card-icon" />
-                <h3>Fee Summary</h3>
-                <InfoTooltip message="Your fee payment status" />
-              </div>
-              <Link to="/student/fees" className="view-all-link">
-                <FaEye /> View Details
-              </Link>
-            </div>
-
-            <div className="card-body">
-              <div className="fee-overview">
-                <div className="fee-stat">
-                  <span className="fee-label">Total Fee</span>
-                  <span className="fee-value">
-                    {formatCurrency(safeFeeSummary.totalFee)}
-                  </span>
-                </div>
-                <div className="fee-stat">
-                  <span className="fee-label">Paid</span>
-                  <span className="fee-value paid">
-                    {formatCurrency(safeFeeSummary.paid)}
-                  </span>
-                </div>
-                <div className="fee-stat">
-                  <span className="fee-label">Due</span>
-                  <span className="fee-value due">
-                    {formatCurrency(safeFeeSummary.due)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="fee-status">
-                <div
-                  className="status-badge"
-                  style={{
-                    backgroundColor: getFeeStatusColor(
-                      safeFeeSummary.paymentStatus,
-                    ),
-                  }}
-                >
-                  {safeFeeSummary.paymentStatus}
-                </div>
-              </div>
-
-              <div className="fee-progress">
-                <div className="progress-label">
-                  <span>Payment Progress</span>
-                  <span>
-                    {Math.round(
-                      (safeFeeSummary.paid / safeFeeSummary.totalFee) * 100,
-                    )}
-                    %
-                  </span>
-                </div>
-                <div className="progress-bar-wrapper">
-                  <div
-                    className="progress-bar"
-                    style={{
-                      width: `${(safeFeeSummary.paid / safeFeeSummary.totalFee) * 100}%`,
-                      backgroundColor: getFeeStatusColor(
-                        safeFeeSummary.paymentStatus,
-                      ),
-                    }}
-                  />
-                </div>
-              </div>
-
-              {safeFeeSummary.paymentStatus !== "PAID" && (
-                <Link to="/student/make-payment" className="btn-pay-now">
-                  <FaRupeeSign /> Pay Now
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ================= LATEST NOTIFICATIONS ================= */}
-        <div className="col-12 col-lg-6">
-          <div className="dashboard-card notifications-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaBell className="card-icon" />
-                <h3>Latest Notifications</h3>
-                <InfoTooltip message="Recent announcements and updates" />
-              </div>
-              <Link to="/notification/student" className="view-all-link">
-                <FaEye /> View All
-              </Link>
-            </div>
-
-            <div className="card-body">
-              {latestNotifications?.length === 0 ? (
-                <div className="no-data">
-                  <FaBell className="no-data-icon" />
-                  <p>No new notifications</p>
-                </div>
-              ) : (
-                <div className="notifications-list">
-                  {latestNotifications.slice(0, 5).map((notification) => (
-                    <div
-                      key={notification._id}
-                      className={`notification-item ${
-                        !notification.isRead ? "unread" : ""
-                      }`}
-                    >
-                      <div className="notification-icon">
-                        <FaBell
-                          className={notification.isRead ? "read" : "unread"}
-                        />
-                      </div>
-                      <div className="notification-content">
-                        <h4 className="notification-title">
-                          {notification.title}
-                        </h4>
-                        <p className="notification-message">
-                          {notification.message}
-                        </p>
-                        <div className="notification-meta">
-                          <span className="notification-type">
-                            {notification.type}
-                          </span>
-                          <span className="notification-date">
-                            {formatDate(notification.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            </Card>
           </div>
         </div>
       </div>
-
-      {/* ================= STYLES ================= */}
-      <style>{`
-        /* ================= LOADING STATE ================= */
-        .dashboard-loading {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-          gap: 2rem;
-          padding: 2rem;
-        }
-
-        .loading-spinner {
-          text-align: center;
-        }
-
-        .spinner-icon {
-          font-size: 5rem;
-          color: #1a4b6d;
-          animation: float 3s ease-in-out infinite;
-        }
-
-        .loading-text {
-          margin-top: 1.5rem;
-          font-size: 1.25rem;
-          color: #1a4b6d;
-          font-weight: 600;
-        }
-
-        .loading-bar {
-          width: 200px;
-          height: 4px;
-          background: #e0e0e0;
-          border-radius: 2px;
-          margin: 1.5rem auto 0;
-          overflow: hidden;
-        }
-
-        .loading-progress {
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, #1a4b6d, #2d6f8f);
-          animation: loading 1.5s ease-in-out infinite;
-        }
-
-        /* ================= SKELETON LOADERS ================= */
-        .skeleton-cards {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-          width: 100%;
-          max-width: 1200px;
-        }
-
-        .skeleton-card {
-          background: white;
-          border-radius: 12px;
-          height: 150px;
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .skeleton-table {
-          width: 100%;
-          max-width: 1200px;
-          background: white;
-          border-radius: 12px;
-          padding: 1.5rem;
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .skeleton-table-header {
-          height: 40px;
-          background: #e0e0e0;
-          border-radius: 8px;
-          margin-bottom: 1rem;
-        }
-
-        .skeleton-table-row {
-          height: 60px;
-          background: #f0f0f0;
-          border-radius: 8px;
-          margin-bottom: 0.75rem;
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-
-        @keyframes loading {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-
-        /* ================= ERROR STATE ================= */
-        .dashboard-error {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-        }
-
-        .error-content {
-          text-align: center;
-          padding: 3rem;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .error-icon {
-          font-size: 5rem;
-          color: #dc3545;
-          margin-bottom: 1.5rem;
-        }
-
-        .error-content h3 {
-          margin: 0 0 1rem;
-          color: #1a4b6d;
-          font-size: 1.75rem;
-        }
-
-        .error-message {
-          color: #4a5568;
-          margin-bottom: 2rem;
-          font-size: 1rem;
-          line-height: 1.6;
-        }
-
-        .retry-btn {
-          padding: 0.875rem 2rem;
-          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.3s ease;
-        }
-
-        .retry-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
-        }
-
-        .retry-btn .spinning {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        /* ================= HEADER ================= */
-        .dashboard-header {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          padding: 1.25rem;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        @media (min-width: 768px) {
-          .dashboard-header {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-          }
-        }
-
-        .header-left {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .header-icon-wrapper {
-          width: clamp(56px, 10vw, 70px);
-          height: clamp(56px, 10vw, 70px);
-          min-width: 56px;
-          min-height: 56px;
-          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: clamp(1.75rem, 4vw, 2.5rem);
-          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.3);
-          flex-shrink: 0;
-        }
-
-        .dashboard-title {
-          margin: 0;
-          font-size: clamp(1.25rem, 3vw, 1.75rem);
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .dashboard-subtitle {
-          margin: 0.25rem 0 0;
-          color: #4a5568;
-          font-size: 1rem;
-        }
-
-        .header-right {
-          display: flex;
-          gap: 1rem;
-        }
-
-        .btn-refresh,
-        .btn-primary {
-          padding: 0.75rem 1.25rem;
-          border-radius: 8px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          text-decoration: none;
-          cursor: pointer;
-          border: none;
-          transition: all 0.3s ease;
-          font-size: 0.9rem;
-        }
-
-        .btn-refresh {
-          background: #f8f9fa;
-          color: #1a4b6d;
-          border: 2px solid #1a4b6d;
-        }
-
-        .btn-refresh:hover {
-          background: #1a4b6d;
-          color: white;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-          color: white;
-        }
-
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
-        }
-
-        /* ================= INFO CARDS ================= */
-        .info-cards-row {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        @media (min-width: 768px) {
-          .info-cards-row {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-          }
-        }
-
-        .info-card {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 1.25rem;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-          transition: all 0.3s ease;
-          position: relative;
-        }
-
-        @media (min-width: 768px) {
-          .info-card {
-            gap: 1rem;
-            padding: 1.5rem;
-          }
-        }
-
-        .info-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        }
-
-        .card-icon-wrapper {
-          width: clamp(48px, 8vw, 60px);
-          height: clamp(48px, 8vw, 60px);
-          min-width: 48px;
-          min-height: 48px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: clamp(1.25rem, 3vw, 1.75rem);
-          color: white;
-          flex-shrink: 0;
-        }
-
-        .card-icon-wrapper.blue { background: linear-gradient(135deg, #007bff, #0056b3); }
-        .card-icon-wrapper.green { background: linear-gradient(135deg, #28a745, #1e7e34); }
-        .card-icon-wrapper.purple { background: linear-gradient(135deg, #6f42c1, #4a2d8a); }
-        .card-icon-wrapper.orange { background: linear-gradient(135deg, #fd7e14, #c95d0a); }
-
-        .card-content {
-          flex: 1;
-          position: relative;
-        }
-
-        .card-content h3 {
-          margin: 0;
-          font-size: 1.1rem;
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .card-content p {
-          margin: 0.25rem 0 0;
-          font-size: 0.85rem;
-          color: #4a5568;
-        }
-
-        /* ================= TOOLTIP ================= */
-        .info-tooltip-wrapper {
-          position: absolute;
-          top: 0;
-          right: 0;
-          cursor: pointer;
-        }
-
-        .info-icon {
-          color: #4a5568;
-          font-size: 1rem;
-          transition: color 0.3s ease;
-        }
-
-        .info-icon:hover {
-          color: #1a4b6d;
-        }
-
-        .info-tooltip-content {
-          position: absolute;
-          top: 100%;
-          right: 0;
-          background: #1a4b6d;
-          color: white;
-          padding: 0.5rem 0.75rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
-          white-space: nowrap;
-          opacity: 0;
-          visibility: hidden;
-          transition: all 0.3s ease;
-          z-index: 100;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-          margin-top: 5px;
-        }
-
-        .info-tooltip-content::before {
-          content: "";
-          position: absolute;
-          bottom: 100%;
-          right: 1rem;
-          border: 6px solid transparent;
-          border-bottom-color: #1a4b6d;
-        }
-
-        .info-tooltip-wrapper:hover .info-tooltip-content {
-          opacity: 1;
-          visibility: visible;
-          transform: translateY(0);
-        }
-
-        /* ================= DASHBOARD GRID ================= */
-        .dashboard-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-          gap: 1rem;
-        }
-
-        @media (min-width: 768px) {
-          .dashboard-grid {
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 1.5rem;
-          }
-        }
-
-        @media (min-width: 1024px) {
-          .dashboard-grid {
-            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-          }
-        }
-
-        /* ================= CARD STYLES ================= */
-        .dashboard-card {
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-          transition: all 0.3s ease;
-        }
-
-        .dashboard-card:hover {
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        }
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid #e9ecef;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        }
-
-        .card-title-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .card-icon {
-          font-size: 1.25rem;
-          color: #1a4b6d;
-        }
-
-        .card-header h3 {
-          margin: 0;
-          font-size: 1.1rem;
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .view-all-link {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: #1a4b6d;
-          text-decoration: none;
-          font-size: 0.85rem;
-          font-weight: 600;
-          transition: color 0.3s ease;
-        }
-
-        .view-all-link:hover {
-          color: #2d6f8f;
-        }
-
-        .card-body {
-          padding: 1.5rem;
-        }
-
-        /* ================= ATTENDANCE ================= */
-        .attendance-stats {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .stat-item {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 1rem;
-          background: #f8f9fa;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-        }
-
-        /* Enhanced Stat Item Hover Effect */
-        .stat-item-hover:hover {
-          transform: translateY(-3px);
-          background: linear-gradient(135deg, #e8f4f8 0%, #d4edda 100%);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-          cursor: pointer;
-        }
-
-        .stat-icon {
-          font-size: 1.5rem;
-          flex-shrink: 0;
-        }
-
-        .stat-icon.present { color: #28a745; }
-        .stat-icon.absent { color: #dc3545; }
-        .stat-icon.total { color: #1a4b6d; }
-
-        .stat-value {
-          display: block;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1a4b6d;
-          transition: all 0.3s ease;
-        }
-
-        /* Enhanced Stat Value - Larger and More Prominent */
-        .stat-value-large {
-          font-size: 2rem;
-          line-height: 1.2;
-        }
-
-        .stat-item-hover:hover .stat-value-large {
-          transform: scale(1.05);
-          display: inline-block;
-        }
-
-        .stat-label {
-          font-size: 0.75rem;
-          color: #4a5568;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .attendance-chart {
-          margin: 1.5rem 0;
-          height: clamp(220px, 30vw, 300px);
-          min-height: 220px;
-        }
-
-        .attendance-percentage {
-          text-align: center;
-        }
-
-        /* Enhanced Percentage Header with Integrated Warning */
-        .percentage-header {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.75rem;
-        }
-
-        /* Enhanced Percentage Text - Larger and More Prominent */
-        .percentage-text-large {
-          font-size: 1.25rem;
-          font-weight: 700;
-        }
-
-        /* Enhanced Inline Warning */
-        .attendance-warning-inline {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-          color: #856404;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
-          animation: warning-pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes warning-pulse {
-          0%, 100% {
-            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
-          }
-          50% {
-            box-shadow: 0 2px 12px rgba(255, 193, 7, 0.5);
-          }
-        }
-
-        /* Enhanced Progress Bar - Thicker and Animated */
-        .progress-bar-thick {
-          width: 100%;
-          height: 16px;
-          background: linear-gradient(90deg, #e9ecef 0%, #dee2e6 100%);
-          border-radius: 10px;
-          overflow: hidden;
-          margin-bottom: 0.5rem;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .progress-bar-animated {
-          height: 100%;
-          border-radius: 10px;
-          transition: width 1s ease-in-out;
-          background: linear-gradient(90deg, currentColor 0%, currentColor 100%);
-          animation: progress-shimmer 2s linear infinite;
-          background-size: 200% 100%;
-        }
-
-        @keyframes progress-shimmer {
-          0% {
-            background-position: 200% 0;
-          }
-          100% {
-            background-position: -200% 0;
-          }
-        }
-
-        /* Progress Threshold Marker */
-        .progress-thresholds {
-          position: relative;
-          width: 100%;
-          height: 20px;
-          margin-top: 0.25rem;
-        }
-
-        .threshold-marker {
-          position: absolute;
-          top: 0;
-          transform: translateX(-50%);
-        }
-
-        .threshold-line {
-          display: block;
-          width: 2px;
-          height: 10px;
-          background: #dc3545;
-          margin: 0 auto 0.25rem;
-        }
-
-        .threshold-label {
-          display: block;
-          font-size: 0.7rem;
-          color: #dc3545;
-          font-weight: 600;
-          white-space: nowrap;
-        }
-
-        .percentage-text {
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: #4a5568;
-        }
-
-        .attendance-warning {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          margin-top: 0.75rem;
-          padding: 0.75rem;
-          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-          color: #856404;
-          border-radius: 6px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
-        }
-
-        /* ================= SUBJECT ATTENDANCE ================= */
-        .subject-chart {
-          margin-bottom: 1.5rem;
-          height: clamp(280px, 40vw, 380px);
-          min-height: 280px;
-        }
-
-        .subject-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        /* Enhanced Subject Item */
-        .subject-item {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          padding: 1.25rem;
-          background: #f8f9fa;
-          border-radius: 10px;
-          transition: all 0.3s ease;
-          border-left: 4px solid transparent;
-        }
-
-        /* Subject Item Hover Effect */
-        .subject-item-hover:hover {
-          transform: translateX(5px);
-          background: linear-gradient(135deg, #f8f9fa 0%, #e8f4f8 100%);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-          cursor: pointer;
-        }
-
-        /* Subject Item Warning State (Low Attendance) */
-        .subject-item-warning {
-          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-          border-left-color: #dc3545;
-        }
-
-        .subject-item-warning:hover {
-          box-shadow: 0 4px 20px rgba(220, 53, 69, 0.2);
-        }
-
-        .subject-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 0.5rem;
-        }
-
-        .subject-info-main {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-        }
-
-        .subject-name {
-          font-weight: 600;
-          color: #1a4b6d;
-          font-size: 1rem;
-        }
-
-        .subject-code {
-          font-size: 0.75rem;
-          color: #4a5568;
-          background: #e9ecef;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-weight: 500;
-        }
-
-        /* Subject Attention Badge */
-        .subject-attention-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.375rem;
-          padding: 0.375rem 0.75rem;
-          background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-          color: white;
-          border-radius: 12px;
-          font-size: 0.7rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-        }
-
-        /* Enhanced Subject Progress */
-        .subject-progress {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          width: 100%;
-        }
-
-        .subject-progress .progress-bar-wrapper {
-          width: 100%;
-          margin-bottom: 0;
-        }
-
-        /* Subject Progress Info (Percentage + Count) */
-        .subject-progress-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 0.25rem;
-        }
-
-        .percentage-text-bold {
-          font-size: 1rem;
-          font-weight: 700;
-        }
-
-        .subject-lectures-count {
-          font-size: 0.85rem;
-          color: #4a5568;
-          font-weight: 600;
-          background: #e9ecef;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-        }
-
-        /* Subject Action Needed Text */
-        .subject-action-needed {
-          font-size: 0.75rem;
-          color: #dc3545;
-          font-weight: 600;
-          background: rgba(220, 53, 69, 0.1);
-          padding: 0.375rem 0.75rem;
-          border-radius: 6px;
-          text-align: center;
-          margin-top: 0.25rem;
-        }
-
-        /* ================= TIMETABLE ================= */
-        .timetable-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .timetable-slot {
-          display: flex;
-          gap: 1rem;
-          padding: 1rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-radius: 8px;
-          border-left: 4px solid #1a4b6d;
-          transition: all 0.3s ease;
-        }
-
-        .timetable-slot:hover {
-          transform: translateX(5px);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .slot-time {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-width: 90px;
-          padding: 0.75rem;
-          background: white;
-          border-radius: 8px;
-          text-align: center;
-        }
-
-        .time-icon {
-          font-size: 1.25rem;
-          color: #1a4b6d;
-          margin-bottom: 0.25rem;
-        }
-
-        .time-range {
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: #1a4b6d;
-        }
-
-        .time-separator {
-          color: #4a5568;
-        }
-
-        .slot-details {
-          flex: 1;
-        }
-
-        .slot-subject {
-          margin: 0 0 0.5rem;
-          font-size: 1rem;
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .slot-meta {
-          display: flex;
-          gap: 0.75rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .slot-code,
-        .slot-type {
-          font-size: 0.75rem;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          background: #e9ecef;
-          color: #4a5568;
-          font-weight: 500;
-        }
-
-        .slot-type {
-          background: #1a4b6d;
-          color: white;
-        }
-
-        .slot-info {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 1rem;
-          font-size: 0.85rem;
-          color: #4a5568;
-        }
-
-        .slot-teacher,
-        .slot-room {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        /* ================= FEE ================= */
-        .fee-overview {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .fee-stat {
-          text-align: center;
-          padding: 1rem;
-          background: #f8f9fa;
-          border-radius: 8px;
-        }
-
-        .fee-label {
-          display: block;
-          font-size: 0.75rem;
-          color: #4a5568;
-          margin-bottom: 0.5rem;
-          font-weight: 500;
-        }
-
-        .fee-value {
-          display: block;
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #1a4b6d;
-        }
-
-        .fee-value.paid { color: #28a745; }
-        .fee-value.due { color: #dc3545; }
-
-        .fee-status {
-          text-align: center;
-          margin-bottom: 1.5rem;
-        }
-
-        .status-badge {
-          display: inline-block;
-          padding: 0.5rem 1.5rem;
-          border-radius: 20px;
-          color: white;
-          font-weight: 700;
-          font-size: 0.9rem;
-        }
-
-        .fee-progress {
-          margin-bottom: 1.5rem;
-        }
-
-        .progress-label {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 0.5rem;
-          font-size: 0.85rem;
-          color: #4a5568;
-          font-weight: 600;
-        }
-
-        .btn-pay-now {
-          display: block;
-          width: 100%;
-          padding: 1rem;
-          background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-          color: white;
-          text-align: center;
-          text-decoration: none;
-          border-radius: 8px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          transition: all 0.3s ease;
-        }
-
-        .btn-pay-now:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-        }
-
-        /* ================= NOTIFICATIONS ================= */
-        .notifications-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .notification-item {
-          display: flex;
-          gap: 1rem;
-          padding: 1rem;
-          background: #f8f9fa;
-          border-radius: 8px;
-          border-left: 4px solid #e9ecef;
-          transition: all 0.3s ease;
-        }
-
-        .notification-item.unread {
-          background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-          border-left-color: #1a4b6d;
-        }
-
-        .notification-item:hover {
-          transform: translateX(5px);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .notification-icon {
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: white;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-
-        .notification-icon .unread { color: #1a4b6d; }
-        .notification-icon .read { color: #4a5568; }
-
-        .notification-content {
-          flex: 1;
-        }
-
-        .notification-title {
-          margin: 0 0 0.25rem;
-          font-size: 0.95rem;
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .notification-message {
-          margin: 0 0 0.5rem;
-          font-size: 0.85rem;
-          color: #4a5568;
-          line-height: 1.5;
-        }
-
-        .notification-meta {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.75rem;
-          color: #4a5568;
-        }
-
-        .notification-type {
-          background: #e9ecef;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          color: #4a5568;
-          font-weight: 500;
-        }
-
-        /* ================= QUICK ACTIONS ================= */
-        .quick-actions-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-          gap: 1rem;
-        }
-
-        .quick-action-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 1.25rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-radius: 10px;
-          text-decoration: none;
-          color: #1a4b6d;
-          transition: all 0.3s ease;
-        }
-
-        .quick-action-item:hover {
-          transform: translateY(-5px);
-          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-          color: white;
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
-        }
-
-        .action-icon {
-          font-size: 1.75rem;
-        }
-
-        .quick-action-item span {
-          font-size: 0.85rem;
-          font-weight: 600;
-        }
-
-        /* ================= NO DATA ================= */
-        .no-data {
-          text-align: center;
-          padding: 3rem 1rem;
-          color: #4a5568;
-        }
-
-        .no-data-icon {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-          opacity: 0.5;
-        }
-
-        /* ================= CHART TOOLTIP ================= */
-        .custom-chart-tooltip {
-          background: white;
-          padding: 0.75rem 1rem;
-          border-radius: 8px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-          border: 1px solid #e9ecef;
-        }
-
-        .tooltip-label {
-          margin: 0 0 0.5rem;
-          font-weight: 700;
-          color: #1a4b6d;
-          font-size: 0.85rem;
-        }
-
-        .tooltip-value {
-          margin: 0.25rem 0;
-          font-size: 0.8rem;
-        }
-
-        /* ================= ANIMATIONS ================= */
-        .fade-in {
-          animation: fadeIn 0.6s ease forwards;
-        }
-
-        .fade-in-up {
-          animation: fadeInUp 0.6s ease forwards;
-          opacity: 0;
-        }
-
-        .fade-in-up:nth-child(1) { animation-delay: 0.1s; }
-        .fade-in-up:nth-child(2) { animation-delay: 0.2s; }
-        .fade-in-up:nth-child(3) { animation-delay: 0.3s; }
-        .fade-in-up:nth-child(4) { animation-delay: 0.4s; }
-        .fade-in-up:nth-child(5) { animation-delay: 0.5s; }
-        .fade-in-up:nth-child(6) { animation-delay: 0.6s; }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-
-        /* ================= BLINKING ANIMATIONS ================= */
-        @keyframes blink-fast {
-          0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.6;
-            transform: scale(0.95);
-          }
-        }
-
-        @keyframes blink-slow {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.7;
-          }
-        }
-
-        .blink-fast {
-          animation: blink-fast 1.5s ease-in-out infinite;
-        }
-
-        .blink-slow {
-          animation: blink-slow 2s ease-in-out infinite;
-        }
-
-        /* Quick Actions Blinking Effect */
-        .quick-action-blink {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .quick-action-blink::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-          animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-          0% {
-            left: -100%;
-          }
-          100% {
-            left: 100%;
-          }
-        }
-
-        .quick-action-blink:hover::before {
-          animation: none;
-        }
-
-        /* ================= RESPONSIVE ================= */
-        @media (max-width: 768px) {
-          .dashboard-header {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-          }
-
-          .header-left {
-            flex-direction: column;
-          }
-
-          .header-right {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .info-cards-row {
-            grid-template-columns: 1fr;
-          }
-
-          .dashboard-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .attendance-stats,
-          .fee-overview {
-            grid-template-columns: 1fr;
-          }
-
-          .timetable-slot {
-            flex-direction: column;
-          }
-
-          .slot-time {
-            width: 100%;
-            flex-direction: row;
-            gap: 0.5rem;
-          }
-
-          .quick-actions-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
-        }
-
-        @media (max-width: 480px) {
-          .dashboard-title {
-            font-size: 1.5rem;
-          }
-
-          .header-icon-wrapper {
-            width: 60px;
-            height: 60px;
-            font-size: 2rem;
-          }
-
-          .quick-actions-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .card-header {
-            flex-direction: column;
-            gap: 0.75rem;
-            text-align: center;
-          }
-
-          .card-title-wrapper {
-            flex-direction: column;
-          }
-
-          .stat-value {
-            font-size: 1.25rem;
-          }
-
-          .attendance-chart {
-            height: 250px;
-          }
-          
-          .subject-chart {
-            height: 320px;
-          }
-        }
-      `}</style>
     </div>
   );
 }
