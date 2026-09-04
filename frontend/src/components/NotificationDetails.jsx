@@ -237,15 +237,23 @@ export default function NotificationDetails() {
             path:
               user?.role === "TEACHER" ? "/teacher/dashboard" : "/dashboard",
           },
-          {
-            label: "Notifications",
-            path:
-              user?.role === "TEACHER"
-                ? "/teacher/notifications/list"
-                : user?.role === "STUDENT"
-                  ? "/notification/student"
+
+
+                {
+        label: "Notifications",
+        path:
+          user?.role === "TEACHER"
+            ? "/teacher/notifications/list"
+            : user?.role === "STUDENT"
+              ? "/notification/student"
+              : user?.role === "HOD"
+                ? "/hod/notifications/list"
+                : user?.role === "PARENT_GUARDIAN"
+                  ? "/parent/notifications"
                   : "/notification/list",
-          },
+      },
+
+
           { label: notification.title?.substring(0, 30) || "Details" },
         ]}
       />
