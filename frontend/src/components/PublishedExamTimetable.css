@@ -1,0 +1,258 @@
+/* =========================================================
+   Published Exam Timetable — read-only viewer
+   Scoped under .published-exam-timetable
+   ========================================================= */
+.published-exam-timetable {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ---------- Empty state ---------- */
+.published-exam-timetable-empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 4px 18px rgba(12, 43, 71, 0.08);
+}
+
+.published-exam-timetable-empty-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.published-exam-timetable-empty-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1d2733;
+  margin: 0 0 0.5rem;
+}
+
+.published-exam-timetable-empty-text {
+  color: #64748b;
+  font-size: 0.95rem;
+  margin: 0;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+/* ---------- Card shell ---------- */
+.published-exam-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 4px 18px rgba(12, 43, 71, 0.08);
+  overflow: hidden;
+}
+
+.published-exam-card-header {
+  background: linear-gradient(135deg, #0c2b47, #1a4a73);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.published-exam-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.published-exam-card-header-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #17aecb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.published-exam-card-title {
+  color: #fff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.published-exam-card-subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  margin: 0.2rem 0 0;
+}
+
+.published-exam-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.published-exam-card-action:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.published-exam-card-body {
+  padding: 1.5rem;
+}
+
+.published-exam-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: #64748b;
+}
+
+/* ---------- Desktop table ---------- */
+.published-exam-table-wrap {
+  overflow-x: auto;
+}
+
+.published-exam-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.published-exam-table thead th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: #495057;
+  background: #f8f9fa;
+  border-bottom: 2px solid #e9ecef;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.published-exam-table tbody td {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid #eef2f6;
+  vertical-align: middle;
+}
+
+.published-exam-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.published-exam-subject-name {
+  font-weight: 600;
+  color: #1d2733;
+}
+
+.published-exam-subject-code {
+  color: #55677c;
+  font-family: "SF Mono", Monaco, monospace;
+  font-size: 0.85rem;
+}
+
+.published-exam-type-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- Mobile cards ---------- */
+.published-exam-mobile-list {
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.published-exam-mobile-card {
+  border: 1px solid #eef2f6;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.published-exam-mobile-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.published-exam-mobile-card-body {
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.published-exam-mobile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.published-exam-mobile-label {
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .published-exam-table-wrap {
+    display: none;
+  }
+
+  .published-exam-mobile-list {
+    display: flex;
+  }
+
+  .published-exam-card-header {
+    padding: 1rem;
+  }
+
+  .published-exam-card-body {
+    padding: 1rem;
+  }
+
+  .published-exam-card-title {
+    font-size: 1rem;
+  }
+
+  .published-exam-card-subtitle {
+    font-size: 0.8rem;
+  }
+}
