@@ -14,6 +14,7 @@ const examController = require("../controllers/exam.controller");
 // that future Exam functionality can mix roles:
 //   - Coordinator-level management routes:  EXAM_COORDINATOR
 //   - Future marks routes:                TEACHER + EXAM_COORDINATOR
+//   - Published visibility routes:        STUDENT + TEACHER + HOD
 // ====================================================================
 
 // Coordinator dashboard placeholder (kept for backward compatibility / Step 1 tests)
@@ -23,6 +24,23 @@ router.get(
   role(ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   examController.getDashboard,
+);
+
+// Published visibility routes (must come before /:id to avoid route conflicts)
+router.get(
+  "/published",
+  auth,
+  role(ROLE.STUDENT, ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  examController.getPublishedExams
+);
+
+router.get(
+  "/published/:id",
+  auth,
+  role(ROLE.STUDENT, ROLE.TEACHER, ROLE.HOD),
+  collegeMiddleware,
+  examController.getPublishedExamById
 );
 
 // Read routes: TEACHER needs exam list/detail to populate Marks Entry UI
