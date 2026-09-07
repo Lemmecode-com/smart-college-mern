@@ -497,6 +497,20 @@ export const navigationConfig = {
         ],
       },
       {
+        id: "exam-teacher",
+        title: "Exam",
+        icon: FaClipboardList,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/teacher/exam-timetable",
+            icon: FaCalendarAlt,
+            label: "Exam Timetable",
+            exact: true,
+          },
+        ],
+      },
+      {
         id: "manage-exceptions",
         title: "Manage Exceptions",
         icon: FaExclamationTriangle,
@@ -616,6 +630,12 @@ export const navigationConfig = {
             path: "/student/timetable",
             icon: FaCalendarAlt,
             label: "My Timetable",
+            exact: true,
+          },
+          {
+            path: "/student/exam-timetable",
+            icon: FaCalendarAlt,
+            label: "Exam Timetable",
             exact: true,
           },
         ],
@@ -1288,6 +1308,20 @@ export const navigationConfig = {
               path: "/hod/exception-approvals",
               icon: FaExclamationTriangle,
               label: "Exception Approvals",
+              exact: true,
+            },
+          ],
+        },
+       {
+          id: "hod-exam",
+          title: "Exam",
+          icon: FaClipboardList,
+          defaultOpen: true,
+          items: [
+            {
+              path: "/hod/exam-timetable",
+              icon: FaCalendarAlt,
+              label: "Exam Timetable",
               exact: true,
             },
           ],
