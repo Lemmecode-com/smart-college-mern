@@ -179,22 +179,13 @@ export default function HodExamTimetable() {
           </>
         ) : (
           <div className="hod-exam-timetable-detail">
-            <div className="hod-exam-timetable-detail-header">
-              <button
-                type="button"
-                className="hod-exam-timetable-back"
-                onClick={handleBackToList}
-              >
-                <FaArrowLeft /> Back to Exams
-              </button>
-              <h3 className="hod-exam-timetable-detail-title">
-                {selectedExam.name || "Exam Timetable"}
-              </h3>
-              <p className="hod-exam-timetable-detail-subtitle">
-                {selectedExam.course_id?.name || "N/A"} ({selectedExam.course_id?.code || "N/A"}) •
-                Semester {selectedExam.semester ?? "N/A"} • {selectedExam.academicYear || "N/A"}
-              </p>
-            </div>
+            <button
+              type="button"
+              className="hod-exam-timetable-back"
+              onClick={handleBackToList}
+            >
+              <FaArrowLeft /> Back to Exams
+            </button>
 
             {scheduleLoading && <Loading text="Loading schedule..." />}
 
@@ -276,10 +267,6 @@ export default function HodExamTimetable() {
           animation: fadeIn 0.35s ease-out;
         }
 
-        .hod-exam-timetable-detail-header {
-          margin-bottom: 1.25rem;
-        }
-
         .hod-exam-timetable-back {
           display: inline-flex;
           align-items: center;
@@ -299,19 +286,6 @@ export default function HodExamTimetable() {
         .hod-exam-timetable-back:hover {
           background: #f8f9fa;
           border-color: #cbd5e1;
-        }
-
-        .hod-exam-timetable-detail-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .hod-exam-timetable-detail-subtitle {
-          color: #64748b;
-          font-size: 0.9rem;
-          margin: 0.25rem 0 0;
         }
 
         .hod-exam-timetable-schedule-error {
