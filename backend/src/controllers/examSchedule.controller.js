@@ -1,8 +1,14 @@
 const Exam = require("../models/exam.model");
 const ExamSchedule = require("../models/examSchedule.model");
 const Subject = require("../models/subject.model");
+const Student = require("../models/student.model");
+const Teacher = require("../models/teacher.model");
+const Department = require("../models/department.model");
+const Course = require("../models/course.model");
 const AppError = require("../utils/AppError");
 const auditLogService = require("../services/auditLog.service");
+const teacherService = require("../services/teacher.service");
+const ApiResponse = require("../utils/ApiResponse");
 
 /* ============================================================
  * Validation helpers (Step 1)
@@ -491,5 +497,234 @@ exports.publishExamSchedule = async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * GET PUBLISHED SCHEDULE — DISPATCHER
+ * Routes to the appropriate role-scoped handler.
+ */
+exports.getPublishedSchedule = async (req, res, next) => {
+  try {
+    const role = req.user?.role;
+
+    if (role === "STUDENT") {
+      return exports.getPublishedScheduleForStudent(req, res, next);
+    }
+    if (role === "TEACHER") {
+      return exports.getPublishedScheduleForTeacher(req, res, next);
+    }
+    if (role === "HOD") {
+      return exports.getPublishedScheduleForHOD(req, res, next);
+    }
+
+    return ApiResponse.success(res, null, "Exam schedule not found");
+  } catch (error) {
+    console.error("Get Published Schedule Error:", error);
+    res.status(500).json({ message: "Failed to fetch exam schedule" });
+  }
+};
+
+/* =========================================================
+   PUBLISHED SCHEDULE VISIBILITY — STUDENT / TEACHER / HOD
+   ========================================================= */
+
+/**
+ * Helper: Load a PUBLISHED ExamSchedule with full population.
+ */
+const loadPublishedScheduleForVisibility = async (examId, collegeId) => {
+  const schedule = await ExamSchedule.findOne({
+    exam_id: examId,
+    college_id: collegeId,
+    status: "PUBLISHED",
+  })
+    .populate("exam_id", "name course_id semester academicYear status")
+    .populate(
+      "subjects.subject",
+      "name code subjectType teacher_id internalMaxMarks externalMaxMarks internalPassMarks externalPassMarks passMarks",
+    );
+
+  if (!schedule) return null;
+
+  return schedule;
+};
+
+/**
+ * GET PUBLISHED SCHEDULE — STUDENT
+ * Returns the PUBLISHED exam schedule only if the student is enrolled
+ * in the exam's course + semester.
+ */
+exports.getPublishedScheduleForStudent = async (req, res, next) => {
+  try {
+    const student = req.student;
+
+    if (!student) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    const exam = await Exam.findOne({
+      _id: req.params.examId,
+      college_id: req.college_id,
+      status: "PUBLISHED",
+    });
+
+    if (!exam) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    if (
+      String(exam.course_id) !== String(student.course_id) ||
+      Number(exam.semester) !== Number(student.currentSemester)
+    ) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    const schedule = await loadPublishedScheduleForVisibility(
+      exam._id,
+      req.college_id,
+    );
+
+    if (!schedule) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    ApiResponse.success(
+      res,
+      { exam, schedule },
+      "Published exam schedule fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Published Schedule For Student Error:", error);
+    res.status(500).json({ message: "Failed to fetch exam schedule" });
+  }
+};
+
+/**
+ * GET PUBLISHED SCHEDULE — TEACHER
+ * Returns the PUBLISHED exam schedule only if the teacher is assigned
+ * to at least one subject in the exam, or the exam's course is in
+ * the teacher's courses[].
+ */
+exports.getPublishedScheduleForTeacher = async (req, res, next) => {
+  try {
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+      false,
+    );
+
+    const exam = await Exam.findOne({
+      _id: req.params.examId,
+      college_id: req.college_id,
+      status: "PUBLISHED",
+    });
+
+    if (!exam) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    const teacherCourses = teacher.courses || [];
+    const teacherSubjects = teacher.subjects || [];
+
+    const courseMatch =
+      teacherCourses.length === 0 ||
+      teacherCourses.some((cid) => String(cid) === String(exam.course_id));
+
+    const subjectIds = (exam.subjects || [])
+      .map((s) => {
+        const sub = s.subject;
+        return sub ? String(sub._id || sub) : null;
+      })
+      .filter(Boolean);
+
+    const subjectMatch = subjectIds.some((sid) =>
+      teacherSubjects.some((tsid) => String(tsid) === String(sid)),
+    );
+
+    if (!courseMatch && !subjectMatch) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    const schedule = await loadPublishedScheduleForVisibility(
+      exam._id,
+      req.college_id,
+    );
+
+    if (!schedule) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    ApiResponse.success(
+      res,
+      { exam, schedule },
+      "Published exam schedule fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Published Schedule For Teacher Error:", error);
+    res.status(500).json({ message: "Failed to fetch exam schedule" });
+  }
+};
+
+/**
+ * GET PUBLISHED SCHEDULE — HOD
+ * Returns the PUBLISHED exam schedule only if the exam's course belongs
+ * to the HOD's department.
+ */
+exports.getPublishedScheduleForHOD = async (req, res, next) => {
+  try {
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+      false,
+    );
+
+    const { isHOD, department } = await teacherService.getHODStatus(
+      teacher,
+      req.college_id,
+    );
+
+    if (!isHOD || !department) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    const exam = await Exam.findOne({
+      _id: req.params.examId,
+      college_id: req.college_id,
+      status: "PUBLISHED",
+    })
+      .populate("course_id", "name code department_id")
+      .populate(
+        "subjects.subject",
+        "name code teacher_id subjectType internalMaxMarks externalMaxMarks internalPassMarks externalPassMarks passMarks",
+      );
+
+    if (!exam) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    const course = await Course.findById(exam.course_id).select(
+      "department_id",
+    );
+    if (!course || String(course.department_id) !== String(department._id)) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    const schedule = await loadPublishedScheduleForVisibility(
+      exam._id,
+      req.college_id,
+    );
+
+    if (!schedule) {
+      return ApiResponse.success(res, null, "Exam schedule not found");
+    }
+
+    ApiResponse.success(
+      res,
+      { exam, schedule },
+      "Published exam schedule fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Published Schedule For HOD Error:", error);
+    res.status(500).json({ message: "Failed to fetch exam schedule" });
   }
 };

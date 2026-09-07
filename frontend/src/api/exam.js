@@ -56,3 +56,24 @@ export const publishExam = async (examId) => {
   const response = await api.put(`${EXAM_BASE_URL}/${examId}/publish`);
   return response.data;
 };
+
+/**
+ * Get published exams for the authenticated user's role
+ * (Student: course/semester scoped, Teacher: subject/course scoped, HOD: department scoped)
+ * @returns {Promise}
+ */
+export const getPublishedExams = async () => {
+  const response = await api.get(`${EXAM_BASE_URL}/published`);
+  return response.data;
+};
+
+/**
+ * Get a single published exam by ID (role-scoped).
+ * Returns null if the exam is not visible to the current user.
+ * @param {string} examId - Exam ID
+ * @returns {Promise}
+ */
+export const getPublishedExamById = async (examId) => {
+  const response = await api.get(`${EXAM_BASE_URL}/published/${examId}`);
+  return response.data;
+};

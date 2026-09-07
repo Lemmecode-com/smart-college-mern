@@ -1,8 +1,14 @@
 const Exam = require("../models/exam.model");
 const Course = require("../models/course.model");
 const Subject = require("../models/subject.model");
+const ExamSchedule = require("../models/examSchedule.model");
+const Student = require("../models/student.model");
+const Teacher = require("../models/teacher.model");
+const Department = require("../models/department.model");
 const AppError = require("../utils/AppError");
 const auditLogService = require("../services/auditLog.service");
+const teacherService = require("../services/teacher.service");
+const ApiResponse = require("../utils/ApiResponse");
 
 /**
  * Build a normalized array of subject ids (strings) from the request payload,
@@ -369,5 +375,400 @@ exports.updateExam = async (req, res, next) => {
     res.json(updated);
   } catch (error) {
     next(error);
+  }
+};
+
+/* =========================================================
+   PUBLISHED EXAM VISIBILITY — STUDENT / TEACHER / HOD
+   These endpoints allow non-ExamCoordinator roles to view
+   only PUBLISHED exams and PUBLISHED exam schedules, scoped
+   by their existing academic relationships.
+   ========================================================= */
+
+/**
+ * Helper: Load an ExamSchedule with exam + subjects populated.
+ */
+const loadPublishedSchedule = async (examId, collegeId) => {
+  const schedule = await ExamSchedule.findOne({
+    exam_id: examId,
+    college_id: collegeId,
+    status: "PUBLISHED",
+  }).populate("exam_id", "name course_id semester academicYear status");
+
+  if (!schedule) return null;
+
+  schedule.subjects = schedule.subjects.map((entry) => {
+    const raw = entry.subject || {};
+    const subject =
+      typeof raw === "object" && raw !== null
+        ? raw
+        : { _id: raw, name: "N/A", code: "N/A", subjectType: undefined };
+
+    return {
+      subject: subject._id,
+      subjectName: subject.name || "N/A",
+      subjectCode: subject.code || "N/A",
+      subjectType: subject.subjectType || undefined,
+      examDate: entry.examDate || undefined,
+      startTime: entry.startTime || undefined,
+      endTime: entry.endTime || undefined,
+      session: entry.session || undefined,
+      room: entry.room || undefined,
+    };
+  });
+
+  return schedule;
+};
+
+/**
+ * GET PUBLISHED EXAMS — STUDENT
+ * Returns only PUBLISHED exams for the student's course + currentSemester.
+ */
+exports.getPublishedExamsForStudent = async (req, res, next) => {
+  try {
+    const student = req.student || await Student.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+      status: { $in: ["APPROVED", "ENROLLED"] },
+    });
+
+    if (!student) {
+      return ApiResponse.success(res, [], "No exams available");
+    }
+
+    const exams = await Exam.find({
+      college_id: req.college_id,
+      course_id: student.course_id,
+      semester: student.currentSemester,
+      status: "PUBLISHED",
+    })
+      .populate("course_id", "name code")
+      .populate("subjects.subject", "name code teacher_id subjectType")
+      .sort({ createdAt: -1 });
+
+    ApiResponse.success(res, exams, "Published exams fetched successfully");
+  } catch (error) {
+    console.error("Get Published Exams For Student Error:", error);
+    res.status(500).json({ message: "Failed to fetch published exams" });
+  }
+};
+
+/**
+ * GET PUBLISHED EXAM BY ID — STUDENT
+ * Returns a single PUBLISHED exam with schedule, only if the student
+ * is enrolled in the exam's course + semester.
+ */
+exports.getPublishedExamByIdForStudent = async (req, res, next) => {
+  try {
+    const student = req.student;
+
+    if (!student) {
+      return ApiResponse.success(res, null, "Exam not found");
+    }
+
+    const exam = await Exam.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+      course_id: student.course_id,
+      semester: student.currentSemester,
+      status: "PUBLISHED",
+    })
+      .populate("course_id", "name code")
+      .populate(
+        "subjects.subject",
+        "name code teacher_id subjectType internalMaxMarks externalMaxMarks internalPassMarks externalPassMarks passMarks",
+      );
+
+    if (!exam) {
+      return ApiResponse.success(res, null, "Exam not found");
+    }
+
+    const schedule = await loadPublishedSchedule(exam._id, req.college_id);
+
+    ApiResponse.success(
+      res,
+      { exam, schedule },
+      "Published exam fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Published Exam By ID For Student Error:", error);
+    res.status(500).json({ message: "Failed to fetch published exam" });
+  }
+};
+
+/**
+ * GET PUBLISHED EXAMS — TEACHER
+ * Returns only PUBLISHED exams where:
+ * - The exam's course is in the teacher's courses[], OR
+ * - At least one exam subject is assigned to the teacher (via Subject.teacher_id)
+ */
+exports.getPublishedExamsForTeacher = async (req, res, next) => {
+  try {
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+      false,
+    );
+
+    const teacherCourses = teacher.courses || [];
+    const teacherSubjects = teacher.subjects || [];
+
+    const courseFilter =
+      teacherCourses.length > 0 ? { course_id: { $in: teacherCourses } } : {};
+
+    const exams = await Exam.find({
+      college_id: req.college_id,
+      status: "PUBLISHED",
+      ...courseFilter,
+    })
+      .populate("course_id", "name code")
+      .populate("subjects.subject", "name code teacher_id subjectType")
+      .sort({ createdAt: -1 });
+
+    const filtered = exams.filter((exam) => {
+      if (teacherCourses.length === 0) return false;
+      const subjectIds = (exam.subjects || [])
+        .map((s) => {
+          const sub = s.subject;
+          return sub ? String(sub._id || sub) : null;
+        })
+        .filter(Boolean);
+
+      const hasAssignedSubject = subjectIds.some((sid) =>
+        teacherSubjects.some((tsid) => String(tsid) === String(sid)),
+      );
+
+      if (hasAssignedSubject) return true;
+      return teacherCourses.some(
+        (cid) => String(cid) === String(exam.course_id),
+      );
+    });
+
+    ApiResponse.success(
+      res,
+      filtered,
+      "Published exams fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Published Exams For Teacher Error:", error);
+    res.status(500).json({ message: "Failed to fetch published exams" });
+  }
+};
+
+/**
+ * GET PUBLISHED EXAM BY ID — TEACHER
+ * Returns a single PUBLISHED exam with schedule, only if the teacher
+ * teaches a subject in the exam or the exam's course is in their courses[].
+ */
+exports.getPublishedExamByIdForTeacher = async (req, res, next) => {
+  try {
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+      false,
+    );
+
+    const teacherCourses = teacher.courses || [];
+    const teacherSubjects = teacher.subjects || [];
+
+    const exam = await Exam.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+      status: "PUBLISHED",
+    })
+      .populate("course_id", "name code")
+      .populate(
+        "subjects.subject",
+        "name code teacher_id subjectType internalMaxMarks externalMaxMarks internalPassMarks externalPassMarks passMarks",
+      );
+
+    if (!exam) {
+      return ApiResponse.success(res, null, "Exam not found");
+    }
+
+    const courseMatch =
+      teacherCourses.length === 0 ||
+      teacherCourses.some((cid) => String(cid) === String(exam.course_id));
+
+    const subjectIds = (exam.subjects || [])
+      .map((s) => {
+        const sub = s.subject;
+        return sub ? String(sub._id || sub) : null;
+      })
+      .filter(Boolean);
+
+    const subjectMatch = subjectIds.some((sid) =>
+      teacherSubjects.some((tsid) => String(tsid) === String(sid)),
+    );
+
+    if (!courseMatch && !subjectMatch) {
+      return ApiResponse.success(res, null, "Exam not found");
+    }
+
+    const schedule = await loadPublishedSchedule(exam._id, req.college_id);
+
+    ApiResponse.success(
+      res,
+      { exam, schedule },
+      "Published exam fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Published Exam By ID For Teacher Error:", error);
+    res.status(500).json({ message: "Failed to fetch published exam" });
+  }
+};
+
+/**
+ * GET PUBLISHED EXAMS — HOD
+ * Returns only PUBLISHED exams for courses belonging to the HOD's department.
+ */
+exports.getPublishedExamsForHOD = async (req, res, next) => {
+  try {
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+      false,
+    );
+
+    const { isHOD, department } = await teacherService.getHODStatus(
+      teacher,
+      req.college_id,
+    );
+
+    if (!isHOD || !department) {
+      return ApiResponse.success(res, [], "No exams available");
+    }
+
+    const courses = await Course.find({
+      college_id: req.college_id,
+      department_id: department._id,
+    }).select("_id");
+
+    const courseIds = courses.map((c) => c._id);
+
+    const exams = await Exam.find({
+      college_id: req.college_id,
+      course_id: { $in: courseIds },
+      status: "PUBLISHED",
+    })
+      .populate("course_id", "name code")
+      .populate("subjects.subject", "name code teacher_id subjectType")
+      .sort({ createdAt: -1 });
+
+    ApiResponse.success(
+      res,
+      exams,
+      "Published exams fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Published Exams For HOD Error:", error);
+    res.status(500).json({ message: "Failed to fetch published exams" });
+  }
+};
+
+/**
+ * GET PUBLISHED EXAMS — DISPATCHER
+ * Routes to the appropriate role-scoped handler.
+ */
+exports.getPublishedExams = async (req, res, next) => {
+  try {
+    const role = req.user?.role;
+
+    if (role === "STUDENT") {
+      return exports.getPublishedExamsForStudent(req, res, next);
+    }
+    if (role === "TEACHER") {
+      return exports.getPublishedExamsForTeacher(req, res, next);
+    }
+    if (role === "HOD") {
+      return exports.getPublishedExamsForHOD(req, res, next);
+    }
+
+    return ApiResponse.success(res, [], "No exams available");
+  } catch (error) {
+    console.error("Get Published Exams Error:", error);
+    res.status(500).json({ message: "Failed to fetch published exams" });
+  }
+};
+
+/**
+ * GET PUBLISHED EXAM BY ID — DISPATCHER
+ * Routes to the appropriate role-scoped handler.
+ */
+exports.getPublishedExamById = async (req, res, next) => {
+  try {
+    const role = req.user?.role;
+
+    if (role === "STUDENT") {
+      return exports.getPublishedExamByIdForStudent(req, res, next);
+    }
+    if (role === "TEACHER") {
+      return exports.getPublishedExamByIdForTeacher(req, res, next);
+    }
+    if (role === "HOD") {
+      return exports.getPublishedExamByIdForHOD(req, res, next);
+    }
+
+    return ApiResponse.success(res, null, "Exam not found");
+  } catch (error) {
+    console.error("Get Published Exam By ID Error:", error);
+    res.status(500).json({ message: "Failed to fetch published exam" });
+  }
+};
+
+/**
+ * GET PUBLISHED EXAM BY ID — HOD
+ * Returns a single PUBLISHED exam with schedule, only if the exam's
+ * course belongs to the HOD's department.
+ */
+exports.getPublishedExamByIdForHOD = async (req, res, next) => {
+  try {
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+      false,
+    );
+
+    const { isHOD, department } = await teacherService.getHODStatus(
+      teacher,
+      req.college_id,
+    );
+
+    if (!isHOD || !department) {
+      return ApiResponse.success(res, null, "Exam not found");
+    }
+
+    const exam = await Exam.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+      status: "PUBLISHED",
+    })
+      .populate("course_id", "name code department_id")
+      .populate(
+        "subjects.subject",
+        "name code teacher_id subjectType internalMaxMarks externalMaxMarks internalPassMarks externalPassMarks passMarks",
+      );
+
+    if (!exam) {
+      return ApiResponse.success(res, null, "Exam not found");
+    }
+
+    const course = await Course.findById(exam.course_id).select(
+      "department_id",
+    );
+    if (!course || String(course.department_id) !== String(department._id)) {
+      return ApiResponse.success(res, null, "Exam not found");
+    }
+
+    const schedule = await loadPublishedSchedule(exam._id, req.college_id);
+
+    ApiResponse.success(
+      res,
+      { exam, schedule },
+      "Published exam fetched successfully",
+    );
+  } catch (error) {
+    console.error("Get Published Exam By ID For HOD Error:", error);
+    res.status(500).json({ message: "Failed to fetch published exam" });
   }
 };
