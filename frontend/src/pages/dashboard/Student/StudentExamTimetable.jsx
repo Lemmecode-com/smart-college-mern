@@ -200,22 +200,13 @@ export default function StudentExamTimetable() {
           </>
         ) : (
           <div className="student-exam-timetable-detail">
-            <div className="student-exam-timetable-detail-header">
-              <button
-                type="button"
-                className="student-exam-timetable-back"
-                onClick={handleBackToList}
-              >
-                <FaArrowLeft /> Back to Exams
-              </button>
-              <h3 className="student-exam-timetable-detail-title">
-                {selectedExam.name || "Exam Timetable"}
-              </h3>
-              <p className="student-exam-timetable-detail-subtitle">
-                {selectedExam.course_id?.name || "N/A"} ({selectedExam.course_id?.code || "N/A"}) •
-                Semester {selectedExam.semester ?? "N/A"} • {selectedExam.academicYear || "N/A"}
-              </p>
-            </div>
+            <button
+              type="button"
+              className="student-exam-timetable-back"
+              onClick={handleBackToList}
+            >
+              <FaArrowLeft /> Back to Exams
+            </button>
 
             {scheduleLoading && <Loading text="Loading schedule..." />}
 
@@ -297,10 +288,6 @@ export default function StudentExamTimetable() {
           animation: fadeIn 0.35s ease-out;
         }
 
-        .student-exam-timetable-detail-header {
-          margin-bottom: 1.25rem;
-        }
-
         .student-exam-timetable-back {
           display: inline-flex;
           align-items: center;
@@ -320,19 +307,6 @@ export default function StudentExamTimetable() {
         .student-exam-timetable-back:hover {
           background: #f8f9fa;
           border-color: #cbd5e1;
-        }
-
-        .student-exam-timetable-detail-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .student-exam-timetable-detail-subtitle {
-          color: #64748b;
-          font-size: 0.9rem;
-          margin: 0.25rem 0 0;
         }
 
         .student-exam-timetable-schedule-error {
