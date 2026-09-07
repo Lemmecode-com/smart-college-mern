@@ -881,23 +881,33 @@ export default function DepartmentList() {
           {/* ================= TABLE FOOTER ================= */}
           {filteredDepartments.length > 0 && (
             <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              position: "relative",
+              minHeight: "90px",
+              padding: "1rem 1.35rem",
+            }}
+          >
+            <div>
+              Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
+              {filteredDepartments.length} departments
+            </div>
+
+            <div
               style={{
-                background: "#fafbfc",
-                borderTop: `1px solid ${T.border}`,
-                padding: "1rem 1.35rem",
-                display: "flex",
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "0.75rem",
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%) scale(0.95)",
               }}
             >
-              <div style={{ fontSize: "0.8rem", color: T.textMuted }}>
-                Showing <strong style={{ color: T.text }}>{Math.min(indexOfLastItem, filteredDepartments.length)}</strong> of{" "}
-                <strong style={{ color: T.text }}>{filteredDepartments.length}</strong> departments
-              </div>
-              <Pagination page={currentPage} totalPages={totalPages} setPage={setCurrentPage} />
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
             </div>
+          </div>
           )}
         </div>
 
