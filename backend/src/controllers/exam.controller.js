@@ -460,7 +460,11 @@ exports.getPublishedExamsForStudent = async (req, res, next) => {
  */
 exports.getPublishedExamByIdForStudent = async (req, res, next) => {
   try {
-    const student = req.student;
+    const student = req.student || await Student.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+      status: { $in: ["APPROVED", "ENROLLED"] },
+    });
 
     if (!student) {
       return ApiResponse.success(res, null, "Exam not found");
@@ -526,7 +530,6 @@ exports.getPublishedExamsForTeacher = async (req, res, next) => {
       .sort({ createdAt: -1 });
 
     const filtered = exams.filter((exam) => {
-      if (teacherCourses.length === 0) return false;
       const subjectIds = (exam.subjects || [])
         .map((s) => {
           const sub = s.subject;
@@ -540,7 +543,7 @@ exports.getPublishedExamsForTeacher = async (req, res, next) => {
 
       if (hasAssignedSubject) return true;
       return teacherCourses.some(
-        (cid) => String(cid) === String(exam.course_id),
+        (cid) => String(cid) === String(exam.course_id && exam.course_id._id),
       );
     });
 
@@ -588,7 +591,7 @@ exports.getPublishedExamByIdForTeacher = async (req, res, next) => {
 
     const courseMatch =
       teacherCourses.length === 0 ||
-      teacherCourses.some((cid) => String(cid) === String(exam.course_id));
+      teacherCourses.some((cid) => String(cid) === String(exam.course_id && exam.course_id._id));
 
     const subjectIds = (exam.subjects || [])
       .map((s) => {
