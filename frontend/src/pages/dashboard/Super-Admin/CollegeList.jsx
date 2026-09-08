@@ -608,6 +608,9 @@ export default function CollegeList() {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
+          width: 100%;
+          box-sizing: border-box;
+          overflow-x: hidden;
         }
 
         /* ================= PAGE HEADER ================= */
@@ -1567,11 +1570,27 @@ export default function CollegeList() {
           .erp-header-actions {
             width: 100%;
             margin-top: 0.5rem;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
           }
           
           .erp-header-actions .erp-btn {
             width: 100%;
+            min-width: 0;
             justify-content: center;
+            padding: 0.75rem 0.5rem;
+            white-space: normal;
+          }
+
+          .controls-container {
+            padding: 1rem;
+          }
+
+          .search-group,
+          .search-box {
+            min-width: 0;
+            width: 100%;
           }
           
           .info-banner {
@@ -1606,6 +1625,12 @@ export default function CollegeList() {
           
           .page-numbers {
             flex-wrap: wrap;
+            justify-content: center;
+          }
+
+          .erp-pagination {
+            flex-wrap: wrap;
+            padding: 1rem;
           }
           
           .page-btn {
