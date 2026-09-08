@@ -115,11 +115,6 @@ const SubjectList = lazy(() => import("./pages/dashboard/College-Admin/SubjectLi
 const AddSubject = lazy(() => import("./pages/dashboard/College-Admin/AddSubject"));
 const ViewSubject = lazy(() => import("./pages/dashboard/College-Admin/ViewSubject"));
 const EditSubject = lazy(() => import("./pages/dashboard/College-Admin/EditSubject"));
-const TeachersList = lazy(() => import("./pages/dashboard/College-Admin/TeachersList"));
-const ViewTeacher = lazy(() => import("./pages/dashboard/College-Admin/ViewTeacher"));
-const AddTeacher = lazy(() => import("./pages/dashboard/College-Admin/AddTeacher"));
-const EditTeacher = lazy(() => import("./pages/dashboard/College-Admin/EditTeacher"));
-const AssignTeacherSubjects = lazy(() => import("./pages/dashboard/College-Admin/AssignTeacherSubjects"));
 const CreateStaff = lazy(() => import("./pages/dashboard/College-Admin/CreateStaff"));
 const StaffList = lazy(() => import("./pages/dashboard/College-Admin/StaffList"));
 const ParentList = lazy(() => import("./pages/dashboard/College-Admin/ParentList"));
@@ -1651,67 +1646,25 @@ function AppContent({
               }
             />
 
-            <Route
-              path="/teachers"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
-                  <TeachersList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/teachers/view/:id"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "PRINCIPAL"]}>
-                  <ViewTeacher />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/teachers/add-teacher"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <AddTeacher />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/teachers/edit/:id"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <EditTeacher />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/teachers/assign-subjects"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <AssignTeacherSubjects />
-                </ProtectedRoute>
-              }
-            />
-
-              {/* ================= STAFF MANAGEMENT ================= */}
+            {/* ================= STAFF MANAGEMENT ================= */}
                <Route
-                 path="/college/staff/create"
-                 element={
-                   <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                     <CreateStaff />
-                   </ProtectedRoute>
-                 }
-               />
+                  path="/college/staff/create"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <CreateStaff />
+                    </ProtectedRoute>
+                  }
+                />
                <Route
-                 path="/college/staff"
-                 element={
-                   <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                     <StaffList />
-                   </ProtectedRoute>
-                 }
-               />
+                  path="/college/staff"
+                  element={
+                    <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                      <StaffList />
+                    </ProtectedRoute>
+                  }
+                />
 
-               {/* ================= PARENT/GUARDIAN MANAGEMENT ================= */}
+                {/* ================= PARENT/GUARDIAN MANAGEMENT ================= */}
                <Route
                  path="/college/parents"
                  element={
