@@ -234,7 +234,7 @@ function ViewAllLink({ to, children }) {
   );
 }
 
-function ProgressBar({ percent, color, thick }) {
+function ProgressBar({ percent, color, thick, markerPercent }) {
   const safePercent = Number.isFinite(percent) ? Math.max(0, Math.min(100, percent)) : 0;
   return (
     <div
@@ -244,6 +244,7 @@ function ProgressBar({ percent, color, thick }) {
         background: T.inactiveBg,
         borderRadius: 999,
         overflow: "hidden",
+        position: "relative",
       }}
     >
       <div
@@ -255,6 +256,21 @@ function ProgressBar({ percent, color, thick }) {
           transition: "width 0.8s ease",
         }}
       />
+      {typeof markerPercent === "number" && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: `${Math.max(0, Math.min(100, markerPercent))}%`,
+            top: -2,
+            width: 3,
+            height: thick ? 18 : 12,
+            background: T.danger,
+            transform: "translateX(-50%)",
+            zIndex: 1,
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -694,9 +710,9 @@ export default function StudentDashboard() {
         </div>
 
         {/* ================= MAIN CONTENT ================= */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem" }}>
+        <div className="student-dashboard-main-content" style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem" }}>
           {/* ATTENDANCE SUMMARY */}
-          <div style={{ flex: "2 1 560px" }}>
+          <div className="student-attendance-panel" style={{ flex: "2 1 560px" }}>
             <Card
               icon={<FaChartPie />}
               title="Attendance Summary"
@@ -705,7 +721,7 @@ export default function StudentDashboard() {
               mounted={mounted}
               delay={0.15}
             >
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
+              <div className="student-attendance-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem", marginBottom: "1.5rem" }}>
                 {[
                   { key: "present", icon: <FaCheckCircle />, value: attendanceSummary.present, label: "Present", color: T.success },
                   { key: "absent", icon: <FaTimesCircle />, value: attendanceSummary.absent, label: "Absent", color: T.danger },
@@ -803,8 +819,7 @@ export default function StudentDashboard() {
                   aria-label={`Attendance progress: ${attendanceSummary.percentage}%`}
                   style={{ position: "relative", marginTop: "0.5rem" }}
                 >
-                  <ProgressBar percent={attendanceSummary.percentage} color={getAttendanceWarningColor(attendanceSummary.percentage)} thick />
-                  <div style={{ position: "absolute", left: "75%", top: -6, transform: "translateX(-50%)", width: 2, height: 14, background: T.danger }} />
+                  <ProgressBar percent={attendanceSummary.percentage} color={getAttendanceWarningColor(attendanceSummary.percentage)} thick markerPercent={75} />
                 </div>
                 <div style={{ fontSize: "0.7rem", color: T.danger, fontWeight: 600, marginTop: "0.3rem" }}>75% Minimum</div>
               </div>
@@ -1163,6 +1178,65 @@ export default function StudentDashboard() {
             </Card>
           </div>
         </div>
+        <style>{`
+          @media (max-width: 1024px) {
+            .student-dashboard-main-content,
+            .student-attendance-panel {
+              width: 100% !important;
+              max-width: 100% !important;
+              min-width: 0 !important;
+              box-sizing: border-box !important;
+            }
+
+            .student-attendance-panel {
+              flex: 1 1 100% !important;
+            }
+          }
+
+          @media (max-width: 767.98px) {
+            .student-attendance-panel {
+              overflow: hidden;
+            }
+
+            .student-attendance-panel > div > div:first-child {
+              min-width: 0 !important;
+              flex-wrap: wrap !important;
+              row-gap: 0.6rem !important;
+            }
+
+            .student-attendance-panel > div > div:first-child h3 {
+              font-size: 1rem !important;
+              line-height: 1.25 !important;
+            }
+
+            .student-attendance-panel > div > div:first-child a {
+              flex: 0 0 100%;
+            }
+
+            .student-attendance-stats {
+              grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+              gap: 0.45rem !important;
+            }
+
+            .student-attendance-stats > div {
+              min-width: 0 !important;
+              flex-direction: column !important;
+              justify-content: center !important;
+              text-align: center;
+              gap: 0.3rem !important;
+              padding: 0.65rem 0.25rem !important;
+            }
+
+            .student-attendance-stats > div > div {
+              min-width: 0;
+            }
+
+            .student-attendance-stats > div > div > div:last-child {
+              font-size: 0.6rem !important;
+              white-space: nowrap;
+            }
+          }
+        `}</style>
       </div>
     </div>
   );
