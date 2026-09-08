@@ -2016,6 +2016,90 @@ export default function StudentFees() {
           }
         }
 
+        @media (min-width: 768px) and (max-width: 1024px) {
+          .fees-header {
+            position: relative;
+            margin: 0 0 1.5rem;
+            padding: 1.25rem 1.5rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-align: center;
+          }
+
+          .header-left {
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+          }
+
+          .fees-header .btn-back {
+            position: absolute;
+            top: 1.25rem;
+            left: 1.5rem;
+            width: auto;
+            height: 40px;
+            padding: 0 0.75rem;
+            border-radius: 10px;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            z-index: 1;
+          }
+
+          .fees-header .btn-back-label {
+            display: inline;
+          }
+
+          .header-info {
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .header-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            font-size: 1.35rem;
+          }
+
+          .header-title {
+            font-size: 1.4rem;
+            line-height: 1.2;
+          }
+
+          .header-subtitle {
+            font-size: 0.85rem;
+            line-height: 1.4;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+          }
+
+          .header-actions {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.5rem;
+            width: auto;
+            z-index: 1;
+          }
+
+          .btn-action {
+            min-width: 40px;
+            width: 40px;
+            min-height: 40px;
+            height: 40px;
+            justify-content: center;
+            padding: 0;
+            border-radius: 50%;
+          }
+
+          .btn-action .btn-text {
+            display: none;
+          }
+        }
+
         @media (max-width: 480px) {
           .fees-header {
             margin: 0 0 1.25rem;
