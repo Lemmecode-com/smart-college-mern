@@ -354,8 +354,6 @@ exports.createTeacher = async (options) => {
     qualification: qualification || "",
     experienceYears: Number(experienceYears) || 0,
     createdBy: createdBy || userIdForTeacher,
-    gender: gender || "",
-    bloodGroup: bloodGroup || "",
     dateOfBirth: dateOfBirth || null,
     address: address || "",
     city: city || "",
@@ -365,6 +363,13 @@ exports.createTeacher = async (options) => {
     mobileNumber: mobileNumber || "",
     joiningDate: joiningDate || null,
   };
+
+  if (gender) {
+    teacherPayload.gender = gender;
+  }
+  if (bloodGroup) {
+    teacherPayload.bloodGroup = bloodGroup;
+  }
 
   const teacher = session
     ? await new Teacher(teacherPayload).save({ session })
