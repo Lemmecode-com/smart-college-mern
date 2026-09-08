@@ -464,7 +464,7 @@ switch(userRole) {
 - SUPER_ADMIN (only existing SUPER_ADMIN can create)
 - COLLEGE_ADMIN (only SUPER_ADMIN can create)
 - PARENT_GUARDIAN (self-registration or COLLEGE_ADMIN creates)
-- TEACHER (existing AddTeacher flow)
+- TEACHER (created via Staff Management → Create Staff → TEACHER)
 
 ---
 

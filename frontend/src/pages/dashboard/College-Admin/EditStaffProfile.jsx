@@ -111,6 +111,7 @@ const STAFF_ROLE_OPTIONS = [
   { value: "HOD", label: "Head of Department" },
   { value: "EXAM_COORDINATOR", label: "Exam Coordinator" },
   { value: "PLATFORM_SUPPORT", label: "Platform Support" },
+  { value: "TEACHER", label: "Teacher" },
 ];
 
 export default function EditStaffProfile() {
