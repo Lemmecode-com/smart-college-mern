@@ -1477,6 +1477,69 @@ export default function StudentProfile() {
             overflow-wrap: anywhere;
           }
 
+          .tabs-navigation {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            border-right: 0 !important;
+            border-bottom: 1px solid #e9ecef !important;
+            scrollbar-width: thin;
+          }
+
+          .tabs-navigation .tab-item {
+            flex: 0 0 142px;
+            min-width: 142px;
+            min-height: 112px;
+            padding: 0.75rem 0.5rem;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            transform: none !important;
+            border-left: 0;
+            border-bottom: 3px solid transparent;
+          }
+
+          .tabs-navigation .tab-item.active {
+            border-left: 0;
+            border-bottom-color: #1a4b6d;
+          }
+
+          .tabs-navigation .tab-item > span {
+            font-size: 1.35rem !important;
+          }
+
+          .tabs-content {
+            width: 100% !important;
+            min-width: 0 !important;
+            padding: 1rem !important;
+          }
+
+          .section-content {
+            width: 100%;
+            padding: 1rem;
+            box-sizing: border-box;
+          }
+
+          .section-title {
+            font-size: 1.15rem;
+            line-height: 1.25;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+          }
+
+          .info-item {
+            min-width: 0;
+            overflow-wrap: anywhere;
+          }
+
+          .info-value {
+            overflow-wrap: anywhere;
+          }
+
           .profile-logo-container {
             width: 50px;
             height: 50px;
