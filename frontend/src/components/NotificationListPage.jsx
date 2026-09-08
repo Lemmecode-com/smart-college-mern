@@ -916,17 +916,55 @@ export default function NotificationListPage({ role = "college-admin" }) {
               justify-content: center !important;
             }
 
-            /* Stack notification row content on small screens */
+            /* Keep mobile metadata inside the card content width */
             .notification-row {
-              flex-wrap: wrap !important;
+              display: grid !important;
+              grid-template-columns: 42px minmax(0, 1fr) !important;
+              column-gap: 0.875rem !important;
+              row-gap: 0.55rem !important;
             }
 
-            .notification-row > div:last-child {
+            .notification-row-content {
+              grid-column: 2 !important;
+              min-width: 0 !important;
+            }
+
+            .notification-row-meta {
+              grid-column: 2 !important;
               width: 100% !important;
-              justify-content: flex-start !important;
-              flex-wrap: wrap !important;
-              margin-left: 3.25rem !important;
-              margin-top: 0.25rem !important;
+              display: grid !important;
+              grid-template-columns: auto auto minmax(0, 1fr) 34px !important;
+              align-items: center !important;
+              column-gap: 0.45rem !important;
+              row-gap: 0.45rem !important;
+              margin: 0 !important;
+              min-width: 0 !important;
+            }
+
+            .notification-meta-time {
+              grid-column: 1 !important;
+              grid-row: 1 !important;
+            }
+
+            .notification-meta-type {
+              grid-column: 2 !important;
+              grid-row: 1 !important;
+            }
+
+            .notification-meta-priority {
+              grid-column: 1 / 4 !important;
+              grid-row: 2 !important;
+              justify-self: start !important;
+              max-width: 100% !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
+            }
+
+            .notification-row-actions {
+              grid-column: 4 !important;
+              grid-row: 1 / 3 !important;
+              align-self: center !important;
+              justify-self: end !important;
             }
           }
 
