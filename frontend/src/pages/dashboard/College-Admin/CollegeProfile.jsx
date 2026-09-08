@@ -260,8 +260,8 @@ export default function CollegeProfile() {
     },
     {
       icon: <FaChalkboardTeacher />,
-      label: "Teachers",
-      path: "/teachers",
+      label: "Staff",
+      path: "/college/staff",
       color: "warning",
       gradient: BRAND_COLORS.warning.gradient,
     },
