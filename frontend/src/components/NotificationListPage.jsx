@@ -867,9 +867,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
               }}
             >
               <Pagination
-                currentPage={currentPage}
+                page={currentPage}
                 totalPages={totalPages}
-                onPageChange={setCurrentPage}
+                setPage={setCurrentPage}
               />
             </div>
           )}
