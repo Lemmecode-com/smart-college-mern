@@ -15,7 +15,6 @@ import {
   FaSyncAlt,
   FaInfoCircle,
   FaGraduationCap,
-  FaChalkboardTeacher,
   FaLayerGroup,
   FaCreditCard,
   FaCode,
@@ -109,7 +108,6 @@ export default function AddSubject() {
 
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [teachers, setTeachers] = useState([]);
 
   // College Code Generation State
   const [codeGenerationMode, setCodeGenerationMode] = useState("auto"); // 'auto' or 'manual'
@@ -118,7 +116,6 @@ export default function AddSubject() {
   const [formData, setFormData] = useState({
     department_id: "",
     course_id: "",
-    teacher_id: "",
     name: "",
     code: "",
     semester: "",
@@ -159,8 +156,7 @@ export default function AddSubject() {
   useEffect(() => {
     if (!formData.department_id) {
       setCourses([]);
-      setTeachers([]);
-      setFormData((prev) => ({ ...prev, course_id: "", teacher_id: "" }));
+      setFormData((prev) => ({ ...prev, course_id: "" }));
       return;
     }
 
@@ -181,29 +177,6 @@ export default function AddSubject() {
     };
     fetchCourses();
   }, [formData.department_id]);
-
-  /* ================= LOAD TEACHERS BY COURSE ================= */
-  useEffect(() => {
-    if (!formData.course_id) {
-      setTeachers([]);
-      setFormData((prev) => ({ ...prev, teacher_id: "" }));
-      return;
-    }
-
-    const fetchTeachers = async () => {
-      try {
-        const res = await api.get(`/teachers/course/${formData.course_id}`);
-        // Ensure teachers is always an array
-        const teachersData = Array.isArray(res.data)
-          ? res.data
-          : res.data?.teachers || [];
-        setTeachers(teachersData);
-      } catch (err) {
-        setTeachers([]);
-      }
-    };
-    fetchTeachers();
-  }, [formData.course_id]);
 
   /* ================= AUTO-GENERATE CODE PREVIEW ================= */
   useEffect(() => {
@@ -363,7 +336,6 @@ export default function AddSubject() {
         code: formData.code.trim(),
         semester: Number(formData.semester),
         credits: Number(formData.credits),
-        teacher_id: formData.teacher_id || null, // Allow null if not assigned
         subjectType: formData.subjectType || undefined,
         ...(formData.internalMaxMarks !== ""
           ? { internalMaxMarks: Number(formData.internalMaxMarks) }
@@ -390,7 +362,6 @@ export default function AddSubject() {
         setFormData({
           department_id: "",
           course_id: "",
-          teacher_id: "",
           name: "",
           code: "",
           semester: "",
@@ -555,13 +526,12 @@ export default function AddSubject() {
                   flexShrink: 0,
                 }}
               />
-              <div
-                style={{ color: "#1e293b", fontWeight: 500, lineHeight: 1.5 }}
-              >
-                <strong>Workflow:</strong> Select Department → Choose Course →
-                Assign Teacher → Enter Subject Details → Generate/Enter Subject
-                Code
-              </div>
+                <div
+                  style={{ color: "#1e293b", fontWeight: 500, lineHeight: 1.5 }}
+                >
+                  <strong>Workflow:</strong> Select Department → Choose Course →
+                  Enter Subject Details → Generate/Enter Subject Code
+                </div>
             </div>
           </motion.div>
 
@@ -734,30 +704,6 @@ export default function AddSubject() {
                               courses.map((course) => (
                                 <option key={course._id} value={course._id}>
                                   {course.name} ({course.code})
-                                </option>
-                              ))}
-                          </select>
-                        </FormField>
-                      </div>
-
-                      <div className="col-12 col-md-6 col-lg-4">
-                        <FormField
-                          icon={<FaChalkboardTeacher />}
-                          label="Teacher"
-                          helperText="Assign a teacher"
-                        >
-                          <select
-                            name="teacher_id"
-                            value={formData.teacher_id}
-                            onChange={handleChange}
-                            className="form-control"
-                            disabled={!formData.course_id}
-                          >
-                            <option value="">Select teacher</option>
-                            {Array.isArray(teachers) &&
-                              teachers.map((teacher) => (
-                                <option key={teacher._id} value={teacher._id}>
-                                  {teacher.name} - {teacher.designation}
                                 </option>
                               ))}
                           </select>

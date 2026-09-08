@@ -184,8 +184,8 @@ export default function CollegeAdminDashboard() {
     {
       id: 2,
       icon: FaChalkboardTeacher,
-      label: "Manage Teachers",
-      path: "/teachers",
+      label: "Manage Staff",
+      path: "/college/staff",
       color: BRAND_COLORS.info.main,
       gradient: BRAND_COLORS.info.gradient
     },

@@ -5,6 +5,7 @@ module.exports = {
   testMatch: ['**/tests/**/*.test.js'],
   verbose: true,
   testTimeout: 60000,
+  forceExit: true,
   maxWorkers: 1,
   transformIgnorePatterns: [
     '[\\\\/]node_modules[\\\\/](?!uuid[\\\\/]).+'

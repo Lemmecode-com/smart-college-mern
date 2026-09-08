@@ -21,10 +21,7 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaArrowRight,
-  FaPlus,
-  FaSpinner,
   FaEye,
-  FaFileAlt,
   FaChartLine,
   FaEnvelope,
   FaMapMarkerAlt,
@@ -35,7 +32,6 @@ import {
   FaMoneyBillWave,
   FaClipboardCheck,
   FaTimes,
-  FaInfoCircle,
 } from "react-icons/fa";
 import {
   PieChart,
@@ -481,7 +477,7 @@ export default function PrincipalDashboard() {
   const quickActions = [
     { icon: FaBuilding, label: "Departments", path: "/departments", color: BRAND_COLORS.info, count: totalDepartments },
     { icon: FaBook, label: "Courses", path: "/courses", color: BRAND_COLORS.success, count: totalCourses },
-    { icon: FaChalkboardTeacher, label: "Teachers", path: "/teachers", color: BRAND_COLORS.warning, count: totalTeachers },
+    { icon: FaChalkboardTeacher, label: "Staff", path: "/college/staff", color: BRAND_COLORS.warning, count: totalTeachers },
     { icon: FaUserGraduate, label: "Students", path: "/students/pending-approvals", color: BRAND_COLORS.primary, count: totalStudents },
   ];
 
@@ -494,7 +490,7 @@ export default function PrincipalDashboard() {
   const quickLinks = [
     { label: 'View Departments', path: '/departments', icon: FaBuilding, color: BRAND_COLORS.info },
     { label: 'View Courses', path: '/courses', icon: FaBook, color: BRAND_COLORS.success },
-    { label: 'View Teachers', path: '/teachers', icon: FaChalkboardTeacher, color: BRAND_COLORS.warning },
+    { label: 'View Staff', path: '/college/staff', icon: FaChalkboardTeacher, color: BRAND_COLORS.warning },
     { label: 'Review Students', path: '/students/pending-approvals', icon: FaUserGraduate, color: BRAND_COLORS.primary },
     { label: 'Fee Structures', path: '/fees/list', icon: FaMoneyBillWave, color: BRAND_COLORS.danger },
     { label: 'Analytics Reports', path: '/college-admin/reports-dashboard', icon: FaChartLine, color: BRAND_COLORS.secondary },

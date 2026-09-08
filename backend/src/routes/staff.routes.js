@@ -5,15 +5,29 @@ const roleMiddleware = require("../middlewares/role.middleware");
 const { ROLE } = require("../utils/constants");
 const staffController = require("../controllers/staff.controller");
 const { validateStaffCreation } = require("../middlewares/validators/staff.validator");
+const { uploadTeacherDocuments } = require("../middlewares/upload.middleware");
 
 // All routes require authentication and COLLEGE_ADMIN role
 router.use(authMiddleware, roleMiddleware([ROLE.COLLEGE_ADMIN]));
 
 /**
  * POST /api/college/staff
- * Create staff account (ACCOUNTANT, ADMISSION_OFFICER, etc.)
+ * Create staff account (ACCOUNTANT, ADMISSION_OFFICER, HOD, TEACHER, etc.)
+ *
+ * Supports both application/json (non-TEACHER roles) and multipart/form-data
+ * (TEACHER role, which may include document uploads: aadhaarCard, panCard,
+ * degreeCertificate, passportPhoto).
+ *
+ * The uploadTeacherDocuments middleware uses multer.any() which safely no-ops
+ * when no multipart body is present, preserving existing JSON-based Staff
+ * creation behavior.
  */
-router.post("/staff", validateStaffCreation, staffController.createStaff);
+router.post(
+  "/staff",
+  uploadTeacherDocuments,
+  validateStaffCreation,
+  staffController.createStaff,
+);
 
 /**
  * GET /api/college/staff
