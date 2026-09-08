@@ -395,6 +395,14 @@ export default function NotificationListPage({ role = "college-admin" }) {
 
   const totalPages = Math.ceil(getUniqueNotes.length / CONFIG.ITEMS_PER_PAGE);
 
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    }
+  };
+
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -869,7 +877,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
               <Pagination
                 page={currentPage}
                 totalPages={totalPages}
-                setPage={setCurrentPage}
+                setPage={handlePageChange}
               />
             </div>
           )}
