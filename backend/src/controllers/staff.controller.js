@@ -14,11 +14,14 @@ const STAFF_ROLES = [
   ROLE.ADMISSION_OFFICER,
   ROLE.EXAM_COORDINATOR,
   ROLE.PLATFORM_SUPPORT,
+  ROLE.TEACHER,
 ];
 const AuditService = require("../services/auditLog.service");
 const securityAuditService = require("../services/securityAudit.service");
 const { sendStaffCredentialsEmail, sendEmailChangedNotification } = require("../services/email.service");
 const { validateAge, ageValidatorMessage } = require("../utils/validators");
+const teacherCreationService = require("../services/teacherCreation.service");
+const teacherSubjectAssignmentService = require("../services/teacherSubjectAssignment.service");
 
 /**
  * Generate a random temporary password
@@ -47,6 +50,8 @@ const generateTempPassword = (length = 10) => {
         // Teaching assignment fields (optional, for HOD)
         courseId,
         subjectId,
+        // Subject assignment fields (optional, for TEACHER — multiple subjects)
+        subjectIds,
         // Extended profile fields (optional)
         mobileNumber,
         designation,
@@ -131,7 +136,50 @@ const generateTempPassword = (length = 10) => {
         }
       }
 
-    // Validate role: must be a staff role that COLLEGE_ADMIN can create
+      // ─── TEACHER Subject Assignment Validation ───
+      // Subjects are optional for TEACHER role. When provided, each subject
+      // is pre-validated (existence, college, ACTIVE status, department, course)
+      // before the Teacher transaction begins, so we fail early and never
+      // create a partially-configured Teacher.
+      let validatedSubjectIds = [];
+
+      if (role === "TEACHER" && subjectIds) {
+        const Subject = require("../models/subject.model");
+
+        // subjectIds may arrive as a string (single), an array, or comma-separated
+        let subjectIdList;
+        if (Array.isArray(subjectIds)) {
+          subjectIdList = subjectIds;
+        } else if (typeof subjectIds === "string") {
+          subjectIdList = subjectIds.split(",").map((s) => s.trim()).filter(Boolean);
+        } else {
+          subjectIdList = [];
+        }
+
+        if (subjectIdList.length > 0) {
+          for (const subjId of subjectIdList) {
+            const subject = await Subject.findOne({
+              _id: subjId,
+              college_id: req.user.college_id,
+              status: "ACTIVE",
+              department_id: departmentId,
+              course_id: courseId,
+            });
+
+            if (!subject) {
+              return next(new AppError(
+                "One or more selected subjects are invalid, inactive, or do not belong to the selected department/course",
+                400,
+                "INVALID_SUBJECT"
+              ));
+            }
+
+            validatedSubjectIds.push(subjId);
+          }
+        }
+      }
+
+      // Validate role: must be a staff role that COLLEGE_ADMIN can create
     const allowedRoles = [
       ROLE.ACCOUNTANT,
       ROLE.ADMISSION_OFFICER,
@@ -139,6 +187,7 @@ const generateTempPassword = (length = 10) => {
       ROLE.HOD,
       ROLE.EXAM_COORDINATOR,
       ROLE.PLATFORM_SUPPORT,
+      ROLE.TEACHER,
       // Note: ROLE.PARENT_GUARDIAN removed - parents are created automatically during student approval
     ];
 
@@ -167,8 +216,8 @@ const generateTempPassword = (length = 10) => {
       return next(new AppError("A user with this email already exists", 409, "EMAIL_EXISTS"));
     }
 
-    // For HOD role, check if a Teacher record with this email already exists
-    if (role === "HOD") {
+    // For HOD or TEACHER role, check if a Teacher record with this email already exists
+    if (role === "HOD" || role === "TEACHER") {
       const existingTeacher = await Teacher.findOne({ email });
       if (existingTeacher) {
         return next(new AppError(
@@ -178,8 +227,10 @@ const generateTempPassword = (length = 10) => {
           "EMAIL_EXISTS_IN_TEACHER"
         ));
       }
+    }
 
-      // For HOD role, check if department already has an HOD
+    // For HOD role, check if department already has an HOD
+    if (role === "HOD") {
       const departmentWithHod = await Department.findOne({
         _id: departmentId,
         college_id: req.user.college_id,
@@ -195,21 +246,7 @@ const generateTempPassword = (length = 10) => {
       }
     }
 
-    // Generate temporary password (plaintext - will be auto-hashed by User.pre-save hook)
-    const tempPassword = generateTempPassword(12);
-
-    // Generate a unique employee ID for the HOD's Teacher record
-    const generateEmployeeId = async (collegeId) => {
-      let empId;
-      let exists = true;
-      let counter = 1;
-      while (exists) {
-        empId = `EMP-${Date.now().toString().slice(-6)}-${String(counter).padStart(3, '0')}`;
-        exists = await Teacher.exists({ college_id: collegeId, employeeId: empId });
-        counter++;
-      }
-      return empId;
-    };
+    let tempPassword = generateTempPassword(12);
 
     // Start transaction — create User, StaffProfile, and (for HOD) Teacher together.
     // Use session.withTransaction() so MongoDB automatically retries the whole
@@ -220,7 +257,7 @@ const generateTempPassword = (length = 10) => {
     try {
       txResult = await session.withTransaction(async () => {
         // Create user - Mongoose pre-save hook will hash the password automatically
-        const user = await User.create(
+        const [user] = await User.create(
           [
             {
               name,
@@ -239,7 +276,7 @@ const generateTempPassword = (length = 10) => {
         const staffProfile = await StaffProfile.create(
           [
             {
-              user_id: user[0]._id,
+              user_id: user._id,
               college_id: req.user.college_id,
               mobileNumber: mobileNumber || "",
               designation: designation || "",
@@ -266,15 +303,16 @@ const generateTempPassword = (length = 10) => {
 
         // If role is HOD, create Teacher record required by hodMiddleware
         if (role === "HOD") {
-          const employeeId = await generateEmployeeId(req.user.college_id);
-          const teacherPayload = {
-            college_id: req.user.college_id,
-            user_id: user[0]._id,
-            department_id: departmentId,
-            courses: validatedCourseId ? [validatedCourseId] : [],
+          const employeeId = await teacherCreationService.generateUniqueEmployeeId(req.user.college_id);
+
+          const result = await teacherCreationService.createTeacher({
+            collegeId: req.user.college_id,
+            userId: user._id,
             name,
             email,
-            employeeId,
+            role: "HOD",
+            departmentId: departmentId,
+            courses: validatedCourseId ? [validatedCourseId] : [],
             designation: designation || "Head of Department",
             qualification: qualification || "Not Specified",
             experienceYears: parseInt(experienceYears) || 0,
@@ -287,20 +325,22 @@ const generateTempPassword = (length = 10) => {
             employmentType: employmentType || "FULL_TIME",
             mobileNumber: mobileNumber || "",
             joiningDate: joiningDate || null,
-          };
+            gender: gender || "",
+            bloodGroup: bloodGroup || "",
+            files: {},
+            employeeId,
+            sendCredentialsEmail: false,
+            validateDuplicateTeacherEmail: true,
+            session,
+          });
 
-          if (gender) teacherPayload.gender = gender;
-          if (bloodGroup) teacherPayload.bloodGroup = bloodGroup;
-
-          teacher = await Teacher.create(
-            [teacherPayload],
-            { session }
-          );
+          teacher = result.teacher;
+          if (result.temporaryPassword) tempPassword = result.temporaryPassword;
 
           // Assign teacher's _id as HOD of the department (Teacher._id, NOT User._id)
           await Department.findByIdAndUpdate(
             departmentId,
-            { hod_id: teacher[0]._id },
+             { hod_id: teacher._id },
             { session, new: true }
           );
 
@@ -309,10 +349,47 @@ const generateTempPassword = (length = 10) => {
             const Subject = require("../models/subject.model");
             await Subject.findOneAndUpdate(
               { _id: validatedSubjectId, college_id: req.user.college_id },
-              { teacher_id: teacher[0]._id },
+              { teacher_id: teacher._id },
               { session, new: true }
             );
           }
+        }
+
+        // If role is TEACHER, create Teacher record
+        if (role === "TEACHER") {
+          const employeeId = await teacherCreationService.generateUniqueEmployeeId(req.user.college_id);
+
+          const result = await teacherCreationService.createTeacher({
+            collegeId: req.user.college_id,
+            userId: user._id,
+            name,
+            email,
+            role: "TEACHER",
+            departmentId: departmentId,
+            courses: courseId ? [courseId] : [],
+            designation: designation || "",
+            qualification: qualification || "",
+            experienceYears: parseInt(experienceYears) || 0,
+            createdBy: req.user.id,
+            dateOfBirth: dateOfBirth || null,
+            address: address || "",
+            city: city || "",
+            state: state || "",
+            pincode: pincode || "",
+            employmentType: employmentType || "FULL_TIME",
+            mobileNumber: mobileNumber || "",
+            joiningDate: joiningDate || null,
+            gender: gender || "",
+            bloodGroup: bloodGroup || "",
+files: req.files || {},
+          employeeId,
+          sendCredentialsEmail: false,
+          validateDuplicateTeacherEmail: true,
+          session,
+          });
+
+          teacher = result.teacher;
+          if (result.temporaryPassword) tempPassword = result.temporaryPassword;
         }
 
         return { user, teacher };
@@ -325,18 +402,42 @@ const generateTempPassword = (length = 10) => {
 
     const { user, teacher } = txResult;
 
+    // ─── TEACHER Subject Assignment ───
+    // After the Teacher is successfully created (transaction committed),
+    // assign the pre-validated subjects using the existing assignment service.
+    // This reuses teacherSubjectAssignment.service.js — no duplicated logic.
+    // Subject assignment is optional; if it fails the Teacher is still valid.
+    let subjectAssignmentResult = null;
+    if (role === "TEACHER" && teacher && validatedSubjectIds.length > 0) {
+      try {
+        subjectAssignmentResult = await teacherSubjectAssignmentService.bulkAssignSubjects(
+          teacher._id,
+          validatedSubjectIds,
+          req.user.college_id,
+        );
+        if (subjectAssignmentResult.errors && subjectAssignmentResult.errors.length > 0) {
+          console.error(
+            "Subject assignment had errors for new teacher:",
+            subjectAssignmentResult.errors.map((e) => e.message).join("; "),
+          );
+        }
+      } catch (assignErr) {
+        console.error("Subject assignment failed for new teacher:", assignErr.message);
+      }
+    }
+
     const staffName = name;
     let employeeIdForAudit = null;
     let departmentIdForAudit = null;
 
-    if (role === "HOD") {
+    if (role === "HOD" || role === "TEACHER") {
       departmentIdForAudit = departmentId;
-      employeeIdForAudit = teacher[0].employeeId;
+      employeeIdForAudit = teacher.employeeId;
     }
 
     AuditService.logStaffCreated(
       req.user,
-      user[0],
+      user,
       role,
       departmentIdForAudit,
       employeeIdForAudit,
@@ -360,8 +461,8 @@ const generateTempPassword = (length = 10) => {
         statusCode: 201,
         metadata: {
           action: "CREATE_STAFF",
-          newUserId: user[0]._id,
-          newUserEmail: user[0].email,
+          newUserId: user._id,
+          newUserEmail: user.email,
           newUserRole: role,
           departmentId: departmentIdForAudit,
           employeeId: employeeIdForAudit,
@@ -386,23 +487,32 @@ const generateTempPassword = (length = 10) => {
       ? "Staff account created. Credentials sent via email."
       : "Staff account created. Email delivery failed - please share the temporary password manually.";
 
-    res.status(201).json({
-      success: true,
-      message,
-      emailDelivered: emailResult.success,
-      emailError: emailResult.success ? null : (emailResult.error || "SMTP not configured"),
-      data: {
-        user: {
-          id: user[0]._id,
-          name: user[0].name,
-          email: user[0].email,
-          role: user[0].role,
-          college_id: user[0].college_id,
-        },
-        teacher: teacher ? { id: teacher[0]._id, employeeId: teacher[0].employeeId } : null,
-        temporaryPassword: tempPassword, // shown only once
-      },
-    });
+     res.status(201).json({
+       success: true,
+       message,
+       emailDelivered: emailResult.success,
+       emailError: emailResult.success ? null : (emailResult.error || "SMTP not configured"),
+       data: {
+         user: {
+           id: user._id,
+           name: user.name,
+           email: user.email,
+           role: user.role,
+           college_id: user.college_id,
+         },
+         teacher: teacher ? {
+           id: teacher._id,
+           employeeId: teacher.employeeId,
+           subjectsAssigned: subjectAssignmentResult
+             ? subjectAssignmentResult.assigned
+             : 0,
+           subjectAssignmentErrors: subjectAssignmentResult && subjectAssignmentResult.errors?.length > 0
+             ? subjectAssignmentResult.errors
+             : undefined,
+         } : null,
+         temporaryPassword: tempPassword, // shown only once
+       },
+     });
   } catch (error) {
     next(error);
   }

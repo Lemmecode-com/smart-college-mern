@@ -1,4 +1,3 @@
-const crypto = require("crypto");
 const path = require("path");
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
@@ -9,267 +8,22 @@ const Document = require("../models/document.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
-const { sendStaffCredentialsEmail } = require("../services/email.service");
 const logger = require("../utils/logger");
 const { getStorageProvider } = require("../services/storage");
 const DocumentService = require("../services/document.service");
-const { processUploadsWithStorage } = require("../middlewares/upload.middleware");
 const {
   reassignTeacherResources,
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
   getTeacherReassignmentData: fetchReassignmentData,
 } = require("../services/teacherReassignment.service");
 const { validateAge, ageValidatorMessage } = require("../utils/validators");
-
-const generateTempPassword = (length = 10) => {
-  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length));
-  }
-  return password;
-};
-
-const DOCUMENT_TYPE_LABELS = {
-  aadhaarCard: "Aadhaar Card",
-  panCard: "PAN Card",
-  degreeCertificate: "Degree Certificate",
-  passportPhoto: "Passport Photo",
-};
-
-const processTeacherDocuments = async (files = {}, teacherId = null, uploadedBy = null) => {
-  const storageService = getStorageProvider().getAdapter();
-  const documents = [];
-  const allowedTypes = Object.keys(DOCUMENT_TYPE_LABELS);
-
-  for (const type of allowedTypes) {
-    const fileList = files[type];
-    if (fileList && fileList.length > 0 && fileList[0]) {
-      const file = fileList[0];
-      if (!file.buffer) continue;
-
-      const uploadResult = await storageService.uploadFile(
-        file.buffer,
-        file.originalname,
-        "teacher",
-        {
-          originalName: file.originalname,
-          mimetype: file.mimetype,
-          size: file.size,
-          documentType: type,
-        }
-      );
-
-      let documentId = null;
-
-      if (teacherId && uploadedBy) {
-        try {
-          const Document = require("../models/document.model");
-          const DocumentService = require("../services/document.service");
-          const doc = await DocumentService.createDocument({
-            ownerType: "Teacher",
-            ownerId: teacherId,
-            documentType: type,
-            fileBuffer: file.buffer,
-            originalFileName: file.originalname,
-            mimeType: file.mimetype,
-            size: file.size,
-            uploadedBy: uploadedBy,
-            category: "teacher",
-            storageKey: uploadResult.storagePath,
-          });
-          documentId = doc.documentId;
-        } catch (error) {
-          console.error(`Failed to create Document record for ${type}:`, error.message);
-        }
-      }
-
-      documents.push({
-        documentType: type,
-        originalName: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
-        documentId,
-      });
-    }
-  }
-
-  return documents;
-};
-
-/* =========================================================
-   CREATE TEACHER (College Admin)
-   POST /teachers
-   ➕ supports course assignment
-========================================================= */
-exports.createTeacher = async (req, res, next) => {
-  try {
-    const {
-      name,
-      email,
-      designation,
-      qualification,
-      experienceYears,
-      department_id,
-      course_id,
-      courses = [],
-      // New fields for complete profile
-      gender,
-      bloodGroup,
-      dateOfBirth,
-      address,
-      city,
-      state,
-      pincode,
-      employmentType,
-      mobileNumber,
-      joiningDate,
-    } = req.body;
-
-    /* ================= Normalize courses ================= */
-    const finalCourses =
-      courses.length > 0 ? courses : course_id ? [course_id] : [];
-
-    /* ================= Validate Department ================= */
-    const department = await Department.findOne({
-      _id: department_id,
-      college_id: req.college_id,
-    });
-
-    if (!department) {
-      throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
-    }
-
-    /* ================= Validate Courses ================= */
-    if (finalCourses.length > 0) {
-      const validCourses = await Course.countDocuments({
-        _id: { $in: finalCourses },
-        department_id,
-        college_id: req.college_id,
-      });
-
-      if (validCourses !== finalCourses.length) {
-        throw new AppError(
-          "One or more courses do not belong to this department",
-          404,
-          "COURSE_NOT_FOUND",
-        );
-      }
-    }
-
-    /* ================= Joining Date Validation ================= */
-    if (joiningDate && new Date(joiningDate) > new Date()) {
-      throw new AppError("Joining Date cannot be a future date", 400, "VALIDATION_ERROR");
-    }
-
-    /* ================= Date of Birth Validation ================= */
-    if (dateOfBirth && !validateAge(dateOfBirth, 14, 100)) {
-      throw new AppError(ageValidatorMessage(14, 100), 400, "VALIDATION_ERROR");
-    }
-
-    /* ================= Generate Employee ID ================= */
-    const departmentTeacherCount = await Teacher.countDocuments({
-      college_id: req.college_id,
-      department_id,
-    });
-    const sequenceNumber = String(departmentTeacherCount + 1).padStart(3, "0");
-    const generatedEmployeeId = `${department.code}-T-${sequenceNumber}`;
-
-    /* ================= Generate Temp Password ================= */
-    const tempPassword = generateTempPassword(12);
-
-    /* ================= Duplicate User ================= */
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      throw new AppError("Email already exists", 409, "DUPLICATE_EMAIL");
-    }
-
-    /* ================= Handle Document Uploads ================= */
-    // Uploads are processed after teacher creation so we can pass teacherId
-    // to the Document collection (Document collection is the single source of truth)
-
-    /* ================= Create User ================= */
-    const user = await User.create({
-      name,
-      email,
-      password: tempPassword,
-      role: "TEACHER",
-      college_id: req.college_id,
-      isActive: true,
-      mustChangePassword: true,
-    });
-
-    /* ================= Create Teacher ================= */
-    const teacher = await Teacher.create({
-      college_id: req.college_id,
-      user_id: user._id,
-      department_id,
-      courses: finalCourses,
-      name,
-      email,
-      employeeId: generatedEmployeeId,
-      designation,
-      qualification,
-      experienceYears: Number(experienceYears),
-      createdBy: req.user.id,
-      // New fields
-      gender,
-      bloodGroup,
-      dateOfBirth,
-      address,
-      city,
-      state,
-      pincode,
-      employmentType: employmentType || "FULL_TIME",
-      mobileNumber,
-      joiningDate,
-      // Documents array is no longer the primary storage — documentRefs is
-    });
-
-    /* ================= Create Document Records ================= */
-    // Now that teacher exists, we can create Document records with teacherId
-    const uploadedDocuments = await processTeacherDocuments(
-      req.files || {},
-      teacher._id,
-      req.user.id,
-    );
-
-    const documentRefs = uploadedDocuments
-      .filter((doc) => doc.documentId)
-      .map((doc) => ({
-        documentId: doc.documentId,
-        documentType: doc.documentType,
-      }));
-
-    if (documentRefs.length > 0) {
-      await Teacher.findByIdAndUpdate(teacher._id, { documentRefs });
-    }
-
-    ApiResponse.created(
-      res,
-      {
-        teacher,
-        temporaryPassword: tempPassword,
-      },
-      "Teacher created successfully",
-    );
-
-    sendStaffCredentialsEmail({
-      to: email,
-      name,
-      temporaryPassword: tempPassword,
-      collegeId: req.college_id,
-    }).catch((err) => logger.logError("Failed to send teacher credentials email", { error: err.message }));
-  } catch (error) {
-    next(error);
-  }
-};
+const teacherCreationService = require("../services/teacherCreation.service");
 
 /* =========================================================
    GET MY PROFILE (Logged-in Teacher)
    GET /teachers/my-profile
    ✅ FIXED: Properly populate department_id with hod_id
-========================================================= */
+   ========================================================= */
 exports.getMyProfile = async (req, res, next) => {
   try {
     const teacher = await Teacher.findOne({
@@ -739,7 +493,7 @@ exports.updateTeacher = async (req, res, next) => {
     }
 
     const storageService = getStorageProvider().getAdapter();
-    const newDocuments = await processTeacherDocuments(req.files || {});
+    const newDocuments = await teacherCreationService.processTeacherDocuments(req.files || {});
     let finalDocs = [...(existingTeacher.documents || [])];
     const documentRefs = [...(existingTeacher.documentRefs || [])];
 

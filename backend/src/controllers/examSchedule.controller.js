@@ -556,7 +556,11 @@ const loadPublishedScheduleForVisibility = async (examId, collegeId) => {
  */
 exports.getPublishedScheduleForStudent = async (req, res, next) => {
   try {
-    const student = req.student;
+    const student = req.student || await Student.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+      status: { $in: ["APPROVED", "ENROLLED"] },
+    });
 
     if (!student) {
       return ApiResponse.success(res, null, "Exam schedule not found");
@@ -628,7 +632,7 @@ exports.getPublishedScheduleForTeacher = async (req, res, next) => {
 
     const courseMatch =
       teacherCourses.length === 0 ||
-      teacherCourses.some((cid) => String(cid) === String(exam.course_id));
+      teacherCourses.some((cid) => String(cid) === String(exam.course_id && exam.course_id._id));
 
     const subjectIds = (exam.subjects || [])
       .map((s) => {

@@ -181,22 +181,13 @@ export default function TeacherExamTimetable() {
           </>
         ) : (
           <div className="teacher-exam-timetable-detail">
-            <div className="teacher-exam-timetable-detail-header">
-              <button
-                type="button"
-                className="teacher-exam-timetable-back"
-                onClick={handleBackToList}
-              >
-                <FaArrowLeft /> Back to Exams
-              </button>
-              <h3 className="teacher-exam-timetable-detail-title">
-                {selectedExam.name || "Exam Timetable"}
-              </h3>
-              <p className="teacher-exam-timetable-detail-subtitle">
-                {selectedExam.course_id?.name || "N/A"} ({selectedExam.course_id?.code || "N/A"}) •
-                Semester {selectedExam.semester ?? "N/A"} • {selectedExam.academicYear || "N/A"}
-              </p>
-            </div>
+            <button
+              type="button"
+              className="teacher-exam-timetable-back"
+              onClick={handleBackToList}
+            >
+              <FaArrowLeft /> Back to Exams
+            </button>
 
             {scheduleLoading && <Loading text="Loading schedule..." />}
 
@@ -278,10 +269,6 @@ export default function TeacherExamTimetable() {
           animation: fadeIn 0.35s ease-out;
         }
 
-        .teacher-exam-timetable-detail-header {
-          margin-bottom: 1.25rem;
-        }
-
         .teacher-exam-timetable-back {
           display: inline-flex;
           align-items: center;
@@ -301,19 +288,6 @@ export default function TeacherExamTimetable() {
         .teacher-exam-timetable-back:hover {
           background: #f8f9fa;
           border-color: #cbd5e1;
-        }
-
-        .teacher-exam-timetable-detail-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .teacher-exam-timetable-detail-subtitle {
-          color: #64748b;
-          font-size: 0.9rem;
-          margin: 0.25rem 0 0;
         }
 
         .teacher-exam-timetable-schedule-error {
