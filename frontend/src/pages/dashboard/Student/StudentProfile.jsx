@@ -1431,6 +1431,52 @@ export default function StudentProfile() {
         }
         
         @media (max-width: 576px) {
+          .card-header.bg-gradient-primary {
+            padding: 1.25rem !important;
+          }
+
+          .card-header.bg-gradient-primary .position-relative > .d-flex {
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+
+          .card-header.bg-gradient-primary .position-relative > .d-flex > div:last-child {
+            min-width: 0;
+          }
+
+          .card-header.bg-gradient-primary h2 {
+            font-size: 1.35rem;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+          }
+
+          .card-header.bg-gradient-primary .profile-header-btn {
+            position: static !important;
+            width: 100%;
+            justify-content: center;
+            margin: 1rem 0 0 !important;
+          }
+
+          .card-header.bg-gradient-primary .d-flex.flex-wrap {
+            gap: 0.5rem !important;
+          }
+
+          .card-body.bg-light > .d-flex {
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+
+          .card-body.bg-light > .d-flex > div {
+            gap: 0.65rem !important;
+          }
+
+          .card-body.bg-light small {
+            display: block;
+            text-align: left;
+            white-space: normal;
+            overflow-wrap: anywhere;
+          }
+
           .profile-logo-container {
             width: 50px;
             height: 50px;
