@@ -7,6 +7,8 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import {
   FaBookOpen,
@@ -480,7 +482,12 @@ export default function CourseList() {
           const backendMessage = err.response?.data?.message;
           const errorMessage = backendMessage || "Failed to load departments.";
 
-          logger.error("Error fetching departments:", statusCode, errorCode);
+          logger.error("Error fetching departments:", {
+            status: statusCode,
+            code: errorCode,
+            message: backendMessage,
+            url: "/departments"
+          });
 
           setDepartmentsError({
             message: errorMessage,
@@ -532,7 +539,12 @@ export default function CourseList() {
           const backendMessage = err.response?.data?.message;
           const errorMessage = backendMessage || "Failed to load courses.";
 
-          logger.error("Error fetching courses:", statusCode, errorCode);
+          logger.error("Error fetching courses:", {
+            status: statusCode,
+            code: errorCode,
+            message: backendMessage,
+            url: `/courses/department/${selectedDepartment}`
+          });
 
           setCoursesError({
             message: errorMessage,
