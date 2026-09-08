@@ -1757,6 +1757,68 @@ export default function StudentFees() {
           color: white;
         }
 
+        @media (max-width: 1024px) {
+          .fees-footer {
+            margin-top: 1.25rem;
+            padding: 1.25rem;
+            border-radius: 16px;
+          }
+
+          .footer-content {
+            align-items: stretch;
+            gap: 1rem;
+          }
+
+          .footer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+          }
+
+          .footer-info p {
+            padding: 0.65rem 0.75rem;
+            margin: 0;
+            border-radius: 10px;
+            background: #f5f7fa;
+            line-height: 1.45;
+          }
+
+          .footer-info p:last-child {
+            background: #eef7fb;
+            color: #1a4b6d;
+          }
+
+          .footer-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.65rem;
+            width: 100%;
+          }
+
+          .btn-footer {
+            width: 100%;
+            min-height: 44px;
+            justify-content: center;
+            padding: 0.65rem 0.75rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .fees-footer {
+            padding: 1rem;
+          }
+
+          .footer-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .footer-info p {
+            font-size: 0.82rem;
+          }
+        }
+
         /* ================= ANIMATIONS ================= */
         .fade-in {
           animation: fadeIn 0.6s ease forwards;
