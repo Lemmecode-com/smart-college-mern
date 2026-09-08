@@ -305,7 +305,7 @@ const generateTempPassword = (length = 10) => {
         if (role === "HOD") {
           const employeeId = await teacherCreationService.generateUniqueEmployeeId(req.user.college_id);
 
-          const result = await teacherCreationService.createTeacher({
+          const hodTeacherPayload = {
             collegeId: req.user.college_id,
             userId: user._id,
             name,
@@ -325,14 +325,21 @@ const generateTempPassword = (length = 10) => {
             employmentType: employmentType || "FULL_TIME",
             mobileNumber: mobileNumber || "",
             joiningDate: joiningDate || null,
-            gender: gender || "",
-            bloodGroup: bloodGroup || "",
             files: {},
             employeeId,
             sendCredentialsEmail: false,
             validateDuplicateTeacherEmail: true,
             session,
-          });
+          };
+
+          if (gender) {
+            hodTeacherPayload.gender = gender;
+          }
+          if (bloodGroup) {
+            hodTeacherPayload.bloodGroup = bloodGroup;
+          }
+
+          const result = await teacherCreationService.createTeacher(hodTeacherPayload);
 
           teacher = result.teacher;
           if (result.temporaryPassword) tempPassword = result.temporaryPassword;
