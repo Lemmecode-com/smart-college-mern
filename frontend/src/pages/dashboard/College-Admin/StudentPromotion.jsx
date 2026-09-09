@@ -1488,6 +1488,42 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           background: #f0f4f8;
           min-height: 100vh;
         }
+        //For academic year column(Sem1)
+        .data-table td:nth-child(3) {
+          vertical-align: middle;
+        }
+
+        .data-table td:nth-child(3) > div {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+        }
+        
+        /* Fix Eligible Students header overlap */
+          .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+          }
+
+          .card-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-shrink: 0;
+            white-space: nowrap;
+          }
+
+          .card-header-actions .text-muted {
+            display: inline-block;
+          }
+
+          .card-header-actions .badge {
+            margin-left: 0 !important;
+          }
+
 
         .page-header {
           display: flex;
