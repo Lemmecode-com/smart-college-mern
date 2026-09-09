@@ -260,6 +260,31 @@ export default function StudentResults() {
         </a>
 
         <div style={{ maxWidth: "1320px", margin: "0 auto" }} id="results-content">
+          <style>{`
+            @media (max-width: 1024px) {
+              .sr-result-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+              }
+
+              .sr-result-badges {
+                width: 100%;
+                justify-content: flex-start !important;
+                flex-wrap: wrap;
+              }
+            }
+
+            @media (max-width: 480px) {
+              .sr-result-badges {
+                gap: 0.5rem !important;
+              }
+
+              .sr-result-badge-overall {
+                min-width: 0 !important;
+                padding: 0.5rem 1rem !important;
+              }
+            }
+          `}</style>
           <Breadcrumb
             items={[
               { label: "Dashboard", path: "/student/dashboard" },
@@ -442,6 +467,7 @@ function ResultCard({ result, index }) {
       }}
     >
       <div
+        className="sr-result-header"
         style={{
           background: "linear-gradient(180deg, #0f3a4a, #134952)",
           padding: `${SPACE.lg}px ${SPACE.xl}px`,
@@ -484,7 +510,7 @@ function ResultCard({ result, index }) {
             <span>Academic Year: {result.academicYear}</span>
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: SPACE.md }}>
+        <div className="sr-result-badges" style={{ display: "flex", alignItems: "center", gap: SPACE.md }}>
           <span
             style={{
               padding: "0.5rem 1.25rem",
@@ -498,6 +524,7 @@ function ResultCard({ result, index }) {
             Published
           </span>
           <div
+            className="sr-result-badge-overall"
             style={{
               padding: "0.6rem 1.5rem",
               borderRadius: RADIUS.md,
