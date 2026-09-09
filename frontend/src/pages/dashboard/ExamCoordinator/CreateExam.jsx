@@ -34,6 +34,7 @@ import {
   FaBook,
   FaTrash,
   FaBullhorn,
+  FaUniversity,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -592,12 +593,15 @@ export default function CreateExam() {
     "UNAUTHORIZED",
   ]);
 
+  const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
 
   const [formData, setFormData] = useState({
+    department_id: "",
     name: "",
     course_id: "",
     semester: "",
@@ -616,14 +620,49 @@ export default function CreateExam() {
   const [publishError, setPublishError] = useState(null);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
 
-  /* ================= LOAD COURSES ================= */
+  /* ================= LOAD DEPARTMENTS ================= */
   useEffect(() => {
-    const fetchCourses = async () => {
+    const fetchDepartments = async () => {
       try {
-        const res = await api.get("/courses");
-        const coursesData = Array.isArray(res.data) ? res.data :
-                            Array.isArray(res.data.data) ? res.data.data :
-                            Array.isArray(res.data.courses) ? res.data.courses : [];
+        const res = await api.get("/departments");
+        const depts = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data?.departments)
+          ? res.data.departments
+          : [];
+        setDepartments(depts);
+      } catch {
+        setDepartments([]);
+      } finally {
+        setLoadingDepartments(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  /* ================= LOAD COURSES BY DEPARTMENT ================= */
+  useEffect(() => {
+    if (!formData.department_id) {
+      setCourses([]);
+      return;
+    }
+
+    const fetchCourses = async () => {
+      setLoadingCourses(true);
+      try {
+        const res = await api.get(
+          `/courses?departmentId=${formData.department_id}`,
+        );
+        const coursesData = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data?.courses)
+          ? res.data.courses
+          : [];
         setCourses(coursesData);
       } catch {
         setCourses([]);
@@ -633,7 +672,7 @@ export default function CreateExam() {
     };
 
     fetchCourses();
-  }, []);
+  }, [formData.department_id]);
 
   /* ================= LOAD SUBJECTS WHEN COURSE/SEMESTER CHANGES ================= */
   useEffect(() => {
@@ -672,21 +711,22 @@ export default function CreateExam() {
    }, [formData.subjects, subjects]);
 
   /* ================= HANDLERS ================= */
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    const resetsSubjects = name === "course_id" || name === "semester";
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-      ...(resetsSubjects ? { subjects: [] } : {}),
-    }));
-    if (validationErrors[name]) {
-      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
-    }
-    if (resetsSubjects && validationErrors.subjects) {
-      setValidationErrors((prev) => ({ ...prev, subjects: "" }));
-    }
-  };
+   const handleInputChange = (e) => {
+     const { name, value } = e.target;
+     const resetsSubjects = name === "department_id" || name === "course_id" || name === "semester";
+     setFormData((prev) => ({
+       ...prev,
+       [name]: value,
+       ...(name === "department_id" ? { course_id: "", semester: "", subjects: [] } : {}),
+       ...(resetsSubjects && name !== "department_id" ? { subjects: [] } : {}),
+     }));
+     if (validationErrors[name]) {
+       setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+     }
+     if (resetsSubjects && validationErrors.subjects) {
+       setValidationErrors((prev) => ({ ...prev, subjects: "" }));
+     }
+   };
 
    const toggleSubject = (subjectId) => {
      setFormData((prev) => {
@@ -721,6 +761,10 @@ export default function CreateExam() {
 
     if (!formData.name.trim()) {
       errors.name = "Exam name is required";
+    }
+
+    if (!formData.department_id) {
+      errors.department_id = "Department is required";
     }
 
     if (!formData.course_id) {
@@ -1004,45 +1048,90 @@ export default function CreateExam() {
                   )}
                 </motion.div>
 
-                {/* Course Selection */}
-                <motion.div
-                  custom={1}
-                  initial="hidden"
-                  animate="visible"
-                  variants={fadeInVariants}
-                  className="field-group"
-                >
-                  <label className="field-label">
-                    <FaGraduationCap className="field-label-icon" />
-                    Course *
-                  </label>
-                  <select
-                    className={`field-input ${validationErrors.course_id ? "is-invalid" : ""}`}
-                    name="course_id"
-                    value={formData.course_id}
-                    onChange={handleInputChange}
-                    disabled={loading || loadingCourses}
-                  >
-                    <option value="">Select Course</option>
-                    {courses.map((course) => (
-                      <option key={course._id} value={course._id}>
-                        {course.name} ({course.code})
-                      </option>
-                    ))}
-                  </select>
-                  {validationErrors.course_id && (
-                    <div className="field-feedback">{validationErrors.course_id}</div>
-                  )}
-                </motion.div>
+                 {/* Department Selection */}
+                 <motion.div
+                   custom={1}
+                   initial="hidden"
+                   animate="visible"
+                   variants={fadeInVariants}
+                   className="field-group"
+                 >
+                   <label className="field-label">
+                     <FaUniversity className="field-label-icon" />
+                     Department *
+                   </label>
+                   {loadingDepartments ? (
+                     <div className="text-center py-2" style={{ color: "var(--edx-slate-600)" }}>
+                       <FaSpinner className="spin me-2" />
+                       Loading departments...
+                     </div>
+                   ) : (
+                     <select
+                       className={`field-input ${validationErrors.department_id ? "is-invalid" : ""}`}
+                       name="department_id"
+                       value={formData.department_id}
+                       onChange={handleInputChange}
+                       disabled={loading}
+                     >
+                       <option value="">Select Department</option>
+                       {departments.map((dept) => (
+                         <option key={dept._id} value={dept._id}>
+                           {dept.name} ({dept.code})
+                         </option>
+                       ))}
+                     </select>
+                   )}
+                   {validationErrors.department_id && (
+                     <div className="field-feedback">{validationErrors.department_id}</div>
+                   )}
+                 </motion.div>
 
-                {/* Semester Selection */}
-                <motion.div
-                  custom={2}
-                  initial="hidden"
-                  animate="visible"
-                  variants={fadeInVariants}
-                  className="field-group"
-                >
+                 {/* Course Selection */}
+                 <motion.div
+                   custom={2}
+                   initial="hidden"
+                   animate="visible"
+                   variants={fadeInVariants}
+                   className="field-group"
+                 >
+                   <label className="field-label">
+                     <FaGraduationCap className="field-label-icon" />
+                     Course *
+                   </label>
+                   {loadingCourses ? (
+                     <div className="text-center py-2" style={{ color: "var(--edx-slate-600)" }}>
+                       <FaSpinner className="spin me-2" />
+                       Loading courses...
+                     </div>
+                   ) : (
+                     <select
+                       className={`field-input ${validationErrors.course_id ? "is-invalid" : ""}`}
+                       name="course_id"
+                       value={formData.course_id}
+                       onChange={handleInputChange}
+                       disabled={loading || !formData.department_id}
+                     >
+                       <option value="">Select Course</option>
+                       {courses.map((course) => (
+                         <option key={course._id} value={course._id}>
+                           {course.name} ({course.code})
+                         </option>
+                       ))}
+                     </select>
+                   )}
+                   {validationErrors.course_id && (
+                     <div className="field-feedback">{validationErrors.course_id}</div>
+                   )}
+                 </motion.div>
+
+                 {/* Semester Selection */}
+                 <motion.div
+                   custom={3}
+                   initial="hidden"
+                   animate="visible"
+                   variants={fadeInVariants}
+                   className="field-group"
+                 >
                   <label className="field-label">
                     <FaLayerGroup className="field-label-icon" />
                     Semester *
@@ -1069,9 +1158,9 @@ export default function CreateExam() {
                   )}
                 </motion.div>
 
-                {/* Academic Year */}
-                <motion.div
-                  custom={3}
+                 {/* Academic Year */}
+                 <motion.div
+                   custom={4}
                   initial="hidden"
                   animate="visible"
                   variants={fadeInVariants}
@@ -1097,17 +1186,17 @@ export default function CreateExam() {
 
                 {/* Subject Selection */}
                 <motion.div
-                  custom={4}
-                  initial="hidden"
-                  animate="visible"
-                  variants={fadeInVariants}
-                  className="field-group"
-                >
-                  <label className="field-label">Subjects *</label>
+                  custom={5}
+                   initial="hidden"
+                   animate="visible"
+                   variants={fadeInVariants}
+                   className="field-group"
+                 >
+                   <label className="field-label">Subjects *</label>
                   {!formData.course_id || !formData.semester ? (
                     <div className="alert-edx alert-edx-info">
                       <FaInfoCircle />
-                      Please select a course and semester first to load available subjects.
+                      Please select a department, course, and semester first to load available subjects.
                     </div>
                   ) : loadingSubjects ? (
                     <div className="text-center py-4" style={{ color: "var(--edx-slate-600)" }}>
