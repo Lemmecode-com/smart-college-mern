@@ -187,21 +187,20 @@ export default function TeacherDashboard() {
       >
         <div className="container-fluid px-3 px-md-4 py-3 py-md-4">
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="card shadow-sm mb-3 mb-md-4"
-          >
-            <div className="card-body py-2 py-md-3 px-3 px-md-4">
+          
+            <motion.div
+              variants={slideDownVariants}
+              initial="hidden"
+              animate="visible"
+              className="mb-4"
+            >
               <Breadcrumb
                 items={[
                   { label: "Dashboard" },
                   { label: "Teacher Overview" }
                 ]}
               />
-            </div>
-          </motion.div>
+            </motion.div>
 
           {/* ================= HEADER ================= */}
           <motion.div
