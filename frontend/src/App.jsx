@@ -322,7 +322,8 @@ function AppContent({
         )}
         <ScrollToTop />
         {/* ================= ROUTES (ALWAYS RENDERED) ================= */}
-        <Routes>
+        <Suspense fallback={<Loading />}>
+          <Routes>
           {/* ================= LANDING PAGE (ROOT) ================= */}
           <Route path="/" element={<LandingPage />} />
 
@@ -1821,6 +1822,7 @@ function AppContent({
             <Route path="*" element={<Navigate to="/home" />} />
           </Route>
         </Routes>
+        </Suspense>
       </div>
 
       {/* ================= GLOBAL TOAST CONTAINER ================= */}
