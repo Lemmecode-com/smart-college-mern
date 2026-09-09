@@ -5,6 +5,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -446,52 +447,12 @@ export default function SessionDetails() {
       >
         <div style={{ maxWidth: "100%", margin: "0 auto" }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: "1.5rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5, backgroundColor: "#f1f5f9" }}
-              whileTap={{ x: -2 }}
-              onClick={() => navigate("/attendance/sessions")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                color: BRAND_COLORS.primary.main,
-                background: "none",
-                border: "none",
-                fontSize: "0.95rem",
-                fontWeight: 500,
-                cursor: "pointer",
-                padding: "0.5rem",
-                borderRadius: "8px",
-                transition: "all 0.3s ease",
-                willChange: "transform, background-color",
-                backfaceVisibility: "hidden",
-              }}
-            >
-              <FaArrowLeft /> Back to Sessions
-            </motion.button>
-            <span style={{ color: "#94a3b8" }}>›</span>
-            <span
-              style={{
-                color: BRAND_COLORS.primary.main,
-                fontWeight: 600,
-                fontSize: "1rem",
-              }}
-            >
-              Session Details
-            </span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "Session Details" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div
