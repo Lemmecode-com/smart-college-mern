@@ -1134,6 +1134,16 @@ export default function StudentDashboard() {
                     return (
                       <div
                         key={notification._id}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`View notification: ${notification.title}`}
+                        onClick={() => navigate(`/notification/view/${notification._id}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            navigate(`/notification/view/${notification._id}`);
+                          }
+                        }}
                         onMouseEnter={() => setHoveredNotif(notification._id)}
                         onMouseLeave={() => setHoveredNotif(null)}
                         style={{
@@ -1143,6 +1153,7 @@ export default function StudentDashboard() {
                           borderRadius: T.radiusMd,
                           background: !notification.isRead ? T.navyTint : T.row,
                           borderLeft: `4px solid ${!notification.isRead ? T.navy : T.border}`,
+                          cursor: "pointer",
                           transition: "all 0.2s ease",
                           transform: hovered ? "translateX(4px)" : "translateX(0)",
                         }}
