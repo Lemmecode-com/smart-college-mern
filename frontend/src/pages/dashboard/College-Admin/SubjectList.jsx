@@ -269,12 +269,14 @@ export default function SubjectList() {
   return (
     <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* BREADCRUMBS */}
+      <div className="course-breadcrumb-wrapper">
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
           { label: "Subject Management" }
         ]}
       />
+      </div>
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -623,6 +625,12 @@ export default function SubjectList() {
           --sidebar-active: rgba(61, 181, 230, 0.2);
           --card-shadow: 0 4px 20px rgba(15, 58, 74, 0.08);
           --card-hover-shadow: 0 8px 30px rgba(15, 58, 74, 0.12);
+        }
+      /* BREADCRUMBS */
+        .course-breadcrumb-wrapper {
+          width: 100%;
+          margin-top: 20px;
+          padding-top: 25px;
         }
 
         .erp-page-header {
