@@ -714,6 +714,7 @@ export default function CourseList() {
   return (
     <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* BREADCRUMBS */}
+    <div className="course-breadcrumb-wrapper">
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
@@ -721,6 +722,7 @@ export default function CourseList() {
           { label: "Course Management" }
         ]}
       />
+    </div>
 
       {/* PAGE HEADER */}
       <div className="page-header">
@@ -1038,6 +1040,11 @@ export default function CourseList() {
         /* ================= BREADCRUMBS ================= */
         :global(.breadcrumb-container) {
           margin-bottom: 1.5rem;
+        }
+        /* ================= COURSE BREADCRUMB ================= */
+        .course-breadcrumb-wrapper {
+          width: 100%;
+          padding-top: 25px;
         }
 
         /* ================= PAGE HEADER ================= */
