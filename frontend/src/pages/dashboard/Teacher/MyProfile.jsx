@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaUserTie,
   FaEnvelope,
@@ -237,33 +238,12 @@ export default function MyProfile() {
       >
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '0.75rem 1.5rem',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span 
-                style={{ 
-                  color: '#64748b', 
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
-                onClick={() => navigate('/teacher/dashboard')}
-              >
-                Dashboard
-              </span>
-              <span style={{ color: '#94a3b8' }}>›</span>
-              <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '0.9rem' }}>My Profile</span>
-            </div>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "My Profile" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div

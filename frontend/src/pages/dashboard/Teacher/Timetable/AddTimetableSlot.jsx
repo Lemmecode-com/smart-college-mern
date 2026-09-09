@@ -22,6 +22,7 @@ import {
   FaBook
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+import Breadcrumb from "../../../../components/Breadcrumb";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -365,38 +366,12 @@ export default function AddTimetableSlot() {
       >
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           {/* Breadcrumb */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => window.history.back()}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer'
-              }}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600 }}>Add Timetable Slot</span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "Add Timetable Slot" },
+            ]}
+          />
 
           <div className="row g-4">
             {/* Form Card */}
