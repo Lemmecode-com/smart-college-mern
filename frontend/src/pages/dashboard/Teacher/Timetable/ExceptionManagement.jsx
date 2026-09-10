@@ -4,6 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -344,18 +345,40 @@ export default function ExceptionManagement() {
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
+            {/* ================= BREADCRUMB ================= */}   
+                      <div
+                  style={{
+                    width: "97%",
+                    margin: "10px auto",
+                    paddingTop: "30px",
+                  }}
+                >
+                  <div style={{ width: "100%" }}>
+                    <Breadcrumb
+                      items={[
+                        { label: "Dashboard", path: "/teacher/dashboard" },
+                        { label: "My Exceptions" },
+                      ]}
+                    />
+                  </div>
+                </div>
+
       {/* ================= HEADER ================= */}
-      <MotionDiv
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="position-relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-        }}
-      >
+
+        <MotionDiv
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="position-relative overflow-hidden exception-management-banner"
+          style={{
+            background:
+              "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
+            borderRadius: "18px",
+            border: "1px solid rgba(255, 255, 255, 0.08)",
+            boxShadow: "0 10px 30px rgba(15, 58, 74, 0.18)",
+            margin: "16px",
+          }}
+     >
+      
         {/* Background Pattern */}
         <div
           className="position-absolute top-0 end-0"
