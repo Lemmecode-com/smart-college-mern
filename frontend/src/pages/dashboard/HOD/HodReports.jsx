@@ -17,6 +17,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
 import { logger } from "../../../utils/logger";
 import Loading from "../../../components/Loading";
 
@@ -321,6 +322,24 @@ const HodReports = () => {
         }}
       >
         <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+          {/* ================= BREADCRUMB ================= */}
+            <div
+              style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+                height: "60px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Department Reports" },
+                  ]}
+                />
+              </div>
+            </div>
           {/* Header */}
           <motion.div
             variants={fadeUp}
