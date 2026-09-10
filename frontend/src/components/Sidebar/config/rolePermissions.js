@@ -220,12 +220,28 @@ export const rolePermissions = {
     canManageSystemSettings: false,
   },
 
-  /**
-   * ADMISSION_OFFICER
-   * Manages student admissions lifecycle (view, approve, reject, bulk actions)
-   * Access mirrors College Admin for student admission-related sections only
-   */
-  ADMISSION_OFFICER: {
+   /**
+    * EXAM_COORDINATOR
+    * Exam management and planning
+    */
+   EXAM_COORDINATOR: {
+    displayName: "Exam Coordinator",
+    canAccess: ["exam", "exam-results"],
+    canCreate: ["exam"],
+    canEdit: ["exam"],
+    canDelete: ["exam"],
+    canManageUsers: false,
+    canManageColleges: false,
+    canViewSystemReports: false,
+    canManageSystemSettings: false,
+  },
+
+   /**
+    * ADMISSION_OFFICER
+    * Manages student admissions lifecycle (view, approve, reject, bulk actions)
+    * Access mirrors College Admin for student admission-related sections only
+    */
+   ADMISSION_OFFICER: {
     displayName: "Admission Officer",
     canAccess: ["admission"],
     canCreate: [],
