@@ -31,7 +31,7 @@ import {
   FaChartLine,
   FaMoneyBill,
   FaFileAlt,
-   FaUser,
+  FaUser,
   FaEdit,
   FaClock,
   FaChartBar,
@@ -47,6 +47,8 @@ import {
   FaPlug,
   FaBug,
   FaArrowUp,
+  FaEye,
+  FaClipboardCheck,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -961,6 +963,12 @@ export const navigationConfig = {
         matchPath: "/dashboard/exam",
         items: [
           {
+            path: "/dashboard/exam",
+            icon: FaTachometerAlt,
+            label: "Exam Dashboard",
+            exact: true,
+          },
+          {
             path: "/dashboard/exam/list",
             icon: FaListOl,
             label: "Exam List",
@@ -991,6 +999,18 @@ export const navigationConfig = {
             icon: FaFileAlt,
             label: "Generate Result",
             exact: true,
+          },
+          {
+            path: "/dashboard/exam/results/review/:examId",
+            icon: FaEye,
+            label: "Review Results",
+            exact: false,
+          },
+          {
+            path: "/dashboard/exam/results/:resultId",
+            icon: FaClipboardCheck,
+            label: "Result Review",
+            exact: false,
           },
         ],
       },
