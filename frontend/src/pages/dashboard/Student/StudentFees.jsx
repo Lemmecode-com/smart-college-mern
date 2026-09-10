@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -382,6 +383,25 @@ export default function StudentFees() {
         pauseOnHover
         theme="colored"
       />
+
+    {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "17px",
+            height: "75px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/student/dashboard" },
+                { label: "My Fees" },
+              ]}
+            />
+          </div>
+        </div>
 
       {/* Skip Link for Screen Readers */}
       <a href="#fee-content" className="sr-only sr-only-focusable">
