@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import { getDocumentViewUrl } from "../../../utils/documentUrl";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
@@ -381,6 +382,26 @@ export default function StudentProfile() {
   return (
     <div className="erp-page erp-viewport-min-100 py-3 py-md-4 animate-fade-in" role="main">
       <ToastContainer position="top-right" />
+
+      {/* ================= BREADCRUMB ================= */}
+             <div
+              style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/student/dashboard" },
+                    { label: "My Profile" },
+                  ]}
+                />
+              </div>
+            </div>
+
+
 
       {/* Skip Link for Screen Readers */}
       <a href="#profile-content" className="sr-only sr-only-focusable">
