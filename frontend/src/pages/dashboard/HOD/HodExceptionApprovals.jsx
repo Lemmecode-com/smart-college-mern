@@ -760,35 +760,38 @@ export default function HodExceptionApprovals() {
       }}
     >
        {/* Breadcrumb - ABOVE Exception Approvals Banner */}
-<div
-  style={{
-    width: "100%",
-    marginTop: "20px",
-    paddingTop: "5px",
-    minHeight: "2px",
-    height: "60px",
-  }}
->
-  <div style={{ width: "100%" }}>
-    <Breadcrumb
-      items={[
-        { label: "Dashboard", path: "/hod/dashboard" },
-        { label: "Exception Approvals" },
-      ]}
-    />
-  </div>
-</div>
+          <div
+            style={{
+              width: "96%",
+              marginTop: "20px",
+              paddingTop: "15px",
+              minHeight: "2px",
+              height: "80px",
+              margin: "0 24px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/hod/dashboard" },
+                  { label: "Exception Approvals" },
+                ]}
+              />
+            </div>
+          </div>
 
       <MotionDiv
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="position-relative overflow-hidden"
         style={{
-          background:
-            "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-        }}
+                background:
+                  "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                borderRadius: "24px",
+                margin: "0 24px",
+              }}
       >
         <div className="p-4 text-white position-relative">
           <div className="d-flex align-items-center gap-3">
