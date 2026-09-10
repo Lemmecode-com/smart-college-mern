@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import PageHero from "../../../components/common/PageHero";
 
 // Brand Color Palette
@@ -134,6 +135,23 @@ export default function HodDepartment() {
         }}
       >
         <div className="erp-page-content">
+          {/* ================= BREADCRUMB ================= */}
+           <div
+              style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Department Information" },
+                  ]}
+                />
+              </div>
+            </div>
           <PageHero
             icon={<FaLayerGroup />}
             title="Department Information"
