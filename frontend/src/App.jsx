@@ -175,8 +175,6 @@ const ResultGeneration = lazy(() => import("./pages/dashboard/ExamCoordinator/Re
 const ResultReview = lazy(() => import("./pages/dashboard/ExamCoordinator/ResultReview"));
 const ExamResultsDashboard = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamResultsDashboard"));
 const ExamResultReview = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamResultReview"));
-const ExamSchedulePage = lazy(() => import("./pages/dashboard/ExamCoordinator/ExamSchedulePage"));
-
 /* ================= HOD (LAZY) ================= */
 const HodDashboard = lazy(() => import("./pages/dashboard/HOD/HodDashboard"));
 const HodTeachers = lazy(() => import("./pages/dashboard/HOD/HodTeachers"));
@@ -1071,14 +1069,6 @@ function AppContent({
               }
             />
             <Route
-              path="/dashboard/exam/schedule/:examId"
-              element={
-                <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
-                  <ExamSchedulePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/dashboard/exam/results/generate"
               element={
                 <ProtectedRoute allowedRoles={["EXAM_COORDINATOR"]}>
@@ -1442,23 +1432,14 @@ function AppContent({
                }
              />
 
-            <Route
-              path="/students/approve"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <ApproveStudents />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/students/promotion"
-              element={
-                <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
-                  <StudentPromotion />
-                </ProtectedRoute>
-              }
-            />
+<Route
+               path="/students/promotion"
+               element={
+                 <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                   <StudentPromotion />
+                 </ProtectedRoute>
+               }
+             />
 
              <Route
                path="/students/alumni"
@@ -1789,14 +1770,14 @@ function AppContent({
                  </ProtectedRoute>
                }
              />
-             <Route
-               path="profile/my-profile"
-               element={
-                 <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
-                   <MyProfile />
-                 </ProtectedRoute>
-               }
-             />
+<Route
+                path="/profile/my-profile"
+                element={
+                  <ProtectedRoute allowedRoles={["TEACHER", "HOD"]}>
+                    <MyProfile />
+                  </ProtectedRoute>
+                }
+              />
              <Route
                path="/profile/edit-profile"
                element={

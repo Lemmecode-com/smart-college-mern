@@ -83,6 +83,7 @@ export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick, exac
   return (
     <NavLink
       to={to}
+      end={exact}
       className={({ isActive: linkIsActive }) =>
         `sub-link ${linkIsActive || isActive ? "active-sublink" : ""}`
       }

@@ -9,10 +9,6 @@ import {
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
-import ExamScheduleTable, {
-  computeRowStatus,
-} from "./ExamScheduleTable";
-import { validateRowsForSave, extractApiError } from "./ExamSchedulePage";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 
@@ -24,6 +20,7 @@ import {
   FaSpinner,
   FaCheckCircle,
   FaExclamationTriangle,
+  FaTimesCircle,
   FaInfoCircle,
   FaGraduationCap,
   FaChalkboardTeacher,
@@ -38,7 +35,7 @@ import {
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
-import "./ExamSchedulePage.css";
+import "./CreateExam.css";
 
 const BRAND_COLORS = {
   primary: {
@@ -116,468 +113,636 @@ const buildRowsFromSelectedSubjects = (selectedSubjectObjs, existingRows = []) =
 };
 
 /* =========================================================
-   Internal CSS — same navy/cyan token set as the Exam
-   Management dashboard, scoped under .exam-form so it
-   never leaks into other pages.
+   Time / validation helpers
+   (previously imported from ExamSchedulePage.jsx — now local
+   so this file has no dependency on that page)
    ========================================================= */
-const formStyles = `
-.exam-form {
-  --edx-bg: #f4f7fa;
-  --edx-navy-950: #06192c;
-  --edx-navy-900: #0c2b47;
-  --edx-navy-800: #123a5e;
-  --edx-navy-700: #1a4a73;
-  --edx-cyan-600: #0e93ab;
-  --edx-cyan-500: #17aecb;
-  --edx-cyan-50: #e7f7fa;
-  --edx-amber-600: #b6790d;
-  --edx-amber-500: #e8a531;
-  --edx-amber-50: #fdf1de;
-  --edx-green-600: #1f8a5f;
-  --edx-green-500: #2aa876;
-  --edx-green-50: #e5f6ee;
-  --edx-red-500: #e5484d;
-  --edx-red-50: #fdecec;
-  --edx-slate-900: #1d2733;
-  --edx-slate-600: #55677c;
-  --edx-slate-400: #8695a7;
-  --edx-slate-200: #dfe6ec;
-  --edx-slate-100: #eef2f6;
+const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-  background: var(--edx-bg);
-  min-height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color: var(--edx-slate-900);
-}
+const toMinutes = (value) => {
+  if (!value || typeof value !== "string") return null;
+  const match = TIME_REGEX.exec(value);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+};
 
-/* ---------- Breadcrumb spacing ---------- */
-.exam-form nav.erp-breadcrumb { margin-bottom: 1.1rem; }
+const extractApiError = (err) => {
+  const statusCode = err?.response?.status;
+  const errorCode = err?.response?.data?.code;
+  const message =
+    err?.response?.data?.message ||
+    err?.message ||
+    "Something went wrong. Please try again.";
+  return { statusCode, errorCode, message };
+};
 
-/* ---------- Card shell ---------- */
-.exam-form .exam-card {
-  background: #fff;
-  border-radius: 16px;
-  border: 1px solid var(--edx-slate-100);
-  box-shadow: 0 4px 18px rgba(12, 43, 71, 0.08);
-  overflow: hidden;
-}
-.exam-form .exam-card-header {
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-}
-.exam-form .exam-card-header-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--edx-cyan-500);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.05rem;
-  flex-shrink: 0;
-}
-.exam-form .exam-card-title {
-  color: #fff;
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0;
-}
-.exam-form .exam-card-body {
-  padding: 1.75rem;
-}
+/**
+ * Lightweight client-side validation that mirrors the backend rules for
+ * the fields the backend actually rejects. We intentionally do NOT block
+ * Save Draft on missing date or incomplete rows (backend permits drafts).
+ */
+const validateRowsForSave = (rows) => {
+  const errors = [];
+  const rowErrors = new Map();
 
-/* ---------- Fields ---------- */
-.exam-form .field-group { margin-bottom: 1.35rem; }
-.exam-form .field-label {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-weight: 600;
-  font-size: 0.88rem;
-  color: var(--edx-navy-900);
-  margin-bottom: 0.45rem;
-}
-.exam-form .field-label-icon { color: var(--edx-cyan-600); font-size: 0.85rem; }
+  rows.forEach((row) => {
+    const hasStart = Boolean(row.startTime);
+    const hasEnd = Boolean(row.endTime);
 
-.exam-form .field-input {
-  width: 100%;
-  border: 1px solid var(--edx-slate-200);
-  border-radius: 10px;
-  padding: 0.62rem 0.9rem;
-  font-size: 0.92rem;
-  color: var(--edx-slate-900);
-  background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.exam-form .field-input:focus {
-  outline: none;
-  border-color: var(--edx-cyan-500);
-  box-shadow: 0 0 0 3px var(--edx-cyan-50);
-}
-.exam-form .field-input:disabled {
-  background: var(--edx-slate-100);
-  color: var(--edx-slate-400);
-  cursor: not-allowed;
-}
-.exam-form .field-input.is-invalid {
-  border-color: var(--edx-red-500);
-}
-.exam-form .field-input.is-invalid:focus {
-  box-shadow: 0 0 0 3px var(--edx-red-50);
-}
-.exam-form select.field-input {
-  appearance: none;
-  background-image: none;
-  cursor: pointer;
-}
-.exam-form .field-feedback {
-  color: var(--edx-red-500);
-  font-size: 0.8rem;
-  margin-top: 0.35rem;
-}
+    if (
+      (hasStart && !hasEnd) ||
+      (!hasStart && hasEnd)
+    ) {
+      rowErrors.set(row.subject, {
+        startTime: hasStart && !hasEnd ? "End time is required." : undefined,
+        endTime: hasEnd && !hasStart ? "Start time is required." : undefined,
+        message: "Start and end time are both required.",
+      });
+      return;
+    }
 
-/* ---------- Alerts ---------- */
-.exam-form .alert-edx {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
-  font-size: 0.88rem;
-  border: 1px solid transparent;
-}
-.exam-form .alert-edx-info { background: var(--edx-cyan-50); color: var(--edx-cyan-600); border-color: rgba(23, 174, 203, 0.25); }
-.exam-form .alert-edx-warning { background: var(--edx-amber-50); color: var(--edx-amber-600); border-color: rgba(232, 165, 49, 0.3); }
-.exam-form .alert-edx-danger { background: var(--edx-red-50); color: var(--edx-red-500); border-color: rgba(229, 72, 77, 0.25); }
-.exam-form .alert-edx-success { background: var(--edx-green-50); color: var(--edx-green-600); border-color: rgba(42, 168, 118, 0.3); }
-.exam-form .alert-edx svg { margin-top: 0.15rem; flex-shrink: 0; }
+    if (hasStart && hasEnd) {
+      const startMin = toMinutes(row.startTime);
+      const endMin = toMinutes(row.endTime);
+      if (startMin !== null && endMin !== null && startMin >= endMin) {
+        rowErrors.set(row.subject, {
+          startTime: "Start time must be earlier than end time.",
+          endTime: "End time must be later than start time.",
+          message: "Start time must be earlier than end time.",
+        });
+      }
+    }
+  });
 
-/* ---------- Subject list ---------- */
-.exam-form .subject-list {
-  max-height: 320px;
-  overflow-y: auto;
-  border: 1px solid var(--edx-slate-200);
-  border-radius: 12px;
-  padding: 0.6rem;
-  background: var(--edx-bg);
-}
-.exam-form .subject-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.7rem;
-  padding: 0.7rem 0.85rem;
-  border-radius: 10px;
-  border: 1px solid var(--edx-slate-200);
-  background: #fff;
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
-}
-.exam-form .subject-item:last-child { margin-bottom: 0; }
-.exam-form .subject-item:hover { border-color: var(--edx-cyan-500); }
-.exam-form .subject-item.selected {
-  border-color: var(--edx-cyan-500);
-  background: var(--edx-cyan-50);
-  box-shadow: 0 0 0 1px var(--edx-cyan-500);
-}
-.exam-form .subject-item input[type="checkbox"] {
-  width: 17px;
-  height: 17px;
-  margin-top: 0.15rem;
-  accent-color: var(--edx-navy-800);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.exam-form .subject-item-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  background: var(--edx-cyan-50);
-  color: var(--edx-navy-800);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  flex-shrink: 0;
-}
-.exam-form .subject-main { flex: 1; min-width: 0; }
-.exam-form .subject-top-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-.exam-form .subject-name { font-weight: 600; color: var(--edx-slate-900); font-size: 0.92rem; }
-.exam-form .subject-credits {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: var(--edx-slate-600);
-  font-size: 0.78rem;
-  white-space: nowrap;
-}
-.exam-form .subject-teacher {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--edx-slate-600);
-  font-size: 0.78rem;
-  margin-top: 0.3rem;
-}
-.exam-form .pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.18rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  margin-left: 0.4rem;
-}
-.exam-form .pill-slate { background: var(--edx-slate-100); color: var(--edx-slate-600); }
-.exam-form .pill-cyan { background: var(--edx-cyan-50); color: var(--edx-cyan-600); }
-
-/* ---------- Buttons ---------- */
-.exam-form .btn-edx-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.65rem 1.4rem;
-  font-weight: 600;
-  font-size: 0.92rem;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.15s ease;
-  box-shadow: 0 2px 6px rgba(12, 43, 71, 0.18);
-}
-.exam-form .btn-edx-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(23, 174, 203, 0.28);
-  background: linear-gradient(135deg, var(--edx-navy-800), var(--edx-cyan-600));
-}
-.exam-form .btn-edx-primary:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
-.exam-form .btn-edx-primary:focus-visible { outline: 3px solid var(--edx-cyan-50); outline-offset: 2px; }
-
-.exam-form .btn-edx-outline {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #fff;
-  color: var(--edx-navy-800);
-  border: 1px solid var(--edx-slate-200);
-  border-radius: 10px;
-  padding: 0.65rem 1.4rem;
-  font-weight: 600;
-  font-size: 0.92rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.exam-form .btn-edx-outline:hover:not(:disabled) {
-  border-color: var(--edx-navy-700);
-  background: var(--edx-slate-100);
-}
-.exam-form .btn-edx-outline:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.exam-form .form-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.exam-form .spin { animation: exam-form-spin 0.8s linear infinite; }
-@keyframes exam-form-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-.exam-form .success-screen {
-  max-width: 520px;
-  margin: 3rem auto;
-  text-align: center;
-}
-.exam-form .success-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--edx-green-50);
-  color: var(--edx-green-600);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
-  font-size: 1.6rem;
-}
-
-@media (max-width: 576px) {
-  .exam-form .exam-card-body { padding: 1.25rem; }
-  .exam-form .form-actions {
-    flex-direction: column-reverse;
-    align-items: stretch;
+  if (rowErrors.size > 0) {
+    const list = Array.from(rowErrors.values());
+    const first = list[0];
+    errors.push({
+      title:
+        list.length === 1
+          ? "One row has an issue"
+          : `${list.length} rows have issues`,
+      message: first?.message || "Please fix the highlighted time fields.",
+      rowErrors,
+    });
   }
-  .exam-form .form-actions .btn-edx-primary,
-  .exam-form .form-actions .btn-edx-outline,
-  .exam-form .form-actions .btn-edx-draft,
-  .exam-form .form-actions .btn-edx-publish {
-    width: 100%;
-    justify-content: center;
+
+  return errors;
+};
+
+/* =========================================================
+   Subject-wise schedule table
+   (previously ExamScheduleTable.jsx — now local so this file
+   has no dependency on that component file)
+   ========================================================= */
+const STATUS = {
+  SCHEDULED: "SCHEDULED",
+  MISSING_DATE: "MISSING_DATE",
+  MISSING_TIME: "MISSING_TIME",
+  INVALID_RANGE: "INVALID_RANGE",
+};
+
+const toDateInputValue = (value) => {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  // <input type="date"> expects yyyy-mm-dd in local time
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const computeRowStatus = (entry) => {
+  if (!entry) return;
+  const hasDate = Boolean(entry.examDate);
+  const hasStart = Boolean(entry.startTime);
+  const hasEnd = Boolean(entry.endTime);
+
+  if (!hasDate) return STATUS.MISSING_DATE;
+  if (!hasStart || !hasEnd) return STATUS.MISSING_TIME;
+
+  const startMin = toMinutes(entry.startTime);
+  const endMin = toMinutes(entry.endTime);
+  if (startMin === null || endMin === null) return STATUS.MISSING_TIME;
+  if (startMin >= endMin) return STATUS.INVALID_RANGE;
+
+  return STATUS.SCHEDULED;
+};
+
+const STATUS_META = {
+  [STATUS.SCHEDULED]: {
+    label: "Scheduled",
+    icon: FaCheckCircle,
+    className: "success",
+  },
+  [STATUS.MISSING_DATE]: {
+    label: "Missing date",
+    icon: FaExclamationTriangle,
+    className: "warning",
+  },
+  [STATUS.MISSING_TIME]: {
+    label: "Missing time",
+    icon: FaExclamationTriangle,
+    className: "warning",
+  },
+  [STATUS.INVALID_RANGE]: {
+    label: "Invalid range",
+    icon: FaTimesCircle,
+    className: "danger",
+  },
+};
+
+function ExamScheduleTable({
+  rows,
+  readOnly,
+  onRowChange,
+  validationErrors,
+  statusAnnouncement,
+}) {
+  const subjectTypePill = (type) => {
+    const variants = {
+      THEORY: "type-theory",
+      PRACTICAL: "type-practical",
+      COMPOSITE: "type-composite",
+    };
+    const cls = variants[type] || "type-default";
+    return (
+      <span className={`exam-schedule-pill type ${cls}`}>
+        {type || "N/A"}
+      </span>
+    );
+  };
+
+  const statusPill = (entry) => {
+    const status = computeRowStatus(entry);
+    const meta = STATUS_META[status] || STATUS_META[STATUS.MISSING_DATE];
+    const Icon = meta.icon;
+    return (
+      <span className={`exam-schedule-pill ${meta.className}`}>
+        <Icon className="exam-schedule-pill-icon" aria-hidden="true" />
+        <span className="exam-schedule-pill-dot" />
+        {meta.label}
+      </span>
+    );
+  };
+
+  const summary = useMemo(() => {
+    let scheduled = 0;
+    let unscheduled = 0;
+    for (const row of rows) {
+      if (computeRowStatus(row) === STATUS.SCHEDULED) scheduled += 1;
+      else unscheduled += 1;
+    }
+    return { scheduled, unscheduled, total: rows.length };
+  }, [rows]);
+
+  if (!rows.length) {
+    return (
+      <div className="exam-schedule-table-card">
+        <div className="exam-schedule-empty">
+          <div className="exam-schedule-empty-icon">
+            <FaBook />
+          </div>
+          <h5 className="exam-schedule-empty-title">No subjects in this exam</h5>
+          <p className="exam-schedule-empty-text">
+            Add subjects to the exam before creating a timetable.
+          </p>
+        </div>
+      </div>
+    );
   }
+
+  const containerProps = readOnly
+    ? { "aria-readonly": true }
+    : {};
+
+  return (
+    <div
+      className={`exam-schedule-table-card${readOnly ? " is-readonly" : ""}`}
+      aria-busy="false"
+      {...containerProps}
+    >
+      {/* Banner */}
+      <div
+        className={`exam-schedule-banner ${
+          readOnly ? "is-readonly" : "is-editing"
+        }`}
+        role="status"
+      >
+        {readOnly ? (
+          <>
+            <FaCheckCircle className="exam-schedule-banner-icon" aria-hidden="true" />
+            <span>
+              This timetable is <strong>published</strong> and read-only.
+            </span>
+          </>
+        ) : (
+          <>
+            <FaExclamationTriangle
+              className="exam-schedule-banner-icon"
+              aria-hidden="true"
+            />
+            <span>
+              Schedule each subject with an exam date, start time, end time,
+              session and room.
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* Summary chips */}
+      <div className="exam-schedule-summary-strip">
+        <span className="exam-schedule-summary-strip-item">
+          <FaCheckCircle
+            className="exam-schedule-summary-strip-icon success"
+            aria-hidden="true"
+          />
+          Scheduled <strong>{summary.scheduled}</strong> / {summary.total}
+        </span>
+        <span className="exam-schedule-summary-strip-item">
+          <FaExclamationTriangle
+            className="exam-schedule-summary-strip-icon warning"
+            aria-hidden="true"
+          />
+          Unscheduled <strong>{summary.unscheduled}</strong>
+        </span>
+      </div>
+
+      {/* Live region for screen readers */}
+      <p
+        className="exam-schedule-sr-only"
+        role="status"
+        aria-live="polite"
+      >
+        {statusAnnouncement}
+      </p>
+
+      {/* Desktop / tablet table */}
+      <div className="exam-schedule-table-wrap">
+        <table className="exam-schedule-table">
+          <thead>
+            <tr>
+              <th scope="col">Subject</th>
+              <th scope="col">Code</th>
+              <th scope="col">Type</th>
+              <th scope="col">Exam Date</th>
+              <th scope="col">Start Time</th>
+              <th scope="col">End Time</th>
+              <th scope="col">Session</th>
+              <th scope="col">Room</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <ScheduleRow
+                key={row.subject}
+                row={row}
+                readOnly={readOnly}
+                onRowChange={onRowChange}
+                validationErrors={validationErrors}
+                statusPill={statusPill}
+                subjectTypePill={subjectTypePill}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile stacked cards */}
+      <div className="exam-schedule-mobile-list">
+        {rows.map((row) => (
+          <ScheduleCard
+            key={row.subject}
+            row={row}
+            readOnly={readOnly}
+            onRowChange={onRowChange}
+            validationErrors={validationErrors}
+            statusPill={statusPill}
+            subjectTypePill={subjectTypePill}
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .exam-form * { animation: none !important; transition: none !important; }
+function ScheduleRow({
+  row,
+  readOnly,
+  onRowChange,
+  validationErrors,
+  statusPill,
+  subjectTypePill,
+}) {
+  const status = computeRowStatus(row);
+  const fieldDisabled = readOnly;
+  const invalidDate = !row.examDate;
+  const invalidTime = !row.startTime || !row.endTime;
+  const invalidRange = status === STATUS.INVALID_RANGE;
+
+  const rowValidation = validationErrors?.get?.(row.subject) || null;
+  const showError = !readOnly && (invalidDate || invalidTime || invalidRange || rowValidation);
+  const startError = rowValidation?.startTime;
+  const endError = rowValidation?.endTime;
+
+  const handle = (field) => (e) => {
+    onRowChange(row.subject, field, e.target.value);
+  };
+
+  return (
+    <tr className={showError ? "has-error" : ""}>
+      <td>
+        <span className="exam-schedule-subject-name">
+          {row.subjectName || "Subject"}
+        </span>
+      </td>
+      <td>
+        <span className="exam-schedule-subject-code">
+          {row.subjectCode || "—"}
+        </span>
+      </td>
+      <td>{subjectTypePill(row.subjectType)}</td>
+      <td>
+        <input
+          id={`sched-${row.subject}-date`}
+          type="date"
+          className={`exam-schedule-field ${
+            !readOnly && invalidDate ? "is-invalid" : ""
+          }`}
+          value={toDateInputValue(row.examDate)}
+          onChange={handle("examDate")}
+          disabled={fieldDisabled}
+          aria-label={`Exam date for ${row.subjectName || "subject"}`}
+          aria-invalid={!readOnly && invalidDate ? "true" : "false"}
+        />
+      </td>
+      <td>
+        <input
+          id={`sched-${row.subject}-start`}
+          type="time"
+          className={`exam-schedule-field ${
+            !readOnly && (invalidTime || invalidRange || startError) ? "is-invalid" : ""
+          }`}
+          value={row.startTime || ""}
+          onChange={handle("startTime")}
+          disabled={fieldDisabled}
+          aria-label={`Start time for ${row.subjectName || "subject"}`}
+          aria-invalid={!readOnly && (invalidTime || !!startError) ? "true" : "false"}
+          aria-describedby={
+            startError ? `sched-${row.subject}-start-error` : undefined
+          }
+        />
+        {startError && (
+          <p
+            id={`sched-${row.subject}-start-error`}
+            className="exam-schedule-field-error"
+            role="alert"
+          >
+            {startError}
+          </p>
+        )}
+      </td>
+      <td>
+        <input
+          id={`sched-${row.subject}-end`}
+          type="time"
+          className={`exam-schedule-field ${
+            !readOnly && (invalidTime || invalidRange || endError) ? "is-invalid" : ""
+          }`}
+          value={row.endTime || ""}
+          onChange={handle("endTime")}
+          disabled={fieldDisabled}
+          aria-label={`End time for ${row.subjectName || "subject"}`}
+          aria-invalid={!readOnly && (invalidTime || !!endError) ? "true" : "false"}
+          aria-describedby={
+            endError ? `sched-${row.subject}-end-error` : undefined
+          }
+        />
+        {endError && (
+          <p
+            id={`sched-${row.subject}-end-error`}
+            className="exam-schedule-field-error"
+            role="alert"
+          >
+            {endError}
+          </p>
+        )}
+      </td>
+      <td>
+        <select
+          id={`sched-${row.subject}-session`}
+          className="exam-schedule-field"
+          value={row.session || ""}
+          onChange={handle("session")}
+          disabled={fieldDisabled}
+          aria-label={`Session for ${row.subjectName || "subject"}`}
+        >
+          <option value="">—</option>
+          <option value="FORENOON">FORENOON</option>
+          <option value="AFTERNOON">AFTERNOON</option>
+        </select>
+      </td>
+      <td>
+        <input
+          id={`sched-${row.subject}-room`}
+          type="text"
+          className="exam-schedule-field"
+          value={row.room || ""}
+          onChange={handle("room")}
+          disabled={fieldDisabled}
+          placeholder="Room"
+          aria-label={`Room for ${row.subjectName || "subject"}`}
+        />
+      </td>
+      <td>{statusPill(row)}</td>
+    </tr>
+  );
 }
 
-/* ---------- Schedule section ---------- */
-.exam-form .schedule-section {
-  border-top: 1px solid var(--edx-slate-200);
-  padding-top: 1.5rem;
+function ScheduleCard({
+  row,
+  readOnly,
+  onRowChange,
+  validationErrors,
+  statusPill,
+  subjectTypePill,
+}) {
+  const status = computeRowStatus(row);
+  const fieldDisabled = readOnly;
+  const invalidDate = !row.examDate;
+  const invalidTime = !row.startTime || !row.endTime;
+  const invalidRange = status === STATUS.INVALID_RANGE;
+
+  const rowValidation = validationErrors?.get?.(row.subject) || null;
+  const startError = rowValidation?.startTime;
+  const endError = rowValidation?.endTime;
+
+  const handle = (field) => (e) => {
+    onRowChange(row.subject, field, e.target.value);
+  };
+
+  return (
+    <div className="exam-schedule-mobile-card">
+      <div className="exam-schedule-mobile-card-head">
+        <div className="exam-schedule-mobile-card-title">
+          <span className="exam-schedule-subject-name">
+            {row.subjectName || "Subject"}
+          </span>
+          {row.subjectCode && (
+            <span className="exam-schedule-subject-code">
+              {row.subjectCode}
+            </span>
+          )}
+        </div>
+        {statusPill(row)}
+      </div>
+
+      <div className="exam-schedule-mobile-card-type">
+        {subjectTypePill(row.subjectType)}
+      </div>
+
+      <div className="exam-schedule-mobile-card-fields">
+        <div className="exam-schedule-mobile-field">
+          <label htmlFor={`m-sched-${row.subject}-date`}>Exam Date</label>
+          <input
+            id={`m-sched-${row.subject}-date`}
+            type="date"
+            className={`exam-schedule-field ${
+              !readOnly && invalidDate ? "is-invalid" : ""
+            }`}
+            value={toDateInputValue(row.examDate)}
+            onChange={handle("examDate")}
+            disabled={fieldDisabled}
+            aria-invalid={!readOnly && invalidDate ? "true" : "false"}
+          />
+        </div>
+        <div className="exam-schedule-mobile-field-row">
+          <div className="exam-schedule-mobile-field">
+            <label htmlFor={`m-sched-${row.subject}-start`}>Start Time</label>
+            <input
+              id={`m-sched-${row.subject}-start`}
+              type="time"
+              className={`exam-schedule-field ${
+                !readOnly && (invalidTime || invalidRange || startError) ? "is-invalid" : ""
+              }`}
+              value={row.startTime || ""}
+              onChange={handle("startTime")}
+              disabled={fieldDisabled}
+              aria-invalid={!readOnly && (invalidTime || !!startError) ? "true" : "false"}
+              aria-describedby={
+                startError ? `m-sched-${row.subject}-start-error` : undefined
+              }
+            />
+            {startError && (
+              <p
+                id={`m-sched-${row.subject}-start-error`}
+                className="exam-schedule-field-error"
+                role="alert"
+              >
+                {startError}
+              </p>
+            )}
+          </div>
+          <div className="exam-schedule-mobile-field">
+            <label htmlFor={`m-sched-${row.subject}-end`}>End Time</label>
+            <input
+              id={`m-sched-${row.subject}-end`}
+              type="time"
+              className={`exam-schedule-field ${
+                !readOnly && (invalidTime || invalidRange || endError) ? "is-invalid" : ""
+              }`}
+              value={row.endTime || ""}
+              onChange={handle("endTime")}
+              disabled={fieldDisabled}
+              aria-invalid={!readOnly && (invalidTime || !!endError) ? "true" : "false"}
+              aria-describedby={
+                endError ? `m-sched-${row.subject}-end-error` : undefined
+              }
+            />
+            {endError && (
+              <p
+                id={`m-sched-${row.subject}-end-error`}
+                className="exam-schedule-field-error"
+                role="alert"
+              >
+                {endError}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="exam-schedule-mobile-field-row">
+          <div className="exam-schedule-mobile-field">
+            <label htmlFor={`m-sched-${row.subject}-session`}>Session</label>
+            <select
+              id={`m-sched-${row.subject}-session`}
+              className="exam-schedule-field"
+              value={row.session || ""}
+              onChange={handle("session")}
+              disabled={fieldDisabled}
+            >
+              <option value="">—</option>
+              <option value="FORENOON">FORENOON</option>
+              <option value="AFTERNOON">AFTERNOON</option>
+            </select>
+          </div>
+          <div className="exam-schedule-mobile-field">
+            <label htmlFor={`m-sched-${row.subject}-room`}>Room</label>
+            <input
+              id={`m-sched-${row.subject}-room`}
+              type="text"
+              className="exam-schedule-field"
+              value={row.room || ""}
+              onChange={handle("room")}
+              disabled={fieldDisabled}
+              placeholder="Room"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-.exam-form .schedule-section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--edx-navy-950);
-  font-weight: 700;
-  font-size: 1.05rem;
-  margin-bottom: 1rem;
-}
+/* =========================================================
+   3-Step Progress Indicator (Phase 1 — informational only)
+   ========================================================= */
+const STEP_LABELS = ["Exam Information", "Select Subjects", "Subject-wise Schedule"];
 
-.exam-form .schedule-section-title svg { color: var(--edx-cyan-600); }
+const CreateExamProgress = ({ step1Complete, step2Complete, step3Complete }) => {
+  const states = [
+    step1Complete ? "completed" : "active",
+    step2Complete ? "completed" : step1Complete ? "active" : "pending",
+    step3Complete ? "completed" : step2Complete ? "active" : "pending",
+  ];
 
-.exam-form .schedule-info {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  color: var(--edx-slate-600);
-  font-size: 0.86rem;
-  margin-bottom: 1rem;
-}
-
-.exam-form .schedule-readiness {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin-top: 1rem;
-  padding: 0.7rem 0.9rem;
-  border-radius: 10px;
-  font-size: 0.86rem;
-  border: 1px solid transparent;
-}
-
-.exam-form .schedule-readiness.is-ready {
-  background: var(--edx-green-50);
-  color: var(--edx-green-600);
-  border-color: rgba(42, 168, 118, 0.3);
-}
-
-.exam-form .schedule-readiness.is-pending {
-  background: var(--edx-cyan-50);
-  color: var(--edx-cyan-600);
-  border-color: rgba(23, 174, 203, 0.3);
-}
-
-.exam-form .schedule-readiness strong { color: inherit; font-weight: 700; }
-
-.exam-form .schedule-publish-error {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  border-radius: 10px;
-  padding: 0.85rem 1rem;
-  font-size: 0.88rem;
-  margin-bottom: 1rem;
-  border: 1px solid transparent;
-}
-
-.exam-form .schedule-publish-error.danger {
-  background: var(--edx-red-50);
-  color: var(--edx-red-500);
-  border-color: rgba(229, 72, 77, 0.25);
-}
-
-.exam-form .schedule-publish-error strong { font-weight: 700; }
-
-/* ---------- Action buttons ---------- */
-.exam-form .form-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.exam-form .actions-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.exam-form .actions-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.exam-form .btn-edx-draft {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #fff;
-  color: var(--edx-navy-800);
-  border: 1px solid var(--edx-slate-200);
-  border-radius: 10px;
-  padding: 0.65rem 1.4rem;
-  font-weight: 600;
-  font-size: 0.92rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.exam-form .btn-edx-draft:hover:not(:disabled) {
-  border-color: var(--edx-amber-600);
-  background: var(--edx-amber-50);
-  color: var(--edx-amber-600);
-}
-
-.exam-form .btn-edx-draft:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.exam-form .btn-edx-publish {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, var(--edx-green-600), var(--edx-green-500));
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.65rem 1.4rem;
-  font-weight: 600;
-  font-size: 0.92rem;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-  box-shadow: 0 2px 6px rgba(31, 138, 95, 0.25);
-}
-
-.exam-form .btn-edx-publish:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(31, 138, 95, 0.35);
-}
-
-.exam-form .btn-edx-publish:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-`;
+  return (
+    <nav
+      className="create-exam-progress"
+      aria-label="Create exam progress"
+    >
+      {STEP_LABELS.map((label, index) => {
+        const state = states[index];
+        return (
+          <div
+            key={label}
+            className={`create-exam-progress-step ${state}`}
+            aria-current={state === "active" ? "step" : undefined}
+          >
+            <span
+              className="create-exam-progress-marker"
+              aria-hidden="true"
+            >
+              {state === "completed" ? <FaCheckCircle /> : index + 1}
+            </span>
+            <span className="create-exam-progress-label">{label}</span>
+          </div>
+        );
+      })}
+    </nav>
+  );
+};
 
 export default function CreateExam() {
   const navigate = useNavigate();
@@ -935,7 +1100,7 @@ export default function CreateExam() {
 
    const selectedCourse = courses.find((c) => c._id === formData.course_id);
 
-   /* ================= SCHEDULE DERIVED STATE ================= */
+/* ================= SCHEDULE DERIVED STATE ================= */
    const scheduledCount = useMemo(
      () => scheduleRows.filter((r) => computeRowStatus(r) === "SCHEDULED").length,
      [scheduleRows],
@@ -944,12 +1109,22 @@ export default function CreateExam() {
    const allScheduled =
      totalSelectedSubjects > 0 && scheduledCount === totalSelectedSubjects;
 
-  /* ================= RENDER ================= */
-  if (success) {
-    return (
-      <div className="exam-form container-fluid p-4">
-        <style>{formStyles}</style>
-        <div className="success-screen">
+   /* ================= PROGRESS INDICATOR STATE (informational only) ================= */
+   const step1Complete = Boolean(
+     formData.name.trim() &&
+       formData.department_id &&
+       formData.course_id &&
+       formData.semester &&
+       formData.academicYear.trim(),
+   );
+   const step2Complete = formData.subjects.length > 0;
+   const step3Complete = step2Complete && allScheduled;
+
+   /* ================= RENDER ================= */
+   if (success) {
+     return (
+       <div className="exam-form create-exam container-fluid p-4">
+         <div className="success-screen">
           <div className="success-icon">
             <FaCheckCircle />
           </div>
@@ -962,28 +1137,39 @@ export default function CreateExam() {
     );
   }
 
-  if (error && typeof error === "object" && error.isAuthError) {
-    return (
-      <ApiError
-        statusCode={error.statusCode}
-        errorCode={error.errorCode}
-        message={error.message}
-      />
-    );
-  }
+if (error && typeof error === "object" && error.isAuthError) {
+     return (
+       <div className="exam-form create-exam container-fluid p-4">
+         <ApiError
+           statusCode={error.statusCode}
+           errorCode={error.errorCode}
+           message={error.message}
+         />
+       </div>
+     );
+   }
 
-  return (
-    <div className="exam-form container-fluid p-4">
-      <style>{formStyles}</style>
+   return (
+     <div className="exam-form create-exam container-fluid p-4">
+<Breadcrumb
+          items={[
+            { label: "Home", path: "/dashboard/exam" },
+            { label: "Exam Dashboard", path: "/dashboard/exam" },
+            { label: "Create Exam" },
+          ]}
+        />
 
-      <Breadcrumb
-        items={[
-          { label: "Home", path: "/dashboard/exam" },
-          { label: "Exam Dashboard", path: "/dashboard/exam" },
-          { label: "Exam List", path: "/dashboard/exam/list" },
-          { label: "Create Exam" },
-        ]}
-      />
+       <div className="create-exam-page-header">
+         <h1 className="create-exam-title">Create Exam</h1>
+         <p className="create-exam-subtitle">
+           Set exam details, select subjects, and configure the subject-wise timetable.
+         </p>
+         <CreateExamProgress
+           step1Complete={step1Complete}
+           step2Complete={step2Complete}
+           step3Complete={step3Complete}
+         />
+       </div>
 
       <div className="row justify-content-center">
         <div className="col-lg-8">
@@ -1024,165 +1210,233 @@ export default function CreateExam() {
                  isLoading={loading}
                />
 
-               <form onSubmit={(e) => e.preventDefault()}>
-                 {/* Exam Name */}
-                 <motion.div
-                  custom={0}
-                  initial="hidden"
-                  animate="visible"
-                  variants={fadeInVariants}
-                  className="field-group"
-                >
-                  <label className="field-label">Exam Name *</label>
-                  <input
-                    type="text"
-                    className={`field-input ${validationErrors.name ? "is-invalid" : ""}`}
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    placeholder="e.g. Mid-Term Examination"
-                    disabled={loading}
-                  />
-                  {validationErrors.name && (
-                    <div className="field-feedback">{validationErrors.name}</div>
-                  )}
-                </motion.div>
+<form onSubmit={(e) => e.preventDefault()}>
+                  <div className="create-exam-section">
+                    <div className="create-exam-section-header">
+                      <span className="create-exam-section-num">1</span>
+                      <div>
+                        <h3 className="create-exam-section-title">Exam Information</h3>
+                        <p className="create-exam-section-subtitle">
+                          Enter the basic details for this examination.
+                        </p>
+                      </div>
+                    </div>
 
-                 {/* Department Selection */}
-                 <motion.div
-                   custom={1}
-                   initial="hidden"
-                   animate="visible"
-                   variants={fadeInVariants}
-                   className="field-group"
-                 >
-                   <label className="field-label">
-                     <FaUniversity className="field-label-icon" />
-                     Department *
-                   </label>
-                   {loadingDepartments ? (
-                     <div className="text-center py-2" style={{ color: "var(--edx-slate-600)" }}>
-                       <FaSpinner className="spin me-2" />
-                       Loading departments...
-                     </div>
-                   ) : (
-                     <select
-                       className={`field-input ${validationErrors.department_id ? "is-invalid" : ""}`}
-                       name="department_id"
-                       value={formData.department_id}
-                       onChange={handleInputChange}
-                       disabled={loading}
-                     >
-                       <option value="">Select Department</option>
-                       {departments.map((dept) => (
-                         <option key={dept._id} value={dept._id}>
-                           {dept.name} ({dept.code})
-                         </option>
-                       ))}
-                     </select>
-                   )}
-                   {validationErrors.department_id && (
-                     <div className="field-feedback">{validationErrors.department_id}</div>
-                   )}
-                 </motion.div>
+                    <div className="create-exam-field-grid">
+                      {/* Exam Name */}
+                      <motion.div
+                        custom={0}
+                        initial="hidden"
+                        animate="visible"
+                        variants={fadeInVariants}
+                        className="create-exam-field exam-name-field"
+                      >
+                        <label className="create-exam-field-label">
+                          <FaBookOpen className="create-exam-field-label-icon" />
+                          Exam Name <span className="create-exam-required">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className={`create-exam-field-input ${validationErrors.name ? "is-invalid" : ""}`}
+                          name="name"
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          placeholder="e.g. Mid-Term Examination"
+                          disabled={loading}
+                        />
+                        {validationErrors.name ? (
+                          <div className="create-exam-field-helper is-error">
+                            <FaExclamationTriangle />
+                            {validationErrors.name}
+                          </div>
+                        ) : (
+                          <div className="create-exam-field-helper">
+                            A clear, descriptive title for this examination.
+                          </div>
+                        )}
+                      </motion.div>
 
-                 {/* Course Selection */}
-                 <motion.div
-                   custom={2}
-                   initial="hidden"
-                   animate="visible"
-                   variants={fadeInVariants}
-                   className="field-group"
-                 >
-                   <label className="field-label">
-                     <FaGraduationCap className="field-label-icon" />
-                     Course *
-                   </label>
-                   {loadingCourses ? (
-                     <div className="text-center py-2" style={{ color: "var(--edx-slate-600)" }}>
-                       <FaSpinner className="spin me-2" />
-                       Loading courses...
-                     </div>
-                   ) : (
-                     <select
-                       className={`field-input ${validationErrors.course_id ? "is-invalid" : ""}`}
-                       name="course_id"
-                       value={formData.course_id}
-                       onChange={handleInputChange}
-                       disabled={loading || !formData.department_id}
-                     >
-                       <option value="">Select Course</option>
-                       {courses.map((course) => (
-                         <option key={course._id} value={course._id}>
-                           {course.name} ({course.code})
-                         </option>
-                       ))}
-                     </select>
-                   )}
-                   {validationErrors.course_id && (
-                     <div className="field-feedback">{validationErrors.course_id}</div>
-                   )}
-                 </motion.div>
+                      {/* Department Selection */}
+                      <motion.div
+                        custom={1}
+                        initial="hidden"
+                        animate="visible"
+                        variants={fadeInVariants}
+                        className="create-exam-field"
+                      >
+                        <label className="create-exam-field-label">
+                          <FaUniversity className="create-exam-field-label-icon" />
+                          Department <span className="create-exam-required">*</span>
+                        </label>
+                        {loadingDepartments ? (
+                          <div className="create-exam-loading-state">
+                            <FaSpinner className="spin" />
+                            Loading departments...
+                          </div>
+                        ) : (
+                          <select
+                            className={`create-exam-field-input ${validationErrors.department_id ? "is-invalid" : ""}`}
+                            name="department_id"
+                            value={formData.department_id}
+                            onChange={handleInputChange}
+                            disabled={loading}
+                          >
+                            <option value="">Select Department</option>
+                            {departments.map((dept) => (
+                              <option key={dept._id} value={dept._id}>
+                                {dept.name} ({dept.code})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {validationErrors.department_id ? (
+                          <div className="create-exam-field-helper is-error">
+                            <FaExclamationTriangle />
+                            {validationErrors.department_id}
+                          </div>
+                        ) : (
+                          <div className="create-exam-field-helper">
+                            Choose the department offering this course.
+                          </div>
+                        )}
+                      </motion.div>
 
-                 {/* Semester Selection */}
-                 <motion.div
-                   custom={3}
-                   initial="hidden"
-                   animate="visible"
-                   variants={fadeInVariants}
-                   className="field-group"
-                 >
-                  <label className="field-label">
-                    <FaLayerGroup className="field-label-icon" />
-                    Semester *
-                  </label>
-                  <select
-                    className={`field-input ${validationErrors.semester ? "is-invalid" : ""}`}
-                    name="semester"
-                    value={formData.semester}
-                    onChange={handleInputChange}
-                    disabled={loading || !formData.course_id}
-                  >
-                    <option value="">Select Semester</option>
-                    {selectedCourse &&
-                      Array.from({ length: selectedCourse.durationSemesters }, (_, i) => i + 1).map(
-                        (sem) => (
-                          <option key={sem} value={sem}>
-                            Semester {sem}
-                          </option>
-                        )
-                      )}
-                  </select>
-                  {validationErrors.semester && (
-                    <div className="field-feedback">{validationErrors.semester}</div>
-                  )}
-                </motion.div>
+                      {/* Course Selection */}
+                      <motion.div
+                        custom={2}
+                        initial="hidden"
+                        animate="visible"
+                        variants={fadeInVariants}
+                        className="create-exam-field"
+                      >
+                        <label className="create-exam-field-label">
+                          <FaGraduationCap className="create-exam-field-label-icon" />
+                          Course <span className="create-exam-required">*</span>
+                        </label>
+                        {loadingCourses ? (
+                          <div className="create-exam-loading-state">
+                            <FaSpinner className="spin" />
+                            Loading courses...
+                          </div>
+                        ) : (
+                          <select
+                            className={`create-exam-field-input ${validationErrors.course_id ? "is-invalid" : ""}`}
+                            name="course_id"
+                            value={formData.course_id}
+                            onChange={handleInputChange}
+                            disabled={loading || !formData.department_id}
+                          >
+                            <option value="">Select Course</option>
+                            {courses.map((course) => (
+                              <option key={course._id} value={course._id}>
+                                {course.name} ({course.code})
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                        {validationErrors.course_id ? (
+                          <div className="create-exam-field-helper is-error">
+                            <FaExclamationTriangle />
+                            {validationErrors.course_id}
+                          </div>
+                        ) : !formData.department_id ? (
+                          <div className="create-exam-field-helper is-disabled">
+                            Select a department first.
+                          </div>
+                        ) : courses.length === 0 ? (
+                          <div className="create-exam-field-helper">
+                            No courses available for the selected department.
+                          </div>
+                        ) : (
+                          <div className="create-exam-field-helper">
+                            Choose the course this exam belongs to.
+                          </div>
+                        )}
+                      </motion.div>
 
-                 {/* Academic Year */}
-                 <motion.div
-                   custom={4}
-                  initial="hidden"
-                  animate="visible"
-                  variants={fadeInVariants}
-                  className="field-group"
-                >
-                  <label className="field-label">
-                    <FaCalendarAlt className="field-label-icon" />
-                    Academic Year *
-                  </label>
-                  <input
-                    type="text"
-                    className={`field-input ${validationErrors.academicYear ? "is-invalid" : ""}`}
-                    name="academicYear"
-                    value={formData.academicYear}
-                    onChange={handleInputChange}
-                    placeholder="e.g. 2026-27"
-                    disabled={loading}
-                  />
-                  {validationErrors.academicYear && (
-                    <div className="field-feedback">{validationErrors.academicYear}</div>
-                  )}
-                </motion.div>
+                      {/* Semester Selection */}
+                      <motion.div
+                        custom={3}
+                        initial="hidden"
+                        animate="visible"
+                        variants={fadeInVariants}
+                        className="create-exam-field"
+                      >
+                        <label className="create-exam-field-label">
+                          <FaLayerGroup className="create-exam-field-label-icon" />
+                          Semester <span className="create-exam-required">*</span>
+                        </label>
+                        <select
+                          className={`create-exam-field-input ${validationErrors.semester ? "is-invalid" : ""}`}
+                          name="semester"
+                          value={formData.semester}
+                          onChange={handleInputChange}
+                          disabled={loading || !formData.course_id}
+                        >
+                          <option value="">Select Semester</option>
+                          {selectedCourse &&
+                            Array.from({ length: selectedCourse.durationSemesters }, (_, i) => i + 1).map(
+                              (sem) => (
+                                <option key={sem} value={sem}>
+                                  Semester {sem}
+                                </option>
+                              )
+                            )}
+                        </select>
+                        {validationErrors.semester ? (
+                          <div className="create-exam-field-helper is-error">
+                            <FaExclamationTriangle />
+                            {validationErrors.semester}
+                          </div>
+                        ) : !formData.course_id ? (
+                          <div className="create-exam-field-helper is-disabled">
+                            Select a course first.
+                          </div>
+                        ) : selectedCourse && selectedCourse.durationSemesters === 0 ? (
+                          <div className="create-exam-field-helper">
+                            No semesters configured for this course.
+                          </div>
+                        ) : (
+                          <div className="create-exam-field-helper">
+                            Select the semester for this exam.
+                          </div>
+                        )}
+                      </motion.div>
+
+                      {/* Academic Year */}
+                      <motion.div
+                        custom={4}
+                        initial="hidden"
+                        animate="visible"
+                        variants={fadeInVariants}
+                        className="create-exam-field"
+                      >
+                        <label className="create-exam-field-label">
+                          <FaCalendarAlt className="create-exam-field-label-icon" />
+                          Academic Year <span className="create-exam-required">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className={`create-exam-field-input ${validationErrors.academicYear ? "is-invalid" : ""}`}
+                          name="academicYear"
+                          value={formData.academicYear}
+                          onChange={handleInputChange}
+                          placeholder="e.g. 2026-27"
+                          disabled={loading}
+                        />
+                        {validationErrors.academicYear ? (
+                          <div className="create-exam-field-helper is-error">
+                            <FaExclamationTriangle />
+                            {validationErrors.academicYear}
+                          </div>
+                        ) : (
+                          <div className="create-exam-field-helper">
+                            Use the academic year format, e.g. 2026-27.
+                          </div>
+                        )}
+                      </motion.div>
+                    </div>
+                  </div>
 
                 {/* Subject Selection */}
                 <motion.div

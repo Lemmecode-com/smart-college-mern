@@ -679,7 +679,6 @@ export default function EditExam() {
         items={[
           { label: "Home", path: "/dashboard/exam" },
           { label: "Exam Dashboard", path: "/dashboard/exam" },
-          { label: "Exam List", path: "/dashboard/exam/list" },
           { label: exam?.name || "Edit Exam" },
         ]}
       />
