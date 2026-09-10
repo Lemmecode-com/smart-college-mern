@@ -760,25 +760,23 @@ export default function HodExceptionApprovals() {
       }}
     >
        {/* Breadcrumb - ABOVE Exception Approvals Banner */}
-          <div
-            style={{
-              width: "96%",
-              marginTop: "20px",
-              paddingTop: "15px",
-              minHeight: "2px",
-              height: "80px",
-              margin: "0 24px",
-            }}
-          >
-            <div style={{ width: "100%" }}>
-              <Breadcrumb
-                items={[
-                  { label: "Dashboard", path: "/hod/dashboard" },
-                  { label: "Exception Approvals" },
-                ]}
-              />
+            <div
+              style={{
+                width: "96%",
+                margin: "10px auto",
+                paddingTop: "20px",
+                height: "80px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Exception Approvals" },
+                  ]}
+                />
+              </div>
             </div>
-          </div>
 
       <MotionDiv
         initial={{ opacity: 0, y: -20 }}
