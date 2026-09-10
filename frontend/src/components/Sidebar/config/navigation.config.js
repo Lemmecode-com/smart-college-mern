@@ -972,12 +972,6 @@ export const navigationConfig = {
             label: "Create Exam",
             exact: true,
           },
-          {
-            path: "/dashboard/exam/list",
-            icon: FaCalendarAlt,
-            label: "Exam Timetable",
-            exact: true,
-          },
         ],
       },
       {
