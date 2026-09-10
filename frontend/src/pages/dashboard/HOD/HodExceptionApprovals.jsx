@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import CustomSelect from "../../../components/CustomSelect";
 import { toast } from "react-toastify";
@@ -758,6 +759,26 @@ export default function HodExceptionApprovals() {
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
+       {/* Breadcrumb - ABOVE Exception Approvals Banner */}
+<div
+  style={{
+    width: "100%",
+    marginTop: "20px",
+    paddingTop: "5px",
+    minHeight: "2px",
+    height: "60px",
+  }}
+>
+  <div style={{ width: "100%" }}>
+    <Breadcrumb
+      items={[
+        { label: "Dashboard", path: "/hod/dashboard" },
+        { label: "Exception Approvals" },
+      ]}
+    />
+  </div>
+</div>
+
       <MotionDiv
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
