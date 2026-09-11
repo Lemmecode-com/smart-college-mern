@@ -182,7 +182,7 @@ export default function SidebarContainer({
         scroll={true}
         aria-label={ARIA_LABELS.MOBILE_NAVIGATION}
       >
-        <Offcanvas.Header closeButton className="border-0 pb-0 offcanvas-header-brand">
+        <Offcanvas.Header className="border-0 pb-0 offcanvas-header-brand">
           <Offcanvas.Title>
             <img
               src="/novaaa.png"
@@ -190,6 +190,20 @@ export default function SidebarContainer({
               className="offcanvas-logo-image"
             />
           </Offcanvas.Title>
+          <button
+            onClick={() => setIsMobileOpen(false)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "white",
+              fontSize: "28px",
+              cursor: "pointer",
+              marginLeft: "auto",
+            }}
+          >
+            ×
+          </button>
+
         </Offcanvas.Header>
         <Offcanvas.Body className="p-0">
           <div className="offcanvas-logo-section p-3 border-bottom">
