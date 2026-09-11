@@ -740,8 +740,8 @@ export default function MyTimetable() {
             borderTop: "1px solid rgba(255, 255, 255, 0.3)",
           }}
         >
-          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 timetable-week-navigation">
+            <div className="d-flex align-items-center gap-2 timetable-week-controls">
               <button
                 onClick={goToPreviousWeek}
                 className="btn btn-sm btn-outline-primary"
@@ -762,7 +762,7 @@ export default function MyTimetable() {
               >
                 <FaChevronRight />
               </button>
-              <span className="text-muted fw-medium">
+              <span className="text-muted fw-medium timetable-week-date">
                 {new Date(dateRange.startDate).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -775,7 +775,7 @@ export default function MyTimetable() {
                 })}
               </span>
             </div>
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 timetable-slot-summary">
               <FaCheckCircle className="text-success" size={14} />
               <span className="text-muted small fw-medium">
                 {totalSlots} Total Slots
@@ -1620,21 +1620,197 @@ export default function MyTimetable() {
           </motion.div>
         </motion.div>
       )}
-      <style>{`
-        .card {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+<style>{`
+  .card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-        .badge {
-          transition: all 0.2s ease;
-        }
+  .badge {
+    transition: all 0.2s ease;
+  }
 
-        @media (max-width: 768px) {
-          .container-fluid {
-            padding: 1rem;
-          }
-        }
-      `}</style>
+  @media (max-width: 768px) {
+    .container-fluid {
+      padding: 1rem;
+    }
+  }
+
+  /* =========================================
+     MOBILE + TABLET TIMETABLE NAVIGATION
+     ========================================= */
+
+  @media (max-width: 991px) {
+
+    .timetable-week-navigation {
+      display: grid !important;
+      grid-template-columns: repeat(6, 1fr) !important;
+      gap: 10px !important;
+      align-items: center !important;
+    }
+
+    .timetable-week-controls {
+      display: contents !important;
+    }
+
+    /* ===============================
+       PREVIOUS ARROW
+       =============================== */
+
+    .timetable-week-controls button:nth-child(1) {
+      grid-column: 1 / 2 !important;
+      grid-row: 1 !important;
+
+      width: 100% !important;
+      height: 44px !important;
+      padding: 0 !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    /* ===============================
+       CURRENT WEEK
+       =============================== */
+
+    .timetable-week-controls button:nth-child(2) {
+      grid-column: 2 / 6 !important;
+      grid-row: 1 !important;
+
+      width: 100% !important;
+      height: 44px !important;
+
+      padding: 0.5rem 0.75rem !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+
+      white-space: nowrap !important;
+    }
+
+    /* ===============================
+       NEXT ARROW
+       =============================== */
+
+    .timetable-week-controls button:nth-child(3) {
+      grid-column: 6 / 7 !important;
+      grid-row: 1 !important;
+
+      width: 100% !important;
+      height: 44px !important;
+      padding: 0 !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    /* ===============================
+       DATE BOX
+       =============================== */
+
+    .timetable-week-date {
+      grid-column: 1 / 4 !important;
+      grid-row: 2 !important;
+
+      min-width: 0 !important;
+      width: 100% !important;
+      height: 44px !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      box-sizing: border-box !important;
+      padding: 0 6px !important;
+
+      border: 1px solid #dee2e6 !important;
+      border-radius: 8px !important;
+      background: #fff !important;
+
+      font-size: 0.82rem !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+    }
+
+    /* ===============================
+       TOTAL SLOTS BOX
+       =============================== */
+
+    .timetable-slot-summary {
+      grid-column: 4 / 7 !important;
+      grid-row: 2 !important;
+
+      min-width: 0 !important;
+      width: 100% !important;
+      height: 44px !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      box-sizing: border-box !important;
+      padding: 0 6px !important;
+
+      border: 1px solid #dee2e6 !important;
+      border-radius: 8px !important;
+      background: #fff !important;
+
+      gap: 5px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+    }
+
+    .timetable-slot-summary .small {
+      font-size: 0.9rem !important;
+    }
+  }
+
+  /* =========================================
+     SMALL MOBILE
+     ========================================= */
+
+  @media (max-width: 575px) {
+
+    .timetable-week-navigation {
+      gap: 8px !important;
+    }
+
+    /* Smaller arrows */
+    .timetable-week-controls button:nth-child(1),
+    .timetable-week-controls button:nth-child(3) {
+      height: 42px !important;
+      font-size: 1rem !important;
+    }
+
+    /* Large Current Week button */
+    .timetable-week-controls button:nth-child(2) {
+      height: 42px !important;
+      font-size: 0.82rem !important;
+      padding: 0.5rem !important;
+    }
+
+    /* Date box */
+    .timetable-week-date {
+      height: 42px !important;
+      font-size: 0.74rem !important;
+      padding: 0 4px !important;
+    }
+
+    /* Total slots box */
+    .timetable-slot-summary {
+      height: 42px !important;
+      padding: 0 4px !important;
+      gap: 5px !important;
+    }
+
+    .timetable-slot-summary .small {
+      font-size: 0.78rem !important;
+    }
+  }
+`}</style>
     </motion.div>
   );
 }
