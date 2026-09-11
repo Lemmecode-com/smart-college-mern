@@ -962,22 +962,16 @@ export const navigationConfig = {
         defaultOpen: true,
         matchPath: "/dashboard/exam",
         items: [
-          {
-            path: "/dashboard/exam",
-            icon: FaTachometerAlt,
-            label: "Exam Dashboard",
+           {
+            path: "/dashboard/exam/create",
+            icon: FaPlus,
+            label: "Create Exam",
             exact: true,
           },
           {
             path: "/dashboard/exam/list",
             icon: FaListOl,
             label: "Exam List",
-            exact: true,
-          },
-          {
-            path: "/dashboard/exam/create",
-            icon: FaPlus,
-            label: "Create Exam",
             exact: true,
           },
         ],
@@ -999,18 +993,6 @@ export const navigationConfig = {
             icon: FaFileAlt,
             label: "Generate Result",
             exact: true,
-          },
-          {
-            path: "/dashboard/exam/results/review/:examId",
-            icon: FaEye,
-            label: "Review Results",
-            exact: false,
-          },
-          {
-            path: "/dashboard/exam/results/:resultId",
-            icon: FaClipboardCheck,
-            label: "Result Review",
-            exact: false,
           },
         ],
       },
