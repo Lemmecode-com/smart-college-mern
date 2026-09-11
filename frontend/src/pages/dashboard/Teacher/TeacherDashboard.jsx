@@ -206,20 +206,20 @@ export default function TeacherDashboard() {
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-            className="card shadow-lg border-0 mb-3 mb-md-4 overflow-hidden"
+            className="card shadow-lg border-0 mb-3 mb-md-4 overflow-hidden teacher-dashboard-banner"
             style={{ borderRadius: '1rem' }}
           >
             <div
               className="p-3 p-md-4 text-white"
               style={{ background: BRAND_COLORS.primary.gradient }}
             >
-              <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3">
+              <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3 teacher-banner-main">
                 <div className="d-flex align-items-center gap-3">
                   <motion.div
                     variants={pulseVariants}
                     initial="initial"
                     animate="pulse"
-                    className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0"
+                    className="d-flex align-items-center justify-content-center rounded-circle flex-shrink-0 teacher-banner-icon"
                     style={{
                       width: '72px',
                       height: '72px',
@@ -231,17 +231,17 @@ export default function TeacherDashboard() {
                     <FaChalkboardTeacher />
                   </motion.div>
                   <div>
-                    <h1 className="mb-0 fw-bold" style={{ fontSize: '1.75rem' }}>
+                    <h1 className="mb-0 fw-bold teacher-banner-title" style={{ fontSize: '1.75rem' }}>
                       Welcome, {teacher.name}
                     </h1>
-                    <p className="mb-0 mt-1" style={{ opacity: 0.9, fontSize: '1rem' }}>
+                    <p className="mb-0 mt-1 teacher-banner-description" style={{ opacity: 0.9, fontSize: '1rem' }}>
                       Empowering Education Through Technology
                     </p>
                   </div>
                 </div>
                 <div className="d-flex gap-2 align-items-center">
                   <div
-                    className="text-center px-3 py-2"
+                    className="text-center px-3 py-2 teacher-banner-stat"
                     style={{
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       borderRadius: '12px'
@@ -257,7 +257,7 @@ export default function TeacherDashboard() {
                     </div>
                   </div>
                   <div
-                    className="text-center px-3 py-2"
+                    className="text-center px-3 py-2 teacher-banner-stat"
                     style={{
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       borderRadius: '12px'
@@ -304,6 +304,166 @@ export default function TeacherDashboard() {
               </div>
             </div>
           </motion.div>
+
+<style>{`
+  /* =========================================
+     TEACHER DASHBOARD BANNER
+     MOBILE + TABLET ONLY
+     ========================================= */
+
+  @media (max-width: 991px) {
+
+    .teacher-dashboard-banner {
+      border-radius: 16px !important;
+    }
+
+    /* Main dark section */
+    .teacher-dashboard-banner > .p-3 {
+      padding: 1.15rem !important;
+    }
+
+    .teacher-banner-main {
+      gap: 1rem !important;
+    }
+
+    /* Icon */
+    .teacher-banner-icon {
+      width: 58px !important;
+      height: 58px !important;
+      min-width: 58px !important;
+      font-size: 1.5rem !important;
+    }
+
+    /* Welcome text */
+    .teacher-banner-title {
+  font-size: 1.45rem !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+  max-width: 180px !important;
+}
+
+    .teacher-banner-description {
+      font-size: 0.85rem !important;
+      line-height: 1.4 !important;
+      margin-top: 0.35rem !important;
+    }
+
+    /* Time + Employee ID */
+    .teacher-dashboard-banner > .p-3 > .teacher-banner-main > div:last-child {
+      width: 100% !important;
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px !important;
+    }
+
+    .teacher-banner-stat {
+      width: 100% !important;
+      min-width: 0 !important;
+      padding: 0.65rem 0.5rem !important;
+      border-radius: 10px !important;
+    }
+
+    .teacher-banner-stat .small {
+      font-size: 0.68rem !important;
+      line-height: 1.2 !important;
+    }
+
+    .teacher-banner-stat .fw-bold {
+      font-size: 0.95rem !important;
+      line-height: 1.3 !important;
+      word-break: break-word !important;
+    }
+
+    /* Teacher info bar */
+    .teacher-dashboard-banner .bg-light {
+      padding: 0.7rem 1rem !important;
+    }
+
+    .teacher-dashboard-banner .bg-light > .d-flex {
+      gap: 0.75rem !important;
+    }
+
+    .teacher-dashboard-banner .bg-light .rounded-pill {
+      font-size: 0.75rem !important;
+      padding: 0.4rem 0.75rem !important;
+    }
+
+    .teacher-dashboard-banner .bg-light button {
+      width: 36px !important;
+      height: 36px !important;
+      padding: 0 !important;
+      justify-content: center !important;
+    }
+  }
+
+
+  /* =========================================
+     SMALL MOBILE
+     ========================================= */
+
+  @media (max-width: 575px) {
+
+    .teacher-dashboard-banner {
+      border-radius: 14px !important;
+    }
+
+    .teacher-dashboard-banner > .p-3 {
+      padding: 0.9rem !important;
+    }
+
+    .teacher-banner-main {
+      gap: 0.75rem !important;
+    }
+
+    .teacher-banner-icon {
+      width: 52px !important;
+      height: 52px !important;
+      min-width: 52px !important;
+      font-size: 1.3rem !important;
+    }
+
+    .teacher-banner-title {
+  font-size: 1.25rem !important;
+  line-height: 1.15 !important;
+  max-width: 150px !important;
+}
+
+    .teacher-banner-description {
+      font-size: 0.75rem !important;
+      line-height: 1.35 !important;
+    }
+
+    .teacher-dashboard-banner > .p-3 > .teacher-banner-main > div:last-child {
+      gap: 8px !important;
+    }
+
+    .teacher-banner-stat {
+      padding: 0.55rem 0.35rem !important;
+    }
+
+    .teacher-banner-stat .small {
+      font-size: 0.62rem !important;
+    }
+
+    .teacher-banner-stat .fw-bold {
+      font-size: 0.85rem !important;
+    }
+
+    .teacher-dashboard-banner .bg-light {
+      padding: 0.6rem 0.8rem !important;
+    }
+
+    .teacher-dashboard-banner .bg-light .rounded-pill {
+      font-size: 0.7rem !important;
+      padding: 0.35rem 0.65rem !important;
+    }
+
+    .teacher-dashboard-banner .bg-light button {
+      width: 34px !important;
+      height: 34px !important;
+    }
+  }
+`}</style>
 
           {/* ================= STATS GRID ================= */}
           <motion.div
