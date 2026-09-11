@@ -187,21 +187,19 @@ export default function TeacherDashboard() {
       >
         <div className="container-fluid px-3 px-md-4 py-3 py-md-4">
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="card shadow-sm mb-3 mb-md-4"
-          >
-            <div className="card-body py-2 py-md-3 px-3 px-md-4">
-              <Breadcrumb
-                items={[
-                  { label: "Dashboard" },
-                  { label: "Teacher Overview" }
-                ]}
-              />
-            </div>
-          </motion.div>
+        <motion.div
+          variants={slideDownVariants}
+          initial="hidden"
+          animate="visible"
+          className="mb-4"
+        >
+          <Breadcrumb
+            items={[
+              { label: "Dashboard" },
+              { label: "Teacher Overview" }
+            ]}
+          />
+        </motion.div>
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -619,7 +617,7 @@ function ActionCard({ icon: Icon, title, desc, link, color, gradient }) {
       whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)' }}
       whileTap={{ scale: 0.98 }}
       onClick={() => navigate(link)}
-      className="card border-0 h-100 text-center cursor-pointer"
+      className="card border-0 h-100 text-center cursor-pointer d-flex flex-column"
       style={{
         borderRadius: '16px',
         padding: '1.75rem',
@@ -656,16 +654,33 @@ function ActionCard({ icon: Icon, title, desc, link, color, gradient }) {
         <Icon />
       </motion.div>
 
-      <h4 className="fw-bold mb-2" style={{ fontSize: '1.125rem', color: '#1e293b' }}>
+      <h4
+          className="fw-bold mb-2"
+          style={{
+            fontSize: '1.125rem',
+            color: '#1e293b',
+            minHeight: '54px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'center',
+          }}
+        >
         {title}
       </h4>
 
-      <p className="text-muted mb-3" style={{ fontSize: '0.875rem', lineHeight: 1.5 }}>
+        <p
+          className="text-muted mb-3"
+          style={{
+            fontSize: '0.875rem',
+            lineHeight: 1.5,
+            minHeight: '63px',
+          }}
+        >
         {desc}
       </p>
 
       <span
-        className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill fw-semibold small"
+       className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill fw-semibold small mt-auto"
         style={{
           backgroundColor: `${color}10`,
           color: color,

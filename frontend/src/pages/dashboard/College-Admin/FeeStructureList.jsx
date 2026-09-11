@@ -262,12 +262,14 @@ export default function FeeStructureList() {
   return (
     <div className="erp-page erp-viewport-min-100" style={{ background: "#f5f7fa" }}>
       {/* BREADCRUMBS */}
+      <div className="course-breadcrumb-wrapper">
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
           { label: "Fee Structures" }
         ]}
       />
+      </div>
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -533,6 +535,13 @@ export default function FeeStructureList() {
           align-items: center;
           justify-content: center;
           font-size: 1.75rem;
+        }
+
+        /* BREADCRUMBS */
+        .course-breadcrumb-wrapper {
+          width: 100%;
+          margin-top: 20px;
+          padding-top: 25px;
         }
         
         .erp-page-title {

@@ -3,6 +3,7 @@ import api from "../../../api/axios";
 import CreateSessionModal from "./CreateSessionModal";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaClipboardList,
   FaCheckCircle,
@@ -13,7 +14,6 @@ import {
   FaUsers,
   FaSyncAlt,
   FaPlus,
-  FaArrowLeft,
   FaInfoCircle,
   FaBell,
   FaQrcode,
@@ -153,44 +153,12 @@ export default function AttendanceSessionsList() {
       >
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/teacher/dashboard')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back to Dashboard
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>Attendance Sessions</span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "Attendance Sessions" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div

@@ -5,6 +5,7 @@ import ApiError from "../../../../components/ApiError";
 import { AuthContext } from "../../../../auth/AuthContext";
 import { logger } from "../../../../utils/logger";
 import { showError } from "../../../../utils/toast";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaCalendarAlt,
   FaGraduationCap,
@@ -13,7 +14,6 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaSyncAlt,
-  FaArrowLeft,
   FaUniversity,
   FaEdit,
   FaInfoCircle,
@@ -307,46 +307,12 @@ export default function CreateTimetable() {
       >
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(-1)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>
-              Create Timetable
-            </span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/hod/dashboard" },
+              { label: "Create Timetable" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div

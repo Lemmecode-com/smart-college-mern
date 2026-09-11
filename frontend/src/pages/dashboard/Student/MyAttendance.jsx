@@ -417,6 +417,67 @@ addToast("Filters reset successfully!", "info");
         </a>
 
         <div style={{ maxWidth: '1400px', margin: '0 auto' }} id="attendance-content">
+          <style>{`
+            .student-attendance-report-hero,
+            .student-attendance-report-hero-content,
+            .student-attendance-report-hero-copy,
+            .student-attendance-report-hero-actions {
+              min-width: 0;
+              max-width: 100%;
+              box-sizing: border-box;
+            }
+
+            @media (max-width: 1024px) {
+              .student-attendance-report-hero-content {
+                padding: 1.35rem !important;
+                gap: 1rem !important;
+              }
+
+              .student-attendance-report-hero-copy h1 {
+                font-size: 1.75rem !important;
+                line-height: 1.15 !important;
+              }
+
+              .student-attendance-report-hero-copy p {
+                font-size: 1rem !important;
+                line-height: 1.45 !important;
+              }
+            }
+
+            @media (max-width: 767.98px) {
+              .student-attendance-report-hero-content {
+                flex-direction: column !important;
+                align-items: center !important;
+                text-align: center;
+                padding: 1.25rem !important;
+              }
+
+              .student-attendance-report-hero-copy {
+                width: 100%;
+              }
+
+              .student-attendance-report-hero-copy h1 {
+                font-size: 1.55rem !important;
+                overflow-wrap: anywhere;
+              }
+
+              .student-attendance-report-hero-copy p {
+                margin-top: 0.5rem !important;
+                font-size: 0.9rem !important;
+              }
+
+              .student-attendance-report-hero-actions {
+                width: 100%;
+                justify-content: center;
+                flex-direction: column;
+              }
+
+              .student-attendance-report-hero-actions button {
+                width: 100%;
+                justify-content: center;
+              }
+            }
+          `}</style>
           {/* ================= TOAST CONTAINER ================= */}
           <div style={{
             position: 'fixed',
@@ -499,6 +560,7 @@ addToast("Filters reset successfully!", "info");
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
+            className="student-attendance-report-hero"
             style={{
               marginBottom: '2rem',
               backgroundColor: 'white',
@@ -510,7 +572,7 @@ addToast("Filters reset successfully!", "info");
               gap: '1.5rem'
             }}
           >
-            <div style={{
+            <div className="student-attendance-report-hero-content" style={{
               padding: '2rem',
               background: BRAND_COLORS.primary.gradient,
               color: 'white',
@@ -540,7 +602,7 @@ addToast("Filters reset successfully!", "info");
                 >
                   <FaClipboardList />
                 </motion.div>
-                <div>
+                <div className="student-attendance-report-hero-copy">
                   <h1 style={{
                     margin: 0,
                     fontSize: '2.25rem',
@@ -558,7 +620,7 @@ addToast("Filters reset successfully!", "info");
                   </p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <div className="student-attendance-report-hero-actions" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}

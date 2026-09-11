@@ -72,13 +72,13 @@
 
 | Test Case ID | Test Case Title | Preconditions | Test Steps | Test Data | Expected Result | Priority | Test Type |
 |-------------|-----------------|---------------|------------|-----------|-----------------|----------|-----------|
-| TCH-TC-001 | Admin - Create Teacher | Admin logged in | 1. Navigate to Add Teacher<br>2. Fill teacher details<br>3. Assign department/courses<br>4. Submit | name: "John Doe"<br>employeeId: "TCH001"<br>qualification: "M.Tech"<br>experience: 5 | Teacher created, linked User created | High | Positive |
+| TCH-TC-001 | Admin - Create Teacher | Admin logged in | 1. Navigate to Staff Management → Create Staff<br>2. Select Role = TEACHER<br>3. Fill teacher details<br>4. Assign department/course<br>5. Submit | name: "John Doe"<br>employeeId: "EMP-..."<br>qualification: "M.Tech"<br>experience: 5 | Teacher created, linked User created, StaffProfile created | High | Positive |
 | TCH-TC-002 | Duplicate Employee ID | Employee ID exists | 1. Create teacher with existing ID | employeeId: Existing ID | Error "duplicate employee ID" | High | Negative |
 | TCH-TC-003 | Admin - Update Teacher | Teacher exists | 1. Edit teacher profile<br>2. Modify fields<br>3. Save | Teacher ID<br>New mobile number | Teacher profile updated | High | Positive |
 | TCH-TC-004 | Admin - Deactivate Teacher | Teacher is active | 1. Select teacher<br>2. Click Deactivate<br>3. Handle reassignment | Teacher ID<br>Reassign to: other teacher | Teacher deactivated, courses reassigned | High | Positive |
 | TCH-TC-005 | Teacher - View My Profile | Teacher logged in | 1. Navigate to /teacher/my-profile<br>2. View details | Teacher credentials | Own profile displayed | High | Positive |
 | TCH-TC-006 | Teacher - Update My Profile | Teacher logged in | 1. Edit profile fields<br>2. Save changes | Teacher, address update | Profile updated | Medium | Positive |
-| TCH-TC-007 | Unauthorized Teacher Creation | Non-admin user | 1. Login as teacher/HOD<br>2. Attempt POST /teachers | Teacher credentials | 403 Forbidden error | High | Role-based |
+| TCH-TC-007 | Unauthorized Teacher Creation | Non-admin user | 1. Login as teacher/HOD<br>2. Attempt POST /college/staff with role=TEACHER | Teacher credentials | 403 Forbidden error | High | Role-based |
 | TCH-TC-008 | Invalid Experience Years | Experience > 50 | 1. Create teacher with exp: 60 | experienceYears: 60 | Validation error: max 50 years | Medium | Boundary |
 | TCH-TC-009 | HOD - View Department Teachers | HOD of department exists | 1. HOD logs in<br>2. Navigate to /hod/teachers | HOD credentials | Teachers in same department listed | High | Positive |
 

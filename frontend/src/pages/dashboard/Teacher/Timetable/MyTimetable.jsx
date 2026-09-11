@@ -4,6 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -651,6 +652,23 @@ export default function MyTimetable() {
         padding: "1.5rem",
       }}
     >
+      {/* ================= BREADCRUMB ================= */}   
+                <div
+            style={{
+              width: "100%",
+              margin: "10px auto",
+              paddingTop: "5px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/teacher/dashboard" },
+                  { label: "My Timetable" },
+                ]}
+              />
+            </div>
+          </div>
       {/* ================= HEADER ================= */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

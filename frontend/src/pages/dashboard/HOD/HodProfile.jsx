@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaEnvelope,
   FaPhone,
@@ -629,6 +630,12 @@ export default function HodProfile() {
       }}
     >
       <div className="erp-page-content" style={{ maxWidth: 1120 }}>
+        <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/hod/dashboard" },
+              { label: "My Profile" },
+            ]}
+          />
 
         {/* ==================================================
              1. PROFILE HEADER

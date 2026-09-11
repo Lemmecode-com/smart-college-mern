@@ -115,6 +115,17 @@
     flex: 0 0 auto;
     flex-shrink: 0;
   }
+
+  .navbar-mobile-toggle:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .navbar-mobile-toggle:focus-visible {
+    outline: 2px solid var(--navbar-accent) !important;
+    outline-offset: 2px;
+    box-shadow: none !important;
+  }
 }
 
 /* ================= COLLEGE BRAND NAME ================= */

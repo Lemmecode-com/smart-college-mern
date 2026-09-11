@@ -16,6 +16,7 @@ import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import Loading from "../../../components/Loading";
 import PageHero from "../../../components/common/PageHero";
+import Breadcrumb from "../../../components/Breadcrumb";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -128,6 +129,24 @@ if (error) {
          }}
        >
          <div className="erp-page-content">
+          {/* ================= BREADCRUMB ================= */}
+          <div
+              style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Department Teachers" },
+                  ]}
+                />
+              </div>
+            </div>
+
           <PageHero
             icon={<FaUsers />}
             title="Department Teachers"

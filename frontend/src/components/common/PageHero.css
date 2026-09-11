@@ -148,6 +148,48 @@
   border-color: rgba(255, 255, 255, 0.5);
 }
 
+/* ================= TABLET RESPONSIVE =================
+   Breakpoint: 768px - 1024px
+   Keeps the row layout but tightens padding/sizing so the
+   hero doesn't look oversized on tablet widths.
+*/
+@media (min-width: 768px) and (max-width: 1024px) {
+  .erp-page-hero {
+    margin-bottom: 1.5rem;
+  }
+
+  .erp-page-hero__inner {
+    padding: 1.5rem;
+    gap: 1.25rem;
+  }
+
+  .erp-page-hero__start {
+    gap: 1.1rem;
+  }
+
+  .erp-page-hero__icon {
+    width: 64px;
+    height: 64px;
+    font-size: 2rem;
+    border-radius: 16px;
+  }
+
+  .erp-page-hero__title {
+    font-size: 1.85rem;
+  }
+
+  .erp-page-hero__description {
+    font-size: 1.05rem;
+    margin-top: 0.5rem;
+  }
+
+  .erp-page-hero__back-btn,
+  .erp-page-hero__primary-btn {
+    padding: 0.65rem 1.25rem;
+    font-size: 0.92rem;
+  }
+}
+
 /* ================= MOBILE RESPONSIVE =================
    Breakpoint: max-width 767.98px (matches Bootstrap sm)
    Key fixes for mobile clipping:
@@ -160,44 +202,53 @@
    - Back button stays on one line (white-space: nowrap)
 */
 @media (max-width: 767.98px) {
+  .erp-page-hero {
+    margin-bottom: 1.25rem;
+    border-radius: 1.25rem;
+  }
+
   .erp-page-hero__inner {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 1.5rem;
-    gap: 1rem;
+    padding: 1.35rem 1.15rem;
+    gap: 0.85rem;
   }
 
   .erp-page-hero__start {
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 0.85rem;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
   }
 
   .erp-page-hero__icon {
-    width: 60px;
-    height: 60px;
-    font-size: 2rem;
+    width: 56px;
+    height: 56px;
+    font-size: 1.65rem;
+    border-radius: 16px;
   }
 
   .erp-page-hero__title {
-    font-size: 1.75rem;
+    font-size: 1.45rem;
   }
 
   .erp-page-hero__description {
-    font-size: 1rem;
+    font-size: 0.9rem;
+    margin-top: 0.4rem;
+    line-height: 1.4;
   }
 
   .erp-page-hero__actions {
     width: 100%;
     justify-content: center;
+    margin-top: 0.15rem;
   }
 
   .erp-page-hero__back-btn {
-    font-size: 0.95rem;
-    padding: 0.7rem 1.4rem;
+    font-size: 0.88rem;
+    padding: 0.6rem 1.25rem;
   }
 }

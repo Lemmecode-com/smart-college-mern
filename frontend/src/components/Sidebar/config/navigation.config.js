@@ -35,7 +35,6 @@ import {
   FaEdit,
   FaClock,
   FaChartBar,
-  FaCreditCard,
   FaUserTimes,
   FaExclamationTriangle,
   FaChalkboardTeacher,
@@ -48,6 +47,8 @@ import {
   FaPlug,
   FaBug,
   FaArrowUp,
+  FaEye,
+  FaClipboardCheck,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -98,6 +99,20 @@ export const navigationConfig = {
             path: "/admin/security-audit",
             icon: FaCheckCircle,
             label: "Security Audit",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "super-platform",
+        title: "Platform Support",
+        icon: FaShieldAlt,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/super-admin/platform-support-config",
+            icon: FaCog,
+            label: "Platform Support Config",
             exact: true,
           },
         ],
@@ -198,26 +213,6 @@ export const navigationConfig = {
             path: "/subjects/add",
             icon: FaPlus,
             label: "Add Subject",
-            exact: true,
-          },
-        ],
-      },
-      {
-        id: "teachers",
-        title: "Teachers",
-        icon: FaUserGraduate,
-        defaultOpen: true,
-        items: [
-          {
-            path: "/teachers",
-            icon: FaListOl,
-            label: "Teacher List",
-            exact: true,
-          },
-          {
-            path: "/teachers/add-teacher",
-            icon: FaPlus,
-            label: "Add Teacher",
             exact: true,
           },
         ],
@@ -477,7 +472,21 @@ export const navigationConfig = {
           {
             path: "/timetable/weekly-timetable",
             icon: FaClock,
-            label: "Mark Attendance",
+            label: "Weekly Schedule",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "exam-teacher",
+        title: "Exam",
+        icon: FaClipboardList,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/teacher/exam-timetable",
+            icon: FaCalendarAlt,
+            label: "Exam Timetable",
             exact: true,
           },
         ],
@@ -512,6 +521,20 @@ export const navigationConfig = {
             path: "/attendance/my-sessions-list",
             icon: FaListOl,
             label: "My Sessions",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "marks-teacher",
+        title: "Marks Entry",
+        icon: FaEdit,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/teacher/marks-entry",
+            icon: FaEdit,
+            label: "Enter Marks",
             exact: true,
           },
         ],
@@ -590,6 +613,12 @@ export const navigationConfig = {
             label: "My Timetable",
             exact: true,
           },
+          {
+            path: "/student/exam-timetable",
+            icon: FaCalendarAlt,
+            label: "Exam Timetable",
+            exact: true,
+          },
         ],
       },
       {
@@ -616,6 +645,20 @@ export const navigationConfig = {
             path: "/my-attendance",
             icon: FaClipboardList,
             label: "View Attendance",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "results-student",
+        title: "Exam Results",
+        icon: FaFileAlt,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/student/results",
+            icon: FaFileAlt,
+            label: "My Results",
             exact: true,
           },
         ],
@@ -705,20 +748,6 @@ export const navigationConfig = {
         ],
       },
       {
-        id: "teachers-view",
-        title: "Teachers",
-        icon: FaUserGraduate,
-        defaultOpen: false,
-        items: [
-          {
-            path: "/teachers",
-            icon: FaListOl,
-            label: "Teacher List",
-            exact: true,
-          },
-        ],
-      },
-      {
         id: "students-view",
         title: "Students",
         icon: FaUserGraduate,
@@ -799,69 +828,69 @@ export const navigationConfig = {
     ],
   },
 
-/**
-    * ACCOUNTANT Navigation
-    * Fee collection, payment tracking, receipts, financial reports
-    */
-   ACCOUNTANT: {
-     dashboard: {
-       path: "/dashboard/accountant",
-       icon: FaTachometerAlt,
-       label: "Dashboard",
-     },
-     sections: [
-       {
-         id: "accountant-fees",
-         title: "Fee Management",
-         icon: FaMoneyBillWave,
-         defaultOpen: true,
-         items: [
-           {
-             path: "/fees/list",
-             icon: FaListOl,
-             label: "Fee Structures",
-             exact: true,
-           },
-           {
-             path: "/accountant/record-offline-payment",
-             icon: FaMoneyBillWave,
-             label: "Record Offline Payment",
-             exact: true,
-           },
-           {
-             path: "/college-admin/payment-history",
-             icon: FaHistory,
-             label: "Payment History",
-             exact: true,
-           },
-           {
-             path: "/accountant/defaulters",
-             icon: FaUserTimes,
-             label: "Defaulter List",
-             exact: true,
-           },
-           {
-             path: "/college-admin/reports/payment-summary",
-             icon: FaChartBar,
-             label: "Payment Reports",
-             exact: true,
-           },
-           {
-             path: "/college-admin/reports/payment-trends",
-             icon: FaChartLine,
-             label: "Payment Trends",
-             exact: true,
-           },
-           {
-             path: "/college-admin/student-reports",
-             icon: FaUser,
-             label: "Student Reports",
-             exact: true,
-           },
-         ],
-       },
-     ],
-   },
+  /**
+   * ACCOUNTANT Navigation
+   * Fee collection, payment tracking, receipts, financial reports
+   */
+  ACCOUNTANT: {
+    dashboard: {
+      path: "/dashboard/accountant",
+      icon: FaTachometerAlt,
+      label: "Dashboard",
+    },
+    sections: [
+      {
+        id: "accountant-fees",
+        title: "Fee Management",
+        icon: FaMoneyBillWave,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/fees/list",
+            icon: FaListOl,
+            label: "Fee Structures",
+            exact: true,
+          },
+          {
+            path: "/accountant/record-offline-payment",
+            icon: FaMoneyBillWave,
+            label: "Record Offline Payment",
+            exact: true,
+          },
+          {
+            path: "/college-admin/payment-history",
+            icon: FaHistory,
+            label: "Payment History",
+            exact: true,
+          },
+          {
+            path: "/accountant/defaulters",
+            icon: FaUserTimes,
+            label: "Defaulter List",
+            exact: true,
+          },
+          {
+            path: "/college-admin/reports/payment-summary",
+            icon: FaChartBar,
+            label: "Payment Reports",
+            exact: true,
+          },
+          {
+            path: "/college-admin/reports/payment-trends",
+            icon: FaChartLine,
+            label: "Payment Trends",
+            exact: true,
+          },
+          {
+            path: "/college-admin/student-reports",
+            icon: FaUser,
+            label: "Student Reports",
+            exact: true,
+          },
+        ],
+      },
+    ],
+  },
 
   /**
    * ADMISSION_OFFICER Navigation
@@ -917,7 +946,7 @@ export const navigationConfig = {
 
   /**
    * EXAM_COORDINATOR Navigation
-   * Placeholder until V1.1
+   * Exam management and planning
    */
   EXAM_COORDINATOR: {
     dashboard: {
@@ -928,32 +957,41 @@ export const navigationConfig = {
     sections: [
       {
         id: "exam",
-        title: "Exam Planning",
+        title: "Exam Management",
+        icon: FaClipboardList,
+        defaultOpen: true,
+        matchPath: "/dashboard/exam",
+        items: [
+          {
+            path: "/dashboard/exam/create",
+            icon: FaPlus,
+            label: "Create Exam",
+            exact: true,
+          },
+          {
+            path: "/dashboard/exam/list",
+            icon: FaListOl,
+            label: "Exam List",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "exam-results",
+        title: "Results",
         icon: FaClipboardList,
         defaultOpen: true,
         items: [
           {
-            path: "/dashboard/exam",
-            icon: FaExclamationTriangle,
-            label: "Exam Dashboard",
+            path: "/dashboard/exam/results",
+            icon: FaChartBar,
+            label: "Results Dashboard",
             exact: true,
           },
           {
-            path: "/students/approved-students",
-            icon: FaUserGraduate,
-            label: "Approved Students",
-            exact: true,
-          },
-          {
-            path: "/teachers",
-            icon: FaChalkboardTeacher,
-            label: "Teachers",
-            exact: true,
-          },
-          {
-            path: "/timetable/list",
-            icon: FaCalendarAlt,
-            label: "Timetable",
+            path: "/dashboard/exam/results/generate",
+            icon: FaFileAlt,
+            label: "Generate Result",
             exact: true,
           },
         ],
@@ -972,7 +1010,6 @@ export const navigationConfig = {
       label: "Dashboard",
     },
     sections: [
-
       {
         id: "parent-profile",
         title: "My Profile",
@@ -1055,242 +1092,262 @@ export const navigationConfig = {
     ],
   },
 
-   /**
-    * PLATFORM_SUPPORT Navigation
-    * System health, monitoring, support tickets, diagnostics
-    */
-   PLATFORM_SUPPORT: {
-     dashboard: {
-       path: "/dashboard/support",
-       icon: FaTachometerAlt,
-       label: "Dashboard",
-     },
-     sections: [
-       {
-         id: "support-overview",
-         title: "Overview",
-         icon: FaTachometerAlt,
-         defaultOpen: true,
-         items: [
-           {
-             path: "/dashboard/support",
-             icon: FaTachometerAlt,
-             label: "Support Dashboard",
-             exact: true,
-           },
-           {
-             path: "/platform-support/colleges",
-             icon: FaUniversity,
-             label: "Colleges Health",
-             exact: true,
-           },
-         ],
-       },
-       {
-         id: "support-health",
-         title: "System Health",
-         icon: FaHeartbeat,
-         defaultOpen: false,
-         items: [
-           {
-             path: "/platform-support/health",
-             icon: FaChartLine,
-             label: "Health Monitor",
-             exact: true,
-           },
-           {
-             path: "/platform-support/database",
-             icon: FaDatabase,
-             label: "Database Diagnostics",
-             exact: true,
-           },
-         ],
-       },
-       {
-         id: "support-logs",
-         title: "Logs & Audit",
-         icon: FaClipboardList,
-         defaultOpen: false,
-         items: [
-           {
-             path: "/platform-support/audit-logs",
-             icon: FaClipboardList,
-             label: "Audit Logs",
-             exact: true,
-           },
-           {
-             path: "/platform-support/system-logs",
-             icon: FaBug,
-             label: "System Logs",
-             exact: true,
-           },
-           {
-             path: "/platform-support/errors",
-             icon: FaExclamationTriangle,
-             label: "Error Analytics",
-             exact: true,
-           },
-         ],
-       },
-       {
-         id: "support-integrations",
-         title: "Integrations",
-         icon: FaPlug,
-         defaultOpen: false,
-         items: [
-           {
-             path: "/platform-support/integrations",
-             icon: FaPlug,
-             label: "Service Health",
-             exact: true,
-           },
-         ],
-       },
-       {
-         id: "support-tickets",
-         title: "Support Tickets",
-         icon: FaTicketAlt,
-         defaultOpen: false,
-         items: [
-           {
-             path: "/platform-support/tickets",
-             icon: FaTicketAlt,
-             label: "All Tickets",
-             exact: true,
-           },
-         ],
-       },
-       {
-         id: "support-config",
-         title: "Configuration",
-         icon: FaCog,
-         defaultOpen: false,
-         items: [
-           {
-             path: "/platform-support/config",
-             icon: FaCog,
-             label: "System Config",
-             exact: true,
-           },
-         ],
-       },
-     ],
+  /**
+   * PLATFORM_SUPPORT Navigation
+   * System health, monitoring, support tickets, diagnostics
+   */
+  PLATFORM_SUPPORT: {
+    dashboard: {
+      path: "/dashboard/support",
+      icon: FaTachometerAlt,
+      label: "Dashboard",
+    },
+    sections: [
+      {
+        id: "support-overview",
+        title: "Overview",
+        icon: FaTachometerAlt,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/dashboard/support",
+            icon: FaTachometerAlt,
+            label: "Support Dashboard",
+            exact: true,
+          },
+          {
+            path: "/platform-support/colleges",
+            icon: FaUniversity,
+            label: "Colleges Health",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "support-health",
+        title: "System Health",
+        icon: FaHeartbeat,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/platform-support/health",
+            icon: FaChartLine,
+            label: "Health Monitor",
+            exact: true,
+          },
+          {
+            path: "/platform-support/database",
+            icon: FaDatabase,
+            label: "Database Diagnostics",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "support-logs",
+        title: "Logs & Audit",
+        icon: FaClipboardList,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/platform-support/audit-logs",
+            icon: FaClipboardList,
+            label: "Audit Logs",
+            exact: true,
+          },
+          {
+            path: "/platform-support/system-logs",
+            icon: FaBug,
+            label: "System Logs",
+            exact: true,
+          },
+          {
+            path: "/platform-support/errors",
+            icon: FaExclamationTriangle,
+            label: "Error Analytics",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "support-integrations",
+        title: "Integrations",
+        icon: FaPlug,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/platform-support/integrations",
+            icon: FaPlug,
+            label: "Service Health",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "support-tickets",
+        title: "Support Tickets",
+        icon: FaTicketAlt,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/platform-support/tickets",
+            icon: FaTicketAlt,
+            label: "All Tickets",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "support-config",
+        title: "Configuration",
+        icon: FaCog,
+        defaultOpen: false,
+        items: [
+          {
+            path: "/platform-support/config",
+            icon: FaCog,
+            label: "System Config",
+            exact: true,
+          },
+        ],
+      },
+    ],
+  },
+
+  /**
+   * HOD Navigation
+   * Head of Department – manages timetables, teachers, and department overview
+   */
+  HOD: {
+    dashboard: {
+      path: "/hod/dashboard",
+      icon: FaChalkboardTeacher,
+      label: "HOD Dashboard",
     },
 
-   /**
-    * HOD Navigation
-    * Head of Department – manages timetables, teachers, and department overview
-    */
-    HOD: {
-      dashboard: {
-        path: "/hod/dashboard",
-        icon: FaChalkboardTeacher,
-        label: "HOD Dashboard",
+    sections: [
+      {
+        id: "hod-profile",
+        title: "My Profile",
+        icon: FaUser,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/hod/profile",
+            icon: FaUser,
+            label: "HOD Profile",
+            exact: true,
+          },
+        ],
       },
-      
-      sections: [
-        {
-          id: "hod-profile",
-          title: "My Profile",
-          icon: FaUser,
-          defaultOpen: true,
-          items: [
-            {
-              path: "/hod/profile",
-              icon: FaUser,
-              label: "HOD Profile",
-              exact: true,
-            },
-          ],
-        },
-        {
-          id: "hod-timetable",
-          title: "Timetable",
-          icon: FaCalendarAlt,
-          defaultOpen: true,
-          items: [
-            {
-              path: "/timetable/list",
-              icon: FaListOl,
-              label: "View Timetables",
-              exact: true,
-            },
-            {
-              path: "/timetable/weekly-timetable",
-              icon: FaClock,
-              label: "Weekly Schedule",
-              exact: true,
-            },
-            {
-              path: "/timetable/create-timetable",
-              icon: FaPlus,
-              label: "Create Timetable",
-              exact: true,
-            },
-            {
-              path: "/hod/exception-approvals",
-              icon: FaExclamationTriangle,
-              label: "Exception Approvals",
-              exact: true,
-            },
-          ],
-        },
-       {
-         id: "hod-teachers",
-         title: "Department Teachers",
-         icon: FaUsers,
-         defaultOpen: true,
-         items: [
-           {
-             path: "/hod/teachers",
-             icon: FaUsers,
-             label: "All Teachers",
-             exact: true,
-           },
-           {
-             path: "/hod/department",
-             icon: FaLayerGroup,
-             label: "Department Info",
-             exact: true,
-           },
-         ],
-       },
-        {
-          id: "hod-reports",
-          title: "Reports",
-          icon: FaChartPie,
-          defaultOpen: true,
-          items: [
-            {
-              path: "/hod/reports",
-              icon: FaChartPie,
-              label: "Department Reports",
-              exact: true,
-            },
-          ],
-        },
-        {
-          id: "hod-notifications",
-          title: "Notifications",
-          icon: FaBell,
-          defaultOpen: true,
-          items: [
-            {
-              path: "/hod/notifications/create",
-              icon: FaPlus,
-              label: "Create Notification",
-              exact: true,
-            },
-            {
-              path: "/hod/notifications/list",
-              icon: FaListOl,
-              label: "All Notifications",
-              exact: true,
-            },
-          ],
-        },
-     ],
-   },
+      {
+        id: "hod-timetable",
+        title: "Timetable",
+        icon: FaCalendarAlt,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/timetable/list",
+            icon: FaListOl,
+            label: "View Timetables",
+            exact: true,
+          },
+          {
+            path: "/timetable/weekly-timetable",
+            icon: FaClock,
+            label: "Weekly Schedule",
+            exact: true,
+          },
+          {
+            path: "/timetable/create-timetable",
+            icon: FaPlus,
+            label: "Create Timetable",
+            exact: true,
+          },
+          {
+            path: "/hod/exception-approvals",
+            icon: FaExclamationTriangle,
+            label: "Exception Approvals",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "hod-exam",
+        title: "Exam",
+        icon: FaClipboardList,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/teacher/marks-entry",
+            icon: FaEdit,
+            label: "Enter Marks",
+            exact: true,
+          },
+          {
+            path: "/hod/exam-timetable",
+            icon: FaCalendarAlt,
+            label: "Exams Timetable",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "hod-teachers",
+        title: "Department Teachers",
+        icon: FaUsers,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/hod/teachers",
+            icon: FaUsers,
+            label: "All Teachers",
+            exact: true,
+          },
+          {
+            path: "/hod/department",
+            icon: FaLayerGroup,
+            label: "Department Info",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "hod-reports",
+        title: "Reports",
+        icon: FaChartPie,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/hod/reports",
+            icon: FaChartPie,
+            label: "Department Reports",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "hod-notifications",
+        title: "Notifications",
+        icon: FaBell,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/hod/notifications/create",
+            icon: FaPlus,
+            label: "Create Notification",
+            exact: true,
+          },
+          {
+            path: "/hod/notifications/list",
+            icon: FaListOl,
+            label: "All Notifications",
+            exact: true,
+          },
+        ],
+      },
+    ],
+  },
 
   /**
    * Get dashboard path for a given role

@@ -267,7 +267,7 @@ const AcademicSetting = () => {
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 1.5rem;
           margin-bottom: 1.5rem;
-          align-items: start;
+          align-items: strech;
         }
 
         .card-session {
@@ -285,12 +285,16 @@ const AcademicSetting = () => {
         }
 
         .settings-card {
-          background: var(--as-bg-card);
-          border-radius: var(--as-radius-xl);
-          box-shadow: var(--as-shadow-md);
-          overflow: hidden;
-          transition: all var(--as-transition-slow);
-          border: 1px solid rgba(0, 0, 0, 0.04);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+
+        background: var(--as-bg-card);
+        border-radius: var(--as-radius-xl);
+        box-shadow: var(--as-shadow-md);
+        overflow: hidden;
+        transition: all var(--as-transition-slow);
+        border: 1px solid rgba(0, 0, 0, 0.04);
         }
 
         .settings-card:hover {
@@ -355,6 +359,7 @@ const AcademicSetting = () => {
 
         .card-body-custom {
           padding: 1.5rem;
+          flex: 1;
         }
 
         .form-group {
@@ -381,12 +386,15 @@ const AcademicSetting = () => {
 
         .form-label {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 0.25rem;
+          min-height: 40px;
+          margin-bottom: 0.5rem;
+
           font-size: 0.875rem;
           font-weight: 600;
+          line-height: 1.4;
           color: var(--as-text-primary);
-          margin-bottom: 0.5rem;
         }
 
         .info-icon {
@@ -406,7 +414,7 @@ const AcademicSetting = () => {
         }
 
         .input-wrapper .form-input {
-          padding-right: 2.75rem;
+          padding-right: 3.2rem;
         }
 
         .form-input {
@@ -474,6 +482,7 @@ const AcademicSetting = () => {
 
         .form-hint {
           display: block;
+          min-height: 17px;
           font-size: 0.75rem;
           color: var(--as-text-muted);
           margin-top: 0.25rem;
