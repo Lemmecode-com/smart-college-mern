@@ -261,29 +261,117 @@ export default function StudentResults() {
 
         <div style={{ maxWidth: "1320px", margin: "0 auto" }} id="results-content">
           <style>{`
-            @media (max-width: 1024px) {
-              .sr-result-header {
-                flex-direction: column;
-                align-items: flex-start !important;
-              }
 
-              .sr-result-badges {
-                width: 100%;
-                justify-content: flex-start !important;
-                flex-wrap: wrap;
-              }
-            }
+/* ================= RESULT BANNER RESPONSIVE ================= */
 
-            @media (max-width: 480px) {
-              .sr-result-badges {
-                gap: 0.5rem !important;
-              }
+@media (max-width: 1024px) {
+  .sr-result-header {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 1rem !important;
+  }
 
-              .sr-result-badge-overall {
-                min-width: 0 !important;
-                padding: 0.5rem 1rem !important;
-              }
-            }
+  .sr-result-header-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sr-result-exam-title {
+    line-height: 1.2 !important;
+    word-break: break-word;
+  }
+
+  .sr-result-meta {
+    width: 100%;
+    row-gap: 0.5rem !important;
+  }
+
+  .sr-result-badges {
+    width: 100%;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .sr-result-published {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sr-result-badge-overall {
+    min-width: 120px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .sr-result-header {
+    padding: 1rem 1.1rem !important;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .sr-result-exam-title {
+    font-size: 1.15rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .sr-result-meta {
+    font-size: 0.82rem !important;
+    gap: 0.45rem 0.8rem !important;
+  }
+
+  .sr-result-badges {
+    gap: 0.6rem !important;
+  }
+
+  .sr-result-published {
+    flex: 1;
+    min-width: 0;
+    padding: 0.65rem 0.75rem !important;
+  }
+
+  .sr-result-badge-overall {
+    flex: 1.2;
+    min-width: 0 !important;
+    padding: 0.55rem 0.75rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .sr-result-header {
+    padding: 1rem !important;
+  }
+
+  .sr-result-exam-title {
+    font-size: 1.05rem !important;
+  }
+
+  .sr-result-meta {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.4rem !important;
+  }
+
+  .sr-result-badges {
+    display: grid !important;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 0.6rem !important;
+    width: 100%;
+  }
+
+  .sr-result-published {
+    width: 100%;
+    min-height: 70px;
+    box-sizing: border-box;
+  }
+
+  .sr-result-badge-overall {
+    width: 100%;
+    min-height: 70px;
+    box-sizing: border-box;
+  }
+}
+
           `}</style>
           <Breadcrumb
             items={[
@@ -466,21 +554,22 @@ function ResultCard({ result, index }) {
         overflow: "hidden",
       }}
     >
-      <div
-        className="sr-result-header"
-        style={{
-          background: "linear-gradient(180deg, #0f3a4a, #134952)",
-          padding: `${SPACE.lg}px ${SPACE.xl}px`,
-          color: "white",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: SPACE.md,
-        }}
-      >
-        <div>
-          <h2
+        <div
+          className="sr-result-header"
+          style={{
+            background: "linear-gradient(180deg, #0f3a4a, #134952)",
+            padding: `${SPACE.lg}px ${SPACE.xl}px`,
+            color: "white",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: SPACE.md,
+          }}
+        >
+          <div className="sr-result-header-content">
+            <h2
+      className="sr-result-exam-title"
             style={{
               margin: 0,
               fontSize: "1.3rem",
@@ -493,6 +582,7 @@ function ResultCard({ result, index }) {
             <FaBook /> {exam.name || "Semester Result"}
           </h2>
           <p
+            className="sr-result-meta"
             style={{
               margin: "0.4rem 0 0",
               opacity: 0.8,
@@ -512,6 +602,7 @@ function ResultCard({ result, index }) {
         </div>
         <div className="sr-result-badges" style={{ display: "flex", alignItems: "center", gap: SPACE.md }}>
           <span
+          className="sr-result-published"
             style={{
               padding: "0.5rem 1.25rem",
               borderRadius: "20px",
