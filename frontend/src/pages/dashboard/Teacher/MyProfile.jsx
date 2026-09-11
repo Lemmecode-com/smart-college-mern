@@ -223,6 +223,209 @@ export default function MyProfile() {
 
   return (
     <AnimatePresence mode="wait">
+
+<style>{`
+  /* =========================================
+     TEACHER PROFILE - MOBILE & TABLET
+     ========================================= */
+
+  @media (max-width: 991px) {
+
+    /* ================= PROFILE BANNER ================= */
+
+    .teacher-profile-banner {
+      padding: 1.25rem !important;
+      gap: 1rem !important;
+    }
+
+    .teacher-profile-icon {
+      width: 75px !important;
+      height: 75px !important;
+      font-size: 2.5rem !important;
+    }
+
+    .teacher-profile-banner h1 {
+      font-size: 1.8rem !important;
+      margin-bottom: 0.5rem !important;
+    }
+
+    .teacher-profile-banner > div:nth-child(2) > div {
+      gap: 0.5rem !important;
+    }
+
+    .teacher-profile-banner > div:nth-child(2) span {
+      font-size: 1rem !important;
+    }
+
+    /* Buttons side by side */
+    .teacher-profile-banner > div:nth-child(3) {
+      width: 100% !important;
+      display: flex !important;
+      gap: 0.6rem !important;
+    }
+
+    .teacher-profile-banner > div:nth-child(3) button {
+      flex: 1 !important;
+      justify-content: center !important;
+      padding: 0.65rem 0.4rem !important;
+      font-size: 0.85rem !important;
+      white-space: nowrap !important;
+    }
+
+
+    /* ================= PERSONAL INFORMATION ================= */
+
+    .teacher-personal-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 12px !important;
+      margin: 0 !important;
+    }
+
+    /* Remove Bootstrap column sizing */
+    .teacher-personal-grid > div {
+      width: auto !important;
+      flex: none !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    /* Information card */
+    .teacher-personal-grid > div > div {
+      width: 100% !important;
+      min-height: 82px !important;
+      padding: 12px !important;
+      gap: 10px !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+    }
+
+    /* Icon */
+    .teacher-personal-grid > div > div > div:first-child {
+      width: 38px !important;
+      height: 38px !important;
+      min-width: 38px !important;
+      font-size: 1rem !important;
+    }
+
+    /* Text container */
+    .teacher-personal-grid > div > div > div:last-child {
+      min-width: 0 !important;
+      flex: 1 !important;
+      overflow: hidden !important;
+    }
+
+    /* Label */
+    .teacher-personal-grid h6 {
+      font-size: 0.72rem !important;
+      line-height: 1.2 !important;
+      letter-spacing: 0.4px !important;
+      margin-bottom: 5px !important;
+    }
+
+    /* Value */
+    .teacher-personal-grid h6 + div {
+      font-size: 0.9rem !important;
+      line-height: 1.3 !important;
+      font-weight: 600 !important;
+      word-break: normal !important;
+      overflow-wrap: break-word !important;
+    }
+
+    /* Email */
+    .teacher-personal-grid > div:nth-child(1) h6 + div {
+      font-size: 0.82rem !important;
+      white-space: nowrap !important;
+    }
+
+    /* Contact */
+    .teacher-personal-grid > div:nth-child(2) h6 + div {
+      font-size: 0.85rem !important;
+      white-space: nowrap !important;
+    }
+
+    /* Personal Information section padding */
+    .erp-page .row .p-4 {
+      padding: 0.75rem !important;
+    }
+  }
+
+
+  /* =========================================
+     SMALL MOBILE
+     ========================================= */
+
+  @media (max-width: 575px) {
+
+    .teacher-profile-banner {
+      padding: 1rem !important;
+      gap: 0.75rem !important;
+    }
+
+    .teacher-profile-icon {
+      width: 65px !important;
+      height: 65px !important;
+      font-size: 2.1rem !important;
+    }
+
+    .teacher-profile-banner h1 {
+      font-size: 1.55rem !important;
+    }
+
+    .teacher-profile-banner > div:nth-child(2) span {
+      font-size: 0.9rem !important;
+    }
+
+    .teacher-profile-banner > div:nth-child(3) {
+      gap: 0.5rem !important;
+    }
+
+    .teacher-profile-banner > div:nth-child(3) button {
+      font-size: 0.75rem !important;
+      padding: 0.6rem 0.25rem !important;
+    }
+
+
+    /* Personal Information */
+    .teacher-personal-grid {
+      gap: 8px !important;
+    }
+
+    .teacher-personal-grid > div > div {
+      min-height: 80px !important;
+      padding: 9px !important;
+      gap: 7px !important;
+    }
+
+    .teacher-personal-grid > div > div > div:first-child {
+      width: 32px !important;
+      height: 32px !important;
+      min-width: 32px !important;
+      font-size: 0.8rem !important;
+    }
+
+    .teacher-personal-grid h6 {
+      font-size: 0.63rem !important;
+      line-height: 1.2 !important;
+      margin-bottom: 4px !important;
+    }
+
+    .teacher-personal-grid h6 + div {
+      font-size: 0.78rem !important;
+      line-height: 1.25 !important;
+    }
+
+    .teacher-personal-grid > div:nth-child(1) h6 + div {
+      font-size: 0.65rem !important;
+    }
+
+    .teacher-personal-grid > div:nth-child(2) h6 + div {
+      font-size: 0.68rem !important;
+    }
+  }
+`}</style>
+
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -258,7 +461,7 @@ export default function MyProfile() {
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)'
             }}
           >
-            <div style={{
+            <div className="teacher-profile-banner" style={{
               padding: '2rem',
               background: BRAND_COLORS.primary.gradient,
               color: 'white',
@@ -267,7 +470,8 @@ export default function MyProfile() {
               gap: '2rem',
               flexWrap: 'wrap'
             }}>
-              <motion.div
+              <motion.div 
+                className="teacher-profile-icon"
                 variants={pulseVariants}
                 initial="initial"
                 animate="pulse"
@@ -424,7 +628,7 @@ export default function MyProfile() {
                 color={BRAND_COLORS.primary.main}
               >
                 <div className="p-4">
-                  <div className="row g-3">
+                  <div className="row g-3 teacher-personal-grid">
                     <div className="col-12 col-sm-6 col-lg-4">
                       <InfoItem
                         icon={<FaEnvelope />}
