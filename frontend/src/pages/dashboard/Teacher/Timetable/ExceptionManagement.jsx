@@ -469,9 +469,9 @@ export default function ExceptionManagement() {
             borderTop: "1px solid rgba(0, 0, 0, 0.05)",
           }}
         >
-          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 exception-controls">
             {/* Timetable Selector */}
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 exception-timetable-selector">
               <label className="fw-medium text-muted small mb-0">
                 <FaCalendarAlt
                   className="me-1"
@@ -504,7 +504,7 @@ export default function ExceptionManagement() {
             </div>
 
             {/* Date Navigation */}
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 exception-date-navigation">
               <MotionButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -559,13 +559,269 @@ export default function ExceptionManagement() {
         </div>
       </MotionDiv>
 
+<style>{`
+  /* =========================================
+     EXCEPTION MANAGEMENT
+     MOBILE + TABLET ONLY
+     ========================================= */
+
+  @media (max-width: 991px) {
+
+  /* =========================================
+   EMPTY EXCEPTION STATE
+   ========================================= */
+
+.exception-list-container {
+  padding: 12px !important;
+}
+
+.exception-empty-state {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 auto !important;
+
+  padding: 3rem 2rem !important;
+  box-sizing: border-box !important;
+
+  border-radius: 18px !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+/* Icon */
+.exception-empty-state > div:first-child {
+  width: 72px !important;
+  height: 72px !important;
+  margin-bottom: 1.5rem !important;
+}
+
+.exception-empty-state > div:first-child svg {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+/* Heading */
+.exception-empty-state h5 {
+  font-size: 1.6rem !important;
+  line-height: 1.25 !important;
+  margin-bottom: 0.75rem !important;
+}
+
+/* Description */
+.exception-empty-state p {
+  max-width: 500px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+}
+
+/* Add Exception button */
+.exception-empty-state button {
+  min-width: 240px !important;
+  max-width: 280px !important;
+
+  font-size: 1rem !important;
+  padding: 0.75rem 1.25rem !important;
+
+  white-space: normal !important;
+}
+
+    /* Main banner */
+    .exception-management-banner {
+      margin: 12px !important;
+      border-radius: 16px !important;
+    }
+
+    .exception-management-banner > .p-4 {
+      padding: 1.25rem !important;
+    }
+
+    /* Banner content */
+    .exception-management-banner h3 {
+      font-size: 1.5rem !important;
+      line-height: 1.2 !important;
+    }
+
+    .exception-management-banner p {
+      font-size: 0.9rem !important;
+      line-height: 1.45 !important;
+    }
+
+    /* Banner icon */
+    .exception-management-banner .d-flex.align-items-center.justify-content-center {
+      flex-shrink: 0 !important;
+    }
+
+    /* Banner buttons */
+    .exception-management-banner > .p-4 > .d-flex {
+      gap: 12px !important;
+    }
+
+    .exception-management-banner > .p-4 > .d-flex > div:last-child {
+      width: 100% !important;
+      justify-content: flex-start !important;
+      flex-wrap: wrap !important;
+      margin-top: 8px !important;
+    }
+
+    .exception-management-banner button {
+      white-space: nowrap !important;
+    }
+
+    /* =========================================
+       CONTROLS BAR
+       ========================================= */
+
+    .exception-controls {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 14px !important;
+    }
+
+    /* =========================================
+       TIMETABLE SELECTOR
+       ========================================= */
+
+    .exception-timetable-selector {
+      width: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+
+    .exception-timetable-selector label {
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
+    }
+
+    .exception-timetable-selector select {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    /* =========================================
+       MONTH NAVIGATION
+       ========================================= */
+
+    .exception-date-navigation {
+      width: 100% !important;
+      display: grid !important;
+      grid-template-columns: 42px minmax(0, 1fr) 42px !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+
+    .exception-date-navigation button {
+      width: 42px !important;
+      min-width: 42px !important;
+      height: 42px !important;
+      padding: 0 !important;
+    }
+
+    .exception-date-navigation span {
+      width: 100% !important;
+      min-width: 0 !important;
+      height: 42px !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      box-sizing: border-box !important;
+      padding: 0 8px !important;
+
+      font-size: 0.95rem !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+  }
+
+  /* =========================================
+     SMALL MOBILE
+     ========================================= */
+
+  @media (max-width: 575px) {
+
+    .exception-management-banner {
+      margin: 10px !important;
+      border-radius: 14px !important;
+    }
+
+    .exception-management-banner > .p-4 {
+      padding: 1rem !important;
+    }
+
+    .exception-management-banner h3 {
+      font-size: 1.35rem !important;
+    }
+
+    .exception-management-banner p {
+      font-size: 0.82rem !important;
+    }
+
+    .exception-management-banner > .p-4 > .d-flex > div:last-child {
+      margin-top: 6px !important;
+    }
+
+    .exception-management-banner button {
+      font-size: 0.8rem !important;
+      padding: 0.55rem 0.8rem !important;
+    }
+
+    /* Timetable */
+    .exception-timetable-selector {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 5px !important;
+    }
+
+    .exception-timetable-selector label {
+      font-size: 0.8rem !important;
+    }
+
+    .exception-timetable-selector select {
+      height: 42px !important;
+      font-size: 0.82rem !important;
+    }
+
+    /* Month navigation */
+    .exception-date-navigation {
+      grid-template-columns: 40px minmax(0, 1fr) 40px !important;
+      gap: 8px !important;
+    }
+
+    .exception-date-navigation button {
+      width: 40px !important;
+      min-width: 40px !important;
+      height: 40px !important;
+    }
+
+    .exception-date-navigation span {
+      height: 40px !important;
+      font-size: 0.85rem !important;
+    }
+  }
+`}</style>
+
+
       {/* ================= EXCEPTIONS LIST ================= */}
-      <div className="p-4">
+      <div className="p-4 exception-list-container">
         {timetables.length === 0 && !selectedTimetable ? (
           <MotionDiv
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="card shadow-lg border-0 text-center p-5"
+            className="card shadow-lg border-0 text-center p-5 exception-empty-state"
             style={{
               background: "white",
               borderRadius: "16px",
@@ -607,7 +863,7 @@ export default function ExceptionManagement() {
           <MotionDiv
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="card shadow-lg border-0 text-center p-5"
+            className="card shadow-lg border-0 text-center p-5 exception-empty-state"
             style={{
               background: "white",
               borderRadius: "16px",
