@@ -6,7 +6,9 @@ const Teacher = require("../models/teacher.model");
 const AppError = require("../utils/AppError");
 const auditLogService = require("../services/auditLog.service");
 const { ROLE } = require("../utils/constants");
-const { calculateSubjectResult } = require("../services/examCalculation.service");
+const {
+  calculateSubjectResult,
+} = require("../services/examCalculation.service");
 const { assertMarksMutable } = require("../utils/resultLifecycle.util");
 
 /**
@@ -26,9 +28,17 @@ const validateMarks = (marks, examSubject) => {
   if (marks.internalMarks !== undefined && marks.internalMarks !== null) {
     const internal = Number(marks.internalMarks);
     if (internal < 0) {
-      throw new AppError("Internal marks cannot be negative", 400, "NEGATIVE_INTERNAL_MARKS");
+      throw new AppError(
+        "Internal marks cannot be negative",
+        400,
+        "NEGATIVE_INTERNAL_MARKS",
+      );
     }
-    if (internalMaxMarks !== undefined && internalMaxMarks !== null && internal > internalMaxMarks) {
+    if (
+      internalMaxMarks !== undefined &&
+      internalMaxMarks !== null &&
+      internal > internalMaxMarks
+    ) {
       throw new AppError(
         `Internal marks cannot exceed ${internalMaxMarks}`,
         400,
@@ -40,7 +50,11 @@ const validateMarks = (marks, examSubject) => {
   if (marks.externalMarks !== undefined && marks.externalMarks !== null) {
     const external = Number(marks.externalMarks);
     if (external < 0) {
-      throw new AppError("External marks cannot be negative", 400, "NEGATIVE_EXTERNAL_MARKS");
+      throw new AppError(
+        "External marks cannot be negative",
+        400,
+        "NEGATIVE_EXTERNAL_MARKS",
+      );
     }
 
     if (subjectType === "PRACTICAL") {
@@ -51,7 +65,11 @@ const validateMarks = (marks, examSubject) => {
       );
     }
 
-    if (externalMaxMarks !== undefined && externalMaxMarks !== null && external > externalMaxMarks) {
+    if (
+      externalMaxMarks !== undefined &&
+      externalMaxMarks !== null &&
+      external > externalMaxMarks
+    ) {
       throw new AppError(
         `External marks cannot exceed ${externalMaxMarks}`,
         400,
@@ -60,7 +78,11 @@ const validateMarks = (marks, examSubject) => {
     }
   }
 
-  if (subjectType === "PRACTICAL" && marks.externalMarks !== undefined && marks.externalMarks !== null) {
+  if (
+    subjectType === "PRACTICAL" &&
+    marks.externalMarks !== undefined &&
+    marks.externalMarks !== null
+  ) {
     throw new AppError(
       "External marks are not applicable for PRACTICAL subjects",
       400,
@@ -73,9 +95,15 @@ const validateMarks = (marks, examSubject) => {
  * Resolve the Exam Subject configuration from the Exam document.
  */
 const getExamSubject = (exam, subjectId) => {
-  const subject = exam.subjects.find((s) => String(s.subject) === String(subjectId));
+  const subject = exam.subjects.find(
+    (s) => String(s.subject) === String(subjectId),
+  );
   if (!subject) {
-    throw new AppError("Subject is not part of this exam", 404, "SUBJECT_NOT_IN_EXAM");
+    throw new AppError(
+      "Subject is not part of this exam",
+      404,
+      "SUBJECT_NOT_IN_EXAM",
+    );
   }
   return subject;
 };
@@ -87,6 +115,50 @@ const getExamSubject = (exam, subjectId) => {
 const authorizeTeacher = async (req, subjectId, collegeId) => {
   if (req.user.role === ROLE.EXAM_COORDINATOR) {
     return null;
+  }
+
+  if (req.user.role === ROLE.HOD) {
+    const hodTeacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: collegeId,
+    });
+
+    if (!hodTeacher) {
+      throw new AppError(
+        "HOD teacher profile not found",
+        403,
+        "HOD_TEACHER_NOT_FOUND",
+      );
+    }
+
+    const subject = await Subject.findById(subjectId).select(
+      "college_id teacher_id",
+    );
+
+    if (!subject) {
+      throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
+    }
+
+    if (subject.college_id.toString() !== collegeId.toString()) {
+      throw new AppError(
+        "You are not authorized for this subject",
+        403,
+        "SUBJECT_ACCESS_DENIED",
+      );
+    }
+
+    if (
+      !subject.teacher_id ||
+      subject.teacher_id.toString() !== hodTeacher._id.toString()
+    ) {
+      throw new AppError(
+        "You are not authorized for this subject",
+        403,
+        "SUBJECT_ACCESS_DENIED",
+      );
+    }
+
+    return hodTeacher;
   }
 
   if (req.user.role !== ROLE.TEACHER) {
@@ -111,12 +183,21 @@ const authorizeTeacher = async (req, subjectId, collegeId) => {
     throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
   }
 
-  if (subject.teacher_id && subject.teacher_id.toString() !== teacher._id.toString()) {
-    throw new AppError("You are not authorized for this subject", 403, "SUBJECT_ACCESS_DENIED");
+  if (
+    subject.teacher_id &&
+    subject.teacher_id.toString() !== teacher._id.toString()
+  ) {
+    throw new AppError(
+      "You are not authorized for this subject",
+      403,
+      "SUBJECT_ACCESS_DENIED",
+    );
   }
 
   return teacher;
 };
+
+exports.authorizeTeacher = authorizeTeacher;
 
 /**
  * GET STUDENT ROSTER
@@ -127,7 +208,11 @@ exports.getStudentRoster = async (req, res, next) => {
     const { examId, subjectId } = req.query;
 
     if (!examId || !subjectId) {
-      throw new AppError("examId and subjectId are required", 400, "MISSING_PARAMS");
+      throw new AppError(
+        "examId and subjectId are required",
+        400,
+        "MISSING_PARAMS",
+      );
     }
 
     const exam = await Exam.findOne({
@@ -214,7 +299,11 @@ exports.getMarks = async (req, res, next) => {
     const { examId, subjectId } = req.query;
 
     if (!examId || !subjectId) {
-      throw new AppError("examId and subjectId are required", 400, "MISSING_PARAMS");
+      throw new AppError(
+        "examId and subjectId are required",
+        400,
+        "MISSING_PARAMS",
+      );
     }
 
     const exam = await Exam.findOne({
@@ -266,7 +355,11 @@ exports.saveMarks = async (req, res, next) => {
     const { examId, subjectId, marks } = req.body;
 
     if (!examId || !subjectId) {
-      throw new AppError("examId and subjectId are required", 400, "MISSING_PARAMS");
+      throw new AppError(
+        "examId and subjectId are required",
+        400,
+        "MISSING_PARAMS",
+      );
     }
 
     if (!Array.isArray(marks)) {
@@ -304,7 +397,11 @@ exports.saveMarks = async (req, res, next) => {
       const { studentId, internalMarks, externalMarks } = entry;
 
       if (!studentId) {
-        throw new AppError("studentId is required for each mark entry", 400, "MISSING_STUDENT_ID");
+        throw new AppError(
+          "studentId is required for each mark entry",
+          400,
+          "MISSING_STUDENT_ID",
+        );
       }
 
       const student = await Student.findOne({

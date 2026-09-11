@@ -9,6 +9,7 @@ const AppError = require("../utils/AppError");
 const auditLogService = require("../services/auditLog.service");
 const teacherService = require("../services/teacher.service");
 const ApiResponse = require("../utils/ApiResponse");
+const { ROLE } = require("../utils/constants");
 
 /**
  * Build a normalized array of subject ids (strings) from the request payload,
@@ -197,7 +198,42 @@ exports.getExams = async (req, res, next) => {
       .populate("subjects.subject", "name code teacher_id subjectType")
       .sort({ createdAt: -1 });
 
-    res.json(exams);
+    if (req.user.role !== ROLE.HOD) {
+      return res.json(exams);
+    }
+
+    const hodTeacher = await Teacher.findOne({
+      user_id: req.user.id,
+      college_id: req.college_id,
+    }).select("_id");
+
+    if (!hodTeacher) {
+      return next(
+        new AppError(
+          "HOD teacher profile not found",
+          403,
+          "HOD_TEACHER_NOT_FOUND",
+        ),
+      );
+    }
+
+    const hodTeacherId = String(hodTeacher._id);
+    const eligibleExams = exams
+      .map((exam) => {
+        const eligibleSubjects = (exam.subjects || []).filter(
+          (examSubject) =>
+            examSubject.subject?.teacher_id &&
+            String(examSubject.subject.teacher_id) === hodTeacherId,
+        );
+
+        if (eligibleSubjects.length === 0) return null;
+
+        exam.subjects = eligibleSubjects;
+        return exam;
+      })
+      .filter(Boolean);
+
+    return res.json(eligibleExams);
   } catch (error) {
     next(error);
   }
@@ -220,10 +256,15 @@ exports.getExamById = async (req, res, next) => {
           select: "name code",
         },
       })
-      .populate(
-        "subjects.subject",
-        "name code teacher_id subjectType internalMaxMarks externalMaxMarks internalPassMarks externalPassMarks passMarks",
-      );
+      .populate({
+        path: "subjects.subject",
+        select:
+          "name code teacher_id subjectType internalMaxMarks externalMaxMarks internalPassMarks externalPassMarks passMarks",
+        populate: {
+          path: "teacher_id",
+          select: "name employeeId",
+        },
+      });
 
     if (!exam) {
       return res.status(404).json({ message: "Exam not found" });

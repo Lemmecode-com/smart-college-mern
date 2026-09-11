@@ -9,7 +9,7 @@ const { ROLE } = require("../utils/constants");
 const marksController = require("../controllers/marks.controller");
 
 // ==================== MARKS ROUTES ====================
-// TEACHER: enter/view marks for their own subjects
+// TEACHER/HOD: enter/view marks for their own assigned subjects
 // EXAM_COORDINATOR: view/enter marks for any exam subject
 // =====================================================
 
@@ -17,7 +17,7 @@ const marksController = require("../controllers/marks.controller");
 router.get(
   "/roster",
   auth,
-  role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   marksController.getStudentRoster,
 );
@@ -26,7 +26,7 @@ router.get(
 router.get(
   "/",
   auth,
-  role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   marksController.getMarks,
 );
@@ -35,7 +35,7 @@ router.get(
 router.post(
   "/bulk",
   auth,
-  role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR),
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.EXAM_COORDINATOR),
   collegeMiddleware,
   marksController.saveMarks,
 );

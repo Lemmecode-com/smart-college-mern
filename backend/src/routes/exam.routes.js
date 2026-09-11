@@ -32,7 +32,7 @@ router.get(
   auth,
   role(ROLE.STUDENT, ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
-  examController.getPublishedExams
+  examController.getPublishedExams,
 );
 
 router.get(
@@ -40,16 +40,46 @@ router.get(
   auth,
   role(ROLE.STUDENT, ROLE.TEACHER, ROLE.HOD),
   collegeMiddleware,
-  examController.getPublishedExamById
+  examController.getPublishedExamById,
 );
 
-// Read routes: TEACHER needs exam list/detail to populate Marks Entry UI
-router.get("/", auth, role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExams);
-router.get("/:id", auth, role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.getExamById);
+// Read routes: TEACHER/HOD need the exam list to populate Marks Entry UI
+router.get(
+  "/",
+  auth,
+  role(ROLE.TEACHER, ROLE.HOD, ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  examController.getExams,
+);
+router.get(
+  "/:id",
+  auth,
+  role(ROLE.TEACHER, ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  examController.getExamById,
+);
 
 // Write routes: EXAM_COORDINATOR only
-router.post("/", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.createExam);
-router.put("/:id", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.updateExam);
-router.put("/:id/publish", auth, role(ROLE.EXAM_COORDINATOR), collegeMiddleware, examController.publishExam);
+router.post(
+  "/",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  examController.createExam,
+);
+router.put(
+  "/:id",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  examController.updateExam,
+);
+router.put(
+  "/:id/publish",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  examController.publishExam,
+);
 
 module.exports = router;
