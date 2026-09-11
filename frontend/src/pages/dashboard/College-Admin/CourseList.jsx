@@ -41,20 +41,13 @@ import {
 // Stats Card Component
 const StatCard = ({ icon: Icon, label, value, color, subValue }) => (
   <div className="stat-card">
-    <div className="stat-card-header">
-      <div className={`stat-icon stat-icon-${color}`}>
-        <Icon />
-      </div>
-      <div className="stat-card-details">
-        <span className="stat-label">{label}</span>
-        <span className="stat-value">{value}</span>
-        {subValue && <span className="stat-sub-value">{subValue}</span>}
-      </div>
+    <div className={`stat-icon stat-icon-${color}`}>
+      <Icon />
     </div>
-    <div className="stat-card-footer">
-      <div className={`stat-progress stat-progress-${color}`}>
-        <div className={`stat-progress-bar stat-progress-bar-${color}`} style={{width: '70%'}}></div>
-      </div>
+    <div className="stat-card-details">
+      <span className="stat-label">{label}</span>
+      <span className="stat-value">{value}</span>
+      {subValue && <span className="stat-sub-value">{subValue}</span>}
     </div>
   </div>
 );
@@ -76,7 +69,7 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
   };
 
   const getStatusStyles = (status) => {
-    return status === 'ACTIVE' 
+    return status === 'ACTIVE'
       ? { bg: 'rgba(34, 197, 94, 0.1)', color: '#22C55E', border: 'rgba(34, 197, 94, 0.2)' }
       : { bg: 'rgba(156, 163, 175, 0.1)', color: '#9CA3AF', border: 'rgba(156, 163, 175, 0.2)' };
   };
@@ -141,7 +134,7 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
           {courses.map((course, index) => {
             const typeStyles = getTypeStyles(course.type);
             const statusStyles = getStatusStyles(course.status);
-            
+
             return (
               <tr key={course._id} className="table-row">
                 <td className="col-index">
@@ -162,10 +155,10 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
                   <span className="code-badge">{course.code}</span>
                 </td>
                 <td className="col-type">
-                  <span 
+                  <span
                     className="type-badge"
-                    style={{ 
-                      background: typeStyles.bg, 
+                    style={{
+                      background: typeStyles.bg,
                       color: typeStyles.color,
                       borderColor: typeStyles.border
                     }}
@@ -174,18 +167,18 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
                   </span>
                 </td>
                 <td className="col-status">
-                  <span 
+                  <span
                     className="status-indicator"
-                    style={{ 
-                      background: statusStyles.bg, 
+                    style={{
+                      background: statusStyles.bg,
                       color: statusStyles.color,
                       borderColor: statusStyles.border
                     }}
                   >
-                    <span 
+                    <span
                       className="status-dot"
-                      style={{ 
-                        background: course.status === 'ACTIVE' ? '#22C55E' : '#9CA3AF' 
+                      style={{
+                        background: course.status === 'ACTIVE' ? '#22C55E' : '#9CA3AF'
                       }}
                     />
                     {course.status}
@@ -207,11 +200,11 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
                   <div className="capacity-info">
                     <div className="capacity-bar-container">
                       <div className="capacity-bar">
-                        <div 
+                        <div
                           className="capacity-fill"
-                          style={{ 
+                          style={{
                             width: `${Math.min((course.maxStudents / 100) * 100, 100)}%`,
-                            background: course.maxStudents >= 80 
+                            background: course.maxStudents >= 80
                               ? 'linear-gradient(90deg, #22C55E, #16A34A)'
                               : course.maxStudents >= 50
                               ? 'linear-gradient(90deg, #F59E0B, #D97706)'
@@ -223,38 +216,38 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
                     </div>
                   </div>
                 </td>
-                 <td className="col-actions">
-                   <div className="action-group">
-                     <button
-                       className="action-btn action-view"
-                       title="View Details"
-                       aria-label={`View ${course.name} details`}
-                       onClick={() => onView(course._id)}
-                     >
-                       <FaEye />
-                     </button>
-                     {canEdit && (
-                       <button
-                         className="action-btn action-edit"
-                         title="Edit Course"
-                         aria-label={`Edit ${course.name}`}
-                         onClick={() => onEdit(course._id)}
-                       >
-                         <FaEdit />
-                       </button>
-                     )}
-                     {canDelete && (
-                       <button
-                         className="action-btn action-delete"
-                         title="Delete Course"
-                         aria-label={`Delete ${course.name}`}
-                         onClick={() => onDelete(course)}
-                       >
-                         <FaTrash />
-                       </button>
-                     )}
-                   </div>
-                 </td>
+                <td className="col-actions">
+                  <div className="action-group">
+                    <button
+                      className="action-btn action-view"
+                      title="View Details"
+                      aria-label={`View ${course.name} details`}
+                      onClick={() => onView(course._id)}
+                    >
+                      <FaEye />
+                    </button>
+                    {canEdit && (
+                      <button
+                        className="action-btn action-edit"
+                        title="Edit Course"
+                        aria-label={`Edit ${course.name}`}
+                        onClick={() => onEdit(course._id)}
+                      >
+                        <FaEdit />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        className="action-btn action-delete"
+                        title="Delete Course"
+                        aria-label={`Delete ${course.name}`}
+                        onClick={() => onDelete(course)}
+                      >
+                        <FaTrash />
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             );
           })}
@@ -277,8 +270,8 @@ const DeleteModal = ({ course, departmentName, onConfirm, onCancel, isDeleting }
               <FaExclamationTriangle />
             </div>
           </div>
-          <button 
-            className="modal-close-btn" 
+          <button
+            className="modal-close-btn"
             onClick={onCancel}
             disabled={isDeleting}
             aria-label="Close modal"
@@ -291,7 +284,7 @@ const DeleteModal = ({ course, departmentName, onConfirm, onCancel, isDeleting }
           <p className="modal-description">
             Are you sure you want to delete this course? This action cannot be undone.
           </p>
-          
+
           <div className="course-info-card">
             <div className="info-row">
               <FaBookOpen className="info-icon" />
@@ -321,7 +314,7 @@ const DeleteModal = ({ course, departmentName, onConfirm, onCancel, isDeleting }
           <div className="warning-box">
             <FaExclamationTriangle className="warning-icon" />
             <div className="warning-content">
-              <strong>Warning:</strong> All related data including enrollments, 
+              <strong>Warning:</strong> All related data including enrollments,
               assessments, and records will be permanently deleted.
             </div>
           </div>
@@ -389,10 +382,8 @@ const SkeletonLoader = () => (
 // Empty State Component
 const EmptyState = ({ hasDepartment, onAddCourse, allowAdd }) => (
   <div className="empty-state-wrapper">
-    <div className="empty-state-icon">
-      <div className="empty-icon-circle">
-        <FaBookOpen />
-      </div>
+    <div className="empty-icon-circle">
+      <FaBookOpen />
     </div>
     <h3 className="empty-state-title">
       {hasDepartment ? "No courses found" : "Select a department"}
@@ -414,7 +405,6 @@ const EmptyState = ({ hasDepartment, onAddCourse, allowAdd }) => (
   </div>
 );
 
-// Empty State Component
 export default function CourseList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -606,7 +596,7 @@ export default function CourseList() {
     result = [...result].sort((a, b) => {
       const aValue = a[sortConfig.key] || '';
       const bValue = b[sortConfig.key] || '';
-      
+
       if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
@@ -670,7 +660,7 @@ export default function CourseList() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast.success('Courses exported successfully!');
   }, [courses, selectedDepartment]);
 
@@ -712,7 +702,7 @@ export default function CourseList() {
   const selectedDeptName = departments.find(d => d._id === selectedDepartment)?.name || "Select Department";
 
   return (
-    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
+    <div className="erp-page erp-viewport-min-100">
       {/* BREADCRUMBS */}
     <div className="course-breadcrumb-wrapper">
       <Breadcrumb
@@ -727,10 +717,8 @@ export default function CourseList() {
       {/* PAGE HEADER */}
       <div className="page-header">
         <div className="page-header-content">
-          <div className="header-icon-wrapper">
-            <div className="header-icon-bg">
-              <FaBookOpen size={28} />
-            </div>
+          <div className="header-icon-bg">
+            <FaBookOpen size={26} />
           </div>
           <div className="header-text-content">
             <h1 className="page-title">Course Management</h1>
@@ -739,7 +727,7 @@ export default function CourseList() {
         </div>
         <div className="header-actions">
           <button
-            className="btn btn-ghost"
+            className="btn btn-ghost-inverse"
             onClick={() => navigate("/dashboard")}
             aria-label="Back to Dashboard"
           >
@@ -763,7 +751,9 @@ export default function CourseList() {
       <div className="card department-card">
         <div className="card-header">
           <div className="card-title-group">
-            <FaLayerGroup className="card-icon" />
+            <div className="card-icon-bg">
+              <FaLayerGroup className="card-icon" />
+            </div>
             <h3 className="card-title">Select Department</h3>
           </div>
           {departmentsError && (
@@ -830,7 +820,9 @@ export default function CourseList() {
         <div className="card course-card">
           <div className="card-header">
             <div className="card-title-group">
-              <FaBookOpen className="card-icon" />
+              <div className="card-icon-bg">
+                <FaBookOpen className="card-icon" />
+              </div>
               <div>
                 <h3 className="card-title">{selectedDeptName} Courses</h3>
                 <span className="card-subtitle">
@@ -850,7 +842,7 @@ export default function CourseList() {
                   aria-label="Search courses"
                 />
                 {searchTerm && (
-                  <button 
+                  <button
                     className="search-clear"
                     onClick={() => setSearchTerm("")}
                     aria-label="Clear search"
@@ -859,8 +851,8 @@ export default function CourseList() {
                   </button>
                 )}
               </div>
-              <button 
-                className="btn btn-outline" 
+              <button
+                className="btn btn-outline"
                 onClick={handleExport}
                 aria-label="Export courses to CSV"
               >
@@ -873,26 +865,26 @@ export default function CourseList() {
           <div className="card-body">
             {/* STATS GRID */}
             <div className="stats-grid">
-              <StatCard 
+              <StatCard
                 icon={FaBookOpen}
                 label="Total Courses"
                 value={stats.total}
                 color="blue"
               />
-              <StatCard 
+              <StatCard
                 icon={FaCheckCircle}
                 label="Active Courses"
                 value={stats.active}
                 color="green"
                 subValue={`${stats.total > 0 ? ((stats.active / stats.total) * 100).toFixed(0) : 0}% of total`}
               />
-              <StatCard 
+              <StatCard
                 icon={FaAward}
                 label="Avg. Credits"
                 value={stats.avgCredits}
                 color="purple"
               />
-              <StatCard 
+              <StatCard
                 icon={FaUsers}
                 label="Total Capacity"
                 value={stats.totalCapacity.toLocaleString()}
@@ -901,12 +893,12 @@ export default function CourseList() {
             </div>
 
             {/* TABLE */}
-            <div className="erp-table-responsive table-wrapper">
+            <div className="table-wrapper">
               {loadingCourses ? (
                 <SkeletonLoader />
               ) : filteredCourses.length === 0 ? (
-                <EmptyState 
-                  hasDepartment={true} 
+                <EmptyState
+                  hasDepartment={true}
                   onAddCourse={handleAddCourse}
                   allowAdd={canCreate('courses')}
                 />
@@ -938,8 +930,8 @@ export default function CourseList() {
 
       {/* STYLES */}
       <style>{`
-        /* ================= CSS VARIABLES ================= */
-        :root {
+        /* ================= DESIGN TOKENS ================= */
+        .erp-page {
           --primary: #4F46E5;
           --primary-dark: #4338CA;
           --primary-light: #818CF8;
@@ -948,28 +940,63 @@ export default function CourseList() {
           --warning: #F59E0B;
           --danger: #EF4444;
           --info: #3B82F6;
-          
+
           --bg-primary: #F8FAFC;
           --bg-secondary: #FFFFFF;
           --bg-tertiary: #F1F5F9;
-          
+
           --text-primary: #1E293B;
           --text-secondary: #64748B;
           --text-muted: #94A3B8;
-          
+
           --border-light: #E2E8F0;
           --border-medium: #CBD5E1;
-          
+
+          /* Consistent radius scale, reused everywhere instead of one-off values */
+          --radius-sm: 8px;
+          --radius-md: 10px;
+          --radius-lg: 14px;
+          --radius-xl: 16px;
+          --radius-2xl: 20px;
+          --radius-pill: 999px;
+
+          /* Consistent spacing scale */
+          --space-1: 4px;
+          --space-2: 8px;
+          --space-3: 12px;
+          --space-4: 16px;
+          --space-5: 20px;
+          --space-6: 24px;
+          --space-8: 32px;
+
           --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
           --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
           --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
           --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
           --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+          --ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+          background: linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%);
+          color: var(--text-primary);
+          -webkit-font-smoothing: antialiased;
         }
 
-        /* ================= BASE STYLES ================= */
-        * {
+        .erp-page * {
           box-sizing: border-box;
+        }
+
+        .erp-page :focus-visible {
+          outline: 2px solid var(--primary);
+          outline-offset: 2px;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .erp-page * {
+            animation-duration: 0.001ms !important;
+            transition-duration: 0.001ms !important;
+          }
         }
 
         /* ================= TOAST NOTIFICATIONS ================= */
@@ -979,30 +1006,21 @@ export default function CourseList() {
           right: 1.5rem;
           display: flex;
           align-items: center;
-          gap: 0.75rem;
-          padding: 1rem 1.25rem;
-          border-radius: 12px;
+          gap: var(--space-3);
+          padding: var(--space-4) var(--space-5);
+          border-radius: var(--radius-lg);
           background: var(--bg-secondary);
           box-shadow: var(--shadow-xl);
           z-index: 9999;
-          animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          animation: slideInRight 0.35s var(--ease);
           min-width: 320px;
           border: 1px solid var(--border-light);
         }
 
-        .toast-success {
-          border-left: 4px solid var(--success);
-        }
+        .toast-success { border-left: 4px solid var(--success); }
+        .toast-error { border-left: 4px solid var(--danger); }
 
-        .toast-error {
-          border-left: 4px solid var(--danger);
-        }
-
-        .toast-icon {
-          font-size: 1.25rem;
-          flex-shrink: 0;
-        }
-
+        .toast-icon { font-size: 1.25rem; flex-shrink: 0; }
         .toast-success .toast-icon { color: var(--success); }
         .toast-error .toast-icon { color: var(--danger); }
 
@@ -1017,29 +1035,22 @@ export default function CourseList() {
           border: none;
           color: var(--text-muted);
           cursor: pointer;
-          padding: 0.25rem;
-          margin-left: 0.5rem;
-          transition: color 0.2s;
+          padding: var(--space-1);
+          margin-left: var(--space-2);
+          border-radius: var(--radius-sm);
+          transition: color 0.2s var(--ease);
         }
 
-        .toast-close:hover {
-          color: var(--text-primary);
-        }
+        .toast-close:hover { color: var(--text-primary); }
 
         @keyframes slideInRight {
-          from {
-            transform: translateX(calc(100% + 2rem));
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
+          from { transform: translateX(calc(100% + 2rem)); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
 
         /* ================= BREADCRUMBS ================= */
         :global(.breadcrumb-container) {
-          margin-bottom: 1.5rem;
+          margin-bottom: var(--space-6);
         }
         /* ================= COURSE BREADCRUMB ================= */
         .course-breadcrumb-wrapper {
@@ -1049,61 +1060,65 @@ export default function CourseList() {
 
         /* ================= PAGE HEADER ================= */
         .page-header {
-          background: linear-gradient(180deg, #0f3a4a 0%, #0c2d3a 100%);
-          border-radius: 16px;
-          padding: 2rem;
-          margin-bottom: 1.5rem;
+          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
+          border-radius: var(--radius-xl);
+          padding: var(--space-8) var(--space-6);
+          margin-bottom: var(--space-6);
           display: flex;
           justify-content: space-between;
           align-items: center;
-          box-shadow: 0 10px 40px rgba(15, 58, 74, 0.4);
+          gap: var(--space-5);
+          box-shadow: 0 10px 40px rgba(15, 58, 74, 0.35);
           color: white;
         }
 
         .page-header-content {
           display: flex;
           align-items: center;
-          gap: 1.25rem;
-        }
-
-        .header-icon-wrapper {
-          position: relative;
+          gap: var(--space-5);
+          min-width: 0;
         }
 
         .header-icon-bg {
-          width: 64px;
-          height: 64px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 14px;
+          width: 60px;
+          height: 60px;
+          background: rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
           backdrop-filter: blur(10px);
+          flex-shrink: 0;
         }
 
         .header-text-content {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: var(--space-1);
+          min-width: 0;
         }
 
         .page-title {
           margin: 0;
-          font-size: 1.75rem;
+          font-size: 1.625rem;
           font-weight: 700;
-          letter-spacing: -0.025em;
+          letter-spacing: -0.02em;
+          line-height: 1.25;
         }
 
         .page-subtitle {
           margin: 0;
-          opacity: 0.85;
-          font-size: 0.95rem;
+          opacity: 0.8;
+          font-size: 0.9rem;
           font-weight: 400;
+          line-height: 1.5;
         }
 
         .header-actions {
           display: flex;
-          gap: 0.75rem;
+          gap: var(--space-3);
+          flex-shrink: 0;
         }
 
         /* ================= BUTTONS ================= */
@@ -1111,19 +1126,21 @@ export default function CourseList() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 0.5rem;
-          padding: 0.625rem 1.25rem;
-          border-radius: 10px;
-          font-size: 0.9rem;
+          gap: var(--space-2);
+          height: 42px;
+          padding: 0 1.125rem;
+          border-radius: var(--radius-md);
+          font-size: 0.875rem;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          border: none;
+          transition: all 0.18s var(--ease);
+          border: 1.5px solid transparent;
           text-decoration: none;
+          white-space: nowrap;
         }
 
         .btn:disabled {
-          opacity: 0.6;
+          opacity: 0.55;
           cursor: not-allowed;
         }
 
@@ -1132,13 +1149,19 @@ export default function CourseList() {
           color: var(--primary);
         }
 
+        .btn-primary:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: var(--shadow-md);
+        }
+
         .btn-secondary {
           background: var(--bg-tertiary);
           color: var(--text-primary);
         }
 
         .btn-secondary:hover:not(:disabled) {
-          background: var(--border-medium);
+          background: var(--border-light);
+          border-color: var(--border-medium);
         }
 
         .btn-danger {
@@ -1148,13 +1171,13 @@ export default function CourseList() {
 
         .btn-danger:hover:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+          box-shadow: 0 8px 20px rgba(239, 68, 68, 0.35);
         }
 
         .btn-outline {
-          background: transparent;
+          background: var(--bg-secondary);
           color: var(--text-secondary);
-          border: 1.5px solid var(--border-medium);
+          border-color: var(--border-medium);
         }
 
         .btn-outline:hover:not(:disabled) {
@@ -1163,82 +1186,111 @@ export default function CourseList() {
           background: rgba(79, 70, 229, 0.05);
         }
 
-        .btn-ghost {
-          background: var(--bg-tertiary);
-          color: var(--text-secondary);
+        .btn-ghost-inverse {
+          background: rgba(255, 255, 255, 0.1);
+          color: white;
+          border-color: rgba(255, 255, 255, 0.16);
         }
 
-        .btn-ghost:hover:not(:disabled) {
-          background: var(--border-medium);
+        .btn-ghost-inverse:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.18);
         }
 
         .btn-lg {
-          padding: 0.875rem 1.75rem;
-          font-size: 1rem;
+          height: 46px;
+          padding: 0 1.5rem;
+          font-size: 0.95rem;
         }
 
-        .btn-icon {
-          font-size: 1rem;
-        }
+        .btn-icon { font-size: 0.95rem; }
 
-        .spinning {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        .spinning { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ================= CARDS ================= */
         .card {
           background: var(--bg-secondary);
-          border-radius: 16px;
-          box-shadow: var(--shadow);
+          border-radius: var(--radius-xl);
+          box-shadow: var(--shadow-sm);
           overflow: hidden;
           border: 1px solid var(--border-light);
-          margin-bottom: 1.5rem;
-          transition: box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-          box-shadow: var(--shadow-md);
+          margin-bottom: var(--space-6);
         }
 
         .card-header {
-          padding: 1.25rem 1.5rem;
+          padding: var(--space-5) var(--space-6);
           background: var(--bg-tertiary);
           border-bottom: 1px solid var(--border-light);
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: var(--space-4);
+          flex-wrap: wrap;
         }
+
+        .card-title-group {
+          display: flex;
+          align-items: center;
+          gap: var(--space-3);
+        }
+
+        .card-icon-bg {
+          width: 38px;
+          height: 38px;
+          border-radius: var(--radius-sm);
+          background: rgba(79, 70, 229, 0.1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .card-icon {
+          font-size: 1.05rem;
+          color: var(--primary);
+        }
+
+        .card-title {
+          margin: 0;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          letter-spacing: -0.01em;
+        }
+
+        .card-subtitle {
+          font-size: 0.82rem;
+          color: var(--text-secondary);
+          margin-top: 2px;
+          display: block;
+        }
+
+        .card-body { padding: var(--space-6); }
 
         .department-error-badge {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 0.75rem;
+          gap: var(--space-2);
+          padding: var(--space-2) var(--space-3);
           background: rgba(245, 158, 11, 0.1);
           border: 1px solid rgba(245, 158, 11, 0.2);
-          border-radius: 8px;
+          border-radius: var(--radius-sm);
           font-size: 0.8rem;
           font-weight: 600;
           color: var(--warning);
         }
 
-        .department-error-badge .error-icon {
-          font-size: 0.9rem;
-        }
+        .department-error-badge .error-icon { font-size: 0.9rem; }
 
         .inline-error-message {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1rem;
-          margin-top: 1rem;
+          gap: var(--space-2);
+          padding: var(--space-3) var(--space-4);
+          margin-top: var(--space-4);
           background: rgba(239, 68, 68, 0.05);
           border: 1px solid rgba(239, 68, 68, 0.15);
-          border-radius: 10px;
+          border-radius: var(--radius-md);
           font-size: 0.85rem;
           color: var(--text-secondary);
         }
@@ -1249,46 +1301,13 @@ export default function CourseList() {
           flex-shrink: 0;
         }
 
-        .card-title-group {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .card-icon {
-          font-size: 1.25rem;
-          color: var(--primary);
-        }
-
-        .card-title {
-          margin: 0;
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .card-subtitle {
-          font-size: 0.85rem;
-          color: var(--text-secondary);
-          margin-top: 0.125rem;
-          display: block;
-        }
-
-        .card-body {
-          padding: 1.5rem;
-        }
-
         /* ================= DEPARTMENT SELECTOR ================= */
-        .department-card {
-          animation: fadeInUp 0.5s ease;
-        }
-
         .department-selector {
           display: flex;
           justify-content: space-between;
           align-items: center;
           flex-wrap: wrap;
-          gap: 1rem;
+          gap: var(--space-4);
         }
 
         .select-wrapper {
@@ -1300,21 +1319,21 @@ export default function CourseList() {
 
         .modern-select {
           width: 100%;
-          padding: 0.875rem 3rem 0.875rem 1.25rem;
-          border: 2px solid var(--border-light);
-          border-radius: 12px;
-          font-size: 1rem;
+          height: 46px;
+          padding: 0 3rem 0 var(--space-5);
+          border: 1.5px solid var(--border-light);
+          border-radius: var(--radius-md);
+          font-size: 0.95rem;
           font-weight: 500;
+          font-family: inherit;
           color: var(--text-primary);
           background: var(--bg-secondary);
           cursor: pointer;
           appearance: none;
-          transition: all 0.2s;
+          transition: all 0.18s var(--ease);
         }
 
-        .modern-select:hover {
-          border-color: var(--border-medium);
-        }
+        .modern-select:hover { border-color: var(--border-medium); }
 
         .modern-select:focus {
           outline: none;
@@ -1324,62 +1343,57 @@ export default function CourseList() {
 
         .select-arrow {
           position: absolute;
-          right: 1.25rem;
+          right: var(--space-5);
           top: 50%;
           transform: translateY(-50%);
           color: var(--text-secondary);
           pointer-events: none;
+          font-size: 0.8rem;
         }
 
         .quick-stats {
           display: flex;
           align-items: center;
-          gap: 1.5rem;
-          padding: 0.75rem 1.25rem;
+          gap: var(--space-6);
+          padding: var(--space-3) var(--space-5);
           background: var(--bg-tertiary);
-          border-radius: 12px;
+          border-radius: var(--radius-md);
         }
 
         .quick-stat {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 0.125rem;
+          gap: 2px;
         }
 
         .quick-stat-value {
-          font-size: 1.5rem;
+          font-size: 1.375rem;
           font-weight: 700;
           color: var(--text-primary);
+          line-height: 1;
         }
 
-        .quick-stat-value.active {
-          color: var(--success);
-        }
+        .quick-stat-value.active { color: var(--success); }
 
         .quick-stat-label {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           color: var(--text-secondary);
-          text-transform: uppercase;
           font-weight: 600;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.02em;
         }
 
         .quick-stat-divider {
           width: 1px;
-          height: 32px;
+          height: 30px;
           background: var(--border-medium);
         }
 
         /* ================= COURSE CARD ================= */
-        .course-card {
-          animation: fadeInUp 0.5s ease 0.1s backwards;
-        }
-
         .card-actions {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: var(--space-3);
         }
 
         .search-wrapper {
@@ -1389,28 +1403,29 @@ export default function CourseList() {
 
         .search-icon {
           position: absolute;
-          left: 1rem;
+          left: var(--space-4);
           top: 50%;
           transform: translateY(-50%);
           color: var(--text-muted);
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           pointer-events: none;
         }
 
         .search-input {
           width: 100%;
-          padding: 0.625rem 2.5rem 0.625rem 2.5rem;
-          border: 2px solid var(--border-light);
-          border-radius: 10px;
-          font-size: 0.9rem;
+          height: 42px;
+          padding: 0 2.5rem 0 2.5rem;
+          border: 1.5px solid var(--border-light);
+          border-radius: var(--radius-md);
+          font-size: 0.875rem;
+          font-family: inherit;
           color: var(--text-primary);
           background: var(--bg-secondary);
-          transition: all 0.2s;
+          transition: all 0.18s var(--ease);
         }
 
-        .search-input:hover {
-          border-color: var(--border-medium);
-        }
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-input:hover { border-color: var(--border-medium); }
 
         .search-input:focus {
           outline: none;
@@ -1420,130 +1435,90 @@ export default function CourseList() {
 
         .search-clear {
           position: absolute;
-          right: 0.75rem;
+          right: var(--space-3);
           top: 50%;
           transform: translateY(-50%);
           background: none;
           border: none;
           color: var(--text-muted);
           cursor: pointer;
-          padding: 0.25rem;
-          transition: color 0.2s;
+          padding: var(--space-1);
+          border-radius: var(--radius-sm);
+          display: flex;
+          transition: color 0.18s var(--ease);
         }
 
-        .search-clear:hover {
-          color: var(--text-primary);
-        }
+        .search-clear:hover { color: var(--text-primary); }
 
         /* ================= STATS GRID ================= */
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 1rem;
-          margin-bottom: 1.5rem;
+          gap: var(--space-4);
+          margin-bottom: var(--space-6);
         }
 
         .stat-card {
+          display: flex;
+          align-items: center;
+          gap: var(--space-4);
           background: var(--bg-secondary);
-          border-radius: 14px;
-          padding: 1.25rem;
+          border-radius: var(--radius-lg);
+          padding: var(--space-5);
           border: 1px solid var(--border-light);
-          transition: all 0.3s ease;
+          transition: box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
         }
 
         .stat-card:hover {
           box-shadow: var(--shadow-md);
-          transform: translateY(-2px);
-        }
-
-        .stat-card-header {
-          display: flex;
-          align-items: flex-start;
-          gap: 1rem;
-          margin-bottom: 1rem;
+          border-color: var(--border-medium);
         }
 
         .stat-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
+          width: 46px;
+          height: 46px;
+          border-radius: var(--radius-md);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 1.25rem;
+          font-size: 1.15rem;
           flex-shrink: 0;
         }
 
-        .stat-icon-blue {
-          background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-          color: white;
-        }
-
-        .stat-icon-green {
-          background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%);
-          color: white;
-        }
-
-        .stat-icon-purple {
-          background: linear-gradient(135deg, #A855F7 0%, #9333EA 100%);
-          color: white;
-        }
-
-        .stat-icon-orange {
-          background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
-          color: white;
-        }
+        .stat-icon-blue { background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color: white; }
+        .stat-icon-green { background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%); color: white; }
+        .stat-icon-purple { background: linear-gradient(135deg, #A855F7 0%, #9333EA 100%); color: white; }
+        .stat-icon-orange { background: linear-gradient(135deg, #F97316 0%, #EA580C 100%); color: white; }
 
         .stat-card-details {
           display: flex;
           flex-direction: column;
-          gap: 0.125rem;
+          gap: 1px;
+          min-width: 0;
         }
 
         .stat-label {
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           color: var(--text-secondary);
           font-weight: 500;
         }
 
         .stat-value {
-          font-size: 1.75rem;
+          font-size: 1.5rem;
           font-weight: 700;
           color: var(--text-primary);
-          line-height: 1;
+          line-height: 1.3;
         }
 
         .stat-sub-value {
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           color: var(--text-muted);
         }
 
-        .stat-card-footer {
-          padding-top: 0.75rem;
-          border-top: 1px solid var(--border-light);
-        }
-
-        .stat-progress {
-          height: 4px;
-          background: var(--bg-tertiary);
-          border-radius: 2px;
-          overflow: hidden;
-        }
-
-        .stat-progress-bar {
-          height: 100%;
-          border-radius: 2px;
-          transition: width 0.5s ease;
-        }
-
-        .stat-progress-bar-blue { background: var(--info); }
-        .stat-progress-bar-green { background: var(--success); }
-        .stat-progress-bar-purple { background: #A855F7; }
-        .stat-progress-bar-orange { background: var(--warning); }
-
         /* ================= TABLE ================= */
         .table-wrapper {
-          border-radius: 12px;
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-light);
           overflow: hidden;
         }
 
@@ -1558,159 +1533,136 @@ export default function CourseList() {
           min-width: 1000px;
         }
 
-        .modern-table thead {
-          background: var(--bg-tertiary);
-        }
+        .modern-table thead { background: var(--bg-tertiary); }
 
         .modern-table th {
-          padding: 1rem 1.25rem;
+          padding: var(--space-4) var(--space-5);
           text-align: left;
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           font-weight: 700;
           color: var(--text-secondary);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          border-bottom: 2px solid var(--border-medium);
+          letter-spacing: 0.04em;
+          border-bottom: 1px solid var(--border-medium);
         }
 
         .modern-table th.sortable {
           cursor: pointer;
           user-select: none;
-          transition: background 0.2s;
+          transition: background 0.18s var(--ease);
         }
 
-        .modern-table th.sortable:hover {
-          background: var(--border-light);
-        }
+        .modern-table th.sortable:hover { background: var(--border-light); }
 
         .th-content {
           display: flex;
           align-items: center;
-          gap: 0.5rem;
+          gap: var(--space-2);
         }
 
-        .th-icon {
-          font-size: 0.85rem;
-          opacity: 0.7;
-        }
+        .th-icon { font-size: 0.8rem; opacity: 0.65; }
 
         .modern-table tbody tr {
           border-bottom: 1px solid var(--border-light);
-          transition: all 0.2s;
+          transition: background 0.15s var(--ease);
         }
 
-        .modern-table tbody tr:last-child {
-          border-bottom: none;
-        }
-
-        .modern-table tbody tr:hover {
-          background: rgba(79, 70, 229, 0.02);
-        }
+        .modern-table tbody tr:last-child { border-bottom: none; }
+        .modern-table tbody tr:hover { background: rgba(79, 70, 229, 0.025); }
 
         .modern-table td {
-          padding: 1rem 1.25rem;
+          padding: var(--space-4) var(--space-5);
           vertical-align: middle;
         }
 
         /* Table Columns */
-        .col-index {
-          width: 60px;
-          text-align: center;
-        }
+        .col-index { width: 60px; text-align: center; }
 
         .index-badge {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          width: 28px;
-          height: 28px;
+          width: 26px;
+          height: 26px;
           background: var(--bg-tertiary);
-          border-radius: 8px;
-          font-size: 0.85rem;
+          border-radius: var(--radius-sm);
+          font-size: 0.8rem;
           font-weight: 600;
           color: var(--text-secondary);
         }
 
-        .col-course {
-          min-width: 250px;
-        }
+        .col-course { min-width: 250px; }
 
         .course-info {
           display: flex;
           align-items: center;
-          gap: 1rem;
+          gap: var(--space-3);
         }
 
         .course-avatar {
-          width: 44px;
-          height: 44px;
+          width: 40px;
+          height: 40px;
           background: linear-gradient(135deg, var(--primary) 0%, #7C3AED 100%);
-          border-radius: 12px;
+          border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
           justify-content: center;
           color: white;
-          font-size: 1.1rem;
+          font-size: 1rem;
           flex-shrink: 0;
         }
 
         .course-text {
           display: flex;
           flex-direction: column;
-          gap: 0.25rem;
+          gap: 2px;
+          min-width: 0;
         }
 
         .course-name-text {
           font-weight: 600;
           color: var(--text-primary);
-          font-size: 0.95rem;
+          font-size: 0.9rem;
         }
 
         .course-level {
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           color: var(--text-secondary);
         }
 
-        .col-code {
-          width: 120px;
-        }
+        .col-code { width: 120px; }
 
         .code-badge {
           display: inline-block;
-          padding: 0.375rem 0.75rem;
+          padding: 0.3rem 0.7rem;
           background: var(--bg-tertiary);
-          border-radius: 8px;
+          border-radius: var(--radius-sm);
           font-family: 'SF Mono', Monaco, monospace;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           font-weight: 600;
           color: var(--text-primary);
-          letter-spacing: 0.025em;
+          letter-spacing: 0.02em;
         }
 
-        .col-type {
-          width: 120px;
-        }
+        .col-type { width: 120px; }
 
         .type-badge {
           display: inline-block;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.8rem;
+          padding: 0.3rem 0.8rem;
+          border-radius: var(--radius-pill);
+          font-size: 0.76rem;
           font-weight: 600;
           border: 1px solid;
         }
 
-        .col-status {
-          width: 130px;
-        }
+        .col-status { width: 130px; }
 
         .status-indicator {
           display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.8rem;
+          gap: var(--space-2);
+          padding: 0.3rem 0.8rem;
+          border-radius: var(--radius-pill);
+          font-size: 0.76rem;
           font-weight: 600;
           border: 1px solid;
         }
@@ -1722,131 +1674,112 @@ export default function CourseList() {
           flex-shrink: 0;
         }
 
-        .col-duration {
-          width: 120px;
-        }
+        .col-duration { width: 120px; }
 
         .duration-info {
           display: flex;
           flex-direction: column;
-          gap: 0.125rem;
+          gap: 1px;
         }
 
         .duration-value {
           font-weight: 600;
           color: var(--text-primary);
-          font-size: 0.9rem;
+          font-size: 0.875rem;
         }
 
         .duration-label {
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           color: var(--text-muted);
         }
 
-        .col-credits {
-          width: 100px;
-        }
+        .col-credits { width: 100px; }
 
         .credits-info {
           display: flex;
-          align-items: center;
-          gap: 0.25rem;
+          align-items: baseline;
+          gap: var(--space-1);
         }
 
         .credits-value {
           font-weight: 700;
           color: var(--text-primary);
-          font-size: 1rem;
+          font-size: 0.95rem;
         }
 
         .credits-label {
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           color: var(--text-muted);
         }
 
-        .col-capacity {
-          width: 150px;
-        }
+        .col-capacity { width: 150px; }
 
         .capacity-info {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: var(--space-3);
         }
 
         .capacity-bar-container {
           display: flex;
           align-items: center;
-          gap: 0.75rem;
+          gap: var(--space-3);
           flex: 1;
         }
 
         .capacity-bar {
           flex: 1;
-          height: 8px;
+          height: 6px;
           background: var(--bg-tertiary);
-          border-radius: 4px;
+          border-radius: var(--radius-pill);
           overflow: hidden;
         }
 
         .capacity-fill {
           height: 100%;
-          border-radius: 4px;
-          transition: width 0.5s ease;
+          border-radius: var(--radius-pill);
+          transition: width 0.4s var(--ease);
         }
 
         .capacity-text {
           font-weight: 600;
           color: var(--text-primary);
-          font-size: 0.85rem;
-          min-width: 32px;
+          font-size: 0.82rem;
+          min-width: 30px;
         }
 
-        .col-actions {
-          width: 140px;
-          text-align: right;
-        }
+        .col-actions { width: 140px; text-align: right; }
 
         .action-group {
           display: flex;
-          gap: 0.5rem;
+          gap: var(--space-2);
           justify-content: flex-end;
         }
 
         .action-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+          width: 34px;
+          height: 34px;
+          border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
           justify-content: center;
           border: none;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.18s var(--ease);
           color: white;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
         }
 
-        .action-view {
-          background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-        }
-
-        .action-edit {
-          background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-        }
-
-        .action-delete {
-          background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-        }
+        .action-view { background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); }
+        .action-edit { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); }
+        .action-delete { background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); }
 
         .action-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
         }
 
-        .action-btn:active {
-          transform: translateY(0);
-        }
+        .action-btn:active { transform: translateY(0); }
 
         /* ================= SKELETON ================= */
         .skeleton-wrapper {
@@ -1854,22 +1787,20 @@ export default function CourseList() {
           flex-direction: column;
           gap: 1px;
           background: var(--border-light);
-          border-radius: 12px;
-          overflow: hidden;
         }
 
         .skeleton-row {
           display: grid;
           grid-template-columns: 60px 1fr 120px 120px 130px 120px 100px 150px 140px;
-          gap: 1rem;
-          padding: 1rem 1.25rem;
+          gap: var(--space-4);
+          padding: var(--space-4) var(--space-5);
           background: var(--bg-secondary);
         }
 
         .skeleton-cell {
-          height: 24px;
+          height: 22px;
           background: var(--bg-tertiary);
-          border-radius: 6px;
+          border-radius: var(--radius-sm);
           position: relative;
           overflow: hidden;
         }
@@ -1881,64 +1812,58 @@ export default function CourseList() {
           left: -100%;
           width: 100%;
           height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-          animation: skeleton-shimmer 1.5s infinite;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+          animation: skeleton-shimmer 1.4s infinite;
         }
 
-        .skeleton-index { width: 28px; margin: 0 auto; }
-        .skeleton-course { display: flex; align-items: center; gap: 1rem; }
-        .skeleton-avatar { width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0; }
-        .skeleton-text-group { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-        .skeleton-title { width: 80%; height: 16px; }
-        .skeleton-subtitle { width: 50%; height: 12px; }
+        .skeleton-index { width: 26px; margin: 0 auto; }
+        .skeleton-course { display: flex; align-items: center; gap: var(--space-3); }
+        .skeleton-avatar { width: 40px; height: 40px; border-radius: var(--radius-sm); flex-shrink: 0; }
+        .skeleton-text-group { flex: 1; display: flex; flex-direction: column; gap: var(--space-2); }
+        .skeleton-title { width: 80%; height: 14px; }
+        .skeleton-subtitle { width: 50%; height: 11px; }
         .skeleton-code { width: 80px; }
         .skeleton-type { width: 70px; }
         .skeleton-status { width: 80px; }
         .skeleton-duration { width: 60px; }
         .skeleton-credits { width: 40px; }
         .skeleton-capacity { width: 100px; }
-        .skeleton-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-        .skeleton-action-btn { width: 36px; height: 36px; border-radius: 10px; }
+        .skeleton-actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
+        .skeleton-action-btn { width: 34px; height: 34px; border-radius: var(--radius-sm); }
 
-        @keyframes skeleton-shimmer {
-          to { left: 100%; }
-        }
+        @keyframes skeleton-shimmer { to { left: 100%; } }
 
         /* ================= EMPTY STATE ================= */
         .empty-state-wrapper {
           text-align: center;
-          padding: 4rem 2rem;
-        }
-
-        .empty-state-icon {
-          margin-bottom: 1.5rem;
+          padding: var(--space-8) var(--space-6);
         }
 
         .empty-icon-circle {
-          width: 96px;
-          height: 96px;
-          margin: 0 auto;
-          background: linear-gradient(135deg, rgba(79, 70, 229, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
-          border-radius: 24px;
+          width: 88px;
+          height: 88px;
+          margin: 0 auto var(--space-5);
+          background: rgba(79, 70, 229, 0.08);
+          border-radius: var(--radius-2xl);
           display: flex;
           align-items: center;
           justify-content: center;
           color: var(--primary);
-          font-size: 2.5rem;
+          font-size: 2.25rem;
         }
 
         .empty-state-title {
-          font-size: 1.5rem;
+          font-size: 1.3rem;
           font-weight: 700;
           color: var(--text-primary);
-          margin: 0 0 0.75rem 0;
+          margin: 0 0 var(--space-2) 0;
         }
 
         .empty-state-description {
-          font-size: 1rem;
+          font-size: 0.925rem;
           color: var(--text-secondary);
-          max-width: 480px;
-          margin: 0 auto 2rem;
+          max-width: 440px;
+          margin: 0 auto var(--space-6);
           line-height: 1.6;
         }
 
@@ -1946,83 +1871,71 @@ export default function CourseList() {
         .modal-backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.6);
+          background: rgba(15, 23, 42, 0.55);
           backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 1000;
-          padding: 1.5rem;
-          animation: modalFadeIn 0.2s ease;
+          padding: var(--space-5);
+          animation: modalFadeIn 0.2s var(--ease);
         }
 
-        @keyframes modalFadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
+        @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         .modal-container {
           background: var(--bg-secondary);
-          border-radius: 20px;
+          border-radius: var(--radius-2xl);
           width: 100%;
-          max-width: 520px;
+          max-width: 480px;
           box-shadow: var(--shadow-xl);
-          animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          animation: modalSlideUp 0.25s var(--ease);
           overflow: hidden;
         }
 
         @keyframes modalSlideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px) scale(0.95);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+          from { opacity: 0; transform: translateY(16px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         .modal-header {
-          padding: 1.5rem;
+          padding: var(--space-5) var(--space-5) 0;
           display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          position: relative;
+          justify-content: flex-end;
         }
 
         .modal-icon-wrapper {
           position: absolute;
-          top: 1.5rem;
+          top: var(--space-5);
           left: 50%;
           transform: translateX(-50%);
         }
 
         .modal-icon-bg {
-          width: 56px;
-          height: 56px;
-          background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
-          border-radius: 16px;
+          width: 52px;
+          height: 52px;
+          background: rgba(245, 158, 11, 0.12);
+          border-radius: var(--radius-lg);
           display: flex;
           align-items: center;
           justify-content: center;
           color: #D97706;
-          font-size: 1.5rem;
+          font-size: 1.4rem;
         }
 
         .modal-close-btn {
           position: relative;
-          z-index: 1;
           background: none;
           border: none;
           color: var(--text-muted);
           cursor: pointer;
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
+          width: 32px;
+          height: 32px;
+          border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: all 0.2s;
+          transition: all 0.18s var(--ease);
         }
 
         .modal-close-btn:hover:not(:disabled) {
@@ -2030,168 +1943,108 @@ export default function CourseList() {
           color: var(--text-primary);
         }
 
-        .modal-close-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
+        .modal-close-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .modal-body {
-          padding: 0 1.5rem 1.5rem;
-        }
+        .modal-body { padding: var(--space-3) var(--space-6) var(--space-6); }
 
         .modal-title {
-          font-size: 1.5rem;
+          font-size: 1.3rem;
           font-weight: 700;
           color: var(--text-primary);
-          margin: 0 0 0.5rem 0;
+          margin: var(--space-4) 0 var(--space-2) 0;
           text-align: center;
         }
 
         .modal-description {
           color: var(--text-secondary);
           text-align: center;
-          margin: 0 0 1.5rem 0;
+          margin: 0 0 var(--space-5) 0;
           line-height: 1.6;
+          font-size: 0.9rem;
         }
 
         .course-info-card {
           background: var(--bg-tertiary);
-          border-radius: 14px;
-          padding: 1.25rem;
-          margin-bottom: 1.25rem;
+          border-radius: var(--radius-lg);
+          padding: var(--space-4) var(--space-5);
+          margin-bottom: var(--space-5);
         }
 
         .info-row {
           display: flex;
           align-items: center;
-          gap: 1rem;
-          padding: 0.5rem 0;
+          gap: var(--space-3);
+          padding: var(--space-2) 0;
         }
 
         .info-icon {
-          width: 40px;
-          height: 40px;
+          width: 36px;
+          height: 36px;
           background: var(--bg-secondary);
-          border-radius: 10px;
+          border-radius: var(--radius-sm);
           display: flex;
           align-items: center;
           justify-content: center;
           color: var(--primary);
-          font-size: 1rem;
+          font-size: 0.95rem;
           flex-shrink: 0;
         }
 
         .info-content {
           display: flex;
           flex-direction: column;
-          gap: 0.125rem;
+          gap: 1px;
+          min-width: 0;
         }
 
         .info-label {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           color: var(--text-muted);
-          font-weight: 500;
-          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.03em;
         }
 
         .info-value {
           font-weight: 600;
           color: var(--text-primary);
+          font-size: 0.9rem;
         }
 
         .info-divider {
           height: 1px;
           background: var(--border-medium);
-          margin: 0.5rem 0;
+          margin: var(--space-1) 0;
         }
 
         .warning-box {
           display: flex;
-          gap: 0.75rem;
-          padding: 1rem;
-          background: rgba(245, 158, 11, 0.1);
+          gap: var(--space-3);
+          padding: var(--space-4);
+          background: rgba(245, 158, 11, 0.08);
           border: 1px solid rgba(245, 158, 11, 0.2);
-          border-radius: 12px;
+          border-radius: var(--radius-md);
         }
 
         .warning-box .warning-icon {
           color: var(--warning);
-          font-size: 1.25rem;
+          font-size: 1.1rem;
           flex-shrink: 0;
+          margin-top: 1px;
         }
 
         .warning-content {
-          font-size: 0.85rem;
+          font-size: 0.82rem;
           color: var(--text-secondary);
           line-height: 1.5;
         }
 
         .modal-footer {
-          padding: 1.25rem 1.5rem;
+          padding: var(--space-5) var(--space-6);
           background: var(--bg-tertiary);
           display: flex;
           justify-content: flex-end;
-          gap: 0.75rem;
+          gap: var(--space-3);
           border-top: 1px solid var(--border-light);
-        }
-
-        /* ================= ERROR PAGE ================= */
-        .error-page-wrapper {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--bg-primary);
-          padding: 2rem;
-        }
-
-        .error-page-content {
-          text-align: center;
-          max-width: 480px;
-        }
-
-        .error-page-icon {
-          width: 96px;
-          height: 96px;
-          margin: 0 auto 1.5rem;
-          background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
-          border-radius: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--danger);
-          font-size: 2.5rem;
-        }
-
-        .error-page-content h3 {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          margin: 0 0 0.75rem 0;
-        }
-
-        .error-page-content p {
-          color: var(--text-secondary);
-          margin: 0 0 1.5rem 0;
-        }
-
-        .error-actions {
-          display: flex;
-          gap: 0.75rem;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-
-        /* ================= ANIMATIONS ================= */
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
         }
 
         /* ================= RESPONSIVE ================= */
@@ -2205,64 +2058,36 @@ export default function CourseList() {
           .page-header {
             flex-direction: column;
             align-items: flex-start;
-            gap: 1.25rem;
-            padding: 1.5rem;
+            gap: var(--space-5);
+            padding: var(--space-6) var(--space-5);
           }
 
-          .header-actions {
-            width: 100%;
-          }
-
-          .header-actions .btn {
-            flex: 1;
-          }
+          .header-actions { width: 100%; }
+          .header-actions .btn { flex: 1; }
 
           .department-selector {
             flex-direction: column;
             align-items: stretch;
           }
 
-          .select-wrapper {
-            min-width: auto;
-            max-width: none;
-          }
-
-          .quick-stats {
-            justify-content: center;
-          }
+          .select-wrapper { min-width: auto; max-width: none; }
+          .quick-stats { justify-content: center; }
 
           .card-header {
             flex-direction: column;
-            gap: 1rem;
+            gap: var(--space-4);
             align-items: stretch;
           }
 
-          .card-actions {
-            flex-direction: column;
-          }
+          .card-actions { flex-direction: column; }
+          .search-wrapper { width: 100%; }
 
-          .search-wrapper {
-            width: 100%;
-          }
-
-          .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
+          .stats-grid { grid-template-columns: repeat(2, 1fr); }
 
           .modern-table th,
-          .modern-table td {
-            padding: 0.75rem;
-          }
+          .modern-table td { padding: var(--space-3); }
 
-          .course-info {
-            gap: 0.75rem;
-          }
-
-          .course-avatar {
-            width: 36px;
-            height: 36px;
-            font-size: 0.9rem;
-          }
+          .course-avatar { width: 34px; height: 34px; font-size: 0.85rem; }
 
           .toast {
             left: 1rem;
@@ -2273,35 +2098,18 @@ export default function CourseList() {
           }
 
           .modal-container {
-            margin: 1rem;
+            margin: var(--space-4);
             max-height: calc(100vh - 2rem);
             overflow-y: auto;
           }
         }
 
         @media (max-width: 480px) {
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .action-group {
-            gap: 0.375rem;
-          }
-
-          .action-btn {
-            width: 32px;
-            height: 32px;
-            font-size: 0.8rem;
-          }
-
-          .page-title {
-            font-size: 1.5rem;
-          }
-
-          .header-icon-bg {
-            width: 56px;
-            height: 56px;
-          }
+          .stats-grid { grid-template-columns: 1fr; }
+          .action-group { gap: var(--space-2); }
+          .action-btn { width: 30px; height: 30px; font-size: 0.78rem; }
+          .page-title { font-size: 1.35rem; }
+          .header-icon-bg { width: 52px; height: 52px; }
         }
       `}</style>
     </div>

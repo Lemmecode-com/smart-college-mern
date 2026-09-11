@@ -9,7 +9,6 @@ import { publishExam } from "../../../api/exam";
 import { getExamSchedule } from "../../../api/examSchedule";
 import { logger } from "../../../utils/logger";
 import ConfirmModal from "../../../components/ConfirmModal";
-import { computeRowStatus } from "./ExamScheduleTable";
 
 import {
   FaBookOpen,
@@ -55,6 +54,35 @@ const BRAND_COLORS = {
     main: "#6c757d",
     gradient: "linear-gradient(135deg, #6c757d 0%, #545b62 100%)",
   },
+};
+
+/* =========================================================
+   Time / validation helpers (local copy to avoid missing file dependency)
+   ========================================================= */
+const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+const toMinutes = (value) => {
+  if (!value || typeof value !== "string") return null;
+  const match = TIME_REGEX.exec(value);
+  if (!match) return null;
+  return Number(match[1]) * 60 + Number(match[2]);
+};
+
+const computeRowStatus = (entry) => {
+  if (!entry) return;
+  const hasDate = Boolean(entry.examDate);
+  const hasStart = Boolean(entry.startTime);
+  const hasEnd = Boolean(entry.endTime);
+
+  if (!hasDate) return "MISSING_DATE";
+  if (!hasStart || !hasEnd) return "MISSING_TIME";
+
+  const startMin = toMinutes(entry.startTime);
+  const endMin = toMinutes(entry.endTime);
+  if (startMin === null || endMin === null) return "MISSING_TIME";
+  if (startMin >= endMin) return "INVALID_RANGE";
+
+  return "SCHEDULED";
 };
 
 /* =========================================================
@@ -661,7 +689,6 @@ export default function ViewExam() {
         items={[
           { label: "Home", path: "/dashboard/exam" },
           { label: "Exam Dashboard", path: "/dashboard/exam" },
-          { label: "Exam List", path: "/dashboard/exam/list" },
           { label: exam.name },
         ]}
       />
@@ -904,32 +931,32 @@ export default function ViewExam() {
                      </p>
                    )}
 
-                   <div className="timetable-actions">
-                     <button
-                       className={
-                         timetableStatus === "PUBLISHED"
-                           ? "btn-edx-outline"
-                           : "btn-edx-primary"
-                       }
-                       onClick={() =>
-                         navigate(`/dashboard/exam/schedule/${id}`)
-                       }
-                       aria-label={
-                         timetableStatus === "PUBLISHED"
-                           ? `View timetable for ${exam.name}`
-                           : timetableStatus === "DRAFT"
-                           ? `Manage timetable for ${exam.name}`
-                           : `Create timetable for ${exam.name}`
-                       }
-                     >
-                       {timetableStatus === "PUBLISHED" ? (
-                         <FaEye aria-hidden="true" />
-                       ) : (
-                         <FaCalendarAlt aria-hidden="true" />
-                       )}
-                       {getTimetableButtonLabel(timetableStatus)}
-                     </button>
-                   </div>
+<div className="timetable-actions">
+                      <button
+                        className={
+                          timetableStatus === "PUBLISHED"
+                            ? "btn-edx-outline"
+                            : "btn-edx-primary"
+                        }
+                        onClick={() =>
+                          navigate(`/dashboard/exam/timetable/${exam._id}`)
+                        }
+                        aria-label={
+                          timetableStatus === "PUBLISHED"
+                            ? `View timetable for ${exam.name}`
+                            : timetableStatus === "DRAFT"
+                            ? `Manage timetable for ${exam.name}`
+                            : `Create timetable for ${exam.name}`
+                        }
+                      >
+                        {timetableStatus === "PUBLISHED" ? (
+                          <FaEye aria-hidden="true" />
+                        ) : (
+                          <FaCalendarAlt aria-hidden="true" />
+                        )}
+                        {getTimetableButtonLabel(timetableStatus)}
+                      </button>
+                    </div>
                  </>
                )}
              </div>

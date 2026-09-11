@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useContext } from "react";
+import { useState, useEffect, useCallback, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
@@ -146,6 +146,7 @@ export default function NotificationForm({
   const [originalForm, setOriginalForm] = useState({ ...form });
   const [loading, setLoading] = useState(mode === "edit");
   const [saving, setSaving] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -309,6 +310,10 @@ export default function NotificationForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (isSubmittingRef.current) {
+      return;
+    }
+
     // Validation
     if (!form.title.trim() || !form.message.trim()) {
       toast.error("Title and Message are required");
@@ -352,6 +357,7 @@ export default function NotificationForm({
       return;
     }
 
+    isSubmittingRef.current = true;
     setSaving(true);
 
     try {
@@ -400,6 +406,7 @@ export default function NotificationForm({
         err.response?.data?.message || `Failed to ${mode} notification`;
       toast.error(errorMsg);
     } finally {
+      isSubmittingRef.current = false;
       setSaving(false);
     }
   };

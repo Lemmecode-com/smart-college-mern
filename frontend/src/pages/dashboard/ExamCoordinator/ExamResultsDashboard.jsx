@@ -5,6 +5,7 @@ import { getResultsByExam, getExamResultSummaries, lockResultsForExam, unlockRes
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
+import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import {
@@ -30,6 +31,8 @@ const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING", "TOKEN_EXPIRED", "INVALID_TOKEN", "TOKEN_BLACKLISTED",
   "TOKEN_INVALIDATED", "USER_NOT_FOUND", "ACCOUNT_DEACTIVATED", "UNAUTHORIZED",
 ]);
+
+const MAX_UNLOCK_REASON_LENGTH = 500;
 
 const styles = `
 .erd {
@@ -163,6 +166,11 @@ export default function ExamResultsDashboard() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [actionBusy, setActionBusy] = useState(null);
 
+  const [showUnlockModal, setShowUnlockModal] = useState(false);
+  const [unlockReason, setUnlockReason] = useState("");
+  const [unlockReasonError, setUnlockReasonError] = useState("");
+  const [pendingUnlockExamId, setPendingUnlockExamId] = useState(null);
+
   const prefersReducedMotion =
     typeof window !== "undefined" && window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -255,15 +263,43 @@ export default function ExamResultsDashboard() {
     }
   };
 
-  const handleUnlock = async (examId) => {
-    const reason = window.prompt("Unlock reason (required):");
-    if (!reason || !reason.trim()) return;
+  const handleUnlock = (examId) => {
+    setPendingUnlockExamId(examId);
+    setUnlockReason("");
+    setUnlockReasonError("");
+    setShowUnlockModal(true);
+  };
+
+  const closeUnlockModal = () => {
+    setShowUnlockModal(false);
+    setPendingUnlockExamId(null);
+    setUnlockReason("");
+    setUnlockReasonError("");
+  };
+
+  const validateUnlockReason = (value) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setUnlockReasonError("Unlock reason is required.");
+      return false;
+    }
+    if (trimmed.length > MAX_UNLOCK_REASON_LENGTH) {
+      setUnlockReasonError(`Unlock reason must not exceed ${MAX_UNLOCK_REASON_LENGTH} characters.`);
+      return false;
+    }
+    setUnlockReasonError("");
+    return true;
+  };
+
+  const confirmUnlock = async () => {
+    if (!validateUnlockReason(unlockReason)) return;
+    const examId = pendingUnlockExamId;
     setActionBusy(examId);
     try {
       const info = await getResultsByExam(examId);
       const lockedResults = info.results.filter((r) => r.status === "LOCKED");
       for (const r of lockedResults) {
-        await unlockResult(r._id, reason.trim());
+        await unlockResult(r._id, unlockReason.trim());
       }
       toast.success(`${lockedResults.length} result(s) unlocked.`);
       await refreshResult(examId);
@@ -271,6 +307,7 @@ export default function ExamResultsDashboard() {
       toast.error(err.response?.data?.message || "Failed to unlock results.");
     } finally {
       setActionBusy(null);
+      closeUnlockModal();
     }
   };
 
@@ -328,6 +365,27 @@ export default function ExamResultsDashboard() {
   return (
     <div className="erd container-fluid p-4">
       <style>{styles}</style>
+
+      <ConfirmModal
+        isOpen={showUnlockModal}
+        onClose={closeUnlockModal}
+        onConfirm={confirmUnlock}
+        title="Unlock Locked Results"
+        message="Provide a reason for unlocking all locked results for this exam. This is recorded in the audit log."
+        type="warning"
+        confirmText="Unlock"
+        isLoading={actionBusy === pendingUnlockExamId}
+        confirmDisabled={!unlockReason.trim() || !!unlockReasonError}
+        inputValue={unlockReason}
+        onInputChange={(value) => {
+          setUnlockReason(value);
+          if (unlockReasonError) setUnlockReasonError("");
+        }}
+        inputPlaceholder="Enter unlock reason (required)…"
+        inputError={unlockReasonError}
+        maxChars={MAX_UNLOCK_REASON_LENGTH}
+        inputRows={3}
+      />
 
       <Breadcrumb
         items={[
