@@ -55,7 +55,12 @@ const calculateOverallResult = (statuses = []) => {
  * @param {ObjectId/String} params.userId  actor generating the result
  * @returns {Promise<SemesterResult>} the persisted result document
  */
-exports.generateSemesterResult = async ({ collegeId, studentId, examId, userId }) => {
+exports.generateSemesterResult = async ({
+  collegeId,
+  studentId,
+  examId,
+  userId,
+}) => {
   // 1. Load Exam (college-scoped) — cross-college Exams are invisible.
   const exam = await Exam.findOne({ _id: examId, college_id: collegeId });
   if (!exam) {
@@ -63,7 +68,10 @@ exports.generateSemesterResult = async ({ collegeId, studentId, examId, userId }
   }
 
   // 2. Validate the student belongs to the exam's college + academic context.
-  const student = await Student.findOne({ _id: studentId, college_id: collegeId });
+  const student = await Student.findOne({
+    _id: studentId,
+    college_id: collegeId,
+  });
   if (!student) {
     throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
   }
@@ -121,7 +129,10 @@ exports.generateSemesterResult = async ({ collegeId, studentId, examId, userId }
 
     // Missing StudentMarks => treat as INCOMPLETE, never coerce null -> 0.
     const marks = marksRecorded
-      ? { internalMarks: marksRecord.internalMarks, externalMarks: marksRecord.externalMarks }
+      ? {
+          internalMarks: marksRecord.internalMarks,
+          externalMarks: marksRecord.externalMarks,
+        }
       : { internalMarks: null, externalMarks: null };
 
     const calculation = calculateSubjectResult(examSubject, marks);
@@ -147,11 +158,9 @@ exports.generateSemesterResult = async ({ collegeId, studentId, examId, userId }
     else incompleteSubjects++;
   }
 
-  const overallResult = calculateOverallResult(
-    subjects.map((s) => s.status),
-  );
+  const overallResult = calculateOverallResult(subjects.map((s) => s.status));
 
-const persistedResult = {
+  const persistedResult = {
     college_id: collegeId,
     student_id: studentId,
     exam_id: examId,
@@ -394,7 +403,9 @@ exports.getMyResults = async ({ collegeId, userId }) => {
  *   lastUpdated        — newest calculatedAt across the set
  */
 exports.getResultsByExam = async ({ collegeId, examId }) => {
-  const exam = await Exam.findOne({ _id: examId, college_id: collegeId });
+  const exam = await Exam.findOne({ _id: examId, college_id: collegeId })
+    .populate("course_id", "name code")
+    .lean();
   if (!exam) {
     throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
   }
@@ -416,7 +427,10 @@ exports.getResultsByExam = async ({ collegeId, examId }) => {
     if (r.status && byStatus[r.status] !== undefined) byStatus[r.status]++;
     if (r.overallResult === "PASS") passed++;
     else if (r.overallResult === "FAIL") failed++;
-    if (r.calculatedAt && (!lastUpdated || new Date(r.calculatedAt) > new Date(lastUpdated))) {
+    if (
+      r.calculatedAt &&
+      (!lastUpdated || new Date(r.calculatedAt) > new Date(lastUpdated))
+    ) {
       lastUpdated = r.calculatedAt;
     }
   }
@@ -488,7 +502,9 @@ exports.getExamResultSummaries = async ({ collegeId }) => {
           $sum: { $cond: [{ $eq: ["$status", RESULT_STATUS.LOCKED] }, 1, 0] },
         },
         publishedCount: {
-          $sum: { $cond: [{ $eq: ["$status", RESULT_STATUS.PUBLISHED] }, 1, 0] },
+          $sum: {
+            $cond: [{ $eq: ["$status", RESULT_STATUS.PUBLISHED] }, 1, 0],
+          },
         },
         lastUpdated: { $max: "$calculatedAt" },
       },
