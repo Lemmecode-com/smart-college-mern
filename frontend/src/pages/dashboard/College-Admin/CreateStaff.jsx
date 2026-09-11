@@ -13,7 +13,7 @@ import {
   FaEye,
   FaEyeSlash,
   FaCopy,
-  FaArrowRight
+  FaArrowRight,
 } from "react-icons/fa";
 import api from "../../../api/axios";
 import ApiError from "../../../components/ApiError";
@@ -22,41 +22,41 @@ import "./Dashboard.css";
 
 const BRAND_COLORS = {
   primary: {
-    main: '#1a4b6d',
-    dark: '#0f3a4a',
-    light: '#2a6b8d',
-    gradient: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)'
+    main: "#1a4b6d",
+    dark: "#0f3a4a",
+    light: "#2a6b8d",
+    gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
   },
   success: {
-    main: '#28a745',
-    dark: '#218838',
-    light: '#28a745',
-    gradient: 'linear-gradient(135deg, #28a745 0%, #218838 100%)'
+    main: "#28a745",
+    dark: "#218838",
+    light: "#28a745",
+    gradient: "linear-gradient(135deg, #28a745 0%, #218838 100%)",
   },
   info: {
-    main: '#17a2b8',
-    dark: '#138496',
-    light: '#17a2b8',
-    gradient: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'
+    main: "#17a2b8",
+    dark: "#138496",
+    light: "#17a2b8",
+    gradient: "linear-gradient(135deg, #17a2b8 0%, #138496 100%)",
   },
   warning: {
-    main: '#ffc107',
-    dark: '#e0a800',
-    light: '#ffc107',
-    gradient: 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)'
+    main: "#ffc107",
+    dark: "#e0a800",
+    light: "#ffc107",
+    gradient: "linear-gradient(135deg, #ffc107 0%, #e0a800 100%)",
   },
   danger: {
-    main: '#dc3545',
-    dark: '#c82333',
-    light: '#dc3545',
-    gradient: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'
+    main: "#dc3545",
+    dark: "#c82333",
+    light: "#dc3545",
+    gradient: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
   },
   secondary: {
-    main: '#6c757d',
-    dark: '#545b62',
-    light: '#868e96',
-    gradient: 'linear-gradient(135deg, #6c757d 0%, #545b62 100%)'
-  }
+    main: "#6c757d",
+    dark: "#545b62",
+    light: "#868e96",
+    gradient: "linear-gradient(135deg, #6c757d 0%, #545b62 100%)",
+  },
 };
 
 const fadeInVariants = {
@@ -64,8 +64,8 @@ const fadeInVariants = {
   visible: (i) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" }
-  })
+    transition: { delay: i * 0.08, duration: 0.6, ease: "easeOut" },
+  }),
 };
 
 const slideDownVariants = {
@@ -73,8 +73,8 @@ const slideDownVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
 };
 
 const pulseVariants = {
@@ -84,9 +84,9 @@ const pulseVariants = {
     transition: {
       duration: 2,
       repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
+      ease: "easeInOut",
+    },
+  },
 };
 
 const spinVariants = {
@@ -95,9 +95,9 @@ const spinVariants = {
     transition: {
       duration: 1,
       repeat: Infinity,
-      ease: "linear"
-    }
-  }
+      ease: "linear",
+    },
+  },
 };
 
 export default function CreateStaff() {
@@ -114,45 +114,45 @@ export default function CreateStaff() {
     "UNAUTHORIZED",
   ]);
 
-    const [formData, setFormData] = useState({
-      name: "",
-      email: "",
-      role: "",
-      departmentId: "",
-      mobileNumber: "",
-      designation: "",
-      employmentType: "FULL_TIME",
-      joiningDate: "",
-      gender: "",
-      dateOfBirth: "",
-      bloodGroup: "",
-      address: "",
-      city: "",
-      state: "",
-      pincode: "",
-      emergencyContactName: "",
-      emergencyContactPhone: "",
-      emergencyRelation: "",
-      qualification: "",
-      experienceYears: 0,
-    });
-    const [documents, setDocuments] = useState({
-      aadhaarCard: null,
-      panCard: null,
-      degreeCertificate: null,
-      passportPhoto: null,
-    });
-    const [documentErrors, setDocumentErrors] = useState({});
-    const [departments, setDepartments] = useState([]);
-    const [courses, setCourses] = useState([]);
-    const [subjects, setSubjects] = useState([]);
-    const [selectedCourse, setSelectedCourse] = useState("");
-    const [selectedSubject, setSelectedSubject] = useState("");
-    const [selectedSubjects, setSelectedSubjects] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(null);
-    const [error, setError] = useState(null);
-    const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    role: "",
+    departmentId: "",
+    mobileNumber: "",
+    designation: "",
+    employmentType: "FULL_TIME",
+    joiningDate: "",
+    gender: "",
+    dateOfBirth: "",
+    bloodGroup: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyRelation: "",
+    qualification: "",
+    experienceYears: 0,
+  });
+  const [documents, setDocuments] = useState({
+    aadhaarCard: null,
+    panCard: null,
+    degreeCertificate: null,
+    passportPhoto: null,
+  });
+  const [documentErrors, setDocumentErrors] = useState({});
+  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const allowedRoles = [
     "ACCOUNTANT",
@@ -165,27 +165,32 @@ export default function CreateStaff() {
   ];
 
   const TEACHER_DOCUMENT_TYPES = [
-    { type: 'aadhaarCard', label: 'Aadhaar Card', maxSizeMB: 2 },
-    { type: 'panCard', label: 'PAN Card', maxSizeMB: 2 },
-    { type: 'degreeCertificate', label: 'Degree Certificate', maxSizeMB: 5 },
-    { type: 'passportPhoto', label: 'Passport Photo', maxSizeMB: 2 },
+    { type: "aadhaarCard", label: "Aadhaar Card", maxSizeMB: 2 },
+    { type: "panCard", label: "PAN Card", maxSizeMB: 2 },
+    { type: "degreeCertificate", label: "Degree Certificate", maxSizeMB: 5 },
+    { type: "passportPhoto", label: "Passport Photo", maxSizeMB: 2 },
   ];
 
   const handleTeacherDocumentChange = (type, file) => {
     const config = TEACHER_DOCUMENT_TYPES.find((d) => d.type === type);
     const maxSize = (config?.maxSizeMB || 2) * 1024 * 1024;
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+    ];
 
     if (!file) {
       setDocuments((prev) => ({ ...prev, [type]: null }));
-      setDocumentErrors((prev) => ({ ...prev, [type]: '' }));
+      setDocumentErrors((prev) => ({ ...prev, [type]: "" }));
       return;
     }
 
     if (!allowedTypes.includes(file.type)) {
       setDocumentErrors((prev) => ({
         ...prev,
-        [type]: 'Only PDF, JPG, JPEG, PNG files are allowed',
+        [type]: "Only PDF, JPG, JPEG, PNG files are allowed",
       }));
       setDocuments((prev) => ({ ...prev, [type]: null }));
       return;
@@ -201,12 +206,12 @@ export default function CreateStaff() {
     }
 
     setDocuments((prev) => ({ ...prev, [type]: file }));
-    setDocumentErrors((prev) => ({ ...prev, [type]: '' }));
+    setDocumentErrors((prev) => ({ ...prev, [type]: "" }));
   };
 
   const removeTeacherDocument = (type) => {
     setDocuments((prev) => ({ ...prev, [type]: null }));
-    setDocumentErrors((prev) => ({ ...prev, [type]: '' }));
+    setDocumentErrors((prev) => ({ ...prev, [type]: "" }));
   };
 
   // Reset documents when role changes away from TEACHER
@@ -223,341 +228,387 @@ export default function CreateStaff() {
     }
   }, [formData.role]);
 
-    const validateForm = () => {
-      if (!formData.name.trim()) return "Full name is required";
-      if (!formData.email.trim()) return "Email is required";
+  const validateForm = () => {
+    if (!formData.name.trim()) return "Full name is required";
+    if (!formData.email.trim()) return "Email is required";
 
-       const emailRegex = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
-       if (!emailRegex.test(formData.email)) return "Invalid email format. Please enter a valid email address.";
+    const emailRegex = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/;
+    if (!emailRegex.test(formData.email))
+      return "Invalid email format. Please enter a valid email address.";
 
-      if (!formData.role) return "Role is required";
+    if (!formData.role) return "Role is required";
 
-      // If role is HOD or TEACHER, department is required
-      if ((formData.role === "HOD" || formData.role === "TEACHER") && !formData.departmentId) {
-        return "Department is required for " + formData.role.replace("_", " ") + " role";
+    // If role is HOD or TEACHER, department is required
+    if (
+      (formData.role === "HOD" || formData.role === "TEACHER") &&
+      !formData.departmentId
+    ) {
+      return (
+        "Department is required for " +
+        formData.role.replace("_", " ") +
+        " role"
+      );
+    }
+
+    // HOD teaching assignment validation
+    if (formData.role === "HOD") {
+      if (selectedSubject && !selectedCourse) {
+        return "Please select a course before assigning a subject.";
       }
+    }
 
-      // HOD teaching assignment validation
-      if (formData.role === "HOD") {
-        if (selectedSubject && !selectedCourse) {
-          return "Please select a course before assigning a subject.";
-        }
+    // TEACHER-specific validation (mirrors AddTeacher)
+    if (formData.role === "TEACHER") {
+      if (!formData.designation.trim()) return "Designation is required";
+      if (!formData.qualification.trim()) return "Qualification is required";
+      if (
+        formData.experienceYears === undefined ||
+        formData.experienceYears === null ||
+        formData.experienceYears === "" ||
+        Number(formData.experienceYears) < 0 ||
+        Number(formData.experienceYears) > 50
+      ) {
+        return "Experience Years must be between 0 and 50";
       }
+      if (!formData.gender) return "Gender is required";
+      if (!formData.bloodGroup) return "Blood Group is required";
+      if (!formData.dateOfBirth) return "Date of Birth is required";
+      if (!formData.address.trim()) return "Address is required";
+      if (!formData.city.trim()) return "City is required";
+      if (!formData.state.trim()) return "State is required";
+      if (!formData.pincode.trim()) return "Pincode is required";
+      if (!/^\d{6}$/.test(formData.pincode))
+        return "Pincode must be exactly 6 digits";
+      if (!selectedCourse) return "Course is required for TEACHER role";
+    }
 
-      // TEACHER-specific validation (mirrors AddTeacher)
-      if (formData.role === "TEACHER") {
-        if (!formData.designation.trim()) return "Designation is required";
-        if (!formData.qualification.trim()) return "Qualification is required";
-        if (
-          formData.experienceYears === undefined ||
-          formData.experienceYears === null ||
-          formData.experienceYears === "" ||
-          Number(formData.experienceYears) < 0 ||
-          Number(formData.experienceYears) > 50
-        ) {
-          return "Experience Years must be between 0 and 50";
-        }
-        if (!formData.gender) return "Gender is required";
-        if (!formData.bloodGroup) return "Blood Group is required";
-        if (!formData.dateOfBirth) return "Date of Birth is required";
-        if (!formData.address.trim()) return "Address is required";
-        if (!formData.city.trim()) return "City is required";
-        if (!formData.state.trim()) return "State is required";
-        if (!formData.pincode.trim()) return "Pincode is required";
-        if (!/^\d{6}$/.test(formData.pincode)) return "Pincode must be exactly 6 digits";
-        if (!selectedCourse) return "Course is required for TEACHER role";
+    if (formData.mobileNumber && !/^\d{10}$/.test(formData.mobileNumber)) {
+      return "Mobile number must be 10 digits";
+    }
+
+    if (
+      formData.emergencyContactPhone &&
+      !/^\d{10}$/.test(formData.emergencyContactPhone)
+    ) {
+      return "Emergency phone must be 10 digits";
+    }
+
+    if (
+      formData.joiningDate &&
+      new Date(formData.joiningDate + "T00:00:00") > new Date()
+    ) {
+      return "Joining Date cannot be a future date";
+    }
+
+    if (formData.dateOfBirth) {
+      const birthDate = new Date(formData.dateOfBirth + "T00:00:00");
+      if (isNaN(birthDate.getTime())) {
+        return "Invalid Date of Birth";
       }
-
-      if (formData.mobileNumber && !/^\d{10}$/.test(formData.mobileNumber)) {
-        return "Mobile number must be 10 digits";
+      if (birthDate > new Date()) {
+        return "Date of Birth cannot be in the future";
       }
-
-       if (
-         formData.emergencyContactPhone &&
-         !/^\d{10}$/.test(formData.emergencyContactPhone)
-       ) {
-         return "Emergency phone must be 10 digits";
-       }
-
-        if (
-          formData.joiningDate &&
-          new Date(formData.joiningDate + "T00:00:00") > new Date()
-        ) {
-          return "Joining Date cannot be a future date";
-        }
-
-        if (formData.dateOfBirth) {
-          const birthDate = new Date(formData.dateOfBirth + "T00:00:00");
-          if (isNaN(birthDate.getTime())) {
-            return "Invalid Date of Birth";
-          }
-          if (birthDate > new Date()) {
-            return "Date of Birth cannot be in the future";
-          }
-          const today = new Date();
-          let age = today.getFullYear() - birthDate.getFullYear();
-          const monthDiff = today.getMonth() - birthDate.getMonth();
-          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-          }
-          if (age < 14 || age > 100) {
-            return "Age must be between 14 and 100 years";
-          }
-        }
-
-        return null;
-   };
-
-   const handleChange = (e) => {
-     const { name, value } = e.target;
-
-     setFormData((prev) => ({
-       ...prev,
-       [name]: name === "experienceYears" ? Number(value) || 0 : value,
-     }));
-
-      if (name === "departmentId") {
-        setSelectedCourse("");
-        setSelectedSubject("");
-        setSelectedSubjects([]);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
+        age--;
       }
-      if (name === "course") {
-        setSelectedCourse(value);
-        setSelectedSubject("");
-        setSelectedSubjects([]);
+      if (age < 14 || age > 100) {
+        return "Age must be between 14 and 100 years";
       }
-      if (name === "subject") {
-        setSelectedSubject(value);
-      }
-    };
+    }
 
-   // Fetch departments for this college when component mounts
-   useEffect(() => {
-     fetchDepartments();
-   }, []);
+    return null;
+  };
 
-     // Reset course/subject when role changes away from HOD or TEACHER
-     useEffect(() => {
-       if (formData.role !== "HOD" && formData.role !== "TEACHER") {
-         setSelectedCourse("");
-         setSelectedSubject("");
-         setSelectedSubjects([]);
-         setCourses([]);
-         setSubjects([]);
-       }
-     }, [formData.role]);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
 
-    // Fetch courses when department changes (HOD or TEACHER)
-    useEffect(() => {
-      if ((formData.role === "HOD" || formData.role === "TEACHER") && formData.departmentId) {
-        api.get(`/courses/department/${formData.departmentId}`)
-          .then(res => {
-            const coursesData = Array.isArray(res.data?.courses) ? res.data.courses :
-                                Array.isArray(res.data) ? res.data : [];
-            setCourses(coursesData);
-          })
-          .catch(() => setCourses([]));
-      } else {
-        setCourses([]);
-      }
-    }, [formData.role, formData.departmentId]);
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "experienceYears" ? Number(value) || 0 : value,
+    }));
 
-   // Fetch subjects when course changes (HOD or TEACHER)
-    useEffect(() => {
-      if ((formData.role === "HOD" || formData.role === "TEACHER") && selectedCourse) {
-        api.get(`/subjects/course/${selectedCourse}`)
-          .then(res => {
-            const subjectsData = Array.isArray(res.data) ? res.data :
-                                 Array.isArray(res.data?.subjects) ? res.data.subjects : [];
-            // Only show ACTIVE subjects to the user
-            const activeSubjects = subjectsData.filter(s => s.status === "ACTIVE" || s.status === undefined);
-            setSubjects(activeSubjects);
-          })
-          .catch(() => setSubjects([]));
-      } else {
-        setSubjects([]);
-      }
+    if (name === "departmentId") {
+      setSelectedCourse("");
       setSelectedSubject("");
       setSelectedSubjects([]);
-    }, [formData.role, selectedCourse]);
+    }
+    if (name === "course") {
+      setSelectedCourse(value);
+      setSelectedSubject("");
+      setSelectedSubjects([]);
+    }
+    if (name === "subject") {
+      setSelectedSubject(value);
+    }
+  };
 
-   const fetchDepartments = async () => {
-       try {
-         const res = await api.get("/departments");
-         setDepartments(res.data || []);
-       } catch (err) {
-         logger.error("Failed to fetch departments:", err);
-         setDepartments([]);
-       }
-     };
+  // Fetch departments for this college when component mounts
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setError(null);
-      setResult(null);
+  // Reset course/subject when role changes away from HOD or TEACHER
+  useEffect(() => {
+    if (formData.role !== "HOD" && formData.role !== "TEACHER") {
+      setSelectedCourse("");
+      setSelectedSubject("");
+      setSelectedSubjects([]);
+      setCourses([]);
+      setSubjects([]);
+    }
+  }, [formData.role]);
 
-      const validationError = validateForm();
-      if (validationError) {
-        setError(validationError);
-        return;
+  // Fetch courses when department changes (HOD or TEACHER)
+  useEffect(() => {
+    if (
+      (formData.role === "HOD" || formData.role === "TEACHER") &&
+      formData.departmentId
+    ) {
+      api
+        .get(`/courses/department/${formData.departmentId}`)
+        .then((res) => {
+          const coursesData = Array.isArray(res.data?.courses)
+            ? res.data.courses
+            : Array.isArray(res.data)
+              ? res.data
+              : [];
+          setCourses(coursesData);
+        })
+        .catch(() => setCourses([]));
+    } else {
+      setCourses([]);
+    }
+  }, [formData.role, formData.departmentId]);
+
+  // Fetch subjects when course changes (HOD or TEACHER)
+  useEffect(() => {
+    if (
+      (formData.role === "HOD" || formData.role === "TEACHER") &&
+      selectedCourse
+    ) {
+      api
+        .get(`/subjects/course/${selectedCourse}`)
+        .then((res) => {
+          const subjectsData = Array.isArray(res.data)
+            ? res.data
+            : Array.isArray(res.data?.subjects)
+              ? res.data.subjects
+              : [];
+          // Only show ACTIVE subjects to the user
+          const activeSubjects = subjectsData.filter(
+            (s) => s.status === "ACTIVE" || s.status === undefined,
+          );
+          setSubjects(activeSubjects);
+        })
+        .catch(() => setSubjects([]));
+    } else {
+      setSubjects([]);
+    }
+    setSelectedSubject("");
+    setSelectedSubjects([]);
+  }, [formData.role, selectedCourse]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get("/departments");
+      setDepartments(res.data || []);
+    } catch (err) {
+      logger.error("Failed to fetch departments:", err);
+      setDepartments([]);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setResult(null);
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Prepare data for sending
+      const staffData = { ...formData };
+      // If role is HOD or TEACHER, include departmentId; otherwise, remove it to avoid sending empty string
+      if (staffData.role === "HOD" || staffData.role === "TEACHER") {
+        // departmentId is already in formData
+      } else {
+        delete staffData.departmentId;
       }
 
-      try {
-        setLoading(true);
+      // Include teaching assignments for HOD
+      if (staffData.role === "HOD") {
+        staffData.courseId = selectedCourse || undefined;
+        staffData.subjectId = selectedSubject || undefined;
+      }
 
-         // Prepare data for sending
-         const staffData = { ...formData };
-         // If role is HOD or TEACHER, include departmentId; otherwise, remove it to avoid sending empty string
-         if (staffData.role === "HOD" || staffData.role === "TEACHER") {
-           // departmentId is already in formData
-         } else {
-           delete staffData.departmentId;
-         }
+      // Include course for TEACHER
+      if (staffData.role === "TEACHER") {
+        staffData.courseId = selectedCourse || undefined;
+        staffData.subjectIds =
+          selectedSubjects.length > 0 ? selectedSubjects : undefined;
+      }
 
-         // Include teaching assignments for HOD
-         if (staffData.role === "HOD") {
-           staffData.courseId = selectedCourse || undefined;
-           staffData.subjectId = selectedSubject || undefined;
-         }
+      let res;
+      if (staffData.role === "TEACHER") {
+        // TEACHER supports document uploads — use multipart/form-data
+        const fd = new FormData();
 
-          // Include course for TEACHER
-          if (staffData.role === "TEACHER") {
-            staffData.courseId = selectedCourse || undefined;
-            staffData.subjectIds = selectedSubjects.length > 0 ? selectedSubjects : undefined;
-          }
+        // Explicitly append role first to ensure it's always included
+        if (staffData.role) {
+          fd.append("role", staffData.role);
+        }
 
-          let res;
-          if (staffData.role === "TEACHER") {
-            // TEACHER supports document uploads — use multipart/form-data
-            const fd = new FormData();
-            
-            // Explicitly append role first to ensure it's always included
-            if (staffData.role) {
-              fd.append("role", staffData.role);
+        // Append name and email
+        if (staffData.name) fd.append("name", staffData.name);
+        if (staffData.email) fd.append("email", staffData.email);
+
+        // Append departmentId if present (required for TEACHER)
+        if (staffData.departmentId)
+          fd.append("departmentId", staffData.departmentId);
+
+        // Append courseId
+        if (staffData.courseId) fd.append("courseId", staffData.courseId);
+
+        // Append subjectIds as array
+        if (staffData.subjectIds && Array.isArray(staffData.subjectIds)) {
+          staffData.subjectIds.forEach((sid) => {
+            fd.append("subjectIds", sid);
+          });
+        }
+
+        // Append remaining staffData fields
+        Object.keys(staffData).forEach((key) => {
+          if (
+            [
+              "role",
+              "name",
+              "email",
+              "departmentId",
+              "courseId",
+              "subjectIds",
+            ].includes(key)
+          )
+            return;
+          const value = staffData[key];
+          if (value === undefined || value === null || value === "") return;
+          if (Array.isArray(value)) {
+            if (value.length > 0) {
+              value.forEach((v) => fd.append(key, v));
             }
-            
-            // Append name and email
-            if (staffData.name) fd.append("name", staffData.name);
-            if (staffData.email) fd.append("email", staffData.email);
-            
-            // Append departmentId if present (required for TEACHER)
-            if (staffData.departmentId) fd.append("departmentId", staffData.departmentId);
-            
-            // Append courseId
-            if (staffData.courseId) fd.append("courseId", staffData.courseId);
-            
-            // Append subjectIds as array
-            if (staffData.subjectIds && Array.isArray(staffData.subjectIds)) {
-              staffData.subjectIds.forEach((sid) => {
-                fd.append("subjectIds", sid);
-              });
-            }
-            
-            // Append remaining staffData fields
-            Object.keys(staffData).forEach((key) => {
-              if (["role", "name", "email", "departmentId", "courseId", "subjectIds"].includes(key)) return;
-              const value = staffData[key];
-              if (value === undefined || value === null || value === "") return;
-              if (Array.isArray(value)) {
-                if (value.length > 0) {
-                  value.forEach((v) => fd.append(key, v));
-                }
-              } else {
-                fd.append(key, String(value));
-              }
-            });
-           
-           // Append document files
-           for (const [type, file] of Object.entries(documents)) {
-             if (file) {
-               fd.append(type, file);
-             }
-           }
-           
-           // Debug: Log FormData keys
-           console.log("FormData keys for TEACHER:", Array.from(fd.keys()));
-           
-           res = await api.post("/college/staff", fd);
           } else {
-            res = await api.post("/college/staff", staffData);
+            fd.append(key, String(value));
           }
+        });
 
-        setResult(res.data);
-        toast.success(
-          res.data.message || "Staff account created successfully!",
+        // Append document files
+        for (const [type, file] of Object.entries(documents)) {
+          if (file) {
+            fd.append(type, file);
+          }
+        }
+
+        // Debug: Log FormData keys
+        console.log("FormData keys for TEACHER:", Array.from(fd.keys()));
+
+        res = await api.post("/college/staff", fd);
+      } else {
+        res = await api.post("/college/staff", staffData);
+      }
+
+      setResult(res.data);
+      toast.success(res.data.message || "Staff account created successfully!");
+
+      if (res.data.emailDelivered === false && res.data.emailError) {
+        toast.warning(`Email warning: ${res.data.emailError}`, {
+          position: "top-right",
+          autoClose: 6000,
+        });
+      }
+
+      if (res.data.data?.temporaryPassword) {
+        toast.info(
+          `Temporary password: ${res.data.data.temporaryPassword} (share with staff)`,
+          { position: "top-right", autoClose: 10000 },
         );
+      }
 
-        if (res.data.emailDelivered === false && res.data.emailError) {
-          toast.warning(`Email warning: ${res.data.emailError}`, {
-            position: "top-right",
-            autoClose: 6000,
-          });
-        }
-
-        if (res.data.data?.temporaryPassword) {
-          toast.info(
-            `Temporary password: ${res.data.data.temporaryPassword} (share with staff)`,
-            { position: "top-right", autoClose: 10000 },
-          );
-        }
-
-        setFormData({
-          name: "",
-          email: "",
-          role: "",
-          departmentId: "",
-          mobileNumber: "",
-          designation: "",
-          employmentType: "FULL_TIME",
-          joiningDate: "",
-          gender: "",
-          dateOfBirth: "",
-          bloodGroup: "",
-          address: "",
-          city: "",
-          state: "",
-          pincode: "",
-          emergencyContactName: "",
-          emergencyContactPhone: "",
-          emergencyRelation: "",
-          qualification: "",
-          experienceYears: 0,
+      setFormData({
+        name: "",
+        email: "",
+        role: "",
+        departmentId: "",
+        mobileNumber: "",
+        designation: "",
+        employmentType: "FULL_TIME",
+        joiningDate: "",
+        gender: "",
+        dateOfBirth: "",
+        bloodGroup: "",
+        address: "",
+        city: "",
+        state: "",
+        pincode: "",
+        emergencyContactName: "",
+        emergencyContactPhone: "",
+        emergencyRelation: "",
+        qualification: "",
+        experienceYears: 0,
+      });
+      setSelectedCourse("");
+      setSelectedSubject("");
+      setSelectedSubjects([]);
+      setCourses([]);
+      setSubjects([]);
+      setDocuments({
+        aadhaarCard: null,
+        panCard: null,
+        degreeCertificate: null,
+        passportPhoto: null,
+      });
+      setDocumentErrors({});
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      if (
+        statusCode === 401 ||
+        (errorCode && AUTH_ERROR_CODES.has(errorCode))
+      ) {
+        logger.error("Auth error creating staff:", statusCode, errorCode);
+        setError({
+          message: "Authentication error occurred.",
+          statusCode,
+          errorCode,
         });
-         setSelectedCourse("");
-         setSelectedSubject("");
-         setSelectedSubjects([]);
-         setCourses([]);
-        setSubjects([]);
-        setDocuments({
-          aadhaarCard: null,
-          panCard: null,
-          degreeCertificate: null,
-          passportPhoto: null,
-        });
-        setDocumentErrors({});
-      } catch (err) {
-        const statusCode = err.response?.status;
-        const errorCode = err.response?.data?.code;
-        if (statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode))) {
-          logger.error("Auth error creating staff:", statusCode, errorCode);
-          setError({
-            message: "Authentication error occurred.",
-            statusCode,
-            errorCode,
-          });
-        } else {
-          const data = err.response?.data;
-          const backendMessage =
-            (Array.isArray(data?.errors) && data.errors[0]?.message) ||
-            data?.message ||
-            "Failed to create account";
-          logger.error("Failed to create staff:", statusCode, errorCode, backendMessage);
-          setError(backendMessage);
-        }
-      } finally {
-       setLoading(false);
-     }
-   };
+      } else {
+        const data = err.response?.data;
+        const backendMessage =
+          (Array.isArray(data?.errors) && data.errors[0]?.message) ||
+          data?.message ||
+          "Failed to create account";
+        logger.error(
+          "Failed to create staff:",
+          statusCode,
+          errorCode,
+          backendMessage,
+        );
+        setError(backendMessage);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCopy = () => {
     if (result?.temporaryPassword) {
@@ -593,11 +644,10 @@ export default function CreateStaff() {
                       <FaUserPlus />
                     </motion.div>
                     <div className="header-title-section">
-                      <h1 className="header-title">
-                        Create Staff Account
-                      </h1>
+                      <h1 className="header-title">Create Staff Account</h1>
                       <p className="header-subtitle">
-                        Add new staff members to the college system with complete profile information
+                        Add new staff members to the college system with
+                        complete profile information
                       </p>
                     </div>
                   </div>
@@ -610,11 +660,11 @@ export default function CreateStaff() {
                       onClick={() => navigate("/college/staff")}
                       className="dashboard-btn btn-profile"
                       onFocus={(e) => {
-                        e.target.style.outline = '2px solid #1a4b6d';
-                        e.target.style.outlineOffset = '2px';
+                        e.target.style.outline = "2px solid #1a4b6d";
+                        e.target.style.outlineOffset = "2px";
                       }}
                       onBlur={(e) => {
-                        e.target.style.outline = 'none';
+                        e.target.style.outline = "none";
                       }}
                     >
                       <FaArrowRight className="me-1" />
@@ -675,171 +725,233 @@ export default function CreateStaff() {
                             />
                           </FormField>
                         </div>
-                         <div className="col-12 col-md-4">
-                           <FormField
-                             label="Role"
-                             required
-                             icon={<FaUserPlus />}
-                           >
-                             <select
-                               name="role"
-                               value={formData.role}
-                               onChange={handleChange}
-                               className="form-select"
-                             >
-                               <option value="">Select Role</option>
-                               {allowedRoles.map((r) => (
-                                 <option key={r} value={r}>
-                                   {r.replaceAll("_", " ")}
-                                 </option>
-                               ))}
-                             </select>
-                           </FormField>
-                         </div>
-                          {(formData.role === "HOD" || formData.role === "TEACHER") && (
-                             <div className="col-12 col-md-4">
-                               <FormField
-                                 label="Department"
-                                 required
-                                 icon={<FaUserPlus />}
-                               >
-                                 <select
-                                   name="departmentId"
-                                   value={formData.departmentId}
-                                   onChange={handleChange}
-                                   className="form-select"
-                                  >
-                                    <option value="">Select Department</option>
-                                    {departments.map((dept) => (
-                                      <option key={dept._id} value={dept._id}>
-                                        {dept.name} ({dept.code})
-                                      </option>
-                                    ))}
-                                  </select>
-                               </FormField>
-                             </div>
-                           )}
-{(formData.role === "HOD" || formData.role === "TEACHER") && formData.departmentId && (
-                              <div className="col-12 col-md-4">
-                                <FormField
-                                  label="Course"
-                                  required={formData.role === "TEACHER"}
-                                  icon={<FaUserPlus />}
-                                >
-                                 <select
-                                   name="course"
-                                   value={selectedCourse}
-                                   onChange={handleChange}
-                                   className="form-select"
-                                 >
-                                   <option value="">Select Course</option>
-                                   {courses.map((c) => (
-                                     <option key={c._id} value={c._id}>
-                                       {c.name}
-                                     </option>
-                                   ))}
-                                 </select>
-                               </FormField>
-                             </div>
-                            )}
-                            {formData.role === "HOD" && selectedCourse && (
-                              <>
-                                <div className="col-12 col-md-4">
-                                  <FormField
-                                    label="Subject"
-                                    icon={<FaUserPlus />}
-                                  >
-                                    <select
-                                      name="subject"
-                                      value={selectedSubject}
-                                      onChange={handleChange}
-                                      className="form-select"
-                                      disabled={!selectedCourse}
-                                    >
-                                      <option value="">
-                                        {selectedCourse ? "Select Subject" : "Select a course first"}
-                                      </option>
-                                      {subjects.map((s) => (
-                                        <option key={s._id} value={s._id}>
-                                          {s.name} ({s.code})
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </FormField>
-                                </div>
-                              </>
-                             )}
-                             {formData.role === "TEACHER" && selectedCourse && (
-                               <>
-                                 <div className="col-12">
-                                   <FormField
-                                     label="Subjects (Optional)"
-                                     icon={<FaUserPlus />}
-                                   >
-                                     {subjects.length === 0 ? (
-                                       <p style={{ color: "#6c757d", fontSize: "0.9rem", margin: 0 }}>
-                                         No subjects available for this course.
-                                       </p>
-                                     ) : (
-                                       <div style={{
-                                         maxHeight: "240px",
-                                         overflowY: "auto",
-                                         border: "1px solid #ced4da",
-                                         borderRadius: "0.375rem",
-                                         padding: "0.5rem",
-                                         backgroundColor: "#f8f9fa"
-                                       }}>
-                                         {subjects.map((s) => {
-                                           const isChecked = selectedSubjects.includes(s._id);
-                                           return (
-                                             <label
-                                               key={s._id}
-                                               style={{
-                                                 display: "flex",
-                                                 alignItems: "center",
-                                                 gap: "0.5rem",
-                                                 padding: "0.4rem 0.6rem",
-                                                 borderRadius: "0.25rem",
-                                                 backgroundColor: isChecked ? "#e3f2fd" : "transparent",
-                                                 cursor: "pointer"
-                                               }}
-                                             >
-                                               <input
-                                                 type="checkbox"
-                                                 value={s._id}
-                                                 checked={isChecked}
-                                                 onChange={(e) => {
-                                                   const id = s._id;
-                                                   if (e.target.checked) {
-                                                     setSelectedSubjects(prev => [...prev, id]);
-                                                   } else {
-                                                     setSelectedSubjects(prev => prev.filter(sid => sid !== id));
-                                                   }
-                                                 }}
-                                                 style={{ cursor: "pointer" }}
-                                               />
-                                               <span style={{ fontSize: "0.9rem" }}>
-                                                 {s.name} <strong>({s.code})</strong>
-                                                 {s.semester && <span style={{ color: "#6c757d", marginLeft: "0.4rem" }}>Sem {s.semester}</span>}
-                                               </span>
-                                             </label>
-                                           );
-                                         })}
-                                       </div>
-                                     )}
-                                   </FormField>
-                                 </div>
-                               </>
-                             )}
+                        <div className="col-12 col-md-4">
+                          <FormField
+                            label="Role"
+                            required
+                            icon={<FaUserPlus />}
+                          >
+                            <select
+                              name="role"
+                              value={formData.role}
+                              onChange={handleChange}
+                              className="form-select"
+                            >
+                              <option value="">Select Role</option>
+                              {allowedRoles.map((r) => (
+                                <option key={r} value={r}>
+                                  {r.replaceAll("_", " ")}
+                                </option>
+                              ))}
+                            </select>
+                          </FormField>
+                        </div>
+                        {(formData.role === "HOD" ||
+                          formData.role === "TEACHER") && (
                           <div className="col-12 col-md-4">
                             <FormField
-                              label="Mobile Number"
+                              label="Department"
+                              required
                               icon={<FaUserPlus />}
                             >
-                             <input
-                               type="tel"
-                               name="mobileNumber"
-                               placeholder="10-digit mobile number"
+                              <select
+                                name="departmentId"
+                                value={formData.departmentId}
+                                onChange={handleChange}
+                                className="form-select"
+                              >
+                                <option value="">Select Department</option>
+                                {departments.map((dept) => (
+                                  <option key={dept._id} value={dept._id}>
+                                    {dept.name} ({dept.code})
+                                  </option>
+                                ))}
+                              </select>
+                            </FormField>
+                          </div>
+                        )}
+                        {(formData.role === "HOD" ||
+                          formData.role === "TEACHER") &&
+                          formData.departmentId && (
+                            <div className="col-12 col-md-4">
+                              <FormField
+                                label="Course"
+                                required={formData.role === "TEACHER"}
+                                icon={<FaUserPlus />}
+                              >
+                                <select
+                                  name="course"
+                                  value={selectedCourse}
+                                  onChange={handleChange}
+                                  className="form-select"
+                                >
+                                  <option value="">Select Course</option>
+                                  {courses.map((c) => (
+                                    <option key={c._id} value={c._id}>
+                                      {c.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </FormField>
+                            </div>
+                          )}
+                        {formData.role === "HOD" && selectedCourse && (
+                          <>
+                            <div className="col-12 col-md-4">
+                              <FormField label="Subject" icon={<FaUserPlus />}>
+                                <select
+                                  name="subject"
+                                  value={selectedSubject}
+                                  onChange={handleChange}
+                                  className="form-select"
+                                  disabled={!selectedCourse}
+                                >
+                                  <option value="">
+                                    {selectedCourse
+                                      ? "Select Subject"
+                                      : "Select a course first"}
+                                  </option>
+                                  {subjects.map((s) => (
+                                    <option
+                                      key={s._id}
+                                      value={s._id}
+                                      disabled={Boolean(s.teacher_id)}
+                                    >
+                                      {s.name} ({s.code})
+                                      {s.teacher_id
+                                        ? ` — Already assigned${s.teacher_id.name ? ` to ${s.teacher_id.name}` : ""}`
+                                        : ""}
+                                    </option>
+                                  ))}
+                                </select>
+                              </FormField>
+                            </div>
+                          </>
+                        )}
+                        {formData.role === "TEACHER" && selectedCourse && (
+                          <>
+                            <div className="col-12">
+                              <FormField
+                                label="Subjects (Optional)"
+                                icon={<FaUserPlus />}
+                              >
+                                {subjects.length === 0 ? (
+                                  <p
+                                    style={{
+                                      color: "#6c757d",
+                                      fontSize: "0.9rem",
+                                      margin: 0,
+                                    }}
+                                  >
+                                    No subjects available for this course.
+                                  </p>
+                                ) : (
+                                  <div
+                                    style={{
+                                      maxHeight: "240px",
+                                      overflowY: "auto",
+                                      border: "1px solid #ced4da",
+                                      borderRadius: "0.375rem",
+                                      padding: "0.5rem",
+                                      backgroundColor: "#f8f9fa",
+                                    }}
+                                  >
+                                    {subjects.map((s) => {
+                                      const isChecked =
+                                        selectedSubjects.includes(s._id);
+                                      const isAssigned = Boolean(s.teacher_id);
+                                      const assignedTeacherName =
+                                        s.teacher_id?.name;
+                                      return (
+                                        <label
+                                          key={s._id}
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "0.5rem",
+                                            padding: "0.4rem 0.6rem",
+                                            borderRadius: "0.25rem",
+                                            backgroundColor: isChecked
+                                              ? "#e3f2fd"
+                                              : "transparent",
+                                            cursor: isAssigned
+                                              ? "not-allowed"
+                                              : "pointer",
+                                            opacity: isAssigned ? 0.7 : 1,
+                                          }}
+                                          title={
+                                            isAssigned
+                                              ? `Already assigned${assignedTeacherName ? ` to ${assignedTeacherName}` : ""}`
+                                              : undefined
+                                          }
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            value={s._id}
+                                            checked={isChecked}
+                                            disabled={isAssigned}
+                                            onChange={(e) => {
+                                              const id = s._id;
+                                              if (e.target.checked) {
+                                                setSelectedSubjects((prev) => [
+                                                  ...prev,
+                                                  id,
+                                                ]);
+                                              } else {
+                                                setSelectedSubjects((prev) =>
+                                                  prev.filter(
+                                                    (sid) => sid !== id,
+                                                  ),
+                                                );
+                                              }
+                                            }}
+                                            style={{ cursor: "pointer" }}
+                                          />
+                                          <span style={{ fontSize: "0.9rem" }}>
+                                            {s.name} <strong>({s.code})</strong>
+                                            {s.semester && (
+                                              <span
+                                                style={{
+                                                  color: "#6c757d",
+                                                  marginLeft: "0.4rem",
+                                                }}
+                                              >
+                                                Sem {s.semester}
+                                              </span>
+                                            )}
+                                            {isAssigned && (
+                                              <span
+                                                style={{
+                                                  color: "#b45309",
+                                                  marginLeft: "0.5rem",
+                                                  fontWeight: 600,
+                                                }}
+                                              >
+                                                Already assigned
+                                                {assignedTeacherName
+                                                  ? ` to ${assignedTeacherName}`
+                                                  : ""}
+                                              </span>
+                                            )}
+                                          </span>
+                                        </label>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </FormField>
+                            </div>
+                          </>
+                        )}
+                        <div className="col-12 col-md-4">
+                          <FormField
+                            label="Mobile Number"
+                            icon={<FaUserPlus />}
+                          >
+                            <input
+                              type="tel"
+                              name="mobileNumber"
+                              placeholder="10-digit mobile number"
                               value={formData.mobileNumber}
                               onChange={handleChange}
                               className="form-control"
@@ -847,10 +959,7 @@ export default function CreateStaff() {
                           </FormField>
                         </div>
                         <div className="col-12 col-md-4">
-                          <FormField
-                            label="Designation"
-                            icon={<FaUserPlus />}
-                          >
+                          <FormField label="Designation" icon={<FaUserPlus />}>
                             <input
                               type="text"
                               name="designation"
@@ -894,19 +1003,16 @@ export default function CreateStaff() {
                           </FormField>
                         </div>
                         <div className="col-12">
-                           <FormField
-                             label="Joining Date"
-                             icon={<FaUserPlus />}
-                           >
-                             <input
-                               type="date"
-                               name="joiningDate"
-                               value={formData.joiningDate}
-                               onChange={handleChange}
-                               className="form-control"
-                               max={new Date().toISOString().split("T")[0]}
-                             />
-                           </FormField>
+                          <FormField label="Joining Date" icon={<FaUserPlus />}>
+                            <input
+                              type="date"
+                              name="joiningDate"
+                              value={formData.joiningDate}
+                              onChange={handleChange}
+                              className="form-control"
+                              max={new Date().toISOString().split("T")[0]}
+                            />
+                          </FormField>
                         </div>
                         <div className="col-12">
                           <FormField
@@ -919,7 +1025,13 @@ export default function CreateStaff() {
                               placeholder="0"
                               min="0"
                               value={formData.experienceYears}
-                              onChange={(e) => setFormData({ ...formData, experienceYears: parseInt(e.target.value) || 0 })}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  experienceYears:
+                                    parseInt(e.target.value) || 0,
+                                })
+                              }
                               className="form-control"
                             />
                           </FormField>
@@ -939,10 +1051,7 @@ export default function CreateStaff() {
                     <div className="section-card-body">
                       <div className="row g-3">
                         <div className="col-12 col-md-6">
-                          <FormField
-                            label="Gender"
-                            icon={<FaUserPlus />}
-                          >
+                          <FormField label="Gender" icon={<FaUserPlus />}>
                             <select
                               name="gender"
                               value={formData.gender}
@@ -971,10 +1080,7 @@ export default function CreateStaff() {
                           </FormField>
                         </div>
                         <div className="col-12 col-md-6">
-                          <FormField
-                            label="Blood Group"
-                            icon={<FaUserPlus />}
-                          >
+                          <FormField label="Blood Group" icon={<FaUserPlus />}>
                             <select
                               name="bloodGroup"
                               value={formData.bloodGroup}
@@ -1023,10 +1129,7 @@ export default function CreateStaff() {
                     <div className="section-card-body">
                       <div className="row g-3">
                         <div className="col-12">
-                          <FormField
-                            label="Address"
-                            icon={<FaUserPlus />}
-                          >
+                          <FormField label="Address" icon={<FaUserPlus />}>
                             <textarea
                               rows={3}
                               name="address"
@@ -1038,10 +1141,7 @@ export default function CreateStaff() {
                           </FormField>
                         </div>
                         <div className="col-12 col-md-4">
-                          <FormField
-                            label="City"
-                            icon={<FaUserPlus />}
-                          >
+                          <FormField label="City" icon={<FaUserPlus />}>
                             <input
                               type="text"
                               name="city"
@@ -1053,10 +1153,7 @@ export default function CreateStaff() {
                           </FormField>
                         </div>
                         <div className="col-12 col-md-4">
-                          <FormField
-                            label="State"
-                            icon={<FaUserPlus />}
-                          >
+                          <FormField label="State" icon={<FaUserPlus />}>
                             <input
                               type="text"
                               name="state"
@@ -1068,10 +1165,7 @@ export default function CreateStaff() {
                           </FormField>
                         </div>
                         <div className="col-12 col-md-4">
-                          <FormField
-                            label="Pincode"
-                            icon={<FaUserPlus />}
-                          >
+                          <FormField label="Pincode" icon={<FaUserPlus />}>
                             <input
                               type="text"
                               name="pincode"
@@ -1097,10 +1191,7 @@ export default function CreateStaff() {
                     <div className="section-card-body">
                       <div className="row g-3">
                         <div className="col-12">
-                          <FormField
-                            label="Contact Name"
-                            icon={<FaUserPlus />}
-                          >
+                          <FormField label="Contact Name" icon={<FaUserPlus />}>
                             <input
                               type="text"
                               name="emergencyContactName"
@@ -1127,10 +1218,7 @@ export default function CreateStaff() {
                           </FormField>
                         </div>
                         <div className="col-12 col-md-6">
-                          <FormField
-                            label="Relation"
-                            icon={<FaUserPlus />}
-                          >
+                          <FormField label="Relation" icon={<FaUserPlus />}>
                             <input
                               type="text"
                               name="emergencyRelation"
@@ -1157,7 +1245,10 @@ export default function CreateStaff() {
                       <div className="section-card-body">
                         <div className="row g-3">
                           {TEACHER_DOCUMENT_TYPES.map((doc) => (
-                            <div className="col-12 col-md-6 col-lg-3" key={doc.type}>
+                            <div
+                              className="col-12 col-md-6 col-lg-3"
+                              key={doc.type}
+                            >
                               <FormField label={doc.label}>
                                 <input
                                   type="file"
@@ -1180,10 +1271,13 @@ export default function CreateStaff() {
                                   }}
                                 >
                                   {documents[doc.type].name} (
-                                  {(documents[doc.type].size / 1024).toFixed(1)} KB)
+                                  {(documents[doc.type].size / 1024).toFixed(1)}{" "}
+                                  KB)
                                   <button
                                     type="button"
-                                    onClick={() => removeTeacherDocument(doc.type)}
+                                    onClick={() =>
+                                      removeTeacherDocument(doc.type)
+                                    }
                                     style={{
                                       marginLeft: "0.5rem",
                                       background: "none",
@@ -1243,18 +1337,22 @@ export default function CreateStaff() {
                       className="dashboard-btn"
                       style={{
                         background: BRAND_COLORS.primary.gradient,
-                        color: 'white',
-                        border: 'none',
-                        padding: '0.75rem 2rem',
-                        borderRadius: '0.5rem',
+                        color: "white",
+                        border: "none",
+                        padding: "0.75rem 2rem",
+                        borderRadius: "0.5rem",
                         fontWeight: 600,
-                        minHeight: '48px',
-                        minWidth: '200px'
+                        minHeight: "48px",
+                        minWidth: "200px",
                       }}
                     >
                       {loading ? (
                         <>
-                          <motion.div variants={spinVariants} animate="animate" style={{ display: 'inline-block' }}>
+                          <motion.div
+                            variants={spinVariants}
+                            animate="animate"
+                            style={{ display: "inline-block" }}
+                          >
                             <FaSyncAlt />
                           </motion.div>
                           <span className="ms-2">Creating...</span>
@@ -1285,7 +1383,7 @@ export default function CreateStaff() {
           </AnimatePresence>
 
           <AnimatePresence>
-            {error && typeof error === 'string' && (
+            {error && typeof error === "string" && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1295,7 +1393,7 @@ export default function CreateStaff() {
                 <ErrorDisplay message={error} />
               </motion.div>
             )}
-            {error && typeof error === 'object' && !loading && (
+            {error && typeof error === "object" && !loading && (
               <ApiError
                 title="Staff Creation Error"
                 message={error.message}
@@ -1315,7 +1413,11 @@ function FormField({ label, required, icon, children }) {
   return (
     <div className="form-group">
       <label className="form-label d-flex align-items-center gap-2">
-        {icon && <span style={{ color: BRAND_COLORS.primary.main, fontSize: '1rem' }}>{icon}</span>}
+        {icon && (
+          <span style={{ color: BRAND_COLORS.primary.main, fontSize: "1rem" }}>
+            {icon}
+          </span>
+        )}
         {label}
         {required && <span style={{ color: BRAND_COLORS.danger.main }}>*</span>}
       </label>
@@ -1329,21 +1431,25 @@ function SectionCard({ title, icon, subtitle, color, children }) {
     <div className="section-card">
       <div className="section-card-header">
         <h3 className="section-card-title">
-          <span className="section-card-icon" style={{ color }}>{icon}</span>
+          <span className="section-card-icon" style={{ color }}>
+            {icon}
+          </span>
           {title}
         </h3>
-        {subtitle && (
-          <span className="section-card-subtitle">
-            {subtitle}
-          </span>
-        )}
+        {subtitle && <span className="section-card-subtitle">{subtitle}</span>}
       </div>
       {children}
     </div>
   );
 }
 
-function SuccessModal({ result, showPassword, setShowPassword, onCopy, onNavigate }) {
+function SuccessModal({
+  result,
+  showPassword,
+  setShowPassword,
+  onCopy,
+  onNavigate,
+}) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1351,8 +1457,8 @@ function SuccessModal({ result, showPassword, setShowPassword, onCopy, onNavigat
       exit={{ opacity: 0 }}
       className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
       style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        zIndex: 1050
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        zIndex: 1050,
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -1361,16 +1467,16 @@ function SuccessModal({ result, showPassword, setShowPassword, onCopy, onNavigat
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
         className="bg-white rounded-3 p-4 shadow-lg"
-        style={{ maxWidth: '500px', width: '90%' }}
+        style={{ maxWidth: "500px", width: "90%" }}
       >
         <div className="text-center mb-4">
           <div
             className="d-flex align-items-center justify-content-center rounded-circle mx-auto mb-3"
             style={{
-              width: '60px',
-              height: '60px',
+              width: "60px",
+              height: "60px",
               background: BRAND_COLORS.success.gradient,
-              color: 'white'
+              color: "white",
             }}
           >
             <FaCheckCircle size={30} />
@@ -1403,7 +1509,9 @@ function SuccessModal({ result, showPassword, setShowPassword, onCopy, onNavigat
               <div className="p-3 bg-light rounded-2">
                 <div className="row">
                   <div className="col-4 text-muted">Role:</div>
-                  <div className="col-8 fw-semibold">{result.user.role?.replace('_', ' ')}</div>
+                  <div className="col-8 fw-semibold">
+                    {result.user.role?.replace("_", " ")}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1414,7 +1522,9 @@ function SuccessModal({ result, showPassword, setShowPassword, onCopy, onNavigat
                   <div className="col-8">
                     <div className="d-flex align-items-center gap-2">
                       <code className="bg-white px-2 py-1 rounded border">
-                        {showPassword ? result.temporaryPassword : '••••••••••••'}
+                        {showPassword
+                          ? result.temporaryPassword
+                          : "••••••••••••"}
                       </code>
                       <motion.button
                         whileHover={{ scale: 1.1 }}
@@ -1443,8 +1553,8 @@ function SuccessModal({ result, showPassword, setShowPassword, onCopy, onNavigat
 
         <div className="alert alert-warning py-2 mb-4">
           <small>
-            <strong>Security Notice:</strong> Share the temporary password securely.
-            User must change it on first login.
+            <strong>Security Notice:</strong> Share the temporary password
+            securely. User must change it on first login.
           </small>
         </div>
 
@@ -1456,8 +1566,8 @@ function SuccessModal({ result, showPassword, setShowPassword, onCopy, onNavigat
             className="btn flex-fill"
             style={{
               background: BRAND_COLORS.success.gradient,
-              color: 'white',
-              border: 'none'
+              color: "white",
+              border: "none",
             }}
           >
             <FaArrowRight className="me-1" />
@@ -1473,15 +1583,15 @@ function ErrorDisplay({ message }) {
   return (
     <div
       className="alert alert-danger d-flex align-items-center gap-3"
-      style={{ borderRadius: '0.75rem' }}
+      style={{ borderRadius: "0.75rem" }}
     >
       <div
         className="flex-shrink-0 d-flex align-items-center justify-content-center rounded-circle"
         style={{
-          width: '40px',
-          height: '40px',
+          width: "40px",
+          height: "40px",
           background: BRAND_COLORS.danger.gradient,
-          color: 'white'
+          color: "white",
         }}
       >
         <FaExclamationTriangle />
