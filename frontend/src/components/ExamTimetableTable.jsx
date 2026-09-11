@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import {
+  FaBook,
   FaCheckCircle,
   FaExclamationTriangle,
   FaTimesCircle,
-  FaBook,
 } from "react-icons/fa";
 
 const STATUS = {
@@ -13,25 +13,26 @@ const STATUS = {
   INVALID_RANGE: "INVALID_RANGE",
 };
 
-const toDateInputValue = (value) => {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  // <input type="date"> expects yyyy-mm-dd in local time
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-};
+const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 const toMinutes = (value) => {
   if (!value || typeof value !== "string") return null;
-  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(value);
+  const match = TIME_REGEX.exec(value);
   if (!match) return null;
   return Number(match[1]) * 60 + Number(match[2]);
 };
 
-export const computeRowStatus = (entry) => {
+const toDateInputValue = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const computeRowStatus = (entry) => {
   if (!entry) return;
   const hasDate = Boolean(entry.examDate);
   const hasStart = Boolean(entry.startTime);
@@ -71,7 +72,7 @@ const STATUS_META = {
   },
 };
 
-export default function ExamScheduleTable({
+function ExamTimetableTable({
   rows,
   readOnly,
   onRowChange,
@@ -86,9 +87,7 @@ export default function ExamScheduleTable({
     };
     const cls = variants[type] || "type-default";
     return (
-      <span className={`exam-schedule-pill type ${cls}`}>
-        {type || "N/A"}
-      </span>
+      <span className={`exam-schedule-pill type ${cls}`}>{type || "N/A"}</span>
     );
   };
 
@@ -122,7 +121,9 @@ export default function ExamScheduleTable({
           <div className="exam-schedule-empty-icon">
             <FaBook />
           </div>
-          <h5 className="exam-schedule-empty-title">No subjects in this exam</h5>
+          <h5 className="exam-schedule-empty-title">
+            No subjects in this exam
+          </h5>
           <p className="exam-schedule-empty-text">
             Add subjects to the exam before creating a timetable.
           </p>
@@ -131,9 +132,7 @@ export default function ExamScheduleTable({
     );
   }
 
-  const containerProps = readOnly
-    ? { "aria-readonly": true }
-    : {};
+  const containerProps = readOnly ? { "aria-readonly": true } : {};
 
   return (
     <div
@@ -141,7 +140,6 @@ export default function ExamScheduleTable({
       aria-busy="false"
       {...containerProps}
     >
-      {/* Banner */}
       <div
         className={`exam-schedule-banner ${
           readOnly ? "is-readonly" : "is-editing"
@@ -150,7 +148,10 @@ export default function ExamScheduleTable({
       >
         {readOnly ? (
           <>
-            <FaCheckCircle className="exam-schedule-banner-icon" aria-hidden="true" />
+            <FaCheckCircle
+              className="exam-schedule-banner-icon"
+              aria-hidden="true"
+            />
             <span>
               This timetable is <strong>published</strong> and read-only.
             </span>
@@ -169,7 +170,6 @@ export default function ExamScheduleTable({
         )}
       </div>
 
-      {/* Summary chips */}
       <div className="exam-schedule-summary-strip">
         <span className="exam-schedule-summary-strip-item">
           <FaCheckCircle
@@ -187,16 +187,10 @@ export default function ExamScheduleTable({
         </span>
       </div>
 
-      {/* Live region for screen readers */}
-      <p
-        className="exam-schedule-sr-only"
-        role="status"
-        aria-live="polite"
-      >
+      <p className="exam-schedule-sr-only" role="status" aria-live="polite">
         {statusAnnouncement}
       </p>
 
-      {/* Desktop / tablet table */}
       <div className="exam-schedule-table-wrap">
         <table className="exam-schedule-table">
           <thead>
@@ -228,7 +222,6 @@ export default function ExamScheduleTable({
         </table>
       </div>
 
-      {/* Mobile stacked cards */}
       <div className="exam-schedule-mobile-list">
         {rows.map((row) => (
           <ScheduleCard
@@ -259,12 +252,11 @@ function ScheduleRow({
   const invalidDate = !row.examDate;
   const invalidTime = !row.startTime || !row.endTime;
   const invalidRange = status === STATUS.INVALID_RANGE;
-
   const rowValidation = validationErrors?.get?.(row.subject) || null;
-  const showError = !readOnly && (invalidDate || invalidTime || invalidRange || rowValidation);
+  const showError =
+    !readOnly && (invalidDate || invalidTime || invalidRange || rowValidation);
   const startError = rowValidation?.startTime;
   const endError = rowValidation?.endTime;
-
   const handle = (field) => (e) => {
     onRowChange(row.subject, field, e.target.value);
   };
@@ -286,9 +278,7 @@ function ScheduleRow({
         <input
           id={`sched-${row.subject}-date`}
           type="date"
-          className={`exam-schedule-field ${
-            !readOnly && invalidDate ? "is-invalid" : ""
-          }`}
+          className={`exam-schedule-field ${!readOnly && invalidDate ? "is-invalid" : ""}`}
           value={toDateInputValue(row.examDate)}
           onChange={handle("examDate")}
           disabled={fieldDisabled}
@@ -300,14 +290,14 @@ function ScheduleRow({
         <input
           id={`sched-${row.subject}-start`}
           type="time"
-          className={`exam-schedule-field ${
-            !readOnly && (invalidTime || invalidRange || startError) ? "is-invalid" : ""
-          }`}
+          className={`exam-schedule-field ${!readOnly && (invalidTime || invalidRange || startError) ? "is-invalid" : ""}`}
           value={row.startTime || ""}
           onChange={handle("startTime")}
           disabled={fieldDisabled}
           aria-label={`Start time for ${row.subjectName || "subject"}`}
-          aria-invalid={!readOnly && (invalidTime || !!startError) ? "true" : "false"}
+          aria-invalid={
+            !readOnly && (invalidTime || !!startError) ? "true" : "false"
+          }
           aria-describedby={
             startError ? `sched-${row.subject}-start-error` : undefined
           }
@@ -326,14 +316,14 @@ function ScheduleRow({
         <input
           id={`sched-${row.subject}-end`}
           type="time"
-          className={`exam-schedule-field ${
-            !readOnly && (invalidTime || invalidRange || endError) ? "is-invalid" : ""
-          }`}
+          className={`exam-schedule-field ${!readOnly && (invalidTime || invalidRange || endError) ? "is-invalid" : ""}`}
           value={row.endTime || ""}
           onChange={handle("endTime")}
           disabled={fieldDisabled}
           aria-label={`End time for ${row.subjectName || "subject"}`}
-          aria-invalid={!readOnly && (invalidTime || !!endError) ? "true" : "false"}
+          aria-invalid={
+            !readOnly && (invalidTime || !!endError) ? "true" : "false"
+          }
           aria-describedby={
             endError ? `sched-${row.subject}-end-error` : undefined
           }
@@ -392,11 +382,9 @@ function ScheduleCard({
   const invalidDate = !row.examDate;
   const invalidTime = !row.startTime || !row.endTime;
   const invalidRange = status === STATUS.INVALID_RANGE;
-
   const rowValidation = validationErrors?.get?.(row.subject) || null;
   const startError = rowValidation?.startTime;
   const endError = rowValidation?.endTime;
-
   const handle = (field) => (e) => {
     onRowChange(row.subject, field, e.target.value);
   };
@@ -427,9 +415,7 @@ function ScheduleCard({
           <input
             id={`m-sched-${row.subject}-date`}
             type="date"
-            className={`exam-schedule-field ${
-              !readOnly && invalidDate ? "is-invalid" : ""
-            }`}
+            className={`exam-schedule-field ${!readOnly && invalidDate ? "is-invalid" : ""}`}
             value={toDateInputValue(row.examDate)}
             onChange={handle("examDate")}
             disabled={fieldDisabled}
@@ -442,13 +428,13 @@ function ScheduleCard({
             <input
               id={`m-sched-${row.subject}-start`}
               type="time"
-              className={`exam-schedule-field ${
-                !readOnly && (invalidTime || invalidRange || startError) ? "is-invalid" : ""
-              }`}
+              className={`exam-schedule-field ${!readOnly && (invalidTime || invalidRange || startError) ? "is-invalid" : ""}`}
               value={row.startTime || ""}
               onChange={handle("startTime")}
               disabled={fieldDisabled}
-              aria-invalid={!readOnly && (invalidTime || !!startError) ? "true" : "false"}
+              aria-invalid={
+                !readOnly && (invalidTime || !!startError) ? "true" : "false"
+              }
               aria-describedby={
                 startError ? `m-sched-${row.subject}-start-error` : undefined
               }
@@ -468,13 +454,13 @@ function ScheduleCard({
             <input
               id={`m-sched-${row.subject}-end`}
               type="time"
-              className={`exam-schedule-field ${
-                !readOnly && (invalidTime || invalidRange || endError) ? "is-invalid" : ""
-              }`}
+              className={`exam-schedule-field ${!readOnly && (invalidTime || invalidRange || endError) ? "is-invalid" : ""}`}
               value={row.endTime || ""}
               onChange={handle("endTime")}
               disabled={fieldDisabled}
-              aria-invalid={!readOnly && (invalidTime || !!endError) ? "true" : "false"}
+              aria-invalid={
+                !readOnly && (invalidTime || !!endError) ? "true" : "false"
+              }
               aria-describedby={
                 endError ? `m-sched-${row.subject}-end-error` : undefined
               }
@@ -522,3 +508,5 @@ function ScheduleCard({
     </div>
   );
 }
+
+export default ExamTimetableTable;

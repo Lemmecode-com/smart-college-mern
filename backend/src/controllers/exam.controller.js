@@ -22,11 +22,20 @@ const extractSubjectIds = (subjects) =>
  * one belongs to the given course AND semester. Returns the exam subject
  * snapshots (subject ref + copied exam/marks configuration) on success.
  */
-const resolveExamSubjects = async (subjectIds, collegeId, courseId, semester) => {
+const resolveExamSubjects = async (
+  subjectIds,
+  collegeId,
+  courseId,
+  semester,
+) => {
   const uniqueIds = [...new Set(subjectIds.map((id) => String(id)))];
 
   if (uniqueIds.length !== subjectIds.length) {
-    throw new AppError("Duplicate subjects are not allowed", 400, "DUPLICATE_SUBJECT");
+    throw new AppError(
+      "Duplicate subjects are not allowed",
+      400,
+      "DUPLICATE_SUBJECT",
+    );
   }
 
   const subjectDocs = await Subject.find({
@@ -37,7 +46,11 @@ const resolveExamSubjects = async (subjectIds, collegeId, courseId, semester) =>
   if (subjectDocs.length !== uniqueIds.length) {
     // A missing entry means it does not exist OR belongs to another college.
     // Return 404 to avoid leaking cross-college existence.
-    throw new AppError("One or more subjects were not found", 404, "SUBJECT_NOT_FOUND");
+    throw new AppError(
+      "One or more subjects were not found",
+      404,
+      "SUBJECT_NOT_FOUND",
+    );
   }
 
   const subjectMap = new Map(subjectDocs.map((s) => [s._id.toString(), s]));
@@ -90,7 +103,11 @@ exports.createExam = async (req, res, next) => {
       throw new AppError("Semester is required", 400, "SEMESTER_REQUIRED");
     }
     if (!academicYear || !String(academicYear).trim()) {
-      throw new AppError("Academic year is required", 400, "ACADEMIC_YEAR_REQUIRED");
+      throw new AppError(
+        "Academic year is required",
+        400,
+        "ACADEMIC_YEAR_REQUIRED",
+      );
     }
 
     const course = await Course.findOne({
@@ -111,7 +128,11 @@ exports.createExam = async (req, res, next) => {
     }
 
     if (!Array.isArray(subjects) || subjects.length === 0) {
-      throw new AppError("At least one subject must be selected", 400, "NO_SUBJECTS_SELECTED");
+      throw new AppError(
+        "At least one subject must be selected",
+        400,
+        "NO_SUBJECTS_SELECTED",
+      );
     }
 
     const examSubjects = await resolveExamSubjects(
@@ -191,7 +212,14 @@ exports.getExamById = async (req, res, next) => {
       _id: req.params.id,
       college_id: req.college_id,
     })
-      .populate("course_id", "name code department_id")
+      .populate({
+        path: "course_id",
+        select: "name code department_id",
+        populate: {
+          path: "department_id",
+          select: "name code",
+        },
+      })
       .populate(
         "subjects.subject",
         "name code teacher_id subjectType internalMaxMarks externalMaxMarks internalPassMarks externalPassMarks passMarks",
@@ -349,7 +377,11 @@ exports.updateExam = async (req, res, next) => {
     let examSubjects = exam.subjects;
     if (subjects !== undefined) {
       if (!Array.isArray(subjects) || subjects.length === 0) {
-        throw new AppError("At least one subject must be selected", 400, "NO_SUBJECTS_SELECTED");
+        throw new AppError(
+          "At least one subject must be selected",
+          400,
+          "NO_SUBJECTS_SELECTED",
+        );
       }
       examSubjects = await resolveExamSubjects(
         extractSubjectIds(subjects),
@@ -362,7 +394,8 @@ exports.updateExam = async (req, res, next) => {
     if (name !== undefined) exam.name = String(name).trim();
     if (course_id) exam.course_id = course_id;
     if (semester !== undefined) exam.semester = Number(semester);
-    if (academicYear !== undefined) exam.academicYear = String(academicYear).trim();
+    if (academicYear !== undefined)
+      exam.academicYear = String(academicYear).trim();
     exam.subjects = examSubjects;
     exam.updatedBy = req.user.id;
 
@@ -426,11 +459,13 @@ const loadPublishedSchedule = async (examId, collegeId) => {
  */
 exports.getPublishedExamsForStudent = async (req, res, next) => {
   try {
-    const student = req.student || await Student.findOne({
-      user_id: req.user.id,
-      college_id: req.college_id,
-      status: { $in: ["APPROVED", "ENROLLED"] },
-    });
+    const student =
+      req.student ||
+      (await Student.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+        status: { $in: ["APPROVED", "ENROLLED"] },
+      }));
 
     if (!student) {
       return ApiResponse.success(res, [], "No exams available");
@@ -460,11 +495,13 @@ exports.getPublishedExamsForStudent = async (req, res, next) => {
  */
 exports.getPublishedExamByIdForStudent = async (req, res, next) => {
   try {
-    const student = req.student || await Student.findOne({
-      user_id: req.user.id,
-      college_id: req.college_id,
-      status: { $in: ["APPROVED", "ENROLLED"] },
-    });
+    const student =
+      req.student ||
+      (await Student.findOne({
+        user_id: req.user.id,
+        college_id: req.college_id,
+        status: { $in: ["APPROVED", "ENROLLED"] },
+      }));
 
     if (!student) {
       return ApiResponse.success(res, null, "Exam not found");
@@ -547,11 +584,7 @@ exports.getPublishedExamsForTeacher = async (req, res, next) => {
       );
     });
 
-    ApiResponse.success(
-      res,
-      filtered,
-      "Published exams fetched successfully",
-    );
+    ApiResponse.success(res, filtered, "Published exams fetched successfully");
   } catch (error) {
     console.error("Get Published Exams For Teacher Error:", error);
     res.status(500).json({ message: "Failed to fetch published exams" });
@@ -591,7 +624,9 @@ exports.getPublishedExamByIdForTeacher = async (req, res, next) => {
 
     const courseMatch =
       teacherCourses.length === 0 ||
-      teacherCourses.some((cid) => String(cid) === String(exam.course_id && exam.course_id._id));
+      teacherCourses.some(
+        (cid) => String(cid) === String(exam.course_id && exam.course_id._id),
+      );
 
     const subjectIds = (exam.subjects || [])
       .map((s) => {
@@ -658,11 +693,7 @@ exports.getPublishedExamsForHOD = async (req, res, next) => {
       .populate("subjects.subject", "name code teacher_id subjectType")
       .sort({ createdAt: -1 });
 
-    ApiResponse.success(
-      res,
-      exams,
-      "Published exams fetched successfully",
-    );
+    ApiResponse.success(res, exams, "Published exams fetched successfully");
   } catch (error) {
     console.error("Get Published Exams For HOD Error:", error);
     res.status(500).json({ message: "Failed to fetch published exams" });
