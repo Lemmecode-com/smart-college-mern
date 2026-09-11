@@ -176,7 +176,7 @@ export default function AttendanceSessionsList() {
               gap: '1.5rem'
             }}
           >
-            <div style={{
+            <div className="attendance-banner-content" style={{
               padding: '1.75rem 2rem',
               background: BRAND_COLORS.primary.gradient,
               color: 'white',
@@ -224,7 +224,7 @@ export default function AttendanceSessionsList() {
                   </p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div className="attendance-banner-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(40, 167, 69, 0.4)' }}
                   whileTap={{ scale: 0.95 }}
@@ -282,7 +282,7 @@ export default function AttendanceSessionsList() {
               flexWrap: 'wrap',
               gap: '1.5rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
+              <div className="attendance-stats-grid" style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
                 <StatItem
                   icon={<FaClipboardList />}
                   label="Total Sessions"
@@ -324,6 +324,152 @@ export default function AttendanceSessionsList() {
               </div>
             </div>
           </motion.div>
+
+
+
+<style>{`
+  @media (max-width: 991px) {
+
+  /* =========================================
+   ATTENDANCE STATISTICS - 2 x 2
+   ========================================= */
+
+.attendance-stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 1.5rem !important;
+  width: 100% !important;
+}
+
+.attendance-stats-grid > div {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+    .attendance-banner-content {
+      padding: 1.25rem !important;
+      gap: 1.25rem !important;
+    }
+
+    .attendance-banner-content > div:first-child {
+      width: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 1rem !important;
+    }
+
+    .attendance-banner-content > div:first-child > div:first-child {
+      width: 60px !important;
+      height: 60px !important;
+      min-width: 60px !important;
+      font-size: 1.5rem !important;
+      border-radius: 14px !important;
+    }
+
+    .attendance-banner-content h1 {
+      font-size: 1.6rem !important;
+      line-height: 1.2 !important;
+      margin: 0 !important;
+    }
+
+    .attendance-banner-content p {
+      font-size: 0.9rem !important;
+      line-height: 1.4 !important;
+      margin-top: 0.4rem !important;
+    }
+
+    .attendance-banner-actions {
+      width: 100% !important;
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 10px !important;
+    }
+
+    .attendance-banner-actions button {
+      flex: 1 !important;
+      width: 50% !important;
+      min-width: 0 !important;
+      height: 48px !important;
+      padding: 0 8px !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      font-size: 0.9rem !important;
+      white-space: nowrap !important;
+      border-radius: 10px !important;
+    }
+  }
+
+  @media (max-width: 575px) {
+
+    .attendance-stats-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 1.25rem !important;
+}
+
+.attendance-stats-grid > div {
+  gap: 0.65rem !important;
+}
+
+.attendance-stats-grid > div > div:first-child {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+}
+
+.attendance-stats-grid > div > div:last-child {
+  min-width: 0 !important;
+}
+
+.attendance-stats-grid > div > div:last-child > div:first-child {
+  font-size: 0.85rem !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+}
+
+.attendance-stats-grid > div > div:last-child > div:last-child {
+  font-size: 1.5rem !important;
+}
+
+    .attendance-banner-content {
+      padding: 1rem !important;
+      gap: 1rem !important;
+    }
+
+    .attendance-banner-content > div:first-child {
+      gap: 0.75rem !important;
+    }
+
+    .attendance-banner-content > div:first-child > div:first-child {
+      width: 52px !important;
+      height: 52px !important;
+      min-width: 52px !important;
+      font-size: 1.3rem !important;
+    }
+
+    .attendance-banner-content h1 {
+      font-size: 1.3rem !important;
+    }
+
+    .attendance-banner-content p {
+      font-size: 0.78rem !important;
+      line-height: 1.35 !important;
+    }
+
+    .attendance-banner-actions {
+      gap: 8px !important;
+    }
+
+    .attendance-banner-actions button {
+      height: 44px !important;
+      font-size: 0.76rem !important;
+      padding: 0 5px !important;
+    }
+  }
+`}</style>
+
 
           {/* ================= ERROR STATE ================= */}
           {error && (
