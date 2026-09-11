@@ -457,7 +457,7 @@ export default function ExamList() {
   };
 
   const handleTimetable = (examId) => {
-    navigate(`/dashboard/exam/edit/${examId}`);
+    navigate(`/dashboard/exam/timetable/${examId}`);
   };
 
   const handleCreateExam = () => {

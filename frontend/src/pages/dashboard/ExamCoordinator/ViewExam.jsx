@@ -939,7 +939,7 @@ export default function ViewExam() {
                             : "btn-edx-primary"
                         }
                         onClick={() =>
-                          navigate(`/dashboard/exam/edit/${id}`)
+                          navigate(`/dashboard/exam/timetable/${exam._id}`)
                         }
                         aria-label={
                           timetableStatus === "PUBLISHED"
