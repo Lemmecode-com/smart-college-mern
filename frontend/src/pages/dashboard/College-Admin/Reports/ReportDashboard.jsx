@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import ExportButtons from "../../../../components/ExportButtons";
 import Pagination from "../../../../components/Pagination";
 import { showSuccess, showError } from "../../../../utils/toast";
@@ -558,6 +559,25 @@ export default function ReportDashboard() {
 
   return (
     <div className="report-dashboard-container">
+      {/* ================= BREADCRUMB ================= */}
+      <div
+        style={{
+          width: "100%",
+          margin: "10px auto",
+          paddingTop: "0px",
+          height: "60px",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Reports & Analytics" },
+            ]}
+          />
+        </div>
+      </div>
+
       {/* ================= HEADER ================= */}
       <div className="dashboard-header">
         <div className="header-content">
