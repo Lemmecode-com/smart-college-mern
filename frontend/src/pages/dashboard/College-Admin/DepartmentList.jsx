@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import useRole from "../../../hooks/useRole";
 
@@ -480,6 +481,25 @@ export default function DepartmentList() {
       }}
     >
       <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
+
+        {/* ================= BREADCRUMB ================= */}
+          <div
+            style={{
+              width: "100%",
+              margin: "10px auto",
+              paddingTop: "5px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/dashboard" },
+                  { label: "Department Management" },
+                ]}
+              />
+            </div>
+          </div>
+
         {/* ================= TOP BAR ================= */}
         <div
           style={{
