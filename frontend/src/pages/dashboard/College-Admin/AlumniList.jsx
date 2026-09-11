@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import { getAlumni } from "../../../api/alumni";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { TableSkeleton } from "../../../components/Skeleton";
 import { showSuccess, showError } from "../../../utils/toast";
@@ -671,6 +672,28 @@ export default function AlumniList({ admissionOfficerMode = false }) {
 
   return (
     <div className="page-container alumni-page">
+
+    {/* ================= BREADCRUMB ================= */}
+    <div
+      style={{
+        width: "100%",
+        margin: "10px auto",
+        paddingTop: "0px",
+        height: "60px",
+      
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard" },
+            { label: "Alumni Records" },
+          ]}
+        />
+      </div>
+    </div>
+
+
       {/* Page Header */}
       <div className="page-header">
         <div className="header-content">
