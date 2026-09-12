@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaBell,
   FaEnvelope,
@@ -948,6 +949,27 @@ const NotificationSetting = () => {
       `}</style>
 
       <div className="notification-settings-page">
+
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "Notification Settings" },
+              ]}
+            />
+          </div>
+        </div>
+
         {/* ================= PAGE HEADER ================= */}
         <div className="settings-header">
           <div className="header-content">
