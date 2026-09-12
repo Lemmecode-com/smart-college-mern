@@ -715,12 +715,23 @@ export default function AuditLogs() {
       }}
     >
       {/* Breadcrumb */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Audit Logs", active: true },
-        ]}
-      />
+      <div
+        style={{
+          width: "100%",
+          margin: "10px auto",
+          paddingTop: "2px",
+          height: "60px",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Audit Logs", active: true },
+            ]}
+          />
+        </div>
+      </div>
 
       {/* Header */}
       <motion.div
