@@ -678,7 +678,7 @@ export default function AlumniList({ admissionOfficerMode = false }) {
       style={{
         width: "100%",
         margin: "10px auto",
-        paddingTop: "0px",
+        paddingTop: "2px",
         height: "60px",
       
       }}
