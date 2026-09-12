@@ -2,6 +2,7 @@ import { useContext, useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -214,6 +215,25 @@ export default function AddDepartment() {
 
   return (
     <div className="container-fluid py-3 py-md-4 animate-fade-in">
+      {/* ================= BREADCRUMB ================= */}
+      <div
+        style={{
+          width: "100%",
+          margin: "10px auto",
+          paddingTop: "2px",
+          height: "60px",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Departments", path: "/departments" },
+              { label: "Add New Department" },
+            ]}
+          />
+        </div>
+      </div>
       {error && typeof error === 'object' && !loading && (
         <ApiError
           title="Department Creation Error"

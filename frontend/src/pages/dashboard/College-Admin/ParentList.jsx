@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import {
   FaUser,
@@ -388,6 +389,26 @@ export default function ParentList() {
         exit={{ opacity: 0 }}
         className="erp-page-content erp-viewport-min-100"
       >
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Parent Management" },
+              ]}
+            />
+          </div>
+        </div>
+
+        
         {/* Header Section */}
         <motion.div
           variants={slideDownVariants}

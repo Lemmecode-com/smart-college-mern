@@ -356,7 +356,8 @@ export default function CollegeProfile() {
             style={{
               width: "100%",
               margin: "10px auto",
-              paddingTop: "5px",
+              paddingTop: "2px",
+              height: "60px",
             }}
           >
             <div style={{ width: "100%" }}>

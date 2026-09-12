@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
 import { logger } from "../../../utils/logger";
 
 import {
@@ -230,6 +231,26 @@ export default function AddCourse() {
           onGoBack={() => navigate(-1)}
         />
       )}
+      {/* ================= BREADCRUMB ================= */}
+      <div
+        style={{
+          width: "100%",
+          margin: "10px auto",
+          paddingTop: "2px",
+          height: "60px",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Courses", path: "/courses" },
+              { label: "Add New Course" },
+            ]}
+          />
+        </div>
+      </div>
+
       {/* HEADER */}
       <div className="header-section mb-4">
         <div className="d-flex align-items-center justify-content-between">
