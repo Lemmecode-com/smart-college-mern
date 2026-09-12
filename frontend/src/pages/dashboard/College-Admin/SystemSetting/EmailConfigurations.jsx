@@ -4,6 +4,7 @@ import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import { logger } from "../../../../utils/logger";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaEnvelope,
   FaArrowLeft,
@@ -1206,6 +1207,27 @@ const EmailConfigurations = () => {
        `}</style>
 
       <div className="email-settings-page">
+
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "Email Configuration" },
+              ]}
+            />
+          </div>
+        </div>
+
         <div className="settings-header">
           <div className="header-content">
             <button className="btn-back" onClick={() => navigate("/system-settings/fees")}>
