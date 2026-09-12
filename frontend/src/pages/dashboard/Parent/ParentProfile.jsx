@@ -173,14 +173,7 @@ export default function ParentProfile() {
     return (
       <div className="parent-portal-wrapper">
         <div className="parent-portal-container">
-          <div className="parent-breadcrumb-wrapper">
-            <Breadcrumb
-              items={[
-                { label: "Dashboard", path: "/dashboard/parent" },
-                { label: "My Profile", path: "" },
-              ]}
-            />
-          </div>
+        
 
           <div className="parent-dashboard-header">
             <div className="parent-dashboard-header-hero">
@@ -210,15 +203,6 @@ export default function ParentProfile() {
     return (
       <div className="parent-portal-wrapper">
         <div className="parent-portal-container">
-          <div className="parent-breadcrumb-wrapper">
-            <Breadcrumb
-              items={[
-                { label: "Dashboard", path: "/dashboard/parent" },
-                { label: "My Profile", path: "" },
-              ]}
-            />
-          </div>
-
           <div className="parent-dashboard-header">
             <div className="parent-dashboard-header-hero">
               <div className="parent-header-content">
@@ -285,14 +269,23 @@ export default function ParentProfile() {
       >
         <div className="parent-portal-container">
           {/* ================= BREADCRUMB ================= */}
-          <div className="parent-breadcrumb-wrapper">
-            <Breadcrumb
-              items={[
-                { label: "Dashboard", path: "/dashboard/parent" },
-                { label: "My Profile", path: "" },
-              ]}
-            />
-          </div>
+          <div
+              style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "2px",
+                height: "60px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/dashboard/parent" },
+                    { label: "My Profile" },
+                  ]}
+                />
+              </div>
+            </div>
 
           {/* ================= HEADER HERO ================= */}
           <motion.div
