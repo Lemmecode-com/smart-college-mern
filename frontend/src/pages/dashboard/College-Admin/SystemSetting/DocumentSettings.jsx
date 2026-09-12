@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import ApiError from "../../../../components/ApiError";
 import { logger } from "../../../../utils/logger";
 import {
@@ -1118,6 +1119,27 @@ export default function DocumentSettings() {
       `}</style>
 
       <div className="document-settings-page">
+
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "Document Settings" },
+              ]}
+            />
+          </div>
+        </div>
+
         {/* ================= PAGE HEADER ================= */}
         <div className="settings-header">
           <div className="header-content">

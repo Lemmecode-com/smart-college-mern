@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 import { getGeneralSettings, updateGeneralSettings } from "../../../../api/generalSettings";
 import { showSuccess, showError } from "../../../../utils/toast";
+import Breadcrumb from "../../../../components/Breadcrumb";
 
 const GeneralSetting = () => {
   const [formData, setFormData] = useState({
@@ -668,6 +669,26 @@ const GeneralSetting = () => {
       `}</style>
 
       <div className="general-settings-page">
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "General Settings" },
+              ]}
+            />
+          </div>
+        </div>
+
         {/* ================= PAGE HEADER ================= */}
         <div className="settings-header">
           <div className="header-content">
