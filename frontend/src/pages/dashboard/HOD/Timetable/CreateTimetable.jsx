@@ -327,10 +327,12 @@ export default function CreateTimetable() {
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.5rem'
+              gap: '0rem'
             }}
           >
-            <div style={{
+            <div
+             className="create-timetable-header-content"
+             style={{
               padding: '2rem',
               background: BRAND_COLORS.primary.gradient,
               color: 'white',
@@ -340,8 +342,11 @@ export default function CreateTimetable() {
               flexWrap: 'wrap',
               gap: '1.5rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div 
+              className="create-timetable-header-inner"
+              style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div
+                  className="create-timetable-icon"
                   variants={pulseVariants}
                   initial="initial"
                   animate="pulse"
@@ -361,7 +366,9 @@ export default function CreateTimetable() {
                   <FaCalendarAlt />
                 </motion.div>
                 <div>
-                  <h1 style={{
+                  <h1 
+                  className="create-timetable-header-title"
+                  style={{
                     margin: 0,
                     fontSize: '2.25rem',
                     fontWeight: 700,
@@ -369,7 +376,9 @@ export default function CreateTimetable() {
                   }}>
                     Create New Timetable
                   </h1>
-                  <p style={{
+                  <p 
+                  className="create-timetable-description"
+                  style={{
                     margin: '0.75rem 0 0 0',
                     opacity: 0.9,
                     fontSize: '1.25rem'
@@ -380,6 +389,7 @@ export default function CreateTimetable() {
               </div>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <motion.button
+                  className="create-timetable-button"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate('/timetable/list')}
@@ -404,7 +414,9 @@ export default function CreateTimetable() {
             </div>
             
             {/* Info Banner */}
-            <div style={{
+            <div 
+              className="create-timetable-info-banner"
+              style={{
               padding: '1rem 2rem',
               backgroundColor: '#dbeafe',
               borderTop: '1px solid #bfdbfe',
@@ -790,6 +802,97 @@ export default function CreateTimetable() {
               transition-duration: 0.01ms !important;
             }
           }
+
+          @media (max-width: 991.98px) {
+  .create-timetable-header-content {
+    padding: 1.5rem !important;
+    gap: 1rem !important;
+  }
+
+  .create-timetable-title {
+    font-size: 1.75rem !important;
+  }
+
+  .create-timetable-description {
+    font-size: 1rem !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .create-timetable-icon {
+    width: 64px !important;
+    height: 64px !important;
+    border-radius: 16px !important;
+    font-size: 2rem !important;
+  }
+
+  .create-timetable-header-inner {
+    gap: 1rem !important;
+  }
+
+  .create-timetable-button {
+    padding: 0.65rem 1.1rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .create-timetable-info {
+    padding: 1rem 1.5rem !important;
+    font-size: 0.95rem !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .create-timetable-header-content {
+    padding: 1.25rem !important;
+  }
+
+  .create-timetable-header-inner {
+    gap: 0.85rem !important;
+  }
+
+  .create-timetable-icon {
+    width: 52px !important;
+    height: 52px !important;
+    border-radius: 14px !important;
+    font-size: 1.6rem !important;
+  }
+
+  .create-timetable-title {
+    font-size: 1.45rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .create-timetable-description {
+    font-size: 0.9rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .create-timetable-button {
+    width: 100%;
+    justify-content: center;
+    padding: 0.65rem 1rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .create-timetable-info {
+    padding: 0.9rem 1.25rem !important;
+    font-size: 0.88rem !important;
+    line-height: 1.45 !important;
+  }
+}
+  .create-timetable-header-content {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+}
+
+.create-timetable-header-inner {
+  width: 100%;
+  align-items: center !important;
+}
+
+.create-timetable-header-content > div:last-child {
+  width: 100%;
+  margin-top: 0 !important;
+}
         `}</style>
       </motion.div>
     </AnimatePresence>

@@ -629,6 +629,16 @@ export default function HodProfile() {
         padding: "1.25rem 1rem 2.5rem",
       }}
     >
+
+        <style>{`
+          @media (max-width: 991.98px) {
+            .hod-profile-status {
+              align-items: flex-start !important;
+            }
+          }
+        `}</style>
+
+
       <div className="erp-page-content" style={{ maxWidth: 1120 }}>
         <Breadcrumb
             items={[
@@ -776,6 +786,7 @@ export default function HodProfile() {
             {/* Right: Contact + Status */}
             <div className="col-md-5 text-md-end">
               <div
+                className="hod-profile-status"
                 style={{
                   display: "inline-flex",
                   flexDirection: "column",
