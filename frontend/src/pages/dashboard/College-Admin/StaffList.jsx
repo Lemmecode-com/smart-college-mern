@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import api from "../../../api/axios";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import { logger } from "../../../utils/logger";
 import "./StaffList.css";
@@ -302,6 +303,26 @@ export default function StaffList() {
       className="erp-staff-page erp-viewport-min-100"
     >
       <div className="erp-staff-page-content">
+
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Staff Management" },
+              ]}
+            />
+          </div>
+        </div>
+
         {/* ================= HEADER ================= */}
         <motion.header
           variants={fadeInUp}

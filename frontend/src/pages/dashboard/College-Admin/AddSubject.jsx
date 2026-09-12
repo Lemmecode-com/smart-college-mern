@@ -425,12 +425,24 @@ export default function AddSubject() {
             />
           )}
           {/* ================= BREADCRUMB ================= */}
-          <Breadcrumb
-            items={[
-              { label: "Subjects", path: "/subjects" },
-              { label: "Add New Subject" },
-            ]}
-          />
+          <div
+            style={{
+              width: "100%",
+              margin: "10px auto",
+              paddingTop: "2px",
+              height: "60px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/dashboard" },
+                  { label: "Subjects", path: "/subjects" },
+                  { label: "Add New Subject" },
+                ]}
+              />
+            </div>
+          </div>
 
           {/* ================= HEADER ================= */}
           <motion.div
