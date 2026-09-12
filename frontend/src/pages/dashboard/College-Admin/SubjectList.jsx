@@ -706,6 +706,10 @@ export default function SubjectList() {
           position: relative;
           z-index: 1;
         }
+          .erp-header-actions .erp-btn .erp-btn-icon {
+            margin-right: 8px !important;
+          }
+
 
         .erp-header-actions .erp-btn:hover {
           transform: translateY(-3px);
@@ -763,7 +767,7 @@ export default function SubjectList() {
         /* FILTERS */
         .filter-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns:  1fr 1fr auto;
           gap: 1.5rem;
           align-items: end;
         }
@@ -784,6 +788,7 @@ export default function SubjectList() {
           gap: 0.625rem;
           padding: 0.25rem 0;
           white-space: nowrap;
+          padding-left: 20px !important;
         }
 
         .filter-icon {
@@ -795,7 +800,7 @@ export default function SubjectList() {
           justify-content: center;
           line-height: 1;
           position: absolute;
-          left: -18px;
+          left: 0px;
         }
 
         .filter-select-wrapper {
@@ -854,6 +859,7 @@ export default function SubjectList() {
         .filter-actions {
           display: flex;
           align-items: center;
+          justify-content: flex-end;
         }
 
         /* ADD SUBJECT BUTTON - Enhanced Design */

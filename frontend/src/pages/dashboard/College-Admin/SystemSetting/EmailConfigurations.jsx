@@ -659,7 +659,14 @@ const EmailConfigurations = () => {
           pointer-events: none;
         }
 
-        .header-content { position: relative; z-index: 1; }
+        .header-content { position: relative;
+        z-index: 1;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start; 
+        }
 
         .btn-back {
           display: inline-flex;
@@ -674,7 +681,7 @@ const EmailConfigurations = () => {
           font-weight: 500;
           cursor: pointer;
           transition: all 0.25s ease;
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.5rem;
         }
 
         .btn-back:hover {
@@ -686,13 +693,13 @@ const EmailConfigurations = () => {
           font-size: 1.75rem;
           font-weight: 700;
           color: #ffffff;
-          margin: 0 0 0.25rem 0;
+          margin: 0;
         }
 
         .header-subtitle {
           font-size: 0.9375rem;
           color: rgba(255, 255, 255, 0.85);
-          margin: 0;
+          margin-top: -1.0rem;
         }
 
         .header-badge {
@@ -705,6 +712,9 @@ const EmailConfigurations = () => {
           font-weight: 600;
           background: rgba(255, 255, 255, 0.2);
           color: #ffffff;
+          position: absolute;
+          top: 1.5rem;
+          right: calc(35% + 1.8rem);
         }
 
         .info-card {
@@ -947,12 +957,13 @@ const EmailConfigurations = () => {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          margin-right: 0.5rem;
+          margin-right: 0.2rem;
+
         }
 
         .status-dot.active {
-          background: var(--sc-success);
-          box-shadow: 0 0 8px var(--sc-success);
+          background: #22c55e;
+          box-shadow: 0 0 10px #22c55e;
         }
 
         .status-dot.inactive { background: var(--sc-text-muted); }
