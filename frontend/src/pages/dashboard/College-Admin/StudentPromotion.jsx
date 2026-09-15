@@ -9,6 +9,10 @@ import {
   bulkPromoteStudents,
   getCollegePromotionHistory,
   getPromotionEligibility,
+  recommendPromotionDecision,
+  approvePromotionDecision,
+  rejectPromotionDecision,
+  executePromotionDecision,
 } from "../../../api/promotion";
 import { moveToAlumni } from "../../../api/alumni";
 import Loading from "../../../components/Loading";
@@ -230,6 +234,17 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [eligibilityData, setEligibilityData] = useState(null);
   const [eligibilityError, setEligibilityError] = useState(null);
 
+  // Workflow action state
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showRecommendModal, setShowRecommendModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showExecuteModal, setShowExecuteModal] = useState(false);
+  const [recommendComment, setRecommendComment] = useState("");
+  const [approveComment, setApproveComment] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectReasonError, setRejectReasonError] = useState("");
+
   // Bulk Result Modal State
   const [showBulkResultModal, setShowBulkResultModal] = useState(false);
   const [bulkResultData, setBulkResultData] = useState(null);
@@ -338,6 +353,194 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       }
     } finally {
       setEligibilityLoading(false);
+    }
+  };
+
+  const refreshEligibility = async () => {
+    if (!eligibilityStudent) return;
+    try {
+      const res = await getPromotionEligibility(eligibilityStudent._id);
+      setEligibilityData(res.data || res);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to refresh decision state.";
+
+      logger.error("Error refreshing promotion eligibility:", statusCode, errorCode);
+      setEligibilityError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    }
+  };
+
+  const handleRecommend = async () => {
+    const decisionId = eligibilityData?._id;
+    if (!decisionId) {
+      toast.error("Promotion decision not available.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await recommendPromotionDecision(decisionId, recommendComment.trim());
+      toast.success("Promotion recommendation submitted successfully.");
+      setShowRecommendModal(false);
+      setRecommendComment("");
+      await refreshEligibility();
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to submit recommendation.";
+
+      logger.error("Error recommending promotion:", statusCode, errorCode);
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    const decisionId = eligibilityData?._id;
+    if (!decisionId) {
+      toast.error("Promotion decision not available.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await approvePromotionDecision(decisionId, approveComment.trim());
+      toast.success("Promotion decision approved successfully.");
+      setShowApproveModal(false);
+      setApproveComment("");
+      await refreshEligibility();
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to approve promotion decision.";
+
+      logger.error("Error approving promotion:", statusCode, errorCode);
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    const decisionId = eligibilityData?._id;
+    if (!decisionId) {
+      toast.error("Promotion decision not available.");
+      return;
+    }
+    const trimmedReason = rejectReason.trim();
+    if (!trimmedReason) {
+      setRejectReasonError("A rejection reason is required.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await rejectPromotionDecision(decisionId, trimmedReason);
+      toast.success("Promotion decision rejected successfully.");
+      setShowRejectModal(false);
+      setRejectReason("");
+      setRejectReasonError("");
+      await refreshEligibility();
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to reject promotion decision.";
+
+      logger.error("Error rejecting promotion:", statusCode, errorCode);
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openRecommendModal = () => {
+    setRecommendComment("");
+    setShowRecommendModal(true);
+  };
+
+  const openApproveModal = () => {
+    setApproveComment("");
+    setShowApproveModal(true);
+  };
+
+  const openRejectModal = () => {
+    setRejectReason("");
+    setRejectReasonError("");
+    setShowRejectModal(true);
+  };
+
+  const isReviewableOutcome = (outcome) =>
+    outcome === "PASS" || outcome === "ATKT";
+
+  const canShowWorkflowActions = () => {
+    if (!eligibilityData) return false;
+    if (!isReviewableOutcome(eligibilityData.promotion_outcome)) return false;
+    return true;
+  };
+
+  const workflowStatus = eligibilityData?.workflow_status;
+  const showRecommend = canShowWorkflowActions() && workflowStatus === "DRAFT";
+  const showApprove = canShowWorkflowActions() &&
+    (workflowStatus === "RECOMMENDED" || workflowStatus === "UNDER_REVIEW");
+  const showReject = canShowWorkflowActions() &&
+    (workflowStatus === "RECOMMENDED" || workflowStatus === "UNDER_REVIEW");
+  const showExecute = canShowWorkflowActions() && workflowStatus === "APPROVED";
+
+  const openExecuteModal = () => {
+    setShowExecuteModal(true);
+  };
+
+  const handleExecute = async () => {
+    const decisionId = eligibilityData?._id;
+    if (!decisionId) {
+      toast.error("Promotion decision not available.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const response = await executePromotionDecision(decisionId);
+      const responseStatus =
+        response?.data?.workflow_status ||
+        response?.workflow_status ||
+        eligibilityData?.workflow_status;
+      toast.success("Promotion executed successfully.");
+      setShowExecuteModal(false);
+      await refreshEligibility();
+      if (responseStatus === "PROMOTED" && eligibilityStudent) {
+        fetchEligibleStudents();
+        if (showHistory) {
+          await fetchPromotionHistory();
+        }
+      }
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to execute promotion decision.";
+
+      logger.error("Error executing promotion:", statusCode, errorCode);
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -1703,6 +1906,46 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
               )}
             </div>
             <div className="modal-footer">
+              {showRecommend && (
+                <button
+                  onClick={openRecommendModal}
+                  disabled={actionLoading}
+                  className="btn btn-outline-info"
+                  style={{ flex: 1 }}
+                >
+                  <FaClipboardCheck /> Recommend Promotion
+                </button>
+              )}
+              {showApprove && (
+                <button
+                  onClick={openApproveModal}
+                  disabled={actionLoading}
+                  className="btn btn-success"
+                  style={{ flex: 1 }}
+                >
+                  <FaCheckCircle /> Approve Promotion
+                </button>
+              )}
+              {showReject && (
+                <button
+                  onClick={openRejectModal}
+                  disabled={actionLoading}
+                  className="btn btn-danger"
+                  style={{ flex: 1 }}
+                >
+                  <FaTimes /> Reject Promotion
+                </button>
+              )}
+              {showExecute && (
+                <button
+                  onClick={openExecuteModal}
+                  disabled={actionLoading}
+                  className="btn btn-warning"
+                  style={{ flex: 1 }}
+                >
+                  <FaArrowUp /> Execute Promotion
+                </button>
+              )}
               <button
                 onClick={() => {
                   setShowEligibilityModal(false);
@@ -1717,6 +1960,96 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Execute Confirmation Modal */}
+      {showExecuteModal && eligibilityStudent && eligibilityData && (
+        <ConfirmModal
+          isOpen={showExecuteModal}
+          onClose={() => setShowExecuteModal(false)}
+          onConfirm={handleExecute}
+          title="Execute Promotion"
+          message={`Are you sure you want to execute this promotion?\n\n` +
+            `Student: ${eligibilityStudent.fullName}\n` +
+            `Current Semester: Sem ${eligibilityStudent.currentSemester}\n` +
+            `Target Semester: Sem ${eligibilityStudent.currentSemester + 1}\n` +
+            `Outcome: ${formatOutcome(eligibilityData.promotion_outcome)}\n` +
+            `Workflow Status: ${formatWorkflowStatus(eligibilityData.workflow_status)}\n` +
+            (eligibilityData.promotion_outcome === "ATKT"
+              ? `KT Count: ${eligibilityData.kt_count ?? "N/A"}\n`
+              : "") +
+            `\n⚠️ This is the final promotion execution action and will change the student's promotion state.`}
+          type="warning"
+          confirmText="Execute"
+          cancelText="Cancel"
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Recommend Confirmation Modal */}
+      {showRecommendModal && eligibilityStudent && (
+        <ConfirmModal
+          isOpen={showRecommendModal}
+          onClose={() => setShowRecommendModal(false)}
+          onConfirm={handleRecommend}
+          title="Recommend Promotion"
+          message="Are you sure you want to recommend this promotion decision? This will move the workflow from Draft to Recommended."
+          type="info"
+          confirmText="Recommend"
+          cancelText="Cancel"
+          isLoading={actionLoading}
+          inputValue={recommendComment}
+          onInputChange={setRecommendComment}
+          inputPlaceholder="Optional comment for the recommendation..."
+          inputRows={3}
+        />
+      )}
+
+      {/* Approve Confirmation Modal */}
+      {showApproveModal && eligibilityStudent && (
+        <ConfirmModal
+          isOpen={showApproveModal}
+          onClose={() => setShowApproveModal(false)}
+          onConfirm={handleApprove}
+          title="Approve Promotion"
+          message="Are you sure you want to approve this promotion decision? This will move the workflow to Approved."
+          type="success"
+          confirmText="Approve"
+          cancelText="Cancel"
+          isLoading={actionLoading}
+          inputValue={approveComment}
+          onInputChange={setApproveComment}
+          inputPlaceholder="Optional approval comment..."
+          inputRows={3}
+        />
+      )}
+
+      {/* Reject Confirmation Modal */}
+      {showRejectModal && eligibilityStudent && (
+        <ConfirmModal
+          isOpen={showRejectModal}
+          onClose={() => {
+            setShowRejectModal(false);
+            setRejectReason("");
+            setRejectReasonError("");
+          }}
+          onConfirm={handleReject}
+          title="Reject Promotion"
+          message="Are you sure you want to reject this promotion decision?"
+          type="danger"
+          confirmText="Reject"
+          cancelText="Cancel"
+          isLoading={actionLoading}
+          inputValue={rejectReason}
+          onInputChange={(val) => {
+            setRejectReason(val);
+            if (rejectReasonError) setRejectReasonError("");
+          }}
+          inputPlaceholder="Provide a reason for rejection (required)..."
+          inputRows={3}
+          inputError={rejectReasonError}
+          confirmDisabled={actionLoading || !rejectReason.trim()}
+        />
       )}
 
       {/* Confirm Modal */}
