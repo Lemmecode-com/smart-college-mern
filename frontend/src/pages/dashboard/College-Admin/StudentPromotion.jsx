@@ -8,6 +8,7 @@ import {
   promoteStudent,
   bulkPromoteStudents,
   getCollegePromotionHistory,
+  getPromotionEligibility,
 } from "../../../api/promotion";
 import { moveToAlumni } from "../../../api/alumni";
 import Loading from "../../../components/Loading";
@@ -32,6 +33,11 @@ import {
   FaFilter,
   FaSortAmountDown,
   FaSortAmountUp,
+  FaClipboardCheck,
+  FaEye,
+  FaFileAlt,
+  FaInfoCircle,
+  FaExclamationCircle,
 } from "react-icons/fa";
 
 const PAGE_SIZE = 10;
@@ -78,6 +84,108 @@ function isStudentPromotable(student) {
   return feeOk && attendanceOk;
 }
 
+/**
+ * Format promotion outcome for display
+ */
+function formatOutcome(outcome) {
+  if (!outcome) return "Unknown";
+  const outcomeMap = {
+    PASS: "Pass",
+    ATKT: "ATKT (Allowed to Keep Term)",
+    FAIL: "Fail",
+    INCOMPLETE: "Incomplete",
+    NO_RESULT: "No Result",
+    AMBIGUOUS_RESULT: "Ambiguous Result",
+    BLOCKED: "Blocked",
+  };
+  return outcomeMap[outcome] || outcome;
+}
+
+/**
+ * Get icon for promotion outcome
+ */
+function getOutcomeIcon(outcome) {
+  const iconMap = {
+    PASS: "✅",
+    ATKT: "⚠️",
+    FAIL: "❌",
+    INCOMPLETE: "⏳",
+    NO_RESULT: "❓",
+    AMBIGUOUS_RESULT: "⚡",
+    BLOCKED: "🚫",
+  };
+  return iconMap[outcome] || "📋";
+}
+
+/**
+ * Get banner style for promotion outcome
+ */
+function getOutcomeBannerStyle(outcome) {
+  const styleMap = {
+    PASS: { background: "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "white" },
+    ATKT: { background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "white" },
+    FAIL: { background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "white" },
+    INCOMPLETE: { background: "linear-gradient(135deg, #3db5e6 0%, #1c7ed6 100%)", color: "white" },
+    NO_RESULT: { background: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)", color: "white" },
+    AMBIGUOUS_RESULT: { background: "linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)", color: "white" },
+    BLOCKED: { background: "linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)", color: "white" },
+  };
+  return {
+    padding: "16px 20px",
+    borderRadius: "12px",
+    marginBottom: "20px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    ...styleMap[outcome],
+  };
+}
+
+/**
+ * Format workflow status for display
+ */
+function formatWorkflowStatus(status) {
+  if (!status) return "Unknown";
+  const statusMap = {
+    DRAFT: "Draft",
+    RECOMMENDED: "Recommended",
+    UNDER_REVIEW: "Under Review",
+    APPROVED: "Approved",
+    REJECTED: "Rejected",
+    PROMOTED: "Promoted",
+    BLOCKED: "Blocked",
+    REVERSED: "Reversed",
+  };
+  return statusMap[status] || status;
+}
+
+/**
+ * Render snapshot object as key-value pairs
+ */
+function renderSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") {
+    return <span className="text-muted">No data available</span>;
+  }
+
+  const entries = Object.entries(snapshot);
+  if (entries.length === 0) {
+    return <span className="text-muted">No data available</span>;
+  }
+
+  return (
+    <div className="snapshot-content">
+      {entries.map(([key, value]) => (
+        <div key={key} className="detail-row" style={{ marginBottom: "8px" }}>
+          <span className="detail-label" style={{ fontWeight: "600", color: "#64748b", fontSize: "13px" }}>
+            {key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}:
+          </span>
+          <span className="detail-value" style={{ color: "#0f3a4a", fontSize: "13px" }}>
+            {typeof value === "object" ? JSON.stringify(value) : value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function StudentPromotion({ admissionOfficerMode = false }) {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -114,6 +222,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [alumniStudent, setAlumniStudent] = useState(null);
   const [graduationYear, setGraduationYear] = useState(new Date().getFullYear());
   const [promotionThreshold, setPromotionThreshold] = useState(75);
+
+  // Eligibility Check State
+  const [showEligibilityModal, setShowEligibilityModal] = useState(false);
+  const [eligibilityStudent, setEligibilityStudent] = useState(null);
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  const [eligibilityData, setEligibilityData] = useState(null);
+  const [eligibilityError, setEligibilityError] = useState(null);
 
   // Bulk Result Modal State
   const [showBulkResultModal, setShowBulkResultModal] = useState(false);
@@ -192,6 +307,37 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       setPromotionHistory(res.promotions || []);
     } catch (err) {
       // Silently fail - history is optional
+    }
+  };
+
+  const checkEligibility = async (student) => {
+    try {
+      setEligibilityLoading(true);
+      setEligibilityError(null);
+      setEligibilityData(null);
+      setEligibilityStudent(student);
+      setShowEligibilityModal(true);
+
+      const res = await getPromotionEligibility(student._id);
+      setEligibilityData(res.data || res);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to check eligibility.";
+
+      logger.error("Error checking promotion eligibility:", statusCode, errorCode);
+      setEligibilityError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setEligibilityLoading(false);
     }
   };
 
@@ -1024,6 +1170,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                         <td>
                           <div className="d-flex" style={{ gap: "8px" }}>
                             <button
+                              onClick={() => checkEligibility(student)}
+                              className="btn btn-sm btn-info"
+                              disabled={eligibilityLoading}
+                              title="Check promotion eligibility and view decision details"
+                            >
+                              <FaClipboardCheck /> Eligibility
+                            </button>
+                            <button
                               onClick={() => openPromoteModal(student)}
                               className={`btn btn-sm ${
                                 student.isFinalYear
@@ -1360,11 +1514,212 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                 Cancel
               </button>
             </div>
+</div>
+        </div>
+      )}
+
+      {/* Eligibility Decision Modal */}
+      {showEligibilityModal && eligibilityStudent && (
+        <div className="modal-overlay" onClick={() => setShowEligibilityModal(false)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "800px", width: "calc(100% - 2rem)", maxHeight: "90vh" }}
+          >
+            <div className="modal-header">
+              <h4 className="modal-title">
+                <FaClipboardCheck /> Promotion Eligibility Decision
+              </h4>
+              <button
+                onClick={() => {
+                  setShowEligibilityModal(false);
+                  setEligibilityStudent(null);
+                  setEligibilityData(null);
+                  setEligibilityError(null);
+                }}
+                className="modal-close"
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              {eligibilityLoading ? (
+                <div className="loading-container">
+                  <FaSpinner className="spinner-icon" />
+                  <p>Checking promotion eligibility...</p>
+                </div>
+              ) : eligibilityError ? (
+                <div className="alert alert-danger">
+                  <FaExclamationCircle />
+                  <div>
+                    <p className="alert-text"><strong>Error:</strong> {eligibilityError.message}</p>
+                    {eligibilityError.statusCode && (
+                      <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
+                        Status: {eligibilityError.statusCode}
+                        {eligibilityError.errorCode && ` | Code: ${eligibilityError.errorCode}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : eligibilityData ? (
+                <>
+                  {/* Student Header */}
+                  <div className="student-info-card">
+                    <div className="student-name">{eligibilityStudent.fullName}</div>
+                    <div className="student-email">{eligibilityStudent.email}</div>
+                    <div className="promotion-info">
+                      <span className="badge badge-info">
+                        {eligibilityStudent.academicYearLabel} (Sem {eligibilityStudent.currentSemester})
+                      </span>
+                      <span className="badge badge-secondary">
+                        Course: {eligibilityStudent.course_id?.name || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Outcome Badge */}
+                  <div className="outcome-banner" style={getOutcomeBannerStyle(eligibilityData.promotion_outcome)}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                      <div style={{ fontSize: "24px" }}>{getOutcomeIcon(eligibilityData.promotion_outcome)}</div>
+                      <div>
+                        <div style={{ fontSize: "18px", fontWeight: "700", textTransform: "uppercase" }}>
+                          Outcome: {formatOutcome(eligibilityData.promotion_outcome)}
+                        </div>
+                        <div style={{ fontSize: "13px", opacity: 0.9 }}>
+                          Workflow Status: {formatWorkflowStatus(eligibilityData.workflow_status)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Decision Details Grid */}
+                  <div className="decision-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginTop: "20px" }}>
+                    
+                    {/* ATKT Information */}
+                    {eligibilityData.promotion_outcome === "ATKT" && (
+                      <div className="decision-card atkt-card">
+                        <div className="decision-card-header">
+                          <FaExclamationTriangle style={{ color: "#f59e0b" }} />
+                          <h5 style={{ margin: 0, color: "#92400e" }}>ATKT Details</h5>
+                        </div>
+                        <div className="decision-card-body">
+                          <div className="detail-row">
+                            <span className="detail-label">KT Count:</span>
+                            <span className="detail-value fw-bold" style={{ fontSize: "18px", color: "#f59e0b" }}>
+                              {eligibilityData.kt_count ?? "N/A"}
+                            </span>
+                          </div>
+                          {eligibilityData.max_allowed_kts !== undefined && eligibilityData.max_allowed_kts !== null && (
+                            <div className="detail-row">
+                              <span className="detail-label">Max Allowed KTs:</span>
+                              <span className="detail-value">{eligibilityData.max_allowed_kts}</span>
+                            </div>
+                          )}
+                          {eligibilityData.failed_subject_ids && eligibilityData.failed_subject_ids.length > 0 && (
+                            <div className="detail-row">
+                              <span className="detail-label">Failed Subjects:</span>
+                              <div className="detail-value">
+                                <ul style={{ margin: "8px 0 0 0", paddingLeft: "20px" }}>
+                                  {eligibilityData.failed_subject_ids.map((subj, idx) => (
+                                    <li key={idx} style={{ fontSize: "13px" }}>{subj}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                          {eligibilityData.backlog_ids && eligibilityData.backlog_ids.length > 0 && (
+                            <div className="detail-row">
+                              <span className="detail-label">Backlog IDs:</span>
+                              <div className="detail-value">
+                                <ul style={{ margin: "8px 0 0 0", paddingLeft: "20px" }}>
+                                  {eligibilityData.backlog_ids.map((bid, idx) => (
+                                    <li key={idx} style={{ fontSize: "13px", fontFamily: "monospace" }}>{bid}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attendance Snapshot */}
+                    {eligibilityData.attendance_snapshot && (
+                      <div className="decision-card">
+                        <div className="decision-card-header">
+                          <FaInfoCircle style={{ color: "#3db5e6" }} />
+                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Attendance Snapshot</h5>
+                        </div>
+                        <div className="decision-card-body">
+                          {renderSnapshot(eligibilityData.attendance_snapshot)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fee Clearance Snapshot */}
+                    {eligibilityData.fee_clearance_snapshot && (
+                      <div className="decision-card">
+                        <div className="decision-card-header">
+                          <FaDollarSign style={{ color: "#059669" }} />
+                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Fee Clearance Snapshot</h5>
+                        </div>
+                        <div className="decision-card-body">
+                          {renderSnapshot(eligibilityData.fee_clearance_snapshot)}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Policy Snapshot */}
+                    {eligibilityData.policy_snapshot && (
+                      <div className="decision-card">
+                        <div className="decision-card-header">
+                          <FaFileAlt style={{ color: "#9C27B0" }} />
+                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Policy Snapshot</h5>
+                        </div>
+                        <div className="decision-card-body">
+                          {renderSnapshot(eligibilityData.policy_snapshot)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Raw Decision Data (for debugging) */}
+                  <details style={{ marginTop: "24px", padding: "16px", background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+                    <summary style={{ cursor: "pointer", fontWeight: "600", color: "#64748b" }}>
+                      View Raw Decision Data (Debug)
+                    </summary>
+                    <pre style={{ marginTop: "12px", fontSize: "11px", overflow: "auto", maxHeight: "300px", background: "#1e293b", color: "#e2e8f0", padding: "12px", borderRadius: "8px" }}>
+                      {JSON.stringify(eligibilityData, null, 2)}
+                    </pre>
+                  </details>
+                </>
+              ) : (
+                <div className="empty-state">
+                  <FaClipboardCheck className="empty-icon" style={{ color: "#cbd5e1" }} />
+                  <p className="empty-title">No Decision Data</p>
+                  <p className="empty-text">Eligibility check returned no data.</p>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                onClick={() => {
+                  setShowEligibilityModal(false);
+                  setEligibilityStudent(null);
+                  setEligibilityData(null);
+                  setEligibilityError(null);
+                }}
+                className="btn btn-primary"
+              >
+                <FaTimes /> Close
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-{/* Confirm Modal */}
+      {/* Confirm Modal */}
        {showConfirmModal && (
          <ConfirmModal
            isOpen={showConfirmModal}
@@ -2173,6 +2528,23 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           border-color: #cbd5e1;
         }
 
+        .btn-info {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: white;
+          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.3);
+        }
+
+        .btn-info:hover:not(:disabled) {
+          background: linear-gradient(135deg, #1a5263 0%, #0f3a4a 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(15, 58, 74, 0.4);
+        }
+
+        .btn-info:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
         .btn-sm {
           padding: 8px 16px;
           font-size: 13px;
@@ -2394,6 +2766,95 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           font-weight: 700;
           color: #3db5e6;
           font-size: 14px;
+        }
+
+        /* Decision Card Styles */
+        .decision-grid {
+          margin-top: 20px;
+        }
+
+        .decision-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(15, 58, 74, 0.06);
+        }
+
+        .decision-card.atkt-card {
+          border-left: 4px solid #f59e0b;
+        }
+
+        .decision-card-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 14px 16px;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .decision-card-header h5 {
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .decision-card-body {
+          padding: 16px;
+        }
+
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 8px 0;
+        }
+
+        .detail-label {
+          font-weight: 600;
+          color: #64748b;
+          font-size: 13px;
+          min-width: 140px;
+        }
+
+        .detail-value {
+          color: #0f3a4a;
+          font-size: 13px;
+          text-align: right;
+          word-break: break-word;
+        }
+
+        .detail-value.fw-bold {
+          font-weight: 700;
+        }
+
+        .snapshot-content .detail-row {
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .snapshot-content .detail-row:last-child {
+          border-bottom: none;
+        }
+
+        /* Responsive for decision modal */
+        @media (max-width: 768px) {
+          .decision-grid {
+            grid-template-columns: 1fr !important;
+          }
+          
+          .detail-row {
+            flex-direction: column;
+            gap: 4px;
+          }
+          
+          .detail-label {
+            min-width: auto;
+          }
+          
+          .detail-value {
+            text-align: left;
+          }
         }
 
         .form-group {
