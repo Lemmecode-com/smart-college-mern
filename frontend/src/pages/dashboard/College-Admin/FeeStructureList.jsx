@@ -175,7 +175,28 @@ export default function FeeStructureList() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentStructures = filteredStructures.slice(startIndex, endIndex);
-  
+    
+
+  const departmentGroups = useMemo(() => {
+  const groups = {};
+
+  currentStructures.forEach((structure) => {
+    const departmentName =
+      structure.department_id?.name ||
+      structure.course_id?.department_id?.name ||
+      "Department";
+
+    if (!groups[departmentName]) {
+      groups[departmentName] = [];
+    }
+
+    groups[departmentName].push(structure);
+  });
+
+  return Object.entries(groups);
+}, [currentStructures]);
+
+
   // Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
@@ -401,6 +422,7 @@ export default function FeeStructureList() {
                )}
             </div>
           ) : (
+            <>
             <div className="erp-table-responsive table-container">
               <table className="erp-table">
                 <thead>
@@ -487,8 +509,138 @@ export default function FeeStructureList() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </div> 
+            {/* TABLET + MOBILE DEPARTMENT CARDS */}
+          <div className="fee-department-cards">
+            {departmentGroups.map(([departmentName, departmentStructures]) => (
+              <div className="fee-department-card" key={departmentName}>
+
+                {/* Department Header */}
+                <div className="fee-department-card-header">
+                  <div className="fee-department-title">
+                    <div className="fee-department-icon">
+                      <FaUniversity />
+                    </div>
+
+                    <div>
+                      <span>Fee Structures List</span>
+                      <h4>{departmentName}</h4>
+                    </div>
+                  </div>
+
+                  <div className="fee-department-count">
+                    {departmentStructures.length}{" "}
+                    {departmentStructures.length === 1
+                      ? "Structure"
+                      : "Structures"}
+                  </div>
+                </div>
+
+                {/* Fee Structures */}
+                <div className="fee-department-structures">
+                  {departmentStructures.map((structure) => (
+                    <div
+                      className="fee-structure-mobile-card"
+                      key={structure._id}
+                    >
+
+                      {/* Course + Category */}
+                      <div className="fee-mobile-card-top">
+                        <div>
+                          <span className="fee-mobile-label">
+                            Course
+                          </span>
+
+                          <h5>
+                            {structure.course_id?.name || "N/A"}
+                          </h5>
+                        </div>
+
+                        <span
+                          className={`category-badge category-${
+                            structure.category?.toLowerCase() || "general"
+                          }`}
+                        >
+                          {structure.category || "N/A"}
+                        </span>
+                      </div>
+
+                      {/* Fee Details */}
+                      <div className="fee-mobile-details">
+
+                        <div className="fee-mobile-detail">
+                          <FaRupeeSign />
+
+                          <div>
+                            <span>Total Fee</span>
+                            <strong>
+                              ₹{structure.totalFee?.toLocaleString() || "0"}
+                            </strong>
+                          </div>
+                        </div>
+
+                        <div className="fee-mobile-detail">
+                          <FaListOl />
+
+                          <div>
+                            <span>Installments</span>
+                            <strong>
+                              {structure.installments?.length || 0}
+                            </strong>
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* Actions */}
+                      <div className="fee-mobile-actions">
+
+                        <button
+                          className="fee-mobile-action view"
+                          onClick={() =>
+                            navigate(`/fees/view/${structure._id}`)
+                          }
+                        >
+                          <FaEye />
+                          View
+                        </button>
+
+                        {canEdit("fee-structure") && (
+                          <button
+                            className="fee-mobile-action edit"
+                            onClick={() =>
+                              navigate(`/fees/edit/${structure._id}`)
+                            }
+                          >
+                            <FaEdit />
+                            Edit
+                          </button>
+                        )}
+
+                        {canDelete("fee-structure") && (
+                          <button
+                            className="fee-mobile-action delete"
+                            onClick={() =>
+                              handleDelete(structure._id)
+                            }
+                          >
+                            <FaTrash />
+                            Delete
+                          </button>
+                        )}
+
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+                
+              </div>
+            ))}
+          </div>
+          </>
           )}
+        
         </div>
         
         {/* PAGINATION */}
@@ -1339,18 +1491,49 @@ export default function FeeStructureList() {
         
         /* RESPONSIVE DESIGN */
         @media (max-width: 992px) {
-          .controls-container {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          
-          .search-box {
-            min-width: auto;
-          }
-          
-          .erp-table {
-            min-width: 700px;
-          }
+        .erp-table-responsive.table-container {
+          display: none !important;
+        }
+
+        .fee-department-cards {
+          display: block;
+        }
+          @media (max-width: 992px) {
+  .controls-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .search-box {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .search-box input {
+    height: 44px;
+    box-sizing: border-box;
+    font-size: 0.85rem;
+    padding: 0.7rem 0.75rem 0.7rem 2.35rem;
+  }
+
+  .actions-group {
+    flex-shrink: 0;
+  }
+
+  .refresh-btn {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .erp-table {
+    min-width: 700px;
+  }
+}
         }
         
         @media (max-width: 768px) {
@@ -1462,7 +1645,380 @@ export default function FeeStructureList() {
             font-size: 0.85rem;
           }
         }
+                  /* =====================================================
+           FEE STRUCTURE - DEPARTMENT MOBILE/TABLET CARDS
+           ===================================================== */
+
+        .fee-department-cards {
+          display: none;
+        }
+
+        .fee-department-card {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          overflow: hidden;
+          margin-bottom: 1rem;
+          box-shadow: 0 4px 16px rgba(15, 58, 74, 0.07);
+        }
+
+        .fee-department-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          padding: 1rem 1.1rem;
+          background: #f5f9fc;
+          border-bottom: 1px solid #e3ebf1;
+        }
+
+        .fee-department-title {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          min-width: 0;
+        }
+
+        .fee-department-icon {
+          width: 42px;
+          height: 42px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          background: #e7f4fb;
+          color: #1a4b6d;
+          font-size: 1rem;
+        }
+
+        .fee-department-title span {
+          display: block;
+          margin-bottom: 0.15rem;
+          color: #8493a3;
+          font-size: 0.68rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .fee-department-title h4 {
+          margin: 0;
+          color: #1a4b6d;
+          font-size: 1rem;
+          font-weight: 700;
+          line-height: 1.3;
+        }
+
+        .fee-department-count {
+          flex-shrink: 0;
+          padding: 0.35rem 0.65rem;
+          border-radius: 20px;
+          background: #e8f1f6;
+          color: #1a4b6d;
+          font-size: 0.72rem;
+          font-weight: 700;
+        }
+
+        .fee-department-structures {
+          padding: 0.75rem;
+        }
+
+        .fee-structure-mobile-card {
+          padding: 1rem;
+          background: #ffffff;
+          border: 1px solid #e5ebf0;
+          border-radius: 12px;
+        }
+
+        .fee-structure-mobile-card + .fee-structure-mobile-card {
+          margin-top: 0.75rem;
+        }
+
+        .fee-mobile-card-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 0.75rem;
+        }
+
+        .fee-mobile-label {
+          display: block;
+          margin-bottom: 0.2rem;
+          color: #8a98a7;
+          font-size: 0.68rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .fee-mobile-card-top h5 {
+          margin: 0;
+          color: #1a4b6d;
+          font-size: 0.95rem;
+          font-weight: 700;
+          line-height: 1.35;
+        }
+
+        .fee-mobile-details {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.75rem;
+          margin-top: 1rem;
+          padding-top: 0.9rem;
+          border-top: 1px solid #edf1f4;
+        }
+
+        .fee-mobile-detail {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+        }
+
+        .fee-mobile-detail > svg {
+          color: #2e7d32;
+          font-size: 1rem;
+        }
+
+        .fee-mobile-detail:last-child > svg {
+          color: #6c757d;
+        }
+
+        .fee-mobile-detail span {
+          display: block;
+          color: #8a98a7;
+          font-size: 0.68rem;
+          font-weight: 600;
+        }
+
+        .fee-mobile-detail strong {
+          display: block;
+          margin-top: 0.1rem;
+          color: #1a4b6d;
+          font-size: 0.9rem;
+          font-weight: 700;
+        }
+
+        .fee-mobile-actions {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.5rem;
+          margin-top: 1rem;
+        }
+
+        .fee-mobile-action {
+          min-height: 38px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.35rem;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.76rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .fee-mobile-action.view {
+          background: #e8f3ff;
+          color: #1976d2;
+        }
+
+        .fee-mobile-action.edit {
+          background: #fff3e5;
+          color: #e68a00;
+        }
+
+        .fee-mobile-action.delete {
+          background: #ffebeb;
+          color: #d32f2f;
+        }
+
+        .fee-mobile-action:hover {
+          transform: translateY(-1px);
+        }
+
+        /* TABLET */
+        @media (max-width: 992px) {
+          .fee-desktop-table {
+            display: none;
+          }
+
+          .fee-department-cards {
+            display: block;
+          }
+        }
+
+        /* MOBILE */
+        @media (max-width: 576px) {
+          .fee-department-card-header {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .fee-department-count {
+            align-self: flex-start;
+          }
+
+          .fee-department-structures {
+            padding: 0.65rem;
+          }
+
+          .fee-structure-mobile-card {
+            padding: 0.85rem;
+          }
+
+          .fee-mobile-details {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .fee-mobile-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .fee-mobile-action {
+            min-height: 40px;
+          }
+            .controls-container {
+  padding: 0.85rem;
+  gap: 0.6rem;
+}
+
+.search-box input {
+  height: 42px;
+  font-size: 0.78rem;
+}
+
+.refresh-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+}
+
+.refresh-icon {
+  font-size: 1.15rem;
+}
+        }
+
+        /* =====================================================
+   FEE STRUCTURE HEADER - TABLET & MOBILE
+   ===================================================== */
+
+@media (max-width: 992px) {
+  .erp-page-header {
+    padding: 1.25rem;
+    border-radius: 14px;
+    margin-bottom: 1.25rem;
+    gap: 1rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .erp-header-content {
+    width: 100%;
+    gap: 0.9rem;
+    align-items: flex-start;
+  }
+
+  .erp-header-icon {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    font-size: 1.45rem;
+    border-radius: 11px;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .erp-page-title {
+    font-size: 1.65rem;
+    line-height: 1.2;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: normal;
+  }
+
+  .erp-page-subtitle {
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    opacity: 0.85;
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+
+  .erp-header-actions {
+    width: 100%;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.8rem 1rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 576px) {
+  .erp-page-header {
+    padding: 1rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .erp-header-content {
+    gap: 0.75rem;
+  }
+
+  .erp-header-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+    border-radius: 10px;
+  }
+
+  .erp-page-title {
+    font-size: 1.3rem;
+    line-height: 1.25;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    margin-top: 0.35rem;
+  }
+
+  .erp-header-actions {
+    margin-top: 0.25rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    min-height: 44px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.9rem;
+  }
+
+  .erp-btn-icon {
+    font-size: 1rem;
+  }
+}
+
+/* Hide Fee Structures List header on tablet/mobile */
+@media (max-width: 992px) {
+  .erp-card-header {
+    display: none;
+  }
+}
+  
       `}</style>
+
+      
     </div>
   );
 }
