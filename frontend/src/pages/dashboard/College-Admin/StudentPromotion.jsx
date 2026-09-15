@@ -9,6 +9,9 @@ import {
   bulkPromoteStudents,
   getCollegePromotionHistory,
   getPromotionEligibility,
+  getStudentBacklogs,
+  getBacklogAttempts,
+  createBacklogAttempt,
   recommendPromotionDecision,
   approvePromotionDecision,
   rejectPromotionDecision,
@@ -79,6 +82,57 @@ function getAttendanceStatusBadge(status) {
     default:
       return "badge badge-secondary";
   }
+}
+
+/**
+ * Backlog status badge styling (Step 5 - read-only backlog management)
+ */
+function getBacklogStatusBadge(status) {
+  switch (status) {
+    case "OPEN":
+      return "badge badge-warning";
+    case "ATTEMPTED":
+      return "badge badge-info";
+    case "CLEARED":
+      return "badge badge-success";
+    case "CANCELLED":
+      return "badge badge-secondary";
+    default:
+      return "badge badge-secondary";
+  }
+}
+
+/**
+ * Backlog attempt status badge styling (Step 6 - attempt history / creation UI).
+ * Statuses are backend-controlled; unknown statuses fall back safely.
+ */
+function getAttemptStatusBadge(status) {
+  switch (status) {
+    case "INCOMPLETE":
+      return "badge badge-warning";
+    case "PASS":
+      return "badge badge-success";
+    case "FAIL":
+      return "badge badge-danger";
+    case "EVALUATED":
+      return "badge badge-info";
+    default:
+      return "badge badge-secondary";
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
 }
 
 function isStudentPromotable(student) {
@@ -234,6 +288,21 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [eligibilityData, setEligibilityData] = useState(null);
   const [eligibilityError, setEligibilityError] = useState(null);
 
+  // Backlog Management State (read-only, Step 5)
+  const [backlogs, setBacklogs] = useState([]);
+  const [backlogLoading, setBacklogLoading] = useState(false);
+  const [backlogError, setBacklogError] = useState(null);
+  const [backlogStatusFilter, setBacklogStatusFilter] = useState("ALL");
+
+  // Backlog Attempts State (Step 6 - attempt history / creation UI)
+  const [showAttemptsModal, setShowAttemptsModal] = useState(false);
+  const [selectedBacklog, setSelectedBacklog] = useState(null);
+  const [attempts, setAttempts] = useState([]);
+  const [attemptsLoading, setAttemptsLoading] = useState(false);
+  const [attemptsError, setAttemptsError] = useState(null);
+  const [attemptActionLoading, setAttemptActionLoading] = useState(false);
+  const [attemptCreateError, setAttemptCreateError] = useState(null);
+
   // Workflow action state
   const [actionLoading, setActionLoading] = useState(false);
   const [showRecommendModal, setShowRecommendModal] = useState(false);
@@ -378,6 +447,165 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         toast.error(errorMessage);
       }
     }
+  };
+
+  /**
+   * Fetch student backlogs (Step 5 - read-only backlog management).
+   * Lazy-loaded when the eligibility modal is opened for a student.
+   */
+  const fetchBacklogs = async (studentId, status = backlogStatusFilter) => {
+    if (!studentId) return;
+    setBacklogLoading(true);
+    setBacklogError(null);
+    try {
+      const res = await getStudentBacklogs(studentId, status === "ALL" ? undefined : status);
+      const payload = res?.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.backlogs)
+          ? payload.backlogs
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+      setBacklogs(list);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load backlog records.";
+
+      logger.error("Error fetching student backlogs:", statusCode, errorCode);
+      setBacklogError({ message: errorMessage, statusCode, errorCode });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setBacklogLoading(false);
+    }
+  };
+
+  /**
+   * Fetch attempts for a single backlog (Step 6 - attempt history / creation UI).
+   * Lazy-loaded only when the user opens the attempts modal for a backlog.
+   */
+  const fetchAttempts = async (backlogId) => {
+    if (!backlogId) return;
+    setAttemptsLoading(true);
+    setAttemptsError(null);
+    setAttempts([]);
+    try {
+      const res = await getBacklogAttempts(backlogId);
+      const payload = res?.data;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.attempts)
+          ? payload.attempts
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+      setAttempts(list);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load backlog attempts.";
+
+      logger.error("Error fetching backlog attempts:", statusCode, errorCode);
+      setAttemptsError({ message: errorMessage, statusCode, errorCode });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setAttemptsLoading(false);
+    }
+  };
+
+  /**
+   * Open the attempts modal for a backlog and lazy-load its attempts.
+   */
+  const openAttemptsModal = (backlog) => {
+    if (!backlog?._id) return;
+    setSelectedBacklog(backlog);
+    setAttempts([]);
+    setAttemptsError(null);
+    setAttemptCreateError(null);
+    setShowAttemptsModal(true);
+    fetchAttempts(backlog._id);
+  };
+
+  const closeAttemptsModal = () => {
+    setShowAttemptsModal(false);
+    setSelectedBacklog(null);
+    setAttempts([]);
+    setAttemptsError(null);
+    setAttemptCreateError(null);
+  };
+
+  /**
+   * Create a backlog attempt (Step 6).
+   *
+   * The backend `createAttempt` service requires NO request body: it auto-creates
+   * a supplementary exam and the first attempt row. Backend remains authoritative
+   * for attempt limits, status transitions, and exam creation.
+   *
+   * NOTE: The controller wraps the response with `ApiResponse.status(...)`, which
+   * does NOT exist on the `ApiResponse` utility. This is a confirmed backend
+   * defect (see Known Backend Limitations). The frontend wires the action anyway
+   * so that DB work still happens, but the HTTP response will be a 500.
+   */
+  const handleCreateAttempt = async () => {
+    const backlogId = selectedBacklog?._id;
+    if (!backlogId) {
+      toast.error("Backlog not available.");
+      return;
+    }
+    setAttemptActionLoading(true);
+    setAttemptCreateError(null);
+    try {
+      const res = await createBacklogAttempt(backlogId, {});
+      const payload = res?.data;
+      const attempt = payload?.data?.attempt || payload?.attempt || null;
+      const exam = payload?.data?.exam || payload?.exam || null;
+
+      toast.success("Backlog attempt created successfully.");
+      await fetchAttempts(backlogId);
+      if (eligibilityStudent?._id) {
+        await fetchBacklogs(eligibilityStudent._id, backlogStatusFilter);
+      }
+      if (attempt?._id) {
+        toast.info(`Exam: ${exam?.name || "Supplementary exam created"}`, {
+          autoClose: 6000,
+        });
+      }
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to create backlog attempt.";
+
+      logger.error("Error creating backlog attempt:", statusCode, errorCode);
+      setAttemptCreateError({ message: errorMessage, statusCode, errorCode });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setAttemptActionLoading(false);
+    }
+  };
+
+  const openCreateAttemptConfirm = () => {
+    if (!selectedBacklog) return;
+    showConfirm(
+      "Create Backlog Attempt",
+      `Are you sure you want to create a new attempt for "${selectedBacklog.subject_name || selectedBacklog.subject_code || "this subject"}"?\n\n` +
+        `A supplementary exam will be created automatically by the backend.\n` +
+        `This action cannot be undone.`,
+      "warning",
+      handleCreateAttempt,
+    );
   };
 
   const handleRecommend = async () => {
@@ -547,6 +775,31 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   useEffect(() => {
     fetchEligibleStudents();
   }, []);
+
+  /**
+   * Lazy-load backlog records when the eligibility modal is opened for a student.
+   * Backlogs are fetched once per modal open to avoid duplicate requests.
+   */
+  useEffect(() => {
+    if (showEligibilityModal && eligibilityStudent?._id) {
+      setBacklogs([]);
+      setBacklogError(null);
+      setBacklogStatusFilter("ALL");
+      fetchBacklogs(eligibilityStudent._id, "ALL");
+    } else {
+      setBacklogs([]);
+      setBacklogError(null);
+    }
+  }, [showEligibilityModal, eligibilityStudent?._id]);
+
+  /**
+   * Refetch backlogs when the status filter changes for the currently selected student.
+   */
+  useEffect(() => {
+    if (!showEligibilityModal || !eligibilityStudent?._id) return;
+    fetchBacklogs(eligibilityStudent._id, backlogStatusFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backlogStatusFilter]);
 
   const handleRetry = () => {
     fetchEligibleStudents();
@@ -1885,7 +2138,141 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                         </div>
                       </div>
                     )}
-                  </div>
+
+                    {/* Backlog Details (Step 5 - read-only backlog management) */}
+                    <div className="decision-card backlog-card" style={{ marginTop: "16px" }}>
+                      <div className="decision-card-header">
+                        <FaClipboardCheck style={{ color: "#3db5e6" }} />
+                        <h5 style={{ margin: 0, color: "#0f3a4a" }}>Backlog Details</h5>
+                        <span className="badge badge-info" style={{ marginLeft: "auto" }}>
+                          {backlogs.length} record{backlogs.length === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                      <div className="decision-card-body">
+                        {/* Status filter */}
+                        <div className="backlog-filter" style={{ marginBottom: "16px" }}>
+                          <div className="filter-group" style={{ flexWrap: "wrap" }}>
+                            {["ALL", "OPEN", "ATTEMPTED", "CLEARED"].map((status) => (
+                              <button
+                                key={status}
+                                onClick={() => setBacklogStatusFilter(status)}
+                                className={`btn btn-sm ${
+                                  backlogStatusFilter === status
+                                    ? "btn-primary"
+                                    : "btn-outline-secondary"
+                                }`}
+                                disabled={backlogLoading}
+                              >
+                                {status === "ALL" ? "All" : status}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Loading state */}
+                        {backlogLoading ? (
+                          <div className="loading-container" style={{ padding: "30px 0" }}>
+                            <FaSpinner className="spinner-icon" style={{ fontSize: "32px" }} />
+                            <p style={{ marginTop: "12px" }}>Loading backlog records...</p>
+                          </div>
+                        ) : backlogError ? (
+                          <div className="alert alert-danger">
+                            <FaExclamationCircle />
+                            <div>
+                              <p className="alert-text"><strong>Error:</strong> {backlogError.message}</p>
+                              {backlogError.statusCode && (
+                                <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
+                                  Status: {backlogError.statusCode}
+                                  {backlogError.errorCode && ` | Code: ${backlogError.errorCode}`}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ) : backlogs.length === 0 ? (
+                          <div className="empty-state" style={{ padding: "40px 20px" }}>
+                            <FaClipboardCheck className="empty-icon" style={{ fontSize: "64px", color: "#cbd5e1" }} />
+                            <p className="empty-title" style={{ marginTop: "12px" }}>No backlog records found</p>
+                            <p className="empty-text">
+                              {backlogStatusFilter === "ALL"
+                                ? "This student has no ATKT/backlog records."
+                                : `No backlog records with status "${backlogStatusFilter}".`}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="table-responsive">
+                            <table className="data-table backlog-table">
+<thead>
+                                 <tr>
+                                   <th>Subject</th>
+                                   <th>Semester</th>
+                                   <th>Academic Year</th>
+                                   <th>Status</th>
+                                   <th>Attempts</th>
+                                   <th>Created</th>
+                                   <th>Cleared</th>
+                                   <th>Action</th>
+                                 </tr>
+                               </thead>
+                               <tbody>
+                                 {backlogs.map((backlog) => (
+                                   <tr key={backlog._id}>
+                                     <td>
+                                       <div className="student-name" style={{ textTransform: "none" }}>
+                                         {backlog.subject_name || "-"}
+                                       </div>
+                                       {backlog.subject_code && (
+                                         <div className="student-email">
+                                           Code: {backlog.subject_code}
+                                         </div>
+                                       )}
+                                       {backlog.subject_type && (
+                                         <div className="student-email">
+                                           Type: {backlog.subject_type}
+                                         </div>
+                                       )}
+                                     </td>
+                                     <td>
+                                       <span className="badge badge-info">
+                                         Sem {backlog.semester ?? "-"}
+                                       </span>
+                                     </td>
+                                     <td className="text-muted">
+                                       {backlog.academicYear || "-"}
+                                     </td>
+                                     <td>
+                                       <span className={getBacklogStatusBadge(backlog.status)}>
+                                         {backlog.status ? backlog.status.replace(/_/g, " ") : "-"}
+                                       </span>
+                                     </td>
+                                     <td>
+                                       <span className="fw-bold">
+                                         {backlog.attempt_count ?? 0}
+                                       </span>
+                                     </td>
+                                     <td className="text-muted" style={{ fontSize: "12px" }}>
+                                       {formatDate(backlog.created_at)}
+                                     </td>
+                                     <td className="text-muted" style={{ fontSize: "12px" }}>
+                                       {formatDate(backlog.cleared_at)}
+                                     </td>
+                                     <td>
+                                       <button
+                                         onClick={() => openAttemptsModal(backlog)}
+                                         className="btn btn-sm btn-info"
+                                         title="View and manage backlog attempts"
+                                       >
+                                         <FaEye /> View Attempts
+                                       </button>
+                                     </td>
+                                   </tr>
+                                 ))}
+                               </tbody>
+                             </table>
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                   </div>
 
                   {/* Raw Decision Data (for debugging) */}
                   <details style={{ marginTop: "24px", padding: "16px", background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
@@ -1954,6 +2341,194 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                   setEligibilityError(null);
                 }}
                 className="btn btn-primary"
+              >
+                <FaTimes /> Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backlog Attempts Modal (Step 6 - attempt history / creation UI) */}
+      {showAttemptsModal && selectedBacklog && (
+        <div className="modal-overlay" onClick={closeAttemptsModal}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "720px", width: "calc(100% - 2rem)", maxHeight: "90vh" }}
+          >
+            <div className="modal-header">
+              <h4 className="modal-title">
+                <FaClipboardCheck /> Backlog Attempts
+              </h4>
+              <button
+                onClick={closeAttemptsModal}
+                className="modal-close"
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              {/* Backlog summary */}
+              <div className="student-info-card" style={{ marginBottom: "16px" }}>
+                <div className="student-name" style={{ textTransform: "none" }}>
+                  {selectedBacklog.subject_name || "-"}
+                </div>
+                <div className="student-email">
+                  {selectedBacklog.subject_code && `Code: ${selectedBacklog.subject_code}`}
+                  {selectedBacklog.subject_type && ` | Type: ${selectedBacklog.subject_type}`}
+                  {selectedBacklog.semester && ` | Sem ${selectedBacklog.semester}`}
+                  {selectedBacklog.academicYear && ` | ${selectedBacklog.academicYear}`}
+                </div>
+                <div className="promotion-info" style={{ marginTop: "8px" }}>
+                  <span className={getBacklogStatusBadge(selectedBacklog.status)}>
+                    {selectedBacklog.status ? selectedBacklog.status.replace(/_/g, " ") : "-"}
+                  </span>
+                  <span className="badge badge-info ms-2">
+                    Attempts: {selectedBacklog.attempt_count ?? 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* Create attempt action */}
+              <div className="backlog-create-attempt" style={{ marginBottom: "16px" }}>
+                {selectedBacklog.status === "OPEN" ? (
+                  <button
+                    onClick={openCreateAttemptConfirm}
+                    disabled={attemptActionLoading}
+                    className="btn btn-success"
+                  >
+                    <FaCheckCircle /> Create Attempt
+                  </button>
+                ) : (
+                  <p className="alert-text text-muted" style={{ margin: 0 }}>
+                    {selectedBacklog.status === "CLEARED"
+                      ? "This backlog has been cleared. No further attempts can be created."
+                      : "Create Attempt is only available for backlogs with OPEN status."}
+                  </p>
+                )}
+                {attemptCreateError && (
+                  <div className="alert alert-danger" style={{ marginTop: "12px" }}>
+                    <FaExclamationCircle />
+                    <div>
+                      <p className="alert-text"><strong>Error:</strong> {attemptCreateError.message}</p>
+                      {attemptCreateError.statusCode && (
+                        <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
+                          Status: {attemptCreateError.statusCode}
+                          {attemptCreateError.errorCode && ` | Code: ${attemptCreateError.errorCode}`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Attempts list */}
+              {attemptsLoading ? (
+                <div className="loading-container" style={{ padding: "30px 0" }}>
+                  <FaSpinner className="spinner-icon" style={{ fontSize: "32px" }} />
+                  <p style={{ marginTop: "12px" }}>Loading attempts...</p>
+                </div>
+              ) : attemptsError ? (
+                <div className="alert alert-danger">
+                  <FaExclamationCircle />
+                  <div>
+                    <p className="alert-text"><strong>Error:</strong> {attemptsError.message}</p>
+                    {attemptsError.statusCode && (
+                      <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
+                        Status: {attemptsError.statusCode}
+                        {attemptsError.errorCode && ` | Code: ${attemptsError.errorCode}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : attempts.length === 0 ? (
+                <div className="empty-state" style={{ padding: "40px 20px" }}>
+                  <FaClipboardCheck className="empty-icon" style={{ fontSize: "64px", color: "#cbd5e1" }} />
+                  <p className="empty-title" style={{ marginTop: "12px" }}>No attempts found</p>
+                  <p className="empty-text">
+                    {selectedBacklog.status === "OPEN"
+                      ? "No attempts have been created for this backlog yet."
+                      : "No attempts exist for this backlog."}
+                  </p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="data-table attempt-table">
+                    <thead>
+                      <tr>
+                        <th>Attempt #</th>
+                        <th>Status</th>
+                        <th>Exam</th>
+                        <th>Attempted</th>
+                        <th>Evaluated</th>
+                        <th>Marks</th>
+                        <th>Result</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attempts.map((attempt) => (
+                        <tr key={attempt._id}>
+                          <td>
+                            <span className="badge badge-info">
+                              #{attempt.attempt_number ?? "-"}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={getAttemptStatusBadge(attempt.result_status)}>
+                              {attempt.result_status
+                                ? attempt.result_status.replace(/_/g, " ")
+                                : "-"}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="student-name" style={{ textTransform: "none", fontSize: "13px" }}>
+                              {attempt.exam_name || "-"}
+                            </div>
+                            {attempt.exam_type && (
+                              <div className="student-email">
+                                Type: {attempt.exam_type}
+                              </div>
+                            )}
+                          </td>
+                          <td className="text-muted" style={{ fontSize: "12px" }}>
+                            {formatDateTime(attempt.attempted_at)}
+                          </td>
+                          <td className="text-muted" style={{ fontSize: "12px" }}>
+                            {formatDateTime(attempt.evaluated_at)}
+                          </td>
+                          <td>
+                            {attempt.total_marks !== undefined && attempt.total_marks !== null ? (
+                              <span className="fw-bold">
+                                {attempt.internal_marks ?? 0} + {attempt.external_marks ?? 0} = {attempt.total_marks}
+                              </span>
+                            ) : (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
+                          <td>
+                            {attempt.passed === true && (
+                              <span className="badge badge-success">Passed</span>
+                            )}
+                            {attempt.passed === false && (
+                              <span className="badge badge-danger">Failed</span>
+                            )}
+                            {attempt.passed !== true && attempt.passed !== false && (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                onClick={closeAttemptsModal}
+                className="btn btn-secondary"
               >
                 <FaTimes /> Close
               </button>
@@ -3170,7 +3745,62 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           border-bottom: none;
         }
 
-        /* Responsive for decision modal */
+        .backlog-card {
+          border-left: 4px solid #3db5e6;
+        }
+
+        .backlog-table {
+          font-size: 13px;
+        }
+
+        .backlog-table thead th {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: white;
+          padding: 12px 14px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .backlog-table tbody td {
+          padding: 12px 14px;
+          border-bottom: 1px solid #e2e8f0;
+          vertical-align: middle;
+        }
+
+        .backlog-filter .btn {
+          padding: 6px 14px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .attempt-table {
+          font-size: 13px;
+        }
+
+        .attempt-table thead th {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: white;
+          padding: 12px 14px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .attempt-table tbody td {
+          padding: 12px 14px;
+          border-bottom: 1px solid #e2e8f0;
+          vertical-align: middle;
+        }
+
+        .backlog-create-attempt .btn {
+          padding: 8px 18px;
+          font-size: 14px;
+        }
+
+        /* Responsive adjustments */
         @media (max-width: 768px) {
           .decision-grid {
             grid-template-columns: 1fr !important;
@@ -3187,6 +3817,85 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           
           .detail-value {
             text-align: left;
+          }
+
+          .backlog-table thead {
+            display: none;
+          }
+
+          .backlog-table,
+          .backlog-table tbody,
+          .backlog-table tr,
+          .backlog-table td {
+            display: block;
+            width: 100%;
+          }
+
+          .backlog-table tbody tr {
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f8fafc;
+          }
+
+          .backlog-table tbody td {
+            border-bottom: none;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .backlog-table tbody td:last-child {
+            border-bottom: none;
+          }
+
+          .backlog-filter {
+            width: 100%;
+          }
+
+          .backlog-filter .filter-group {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .backlog-filter .btn {
+            flex: 1 1 auto;
+          }
+
+          .attempt-table thead {
+            display: none;
+          }
+
+          .attempt-table,
+          .attempt-table tbody,
+          .attempt-table tr,
+          .attempt-table td {
+            display: block;
+            width: 100%;
+          }
+
+          .attempt-table tbody tr {
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f8fafc;
+          }
+
+          .attempt-table tbody td {
+            border-bottom: none;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .attempt-table tbody td:last-child {
+            border-bottom: none;
           }
         }
 
