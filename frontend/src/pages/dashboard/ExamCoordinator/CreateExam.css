@@ -1150,3 +1150,280 @@ select.exam-schedule-field {
     transition: none !important;
   }
 }
+
+
+/* =========================================================
+   EXAM TIMETABLE - CONTROLS
+   Scoped only to Exam Timetable page
+   ========================================================= */
+
+.exam-timetable-page .exam-schedule-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1.1rem;
+  background: #f8fbfd;
+  border-bottom: 1px solid #e3ebf2;
+}
+
+.exam-timetable-page .exam-schedule-controls .exam-schedule-summary-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.exam-timetable-page .exam-schedule-summary-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 36px;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e1e9f0;
+  color: #526477;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.exam-timetable-page .exam-schedule-summary-strip-item strong {
+  color: #102a43;
+  font-weight: 700;
+}
+
+.exam-timetable-page .exam-schedule-summary-strip-icon {
+  font-size: 0.8rem;
+}
+
+.exam-timetable-page .exam-schedule-summary-strip-icon.success {
+  color: #1f9d68;
+}
+
+.exam-timetable-page .exam-schedule-summary-strip-icon.warning {
+  color: #d89520;
+}
+
+.exam-timetable-page .exam-schedule-search {
+  position: relative;
+  width: 260px;
+  flex-shrink: 0;
+}
+
+.exam-timetable-page .exam-schedule-search-icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #8a9aaa;
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+.exam-timetable-page .exam-schedule-search input {
+  width: 100%;
+  height: 38px;
+  padding: 0.5rem 0.8rem 0.5rem 2.25rem;
+  border: 1px solid #d9e3eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #1d2733;
+  font-size: 0.84rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.exam-timetable-page .exam-schedule-search input::placeholder {
+  color: #9aa8b6;
+}
+
+.exam-timetable-page .exam-schedule-search input:focus {
+  border-color: #17aecb;
+  box-shadow: 0 0 0 3px rgba(23, 174, 203, 0.1);
+}
+
+@media (max-width: 767.98px) {
+  .exam-timetable-page .exam-schedule-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .exam-timetable-page .exam-schedule-controls
+    .exam-schedule-summary-strip {
+    width: 100%;
+  }
+
+  .exam-timetable-page .exam-schedule-summary-strip-item {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .exam-timetable-page .exam-schedule-search {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .exam-timetable-page .exam-schedule-summary-strip {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .exam-timetable-page .exam-schedule-summary-strip-item {
+    width: 100%;
+  }
+}
+/* =========================================================
+   EXAM TIMETABLE - TABLE REDESIGN
+   ========================================================= */
+
+.exam-timetable-page .exam-schedule-table-card {
+  background: #fff;
+  border: 1px solid #dfe7ee;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(12, 43, 71, 0.06);
+}
+
+/* Table header */
+.exam-timetable-page .exam-schedule-table {
+  width: 100%;
+  min-width: 1120px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.exam-timetable-page .exam-schedule-table td:last-child {
+  white-space: nowrap;
+}
+.exam-timetable-page .exam-schedule-table th:last-child,
+.exam-timetable-page .exam-schedule-table td:last-child {
+  min-width: 125px;
+}
+
+.exam-timetable-page .exam-schedule-table thead th {
+  background: #f4f8fb;
+  color: #536579;
+  border-bottom: 1px solid #dfe7ee;
+  padding: 0.75rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  white-space: nowrap;
+  text-align: left;
+}
+
+/* Table rows */
+.exam-timetable-page .exam-schedule-table tbody td {
+  padding: 0.72rem 0.8rem;
+  border-bottom: 1px solid #edf1f5;
+  color: #26384a;
+  font-size: 0.84rem;
+  vertical-align: middle;
+  background: #fff;
+}
+
+.exam-timetable-page .exam-schedule-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.exam-timetable-page .exam-schedule-table tbody tr:hover td {
+  background: #f9fcfe;
+}
+
+/* Subject */
+.exam-timetable-page .exam-schedule-subject-name {
+  display: block;
+  color: #102a43;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.exam-timetable-page .exam-schedule-subject-code {
+  display: block;
+  color: #8493a3;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+}
+
+/* Inputs */
+.exam-timetable-page .exam-schedule-table .exam-schedule-field {
+  min-height: 36px;
+  border: 1px solid #d8e2ea;
+  border-radius: 7px;
+  padding: 0.4rem 0.55rem;
+  background: #fff;
+  color: #24384b;
+  font-size: 0.8rem;
+}
+
+.exam-timetable-page .exam-schedule-table .exam-schedule-field:hover:not(:disabled) {
+  border-color: #b9cbd8;
+}
+
+.exam-timetable-page .exam-schedule-table .exam-schedule-field:focus {
+  border-color: #17aecb;
+  box-shadow: 0 0 0 3px rgba(23, 174, 203, 0.1);
+}
+
+/* Read-only fields */
+.exam-timetable-page .exam-schedule-table .exam-schedule-field:disabled {
+  background: #f5f7f9;
+  color: #627487;
+  border-color: #e1e7ec;
+}
+
+/* Error row */
+.exam-timetable-page .exam-schedule-table tbody tr.has-error td {
+  background: #fffafa;
+}
+
+/* Horizontal scroll */
+.exam-timetable-page .exam-schedule-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Cleaner scrollbar */
+.exam-timetable-page .exam-schedule-table-wrap::-webkit-scrollbar {
+  height: 7px;
+}
+
+.exam-timetable-page .exam-schedule-table-wrap::-webkit-scrollbar-track {
+  background: #f1f4f7;
+}
+
+.exam-timetable-page .exam-schedule-table-wrap::-webkit-scrollbar-thumb {
+  background: #c4d1dc;
+  border-radius: 10px;
+}
+
+/* Status/type pills */
+.exam-timetable-page .exam-schedule-pill {
+  font-size: 0.72rem;
+  padding: 0.32rem 0.65rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* Search + table spacing */
+.exam-timetable-page .exam-schedule-controls {
+  border-radius: 10px 10px 0 0;
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+  .exam-timetable-page .exam-schedule-table {
+    display: none;
+  }
+
+  .exam-timetable-page .exam-schedule-mobile-list {
+    display: flex;
+  }
+}
+

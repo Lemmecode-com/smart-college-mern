@@ -7,6 +7,11 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaSave,
+  FaFileAlt,
+  FaUsers,
+  FaBookOpen,
+  FaLayerGroup,
+  FaGraduationCap,
 } from "react-icons/fa";
 import { getExamById } from "../../../api/exam";
 import {
@@ -35,33 +40,231 @@ const AUTH_ERROR_CODES = new Set([
 ]);
 
 const pageStyles = `
-  .exam-timetable-page { background: #f4f7fa; min-height: 100%; color: #1d2733; }
-  .exam-timetable-page .exam-timetable-header { align-items: flex-start; }
-  .exam-timetable-page .exam-timetable-header-row { align-items: flex-start; gap: 1rem; }
-  .exam-timetable-page .exam-timetable-title { display: flex; align-items: center; gap: .65rem; color: #06192c; margin: 0; }
-  .exam-timetable-page .exam-timetable-title svg { color: #0e93ab; }
-  .exam-timetable-page .exam-timetable-subtitle { color: #55677c; margin: .35rem 0 0; }
-  .exam-timetable-page .exam-timetable-meta { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; margin-bottom: 1.25rem; }
-  .exam-timetable-page .exam-timetable-meta-item { background: #fff; border: 1px solid #dfe6ec; border-radius: .5rem; padding: .85rem 1rem; min-width: 0; }
-  .exam-timetable-page .exam-timetable-meta-label { display: block; color: #8695a7; font-size: .74rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
-  .exam-timetable-page .exam-timetable-meta-value { display: block; color: #1d2733; font-weight: 600; margin-top: .25rem; overflow-wrap: anywhere; }
-  .exam-timetable-page .exam-timetable-status { align-items: center; display: flex; gap: .5rem; margin-bottom: 1rem; }
-  .exam-timetable-page .exam-timetable-status svg { color: #1f8a5f; }
-  .exam-timetable-page .exam-timetable-actions { display: flex; justify-content: space-between; gap: .75rem; margin-top: 1rem; }
-  .exam-timetable-page .exam-timetable-empty { background: #fff; border: 1px solid #dfe6ec; border-radius: .5rem; padding: 3rem 1.5rem; text-align: center; }
-  .exam-timetable-page .exam-timetable-empty-icon { color: #b6790d; font-size: 2rem; margin-bottom: .75rem; }
-  .exam-timetable-page .exam-timetable-empty h2 { color: #06192c; font-size: 1.25rem; margin: 0 0 .5rem; }
-  .exam-timetable-page .exam-timetable-empty p { color: #55677c; margin: 0; }
-  .exam-timetable-page .exam-timetable-error { margin: 2rem auto; max-width: 640px; }
-  @media (max-width: 900px) { .exam-timetable-page .exam-timetable-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .exam-timetable-page {
+    background: linear-gradient(135deg, #f4f9fd 0%, #eaf5fc 100%);
+    min-height: 100%;
+    color: #06192c;
+  }
+
+  /* ================= HEADER ================= */
+
+  .exam-timetable-page .exam-timetable-header {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    135deg,
+    #eaf7ff 0%,
+    #dff2fb 50%,
+    #d4edf7 100%
+  );
+  border-radius: 16px;
+  padding: 1.5rem 1.6rem;
+  margin-bottom: 1rem;
+  border: 1px solid #d5e8f2;
+  box-shadow: 0 6px 20px rgba(12, 43, 71, 0.05);
+}
+
+  .exam-timetable-page .exam-timetable-header::after {
+  content: "";
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  right: -100px;
+  top: -220px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+  .exam-timetable-page .exam-timetable-header-row {
+    position: relative;
+    z-index: 1;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .exam-timetable-page .exam-timetable-title {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: #12304a;
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.exam-timetable-page .exam-timetable-title svg {
+  color: #0e93ab;
+  background: #ffffff;
+  padding: 0.65rem;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(14, 147, 171, 0.1);
+}
+
+  .exam-timetable-page .exam-timetable-subtitle {
+    color: #365a7c;
+    margin: 0.35rem 0 0 3.9rem;
+    font-size: 1rem;
+  }
+
+  /* ================= META CARDS ================= */
+
+  .exam-timetable-page .exam-timetable-meta {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+  }
+
+  .exam-timetable-page .exam-timetable-meta-item {
+    background: #fff;
+    border: 1px solid #dce7ef;
+    border-radius: 12px;
+    padding: 0.9rem;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 4px 14px rgba(12, 43, 71, 0.04);
+  }
+
+  .exam-timetable-page .exam-timetable-meta-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 11px;
+    background: #eaf4ff;
+    color: #0875ee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+  }
+
+  .exam-timetable-page .exam-timetable-meta-content {
+    min-width: 0;
+  }
+
+  .exam-timetable-page .exam-timetable-meta-label {
+    display: block;
+    color: #8293a7;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  .exam-timetable-page .exam-timetable-meta-value {
+    display: block;
+    color: #17253a;
+    font-weight: 650;
+    font-size: 0.92rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  /* ================= STATUS ================= */
+
+  .exam-timetable-page .exam-timetable-status {
+     align-items: center;
+  display: flex;
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  background: #effaf5;
+  color: #183b2d;
+  border: 1px solid #cfeee0;
+  box-shadow: 0 3px 10px rgba(12, 43, 71, 0.03);
+  }
+
+  .exam-timetable-page .exam-timetable-status svg {
+    color: #159765;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .exam-timetable-page .exam-timetable-status strong {
+    color: #167653;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  /* ================= RESPONSIVE ================= */
+
+  @media (max-width: 1100px) {
+    .exam-timetable-page .exam-timetable-meta {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 900px) {
+    .exam-timetable-page .exam-timetable-meta {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .exam-timetable-page .exam-timetable-title {
+      font-size: 1.7rem;
+    }
+
+    .exam-timetable-page .exam-timetable-header {
+      padding: 1.4rem;
+    }
+  }
+
   @media (max-width: 576px) {
-    .exam-timetable-page .exam-timetable-header-row,
-    .exam-timetable-page .exam-timetable-actions { flex-direction: column; }
-    .exam-timetable-page .exam-timetable-actions > * { width: 100%; justify-content: center; }
-    .exam-timetable-page .exam-timetable-meta { grid-template-columns: 1fr; }
+    .exam-timetable-page {
+      padding: 0.75rem !important;
+    }
+
+    .exam-timetable-page .exam-timetable-header {
+      padding: 1.1rem;
+      border-radius: 14px;
+    }
+
+    .exam-timetable-page .exam-timetable-header-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .exam-timetable-page .exam-timetable-title {
+      font-size: 1.4rem;
+      gap: 0.65rem;
+    }
+
+    .exam-timetable-page .exam-timetable-title svg {
+      width: 44px;
+      height: 44px;
+      padding: 0.5rem;
+    }
+
+    .exam-timetable-page .exam-timetable-subtitle {
+      margin-left: 0;
+      margin-top: 0.5rem;
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+
+    .exam-timetable-page .exam-timetable-meta {
+      grid-template-columns: 1fr;
+      gap: 0.6rem;
+    }
+
+    .exam-timetable-page .exam-timetable-meta-item {
+      padding: 0.75rem;
+    }
+
+    .exam-timetable-page .exam-timetable-status {
+      align-items: flex-start;
+      flex-wrap: wrap;
+      font-size: 0.88rem;
+    }
   }
 `;
-
 const getErrorDetails = (error, fallback) => ({
   statusCode: error?.response?.status,
   errorCode: error?.response?.data?.code,
@@ -327,13 +530,33 @@ export default function ExamTimetable() {
   };
 
   const examInfo = useMemo(
-    () => [
-      ["Exam Name", exam?.name],
-      ["Department", department?.name],
-      ["Course", course?.name],
-      ["Semester", exam?.semester],
-      ["Academic Year", exam?.academicYear],
-    ],
+  () => [
+    {
+      label: "Exam Name",
+      value: exam?.name,
+      icon: <FaFileAlt />,
+    },
+    {
+      label: "Department",
+      value: department?.name,
+      icon: <FaUsers />,
+    },
+    {
+      label: "Course",
+      value: course?.name,
+      icon: <FaBookOpen />,
+    },
+    {
+      label: "Semester",
+      value: exam?.semester,
+      icon: <FaLayerGroup />,
+    },
+    {
+      label: "Academic Year",
+      value: exam?.academicYear,
+      icon: <FaGraduationCap />,
+    },
+  ],
     [
       course?.name,
       department?.name,
@@ -410,15 +633,24 @@ export default function ExamTimetable() {
       </div>
 
       <div className="exam-timetable-meta">
-        {examInfo.map(([label, value]) => (
-          <div className="exam-timetable-meta-item" key={label}>
-            <span className="exam-timetable-meta-label">{label}</span>
-            <span className="exam-timetable-meta-value">
-              {getDisplayValue(value)}
-            </span>
-          </div>
-        ))}
+  {examInfo.map(({ label, value, icon }) => (
+    <div className="exam-timetable-meta-item" key={label}>
+      <div className="exam-timetable-meta-icon">
+        {icon}
       </div>
+
+      <div className="exam-timetable-meta-content">
+        <span className="exam-timetable-meta-label">
+          {label}
+        </span>
+
+        <span className="exam-timetable-meta-value">
+          {getDisplayValue(value)}
+        </span>
+      </div>
+    </div>
+  ))}
+</div>
 
       <div className="exam-timetable-status" role="status">
         {readOnly ? (
