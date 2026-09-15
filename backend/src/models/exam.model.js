@@ -63,6 +63,12 @@ const examSchema = new mongoose.Schema(
       default: [],
     },
 
+    exam_type: {
+      type: String,
+      enum: ["REGULAR", "SUPPLEMENTARY", "RE_EXAM"],
+      default: "REGULAR",
+    },
+
     // Simple lifecycle for this step. "PUBLISHED" only refers to exam
     // configuration visibility — NOT result publishing (handled in a later step).
     status: {

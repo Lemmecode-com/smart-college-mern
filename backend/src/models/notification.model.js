@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
-const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/validators");
+const {
+  validateExpiryDate,
+  expiryDateValidatorMessage,
+} = require("../utils/validators");
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -11,7 +14,7 @@ const notificationSchema = new mongoose.Schema(
 
     createdByRole: {
       type: String,
-      enum: ["COLLEGE_ADMIN", "TEACHER", "HOD"],
+      enum: ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "TEACHER", "HOD"],
       required: true,
     },
 
@@ -68,7 +71,17 @@ const notificationSchema = new mongoose.Schema(
     // 🎯 Target audience (enhanced for granular targeting - FIX: Issue #7)
     target: {
       type: String,
-      enum: ["ALL", "STUDENTS", "TEACHERS", "HOD", "PARENTS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"],
+      enum: [
+        "ALL",
+        "STUDENTS",
+        "TEACHERS",
+        "HOD",
+        "PARENTS",
+        "DEPARTMENT",
+        "COURSE",
+        "SEMESTER",
+        "INDIVIDUAL",
+      ],
       required: true,
       default: "ALL",
     },
@@ -94,13 +107,20 @@ const notificationSchema = new mongoose.Schema(
     },
 
     // For individual targeting (multiple users)
-    target_users: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    }],
+    target_users: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
 
     // Optional metadata
     actionUrl: String, // frontend redirect
+    promotionDecisionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PromotionDecision",
+      default: null,
+    },
     expiresAt: {
       type: Date,
       validate: {
@@ -108,8 +128,9 @@ const notificationSchema = new mongoose.Schema(
           if (!value) return true;
           return validateExpiryDate(value);
         },
-        message: props => `${props.value} is not a valid expiry date. ${expiryDateValidatorMessage}`
-      }
+        message: (props) =>
+          `${props.value} is not a valid expiry date. ${expiryDateValidatorMessage}`,
+      },
     },
 
     isActive: {
@@ -133,7 +154,11 @@ notificationSchema.index({ target: 1, type: 1 }); // Target and type filtering
 // New indexes for granular targeting
 notificationSchema.index({ college_id: 1, target_department: 1 }); // Department targeting
 // Department scope of the HOD creator (for HOD department-isolation scoping)
-notificationSchema.index({ college_id: 1, createdByRole: 1, createdByDepartment: 1 }); // HOD department scoping
+notificationSchema.index({
+  college_id: 1,
+  createdByRole: 1,
+  createdByDepartment: 1,
+}); // HOD department scoping
 notificationSchema.index({ college_id: 1, target_course: 1 }); // Course targeting
 notificationSchema.index({ college_id: 1, target_semester: 1 }); // Semester targeting
 // Optimized compound index for dashboard queries
@@ -149,16 +174,25 @@ notificationSchema.index(
     target: 1,
     target_users: 1,
     title: 1,
-    createdAt: 1
+    createdAt: 1,
   },
   {
     name: "idx_notification_dedupe",
     unique: true,
     partialFilterExpression: {
       target: "INDIVIDUAL",
-      isActive: true
-    }
-  }
+      isActive: true,
+    },
+  },
+);
+
+notificationSchema.index(
+  { promotionDecisionId: 1, target_users: 1 },
+  {
+    name: "idx_promotion_notification_dedupe",
+    unique: true,
+    partialFilterExpression: { promotionDecisionId: { $type: "objectId" } },
+  },
 );
 
 module.exports = mongoose.model("Notification", notificationSchema);

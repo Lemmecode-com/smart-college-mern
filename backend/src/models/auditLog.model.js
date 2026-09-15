@@ -96,6 +96,15 @@ const auditLogSchema = new mongoose.Schema(
         "RESULT_LOCKED",
         "RESULT_UNLOCKED",
         "RESULT_PUBLISHED",
+        "PROMOTION_RECOMMENDED",
+        "PROMOTION_APPROVED",
+        "PROMOTION_REJECTED",
+        "PROMOTION_EXECUTED",
+        // Step 7 — Backlog clearance / supplementary attempt lifecycle
+        "BACKLOG_ATTEMPT_CREATED",
+        "BACKLOG_ATTEMPT_EVALUATED",
+        "BACKLOG_CLEARED",
+        "BACKLOG_ATTEMPT_FAILED",
       ],
       index: true,
     },
@@ -123,6 +132,9 @@ const auditLogSchema = new mongoose.Schema(
         "Exam",
         "StudentMarks",
         "SemesterResult",
+        "PromotionDecision",
+        "Backlog",
+        "BacklogAttempt",
       ],
       index: true,
     },
@@ -203,21 +215,21 @@ auditLogSchema.statics.logAudit = async function (auditData) {
 
 // ==================== ENCRYPTION HOOKS ===================
 
-const SENSITIVE_FIELDS = ['endpoint', 'ipAddress', 'userAgent', 'userEmail'];
+const SENSITIVE_FIELDS = ["endpoint", "ipAddress", "userAgent", "userEmail"];
 
 function encryptField(value) {
-  if (!value || typeof value !== 'string') return value;
-  if (String(value).startsWith('ENC:')) return value;
-  return 'ENC:' + encrypt(String(value));
+  if (!value || typeof value !== "string") return value;
+  if (String(value).startsWith("ENC:")) return value;
+  return "ENC:" + encrypt(String(value));
 }
 
 function decryptField(value) {
-  if (!value || typeof value !== 'string') return value;
-  if (!value.startsWith('ENC:')) return value;
+  if (!value || typeof value !== "string") return value;
+  if (!value.startsWith("ENC:")) return value;
   try {
     return decrypt(value.substring(4));
   } catch (e) {
-    return '[DECRYPTION_ERROR]';
+    return "[DECRYPTION_ERROR]";
   }
 }
 
@@ -230,13 +242,13 @@ function decryptDoc(doc) {
   }
 }
 
-auditLogSchema.pre('save', async function() {
+auditLogSchema.pre("save", async function () {
   for (const field of SENSITIVE_FIELDS) {
     this[field] = encryptField(this[field]);
   }
 });
 
-auditLogSchema.pre('findOneAndUpdate', async function() {
+auditLogSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate();
   const paths = update.$set || update;
   for (const field of SENSITIVE_FIELDS) {
@@ -246,23 +258,23 @@ auditLogSchema.pre('findOneAndUpdate', async function() {
   }
 });
 
-auditLogSchema.post('find', function(docs) {
+auditLogSchema.post("find", function (docs) {
   docs.forEach(decryptDoc);
 });
 
-auditLogSchema.post('findOne', function(doc) {
+auditLogSchema.post("findOne", function (doc) {
   decryptDoc(doc);
 });
 
-auditLogSchema.statics.findDecrypted = function(query) {
-  return this.find(query).then(docs => {
+auditLogSchema.statics.findDecrypted = function (query) {
+  return this.find(query).then((docs) => {
     docs.forEach(decryptDoc);
     return docs;
   });
 };
 
-auditLogSchema.statics.findByIdDecrypted = function(id) {
-  return this.findById(id).then(doc => {
+auditLogSchema.statics.findByIdDecrypted = function (id) {
+  return this.findById(id).then((doc) => {
     if (doc) decryptDoc(doc);
     return doc;
   });
