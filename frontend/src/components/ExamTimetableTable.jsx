@@ -1,9 +1,10 @@
-﻿import { useMemo } from "react";
+﻿import { useMemo, useState } from "react";
 import {
   FaBook,
   FaCheckCircle,
   FaExclamationTriangle,
   FaTimesCircle,
+  FaSearch,
 } from "react-icons/fa";
 
 const STATUS = {
@@ -79,6 +80,7 @@ function ExamTimetableTable({
   validationErrors,
   statusAnnouncement,
 }) {
+  const [searchTerm, setSearchTerm] = useState("");
   const subjectTypePill = (type) => {
     const variants = {
       THEORY: "type-theory",
@@ -113,6 +115,24 @@ function ExamTimetableTable({
     }
     return { scheduled, unscheduled, total: rows.length };
   }, [rows]);
+
+    const filteredRows = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+
+    if (!query) return rows;
+
+    return rows.filter((row) =>
+      [
+        row.subjectName,
+        row.subjectCode,
+        row.subjectType,
+        row.session,
+        row.room,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
+    );
+  }, [rows, searchTerm]);
 
   if (!rows.length) {
     return (
@@ -170,21 +190,42 @@ function ExamTimetableTable({
         )}
       </div>
 
-      <div className="exam-schedule-summary-strip">
-        <span className="exam-schedule-summary-strip-item">
-          <FaCheckCircle
-            className="exam-schedule-summary-strip-icon success"
+      <div className="exam-schedule-controls">
+        <div className="exam-schedule-summary-strip">
+          <span className="exam-schedule-summary-strip-item scheduled">
+            <FaCheckCircle
+              className="exam-schedule-summary-strip-icon success"
+              aria-hidden="true"
+            />
+            <span>Scheduled</span>
+            <strong>
+              {summary.scheduled}/{summary.total}
+            </strong>
+          </span>
+
+          <span className="exam-schedule-summary-strip-item unscheduled">
+            <FaExclamationTriangle
+              className="exam-schedule-summary-strip-icon warning"
+              aria-hidden="true"
+            />
+            <span>Unscheduled</span>
+            <strong>{summary.unscheduled}</strong>
+          </span>
+        </div>
+
+        <div className="exam-schedule-search">
+          <FaSearch
+            className="exam-schedule-search-icon"
             aria-hidden="true"
           />
-          Scheduled <strong>{summary.scheduled}</strong> / {summary.total}
-        </span>
-        <span className="exam-schedule-summary-strip-item">
-          <FaExclamationTriangle
-            className="exam-schedule-summary-strip-icon warning"
-            aria-hidden="true"
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search subjects..."
+            aria-label="Search subjects"
           />
-          Unscheduled <strong>{summary.unscheduled}</strong>
-        </span>
+        </div>
       </div>
 
       <p className="exam-schedule-sr-only" role="status" aria-live="polite">
@@ -207,7 +248,7 @@ function ExamTimetableTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {filteredRows.map((row) => (
               <ScheduleRow
                 key={row.subject}
                 row={row}
@@ -223,7 +264,7 @@ function ExamTimetableTable({
       </div>
 
       <div className="exam-schedule-mobile-list">
-        {rows.map((row) => (
+          {filteredRows.map((row) => (
           <ScheduleCard
             key={row.subject}
             row={row}
