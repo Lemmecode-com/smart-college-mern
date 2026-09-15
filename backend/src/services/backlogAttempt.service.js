@@ -150,9 +150,7 @@ const createSupplementaryExam = async (
     return existingExam;
   }
 
-  const subjectDoc = await Subject.findById(backlog.subject_id)
-    .session(session)
-    .exec();
+  const subjectDoc = await getSubject(backlog.subject_id, backlog.college_id, session);
 
   const exam = await Exam.create(
     [

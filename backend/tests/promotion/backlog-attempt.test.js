@@ -1116,6 +1116,66 @@ const enterSupplementaryMarks = async (examId, studentId, collegeId, subjectId, 
         }),
       ).rejects.toMatchObject({ code: "BACKLOG_NOT_OPEN" });
     });
+
+    it("29. Cross-college Subject cannot create supplementary exam", async () => {
+      const { backlog, collegeId, student } = await createCase("FAIL");
+      const otherCollegeId = new mongoose.Types.ObjectId();
+      const otherCourseId = new mongoose.Types.ObjectId();
+      const otherDepartmentId = new mongoose.Types.ObjectId();
+
+      // Create a Subject in a different college with the same _id as the original subject
+      // This simulates a Subject that exists but belongs to another college
+      const otherSubjectId = new mongoose.Types.ObjectId();
+      await Subject.create({
+        _id: otherSubjectId,
+        college_id: otherCollegeId,
+        course_id: otherCourseId,
+        department_id: otherDepartmentId,
+        name: "Other College Subject",
+        code: "OCS-101",
+        semester: 3,
+        credits: 3,
+        status: "ACTIVE",
+        subjectType: "THEORY",
+        internalMaxMarks: 30,
+        externalMaxMarks: 70,
+        internalPassMarks: 12,
+        externalPassMarks: 28,
+        passMarks: 40,
+        createdBy: new mongoose.Types.ObjectId(),
+      });
+
+      // Manually create a backlog that references the other college's subject
+      // This simulates an attempt to use a cross-college subject
+      const maliciousBacklog = await Backlog.create({
+        student_id: student._id,
+        college_id: collegeId,
+        course_id: backlog.course_id,
+        semester: 3,
+        academicYear: "2026-27",
+        original_exam_id: backlog.original_exam_id,
+        original_result_id: backlog.original_result_id,
+        subject_id: otherSubjectId, // Subject from another college
+        subject_code: "OCS-101",
+        subject_name: "Other College Subject",
+        subject_type: "THEORY",
+        original_marks_snapshot: { status: "FAIL", totalMarks: 30 },
+        status: "OPEN",
+        promotion_decision_id: backlog.promotion_decision_id,
+      });
+
+      // Attempting to create a supplementary exam should fail because the Subject
+      // does not belong to the same college as the backlog
+      await expect(
+        createAttempt({
+          backlogId: maliciousBacklog._id,
+          collegeId,
+          actorId: new mongoose.Types.ObjectId(),
+          actorRole: "COLLEGE_ADMIN",
+          request: {},
+        }),
+      ).rejects.toMatchObject({ code: "SUBJECT_NOT_FOUND" });
+    });
   });
 
   // ===== TRANSACTION =====
