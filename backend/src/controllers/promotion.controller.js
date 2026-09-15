@@ -4,10 +4,16 @@ const FeeStructure = require("../models/feeStructure.model");
 const PromotionHistory = require("../models/promotionHistory.model");
 const Notification = require("../models/notification.model");
 const Course = require("../models/course.model");
-const { getAttendanceDataForStudents } = require("../services/attendance.service");
+const {
+  getAttendanceDataForStudents,
+} = require("../services/attendance.service");
 const PromotionPolicy = require("../models/promotionPolicy.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const {
+  calculateFeeClearanceData,
+  evaluateAttendanceData,
+} = require("../services/promotionDecision.service");
 
 const ATTENDANCE_THRESHOLD = 75;
 const ATTENDANCE_STATUS = {
@@ -39,7 +45,12 @@ function getAcademicYearLabel(semester) {
  * Helper: attempt to assign a new fee structure to student after promotion
  * Returns: { newFeeAssigned, newFeeStructureId, newStudentFeeId, feeAssignmentWarning }
  */
-async function assignFeeAfterPromotion(student, toSemester, newAcademicYear, college_id) {
+async function assignFeeAfterPromotion(
+  student,
+  toSemester,
+  newAcademicYear,
+  college_id,
+) {
   try {
     // Look for fee structure matching course + category (+ optional academicYear)
     const feeStructureQuery = {
@@ -54,7 +65,8 @@ async function assignFeeAfterPromotion(student, toSemester, newAcademicYear, col
       academicYear: newAcademicYear,
     });
 
-    const feeStructure = yearSpecific || await FeeStructure.findOne(feeStructureQuery);
+    const feeStructure =
+      yearSpecific || (await FeeStructure.findOne(feeStructureQuery));
 
     if (!feeStructure) {
       return {
@@ -100,7 +112,15 @@ async function assignFeeAfterPromotion(student, toSemester, newAcademicYear, col
 /**
  * Helper: send promotion notification to a student (fire-and-forget)
  */
-async function sendPromotionNotification(student, toSemester, toYearLabel, newAcademicYear, adminId, adminName, college_id) {
+async function sendPromotionNotification(
+  student,
+  toSemester,
+  toYearLabel,
+  newAcademicYear,
+  adminId,
+  adminName,
+  college_id,
+) {
   try {
     if (!student.user_id) return; // student has no linked user account yet
     await Notification.create({
@@ -117,7 +137,10 @@ async function sendPromotionNotification(student, toSemester, toYearLabel, newAc
     });
   } catch (err) {
     // Notification failure must never break promotion — log only
-    console.error(`[PROMOTION] Notification failed for student ${student._id}:`, err.message);
+    console.error(
+      `[PROMOTION] Notification failed for student ${student._id}:`,
+      err.message,
+    );
   }
 }
 
@@ -134,19 +157,18 @@ function getOrdinalSuffix(num) {
 }
 
 function getAttendanceStatus(attendanceData, threshold = ATTENDANCE_THRESHOLD) {
-  const totalSessions = Number(attendanceData?.totalSessions || 0);
-  const percentage = Number(attendanceData?.percentage || 0);
-
-  if (totalSessions === 0) {
-    return ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE;
-  }
-
-  return percentage >= threshold
-    ? ATTENDANCE_STATUS.ELIGIBLE
-    : ATTENDANCE_STATUS.NOT_ELIGIBLE;
+  return evaluateAttendanceData({
+    attendanceData,
+    requiredPercentage: threshold,
+  }).status;
 }
 
-function getAttendanceSnapshot(attendanceData, attendanceOverridden, attendanceOverrideReason, threshold = ATTENDANCE_THRESHOLD) {
+function getAttendanceSnapshot(
+  attendanceData,
+  attendanceOverridden,
+  attendanceOverrideReason,
+  threshold = ATTENDANCE_THRESHOLD,
+) {
   return {
     attendancePercentage: Number(attendanceData?.percentage || 0),
     attendanceStatus: getAttendanceStatus(attendanceData, threshold),
@@ -158,7 +180,11 @@ function getAttendanceSnapshot(attendanceData, attendanceOverridden, attendanceO
   };
 }
 
-function validateAttendanceOverride(overrideAttendanceCheck, overrideAttendanceReason, attendanceStatus) {
+function validateAttendanceOverride(
+  overrideAttendanceCheck,
+  overrideAttendanceReason,
+  attendanceStatus,
+) {
   const wantsOverride = Boolean(overrideAttendanceCheck);
 
   if (wantsOverride && attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE) {
@@ -169,10 +195,14 @@ function validateAttendanceOverride(overrideAttendanceCheck, overrideAttendanceR
     );
   }
 
-  if (wantsOverride && attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE) {
-    const reason = typeof overrideAttendanceReason === "string"
-      ? overrideAttendanceReason.trim()
-      : "";
+  if (
+    wantsOverride &&
+    attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
+  ) {
+    const reason =
+      typeof overrideAttendanceReason === "string"
+        ? overrideAttendanceReason.trim()
+        : "";
 
     if (reason.length < 10) {
       throw new AppError(
@@ -200,7 +230,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
     // Promotion eligibility is shown in UI via fee status
     const filter = {
       college_id: req.college_id,
-      status: { $in: ["APPROVED", "ENROLLED"] }
+      status: { $in: ["APPROVED", "ENROLLED"] },
     };
 
     if (course_id) {
@@ -218,9 +248,15 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
       .sort({ currentSemester: 1, fullName: 1 });
 
     const threshold = await getPromotionThreshold(req.college_id);
-    const attendanceData = await getAttendanceDataForStudents(students, req.college_id);
+    const attendanceData = await getAttendanceDataForStudents(
+      students,
+      req.college_id,
+    );
     const attendanceMap = new Map(
-      attendanceData.map((attendance) => [attendance.student_id.toString(), attendance]),
+      attendanceData.map((attendance) => [
+        attendance.student_id.toString(),
+        attendance,
+      ]),
     );
 
     // Attach fee information for each student
@@ -248,7 +284,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
           // Check if all installments are paid
           if (fee.installments && fee.installments.length > 0) {
             allInstallmentsPaid = fee.installments.every(
-              (inst) => inst.status === "PAID"
+              (inst) => inst.status === "PAID",
             );
           } else if (fee.paidAmount >= fee.totalFee) {
             allInstallmentsPaid = true;
@@ -282,7 +318,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
           attendanceStatus: getAttendanceStatus(attendance, threshold),
           attendanceTotalSessions: attendance.totalSessions,
         };
-      })
+      }),
     );
 
     // Group by semester for better UI presentation
@@ -295,12 +331,16 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
       return acc;
     }, {});
 
-    ApiResponse.success(res, {
-      count: studentsWithFee.length,
-      students: studentsWithFee,
-      groupedBySemester,
-      promotionThreshold: threshold,
-    }, "Students fetched successfully for promotion");
+    ApiResponse.success(
+      res,
+      {
+        count: studentsWithFee.length,
+        students: studentsWithFee,
+        groupedBySemester,
+        promotionThreshold: threshold,
+      },
+      "Students fetched successfully for promotion",
+    );
   } catch (error) {
     next(error);
   }
@@ -338,7 +378,9 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
     }).sort({ promotionDate: -1 });
 
     const threshold = await getPromotionThreshold(req.college_id);
-    const attendanceData = (await getAttendanceDataForStudents([student], req.college_id))[0];
+    const attendanceData = (
+      await getAttendanceDataForStudents([student], req.college_id)
+    )[0];
     const attendanceStatus = getAttendanceStatus(attendanceData, threshold);
 
     // Calculate fee status
@@ -357,7 +399,7 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
 
       if (fee.installments && fee.installments.length > 0) {
         allInstallmentsPaid = fee.installments.every(
-          (inst) => inst.status === "PAID"
+          (inst) => inst.status === "PAID",
         );
       } else if (fee.paidAmount >= fee.totalFee) {
         allInstallmentsPaid = true;
@@ -367,28 +409,35 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
     // Calculate next semester
     const nextSemester = student.currentSemester + 1;
     const maxSemester = 8; // Assuming 4-year program with 2 semesters per year
-    const canPromote = nextSemester <= maxSemester && allInstallmentsPaid && attendanceStatus === ATTENDANCE_STATUS.ELIGIBLE;
+    const canPromote =
+      nextSemester <= maxSemester &&
+      allInstallmentsPaid &&
+      attendanceStatus === ATTENDANCE_STATUS.ELIGIBLE;
 
-    ApiResponse.success(res, {
-      student: {
-        ...student.toObject(),
-        fee: fee || {
-          totalFee: 0,
-          paidAmount: 0,
-          installments: [],
+    ApiResponse.success(
+      res,
+      {
+        student: {
+          ...student.toObject(),
+          fee: fee || {
+            totalFee: 0,
+            paidAmount: 0,
+            installments: [],
+          },
+          feeStatus,
+          pendingAmount,
+          allInstallmentsPaid,
+          nextSemester,
+          canPromote,
+          maxSemester,
+          attendancePercentage: attendanceData.percentage,
+          attendanceStatus,
+          attendanceTotalSessions: attendanceData.totalSessions,
         },
-        feeStatus,
-        pendingAmount,
-        allInstallmentsPaid,
-        nextSemester,
-        canPromote,
-        maxSemester,
-        attendancePercentage: attendanceData.percentage,
-        attendanceStatus,
-        attendanceTotalSessions: attendanceData.totalSessions,
+        promotionHistory,
       },
-      promotionHistory,
-    }, "Student promotion details fetched successfully");
+      "Student promotion details fetched successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -410,7 +459,12 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
 exports.promoteStudent = async (req, res, next) => {
   try {
     const { studentId } = req.params;
-    const { remarks, overrideFeeCheck, overrideAttendanceCheck, overrideAttendanceReason } = req.body;
+    const {
+      remarks,
+      overrideFeeCheck,
+      overrideAttendanceCheck,
+      overrideAttendanceReason,
+    } = req.body;
 
     // 1. Find student
     const student = await Student.findOne({
@@ -422,7 +476,11 @@ exports.promoteStudent = async (req, res, next) => {
       .populate("department_id", "name code");
 
     if (!student) {
-      throw new AppError("Student not found or not approved", 404, "STUDENT_NOT_FOUND");
+      throw new AppError(
+        "Student not found or not approved",
+        404,
+        "STUDENT_NOT_FOUND",
+      );
     }
 
     // 2. Get max semester from course duration (dynamic based on course)
@@ -433,12 +491,12 @@ exports.promoteStudent = async (req, res, next) => {
       throw new AppError(
         "Student has completed the course. Moving to alumni status requires separate process.",
         400,
-        "ALREADY_FINAL_SEMESTER"
+        "ALREADY_FINAL_SEMESTER",
       );
     }
 
     // 3b. Check if this is the last semester promotion (moving to final sem)
-    const isMovingToFinalSemester = (student.currentSemester + 1) === maxSemester;
+    const isMovingToFinalSemester = student.currentSemester + 1 === maxSemester;
 
     // 4. Get fee details
     const fee = await StudentFee.findOne({
@@ -446,35 +504,20 @@ exports.promoteStudent = async (req, res, next) => {
       college_id: req.college_id,
     });
 
-    let feeStatus = "PENDING";
-    let allInstallmentsPaid = false;
-    let pendingAmount = 0;
-
-    if (fee) {
-      pendingAmount = fee.totalFee - fee.paidAmount;
-
-      if (fee.paidAmount >= fee.totalFee) {
-        feeStatus = "FULLY_PAID";
-      } else if (fee.paidAmount > 0) {
-        feeStatus = "PARTIALLY_PAID";
-      }
-
-      if (fee.installments && fee.installments.length > 0) {
-        allInstallmentsPaid = fee.installments.every(
-          (inst) => inst.status === "PAID"
-        );
-      } else if (fee.paidAmount >= fee.totalFee) {
-        allInstallmentsPaid = true;
-      }
-    }
+    const feeClearance = calculateFeeClearanceData(fee);
+    const feeStatus = feeClearance.status;
+    const allInstallmentsPaid = feeClearance.cleared;
+    const pendingAmount = feeClearance.pendingAmount;
 
     const threshold = await getPromotionThreshold(req.college_id);
-    const attendanceData = (await getAttendanceDataForStudents([student], req.college_id))[0];
+    const attendanceData = (
+      await getAttendanceDataForStudents([student], req.college_id)
+    )[0];
     const attendanceStatus = getAttendanceStatus(attendanceData, threshold);
     const attendanceOverrideReason = validateAttendanceOverride(
       overrideAttendanceCheck,
       overrideAttendanceReason,
-      attendanceStatus
+      attendanceStatus,
     );
 
     // 5. Check fee payment (can be overridden by admin)
@@ -482,7 +525,7 @@ exports.promoteStudent = async (req, res, next) => {
       throw new AppError(
         `Student has pending fees of ₹${pendingAmount}. Please clear all dues or use override option.`,
         400,
-        "FEE_PENDING"
+        "FEE_PENDING",
       );
     }
 
@@ -490,15 +533,18 @@ exports.promoteStudent = async (req, res, next) => {
       throw new AppError(
         `Student attendance is below the required threshold of ${threshold}%.`,
         400,
-        "ATTENDANCE_INSUFFICIENT"
+        "ATTENDANCE_INSUFFICIENT",
       );
     }
 
-    if (attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE && !overrideAttendanceCheck) {
+    if (
+      attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
+      !overrideAttendanceCheck
+    ) {
       throw new AppError(
         "Attendance records are not available for this student.",
         400,
-        "ATTENDANCE_NOT_AVAILABLE"
+        "ATTENDANCE_NOT_AVAILABLE",
       );
     }
 
@@ -508,7 +554,7 @@ exports.promoteStudent = async (req, res, next) => {
     const toSemester = fromSemester + 1;
 
     // Parse current academic year
-    const [currentAcademicYearStart] = fromAcademicYear.split('-').map(Number);
+    const [currentAcademicYearStart] = fromAcademicYear.split("-").map(Number);
 
     // Calculate new academic year (increment if moving to odd semester after even)
     let newAcademicYearStart = currentAcademicYearStart;
@@ -531,14 +577,17 @@ exports.promoteStudent = async (req, res, next) => {
 
     // 9. Assign fee structure for new semester
     const feeAssignment = await assignFeeAfterPromotion(
-      student, toSemester, newAcademicYear, req.college_id
+      student,
+      toSemester,
+      newAcademicYear,
+      req.college_id,
     );
 
     const attendanceSnapshot = getAttendanceSnapshot(
       attendanceData,
       attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
       attendanceOverrideReason,
-      threshold
+      threshold,
     );
 
     // 10. Create promotion history record
@@ -556,7 +605,7 @@ exports.promoteStudent = async (req, res, next) => {
       pendingAmount,
       ...attendanceSnapshot,
       promotedBy: req.user.id,
-      promotedByName: req.user.name || req.user.email || 'Admin',
+      promotedByName: req.user.name || req.user.email || "Admin",
       promotionDate: new Date(),
       remarks: remarks || null,
       status: "ACTIVE",
@@ -572,34 +621,43 @@ exports.promoteStudent = async (req, res, next) => {
     await student.save();
 
     // 12. Send notification to student (non-blocking)
-    const adminName = req.user.name || req.user.email || 'Admin';
+    const adminName = req.user.name || req.user.email || "Admin";
     sendPromotionNotification(
-      student, toSemester, toYearLabel, newAcademicYear,
-      req.user.id, adminName, req.college_id
+      student,
+      toSemester,
+      toYearLabel,
+      newAcademicYear,
+      req.user.id,
+      adminName,
+      req.college_id,
     );
 
-    ApiResponse.success(res, {
-      promotion: {
-        fromSemester,
-        toSemester,
-        fromYearLabel,
-        toYearLabel,
-        fromAcademicYear,
-        toAcademicYear: newAcademicYear,
-        feeStatus,
-        pendingAmount,
-        ...attendanceSnapshot,
-        promotedBy: req.user.name,
-        promotionDate: promotionRecord.promotionDate,
-        remarks,
-        isFinalSemesterPromotion: isMovingToFinalSemester,
-        maxSemester,
-        newFeeAssigned: feeAssignment.newFeeAssigned,
-        feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
+    ApiResponse.success(
+      res,
+      {
+        promotion: {
+          fromSemester,
+          toSemester,
+          fromYearLabel,
+          toYearLabel,
+          fromAcademicYear,
+          toAcademicYear: newAcademicYear,
+          feeStatus,
+          pendingAmount,
+          ...attendanceSnapshot,
+          promotedBy: req.user.name,
+          promotionDate: promotionRecord.promotionDate,
+          remarks,
+          isFinalSemesterPromotion: isMovingToFinalSemester,
+          maxSemester,
+          newFeeAssigned: feeAssignment.newFeeAssigned,
+          feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
+        },
       },
-    }, isMovingToFinalSemester
-      ? `Student promoted to Final Year (${fromYearLabel} → ${toYearLabel})`
-      : `Student promoted successfully from ${fromYearLabel} (Sem ${fromSemester}) to ${toYearLabel} (Sem ${toSemester})`);
+      isMovingToFinalSemester
+        ? `Student promoted to Final Year (${fromYearLabel} → ${toYearLabel})`
+        : `Student promoted successfully from ${fromYearLabel} (Sem ${fromSemester}) to ${toYearLabel} (Sem ${toSemester})`,
+    );
   } catch (error) {
     next(error);
   }
@@ -611,10 +669,20 @@ exports.promoteStudent = async (req, res, next) => {
  */
 exports.bulkPromoteStudents = async (req, res, next) => {
   try {
-    const { studentIds, remarks, overrideFeeCheck, overrideAttendanceCheck, overrideAttendanceReason } = req.body;
+    const {
+      studentIds,
+      remarks,
+      overrideFeeCheck,
+      overrideAttendanceCheck,
+      overrideAttendanceReason,
+    } = req.body;
 
     if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
-      throw new AppError("Please provide valid student IDs", 400, "INVALID_STUDENT_IDS");
+      throw new AppError(
+        "Please provide valid student IDs",
+        400,
+        "INVALID_STUDENT_IDS",
+      );
     }
 
     const results = {
@@ -655,31 +723,18 @@ exports.bulkPromoteStudents = async (req, res, next) => {
         }
 
         // Check if this is the last semester promotion
-        const isMovingToFinalSemester = (student.currentSemester + 1) === maxSemester;
+        const isMovingToFinalSemester =
+          student.currentSemester + 1 === maxSemester;
 
         // Check fee
-        const fee = await StudentFee.findOne({ student_id: studentId, college_id: req.college_id });
-        let allInstallmentsPaid = false;
-        let feeStatus = "PENDING";
-        let pendingAmount = 0;
-
-        if (fee) {
-          pendingAmount = fee.totalFee - fee.paidAmount;
-
-          if (fee.paidAmount >= fee.totalFee) {
-            feeStatus = "FULLY_PAID";
-          } else if (fee.paidAmount > 0) {
-            feeStatus = "PARTIALLY_PAID";
-          }
-
-          if (fee.installments && fee.installments.length > 0) {
-            allInstallmentsPaid = fee.installments.every(
-              (inst) => inst.status === "PAID"
-            );
-          } else if (fee.paidAmount >= fee.totalFee) {
-            allInstallmentsPaid = true;
-          }
-        }
+        const fee = await StudentFee.findOne({
+          student_id: studentId,
+          college_id: req.college_id,
+        });
+        const feeClearance = calculateFeeClearanceData(fee);
+        const allInstallmentsPaid = feeClearance.cleared;
+        const feeStatus = feeClearance.status;
+        const pendingAmount = feeClearance.pendingAmount;
 
         // Collect all rejection reasons for this student
         const rejectionReasons = [];
@@ -688,7 +743,9 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           rejectionReasons.push(`Pending fees: ₹${pendingAmount}`);
         }
 
-        const attendanceData = (await getAttendanceDataForStudents([student], req.college_id))[0];
+        const attendanceData = (
+          await getAttendanceDataForStudents([student], req.college_id)
+        )[0];
         const attendanceStatus = getAttendanceStatus(attendanceData, threshold);
         let attendanceOverrideReason = null;
 
@@ -696,7 +753,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           attendanceOverrideReason = validateAttendanceOverride(
             overrideAttendanceCheck,
             overrideAttendanceReason,
-            attendanceStatus
+            attendanceStatus,
           );
         } catch (error) {
           results.failed.push({
@@ -710,11 +767,14 @@ exports.bulkPromoteStudents = async (req, res, next) => {
 
         if (attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE) {
           rejectionReasons.push(
-            `Attendance insufficient: ${attendanceData.percentage}% (minimum ${threshold}% required)`
+            `Attendance insufficient: ${attendanceData.percentage}% (minimum ${threshold}% required)`,
           );
         }
 
-        if (attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE && !overrideAttendanceCheck) {
+        if (
+          attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
+          !overrideAttendanceCheck
+        ) {
           rejectionReasons.push("Attendance records are not available");
         }
 
@@ -734,7 +794,9 @@ exports.bulkPromoteStudents = async (req, res, next) => {
         const fromAcademicYear = student.currentAcademicYear;
         const toSemester = fromSemester + 1;
 
-        const [currentAcademicYearStart] = fromAcademicYear.split('-').map(Number);
+        const [currentAcademicYearStart] = fromAcademicYear
+          .split("-")
+          .map(Number);
         let newAcademicYearStart = currentAcademicYearStart;
         if (fromSemester % 2 === 0) {
           newAcademicYearStart = currentAcademicYearStart + 1;
@@ -751,14 +813,17 @@ exports.bulkPromoteStudents = async (req, res, next) => {
 
         // Assign fee structure for new semester
         const feeAssignment = await assignFeeAfterPromotion(
-          student, toSemester, newAcademicYear, req.college_id
+          student,
+          toSemester,
+          newAcademicYear,
+          req.college_id,
         );
 
         const attendanceSnapshot = getAttendanceSnapshot(
           attendanceData,
           attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
           attendanceOverrideReason,
-          threshold
+          threshold,
         );
 
         const promotionRecord = await PromotionHistory.create({
@@ -775,9 +840,10 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           pendingAmount,
           ...attendanceSnapshot,
           promotedBy: req.user.id,
-          promotedByName: req.user.name || req.user.email || 'Admin',
+          promotedByName: req.user.name || req.user.email || "Admin",
           promotionDate: new Date(),
-          remarks: remarks || `Bulk promotion - ${new Date().toLocaleDateString()}`,
+          remarks:
+            remarks || `Bulk promotion - ${new Date().toLocaleDateString()}`,
           status: "ACTIVE",
           isFinalSemesterPromotion: isMovingToFinalSemester,
           newFeeAssigned: feeAssignment.newFeeAssigned,
@@ -790,10 +856,15 @@ exports.bulkPromoteStudents = async (req, res, next) => {
         await student.save();
 
         // Send notification (non-blocking)
-        const adminName = req.user.name || req.user.email || 'Admin';
+        const adminName = req.user.name || req.user.email || "Admin";
         sendPromotionNotification(
-          student, toSemester, toYearLabel, newAcademicYear,
-          req.user.id, adminName, req.college_id
+          student,
+          toSemester,
+          toYearLabel,
+          newAcademicYear,
+          req.user.id,
+          adminName,
+          req.college_id,
         );
 
         results.success.push({
@@ -815,9 +886,13 @@ exports.bulkPromoteStudents = async (req, res, next) => {
       }
     }
 
-    ApiResponse.success(res, {
-      results,
-    }, `Bulk promotion completed: ${results.success.length} promoted, ${results.failed.length} failed`);
+    ApiResponse.success(
+      res,
+      {
+        results,
+      },
+      `Bulk promotion completed: ${results.success.length} promoted, ${results.failed.length} failed`,
+    );
   } catch (error) {
     next(error);
   }
@@ -842,10 +917,14 @@ exports.getCollegePromotionHistory = async (req, res, next) => {
       .sort({ promotionDate: -1 })
       .limit(parseInt(limit));
 
-    ApiResponse.success(res, {
-      count: promotions.length,
-      promotions,
-    }, "Promotion history fetched successfully");
+    ApiResponse.success(
+      res,
+      {
+        count: promotions.length,
+        promotions,
+      },
+      "Promotion history fetched successfully",
+    );
   } catch (error) {
     next(error);
   }
