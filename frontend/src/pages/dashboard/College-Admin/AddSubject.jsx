@@ -405,7 +405,7 @@ export default function AddSubject() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="erp-page erp-viewport-min-100"
+        className="erp-page erp-viewport-min-100 add-subject-page"
         style={{
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
           paddingTop: "1.5rem",
@@ -449,6 +449,7 @@ export default function AddSubject() {
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
+            className="add-subject-hero"
             style={{
               marginBottom: "2rem",
               backgroundColor: "white",
@@ -521,6 +522,7 @@ export default function AddSubject() {
 
             {/* Info Banner */}
             <div
+              className="add-subject-workflow"
               style={{
                 padding: "1rem 2rem",
                 backgroundColor: "#dbeafe",
@@ -919,6 +921,7 @@ export default function AddSubject() {
                   <div style={{ padding: "2rem" }}>
                     {/* Code Generation Mode Toggle */}
                     <div
+                      className="code-generation-method"
                       style={{
                         marginBottom: "1.5rem",
                         padding: "1.25rem",
@@ -946,6 +949,7 @@ export default function AddSubject() {
                       </h4>
 
                       <div
+                        className="code-generation-options"
                         style={{
                           display: "flex",
                           gap: "1.5rem",
@@ -953,6 +957,7 @@ export default function AddSubject() {
                         }}
                       >
                         <div
+                          className="code-mode-option"
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -1026,6 +1031,7 @@ export default function AddSubject() {
                         </div>
 
                         <div
+                        className="code-mode-option"
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -1101,6 +1107,7 @@ export default function AddSubject() {
                       {codeGenerationMode === "auto" &&
                         generatedCodePreview && (
                           <div
+                            className="generated-code-preview"
                             style={{
                               marginTop: "1rem",
                               padding: "1rem",
@@ -1155,7 +1162,9 @@ export default function AddSubject() {
                           : "Enter unique subject code (e.g., CS301-DSA)"
                       }
                     >
-                      <div style={{ position: "relative" }}>
+                      <div
+                      className="subject-code-input-wrap"
+                      style={{ position: "relative" }}>
                         <input
                           type="text"
                           name="code"
@@ -1208,6 +1217,7 @@ export default function AddSubject() {
                       </div>
 
                       <div
+                       className="security-note"
                         style={{
                           marginTop: "0.75rem",
                           padding: "0.75rem",
@@ -1621,6 +1631,730 @@ export default function AddSubject() {
               transition-duration: 0.01ms !important;
             }
           }
+/* =========================================================
+   ADD SUBJECT - MOBILE & TABLET
+   DESKTOP DESIGN REMAINS UNCHANGED
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   768px - 1024px
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+
+  .add-subject-page {
+    padding: 1rem !important;
+    overflow-x: hidden !important;
+  }
+
+  .add-subject-page > div {
+    width: 100% !important;
+    max-width: 900px !important;
+    margin: 0 auto !important;
+  }
+
+
+  /* ================= BREADCRUMB ================= */
+
+  .add-subject-page .breadcrumb {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+
+  /* ================= HERO ================= */
+
+  .add-subject-hero {
+    margin-bottom: 1.25rem !important;
+    border-radius: 18px !important;
+  }
+
+  .add-subject-hero > div:first-child {
+    padding: 1.4rem 1.5rem !important;
+    gap: 1rem !important;
+  }
+
+  .add-subject-hero > div:first-child > div:first-child {
+    gap: 1rem !important;
+  }
+
+  .add-subject-hero h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .add-subject-hero p {
+    font-size: 0.95rem !important;
+    line-height: 1.45 !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .add-subject-hero > div:first-child
+  > div:first-child
+  > div:first-child {
+    width: 64px !important;
+    height: 64px !important;
+    min-width: 64px !important;
+    border-radius: 16px !important;
+    font-size: 2rem !important;
+  }
+
+
+  /* ================= WORKFLOW ================= */
+
+  .add-subject-workflow {
+    padding: 0.9rem 1.25rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .add-subject-workflow > div {
+    font-size: 0.85rem !important;
+    line-height: 1.45 !important;
+  }
+
+
+  /* ================= FORM CARDS ================= */
+
+  .add-subject-page form > .row {
+    --bs-gutter-y: 1rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div {
+    border-radius: 16px !important;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.07) !important;
+  }
+
+
+  /* Card header */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child {
+    padding: 1.1rem 1.25rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child > div {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    border-radius: 10px !important;
+    font-size: 1.2rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child h2 {
+    font-size: 1.15rem !important;
+  }
+
+
+  /* Card body */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:last-child {
+    padding: 1.25rem !important;
+  }
+
+
+  /* Inputs */
+
+  .add-subject-page .form-control {
+    min-height: 46px !important;
+    font-size: 0.9rem !important;
+    border-radius: 10px !important;
+  }
+
+
+  /* ================= CODE GENERATION ================= */
+
+  .code-generation-method {
+    padding: 1rem !important;
+    border-radius: 14px !important;
+  }
+
+  .code-generation-options {
+    gap: 0.75rem !important;
+  }
+
+  .code-mode-option {
+    min-width: 0 !important;
+    padding: 0.85rem !important;
+    border-radius: 11px !important;
+  }
+
+  .code-mode-option > div:last-child {
+    min-width: 0 !important;
+  }
+
+  .code-mode-option > div:last-child > div:last-child {
+    font-size: 0.78rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .generated-code-preview {
+    padding: 0.85rem !important;
+  }
+
+  .subject-code-input-wrap input {
+    padding-right: 75px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0 - 767px
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+  .add-subject-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.55rem !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .add-subject-page > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+
+  /* =====================================================
+     BREADCRUMB
+     ===================================================== */
+
+  .add-subject-page .breadcrumb {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 42px !important;
+    border-radius: 10px !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    scrollbar-width: none !important;
+    font-size: 0.75rem !important;
+  }
+
+  .add-subject-page .breadcrumb::-webkit-scrollbar {
+    display: none !important;
+  }
+
+
+  /* =====================================================
+     HERO
+     ===================================================== */
+
+  .add-subject-hero {
+    width: 100% !important;
+    margin-bottom: 0.75rem !important;
+    border-radius: 14px !important;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.09) !important;
+  }
+
+
+  /* Blue hero */
+
+  .add-subject-hero > div:first-child {
+    padding: 1rem !important;
+    gap: 0.7rem !important;
+    flex-wrap: nowrap !important;
+  }
+
+
+  /* Hero inner */
+
+  .add-subject-hero > div:first-child > div:first-child {
+    width: 100% !important;
+    gap: 0.7rem !important;
+    align-items: center !important;
+  }
+
+
+  /* Hero icon */
+
+  .add-subject-hero > div:first-child
+  > div:first-child
+  > div:first-child {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    border-radius: 12px !important;
+    font-size: 1.45rem !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+
+  /* Hero content */
+
+  .add-subject-hero > div:first-child
+  > div:first-child
+  > div:last-child {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+
+  /* Hero title */
+
+  .add-subject-hero h1 {
+    margin: 0 !important;
+    font-size: 1.25rem !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+  }
+
+
+  /* Hero description */
+
+  .add-subject-hero p {
+    margin: 0.25rem 0 0 !important;
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+  }
+
+
+  /* =====================================================
+     WORKFLOW
+     ===================================================== */
+
+  .add-subject-workflow {
+    padding: 0.7rem 0.85rem !important;
+    gap: 0.55rem !important;
+    align-items: flex-start !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .add-subject-workflow svg {
+    flex-shrink: 0 !important;
+    font-size: 1rem !important;
+    margin-top: 2px !important;
+  }
+
+  .add-subject-workflow > div {
+    min-width: 0 !important;
+    font-size: 0.72rem !important;
+    line-height: 1.4 !important;
+  }
+
+
+  /* =====================================================
+     FORM
+     ===================================================== */
+
+  .add-subject-page form {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .add-subject-page form > .row {
+    width: 100% !important;
+    margin: 0 !important;
+    --bs-gutter-x: 0 !important;
+    --bs-gutter-y: 0.7rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    padding: 0 !important;
+    margin-bottom: 0.7rem !important;
+  }
+
+
+  /* =====================================================
+     FORM CARDS
+     ===================================================== */
+
+  .add-subject-page form > .row > [class*="col-"] > div {
+    width: 100% !important;
+    border-radius: 13px !important;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.055) !important;
+    overflow: hidden !important;
+  }
+
+
+  /* =====================================================
+     CARD HEADERS
+     ===================================================== */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child {
+    min-height: 50px !important;
+    padding: 0.75rem 0.85rem !important;
+    gap: 0.65rem !important;
+  }
+
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child > div {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 9px !important;
+    font-size: 1rem !important;
+  }
+
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child h2 {
+    font-size: 0.95rem !important;
+    line-height: 1.25 !important;
+  }
+
+
+  /* =====================================================
+     CARD BODY
+     ===================================================== */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:last-child {
+    padding: 0.9rem !important;
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     LABELS
+     ===================================================== */
+
+  .add-subject-page label {
+    margin-bottom: 0.45rem !important;
+    font-size: 0.82rem !important;
+    gap: 0.45rem !important;
+  }
+
+  .add-subject-page label span {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    border-radius: 7px !important;
+    font-size: 0.8rem !important;
+  }
+
+
+  /* =====================================================
+     INPUTS / SELECTS
+     ===================================================== */
+
+  .add-subject-page .form-control {
+    width: 100% !important;
+    min-height: 43px !important;
+    padding: 0.62rem 0.75rem !important;
+    font-size: 0.82rem !important;
+    border-radius: 9px !important;
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     CODE GENERATION METHOD
+     ===================================================== */
+
+  .code-generation-method {
+    padding: 0.8rem !important;
+    margin-bottom: 0.9rem !important;
+    border-radius: 12px !important;
+  }
+
+
+  .code-generation-method h4 {
+    margin-bottom: 0.65rem !important;
+    font-size: 0.88rem !important;
+  }
+
+
+  /* Auto + Manual */
+
+  .code-generation-options {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.55rem !important;
+  }
+
+
+  .code-mode-option {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+
+    padding: 0.7rem 0.75rem !important;
+
+    border-radius: 10px !important;
+
+    box-sizing: border-box !important;
+
+    gap: 0.65rem !important;
+  }
+
+
+  /* Radio */
+
+  .code-mode-option > div:first-child {
+    width: 21px !important;
+    height: 21px !important;
+    min-width: 21px !important;
+  }
+
+
+  /* Text */
+
+  .code-mode-option > div:last-child {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+
+  .code-mode-option > div:last-child > div:first-child {
+    font-size: 0.84rem !important;
+    line-height: 1.25 !important;
+  }
+
+
+  .code-mode-option > div:last-child > div:last-child {
+    margin-top: 0.15rem !important;
+    font-size: 0.7rem !important;
+    line-height: 1.35 !important;
+  }
+
+
+  /* =====================================================
+     GENERATED CODE PREVIEW
+     ===================================================== */
+
+  .generated-code-preview {
+    margin-top: 0.7rem !important;
+    padding: 0.7rem !important;
+
+    display: flex !important;
+    align-items: flex-start !important;
+
+    gap: 0.55rem !important;
+
+    border-radius: 9px !important;
+
+    overflow: hidden !important;
+  }
+
+  .generated-code-preview > div {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+
+  .generated-code-preview [style*="fontSize"] {
+    font-size: 0.85rem !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+
+  /* =====================================================
+     SUBJECT CODE INPUT
+     ===================================================== */
+
+  .subject-code-input-wrap {
+    width: 100% !important;
+    position: relative !important;
+  }
+
+
+  .subject-code-input-wrap input {
+    width: 100% !important;
+
+    padding-right: 4.5rem !important;
+
+    font-size: 0.8rem !important;
+
+    text-overflow: ellipsis !important;
+
+    white-space: nowrap !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /* AUTO badge */
+
+  .subject-code-input-wrap > div {
+    right: 10px !important;
+
+    font-size: 0.68rem !important;
+
+    gap: 0.2rem !important;
+
+    white-space: nowrap !important;
+  }
+
+  .subject-code-input-wrap > div svg {
+    font-size: 0.7rem !important;
+  }
+
+
+  /* =====================================================
+     SECURITY NOTE
+     ===================================================== */
+
+  .security-note {
+    margin-top: 0.6rem !important;
+
+    padding: 0.65rem !important;
+
+    font-size: 0.7rem !important;
+
+    line-height: 1.4 !important;
+
+    border-radius: 8px !important;
+  }
+
+
+  /* =====================================================
+     SUBMIT BUTTONS
+     ===================================================== */
+
+  .add-subject-page form > div:last-child {
+    width: 100% !important;
+
+    margin-top: 0.4rem !important;
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    gap: 0.5rem !important;
+  }
+
+  .add-subject-page form > div:last-child button {
+    width: 100% !important;
+
+    min-height: 44px !important;
+
+    padding: 0.65rem 1rem !important;
+
+    border-radius: 10px !important;
+
+    font-size: 0.84rem !important;
+
+    justify-content: center !important;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   <= 400px
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .add-subject-page {
+    padding: 0.45rem !important;
+  }
+
+
+  /* Hero */
+
+  .add-subject-hero > div:first-child {
+    padding: 0.85rem !important;
+  }
+
+  .add-subject-hero > div:first-child
+  > div:first-child {
+    gap: 0.6rem !important;
+  }
+
+  .add-subject-hero > div:first-child
+  > div:first-child
+  > div:first-child {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    font-size: 1.3rem !important;
+  }
+
+  .add-subject-hero h1 {
+    font-size: 1.12rem !important;
+  }
+
+  .add-subject-hero p {
+    font-size: 0.68rem !important;
+  }
+
+
+  /* Workflow */
+
+  .add-subject-workflow {
+    padding: 0.6rem 0.7rem !important;
+  }
+
+  .add-subject-workflow > div {
+    font-size: 0.68rem !important;
+  }
+
+
+  /* Card */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child {
+    padding: 0.7rem 0.75rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child > div {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child h2 {
+    font-size: 0.9rem !important;
+  }
+
+
+  /* Code options */
+
+  .code-generation-method {
+    padding: 0.7rem !important;
+  }
+
+  .code-mode-option {
+    padding: 0.65rem !important;
+  }
+
+  .code-mode-option > div:last-child > div:first-child {
+    font-size: 0.8rem !important;
+  }
+
+  .code-mode-option > div:last-child > div:last-child {
+    font-size: 0.67rem !important;
+  }
+
+
+  /* Subject code */
+
+  .subject-code-input-wrap input {
+    padding-right: 4rem !important;
+    font-size: 0.76rem !important;
+  }
+
+  .subject-code-input-wrap > div {
+    right: 8px !important;
+    font-size: 0.62rem !important;
+  }
+
+
+  /* Security */
+
+  .security-note {
+    font-size: 0.67rem !important;
+  }
+}
         `}</style>
       </motion.div>
     </AnimatePresence>
