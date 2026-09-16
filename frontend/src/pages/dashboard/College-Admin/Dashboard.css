@@ -1475,3 +1475,586 @@
 }
 
 
+/* =========================================================
+   CREATE STAFF ACCOUNT - RESPONSIVE
+   MOBILE + TABLET ONLY
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   768px - 1199px
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+
+  /* Use more available width */
+  .dashboard-container-inner {
+    width: 100%;
+    padding: 0.75rem 0.9rem;
+    box-sizing: border-box;
+  }
+
+  /* Breadcrumb */
+  .dashboard-container-inner > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 48px;
+    margin: 4px auto 0.9rem !important;
+    padding-top: 0 !important;
+  }
+
+
+  /* =====================================================
+     HEADER / HERO
+     ===================================================== */
+
+  .dashboard-header {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .dashboard-header-hero {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 1.1rem 1.2rem;
+    border-radius: 14px;
+  }
+
+  .header-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+
+    border-radius: 11px;
+  }
+
+  .header-title {
+    font-size: 1.5rem;
+    line-height: 1.2;
+    margin-bottom: 0.3rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    max-width: 500px;
+  }
+
+  /* Staff List button */
+  .dashboard-header-hero .btn-profile {
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+
+    font-size: 0.88rem;
+
+    white-space: nowrap;
+  }
+
+
+  /* =====================================================
+     FORM GRID
+     ===================================================== */
+
+  form .row.g-3.g-md-4 {
+    --bs-gutter-x: 0.85rem;
+    --bs-gutter-y: 0.85rem;
+  }
+
+
+  /* =====================================================
+     SECTION CARDS
+     ===================================================== */
+
+  .section-card {
+    width: 100%;
+    border-radius: 13px;
+    box-sizing: border-box;
+  }
+
+  .section-card-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .section-card-title {
+    font-size: 1.05rem;
+  }
+
+  .section-card-subtitle {
+    font-size: 0.78rem;
+  }
+
+  .section-card-body {
+    padding: 1rem;
+  }
+
+
+  /* =====================================================
+     FORM FIELDS
+     ===================================================== */
+
+  .form-label {
+    font-size: 0.88rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .form-control,
+  .form-select {
+    width: 100%;
+    min-height: 43px;
+    box-sizing: border-box;
+
+    font-size: 0.88rem;
+  }
+
+  textarea.form-control {
+    min-height: 85px;
+  }
+
+
+  /* =====================================================
+     BOTTOM BUTTONS
+     ===================================================== */
+
+  form > .row > .col-12:last-child > div {
+    width: 100%;
+
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+
+    gap: 0.7rem !important;
+  }
+
+  form > .row > .col-12:last-child .dashboard-btn {
+    min-height: 44px;
+  }
+
+  form > .row > .col-12:last-child .btn-outline {
+    min-width: 120px;
+  }
+
+  form > .row > .col-12:last-child button[type="submit"] {
+    min-width: 170px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   <= 767px
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+
+  /* =====================================================
+     PAGE WIDTH
+     ===================================================== */
+
+  .dashboard-container-inner {
+    width: 100%;
+    max-width: 100%;
+
+    padding: 0.45rem 0.5rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     BREADCRUMB
+     ===================================================== */
+
+  .dashboard-container-inner > div:first-child {
+    width: 100% !important;
+
+    height: auto !important;
+    min-height: 40px;
+
+    margin: 0 auto 0.65rem !important;
+    padding-top: 0 !important;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    scrollbar-width: none;
+  }
+
+  .dashboard-container-inner > div:first-child::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* =====================================================
+     HERO
+     ===================================================== */
+
+  .dashboard-header {
+    width: 100%;
+    margin-bottom: 0.75rem;
+  }
+
+  .dashboard-header-hero {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 0.85rem;
+    border-radius: 12px;
+  }
+
+  .dashboard-header-hero .row {
+    --bs-gutter-x: 0;
+    --bs-gutter-y: 0.65rem;
+  }
+
+
+  /* Hero content */
+
+  .dashboard-header-hero .d-flex.align-items-center.gap-3 {
+    align-items: flex-start !important;
+    gap: 0.65rem !important;
+  }
+
+
+  /* Hero icon */
+
+  .header-icon-wrapper {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+
+    border-radius: 10px;
+    font-size: 1.15rem;
+  }
+
+
+  /* Hero text */
+
+  .header-title-section {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .header-title {
+    font-size: 1.15rem;
+    line-height: 1.2;
+
+    margin-bottom: 0.25rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.72rem;
+    line-height: 1.35;
+
+    margin-bottom: 0;
+  }
+
+
+  /* =====================================================
+     STAFF LIST BUTTON
+     ===================================================== */
+
+  .dashboard-header-hero .btn-profile {
+    width: 100%;
+
+    min-height: 40px;
+
+    padding: 0.55rem 0.8rem;
+
+    font-size: 0.82rem;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 9px;
+
+    white-space: nowrap;
+  }
+
+
+  /* =====================================================
+     FORM GRID
+     ===================================================== */
+
+  form .row.g-3.g-md-4 {
+    --bs-gutter-x: 0.5rem;
+    --bs-gutter-y: 0.65rem;
+  }
+
+
+  /* =====================================================
+     SECTION CARD
+     ===================================================== */
+
+  .section-card {
+    width: 100%;
+    max-width: 100%;
+
+    box-sizing: border-box;
+
+    border-radius: 11px;
+    overflow: hidden;
+  }
+
+  .section-card-header {
+    padding: 0.7rem 0.75rem;
+  }
+
+  .section-card-title {
+    font-size: 0.92rem;
+    line-height: 1.25;
+  }
+
+  .section-card-subtitle {
+    display: block;
+
+    margin-top: 0.15rem;
+
+    font-size: 0.68rem;
+    line-height: 1.3;
+  }
+
+  .section-card-body {
+    padding: 0.75rem;
+  }
+
+
+  /* =====================================================
+     FORM ROW
+     ===================================================== */
+
+  .section-card-body .row {
+    --bs-gutter-x: 0;
+    --bs-gutter-y: 0.65rem;
+  }
+
+
+  /* =====================================================
+     LABELS
+     ===================================================== */
+
+  .form-group {
+    width: 100%;
+    margin-bottom: 0.1rem;
+  }
+
+  .form-label {
+    font-size: 0.78rem;
+    line-height: 1.2;
+
+    margin-bottom: 0.3rem;
+
+    gap: 0.35rem !important;
+  }
+
+  .form-label span {
+    font-size: 0.8rem !important;
+  }
+
+
+  /* =====================================================
+     INPUTS
+     ===================================================== */
+
+  .form-control,
+  .form-select {
+    width: 100%;
+
+    min-height: 40px;
+    height: 40px;
+
+    box-sizing: border-box;
+
+    padding: 0.5rem 0.65rem;
+
+    font-size: 0.8rem;
+
+    border-radius: 7px;
+  }
+
+  textarea.form-control {
+    height: auto;
+    min-height: 78px;
+  }
+
+
+  /* =====================================================
+     TEACHER SUBJECTS
+     ===================================================== */
+
+  .section-card-body [style*="maxHeight"] {
+    max-height: 180px !important;
+    overflow-y: auto;
+  }
+
+
+  /* =====================================================
+     FILE INPUT
+     ===================================================== */
+
+  input[type="file"].form-control {
+    height: auto;
+    min-height: 40px;
+
+    padding: 0.4rem 0.5rem;
+
+    font-size: 0.72rem;
+  }
+
+
+  /* =====================================================
+     BOTTOM ACTION BUTTONS
+     ===================================================== */
+
+  form > .row > .col-12:last-child {
+    margin-top: 0.15rem;
+  }
+
+  form > .row > .col-12:last-child > div {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: stretch !important;
+
+    gap: 0.5rem !important;
+  }
+
+
+  /* Cancel */
+
+  form > .row > .col-12:last-child .btn-outline {
+    width: 100%;
+
+    min-width: 0 !important;
+    min-height: 42px;
+
+    padding: 0.55rem 0.8rem;
+
+    font-size: 0.82rem;
+
+    justify-content: center;
+  }
+
+
+  /* Create Account */
+
+  form > .row > .col-12:last-child button[type="submit"] {
+    width: 100% !important;
+
+    min-width: 0 !important;
+    min-height: 44px;
+
+    padding: 0.6rem 0.8rem !important;
+
+    font-size: 0.84rem;
+
+    border-radius: 8px !important;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   <= 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  /* Almost full-width content */
+  .dashboard-container-inner {
+    padding: 0.35rem 0.4rem;
+  }
+
+
+  /* Breadcrumb */
+
+  .dashboard-container-inner > div:first-child {
+    margin-bottom: 0.55rem !important;
+  }
+
+
+  /* Hero */
+
+  .dashboard-header-hero {
+    padding: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+  }
+
+  .header-title {
+    font-size: 1.05rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.68rem;
+  }
+
+  .dashboard-header-hero .btn-profile {
+    min-height: 40px;
+    font-size: 0.8rem;
+  }
+
+
+  /* Section cards */
+
+  .section-card {
+    border-radius: 10px;
+  }
+
+  .section-card-header {
+    padding: 0.65rem 0.7rem;
+  }
+
+  .section-card-body {
+    padding: 0.7rem;
+  }
+
+  .section-card-title {
+    font-size: 0.88rem;
+  }
+
+  .section-card-subtitle {
+    font-size: 0.65rem;
+  }
+
+
+  /* Form */
+
+  .form-label {
+    font-size: 0.75rem;
+  }
+
+  .form-control,
+  .form-select {
+    min-height: 39px;
+    height: 39px;
+
+    font-size: 0.78rem;
+  }
+
+  textarea.form-control {
+    min-height: 72px;
+  }
+
+
+  /* Buttons */
+
+  form > .row > .col-12:last-child .btn-outline,
+  form > .row > .col-12:last-child button[type="submit"] {
+    min-height: 42px;
+    font-size: 0.8rem;
+  }
+}
