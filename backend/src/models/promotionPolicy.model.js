@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { DEFAULT_MAX_ALLOWED_KTS } = require("../utils/promotionPolicy.util");
 
 const promotionPolicySchema = new mongoose.Schema(
   {
@@ -15,10 +16,20 @@ const promotionPolicySchema = new mongoose.Schema(
       max: 100,
       default: 75,
     },
+    maxAllowedKTs: {
+      type: Number,
+      required: true,
+      min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "maxAllowedKTs must be a non-negative integer",
+      },
+      default: DEFAULT_MAX_ALLOWED_KTS,
+    },
     scopedSemesters: [
       {
         type: Number,
-      }
+      },
     ],
     effectiveFrom: {
       type: Date,
@@ -29,12 +40,12 @@ const promotionPolicySchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 promotionPolicySchema.index(
   { collegeId: 1, isActive: 1 },
-  { unique: true, partialFilterExpression: { isActive: true } }
+  { unique: true, partialFilterExpression: { isActive: true } },
 );
 
 promotionPolicySchema.pre("save", async function () {
@@ -46,20 +57,23 @@ promotionPolicySchema.pre("save", async function () {
           isActive: true,
           _id: { $ne: this._id },
         },
-        { isActive: false }
+        { isActive: false },
       )
       .exec();
   }
 });
 
 promotionPolicySchema.statics.getActivePolicy = async function (collegeId) {
-  return await this.findOne({
+  const policy = await this.findOne({
     collegeId,
     isActive: true,
   });
+
+  if (policy && policy.maxAllowedKTs === undefined) {
+    policy.maxAllowedKTs = DEFAULT_MAX_ALLOWED_KTS;
+  }
+
+  return policy;
 };
 
-module.exports = mongoose.model(
-  "PromotionPolicy",
-  promotionPolicySchema
-);
+module.exports = mongoose.model("PromotionPolicy", promotionPolicySchema);
