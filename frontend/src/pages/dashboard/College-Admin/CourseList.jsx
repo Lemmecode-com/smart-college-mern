@@ -33,7 +33,7 @@ import {
   FaGraduationCap,
   FaChalkboardTeacher,
   FaUniversity,
-  FaInfoCircle
+  FaInfoCircle,
 } from "react-icons/fa";
 
 /* ================= SUB-COMPONENTS ================= */
@@ -53,25 +53,58 @@ const StatCard = ({ icon: Icon, label, value, color, subValue }) => (
 );
 
 // Course Table Component
-const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, canEdit, canDelete }) => {
+const CourseTable = ({
+  courses,
+  sortConfig,
+  onSort,
+  onEdit,
+  onView,
+  onDelete,
+  canEdit,
+  canDelete,
+}) => {
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) return null;
-    return sortConfig.direction === "asc" ? <FaChevronUp size={10} /> : <FaChevronDown size={10} />;
+    return sortConfig.direction === "asc" ? (
+      <FaChevronUp size={10} />
+    ) : (
+      <FaChevronDown size={10} />
+    );
   };
 
   const getTypeStyles = (type) => {
     const styles = {
-      THEORY: { bg: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', border: 'rgba(59, 130, 246, 0.2)' },
-      PRACTICAL: { bg: 'rgba(249, 115, 22, 0.1)', color: '#F97316', border: 'rgba(249, 115, 22, 0.2)' },
-      BOTH: { bg: 'rgba(139, 92, 246, 0.1)', color: '#8B5CF6', border: 'rgba(139, 92, 246, 0.2)' }
+      THEORY: {
+        bg: "rgba(59, 130, 246, 0.1)",
+        color: "#3B82F6",
+        border: "rgba(59, 130, 246, 0.2)",
+      },
+      PRACTICAL: {
+        bg: "rgba(249, 115, 22, 0.1)",
+        color: "#F97316",
+        border: "rgba(249, 115, 22, 0.2)",
+      },
+      BOTH: {
+        bg: "rgba(139, 92, 246, 0.1)",
+        color: "#8B5CF6",
+        border: "rgba(139, 92, 246, 0.2)",
+      },
     };
     return styles[type?.toUpperCase()] || styles.THEORY;
   };
 
   const getStatusStyles = (status) => {
-    return status === 'ACTIVE'
-      ? { bg: 'rgba(34, 197, 94, 0.1)', color: '#22C55E', border: 'rgba(34, 197, 94, 0.2)' }
-      : { bg: 'rgba(156, 163, 175, 0.1)', color: '#9CA3AF', border: 'rgba(156, 163, 175, 0.2)' };
+    return status === "ACTIVE"
+      ? {
+          bg: "rgba(34, 197, 94, 0.1)",
+          color: "#22C55E",
+          border: "rgba(34, 197, 94, 0.2)",
+        }
+      : {
+          bg: "rgba(156, 163, 175, 0.1)",
+          color: "#9CA3AF",
+          border: "rgba(156, 163, 175, 0.2)",
+        };
   };
 
   return (
@@ -80,51 +113,63 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
         <thead>
           <tr>
             <th className="col-index">Sr.No.</th>
-            <th className="col-course sortable" onClick={() => onSort('name')}>
+            <th className="col-course sortable" onClick={() => onSort("name")}>
               <div className="th-content">
                 <FaGraduationCap className="th-icon" />
                 <span>Course Name</span>
-                {getSortIcon('name')}
+                {getSortIcon("name")}
               </div>
             </th>
-            <th className="col-code sortable" onClick={() => onSort('code')}>
+            <th className="col-code sortable" onClick={() => onSort("code")}>
               <div className="th-content">
                 <span>Code</span>
-                {getSortIcon('code')}
+                {getSortIcon("code")}
               </div>
             </th>
-            <th className="col-type sortable" onClick={() => onSort('type')}>
+            <th className="col-type sortable" onClick={() => onSort("type")}>
               <div className="th-content">
                 <FaChalkboardTeacher className="th-icon" />
                 <span>Type</span>
-                {getSortIcon('type')}
+                {getSortIcon("type")}
               </div>
             </th>
-            <th className="col-status sortable" onClick={() => onSort('status')}>
+            <th
+              className="col-status sortable"
+              onClick={() => onSort("status")}
+            >
               <div className="th-content">
                 <span>Status</span>
-                {getSortIcon('status')}
+                {getSortIcon("status")}
               </div>
             </th>
-            <th className="col-duration sortable" onClick={() => onSort('durationSemesters')}>
+            <th
+              className="col-duration sortable"
+              onClick={() => onSort("durationSemesters")}
+            >
               <div className="th-content">
                 <FaClock className="th-icon" />
                 <span>Duration</span>
-                {getSortIcon('durationSemesters')}
+                {getSortIcon("durationSemesters")}
               </div>
             </th>
-            <th className="col-credits sortable" onClick={() => onSort('credits')}>
+            <th
+              className="col-credits sortable"
+              onClick={() => onSort("credits")}
+            >
               <div className="th-content">
                 <FaAward className="th-icon" />
                 <span>Credits</span>
-                {getSortIcon('credits')}
+                {getSortIcon("credits")}
               </div>
             </th>
-            <th className="col-capacity sortable" onClick={() => onSort('maxStudents')}>
+            <th
+              className="col-capacity sortable"
+              onClick={() => onSort("maxStudents")}
+            >
               <div className="th-content">
                 <FaUsers className="th-icon" />
                 <span>Capacity</span>
-                {getSortIcon('maxStudents')}
+                {getSortIcon("maxStudents")}
               </div>
             </th>
             <th className="col-actions">Actions</th>
@@ -147,7 +192,9 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
                     </div>
                     <div className="course-text">
                       <span className="course-name-text">{course.name}</span>
-                      <span className="course-level">{course.programLevel}</span>
+                      <span className="course-level">
+                        {course.programLevel}
+                      </span>
                     </div>
                   </div>
                 </td>
@@ -160,7 +207,7 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
                     style={{
                       background: typeStyles.bg,
                       color: typeStyles.color,
-                      borderColor: typeStyles.border
+                      borderColor: typeStyles.border,
                     }}
                   >
                     {course.type}
@@ -172,13 +219,14 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
                     style={{
                       background: statusStyles.bg,
                       color: statusStyles.color,
-                      borderColor: statusStyles.border
+                      borderColor: statusStyles.border,
                     }}
                   >
                     <span
                       className="status-dot"
                       style={{
-                        background: course.status === 'ACTIVE' ? '#22C55E' : '#9CA3AF'
+                        background:
+                          course.status === "ACTIVE" ? "#22C55E" : "#9CA3AF",
                       }}
                     />
                     {course.status}
@@ -186,7 +234,9 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
                 </td>
                 <td className="col-duration">
                   <div className="duration-info">
-                    <span className="duration-value">{course.durationSemesters || 'N/A'}</span>
+                    <span className="duration-value">
+                      {course.durationSemesters || "N/A"}
+                    </span>
                     <span className="duration-label">semesters</span>
                   </div>
                 </td>
@@ -204,15 +254,18 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
                           className="capacity-fill"
                           style={{
                             width: `${Math.min((course.maxStudents / 100) * 100, 100)}%`,
-                            background: course.maxStudents >= 80
-                              ? 'linear-gradient(90deg, #22C55E, #16A34A)'
-                              : course.maxStudents >= 50
-                              ? 'linear-gradient(90deg, #F59E0B, #D97706)'
-                              : 'linear-gradient(90deg, #3B82F6, #2563EB)'
+                            background:
+                              course.maxStudents >= 80
+                                ? "linear-gradient(90deg, #22C55E, #16A34A)"
+                                : course.maxStudents >= 50
+                                  ? "linear-gradient(90deg, #F59E0B, #D97706)"
+                                  : "linear-gradient(90deg, #3B82F6, #2563EB)",
                           }}
                         />
                       </div>
-                      <span className="capacity-text">{course.maxStudents}</span>
+                      <span className="capacity-text">
+                        {course.maxStudents}
+                      </span>
                     </div>
                   </div>
                 </td>
@@ -258,7 +311,13 @@ const CourseTable = ({ courses, sortConfig, onSort, onEdit, onView, onDelete, ca
 };
 
 // Delete Modal Component
-const DeleteModal = ({ course, departmentName, onConfirm, onCancel, isDeleting }) => {
+const DeleteModal = ({
+  course,
+  departmentName,
+  onConfirm,
+  onCancel,
+  isDeleting,
+}) => {
   if (!course) return null;
 
   return (
@@ -282,7 +341,8 @@ const DeleteModal = ({ course, departmentName, onConfirm, onCancel, isDeleting }
         <div className="modal-body">
           <h3 className="modal-title">Delete Course</h3>
           <p className="modal-description">
-            Are you sure you want to delete this course? This action cannot be undone.
+            Are you sure you want to delete this course? This action cannot be
+            undone.
           </p>
 
           <div className="course-info-card">
@@ -394,10 +454,7 @@ const EmptyState = ({ hasDepartment, onAddCourse, allowAdd }) => (
         : "Choose a department from the dropdown above to view and manage courses."}
     </p>
     {hasDepartment && allowAdd && (
-      <button
-        className="btn btn-primary btn-lg"
-        onClick={onAddCourse}
-      >
+      <button className="btn btn-primary btn-lg" onClick={onAddCourse}>
         <FaPlus className="btn-icon" />
         <span>Add Your First Course</span>
       </button>
@@ -437,7 +494,10 @@ export default function CourseList() {
   const [departmentsError, setDepartmentsError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
+  const [sortConfig, setSortConfig] = useState({
+    key: "name",
+    direction: "asc",
+  });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState(null);
   const [stats, setStats] = useState({
@@ -445,7 +505,7 @@ export default function CourseList() {
     active: 0,
     inactive: 0,
     avgCredits: 0,
-    totalCapacity: 0
+    totalCapacity: 0,
   });
 
   /* ================= DEBOUNCED SEARCH ================= */
@@ -462,11 +522,15 @@ export default function CourseList() {
 
     const fetchDepartments = async () => {
       try {
-        const res = await api.get("/departments", { signal: abortController.signal });
+        const res = await api.get("/departments", {
+          signal: abortController.signal,
+        });
         setDepartments(res.data);
         setDepartmentsError(null);
       } catch (err) {
-        if (err.name !== 'AbortError') {
+        const isCancelled =
+          err?.name === "AbortError" || err?.code === "ERR_CANCELED";
+        if (!isCancelled) {
           const statusCode = err.response?.status;
           const errorCode = err.response?.data?.code;
           const backendMessage = err.response?.data?.message;
@@ -476,7 +540,7 @@ export default function CourseList() {
             status: statusCode,
             code: errorCode,
             message: backendMessage,
-            url: "/departments"
+            url: "/departments",
           });
 
           setDepartmentsError({
@@ -517,13 +581,14 @@ export default function CourseList() {
       setCoursesError(null);
       try {
         const res = await api.get(`/courses/department/${selectedDepartment}`, {
-          signal: abortController.signal
+          signal: abortController.signal,
         });
-        const coursesData = res.data?.courses || res.data?.data?.courses || res.data || [];
+        const coursesData =
+          res.data?.courses || res.data?.data?.courses || res.data || [];
         setCourses(Array.isArray(coursesData) ? coursesData : []);
         setCoursesError(null);
       } catch (err) {
-        if (err.name !== 'AbortError') {
+        if (err.name !== "AbortError") {
           const statusCode = err.response?.status;
           const errorCode = err.response?.data?.code;
           const backendMessage = err.response?.data?.message;
@@ -533,7 +598,7 @@ export default function CourseList() {
             status: statusCode,
             code: errorCode,
             message: backendMessage,
-            url: `/courses/department/${selectedDepartment}`
+            url: `/courses/department/${selectedDepartment}`,
           });
 
           setCoursesError({
@@ -564,11 +629,17 @@ export default function CourseList() {
   /* ================= STATS CALCULATION ================= */
   const calculateStats = useCallback((courseList) => {
     const total = courseList.length;
-    const active = courseList.filter(c => c.status === "ACTIVE").length;
+    const active = courseList.filter((c) => c.status === "ACTIVE").length;
     const inactive = total - active;
-    const totalCredits = courseList.reduce((sum, c) => sum + (c.credits || 0), 0);
+    const totalCredits = courseList.reduce(
+      (sum, c) => sum + (c.credits || 0),
+      0,
+    );
     const avgCredits = total > 0 ? (totalCredits / total).toFixed(1) : 0;
-    const totalCapacity = courseList.reduce((sum, c) => sum + (c.maxStudents || 0), 0);
+    const totalCapacity = courseList.reduce(
+      (sum, c) => sum + (c.maxStudents || 0),
+      0,
+    );
 
     return { total, active, inactive, avgCredits, totalCapacity };
   }, []);
@@ -579,23 +650,25 @@ export default function CourseList() {
 
   /* ================= SORTING ================= */
   const handleSort = useCallback((key) => {
-    setSortConfig(prev => ({
+    setSortConfig((prev) => ({
       key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc"
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }));
   }, []);
 
   /* ================= FILTERED & SORTED COURSES ================= */
   const filteredCourses = useMemo(() => {
-    let result = courses
-      .filter(course =>
-        course.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        course.code?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-      );
+    let result = courses.filter(
+      (course) =>
+        course.name
+          ?.toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase()) ||
+        course.code?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()),
+    );
 
     result = [...result].sort((a, b) => {
-      const aValue = a[sortConfig.key] || '';
-      const bValue = b[sortConfig.key] || '';
+      const aValue = a[sortConfig.key] || "";
+      const bValue = b[sortConfig.key] || "";
 
       if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
@@ -617,12 +690,12 @@ export default function CourseList() {
     setDeleting(true);
     try {
       await api.delete(`/courses/${courseToDelete._id}`);
-      setCourses(prev => prev.filter(c => c._id !== courseToDelete._id));
+      setCourses((prev) => prev.filter((c) => c._id !== courseToDelete._id));
       setShowDeleteModal(false);
       setCourseToDelete(null);
-      toast.success('Course deleted successfully!');
+      toast.success("Course deleted successfully!");
     } catch (err) {
-      toast.error('Failed to delete course. Please try again.');
+      toast.error("Failed to delete course. Please try again.");
     } finally {
       setDeleting(false);
     }
@@ -631,43 +704,63 @@ export default function CourseList() {
   /* ================= EXPORT HANDLER ================= */
   const handleExport = useCallback(() => {
     if (courses.length === 0) {
-      toast.error('No courses to export.');
+      toast.error("No courses to export.");
       return;
     }
 
-    const headers = ["Name", "Code", "Type", "Status", "Duration (Sem)", "Credits", "Max Students"];
+    const headers = [
+      "Name",
+      "Code",
+      "Type",
+      "Status",
+      "Duration (Sem)",
+      "Credits",
+      "Max Students",
+    ];
     const csvContent = [
       headers.join(","),
-      ...courses.map(course =>
+      ...courses.map((course) =>
         [
           course.name,
           course.code,
           course.type,
           course.status,
-          course.durationSemesters || 'N/A',
+          course.durationSemesters || "N/A",
           course.credits,
-          course.maxStudents
-        ].join(",")
-      )
+          course.maxStudents,
+        ].join(","),
+      ),
     ].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `courses_${selectedDepartment}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `courses_${selectedDepartment}_${new Date().toISOString().split("T")[0]}.csv`,
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    toast.success('Courses exported successfully!');
+    toast.success("Courses exported successfully!");
   }, [courses, selectedDepartment]);
 
   /* ================= NAVIGATION HANDLERS ================= */
-  const handleViewCourse = useCallback((courseId) => navigate(`/courses/view/${courseId}`), [navigate]);
-  const handleEditCourse = useCallback((courseId) => navigate(`/courses/edit/${courseId}`), [navigate]);
-  const handleAddCourse = useCallback(() => navigate("/courses/add"), [navigate]);
+  const handleViewCourse = useCallback(
+    (courseId) => navigate(`/courses/view/${courseId}`),
+    [navigate],
+  );
+  const handleEditCourse = useCallback(
+    (courseId) => navigate(`/courses/edit/${courseId}`),
+    [navigate],
+  );
+  const handleAddCourse = useCallback(
+    () => navigate("/courses/add"),
+    [navigate],
+  );
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = useCallback(() => {
@@ -699,20 +792,22 @@ export default function CourseList() {
     return <Loading fullScreen size="lg" text="Loading courses..." />;
   }
 
-  const selectedDeptName = departments.find(d => d._id === selectedDepartment)?.name || "Select Department";
+  const selectedDeptName =
+    departments.find((d) => d._id === selectedDepartment)?.name ||
+    "Select Department";
 
   return (
     <div className="erp-page erp-viewport-min-100">
       {/* BREADCRUMBS */}
-    <div className="course-breadcrumb-wrapper">
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Academics", icon: FaGraduationCap },
-          { label: "Course Management" }
-        ]}
-      />
-    </div>
+      <div className="course-breadcrumb-wrapper">
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard" },
+            { label: "Academics", icon: FaGraduationCap },
+            { label: "Course Management" },
+          ]}
+        />
+      </div>
 
       {/* PAGE HEADER */}
       <div className="page-header">
@@ -722,7 +817,9 @@ export default function CourseList() {
           </div>
           <div className="header-text-content">
             <h1 className="page-title">Course Management</h1>
-            <p className="page-subtitle">Manage academic courses, curriculum, and course offerings</p>
+            <p className="page-subtitle">
+              Manage academic courses, curriculum, and course offerings
+            </p>
           </div>
         </div>
         <div className="header-actions">
@@ -734,7 +831,7 @@ export default function CourseList() {
             <FaArrowLeft className="btn-icon" />
             <span>Back</span>
           </button>
-          {canCreate('courses') && (
+          {canCreate("courses") && (
             <button
               className="btn btn-primary"
               onClick={handleAddCourse}
@@ -795,12 +892,16 @@ export default function CourseList() {
                 </div>
                 <div className="quick-stat-divider" />
                 <div className="quick-stat">
-                  <span className="quick-stat-value active">{stats.active}</span>
+                  <span className="quick-stat-value active">
+                    {stats.active}
+                  </span>
                   <span className="quick-stat-label">Active</span>
                 </div>
                 <div className="quick-stat-divider" />
                 <div className="quick-stat">
-                  <span className="quick-stat-value">{stats.totalCapacity.toLocaleString()}</span>
+                  <span className="quick-stat-value">
+                    {stats.totalCapacity.toLocaleString()}
+                  </span>
                   <span className="quick-stat-label">Capacity</span>
                 </div>
               </div>
@@ -809,7 +910,10 @@ export default function CourseList() {
           {departmentsError && (
             <div className="inline-error-message">
               <FaInfoCircle className="info-icon" />
-              <span>Some departments may not be available. Please try refreshing the page.</span>
+              <span>
+                Some departments may not be available. Please try refreshing the
+                page.
+              </span>
             </div>
           )}
         </div>
@@ -826,7 +930,8 @@ export default function CourseList() {
               <div>
                 <h3 className="card-title">{selectedDeptName} Courses</h3>
                 <span className="card-subtitle">
-                  {stats.total} {stats.total === 1 ? "Course" : "Courses"} available
+                  {stats.total} {stats.total === 1 ? "Course" : "Courses"}{" "}
+                  available
                 </span>
               </div>
             </div>
@@ -900,7 +1005,7 @@ export default function CourseList() {
                 <EmptyState
                   hasDepartment={true}
                   onAddCourse={handleAddCourse}
-                  allowAdd={canCreate('courses')}
+                  allowAdd={canCreate("courses")}
                 />
               ) : (
                 <CourseTable
@@ -910,8 +1015,8 @@ export default function CourseList() {
                   onView={handleViewCourse}
                   onEdit={handleEditCourse}
                   onDelete={handleDeleteClick}
-                  canEdit={canEdit('courses')}
-                  canDelete={canDelete('courses')}
+                  canEdit={canEdit("courses")}
+                  canDelete={canDelete("courses")}
                 />
               )}
             </div>

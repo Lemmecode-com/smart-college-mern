@@ -676,7 +676,6 @@ export default function CreateExam() {
       />
 
       <div className="create-exam-page-header">
-        <h1 className="create-exam-title">Create Exam</h1>
         <p className="create-exam-subtitle">
           Set exam details, select subjects, and configure the subject-wise
           timetable.
