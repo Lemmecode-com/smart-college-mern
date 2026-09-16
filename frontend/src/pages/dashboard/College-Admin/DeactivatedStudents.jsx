@@ -339,6 +339,284 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
         .erp-pagination { display: flex; align-items: center; justify-content: center; padding: 1.5rem; gap: 0.5rem; }
         .page-btn { padding: 0.5rem 1rem; border: 1px solid #e2e8f0; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; }
         .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ================= RESPONSIVE - TABLET ================= */
+
+@media (min-width: 576px) and (max-width: 991px) {
+  .erp-container {
+    padding: 1.1rem;
+  }
+
+  /* Banner */
+  .erp-page-header {
+    padding: 1.5rem 1.6rem;
+    min-height: 150px;
+    border-radius: 15px;
+    margin-bottom: 1.2rem;
+  }
+
+  .erp-header-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 13px;
+    font-size: 1.5rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.5rem;
+    line-height: 1.25;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-width: 500px;
+  }
+
+  /* Stats */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .stat-card {
+    padding: 1.1rem 1.3rem;
+    border-radius: 14px;
+  }
+
+  .stat-card-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
+  }
+
+  .stat-card-value {
+    font-size: 1.8rem;
+  }
+
+  /* Search */
+  .controls-container {
+    padding: 1.1rem 1.3rem;
+  }
+
+  .search-box {
+    max-width: 100%;
+  }
+
+  .search-box input {
+    height: 48px;
+    font-size: 0.9rem;
+  }
+
+  /* Records card */
+  .erp-card-header {
+    padding: 1.2rem 1.3rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.15rem;
+  }
+
+  .erp-table th {
+    padding: 13px 14px;
+    font-size: 11px;
+  }
+
+  .erp-table td {
+    padding: 14px;
+  }
+}
+
+
+/* ================= RESPONSIVE - MOBILE ================= */
+
+@media (max-width: 575px) {
+  .erp-container {
+    padding: 0.75rem;
+  }
+
+  /* ---------- BANNER ---------- */
+
+  .erp-page-header {
+    padding: 1.25rem;
+    min-height: 0;
+    border-radius: 15px;
+    margin-bottom: 1rem;
+    gap: 0.85rem;
+    align-items: flex-start;
+  }
+
+  .erp-header-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    font-size: 1.35rem;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+  }
+
+  .erp-page-title {
+    font-size: 1.3rem;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    margin-top: 0.4rem;
+  }
+
+
+  /* ---------- STATS ---------- */
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    padding: 1rem 1.1rem;
+    min-height: 82px;
+    border-radius: 13px;
+    gap: 0.9rem;
+  }
+
+  .stat-card-icon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    border-radius: 12px;
+    font-size: 1.25rem;
+  }
+
+  .stat-card-label {
+    font-size: 0.85rem;
+  }
+
+  .stat-card-value {
+    font-size: 1.7rem;
+    line-height: 1.1;
+  }
+
+
+  /* ---------- SEARCH ---------- */
+
+  .erp-card {
+    border-radius: 14px;
+    margin-bottom: 1rem;
+  }
+
+  .controls-container {
+    padding: 1rem;
+  }
+
+  .search-box {
+    width: 100%;
+    max-width: none;
+  }
+
+  .search-icon {
+    left: 0.9rem;
+    font-size: 1rem;
+  }
+
+  .search-box input {
+    width: 100%;
+    height: 48px;
+    padding: 0.7rem 0.8rem 0.7rem 2.5rem;
+    font-size: 0.84rem;
+    border-radius: 10px;
+  }
+
+
+  /* ---------- RECORDS HEADER ---------- */
+
+  .erp-card-header {
+    padding: 1rem;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1rem;
+    line-height: 1.3;
+    gap: 0.5rem;
+  }
+
+  .erp-card-icon {
+    flex-shrink: 0;
+  }
+
+  .record-count {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+
+  /* ---------- MOBILE TABLE ---------- */
+
+  .erp-card-body {
+    overflow: hidden;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .erp-table {
+    min-width: 650px;
+  }
+
+  .erp-table th {
+    padding: 12px 14px;
+    font-size: 10.5px;
+  }
+
+  .erp-table td {
+    padding: 13px 14px;
+    font-size: 0.85rem;
+  }
+
+  .student-name-cell {
+    font-size: 0.86rem;
+  }
+
+  .student-email {
+    font-size: 11.5px;
+  }
+
+  .badge {
+    padding: 6px 10px;
+    font-size: 10.5px;
+  }
+
+  .btn {
+    padding: 8px 11px;
+    font-size: 11.5px;
+  }
+
+
+  /* ---------- PAGINATION ---------- */
+
+  .erp-pagination {
+    padding: 1rem 0.75rem;
+    flex-wrap: wrap;
+    font-size: 0.82rem;
+  }
+
+  .page-btn {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
       `}</style>
     </div>
   );

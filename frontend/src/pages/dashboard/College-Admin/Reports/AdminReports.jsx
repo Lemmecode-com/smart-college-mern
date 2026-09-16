@@ -1551,135 +1551,862 @@ export default function AdminReports() {
           animation: fadeIn 0.6s ease;
         }
 
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          }
+/* ================= RESPONSIVE DESIGN ================= */
 
-          .header-actions {
-            flex-direction: column;
-            width: 100%;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+/* =========================================================
+   TABLET VIEW
+   769px - 1024px
+   ========================================================= */
 
-          .export-actions-group {
-            width: 100%;
-            justify-content: flex-start;
-          }
+@media (min-width: 769px) and (max-width: 1024px) {
 
-          .export-buttons {
-            flex-wrap: wrap;
-          }
+  .erp-container {
+    padding: 1.25rem;
+  }
 
-          .erp-header-actions {
-            flex-direction: column;
-            width: 100%;
-          }
 
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
+  /* ================= PAGE HEADER ================= */
 
-          .info-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
+  .erp-page-header {
+    padding: 1.4rem;
+    gap: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
 
-          .overview-footer {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-          }
-        }
+  .erp-header-content {
+    gap: 1rem;
+    min-width: 0;
+  }
 
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
+  .header-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    font-size: 1.7rem;
+  }
 
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+  .dashboard-title {
+    font-size: 1.65rem;
+    line-height: 1.25;
+  }
 
-          .header-actions {
-            width: 100%;
-            flex-direction: column;
-            align-items: stretch;
-          }
+  .dashboard-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
 
-          .export-actions-group {
-            width: 100%;
-            justify-content: center;
-          }
 
-          .export-buttons {
-            justify-content: center;
-            gap: 0.5rem;
-          }
+  /* ================= EXPORT BUTTONS ================= */
 
-          .btn-export {
-            min-width: 90px;
-            padding: 0.5rem 1rem;
-            font-size: var(--font-size-xs);
-          }
+  .header-actions {
+    width: auto;
+    flex-shrink: 0;
+  }
 
-          .erp-header-actions {
-            width: 100%;
-            flex-direction: row;
-          }
+  .export-actions-group {
+    width: auto;
+  }
 
-          .erp-header-actions .erp-btn {
-            flex: 1;
-            justify-content: center;
-          }
+  .export-buttons {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
 
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
+  .btn-export {
+    min-width: 90px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.82rem;
+  }
 
-          .footer-note {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
 
-          .refresh-btn {
-            align-self: center;
-          }
+  /* ================= INFO BANNER ================= */
 
-          .status-overview {
-            gap: 0.75rem;
-          }
-        }
+  .info-banner {
+    padding: 0.9rem 1.15rem;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
 
-        @media (max-width: 480px) {
-          .stat-value {
-            font-size: 1.75rem;
-          }
+  .info-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
 
-          .erp-card-header h3 {
-            font-size: 1.25rem;
-          }
+  .info-content {
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
 
-          .metric-value {
-            font-size: 1.25rem;
-          }
 
-          .erp-page-title {
-            font-size: 1.5rem;
-          }
+  /* =========================================================
+     STATISTICS
+     ========================================================= */
 
-          .status-count {
-            font-size: 1.5rem;
-          }
-        }
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-card {
+    width: 100%;
+    height: auto;
+    min-height: 125px;
+
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+
+    border-radius: 15px;
+    overflow: hidden;
+  }
+
+
+  /* Left side */
+  .stat-card-header {
+    padding: 1rem;
+    border-bottom: none !important;
+
+    display: flex;
+    align-items: center;
+
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .stat-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+
+    border-radius: 12px;
+    font-size: 1.35rem;
+  }
+
+  .stat-title {
+    font-size: 0.92rem;
+    line-height: 1.25;
+
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+
+  /* Right side */
+  .stat-card-body {
+    padding: 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+
+    min-width: 110px;
+    text-align: right;
+
+    border-top: none !important;
+  }
+
+  .stat-value {
+    font-size: 1.9rem;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .stat-trend {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 0.3rem;
+
+    font-size: 0.72rem;
+    line-height: 1.2;
+
+    white-space: nowrap;
+  }
+
+  .trend-icon {
+    font-size: 0.75rem;
+  }
+
+
+  /* ================= ERP CARDS ================= */
+
+  .erp-card {
+    margin-bottom: 1.25rem;
+    border-radius: 15px;
+  }
+
+  .erp-card-header {
+    padding: 1.2rem 1.35rem;
+  }
+
+  .erp-card-body {
+    padding: 1.25rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.2rem;
+  }
+
+
+  /* ================= METRICS ================= */
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .metric-item {
+    padding: 1rem;
+  }
+
+
+  /* ================= STATUS ================= */
+
+  .status-overview {
+    gap: 0.9rem;
+  }
+
+  .overview-footer {
+    gap: 1rem;
+  }
+}
+
+
+/* =========================================================
+   MOBILE VIEW
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .erp-container {
+    padding: 0.75rem;
+  }
+
+
+  /* ================= PAGE HEADER ================= */
+
+  .erp-page-header {
+    padding: 1rem;
+    border-radius: 14px;
+    margin-bottom: 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+  }
+
+  .erp-header-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+
+    font-size: 1.35rem;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .dashboard-title {
+    font-size: 1.25rem;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.4;
+    margin-top: 0.3rem;
+  }
+
+
+  /* ================= EXPORT BUTTONS ================= */
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .export-actions-group {
+    width: 100%;
+  }
+
+  .export-buttons {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+    gap: 0.6rem;
+  }
+
+  .btn-export {
+    flex: 1;
+    min-width: 0;
+
+    padding: 0.65rem 0.7rem;
+    min-height: 42px;
+
+    font-size: 0.8rem;
+  }
+
+
+  /* ================= INFO BANNER ================= */
+
+  .info-banner {
+    padding: 0.85rem 0.9rem;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    text-align: left;
+
+    border-radius: 11px;
+  }
+
+  .info-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  .info-content {
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+
+  /* =========================================================
+     STATISTICS BLOCK
+     ========================================================= */
+
+  .stats-grid {
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.8rem;
+
+    margin-bottom: 1rem;
+  }
+
+
+  /* ================= STAT CARD ================= */
+
+  .stat-card {
+    width: 100% !important;
+    height: auto !important;
+
+    min-height: 118px;
+
+    display: grid !important;
+
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    align-items: center;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-sizing: border-box;
+
+    box-shadow:
+      0 3px 12px rgba(20, 27, 41, 0.07);
+  }
+
+
+  /* ================= CARD LEFT ================= */
+
+  .stat-card-header {
+    width: auto !important;
+
+    padding: 0.9rem 0.95rem !important;
+
+    display: flex !important;
+
+    flex-direction: row !important;
+
+    align-items: center !important;
+
+    gap: 0.7rem;
+
+    min-width: 0;
+
+    border-bottom: none !important;
+
+    box-sizing: border-box;
+  }
+
+
+  /* Icon */
+
+  .stat-icon-wrapper {
+    width: 46px !important;
+    height: 46px !important;
+
+    min-width: 46px !important;
+
+    border-radius: 12px;
+
+    font-size: 1.25rem;
+
+    flex-shrink: 0;
+  }
+
+
+  /* Title */
+
+  .stat-title {
+    font-size: 0.9rem;
+
+    line-height: 1.25;
+
+    font-weight: 600;
+
+    min-width: 0;
+
+    overflow-wrap: anywhere;
+  }
+
+
+  /* ================= CARD RIGHT ================= */
+
+  .stat-card-body {
+    width: auto !important;
+
+    padding: 0.9rem 0.95rem !important;
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    align-items: flex-end !important;
+
+    justify-content: center !important;
+
+    text-align: right;
+
+    min-width: 105px;
+
+    border-top: none !important;
+
+    box-sizing: border-box;
+  }
+
+
+  /* Number */
+
+  .stat-value {
+    font-size: 1.85rem;
+
+    line-height: 1;
+
+    font-weight: 700;
+
+    margin: 0 0 0.35rem 0;
+  }
+
+
+  /* Rate */
+
+  .stat-trend {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 0.3rem;
+
+    font-size: 0.7rem;
+
+    line-height: 1.2;
+
+    white-space: nowrap;
+  }
+
+  .trend-icon {
+    font-size: 0.72rem;
+  }
+
+
+  /* =========================================================
+     DETAILED METRICS
+     ========================================================= */
+
+  .erp-card {
+    border-radius: 14px;
+    margin-bottom: 1rem;
+  }
+
+  .erp-card-header {
+    padding: 1rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.05rem;
+    line-height: 1.3;
+
+    gap: 0.6rem;
+  }
+
+  .erp-card-icon {
+    font-size: 1rem;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+
+  /* ================= METRICS ================= */
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .metric-item {
+    padding: 0.9rem;
+    gap: 0.75rem;
+
+    border-radius: 10px;
+  }
+
+  .metric-icon {
+    width: 40px;
+    height: 40px;
+
+    min-width: 40px;
+
+    font-size: 1.1rem;
+  }
+
+  .metric-label {
+    font-size: 0.78rem;
+  }
+
+  .metric-value {
+    font-size: 1.3rem;
+  }
+
+  .metric-description {
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+
+
+  /* =========================================================
+     STATUS OVERVIEW
+     ========================================================= */
+
+  .status-overview {
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .status-item {
+    gap: 0.75rem;
+    padding: 0.8rem;
+  }
+
+  .status-icon {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    font-size: 1.1rem;
+  }
+
+  .status-count {
+    font-size: 1.45rem;
+  }
+
+  .status-label {
+    font-size: 0.78rem;
+  }
+
+
+  /* ================= OVERVIEW FOOTER ================= */
+
+  .overview-footer {
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 0.7rem;
+  }
+
+  .overview-note {
+    font-size: 0.78rem;
+  }
+
+  .overview-legend {
+    width: 100%;
+
+    justify-content: flex-start;
+
+    flex-wrap: wrap;
+
+    gap: 0.8rem;
+  }
+
+  .legend-item {
+    font-size: 0.76rem;
+  }
+
+
+  /* ================= FOOTER NOTE ================= */
+
+  .footer-note {
+    padding: 0.8rem 0.9rem;
+
+    flex-direction: row;
+    align-items: center;
+
+    gap: 0.65rem;
+
+    font-size: 0.78rem;
+
+    text-align: left;
+  }
+
+  .refresh-btn {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .erp-container {
+    padding: 0.6rem;
+  }
+
+
+  /* ================= HEADER ================= */
+
+  .erp-page-header {
+    padding: 0.85rem;
+    border-radius: 12px;
+  }
+
+  .erp-header-content {
+    gap: 0.65rem;
+  }
+
+  .header-icon-wrapper {
+    width: 42px;
+    height: 42px;
+
+    min-width: 42px;
+
+    font-size: 1.15rem;
+  }
+
+  .dashboard-title {
+    font-size: 1.12rem;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.72rem;
+  }
+
+
+  /* ================= EXPORT ================= */
+
+  .export-buttons {
+    gap: 0.5rem;
+  }
+
+  .btn-export {
+    padding: 0.6rem 0.5rem;
+
+    font-size: 0.76rem;
+
+    min-height: 40px;
+  }
+
+
+  /* ================= INFO ================= */
+
+  .info-banner {
+    padding: 0.75rem;
+  }
+
+  .info-icon {
+    width: 32px;
+    height: 32px;
+
+    min-width: 32px;
+  }
+
+  .info-content {
+    font-size: 0.74rem;
+  }
+
+
+  /* =====================================================
+     STAT CARDS
+     ===================================================== */
+
+  .stats-grid {
+    gap: 0.7rem;
+  }
+
+  .stat-card {
+    min-height: 105px;
+
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+
+  /* Left */
+
+  .stat-card-header {
+    padding: 0.75rem !important;
+
+    gap: 0.6rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 40px !important;
+    height: 40px !important;
+
+    min-width: 40px !important;
+
+    border-radius: 10px;
+
+    font-size: 1.05rem;
+  }
+
+  .stat-title {
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+
+
+  /* Right */
+
+  .stat-card-body {
+    padding: 0.75rem !important;
+
+    min-width: 94px;
+  }
+
+  .stat-value {
+    font-size: 1.55rem;
+  }
+
+  .stat-trend {
+    font-size: 0.65rem;
+
+    gap: 0.25rem;
+  }
+
+  .trend-icon {
+    font-size: 0.68rem;
+  }
+
+
+  /* ================= ERP CARDS ================= */
+
+  .erp-card-header {
+    padding: 0.85rem;
+  }
+
+  .erp-card-body {
+    padding: 0.85rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 0.95rem;
+  }
+
+
+  /* ================= METRICS ================= */
+
+  .metric-item {
+    padding: 0.8rem;
+  }
+
+  .metric-icon {
+    width: 36px;
+    height: 36px;
+
+    min-width: 36px;
+
+    font-size: 1rem;
+  }
+
+  .metric-value {
+    font-size: 1.2rem;
+  }
+
+  .metric-description {
+    font-size: 0.72rem;
+  }
+
+
+  /* ================= STATUS ================= */
+
+  .status-item {
+    padding: 0.7rem;
+  }
+
+  .status-icon {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+  }
+
+  .status-count {
+    font-size: 1.3rem;
+  }
+
+  .status-label {
+    font-size: 0.72rem;
+  }
+
+
+  /* ================= FOOTER ================= */
+
+  .footer-note {
+    font-size: 0.72rem;
+    padding: 0.7rem;
+  }
+}
       `}</style>
     </div>
   );
