@@ -387,7 +387,7 @@ export default function ParentList() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="erp-page-content erp-viewport-min-100"
+        className="erp-page-content erp-viewport-min-100 parent-management-page"
       >
         {/* ================= BREADCRUMB ================= */}
         <div
@@ -411,6 +411,7 @@ export default function ParentList() {
         
         {/* Header Section */}
         <motion.div
+           className="parent-management-header"
           variants={slideDownVariants}
           initial="hidden"
           animate="visible"
@@ -423,8 +424,11 @@ export default function ParentList() {
             borderLeft: `5px solid ${BRAND_COLORS.accent.main}`,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          <div
+            className="parent-management-header-content"
+            style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
             <motion.div
+              className="parent-management-header-icon"
               variants={pulseVariants}
               initial="initial"
               animate="pulse"
@@ -444,7 +448,9 @@ export default function ParentList() {
               <FaUserFriends />
             </motion.div>
             <div>
-              <h1 style={{
+              <h1 
+              className="parent-management-title"
+              style={{
                 margin: 0,
                 fontSize: "1.75rem",
                 fontWeight: "800",
@@ -453,7 +459,9 @@ export default function ParentList() {
               }}>
                 Parent / Guardian Management
               </h1>
-              <p style={{ margin: "4px 0 0 0", fontSize: "0.95rem", color: BRAND_COLORS.text.secondary }}>
+              <p 
+              className="parent-management-subtitle"
+              style={{ margin: "4px 0 0 0", fontSize: "0.95rem", color: BRAND_COLORS.text.secondary }}>
                 Manage parent and guardian accounts linked to students
               </p>
             </div>
@@ -462,13 +470,16 @@ export default function ParentList() {
 
         {/* Filters Section */}
         <motion.div
+          className="parent-management-filters"
           variants={fadeInVariants}
           custom={0}
           initial="hidden"
           animate="visible"
           style={{ marginBottom: "24px" }}
         >
-          <div style={{
+          <div 
+            className="parent-management-filter-grid"
+            style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
             gap: "16px",
@@ -577,16 +588,459 @@ export default function ParentList() {
               Clear Filters
             </motion.button>
           </div>
+               <style>{`
+
+/* =========================================================
+   PARENT / GUARDIAN MANAGEMENT
+   MOBILE + TABLET RESPONSIVE
+   DESKTOP UNCHANGED
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   768px - 1199px
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+
+  .parent-management-page {
+    padding: 1rem !important;
+    box-sizing: border-box;
+  }
+
+  /* Breadcrumb */
+  .parent-management-page > div:first-child {
+    height: auto !important;
+    min-height: 48px !important;
+    margin: 4px auto 14px !important;
+    padding-top: 0 !important;
+  }
+
+
+  /* ================= HEADER ================= */
+
+  .parent-management-header {
+    margin-bottom: 1.25rem !important;
+    padding: 1.4rem !important;
+    border-radius: 14px !important;
+  }
+
+  .parent-management-header-content {
+    gap: 0.9rem !important;
+  }
+
+  .parent-management-header-icon {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    font-size: 1.35rem !important;
+  }
+
+  .parent-management-title {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .parent-management-subtitle {
+    font-size: 0.88rem !important;
+    line-height: 1.4 !important;
+  }
+
+
+  /* ================= FILTERS ================= */
+
+  .parent-management-filters {
+    margin-bottom: 1.15rem !important;
+  }
+
+  .parent-management-filter-grid {
+    grid-template-columns: minmax(0, 1fr) 220px auto !important;
+    gap: 0.75rem !important;
+  }
+
+  .parent-management-filter-grid input,
+  .parent-management-filter-grid select {
+    min-height: 42px !important;
+    font-size: 0.88rem !important;
+  }
+
+  .parent-management-filter-grid button {
+    min-height: 42px !important;
+    padding: 10px 16px !important;
+    white-space: nowrap;
+  }
+
+
+  /* ================= TABLE ================= */
+
+  .parent-management-table-card {
+    padding: 1.15rem !important;
+    border-radius: 14px !important;
+  }
+
+  .parent-management-table-wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .parent-management-table-wrapper table {
+    min-width: 900px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   <= 767px
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+
+  /* ================= PAGE ================= */
+
+  .parent-management-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.5rem !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+
+  /* ================= BREADCRUMB ================= */
+
+  .parent-management-page > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 40px !important;
+
+    margin: 0 auto 0.7rem !important;
+    padding-top: 0 !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    scrollbar-width: none;
+  }
+
+  .parent-management-page > div:first-child::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ================= HEADER ================= */
+
+  .parent-management-header {
+    width: 100% !important;
+    box-sizing: border-box !important;
+
+    margin-bottom: 1rem !important;
+    padding: 1rem !important;
+
+    border-radius: 13px !important;
+  }
+
+  .parent-management-header-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+
+    gap: 0.7rem !important;
+  }
+
+  .parent-management-header-icon {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+
+    border-radius: 10px !important;
+    font-size: 1.25rem !important;
+  }
+
+  .parent-management-title {
+    font-size: 1.35rem !important;
+    line-height: 1.2 !important;
+
+    letter-spacing: -0.02em !important;
+  }
+
+  .parent-management-subtitle {
+    margin-top: 0.3rem !important;
+
+    font-size: 0.82rem !important;
+    line-height: 1.4 !important;
+  }
+
+
+  /* ================= FILTERS ================= */
+
+  .parent-management-filters {
+    width: 100% !important;
+
+    margin-bottom: 1rem !important;
+  }
+
+  .parent-management-filter-grid {
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: 100% !important;
+
+    gap: 0.7rem !important;
+  }
+
+  .parent-management-filter-grid > div {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+
+  /* Search */
+
+  .parent-management-filter-grid input {
+    width: 100% !important;
+    min-height: 44px !important;
+
+    box-sizing: border-box !important;
+
+    padding: 10px 12px 10px 38px !important;
+
+    font-size: 0.85rem !important;
+    border-radius: 9px !important;
+  }
+
+
+  /* Search icon */
+
+  .parent-management-filter-grid input + * {
+    font-size: 0.9rem !important;
+  }
+
+
+  /* Labels */
+
+  .parent-management-filter-grid label {
+    margin-bottom: 5px !important;
+
+    font-size: 0.8rem !important;
+  }
+
+
+  /* Status select */
+
+  .parent-management-filter-grid select {
+    width: 100% !important;
+    min-height: 44px !important;
+
+    box-sizing: border-box !important;
+
+    padding: 10px 12px !important;
+
+    font-size: 0.85rem !important;
+    border-radius: 9px !important;
+  }
+
+
+  /* Clear button */
+
+  .parent-management-filter-grid button {
+    width: 100% !important;
+
+    min-height: 44px !important;
+
+    padding: 10px !important;
+
+    font-size: 0.85rem !important;
+
+    border-radius: 9px !important;
+  }
+
+
+  /* ================= TABLE CARD ================= */
+
+  .parent-management-table-section {
+    width: 100% !important;
+  }
+
+  .parent-management-table-card {
+    width: 100% !important;
+
+    box-sizing: border-box !important;
+
+    padding: 0.85rem !important;
+
+    border-radius: 13px !important;
+  }
+
+
+  /* ================= TABLE HEADER ================= */
+
+  .parent-management-table-card > div:first-child {
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    align-items: flex-start !important;
+
+    gap: 0.55rem !important;
+
+    margin-bottom: 0.9rem !important;
+  }
+
+  .parent-management-table-card h3 {
+    font-size: 1rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .parent-management-table-card h3 svg {
+    font-size: 0.9rem !important;
+  }
+
+
+  /* Showing count */
+
+  .parent-management-table-card > div:first-child > div {
+    font-size: 0.75rem !important;
+
+    padding: 5px 10px !important;
+
+    border-radius: 16px !important;
+  }
+
+
+  /* ================= TABLE ================= */
+
+  .parent-management-table-wrapper {
+    width: 100% !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    -webkit-overflow-scrolling: touch;
+
+    scrollbar-width: thin;
+  }
+
+  .parent-management-table-wrapper table {
+    width: 900px !important;
+    min-width: 900px !important;
+  }
+
+  .parent-management-table-wrapper th {
+    padding: 10px 12px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .parent-management-table-wrapper td {
+    padding: 11px 12px !important;
+  }
+
+
+  /* ================= PAGINATION ================= */
+
+  .parent-management-table-card > div:last-child {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   <= 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .parent-management-page {
+    padding: 0.35rem !important;
+  }
+
+
+  /* Header */
+
+  .parent-management-header {
+    padding: 0.85rem !important;
+    margin-bottom: 0.8rem !important;
+  }
+
+  .parent-management-header-icon {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  .parent-management-title {
+    font-size: 1.2rem !important;
+  }
+
+  .parent-management-subtitle {
+    font-size: 0.76rem !important;
+  }
+
+
+  /* Filters */
+
+  .parent-management-filter-grid {
+    gap: 0.6rem !important;
+  }
+
+  .parent-management-filter-grid input,
+  .parent-management-filter-grid select {
+    min-height: 42px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .parent-management-filter-grid button {
+    min-height: 42px !important;
+    font-size: 0.82rem !important;
+  }
+
+
+  /* Table */
+
+  .parent-management-table-card {
+    padding: 0.7rem !important;
+  }
+
+  .parent-management-table-card h3 {
+    font-size: 0.92rem !important;
+  }
+
+  .parent-management-table-card > div:first-child > div {
+    font-size: 0.7rem !important;
+  }
+
+  .parent-management-table-wrapper table {
+    width: 850px !important;
+    min-width: 850px !important;
+  }
+}
+     `}</style>
+
+
+
+
+
+
+
+
+
         </motion.div>
 
         {/* Table Section */}
         <motion.div
+          className="parent-management-table-section"
           variants={fadeInVariants}
           custom={1}
           initial="hidden"
           animate="visible"
         >
-          <div style={{
+          <div 
+          
+            className="parent-management-table-card"style={{
             backgroundColor: "#f8f9fa",
             borderRadius: "16px",
             padding: "24px",
@@ -633,7 +1087,7 @@ export default function ParentList() {
                 success={false}
               />
             ) : (
-              <div style={{ overflowX: "auto" }}>
+              <div className="parent-management-table-wrapper" style={{ overflowX: "auto" }}>
                 <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 10px" }}>
                   <thead>
                     <tr>
