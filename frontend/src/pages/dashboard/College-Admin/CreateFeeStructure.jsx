@@ -1137,91 +1137,435 @@ export default function CreateFeeStructure() {
           animation: slideIn 0.5s ease;
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-          
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-          
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .erp-form-header,
-          .erp-form {
-            padding: 1.5rem;
-          }
-          
-          .erp-form-footer {
-            flex-direction: column;
-            gap: 1rem;
-            padding: 1.5rem;
-          }
-          
-          .erp-footer-left,
-          .erp-footer-right {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .installment-total-card {
-            flex-direction: column;
-            text-align: center;
-            gap: 1rem;
-          }
-          
-          .installment-total-label,
-          .installment-total-amount {
-            justify-content: center;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .erp-section-title {
-            font-size: 1.1rem;
-          }
-          
-          .erp-label {
-            font-size: 0.9rem;
-          }
-          
-          .erp-input,
-          .erp-select {
-            padding: 0.75rem 1rem;
-            font-size: 0.95rem;
-          }
-          
-          .erp-btn-lg {
-            padding: 0.875rem 1.5rem;
-            font-size: 1rem;
-          }
-          
-          .installment-total-amount {
-            font-size: 1.5rem;
-          }
-          
-          .erp-form-title h3 {
-            font-size: 1.35rem;
-          }
-        }
+/* ================= RESPONSIVE DESIGN ================= */
+
+/* TABLET */
+@media (min-width: 769px) and (max-width: 991px) {
+
+  .erp-container {
+    padding: 1.25rem;
+  }
+
+  /* Banner */
+  .erp-page-header {
+    padding: 1.5rem 1.75rem;
+    min-height: 155px;
+    border-radius: 16px;
+    gap: 1.25rem;
+  }
+
+  .erp-header-content {
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .erp-header-icon {
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    font-size: 1.55rem;
+    border-radius: 13px;
+  }
+
+  .erp-page-title {
+    font-size: 1.55rem;
+    line-height: 1.2;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    max-width: 520px;
+  }
+
+  .erp-header-actions .erp-btn {
+    padding: 0.7rem 1rem;
+    white-space: nowrap;
+  }
+
+  /* Form */
+  .erp-form-header {
+    padding: 1.5rem;
+  }
+
+  .erp-form {
+    padding: 1.5rem;
+  }
+
+  .erp-form-title h3 {
+    font-size: 1.35rem;
+  }
+
+  .erp-section-title {
+    font-size: 1.15rem;
+  }
+
+  .erp-input,
+  .erp-select {
+    padding: 0.8rem 1rem;
+  }
+
+  /* Installments */
+  .installment-row {
+    padding: 1rem;
+  }
+
+  .erp-form-footer {
+    padding: 1.5rem;
+  }
+}
+
+
+/* MOBILE */
+@media (max-width: 768px) {
+
+  .erp-container {
+    padding: 0.75rem;
+  }
+
+  /* ================= HEADER / BANNER ================= */
+
+  .erp-page-header {
+    padding: 1.25rem;
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .erp-header-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    width: 100%;
+  }
+
+  .erp-header-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .erp-page-title {
+    font-size: 1.4rem;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.86rem;
+    line-height: 1.5;
+    margin-top: 0.45rem;
+  }
+
+  /* Back button */
+  .erp-header-actions {
+    width: 100%;
+    margin-top: 0.15rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+  }
+
+
+  /* ================= ALERTS ================= */
+
+  .erp-alert {
+    padding: 0.85rem 1rem;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .erp-alert-icon {
+    font-size: 1.2rem;
+  }
+
+
+  /* ================= FORM CARD ================= */
+
+  .erp-form-card {
+    border-radius: 16px;
+  }
+
+  .erp-form-header {
+    padding: 1.25rem;
+  }
+
+  .erp-form-title {
+    align-items: flex-start;
+    gap: 0.7rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .erp-form-icon {
+    font-size: 1.35rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+  }
+
+  .erp-form-title h3 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+
+  .erp-form-subtitle {
+    font-size: 0.84rem;
+    line-height: 1.55;
+  }
+
+  .erp-form {
+    padding: 1.25rem;
+  }
+
+
+  /* ================= SECTIONS ================= */
+
+  .erp-form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .erp-section-title {
+    font-size: 1.05rem;
+    gap: 0.6rem;
+    margin-bottom: 1.1rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .section-description {
+    font-size: 0.84rem;
+    line-height: 1.55;
+    margin-bottom: 1.1rem;
+  }
+
+
+  /* ================= FORM FIELDS ================= */
+
+  .erp-row {
+    gap: 0;
+  }
+
+  .erp-form-group {
+    margin-bottom: 1.1rem;
+  }
+
+  .erp-label {
+    font-size: 0.88rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .erp-input,
+  .erp-select {
+    min-height: 46px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.9rem;
+    border-radius: 9px;
+  }
+
+  .erp-input-group-text {
+    padding: 0.7rem 0.9rem;
+  }
+
+  .erp-hint-text {
+    font-size: 0.76rem;
+    line-height: 1.4;
+    padding: 0.5rem 0.65rem;
+  }
+
+
+  /* ================= INSTALLMENTS ================= */
+
+  .installment-row {
+    padding: 0.9rem;
+    border-radius: 11px;
+    margin-bottom: 0.8rem;
+  }
+
+  .add-installment-btn-container {
+    margin: 1.1rem 0;
+  }
+
+  .add-installment-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+
+  /* ================= TOTAL CARD ================= */
+
+  .installment-total-card {
+    padding: 1.1rem;
+    border-radius: 13px;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.7rem;
+  }
+
+  .installment-total-label {
+    font-size: 0.9rem;
+  }
+
+  .total-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+
+  .installment-total-amount {
+    font-size: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .mismatch-indicator,
+  .match-indicator {
+    font-size: 0.72rem;
+    margin-left: 0;
+  }
+
+
+  /* ================= FOOTER ================= */
+
+  .erp-form-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    margin-top: 1.5rem;
+  }
+
+  .erp-footer-left,
+  .erp-footer-right {
+    width: 100%;
+  }
+
+  .erp-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .erp-btn-lg {
+    padding: 0.8rem 1rem;
+    font-size: 0.92rem;
+  }
+}
+
+
+/* SMALL MOBILE */
+@media (max-width: 480px) {
+
+  .erp-container {
+    padding: 0.6rem;
+  }
+
+  /* Banner becomes compact */
+  .erp-page-header {
+    padding: 1rem;
+    border-radius: 14px;
+    gap: 0.8rem;
+  }
+
+  .erp-header-content {
+    gap: 0.75rem;
+  }
+
+  .erp-header-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 1.2rem;
+    border-radius: 11px;
+  }
+
+  .erp-page-title {
+    font-size: 1.25rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  .erp-header-actions .erp-btn {
+    min-height: 44px;
+    font-size: 0.88rem;
+  }
+
+
+  /* Form */
+  .erp-form-header {
+    padding: 1rem;
+  }
+
+  .erp-form {
+    padding: 1rem;
+  }
+
+  .erp-form-title {
+    gap: 0.6rem;
+  }
+
+  .erp-form-icon {
+    font-size: 1.2rem;
+  }
+
+  .erp-form-title h3 {
+    font-size: 1.15rem;
+  }
+
+  .erp-form-subtitle {
+    font-size: 0.78rem;
+  }
+
+  .erp-section-title {
+    font-size: 1rem;
+  }
+
+  .erp-label {
+    font-size: 0.84rem;
+  }
+
+  .erp-input,
+  .erp-select {
+    min-height: 44px;
+    font-size: 0.86rem;
+  }
+
+  .erp-hint-text {
+    font-size: 0.72rem;
+  }
+
+
+  /* Installment total */
+  .installment-total-card {
+    padding: 1rem;
+  }
+
+  .installment-total-amount {
+    font-size: 1.35rem;
+  }
+}
       `}</style>
     </div>
   );
