@@ -425,6 +425,651 @@ const PromotionSetting = () => {
             transform: rotate(360deg);
           }
         }
+
+        /* =========================================================
+   PROMOTION SETTINGS
+   MOBILE & TABLET RESPONSIVE
+   DESKTOP REMAINS UNCHANGED
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   768px - 1024px
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+
+  .promotion-setting-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 1rem !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  /* ---------- Breadcrumb ---------- */
+
+  .promotion-setting-page > div:first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    margin: 0 0 1rem !important;
+    padding: 0 !important;
+  }
+
+  .promotion-setting-page .breadcrumb {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    scrollbar-width: none !important;
+  }
+
+  .promotion-setting-page .breadcrumb::-webkit-scrollbar {
+    display: none !important;
+  }
+
+
+  /* ---------- Header ---------- */
+
+  .settings-header {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 1.25rem !important;
+    gap: 1.25rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+
+  .header-content {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+
+  .header-text {
+    min-width: 0 !important;
+  }
+
+  .settings-title {
+    font-size: 1.5rem !important;
+  }
+
+  .settings-subtitle {
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .header-actions {
+    flex-shrink: 0 !important;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 40px !important;
+    padding: 0.55rem 0.85rem !important;
+    font-size: 0.85rem !important;
+  }
+
+
+  /* ---------- Settings Grid ---------- */
+
+  .settings-grid {
+    width: 100% !important;
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .settings-card {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    padding: 1.25rem !important;
+  }
+
+
+  /* ---------- Card Header ---------- */
+
+  .card-header {
+    margin-bottom: 1rem !important;
+    padding-bottom: 0.7rem !important;
+  }
+
+  .card-icon {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    font-size: 1rem !important;
+  }
+
+  .card-title {
+    font-size: 1rem !important;
+  }
+
+
+  /* ---------- Form ---------- */
+
+  .form-group {
+    margin-bottom: 0.9rem !important;
+  }
+
+  .form-label {
+    font-size: 0.82rem !important;
+  }
+
+  .form-input {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    min-height: 42px !important;
+    padding: 0.6rem 0.75rem !important;
+    font-size: 0.9rem !important;
+  }
+
+
+  /* ---------- Semester ---------- */
+
+  .semester-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  .semester-chip {
+    padding: 0.55rem 0.35rem !important;
+    font-size: 0.8rem !important;
+  }
+
+
+  /* ---------- Info Box ---------- */
+
+  .info-box {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0.75rem !important;
+    gap: 0.6rem !important;
+    font-size: 0.8rem !important;
+    line-height: 1.45 !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0 - 767px
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+  .promotion-setting-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 100vh !important;
+    padding: 0.65rem !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+
+  /* =====================================================
+     BREADCRUMB
+     ===================================================== */
+
+  .promotion-setting-page > div:first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 0 0.75rem !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .promotion-setting-page .breadcrumb {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 44px !important;
+    box-sizing: border-box !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    white-space: nowrap !important;
+
+    font-size: 0.78rem !important;
+
+    scrollbar-width: none !important;
+  }
+
+  .promotion-setting-page .breadcrumb::-webkit-scrollbar {
+    display: none !important;
+  }
+
+
+  /* =====================================================
+     HEADER
+     ===================================================== */
+
+  .settings-header {
+    width: 100% !important;
+    box-sizing: border-box !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+
+    gap: 1rem !important;
+
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+
+    border-radius: 14px !important;
+  }
+
+
+  /* Header content */
+
+  .header-content {
+    width: 100% !important;
+    min-width: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    gap: 0.75rem !important;
+  }
+
+
+  /* Header icon */
+
+  .header-icon-wrapper {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+
+    border-radius: 12px !important;
+  }
+
+  .header-icon {
+    font-size: 1.25rem !important;
+  }
+
+
+  /* Header text */
+
+  .header-text {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+  .settings-title {
+    font-size: 1.25rem !important;
+    line-height: 1.2 !important;
+    letter-spacing: -0.2px !important;
+  }
+
+  .settings-subtitle {
+    margin-top: 0.25rem !important;
+
+    font-size: 0.75rem !important;
+    line-height: 1.4 !important;
+
+    opacity: 0.85 !important;
+  }
+
+
+  /* =====================================================
+     HEADER ACTIONS
+     Fixes Reset / Save overflow
+     ===================================================== */
+
+  .header-actions {
+    width: 100% !important;
+
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+
+    gap: 0.6rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: 100% !important;
+    min-width: 0 !important;
+
+    min-height: 42px !important;
+
+    padding: 0.65rem 0.75rem !important;
+
+    justify-content: center !important;
+
+    font-size: 0.82rem !important;
+
+    border-radius: 9px !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     SETTINGS GRID
+     Main horizontal overflow fix
+     ===================================================== */
+
+  .settings-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+
+    gap: 0.85rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     SETTINGS CARD
+     ===================================================== */
+
+  .settings-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    box-sizing: border-box !important;
+
+    padding: 0.95rem !important;
+
+    border-radius: 14px !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /* =====================================================
+     CARD HEADER
+     ===================================================== */
+
+  .card-header {
+    width: 100% !important;
+    min-width: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+
+    gap: 0.65rem !important;
+
+    margin-bottom: 0.9rem !important;
+    padding-bottom: 0.65rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  .card-icon {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+
+    border-radius: 9px !important;
+
+    font-size: 1rem !important;
+  }
+
+
+  .card-title {
+    min-width: 0 !important;
+
+    font-size: 1rem !important;
+    line-height: 1.25 !important;
+
+    word-break: break-word !important;
+  }
+
+
+  /* =====================================================
+     FORM
+     ===================================================== */
+
+  .form-group {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    margin-bottom: 0.85rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  .form-label {
+    width: 100% !important;
+
+    font-size: 0.82rem !important;
+    line-height: 1.35 !important;
+
+    margin-bottom: 0.4rem !important;
+  }
+
+
+  .form-input {
+    display: block !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    min-height: 44px !important;
+
+    box-sizing: border-box !important;
+
+    padding: 0.65rem 0.75rem !important;
+
+    font-size: 0.88rem !important;
+
+    border-radius: 9px !important;
+  }
+
+
+  /* =====================================================
+     SEMESTER GRID
+     ===================================================== */
+
+  .semester-grid {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    display: grid !important;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+
+    gap: 0.5rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  .semester-chip {
+    min-width: 0 !important;
+
+    padding: 0.6rem 0.35rem !important;
+
+    font-size: 0.76rem !important;
+
+    line-height: 1.2 !important;
+
+    box-sizing: border-box !important;
+
+    overflow: hidden !important;
+
+    text-overflow: ellipsis !important;
+
+    white-space: nowrap !important;
+  }
+
+
+  /* =====================================================
+     INFO BOX
+     ===================================================== */
+
+  .info-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    display: flex !important;
+    align-items: flex-start !important;
+
+    gap: 0.55rem !important;
+
+    padding: 0.7rem !important;
+
+    margin-top: 0.75rem !important;
+
+    font-size: 0.76rem !important;
+
+    line-height: 1.45 !important;
+
+    box-sizing: border-box !important;
+
+    overflow-wrap: anywhere !important;
+    word-break: normal !important;
+  }
+
+  .info-box svg {
+    flex-shrink: 0 !important;
+  }
+
+  .info-box span {
+    min-width: 0 !important;
+    overflow-wrap: anywhere !important;
+  }
+
+
+  /* =====================================================
+     CHECKBOX
+     ===================================================== */
+
+  .checkbox-group {
+    gap: 0.5rem !important;
+  }
+
+  .checkbox-group input[type="checkbox"] {
+    width: 1rem !important;
+    height: 1rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .checkbox-group .form-label {
+    margin: 0 !important;
+    width: auto !important;
+  }
+
+
+  /* =====================================================
+     LOADING
+     ===================================================== */
+
+  .loading-container {
+    padding: 2rem 1rem !important;
+    text-align: center !important;
+  }
+
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   <= 400px
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .promotion-setting-page {
+    padding: 0.5rem !important;
+  }
+
+
+  .settings-header {
+    padding: 0.85rem !important;
+    border-radius: 12px !important;
+  }
+
+
+  .header-icon-wrapper {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+  }
+
+
+  .settings-title {
+    font-size: 1.12rem !important;
+  }
+
+
+  .settings-subtitle {
+    font-size: 0.7rem !important;
+  }
+
+
+  .header-actions {
+    gap: 0.5rem !important;
+  }
+
+
+  .btn-reset,
+  .btn-save {
+    min-height: 40px !important;
+    padding: 0.55rem 0.5rem !important;
+    font-size: 0.76rem !important;
+  }
+
+
+  .settings-card {
+    padding: 0.8rem !important;
+    border-radius: 12px !important;
+  }
+
+
+  .card-icon {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    font-size: 0.9rem !important;
+  }
+
+
+  .card-title {
+    font-size: 0.92rem !important;
+  }
+
+
+  .form-label {
+    font-size: 0.78rem !important;
+  }
+
+
+  .form-input {
+    min-height: 42px !important;
+    font-size: 0.84rem !important;
+  }
+
+
+  .semester-chip {
+    padding: 0.55rem 0.25rem !important;
+    font-size: 0.7rem !important;
+  }
+
+
+  .info-box {
+    padding: 0.6rem !important;
+    font-size: 0.7rem !important;
+  }
+
+}
       `}</style>
 
       <div className="promotion-setting-page">
