@@ -364,7 +364,7 @@ export default function CollegeAdminDashboard() {
                          flexShrink: 0,
                        }}
                      >
-                       <LogoImage documentId={college?.logoDocumentId} size={88} />
+                       <LogoImage documentId={college?.logoDocumentId} size={80} />
                      </motion.div>
                      <div className="header-title-section">
                       <h1 className="header-title">
