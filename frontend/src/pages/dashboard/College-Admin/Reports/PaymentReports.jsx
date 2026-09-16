@@ -1829,160 +1829,1663 @@ export default function PaymentReports() {
           animation: fadeIn 0.6s ease;
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .visual-container {
-            grid-template-columns: 1fr;
-            text-align: center;
-          }
+/* =========================================================
+   RESPONSIVE DESIGN
+   Desktop styles remain unchanged
+   ========================================================= */
 
-          .bar-metrics {
-            grid-template-columns: 1fr;
-          }
 
-          .erp-header-actions {
-            flex-direction: column;
-            width: 100%;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+/* =========================================================
+   TABLET
+   769px - 1024px
+   ========================================================= */
 
-          .export-actions-group {
-            width: 100%;
-            justify-content: flex-start;
-          }
+@media (min-width: 769px) and (max-width: 1024px) {
 
-          .export-buttons {
-            flex-wrap: wrap;
-          }
+  /* ================= CONTAINER ================= */
 
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
+  .erp-container {
+    padding: 1.15rem;
+  }
 
-          .info-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
-        }
 
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
+  /* ================= PAGE HEADER ================= */
 
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+  .erp-page-header {
+    padding: 1.35rem;
+    margin-bottom: 1.25rem;
 
-          .erp-header-actions {
-            width: 100%;
-            flex-direction: column;
-            align-items: stretch;
-          }
+    flex-direction: column;
+    align-items: stretch;
 
-          .export-actions-group {
-            width: 100%;
-            justify-content: center;
-          }
+    gap: 1.15rem;
 
-          .export-buttons {
-            justify-content: center;
-            gap: 0.5rem;
-          }
+    border-radius: 15px;
+  }
 
-          .btn-export {
-            min-width: 90px;
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
-          }
+  .erp-header-content {
+    width: 100%;
 
-          .erp-header-actions .erp-btn {
-            flex: 1;
-            justify-content: center;
-          }
+    display: flex;
+    align-items: center;
 
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
+    gap: 1rem;
+  }
 
-          .footer-note {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
+  .erp-header-icon {
+    width: 54px;
+    height: 54px;
 
-          .refresh-btn {
-            align-self: center;
-          }
+    min-width: 54px;
 
-          .visual-container {
-            gap: 1rem;
-          }
+    font-size: 1.55rem;
+    border-radius: 12px;
+  }
 
-          .progress-circle {
-            width: 160px;
-            height: 160px;
-          }
+  .erp-header-text {
+    min-width: 0;
+    flex: 1;
+  }
 
-          .progress-value {
-            font-size: 2rem;
-          }
+  .erp-page-title {
+    font-size: 1.6rem;
+    line-height: 1.2;
 
-          .bar-metrics {
-            grid-template-columns: repeat(2, 1fr);
-          }
+    margin: 0;
+  }
 
-          .metrics-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .stat-value {
-            font-size: 1.75rem;
-          }
-          
-          .erp-card-header h3 {
-            font-size: 1.25rem;
-          }
-          
-          .erp-page-title {
-            font-size: 1.5rem;
-          }
-          
-          .progress-circle {
-            width: 140px;
-            height: 140px;
-          }
-          
-          .progress-value {
-            font-size: 1.75rem;
-          }
-          
-          .progress-label {
-            font-size: 1rem;
-          }
-          
-          .bar-title,
-          .bar-total {
-            font-size: 1rem;
-          }
-          
-          .metric-value-large {
-            font-size: 1.5rem;
-          }
-          
-          .bar-metrics {
-            grid-template-columns: 1fr;
-          }
-        }
+  .erp-page-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.45;
 
+    margin-top: 0.35rem;
+  }
+
+
+  /* ================= HEADER ACTIONS ================= */
+
+  .erp-header-actions {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 0.75rem;
+  }
+
+  .export-actions-group {
+    width: auto;
+
+    display: flex;
+    align-items: center;
+  }
+
+  .export-buttons {
+    display: flex;
+    flex-direction: row;
+
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+  }
+
+  .btn-export {
+    min-width: 95px;
+
+    padding: 0.6rem 0.85rem;
+
+    font-size: 0.8rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: auto;
+
+    min-width: 110px;
+
+    padding: 0.65rem 1rem;
+
+    justify-content: center;
+
+    font-size: 0.85rem;
+  }
+
+
+  /* ================= INFO BANNER ================= */
+
+  .info-banner {
+    flex-direction: row;
+
+    align-items: center;
+    text-align: left;
+
+    padding: 0.95rem 1.1rem;
+
+    gap: 0.8rem;
+
+    margin-bottom: 1.25rem;
+  }
+
+  .info-icon {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+  }
+
+  .info-content {
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+
+  /* =====================================================
+     DATE FILTER
+     ===================================================== */
+
+  .erp-card {
+    margin-bottom: 1.25rem;
+    border-radius: 15px;
+  }
+
+  .erp-card-header {
+    padding: 1.15rem 1.25rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.2rem;
+  }
+
+  .erp-card-body {
+    padding: 1.25rem;
+  }
+
+  .filter-controls {
+    gap: 0.9rem !important;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-group > div {
+    gap: 0.5rem !important;
+  }
+
+  .filter-group button {
+    min-height: 38px;
+    padding: 0.55rem 0.85rem;
+  }
+
+  .date-inputs {
+    width: 100%;
+
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 0.75rem !important;
+  }
+
+  .date-inputs > div {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .date-inputs input {
+    width: 100% !important;
+  }
+
+  .date-inputs button {
+    width: auto;
+  }
+
+
+  /* =====================================================
+     STATISTICS - TABLET
+     ===================================================== */
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 1rem;
+
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-card {
+    width: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    min-width: 0;
+
+    border-radius: 15px;
+  }
+
+  .stat-card-header {
+    width: 100%;
+
+    padding: 1rem 1.1rem;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.75rem;
+
+    box-sizing: border-box;
+  }
+
+  .stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+
+    min-width: 48px;
+
+    border-radius: 12px;
+
+    font-size: 1.3rem;
+  }
+
+  .stat-title {
+    min-width: 0;
+
+    font-size: 0.95rem;
+
+    line-height: 1.3;
+
+    white-space: normal;
+
+    overflow-wrap: normal;
+
+    word-break: normal;
+  }
+
+  .stat-card-body {
+    width: 100%;
+
+    padding: 1rem 1.1rem;
+
+    box-sizing: border-box;
+
+    min-width: 0;
+  }
+
+  .stat-value {
+    font-size: 1.9rem;
+
+    line-height: 1.1;
+
+    white-space: nowrap;
+
+    margin-bottom: 0.45rem;
+  }
+
+  .stat-trend {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 0.45rem;
+
+    font-size: 0.78rem;
+
+    line-height: 1.4;
+
+    white-space: normal;
+  }
+
+  .trend-icon {
+    flex-shrink: 0;
+
+    margin-top: 0.15rem;
+  }
+
+  .stat-card-footer {
+    width: 100%;
+
+    padding: 0.7rem 1.1rem;
+
+    box-sizing: border-box;
+
+    font-size: 0.78rem;
+  }
+
+  .stat-footer-item {
+    width: 100%;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    gap: 0.75rem;
+  }
+
+  .footer-label,
+  .footer-value {
+    min-width: 0;
+  }
+
+  .footer-value {
+    text-align: right;
+
+    white-space: nowrap;
+  }
+
+
+  /* =====================================================
+     VISUALIZATION
+     ===================================================== */
+
+  .visual-container {
+    grid-template-columns: 1fr;
+
+    gap: 1.5rem;
+
+    text-align: center;
+  }
+
+  .circular-progress {
+    gap: 1rem;
+  }
+
+  .progress-circle {
+    width: 175px;
+    height: 175px;
+  }
+
+  .progress-circle::before {
+    width: 157px;
+    height: 157px;
+  }
+
+  .progress-value {
+    font-size: 2.2rem;
+  }
+
+  .progress-label {
+    font-size: 1rem;
+  }
+
+  .progress-legend {
+    width: 100%;
+
+    max-width: 420px;
+
+    margin: 0 auto;
+  }
+
+  .horizontal-bar-container {
+    gap: 1rem;
+
+    text-align: left;
+  }
+
+  .bar-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.75rem;
+  }
+
+  .metric-item {
+    padding: 0.8rem;
+  }
+
+  .metric-value {
+    font-size: 0.95rem;
+  }
+
+  .metric-label {
+    font-size: 0.75rem;
+  }
+
+
+  /* =====================================================
+     DETAILED METRICS
+     ===================================================== */
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 1rem;
+  }
+
+  .metric-card {
+    padding: 1rem;
+
+    gap: 0.9rem;
+  }
+
+  .metric-icon-wrapper {
+    width: 48px;
+    height: 48px;
+
+    min-width: 48px;
+
+    border-radius: 13px;
+  }
+
+  .metric-title {
+    font-size: 0.9rem;
+  }
+
+  .metric-value-large {
+    font-size: 1.45rem;
+  }
+
+  .metric-description {
+    font-size: 0.8rem;
+
+    line-height: 1.4;
+  }
+
+
+  /* ================= FOOTER ================= */
+
+  .footer-note {
+    padding: 0.85rem 1rem;
+
+    gap: 0.75rem;
+
+    font-size: 0.8rem;
+  }
+
+  .refresh-btn {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  /* ================= CONTAINER ================= */
+
+  .erp-container {
+    padding: 0.7rem;
+  }
+
+
+  /* =====================================================
+     PAGE HEADER
+     ===================================================== */
+
+  .erp-page-header {
+    padding: 1rem;
+
+    margin-bottom: 0.9rem;
+
+    border-radius: 14px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 0.9rem;
+  }
+
+  .erp-header-content {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.75rem;
+  }
+
+  .erp-header-icon {
+    width: 46px;
+    height: 46px;
+
+    min-width: 46px;
+
+    border-radius: 11px;
+
+    font-size: 1.3rem;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .erp-page-title {
+    font-size: 1.22rem;
+
+    line-height: 1.2;
+
+    margin: 0;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.76rem;
+
+    line-height: 1.4;
+
+    margin-top: 0.3rem;
+  }
+
+
+  /* =====================================================
+     HEADER ACTIONS
+     ===================================================== */
+
+  .erp-header-actions {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.6rem;
+  }
+
+  .export-actions-group {
+    width: 100%;
+  }
+
+  .export-buttons {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: 1fr 1fr;
+
+    gap: 0.55rem;
+  }
+
+  .btn-export {
+    width: 100%;
+
+    min-width: 0;
+
+    min-height: 40px;
+
+    padding: 0.55rem 0.65rem;
+
+    font-size: 0.78rem;
+
+    border-radius: 8px;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+
+    min-height: 40px;
+
+    justify-content: center;
+
+    padding: 0.6rem 1rem;
+
+    font-size: 0.82rem;
+
+    border-radius: 8px;
+  }
+
+
+  /* =====================================================
+     INFO BANNER
+     ===================================================== */
+
+  .info-banner {
+    width: 100%;
+
+    flex-direction: row;
+
+    align-items: flex-start;
+
+    text-align: left;
+
+    padding: 0.8rem;
+
+    gap: 0.65rem;
+
+    margin-bottom: 0.9rem;
+
+    border-radius: 11px;
+  }
+
+  .info-icon {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+  }
+
+  .info-content {
+    font-size: 0.75rem;
+
+    line-height: 1.45;
+  }
+
+
+  /* =====================================================
+     ERP CARD
+     ===================================================== */
+
+  .erp-card {
+    margin-bottom: 0.9rem;
+
+    border-radius: 14px;
+  }
+
+  .erp-card-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1rem;
+
+    line-height: 1.3;
+
+    gap: 0.55rem;
+  }
+
+  .erp-card-icon {
+    font-size: 0.95rem;
+
+    flex-shrink: 0;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+
+  /* =====================================================
+     DATE FILTER
+     ===================================================== */
+
+  .filter-controls {
+    width: 100%;
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    align-items: stretch !important;
+
+    gap: 0.9rem !important;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-group label {
+    margin-bottom: 0.55rem !important;
+
+    font-size: 0.85rem !important;
+  }
+
+  /* Quick filter buttons */
+
+  .filter-group > div {
+    width: 100%;
+
+    display: grid !important;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.55rem !important;
+  }
+
+  .filter-group .btn {
+    width: 100%;
+
+    min-height: 40px;
+
+    padding: 0.55rem 0.4rem;
+
+    font-size: 0.76rem;
+
+    border-radius: 8px;
+
+    white-space: nowrap;
+  }
+
+
+  /* Custom date inputs */
+
+  .date-inputs {
+    width: 100% !important;
+
+    display: grid !important;
+
+    grid-template-columns: 1fr !important;
+
+    gap: 0.7rem !important;
+
+    align-items: stretch !important;
+  }
+
+  .date-inputs > div {
+    width: 100%;
+
+    min-width: 0;
+  }
+
+  .date-inputs label {
+    font-size: 0.76rem !important;
+
+    margin-bottom: 0.3rem !important;
+  }
+
+  .date-inputs input {
+    width: 100% !important;
+
+    height: 40px;
+  }
+
+  .date-inputs button {
+    width: 100%;
+
+    min-height: 40px;
+
+    align-self: stretch !important;
+  }
+
+
+  /* Apply filter */
+
+  .filter-controls > .btn,
+  .filter-controls button.btn-success {
+    width: 100%;
+
+    min-height: 40px;
+
+    justify-content: center;
+  }
+
+
+  /* Current filter */
+
+  .erp-card-body > div[style*="marginTop"] {
+    width: 100% !important;
+
+    margin-top: 0.85rem !important;
+
+    padding: 0.7rem !important;
+
+    box-sizing: border-box;
+  }
+
+  .erp-card-body > div[style*="marginTop"] small {
+    font-size: 0.72rem;
+
+    line-height: 1.4;
+
+    display: block;
+  }
+
+
+  /* =====================================================
+     STATISTICS
+     IMPORTANT:
+     Keep each stat card as a normal vertical flex card.
+     This prevents titles from becoming vertically stacked.
+     ===================================================== */
+
+  .stats-grid {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.75rem;
+
+    margin-bottom: 0.9rem;
+  }
+
+  .stat-card {
+    width: 100% !important;
+
+    min-width: 0 !important;
+
+    min-height: 0 !important;
+
+    height: auto !important;
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-sizing: border-box;
+  }
+
+
+  /* ---------------- STAT HEADER ---------------- */
+
+  .stat-card-header {
+    width: 100% !important;
+
+    padding: 0.85rem 0.9rem !important;
+
+    display: flex !important;
+
+    flex-direction: row !important;
+
+    align-items: center !important;
+
+    justify-content: flex-start !important;
+
+    gap: 0.65rem !important;
+
+    box-sizing: border-box;
+
+    min-width: 0 !important;
+
+    border-bottom: 1px solid #f0f2f5 !important;
+  }
+
+  .stat-icon-wrapper {
+    width: 44px !important;
+
+    height: 44px !important;
+
+    min-width: 44px !important;
+
+    max-width: 44px !important;
+
+    flex-shrink: 0 !important;
+
+    border-radius: 11px;
+
+    font-size: 1.2rem;
+  }
+
+  .stat-icon {
+    font-size: 1.1rem;
+  }
+
+  .stat-title {
+    display: block !important;
+
+    width: auto !important;
+
+    min-width: 0 !important;
+
+    flex: 1 !important;
+
+    font-size: 0.9rem !important;
+
+    line-height: 1.3 !important;
+
+    font-weight: 600;
+
+    white-space: normal !important;
+
+    overflow-wrap: normal !important;
+
+    word-break: normal !important;
+  }
+
+
+  /* ---------------- STAT BODY ---------------- */
+
+  .stat-card-body {
+    width: 100% !important;
+
+    padding: 0.95rem 0.9rem !important;
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    align-items: flex-start !important;
+
+    justify-content: center !important;
+
+    box-sizing: border-box;
+
+    min-width: 0 !important;
+  }
+
+  .stat-value {
+    width: 100%;
+
+    font-size: 1.7rem !important;
+
+    line-height: 1.15 !important;
+
+    margin: 0 0 0.4rem 0 !important;
+
+    white-space: nowrap !important;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+  }
+
+  .stat-trend {
+    width: 100%;
+
+    display: flex !important;
+
+    align-items: flex-start !important;
+
+    justify-content: flex-start !important;
+
+    gap: 0.4rem !important;
+
+    font-size: 0.72rem !important;
+
+    line-height: 1.4 !important;
+
+    white-space: normal !important;
+
+    overflow-wrap: break-word;
+
+    word-break: normal;
+  }
+
+  .trend-icon {
+    flex-shrink: 0;
+
+    margin-top: 0.15rem;
+  }
+
+
+  /* ---------------- STAT FOOTER ---------------- */
+
+  .stat-card-footer {
+    width: 100% !important;
+
+    padding: 0.65rem 0.9rem !important;
+
+    box-sizing: border-box;
+
+    font-size: 0.72rem !important;
+  }
+
+  .stat-footer-item {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 0.6rem;
+  }
+
+  .footer-label {
+    font-size: 0.72rem;
+
+    color: #6c757d;
+
+    white-space: nowrap;
+  }
+
+  .footer-value {
+    font-size: 0.72rem;
+
+    text-align: right;
+
+    min-width: 0;
+
+    white-space: nowrap;
+  }
+
+
+  /* =====================================================
+     VISUALIZATION
+     ===================================================== */
+
+  .visual-container {
+    width: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 1.25rem;
+
+    text-align: center;
+  }
+
+  .circular-progress {
+    width: 100%;
+
+    gap: 0.9rem;
+  }
+
+  .progress-circle {
+    width: 145px;
+    height: 145px;
+  }
+
+  .progress-circle::before {
+    width: 129px;
+    height: 129px;
+  }
+
+  .progress-value {
+    font-size: 1.8rem;
+  }
+
+  .progress-label {
+    font-size: 0.9rem;
+  }
+
+  .progress-legend {
+    width: 100%;
+
+    gap: 0.55rem;
+  }
+
+  .legend-item {
+    justify-content: center;
+
+    font-size: 0.75rem;
+
+    gap: 0.5rem;
+  }
+
+  .legend-color {
+    width: 14px;
+    height: 14px;
+  }
+
+
+  /* ---------------- HORIZONTAL BAR ---------------- */
+
+  .horizontal-bar-container {
+    width: 100%;
+
+    gap: 0.9rem;
+
+    text-align: left;
+  }
+
+  .bar-labels {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 0.3rem;
+  }
+
+  .bar-title {
+    font-size: 0.9rem;
+  }
+
+  .bar-total {
+    font-size: 0.78rem;
+  }
+
+  .horizontal-bar {
+    height: 25px;
+  }
+
+  .bar-metrics {
+    grid-template-columns: 1fr;
+
+    gap: 0.55rem;
+  }
+
+  .metric-item {
+    width: 100%;
+
+    padding: 0.7rem;
+
+    gap: 0.6rem;
+
+    border-radius: 10px;
+  }
+
+  .metric-icon {
+    width: 30px;
+    height: 30px;
+
+    font-size: 1rem;
+  }
+
+  .metric-value {
+    font-size: 0.9rem;
+  }
+
+  .metric-label {
+    font-size: 0.72rem;
+  }
+
+
+  /* =====================================================
+     DETAILED METRICS
+     ===================================================== */
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+
+    gap: 0.7rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .metric-card {
+    padding: 0.9rem;
+
+    gap: 0.75rem;
+
+    border-radius: 12px;
+  }
+
+  .metric-icon-wrapper {
+    width: 44px;
+    height: 44px;
+
+    min-width: 44px;
+
+    border-radius: 11px;
+  }
+
+  .metric-icon-large {
+    font-size: 1.2rem;
+  }
+
+  .metric-content {
+    min-width: 0;
+  }
+
+  .metric-title {
+    font-size: 0.82rem;
+
+    margin-bottom: 0.3rem;
+  }
+
+  .metric-value-large {
+    font-size: 1.3rem;
+
+    margin-bottom: 0.3rem;
+  }
+
+  .metric-description {
+    font-size: 0.72rem;
+
+    line-height: 1.4;
+  }
+
+
+  /* =====================================================
+     METRICS FOOTER
+     ===================================================== */
+
+  .metrics-footer {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    gap: 0.55rem;
+
+    padding-top: 0.9rem;
+
+    margin-top: 0.5rem;
+  }
+
+  .metrics-footer .footer-note,
+  .metrics-footer .footer-disclaimer {
+    width: 100%;
+
+    font-size: 0.7rem;
+
+    line-height: 1.4;
+  }
+
+
+  /* =====================================================
+     FOOTER NOTE
+     ===================================================== */
+
+  .footer-note {
+    width: 100%;
+
+    padding: 0.75rem 0.8rem;
+
+    display: flex;
+
+    flex-direction: row;
+
+    align-items: center;
+
+    gap: 0.55rem;
+
+    font-size: 0.7rem;
+
+    line-height: 1.4;
+
+    text-align: left;
+
+    box-sizing: border-box;
+  }
+
+  .footer-note .note-icon {
+    font-size: 0.95rem;
+
+    min-width: 16px;
+  }
+
+  .refresh-btn {
+    width: 32px;
+    height: 32px;
+
+    min-width: 32px;
+
+    margin-left: auto;
+  }
+
+  .refresh-icon {
+    font-size: 0.9rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  /* ================= CONTAINER ================= */
+
+  .erp-container {
+    padding: 0.55rem;
+  }
+
+
+  /* ================= HEADER ================= */
+
+  .erp-page-header {
+    padding: 0.8rem;
+
+    border-radius: 12px;
+
+    gap: 0.75rem;
+  }
+
+  .erp-header-content {
+    gap: 0.6rem;
+  }
+
+  .erp-header-icon {
+    width: 42px;
+    height: 42px;
+
+    min-width: 42px;
+
+    font-size: 1.1rem;
+
+    border-radius: 10px;
+  }
+
+  .erp-page-title {
+    font-size: 1.05rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.68rem;
+
+    line-height: 1.35;
+  }
+
+
+  /* ================= EXPORT ================= */
+
+  .export-buttons {
+    gap: 0.45rem;
+  }
+
+  .btn-export {
+    min-height: 38px;
+
+    padding: 0.5rem 0.35rem;
+
+    font-size: 0.7rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    min-height: 38px;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* ================= INFO ================= */
+
+  .info-banner {
+    padding: 0.7rem;
+
+    gap: 0.55rem;
+  }
+
+  .info-icon {
+    width: 30px;
+    height: 30px;
+
+    min-width: 30px;
+  }
+
+  .info-content {
+    font-size: 0.69rem;
+
+    line-height: 1.4;
+  }
+
+
+  /* ================= ERP CARD ================= */
+
+  .erp-card {
+    border-radius: 12px;
+
+    margin-bottom: 0.75rem;
+  }
+
+  .erp-card-header {
+    padding: 0.8rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 0.9rem;
+
+    gap: 0.45rem;
+  }
+
+  .erp-card-body {
+    padding: 0.8rem;
+  }
+
+
+  /* ================= FILTER ================= */
+
+  .filter-group label {
+    font-size: 0.78rem !important;
+  }
+
+  .filter-group > div {
+    gap: 0.45rem !important;
+  }
+
+  .filter-group .btn {
+    min-height: 38px;
+
+    font-size: 0.69rem;
+
+    padding: 0.45rem 0.25rem;
+  }
+
+  .date-inputs input {
+    height: 38px;
+  }
+
+  .date-inputs button {
+    min-height: 38px;
+  }
+
+
+  /* =====================================================
+     STAT CARDS - SMALL MOBILE
+     ===================================================== */
+
+  .stats-grid {
+    gap: 0.65rem;
+  }
+
+  .stat-card {
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    width: 100% !important;
+
+    min-width: 0 !important;
+
+    border-radius: 12px;
+  }
+
+  .stat-card-header {
+    width: 100% !important;
+
+    padding: 0.72rem !important;
+
+    display: flex !important;
+
+    flex-direction: row !important;
+
+    align-items: center !important;
+
+    gap: 0.55rem !important;
+
+    box-sizing: border-box;
+  }
+
+  .stat-icon-wrapper {
+    width: 40px !important;
+
+    height: 40px !important;
+
+    min-width: 40px !important;
+
+    max-width: 40px !important;
+
+    border-radius: 9px;
+
+    font-size: 1rem;
+  }
+
+  .stat-icon {
+    font-size: 1rem;
+  }
+
+  .stat-title {
+    display: block !important;
+
+    flex: 1 !important;
+
+    min-width: 0 !important;
+
+    width: auto !important;
+
+    font-size: 0.78rem !important;
+
+    line-height: 1.25 !important;
+
+    white-space: normal !important;
+
+    word-break: normal !important;
+
+    overflow-wrap: normal !important;
+  }
+
+  .stat-card-body {
+    width: 100% !important;
+
+    padding: 0.75rem !important;
+
+    min-width: 0 !important;
+
+    box-sizing: border-box;
+  }
+
+  .stat-value {
+    width: 100%;
+
+    font-size: 1.45rem !important;
+
+    line-height: 1.15 !important;
+
+    white-space: nowrap !important;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    margin-bottom: 0.35rem !important;
+  }
+
+  .stat-trend {
+    width: 100%;
+
+    display: flex !important;
+
+    align-items: flex-start !important;
+
+    gap: 0.3rem !important;
+
+    font-size: 0.62rem !important;
+
+    line-height: 1.4 !important;
+
+    white-space: normal !important;
+  }
+
+  .trend-icon {
+    font-size: 0.65rem;
+
+    flex-shrink: 0;
+
+    margin-top: 0.1rem;
+  }
+
+  .stat-card-footer {
+    width: 100% !important;
+
+    padding: 0.55rem 0.72rem !important;
+
+    box-sizing: border-box;
+
+    font-size: 0.64rem !important;
+  }
+
+  .stat-footer-item {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 0.5rem;
+  }
+
+  .footer-label,
+  .footer-value {
+    font-size: 0.64rem;
+  }
+
+
+  /* ================= VISUALIZATION ================= */
+
+  .progress-circle {
+    width: 125px;
+    height: 125px;
+  }
+
+  .progress-circle::before {
+    width: 111px;
+    height: 111px;
+  }
+
+  .progress-value {
+    font-size: 1.55rem;
+  }
+
+  .progress-label {
+    font-size: 0.8rem;
+  }
+
+  .legend-item {
+    font-size: 0.68rem;
+  }
+
+  .horizontal-bar {
+    height: 21px;
+  }
+
+  .bar-title {
+    font-size: 0.8rem;
+  }
+
+  .bar-total {
+    font-size: 0.7rem;
+  }
+
+
+  /* ================= METRICS ================= */
+
+  .metric-card {
+    padding: 0.75rem;
+
+    gap: 0.6rem;
+  }
+
+  .metric-icon-wrapper {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    border-radius: 9px;
+  }
+
+  .metric-icon-large {
+    font-size: 1rem;
+  }
+
+  .metric-title {
+    font-size: 0.75rem;
+  }
+
+  .metric-value-large {
+    font-size: 1.15rem;
+  }
+
+  .metric-description {
+    font-size: 0.65rem;
+  }
+
+
+  /* ================= FOOTER ================= */
+
+  .footer-note {
+    padding: 0.65rem;
+
+    font-size: 0.64rem;
+  }
+
+  .refresh-btn {
+    width: 30px;
+    height: 30px;
+
+    min-width: 30px;
+  }
+}
         /* ================= TREND ANALYSIS ================= */
         .trend-analysis-section {
           margin-top: 2rem;
