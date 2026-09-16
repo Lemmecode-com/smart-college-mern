@@ -909,10 +909,19 @@ export default function DepartmentList() {
               padding: "1rem 1.35rem",
             }}
           >
-            <div>
+            <div className="department-list-showing">
               Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
               {filteredDepartments.length} departments
             </div>
+            <style>
+              {`
+                @media (max-width: 991px) {
+                  .department-list-showing {
+                    display: none !important;
+                  }
+                }
+              `}
+            </style>
 
             <div
               style={{
@@ -945,6 +954,7 @@ export default function DepartmentList() {
             justifyContent: "space-between",
             alignItems: "center",
             gap: "0.75rem",
+            
           }}
         >
           <p style={{ margin: 0, fontSize: "0.8rem", color: T.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
@@ -1015,3 +1025,4 @@ const tdStyle = {
   verticalAlign: "middle",
   color: "#1f2530",
 };
+
