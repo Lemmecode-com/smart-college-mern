@@ -312,7 +312,7 @@ export default function CollegeProfile() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="erp-viewport-min-100"
+        className="erp-viewport-min-100 college-profile-responsive"
         style={{
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
           paddingTop: "1.5rem",
@@ -880,6 +880,1267 @@ export default function CollegeProfile() {
             </div>
           </motion.div> */}
         </div>
+        <style>{`
+
+/* =========================================================
+   COLLEGE PROFILE - RESPONSIVE DESIGN
+   DESKTOP REMAINS UNCHANGED
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   768px - 1199px
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1199px) {
+
+  .college-profile-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    min-height: 100vh !important;
+    height: auto !important;
+
+    padding: 1.25rem !important;
+
+    box-sizing: border-box !important;
+
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+  }
+
+
+  /* Main content wrapper */
+
+  .college-profile-responsive > div {
+    width: 100% !important;
+    max-width: 1100px !important;
+
+    margin: 0 auto !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     PROFILE HEADER
+     ===================================================== */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2) {
+
+    width: 100% !important;
+
+    margin-bottom: 1.25rem !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    justify-content: space-between !important;
+
+    gap: 1rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  > div:first-child {
+
+    flex: 1 1 auto !important;
+
+    min-width: 0 !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    gap: 1rem !important;
+  }
+
+
+  /* Logo */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  img {
+
+    width: 78px !important;
+    height: 78px !important;
+
+    max-width: 78px !important;
+    max-height: 78px !important;
+
+    flex: 0 0 78px !important;
+
+    object-fit: contain !important;
+  }
+
+
+  /* College name */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  h1 {
+
+    margin: 0 0 0.4rem !important;
+
+    font-size: 1.55rem !important;
+
+    line-height: 1.2 !important;
+
+    color: #0f172a !important;
+
+    white-space: normal !important;
+
+    overflow-wrap: anywhere !important;
+  }
+
+
+  /* Status/code badges */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  h1 + div {
+
+    display: flex !important;
+
+    flex-wrap: wrap !important;
+
+    gap: 0.45rem !important;
+  }
+
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  h1 + div span {
+
+    padding: 0.35rem 0.7rem !important;
+
+    font-size: 0.72rem !important;
+  }
+
+
+  /* Edit button */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  > button {
+
+    flex: 0 0 auto !important;
+
+    min-height: 44px !important;
+
+    padding: 0.7rem 1.15rem !important;
+
+    border-radius: 0.7rem !important;
+
+    font-size: 0.85rem !important;
+
+    white-space: nowrap !important;
+  }
+
+
+  /* =====================================================
+     BOOTSTRAP ROW RESET
+     ===================================================== */
+
+  .college-profile-responsive .row {
+    height: auto !important;
+
+    min-height: 0 !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4 {
+
+    margin-top: 0 !important;
+
+    margin-bottom: 0 !important;
+  }
+
+
+  /* =====================================================
+     INSTITUTE CARD
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12 {
+
+    width: 100% !important;
+
+    height: auto !important;
+
+    min-height: 0 !important;
+  }
+
+
+  /* Institute outer card */
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div {
+
+    width: 100% !important;
+
+    height: auto !important;
+
+    min-height: 0 !important;
+
+    margin-bottom: 1rem !important;
+
+    border-radius: 1.15rem !important;
+
+    overflow: hidden !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* Institute header */
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div
+  > div:first-child {
+
+    padding: 1rem 1.25rem !important;
+
+    min-height: 54px !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div
+  > div:first-child
+  h2 {
+
+    margin: 0 !important;
+
+    font-size: 1.05rem !important;
+
+    line-height: 1.2 !important;
+  }
+
+
+  /* Institute body */
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div
+  > div:last-child {
+
+    padding: 1rem !important;
+
+    height: auto !important;
+
+    min-height: 0 !important;
+
+    overflow: visible !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* Information grid */
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div
+  > div:last-child
+  > .row {
+
+    margin: 0 !important;
+
+    row-gap: 0.75rem !important;
+  }
+
+
+  /* =====================================================
+     INFORMATION ITEMS
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4 {
+
+    height: auto !important;
+
+    min-height: 0 !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div {
+
+    width: 100% !important;
+
+    height: auto !important;
+
+    min-height: 78px !important;
+
+    padding: 0.8rem !important;
+
+    border-radius: 0.85rem !important;
+
+    box-sizing: border-box !important;
+
+    overflow: visible !important;
+  }
+
+
+  /* Inner content */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div {
+
+    display: flex !important;
+
+    align-items: flex-start !important;
+
+    gap: 0.75rem !important;
+
+    width: 100% !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* Icon */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:first-child {
+
+    width: 38px !important;
+
+    min-width: 38px !important;
+
+    max-width: 38px !important;
+
+    height: 38px !important;
+
+    min-height: 38px !important;
+
+    flex: 0 0 38px !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    justify-content: center !important;
+
+    border-radius: 0.65rem !important;
+  }
+
+
+  /* Text */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child {
+
+    flex: 1 1 auto !important;
+
+    min-width: 0 !important;
+
+    width: auto !important;
+
+    max-width: 100% !important;
+
+    overflow: visible !important;
+  }
+
+
+  /* Label */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child
+  h6 {
+
+    margin: 0 0 0.2rem !important;
+
+    font-size: 0.67rem !important;
+
+    line-height: 1.15 !important;
+
+    letter-spacing: 0.45px !important;
+
+    color: #64748b !important;
+  }
+
+
+  /* Value */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child
+  h5 {
+
+    margin: 0 !important;
+
+    font-size: 0.88rem !important;
+
+    line-height: 1.35 !important;
+
+    color: #1e293b !important;
+
+    font-weight: 600 !important;
+
+    white-space: normal !important;
+
+    word-break: normal !important;
+
+    overflow-wrap: anywhere !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0 - 767px
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+  /* =====================================================
+     PAGE
+     ===================================================== */
+
+  .college-profile-responsive {
+
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    min-height: 100vh !important;
+
+    height: auto !important;
+
+    padding: 0.65rem !important;
+
+    box-sizing: border-box !important;
+
+    overflow-x: hidden !important;
+
+    overflow-y: visible !important;
+  }
+
+
+  .college-profile-responsive > div {
+
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    margin: 0 !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     PROFILE HEADER
+     ===================================================== */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2) {
+
+    width: 100% !important;
+
+    margin-bottom: 0.9rem !important;
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    align-items: stretch !important;
+
+    gap: 0.7rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* Logo + details */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  > div:first-child {
+
+    width: 100% !important;
+
+    min-width: 0 !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    gap: 0.75rem !important;
+  }
+
+
+  /* Logo */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  img {
+
+    width: 62px !important;
+
+    height: 62px !important;
+
+    max-width: 62px !important;
+
+    max-height: 62px !important;
+
+    flex: 0 0 62px !important;
+
+    object-fit: contain !important;
+  }
+
+
+  /* College details */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  > div:first-child
+  > div:last-child {
+
+    flex: 1 1 auto !important;
+
+    min-width: 0 !important;
+
+    max-width: 100% !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /* College name */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  h1 {
+
+    margin: 0 0 0.3rem !important;
+
+    font-size: 1.08rem !important;
+
+    line-height: 1.2 !important;
+
+    white-space: nowrap !important;
+
+    overflow: hidden !important;
+
+    text-overflow: ellipsis !important;
+  }
+
+
+  /* Code + status */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  h1 + div {
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    flex-wrap: wrap !important;
+
+    gap: 0.3rem !important;
+  }
+
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  h1 + div span {
+
+    padding: 0.25rem 0.55rem !important;
+
+    font-size: 0.62rem !important;
+
+    line-height: 1.2 !important;
+  }
+
+
+  /* =====================================================
+     EDIT PROFILE
+     ===================================================== */
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  > button {
+
+    width: 100% !important;
+
+    min-height: 42px !important;
+
+    padding: 0.65rem 1rem !important;
+
+    border-radius: 0.7rem !important;
+
+    justify-content: center !important;
+
+    font-size: 0.82rem !important;
+
+    box-shadow: 0 4px 12px rgba(26, 75, 109, 0.18) !important;
+  }
+
+
+  /* =====================================================
+     BOOTSTRAP RESET
+     ===================================================== */
+
+  .college-profile-responsive .row {
+
+    width: 100% !important;
+
+    height: auto !important;
+
+    min-height: 0 !important;
+
+    margin-top: 0 !important;
+
+    margin-bottom: 0 !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4 {
+
+    --bs-gutter-x: 0 !important;
+
+    --bs-gutter-y: 0 !important;
+  }
+
+
+  /* =====================================================
+     INSTITUTE OUTER CARD
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12 {
+
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    padding: 0 !important;
+
+    height: auto !important;
+
+    min-height: 0 !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12 {
+
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    padding: 0 !important;
+
+    margin: 0 !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div {
+
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    height: auto !important;
+
+    min-height: 0 !important;
+
+    margin: 0 0 0.9rem !important;
+
+    border-radius: 1rem !important;
+
+    overflow: hidden !important;
+
+    box-sizing: border-box !important;
+
+    box-shadow: 0 5px 20px rgba(15, 23, 42, 0.06) !important;
+  }
+
+
+  /* =====================================================
+     INSTITUTE HEADER
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div
+  > div:first-child {
+
+    width: 100% !important;
+
+    min-height: 50px !important;
+
+    padding: 0.8rem 0.9rem !important;
+
+    box-sizing: border-box !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div
+  > div:first-child
+  h2 {
+
+    margin: 0 !important;
+
+    font-size: 0.98rem !important;
+
+    line-height: 1.2 !important;
+
+    white-space: nowrap !important;
+  }
+
+
+  /* =====================================================
+     INSTITUTE BODY
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div
+  > div:last-child {
+
+    width: 100% !important;
+
+    height: auto !important;
+
+    min-height: 0 !important;
+
+    padding: 0.75rem !important;
+
+    margin: 0 !important;
+
+    overflow: visible !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     INFORMATION GRID
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div
+  > div:last-child
+  > .row {
+
+    width: 100% !important;
+
+    margin: 0 !important;
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    gap: 0.55rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     INFORMATION COLUMN
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4 {
+
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    flex: 0 0 100% !important;
+
+    padding: 0 !important;
+
+    margin: 0 !important;
+
+    height: auto !important;
+
+    min-height: 0 !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     INFORMATION CARD
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div {
+
+    width: 100% !important;
+
+    min-height: 65px !important;
+
+    height: auto !important;
+
+    padding: 0.65rem 0.7rem !important;
+
+    margin: 0 !important;
+
+    border-radius: 0.8rem !important;
+
+    box-sizing: border-box !important;
+
+    overflow: visible !important;
+
+    box-shadow: none !important;
+
+    border: 1px solid #e2e8f0 !important;
+  }
+
+
+  /* =====================================================
+     INFO INNER CONTENT
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div {
+
+    width: 100% !important;
+
+    display: flex !important;
+
+    flex-direction: row !important;
+
+    align-items: flex-start !important;
+
+    gap: 0.65rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     ICON
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:first-child {
+
+    width: 34px !important;
+
+    min-width: 34px !important;
+
+    max-width: 34px !important;
+
+    height: 34px !important;
+
+    min-height: 34px !important;
+
+    flex: 0 0 34px !important;
+
+    display: flex !important;
+
+    align-items: center !important;
+
+    justify-content: center !important;
+
+    border-radius: 0.6rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     TEXT
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child {
+
+    flex: 1 1 auto !important;
+
+    width: auto !important;
+
+    min-width: 0 !important;
+
+    max-width: calc(100% - 42px) !important;
+
+    overflow: visible !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* Label */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child
+  h6 {
+
+    margin: 0 0 0.15rem !important;
+
+    padding: 0 !important;
+
+    font-size: 0.62rem !important;
+
+    line-height: 1.15 !important;
+
+    letter-spacing: 0.4px !important;
+
+    color: #64748b !important;
+
+    white-space: normal !important;
+  }
+
+
+  /* Value */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child
+  h5 {
+
+    margin: 0 !important;
+
+    padding: 0 !important;
+
+    font-size: 0.78rem !important;
+
+    line-height: 1.3 !important;
+
+    font-weight: 600 !important;
+
+    color: #1e293b !important;
+
+    white-space: normal !important;
+
+    word-break: normal !important;
+
+    overflow-wrap: anywhere !important;
+
+    display: block !important;
+  }
+
+
+  /* =====================================================
+     ADDRESS CARD
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child
+  h5 {
+
+    max-width: 100% !important;
+
+    overflow: visible !important;
+
+    text-overflow: unset !important;
+  }
+
+
+  /* =====================================================
+     QUICK ACTIONS
+     ===================================================== */
+
+  .college-profile-responsive
+  .row.g-3 {
+
+    display: flex !important;
+
+    flex-wrap: wrap !important;
+
+    width: 100% !important;
+
+    margin: 0 !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-3
+  > [class*="col-"] {
+
+    padding: 0.2rem !important;
+
+    margin-bottom: 0.35rem !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-3
+  button {
+
+    width: 100% !important;
+
+    min-height: 72px !important;
+
+    padding: 0.65rem 0.4rem !important;
+
+    border-radius: 0.7rem !important;
+
+    font-size: 0.7rem !important;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   <= 400px
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .college-profile-responsive {
+
+    padding: 0.5rem !important;
+  }
+
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  > div:first-child {
+
+    gap: 0.6rem !important;
+  }
+
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  img {
+
+    width: 56px !important;
+
+    height: 56px !important;
+
+    max-width: 56px !important;
+
+    max-height: 56px !important;
+
+    flex-basis: 56px !important;
+  }
+
+
+  .college-profile-responsive
+  > div
+  > div:nth-child(2)
+  h1 {
+
+    font-size: 1rem !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  > .col-12
+  > .row.g-4
+  > .col-12
+  > div
+  > div:first-child {
+
+    padding: 0.75rem !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div {
+
+    min-height: 62px !important;
+
+    padding: 0.6rem !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div {
+
+    gap: 0.55rem !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:first-child {
+
+    width: 32px !important;
+
+    min-width: 32px !important;
+
+    max-width: 32px !important;
+
+    height: 32px !important;
+
+    min-height: 32px !important;
+
+    flex-basis: 32px !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child {
+
+    max-width: calc(100% - 40px) !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child
+  h6 {
+
+    font-size: 0.6rem !important;
+  }
+
+
+  .college-profile-responsive
+  .row.g-4
+  .col-12.col-md-6.col-lg-4
+  > div
+  > div
+  > div:last-child
+  h5 {
+
+    font-size: 0.76rem !important;
+  }
+}
+`}</style>
       </motion.div>
     </AnimatePresence>
   );
