@@ -31,7 +31,127 @@ export const getStudentPromotionDetails = async (studentId) => {
 };
 
 /**
- * Promote a single student to next semester
+ * Get promotion eligibility for a student (creates/reuses PromotionDecision)
+ * @param {string} studentId - Student ID
+ * @returns {Promise}
+ */
+export const getPromotionEligibility = async (studentId) => {
+  const response = await api.get(`${PROMOTION_BASE_URL}/eligibility/${studentId}`);
+  return response.data;
+};
+
+/**
+ * Get student backlogs with optional status filter
+ * @param {string} studentId - Student ID
+ * @param {string} status - Optional status filter
+ * @returns {Promise}
+ */
+export const getStudentBacklogs = async (studentId, status) => {
+  const queryParams = new URLSearchParams();
+  if (status) {
+    queryParams.append("status", status);
+  }
+  const response = await api.get(
+    `${PROMOTION_BASE_URL}/backlogs/${studentId}${queryParams.toString() ? `?${queryParams.toString()}` : ""}`
+  );
+  return response.data;
+};
+
+/**
+ * Recommend a promotion decision
+ * @param {string} decisionId - Decision ID
+ * @param {string} comment - Optional comment
+ * @returns {Promise}
+ */
+export const recommendPromotionDecision = async (decisionId, comment) => {
+  const response = await api.post(
+    `${PROMOTION_BASE_URL}/decisions/${decisionId}/recommend`,
+    { comment }
+  );
+  return response.data;
+};
+
+/**
+ * Approve a promotion decision
+ * @param {string} decisionId - Decision ID
+ * @param {string} comment - Optional comment
+ * @returns {Promise}
+ */
+export const approvePromotionDecision = async (decisionId, comment) => {
+  const response = await api.post(
+    `${PROMOTION_BASE_URL}/decisions/${decisionId}/approve`,
+    { comment }
+  );
+  return response.data;
+};
+
+/**
+ * Reject a promotion decision
+ * @param {string} decisionId - Decision ID
+ * @param {string} reason - Required non-empty reason
+ * @returns {Promise}
+ */
+export const rejectPromotionDecision = async (decisionId, reason) => {
+  const response = await api.post(
+    `${PROMOTION_BASE_URL}/decisions/${decisionId}/reject`,
+    { reason }
+  );
+  return response.data;
+};
+
+/**
+ * Execute a promotion decision
+ * @param {string} decisionId - Decision ID
+ * @returns {Promise}
+ */
+export const executePromotionDecision = async (decisionId) => {
+  const response = await api.post(
+    `${PROMOTION_BASE_URL}/decisions/${decisionId}/execute`
+  );
+  return response.data;
+};
+
+/**
+ * Get backlog attempts for a backlog
+ * @param {string} backlogId - Backlog ID
+ * @returns {Promise}
+ */
+export const getBacklogAttempts = async (backlogId) => {
+  const response = await api.get(`${PROMOTION_BASE_URL}/backlogs/${backlogId}/attempts`);
+  return response.data;
+};
+
+/**
+ * Create a backlog attempt (creates supplementary exam)
+ * @param {string} backlogId - Backlog ID
+ * @param {Object} payload - Attempt payload
+ * @returns {Promise}
+ */
+export const createBacklogAttempt = async (backlogId, payload) => {
+  const response = await api.post(
+    `${PROMOTION_BASE_URL}/backlogs/${backlogId}/attempts`,
+    payload
+  );
+  return response.data;
+};
+
+/**
+ * Evaluate a backlog attempt
+ * @param {string} backlogId - Backlog ID
+ * @param {string} attemptId - Attempt ID
+ * @param {Object} payload - Evaluation payload
+ * @returns {Promise}
+ */
+export const evaluateBacklogAttempt = async (backlogId, attemptId, payload) => {
+  const response = await api.post(
+    `${PROMOTION_BASE_URL}/backlogs/${backlogId}/attempts/${attemptId}/evaluate`,
+    payload
+  );
+  return response.data;
+};
+
+/**
+ * Promote a single student to next semester (LEGACY)
  * @param {string} studentId - Student ID
  * @param {Object} data - Promotion data (remarks, overrideFeeCheck)
  * @returns {Promise}
@@ -45,7 +165,7 @@ export const promoteStudent = async (studentId, data = {}) => {
 };
 
 /**
- * Bulk promote multiple students
+ * Bulk promote multiple students (LEGACY)
  * @param {Object} data - Bulk promotion data (studentIds, remarks, overrideFeeCheck)
  * @returns {Promise}
  */
