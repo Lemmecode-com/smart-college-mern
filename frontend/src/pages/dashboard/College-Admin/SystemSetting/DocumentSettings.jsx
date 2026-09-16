@@ -1033,71 +1033,943 @@ export default function DocumentSettings() {
           font-size: 0.875rem;
         }
 
-        /* Responsive */
-        @media (max-width: 1024px) {
-          .stats-row {
-            grid-template-columns: 1fr;
-          }
-          
-          .settings-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .header-actions {
-            width: 100%;
-            justify-content: flex-end;
-          }
-          
-          .description-grid {
-            grid-template-columns: 1fr;
-          }
-        }
+/* =========================================================
+   RESPONSIVE DESIGN
+   Desktop remains completely unchanged
+   ========================================================= */
 
-        @media (max-width: 768px) {
-          .document-settings-page {
-            padding: 0.75rem;
-          }
-          
-          .settings-title {
-            font-size: 1.5rem;
-          }
-          
-          .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .header-actions {
-            flex-direction: column;
-          }
-          
-          .btn-reset,
-          .btn-save {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .documents-table {
-            font-size: 0.75rem;
-          }
-          
-          .documents-table th,
-          .documents-table td {
-            padding: 0.75rem 0.5rem;
-          }
-          
-          .modified-indicator {
-            left: 0.75rem;
-            right: 0.75rem;
-            transform: none;
-            bottom: 0.75rem;
-            flex-direction: column;
-            text-align: center;
-          }
-        }
 
+/* =========================================================
+   TABLET: 769px - 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .document-settings-page {
+    padding: 1rem;
+    overflow-x: hidden;
+  }
+
+  /* ---------- Page Header ---------- */
+
+  .settings-header {
+    padding: 1.1rem;
+    gap: 1rem;
+
+    align-items: center;
+  }
+
+  .header-content {
+    width: 100%;
+    min-width: 0;
+    gap: 0.85rem;
+  }
+
+  .header-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+  }
+
+  .header-icon {
+    font-size: 1.35rem;
+  }
+
+  .settings-title {
+    font-size: 1.5rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  /* ---------- Header Buttons ---------- */
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.6rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    padding: 0.6rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+
+  /* ---------- Statistics ---------- */
+
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    gap: 0.7rem;
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+  }
+
+
+  /* ---------- Info Card ---------- */
+
+  .info-card {
+    padding: 1rem;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.95rem;
+  }
+
+  .info-card-content ul {
+    font-size: 0.8rem;
+  }
+
+
+  /* ---------- Documents ---------- */
+
+  .documents-card {
+    overflow: hidden;
+  }
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .documents-table {
+    min-width: 900px;
+  }
+
+  .card-header-custom {
+    padding: 1rem 1.15rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 1rem;
+  }
+
+  .btn-add-document {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.78rem;
+  }
+
+
+  /* ---------- Description ---------- */
+
+  .description-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .description-body {
+    padding: 1.15rem;
+  }
+}
+
+
+/* =========================================================
+   MOBILE: 0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .document-settings-page {
+    padding: 0.6rem;
+    overflow-x: hidden;
+  }
+
+
+  /* =====================================================
+     HEADER
+     ===================================================== */
+
+  .settings-header {
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+
+    border-radius: 14px;
+
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    gap: 0.7rem;
+  }
+
+  .header-icon-wrapper {
+    width: 44px;
+    height: 44px;
+
+    min-width: 44px;
+
+    border-radius: 10px;
+  }
+
+  .header-icon {
+    font-size: 1.2rem;
+  }
+
+  .header-text {
+    min-width: 0;
+  }
+
+  .settings-title {
+    font-size: 1.25rem;
+    line-height: 1.2;
+
+    letter-spacing: -0.3px;
+  }
+
+  .settings-subtitle {
+    font-size: 0.72rem;
+    line-height: 1.4;
+
+    margin-top: 0.25rem;
+  }
+
+
+  /* =====================================================
+     HEADER ACTIONS
+     ===================================================== */
+
+  .header-actions {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 0.55rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: 100%;
+
+    justify-content: center;
+
+    padding: 0.65rem 0.5rem;
+
+    font-size: 0.72rem;
+
+    white-space: nowrap;
+  }
+
+  .btn-icon {
+    font-size: 0.85rem;
+  }
+
+
+  /* =====================================================
+     STATISTICS
+     ===================================================== */
+
+  .stats-row {
+    grid-template-columns: 1fr;
+
+    gap: 0.65rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    min-height: 68px;
+
+    padding: 0.8rem 0.9rem;
+
+    gap: 0.75rem;
+
+    border-left-width: 4px;
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+
+    min-width: 42px;
+
+    font-size: 1.15rem;
+  }
+
+  .stat-value {
+    font-size: 1.45rem;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    margin-top: 0.2rem;
+  }
+
+
+  /* =====================================================
+     INFO CARD
+     ===================================================== */
+
+  .info-card {
+    padding: 0.85rem;
+
+    gap: 0.7rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .info-card-icon {
+    width: 36px;
+    height: 36px;
+
+    min-width: 36px;
+
+    font-size: 1rem;
+  }
+
+  .info-card-content {
+    min-width: 0;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.9rem;
+
+    margin-bottom: 0.35rem;
+  }
+
+  .info-card-content ul {
+    padding-left: 1rem;
+
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+
+  /* =====================================================
+     DOCUMENT CONFIGURATION CARD
+     ===================================================== */
+
+  .documents-card {
+    width: 100%;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    margin-bottom: 1rem;
+  }
+
+  .card-header-custom {
+    padding: 0.8rem 0.85rem;
+
+    gap: 0.6rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 0.9rem;
+  }
+
+  .btn-add-document {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.7rem;
+
+    white-space: nowrap;
+  }
+
+
+  /* =====================================================
+     TABLE
+     Keep table usable instead of squeezing columns
+     ===================================================== */
+
+  .table-responsive {
+    width: 100%;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    -webkit-overflow-scrolling: touch;
+
+    scrollbar-width: thin;
+  }
+
+  .documents-table {
+    width: 950px;
+    min-width: 950px;
+
+    font-size: 0.72rem;
+  }
+
+  .documents-table th,
+  .documents-table td {
+    padding: 0.65rem 0.5rem;
+
+    white-space: nowrap;
+  }
+
+  .documents-table th {
+    font-size: 0.68rem;
+  }
+
+  .doc-type-badge {
+    font-size: 0.65rem;
+
+    padding: 0.2rem 0.55rem;
+  }
+
+  .label-input {
+    min-width: 150px;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.75rem;
+  }
+
+  .mandatory-checkbox {
+    width: 18px;
+    height: 18px;
+  }
+
+  .toggle-enabled,
+  .toggle-disabled {
+    font-size: 1.5rem;
+  }
+
+  .format-buttons {
+    gap: 0.25rem;
+    flex-wrap: nowrap;
+  }
+
+  .format-btn {
+    padding: 0.22rem 0.4rem;
+
+    font-size: 0.62rem;
+  }
+
+  .size-input {
+    width: 58px;
+
+    padding: 0.4rem;
+
+    font-size: 0.75rem;
+  }
+
+  .action-btn {
+    padding: 0.4rem;
+  }
+
+
+  /* =====================================================
+     DESCRIPTION CARD
+     ===================================================== */
+
+  .description-card {
+    border-radius: 12px;
+  }
+
+  .description-header {
+    padding: 0.9rem;
+  }
+
+  .description-header h5 {
+    font-size: 0.95rem;
+  }
+
+  .description-header p {
+    font-size: 0.72rem !important;
+
+    line-height: 1.45;
+  }
+
+  .description-body {
+    padding: 0.9rem;
+  }
+
+  .description-grid {
+    grid-template-columns: 1fr;
+
+    gap: 0.8rem;
+  }
+
+  .description-group label {
+    font-size: 0.75rem;
+
+    margin-bottom: 0.35rem;
+  }
+
+  .description-input {
+    padding: 0.55rem 0.65rem;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* =====================================================
+     MESSAGE ALERT
+     ===================================================== */
+
+  .message-alert {
+    padding: 0.75rem 0.8rem;
+
+    gap: 0.55rem;
+
+    margin-bottom: 1rem;
+
+    align-items: flex-start;
+  }
+
+  .message-icon {
+    font-size: 1rem;
+  }
+
+  .message-text {
+    font-size: 0.75rem;
+
+    line-height: 1.4;
+  }
+
+
+  /* =====================================================
+     UNSAVED CHANGES
+     ===================================================== */
+
+  .modified-indicator {
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: 0.6rem;
+
+    width: auto;
+
+    padding: 0.65rem 0.75rem;
+
+    gap: 0.65rem;
+
+    flex-direction: row;
+
+    justify-content: space-between;
+
+    box-sizing: border-box;
+  }
+
+  .indicator-content {
+    min-width: 0;
+
+    font-size: 0.7rem;
+  }
+
+  .btn-save-small {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.68rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE: 0px - 420px
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .document-settings-page {
+    padding: 0.5rem;
+  }
+
+  .settings-header {
+    padding: 0.75rem;
+  }
+
+  .header-content {
+    gap: 0.6rem;
+  }
+
+  .header-icon-wrapper {
+    width: 40px;
+    height: 40px;
+
+    min-width: 40px;
+  }
+
+  .header-icon {
+    font-size: 1rem;
+  }
+
+  .settings-title {
+    font-size: 1.1rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.67rem;
+  }
+
+
+  /* Header buttons stay side-by-side */
+
+  .header-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .btn-reset,
+  .btn-save {
+    padding: 0.6rem 0.35rem;
+
+    font-size: 0.65rem;
+  }
+
+
+  /* Stats */
+
+  .stat-card {
+    min-height: 62px;
+
+    padding: 0.7rem 0.75rem;
+  }
+
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    font-size: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+
+
+  /* Info */
+
+  .info-card {
+    padding: 0.7rem;
+  }
+
+  .info-card-icon {
+    width: 32px;
+    height: 32px;
+
+    min-width: 32px;
+
+    font-size: 0.85rem;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.82rem;
+  }
+
+  .info-card-content ul {
+    font-size: 0.67rem;
+  }
+
+
+  /* Document card */
+
+  .card-header-custom {
+    padding: 0.7rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 0.82rem;
+  }
+
+  .btn-add-document {
+    padding: 0.4rem 0.5rem;
+
+    font-size: 0.63rem;
+  }
+
+
+  /* Unsaved indicator */
+
+  .modified-indicator {
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+
+    padding: 0.55rem 0.6rem;
+  }
+
+  .indicator-content {
+    font-size: 0.65rem;
+  }
+
+  .btn-save-small {
+    padding: 0.4rem 0.5rem;
+
+    font-size: 0.62rem;
+  }
+}
+/* =========================================================
+   DOCUMENT SETTINGS BANNER - TABLET & MOBILE
+   Desktop remains unchanged
+   ========================================================= */
+
+@media (max-width: 1024px) {
+
+  /* Main banner */
+  .settings-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 1.25rem;
+
+    padding: 1.25rem;
+
+    margin-bottom: 1.25rem;
+
+    border-radius: 18px;
+
+    overflow: hidden;
+  }
+
+  /* Banner content */
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.75rem;
+
+    text-align: center;
+  }
+
+  /* Icon */
+  .header-icon-wrapper {
+    width: 58px;
+    height: 58px;
+
+    min-width: 58px;
+
+    border-radius: 14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header-icon {
+    font-size: 1.45rem;
+  }
+
+  /* Text */
+  .header-text {
+    width: 100%;
+  }
+
+  .settings-title {
+    margin: 0;
+
+    font-size: 1.65rem;
+
+    line-height: 1.2;
+
+    text-align: center;
+  }
+
+  .settings-subtitle {
+    max-width: 520px;
+
+    margin: 0.45rem auto 0;
+
+    font-size: 0.9rem;
+
+    line-height: 1.5;
+
+    text-align: center;
+  }
+
+  /* Buttons container */
+  .header-actions {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.75rem;
+
+    margin-top: 0.25rem;
+  }
+
+  /* Buttons */
+  .btn-reset,
+  .btn-save {
+    width: 100%;
+
+    min-height: 48px;
+
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0.7rem 0.8rem;
+
+    font-size: 0.85rem;
+
+    white-space: nowrap;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .settings-header {
+    padding: 1rem;
+
+    gap: 1rem;
+
+    border-radius: 16px;
+  }
+
+  .header-content {
+    gap: 0.65rem;
+  }
+
+  .header-icon-wrapper {
+    width: 52px;
+    height: 52px;
+
+    min-width: 52px;
+
+    border-radius: 12px;
+  }
+
+  .header-icon {
+    font-size: 1.3rem;
+  }
+
+  .settings-title {
+    font-size: 1.4rem;
+
+    line-height: 1.2;
+  }
+
+  .settings-subtitle {
+    max-width: 100%;
+
+    font-size: 0.8rem;
+
+    line-height: 1.45;
+  }
+
+  .header-actions {
+    grid-template-columns: 1fr 1fr;
+
+    gap: 0.6rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 44px;
+
+    padding: 0.6rem 0.45rem;
+
+    font-size: 0.72rem;
+
+    border-radius: 8px;
+  }
+
+  .btn-icon {
+    font-size: 0.85rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .settings-header {
+    padding: 0.85rem;
+
+    gap: 0.85rem;
+
+    border-radius: 14px;
+  }
+
+  .header-icon-wrapper {
+    width: 46px;
+    height: 46px;
+
+    min-width: 46px;
+
+    border-radius: 11px;
+  }
+
+  .header-icon {
+    font-size: 1.15rem;
+  }
+
+  .settings-title {
+    font-size: 1.2rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.72rem;
+
+    line-height: 1.4;
+  }
+
+  .header-actions {
+    gap: 0.5rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 42px;
+
+    padding: 0.55rem 0.3rem;
+
+    font-size: 0.65rem;
+
+    gap: 0.35rem;
+  }
+
+  .btn-icon {
+    font-size: 0.75rem;
+  }
+}
         @media (prefers-reduced-motion: reduce) {
           *,
           *::before,

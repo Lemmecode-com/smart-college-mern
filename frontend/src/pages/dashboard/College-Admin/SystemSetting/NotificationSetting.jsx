@@ -815,137 +815,634 @@ const NotificationSetting = () => {
           font-size: 0.875rem;
         }
 
-        /* Responsive */
-        @media (max-width: 1024px) {
-          .settings-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .channels-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .settings-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .header-actions {
-            width: 100%;
-            justify-content: flex-end;
-          }
-        }
+/* =========================================================
+   RESPONSIVE - TABLET
+   Desktop remains unchanged
+   ========================================================= */
 
-        @media (max-width: 768px) {
-          .notification-settings-page {
-            padding: 0.75rem;
-          }
-          
-          .settings-title {
-            font-size: 1.5rem;
-          }
-          
-          .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .header-actions {
-            flex-direction: column;
-          }
-          
-          .btn-reset,
-          .btn-save {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .rule-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-          }
-          
-          .rule-select {
-            width: 100%;
-          }
-          
-          .modified-indicator {
-            left: 0.75rem;
-            right: 0.75rem;
-            transform: none;
-            bottom: 0.75rem;
-            flex-direction: column;
-            text-align: center;
-          }
-        }
+@media (min-width: 769px) and (max-width: 1024px) {
 
-        @media (max-width: 480px) {
-          .notification-settings-page {
-            padding: 0.5rem;
-          }
+  .notification-settings-page {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
 
-          .settings-title {
-            font-size: 1.25rem;
-          }
+  /* ---------- Header ---------- */
 
-          .settings-subtitle {
-            font-size: 0.875rem;
-          }
+  .settings-header {
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    gap: 1rem;
+  }
 
-          .header-icon-wrapper {
-            width: 56px;
-            height: 56px;
-          }
+  .header-content {
+    min-width: 0;
+    flex: 1;
+  }
 
-          .header-icon {
-            font-size: 1.5rem;
-          }
+  .header-text {
+    min-width: 0;
+  }
 
-          .stat-value {
-            font-size: 1.5rem;
-          }
+  .settings-title {
+    font-size: 1.5rem;
+    line-height: 1.25;
+  }
 
-          .stat-label {
-            font-size: 0.75rem;
-          }
+  .settings-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
 
-          .channel-card {
-            padding: 1rem;
-          }
+  .header-actions {
+    flex-shrink: 0;
+    width: auto;
+  }
 
-          .channel-icon {
-            width: 48px;
-            height: 48px;
-            font-size: 1.25rem;
-          }
+  .btn-reset,
+  .btn-save {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.82rem;
+    white-space: nowrap;
+  }
 
-          .channel-name {
-            font-size: 1rem;
-          }
 
-          .test-preview-btn {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.875rem;
-          }
-        }
+  /* ---------- Main Grid ---------- */
 
-        @media (prefers-reduced-motion: reduce) {
-          *,
-          *::before,
-          *::after {
-            animation-duration: 0.01ms !important;
-            transition-duration: 0.01ms !important;
-          }
-        }
+  .settings-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 
-        .rule-select:focus,
-        .btn-test:focus,
-        .btn-save-small:focus {
-          outline: 2px solid var(--ns-cyan-primary);
-          outline-offset: 2px;
-        }
+
+  /* ---------- Notification Channels ---------- */
+
+  .channels-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .channel-card {
+    padding: 1rem;
+    min-width: 0;
+  }
+
+
+  /* ---------- Notification Rules ---------- */
+
+  .rule-item {
+    gap: 1rem;
+  }
+
+  .rule-content {
+    min-width: 0;
+  }
+
+  .rule-text {
+    min-width: 0;
+  }
+
+  .rule-select {
+    min-width: 130px;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+   Desktop remains unchanged
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .notification-settings-page {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.65rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+
+  /* =====================================================
+     BREADCRUMB
+     ===================================================== */
+
+  .notification-settings-page > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 0 0.75rem !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .notification-settings-page .breadcrumb {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .notification-settings-page .breadcrumb::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* =====================================================
+     PAGE HEADER
+     ===================================================== */
+
+  .settings-header {
+    width: 100%;
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0.75rem;
+
+    box-sizing: border-box;
+    border-radius: 14px;
+  }
+
+
+  /* Keep icon + title SIDE BY SIDE */
+
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    gap: 0.7rem;
+
+    min-width: 0;
+  }
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 10px;
+  }
+
+  .header-icon {
+    font-size: 1.25rem;
+  }
+
+  .header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .settings-title {
+    font-size: 1.25rem;
+    line-height: 1.25;
+    letter-spacing: -0.2px;
+  }
+
+  .settings-subtitle {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    margin-top: 0.2rem;
+  }
+
+
+  /* Buttons stay SIDE BY SIDE */
+
+  .header-actions {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 0.5rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: 100% !important;
+
+    min-height: 40px;
+
+    justify-content: center;
+
+    padding: 0.6rem 0.5rem;
+
+    font-size: 0.78rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     INFO CARD
+     ===================================================== */
+
+  .info-card {
+    width: 100%;
+    padding: 0.85rem;
+    margin-bottom: 1rem;
+
+    gap: 0.65rem;
+
+    box-sizing: border-box;
+    border-radius: 12px;
+  }
+
+  .info-card-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+
+    font-size: 1rem;
+  }
+
+  .info-card-content {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.9rem;
+    line-height: 1.3;
+    margin-bottom: 0.35rem;
+  }
+
+  .info-card-content ul {
+    padding-left: 1rem;
+    font-size: 0.74rem;
+    line-height: 1.5;
+  }
+
+
+  /* =====================================================
+     MAIN GRID
+     ===================================================== */
+
+  .settings-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+
+  /* =====================================================
+     CARDS
+     ===================================================== */
+
+  .settings-card,
+  .sidebar-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    border-radius: 12px;
+  }
+
+  .card-header-custom {
+    padding: 0.85rem 1rem;
+    gap: 0.6rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
+  .card-body-custom {
+    padding: 0.9rem;
+  }
+
+
+  /* =====================================================
+     NOTIFICATION CHANNELS
+     ===================================================== */
+
+  .channels-grid {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.55rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .channel-card {
+    min-width: 0;
+
+    padding: 0.75rem;
+
+    border-width: 1.5px;
+
+    box-sizing: border-box;
+  }
+
+  .channel-header {
+    margin-bottom: 0.55rem;
+  }
+
+  .channel-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+
+    font-size: 1.15rem;
+  }
+
+  .channel-status {
+    font-size: 0.58rem;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .channel-name {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  .channel-description {
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+
+
+  /* =====================================================
+     SIDEBAR
+     ===================================================== */
+
+  .sidebar-card {
+    margin-bottom: 0.85rem;
+  }
+
+  .sidebar-header {
+    padding: 0.85rem 1rem;
+  }
+
+  .sidebar-header h6 {
+    font-size: 0.88rem;
+  }
+
+  .sidebar-body {
+    padding: 0.8rem;
+  }
+
+
+  /* =====================================================
+     TEST NOTIFICATIONS
+     ===================================================== */
+
+  .test-tabs {
+    gap: 0.4rem;
+  }
+
+  .test-tab {
+    padding: 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  .test-preview {
+    padding: 1rem;
+  }
+
+  .test-preview-icon {
+    font-size: 2.4rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .test-preview-title {
+    font-size: 0.9rem;
+  }
+
+  .test-preview-text {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  .btn-test {
+    margin-top: 0.75rem;
+    padding: 0.65rem;
+    font-size: 0.78rem;
+  }
+
+
+  /* =====================================================
+     QUICK STATS
+     ===================================================== */
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .stat-item {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+  }
+
+
+  /* =====================================================
+     NOTIFICATION RULES
+     ===================================================== */
+
+  .rules-list {
+    gap: 0.65rem;
+  }
+
+  .rule-item {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0.65rem;
+
+    padding: 0.75rem;
+
+    box-sizing: border-box;
+  }
+
+  .rule-content {
+    width: 100%;
+    min-width: 0;
+    gap: 0.65rem;
+  }
+
+  .rule-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+
+    font-size: 1rem;
+  }
+
+  .rule-text {
+    min-width: 0;
+  }
+
+  .rule-name {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+
+  .rule-description {
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+
+  .rule-select {
+    width: 100%;
+    min-width: 0;
+
+    padding: 0.55rem 0.65rem;
+
+    font-size: 0.75rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     UNSAVED CHANGES INDICATOR
+     ===================================================== */
+
+  .modified-indicator {
+    left: 0.6rem;
+    right: 0.6rem;
+
+    bottom: 0.6rem;
+
+    width: auto;
+
+    padding: 0.65rem 0.8rem;
+
+    gap: 0.6rem;
+
+    box-sizing: border-box;
+
+    justify-content: space-between;
+  }
+
+  .indicator-content {
+    min-width: 0;
+    font-size: 0.72rem;
+  }
+
+  .btn-save-small {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.7rem;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .notification-settings-page {
+    padding: 0.5rem;
+  }
+
+  .settings-header {
+    padding: 0.8rem;
+  }
+
+  .header-icon-wrapper {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+  }
+
+  .header-icon {
+    font-size: 1.1rem;
+  }
+
+  .settings-title {
+    font-size: 1.05rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.68rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 38px;
+    font-size: 0.7rem;
+  }
+
+  .channels-grid {
+    gap: 0.4rem;
+  }
+
+  .channel-card {
+    padding: 0.65rem;
+  }
+
+  .channel-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 1rem;
+  }
+
+  .channel-status {
+    font-size: 0.5rem;
+    padding: 0.15rem 0.3rem;
+  }
+
+  .channel-name {
+    font-size: 0.72rem;
+  }
+
+  .channel-description {
+    font-size: 0.62rem;
+  }
+
+  .info-card-content ul {
+    font-size: 0.68rem;
+  }
+
+  .card-body-custom {
+    padding: 0.75rem;
+  }
+
+  .rule-name {
+    font-size: 0.75rem;
+  }
+
+  .rule-description {
+    font-size: 0.64rem;
+  }
+
+  .modified-indicator {
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+  }
+}
       `}</style>
 
       <div className="notification-settings-page">
