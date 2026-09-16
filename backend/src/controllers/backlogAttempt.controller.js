@@ -16,21 +16,23 @@ const input = (req) => ({
 
 exports.createAttempt = async (req, res, next) => {
   try {
-    const { attempt, isIdempotent } = await createAttempt(input(req));
+    const { attempt, exam, isIdempotent } = await createAttempt(input(req));
 
     const statusCode = isIdempotent ? 200 : 201;
     const message = isIdempotent
       ? "Backlog attempt already exists"
       : "Backlog attempt created successfully";
 
-    ApiResponse.status(res, statusCode).json({
-      success: true,
-      message,
-      data: {
+    ApiResponse.success(
+      res,
+      {
         attempt,
+        exam,
         idempotent: isIdempotent,
       },
-    });
+      message,
+      statusCode,
+    );
   } catch (error) {
     next(error);
   }
@@ -39,29 +41,36 @@ exports.createAttempt = async (req, res, next) => {
 exports.evaluateAttempt = async (req, res, next) => {
   try {
     const { attempt, backlog, isIdempotent, resultStatus, passed, backlogCleared } =
-      await evaluateAttempt(input(req));
+      await evaluateAttempt({
+        ...input(req),
+        attemptId: req.params.attemptId,
+      });
 
-    const statusCode = isIdempotent ? 200 : 200;
+    const responseResultStatus = isIdempotent
+      ? attempt.result_status
+      : resultStatus;
+    const responsePassed = isIdempotent ? attempt.passed : passed;
     const message = isIdempotent
       ? "Backlog attempt already evaluated"
-      : resultStatus === "PASS"
+      : responseResultStatus === "PASS"
         ? "Backlog cleared successfully"
-        : resultStatus === "FAIL"
+        : responseResultStatus === "FAIL"
           ? "Backlog attempt failed, backlog remains open"
           : "Backlog attempt incomplete";
 
-    ApiResponse.status(res, statusCode).json({
-      success: true,
-      message,
-      data: {
+    ApiResponse.success(
+      res,
+      {
         attempt,
         backlog,
         idempotent: isIdempotent,
-        resultStatus,
-        passed,
+        resultStatus: responseResultStatus,
+        passed: responsePassed,
         backlogCleared,
       },
-    });
+      message,
+      200,
+    );
   } catch (error) {
     next(error);
   }

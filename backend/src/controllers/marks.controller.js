@@ -2,6 +2,8 @@ const StudentMarks = require("../models/studentMarks.model");
 const Exam = require("../models/exam.model");
 const Subject = require("../models/subject.model");
 const Student = require("../models/student.model");
+const Backlog = require("../models/backlog.model");
+const BacklogAttempt = require("../models/backlogAttempt.model");
 const Teacher = require("../models/teacher.model");
 const AppError = require("../utils/AppError");
 const auditLogService = require("../services/auditLog.service");
@@ -9,6 +11,10 @@ const { ROLE } = require("../utils/constants");
 const {
   calculateSubjectResult,
 } = require("../services/examCalculation.service");
+const {
+  EXAM_TYPE,
+  BACKLOG_STATUS,
+} = require("../services/backlogAttempt.service");
 const { assertMarksMutable } = require("../utils/resultLifecycle.util");
 
 /**
@@ -106,6 +112,46 @@ const getExamSubject = (exam, subjectId) => {
     );
   }
   return subject;
+};
+
+const getSupplementaryBacklogStudentIds = async (examId, collegeId) => {
+  const attempts = await BacklogAttempt.find({
+    exam_id: examId,
+    college_id: collegeId,
+  })
+    .select("backlog_id course_id subject_id")
+    .lean();
+
+  if (attempts.length === 0) {
+    return [];
+  }
+
+  const backlogIds = [
+    ...new Set(attempts.map((attempt) => attempt.backlog_id)),
+  ];
+  const backlogs = await Backlog.find({
+    _id: { $in: backlogIds },
+    college_id: collegeId,
+    status: { $in: [BACKLOG_STATUS.OPEN, BACKLOG_STATUS.ATTEMPTED] },
+  })
+    .select("student_id course_id subject_id")
+    .lean();
+
+  const attemptRelationships = new Set(
+    attempts.map(
+      (attempt) =>
+        `${attempt.backlog_id}:${attempt.course_id}:${attempt.subject_id}`,
+    ),
+  );
+
+  return backlogs
+    .filter(
+      (backlog) =>
+        attemptRelationships.has(
+          `${backlog._id}:${backlog.course_id}:${backlog.subject_id}`,
+        ),
+    )
+    .map((backlog) => String(backlog.student_id));
 };
 
 /**
@@ -228,13 +274,27 @@ exports.getStudentRoster = async (req, res, next) => {
 
     await authorizeTeacher(req, subjectId, req.college_id);
 
-    const students = await Student.find({
-      college_id: req.college_id,
-      course_id: exam.course_id,
-      currentSemester: exam.semester,
-    })
-      .select("_id fullName enrollmentNumber rollNumber")
-      .sort({ fullName: 1 });
+    let students;
+    if (exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
+      const studentIds = await getSupplementaryBacklogStudentIds(
+        examId,
+        req.college_id,
+      );
+      students = await Student.find({
+        college_id: req.college_id,
+        _id: { $in: studentIds },
+      })
+        .select("_id fullName enrollmentNumber rollNumber")
+        .sort({ fullName: 1 });
+    } else {
+      students = await Student.find({
+        college_id: req.college_id,
+        course_id: exam.course_id,
+        currentSemester: exam.semester,
+      })
+        .select("_id fullName enrollmentNumber rollNumber")
+        .sort({ fullName: 1 });
+    }
 
     const marks = await StudentMarks.find({
       college_id: req.college_id,
@@ -378,6 +438,11 @@ exports.saveMarks = async (req, res, next) => {
     const examSubject = getExamSubject(exam, subjectId);
     await authorizeTeacher(req, subjectId, req.college_id);
 
+    const supplementaryBacklogStudentIds =
+      exam.exam_type === EXAM_TYPE.SUPPLEMENTARY
+        ? await getSupplementaryBacklogStudentIds(examId, req.college_id)
+        : null;
+
     // Step 7 — mutability guard: if a SemesterResult for this exam + student is
     // LOCKED or PUBLISHED, the underlying marks must not be modified.
     const studentIds = marks
@@ -404,12 +469,30 @@ exports.saveMarks = async (req, res, next) => {
         );
       }
 
-      const student = await Student.findOne({
+      let student = await Student.findOne({
         _id: studentId,
         college_id: req.college_id,
         course_id: exam.course_id,
         currentSemester: exam.semester,
       });
+
+      if (!student && exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
+        if (
+          !supplementaryBacklogStudentIds?.includes(String(studentId))
+        ) {
+          throw new AppError(
+            `Student ${studentId} is not eligible for this exam`,
+            400,
+            "STUDENT_NOT_ELIGIBLE",
+          );
+        }
+
+        student = await Student.findOne({
+          _id: studentId,
+          college_id: req.college_id,
+          course_id: exam.course_id,
+        });
+      }
 
       if (!student) {
         throw new AppError(
