@@ -359,12 +359,12 @@ export default function CollegeAdminDashboard() {
                        initial="initial"
                        animate="pulse"
                        style={{
-                         width: 88,
-                         height: 88,
+                         width: 85,
+                         height: 85,
                          flexShrink: 0,
                        }}
                      >
-                       <LogoImage documentId={college?.logoDocumentId} size={80} />
+                       <LogoImage documentId={college?.logoDocumentId} size={85} />
                      </motion.div>
                      <div className="header-title-section">
                       <h1 className="header-title">
