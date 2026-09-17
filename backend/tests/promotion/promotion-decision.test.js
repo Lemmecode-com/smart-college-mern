@@ -260,4 +260,147 @@ describe("Step 3 - promotion decision eligibility engine", () => {
       ).toBe(0);
     });
   });
+
+  // -------------------------------------------------------------------------
+  // RCA-1 — academic-year format mismatch in result authority
+  //
+  // Student.currentAcademicYear = "2026-2027" (full)
+  // SemesterResult.academicYear  = "2026-27"   (short)
+  //
+  // Before the fix the exact-match query returned NO_RESULT, so
+  // source_result_id was null. After the fix the formats are normalised and
+  // the actual PUBLISHED result is resolved.
+  // -------------------------------------------------------------------------
+
+  describe("RCA-1 - cross-format academic year resolution", () => {
+    it("resolves PUBLISHED result when student AY is full and result AY is short", async () => {
+      const collegeId = new mongoose.Types.ObjectId();
+      const courseId = new mongoose.Types.ObjectId();
+      const departmentId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+
+      const student = await createStudent({
+        college_id: collegeId,
+        course_id: courseId,
+        department_id: departmentId,
+        currentSemester: 1,
+        currentAcademicYear: "2026-2027",
+        email: `rca1-${Date.now()}@example.com`,
+      });
+
+      const resultDocument = await SemesterResult.create({
+        college_id: collegeId,
+        student_id: student._id,
+        exam_id: new mongoose.Types.ObjectId(),
+        course_id: courseId,
+        semester: 1,
+        academicYear: "2026-27",
+        subjects: [],
+        totalSubjects: 0,
+        passedSubjects: 0,
+        failedSubjects: 0,
+        incompleteSubjects: 0,
+        overallResult: "INCOMPLETE",
+        status: "PUBLISHED",
+        createdBy: userId,
+      });
+
+      const decision = await createPromotionDecision({
+        studentId: student._id,
+        collegeId,
+        userId,
+      });
+
+      expect(String(decision.source_result_id)).toBe(String(resultDocument._id));
+      expect(decision.result_status).toBe("PUBLISHED");
+      expect(decision.promotion_outcome).toBe("INCOMPLETE");
+      expect(decision.decision_reason).toBe("RESULT_INCOMPLETE");
+    });
+
+    it("resolves PUBLISHED result when student AY is short and result AY is full", async () => {
+      const collegeId = new mongoose.Types.ObjectId();
+      const courseId = new mongoose.Types.ObjectId();
+      const departmentId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+
+      const student = await createStudent({
+        college_id: collegeId,
+        course_id: courseId,
+        department_id: departmentId,
+        currentSemester: 1,
+        currentAcademicYear: "2026-27",
+        email: `rca1b-${Date.now()}@example.com`,
+      });
+
+      const resultDocument = await SemesterResult.create({
+        college_id: collegeId,
+        student_id: student._id,
+        exam_id: new mongoose.Types.ObjectId(),
+        course_id: courseId,
+        semester: 1,
+        academicYear: "2026-2027",
+        subjects: [],
+        totalSubjects: 0,
+        passedSubjects: 0,
+        failedSubjects: 0,
+        incompleteSubjects: 0,
+        overallResult: "INCOMPLETE",
+        status: "PUBLISHED",
+        createdBy: userId,
+      });
+
+      const decision = await createPromotionDecision({
+        studentId: student._id,
+        collegeId,
+        userId,
+      });
+
+      expect(String(decision.source_result_id)).toBe(String(resultDocument._id));
+      expect(decision.result_status).toBe("PUBLISHED");
+    });
+
+    it("returns NO_RESULT when no PUBLISHED result exists for the student AY", async () => {
+      const collegeId = new mongoose.Types.ObjectId();
+      const courseId = new mongoose.Types.ObjectId();
+      const departmentId = new mongoose.Types.ObjectId();
+      const userId = new mongoose.Types.ObjectId();
+
+      const student = await createStudent({
+        college_id: collegeId,
+        course_id: courseId,
+        department_id: departmentId,
+        currentSemester: 1,
+        currentAcademicYear: "2026-2027",
+        email: `rca1c-${Date.now()}@example.com`,
+      });
+
+      // Only a DRAFT result exists — must not be authoritative
+      await SemesterResult.create({
+        college_id: collegeId,
+        student_id: student._id,
+        exam_id: new mongoose.Types.ObjectId(),
+        course_id: courseId,
+        semester: 1,
+        academicYear: "2026-27",
+        subjects: [],
+        totalSubjects: 0,
+        passedSubjects: 0,
+        failedSubjects: 0,
+        incompleteSubjects: 0,
+        overallResult: "INCOMPLETE",
+        status: "DRAFT",
+        createdBy: userId,
+      });
+
+      const decision = await createPromotionDecision({
+        studentId: student._id,
+        collegeId,
+        userId,
+      });
+
+      expect(decision.source_result_id).toBeNull();
+      expect(decision.result_status).toBe("NO_RESULT");
+      expect(decision.promotion_outcome).toBe("NO_RESULT");
+    });
+  });
 });
