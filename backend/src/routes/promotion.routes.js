@@ -26,6 +26,13 @@ const {
   evaluateAttempt,
   getBacklogAttempts,
 } = require("../controllers/backlogAttempt.controller");
+const {
+  getSupplementaryExams,
+  getSupplementaryExamById,
+  getSupplementaryRoster,
+  getSupplementaryMarks,
+  saveSupplementaryMarks,
+} = require("../controllers/supplementaryExam.controller");
 
 // All routes require authentication and COLLEGE_ADMIN / ADMISSION_OFFICER role
 router.use(auth);
@@ -61,5 +68,12 @@ router.post("/bulk-promote", bulkPromoteStudents);
 
 // 📜 GET college promotion history
 router.get("/history", getCollegePromotionHistory);
+
+// 📝 SUPPLEMENTARY EXAMS — College Admin / Admission Officer
+router.get("/supplementary-exams", getSupplementaryExams);
+router.get("/supplementary-exams/:examId", getSupplementaryExamById);
+router.get("/supplementary-roster", getSupplementaryRoster);
+router.get("/supplementary-marks", getSupplementaryMarks);
+router.post("/supplementary-marks", saveSupplementaryMarks);
 
 module.exports = router;
