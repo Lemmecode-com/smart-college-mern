@@ -89,9 +89,9 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
         width: size,
         height: size,
         borderRadius: "var(--border-radius-md, 0.75rem)",
-        background: "#ffffff",
-        border: "1px solid rgba(0, 0, 0, 0.08)",
-        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
+        background: "transparent",
+        border: "none",
+        boxShadow: "none",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -126,6 +126,8 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
         <img
           src={blobUrl}
           alt={alt}
+          loading="eager"
+          fetchPriority="high"
           style={{
             width: size - padding * 2,
             height: size - padding * 2,
