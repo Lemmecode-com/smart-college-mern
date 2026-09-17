@@ -4,6 +4,7 @@ import { motion } from "framer-motion"; // eslint-disable-line no-unused-vars
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { Container, Row, Col, Card, Badge, Button } from "react-bootstrap";
@@ -97,6 +98,25 @@ export default function ViewParent() {
   return (
     <div className="dashboard-wrapper erp-viewport-min-100" style={{ backgroundColor: "#f8f9fa" }}>
       <Container fluid className="py-4" style={{ maxWidth: "1200px" }}>
+
+            {/* ================= BREADCRUMB ================= */}
+                <div
+                  style={{
+                        width: "100%",
+                        margin: "10px auto",
+                        paddingTop: "5px",
+                  }}
+                >
+                  <div style={{ width: "100%" }}>
+                    <Breadcrumb
+                      items={[
+                        { label: "Dashboard", path: "/dashboard" },
+                        { label: "Parent Management", path: "/college/parents" },
+                        { label: "View Profile" },
+                      ]}
+                    />
+                  </div>
+                </div>
         
         {/* Header Section */}
         <motion.div 

@@ -3,6 +3,7 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -183,6 +184,24 @@ export default function EditSubject() {
 
   return (
     <div className="container-fluid">
+       <div
+      className="edit-subject-breadcrumb"
+      style={{
+        width: "100%",
+        margin: "10px auto",
+        paddingTop: "5px",
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard/college-admin" },
+            { label: "Subjects", path: "/subjects" },
+            { label: "Edit Subject" },
+          ]}
+        />
+      </div>
+    </div>
       {/* HEADER */}
       <div className="gradient-header p-4 rounded-4 text-white shadow mb-4">
         <h3 className="fw-bold">

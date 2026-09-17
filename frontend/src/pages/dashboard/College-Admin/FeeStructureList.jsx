@@ -1490,418 +1490,476 @@ export default function FeeStructureList() {
         }
         
         /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-        .erp-table-responsive.table-container {
-          display: none !important;
-        }
+@media (max-width: 992px) {
+  .erp-table-responsive.table-container {
+    display: none !important;
+  }
 
-        .fee-department-cards {
-          display: block;
-        }
-          @media (max-width: 992px) {
-  .controls-container {
+  .fee-department-cards {
+    display: block;
+  }
+
+  @media (max-width: 992px) {
+    .controls-container {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 0;
+      max-width: none;
+    }
+
+    .search-box input {
+      height: 44px;
+      box-sizing: border-box;
+      font-size: 0.85rem;
+      padding: 0.7rem 0.75rem 0.7rem 2.35rem;
+    }
+
+    .actions-group {
+      flex-shrink: 0;
+    }
+
+    .refresh-btn {
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+    }
+
+    .erp-table {
+      min-width: 700px;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .erp-page-header {
+    padding: 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .erp-header-actions {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* =====================================================
+     STATS - TABLET & MOBILE
+     ===================================================== */
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+  }
+
+  .stat-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.85rem;
     display: flex;
-    flex-direction: row;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem;
   }
 
-  .search-box {
-    flex: 1;
+  .stat-card-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    flex-shrink: 0;
+  }
+
+  .stat-card-content {
     min-width: 0;
-    max-width: none;
+    width: 100%;
+    flex: 1;
   }
 
-  .search-box input {
-    height: 44px;
-    box-sizing: border-box;
-    font-size: 0.85rem;
-    padding: 0.7rem 0.75rem 0.7rem 2.35rem;
+  .stat-card-label {
+    font-size: 0.82rem;
+    line-height: 1.2;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: normal;
   }
 
-  .actions-group {
-    flex-shrink: 0;
+  .stat-card-value {
+    font-size: 1.4rem;
+    line-height: 1.2;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
 
-  .refresh-btn {
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
+  .erp-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .structure-count {
+    align-self: flex-end;
   }
 
   .erp-table {
-    min-width: 700px;
+    min-width: 600px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .action-btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.5rem;
+  }
+
+  .skeleton-table-header,
+  .skeleton-table-row {
+    grid-template-columns: 60px 2fr 1fr 1fr 120px;
   }
 }
-        }
-        
-        @media (max-width: 768px) {
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-          
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-          }
-          
-          .stat-card-value {
-            font-size: 1.75rem;
-          }
-          
-          .erp-card-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-          }
-          
-          .structure-count {
-            align-self: flex-end;
-          }
-          
-          .erp-table {
-            min-width: 600px;
-          }
-          
-          .action-buttons {
-            flex-direction: column;
-            align-items: center;
-          }
-          
-          .action-btn {
-            width: 100%;
-            margin-bottom: 0.5rem;
-          }
-          
-          .empty-icon {
-            width: 60px;
-            height: 60px;
-            font-size: 2rem;
-          }
-          
-          .empty-state h3 {
-            font-size: 1.5rem;
-          }
-          
-          .skeleton-table-header,
-          .skeleton-table-row {
-            grid-template-columns: 60px 2fr 1fr 1fr 120px;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .erp-table {
-            min-width: 500px;
-          }
-          
-          .erp-card-header h3 {
-            font-size: 1.25rem;
-          }
-          
-          .erp-card-header .erp-card-icon {
-            font-size: 1.1rem;
-          }
-          
-          .course-info {
-            font-size: 0.9rem;
-          }
-          
-          .stat-card-label {
-            font-size: 0.85rem;
-          }
-          
-          .stat-card-value {
-            font-size: 1.5rem;
-          }
-          
-          .fee-amount {
-            font-size: 1rem;
-          }
-          
-          .erp-card-body {
-            padding: 0.5rem;
-          }
-          
-          .erp-table td {
-            padding: 0.75rem;
-            font-size: 0.9rem;
-          }
-          
-          .erp-table th {
-            padding: 0.75rem;
-            font-size: 0.85rem;
-          }
-        }
-                  /* =====================================================
-           FEE STRUCTURE - DEPARTMENT MOBILE/TABLET CARDS
-           ===================================================== */
 
-        .fee-department-cards {
-          display: none;
-        }
+@media (max-width: 480px) {
+  .erp-table {
+    min-width: 500px;
+  }
 
-        .fee-department-card {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          overflow: hidden;
-          margin-bottom: 1rem;
-          box-shadow: 0 4px 16px rgba(15, 58, 74, 0.07);
-        }
+  .erp-card-header h3 {
+    font-size: 1.25rem;
+  }
 
-        .fee-department-card-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          padding: 1rem 1.1rem;
-          background: #f5f9fc;
-          border-bottom: 1px solid #e3ebf1;
-        }
+  .erp-card-header .erp-card-icon {
+    font-size: 1.1rem;
+  }
 
-        .fee-department-title {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          min-width: 0;
-        }
+  .course-info {
+    font-size: 0.9rem;
+  }
 
-        .fee-department-icon {
-          width: 42px;
-          height: 42px;
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 10px;
-          background: #e7f4fb;
-          color: #1a4b6d;
-          font-size: 1rem;
-        }
+  /* =====================================================
+     STATS - SMALL MOBILE
+     ===================================================== */
 
-        .fee-department-title span {
-          display: block;
-          margin-bottom: 0.15rem;
-          color: #8493a3;
-          font-size: 0.68rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-        }
+  .stat-card-label {
+    font-size: 0.74rem;
+    line-height: 1.15;
+  }
 
-        .fee-department-title h4 {
-          margin: 0;
-          color: #1a4b6d;
-          font-size: 1rem;
-          font-weight: 700;
-          line-height: 1.3;
-        }
+  .stat-card-value {
+    font-size: 1.2rem;
+    line-height: 1.2;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
 
-        .fee-department-count {
-          flex-shrink: 0;
-          padding: 0.35rem 0.65rem;
-          border-radius: 20px;
-          background: #e8f1f6;
-          color: #1a4b6d;
-          font-size: 0.72rem;
-          font-weight: 700;
-        }
+  .fee-amount {
+    font-size: 1rem;
+  }
 
-        .fee-department-structures {
-          padding: 0.75rem;
-        }
+  .erp-card-body {
+    padding: 0.5rem;
+  }
 
-        .fee-structure-mobile-card {
-          padding: 1rem;
-          background: #ffffff;
-          border: 1px solid #e5ebf0;
-          border-radius: 12px;
-        }
+  .erp-table td {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
 
-        .fee-structure-mobile-card + .fee-structure-mobile-card {
-          margin-top: 0.75rem;
-        }
+  .erp-table th {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+}
 
-        .fee-mobile-card-top {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 0.75rem;
-        }
+/* =====================================================
+   FEE STRUCTURE - DEPARTMENT MOBILE/TABLET CARDS
+   ===================================================== */
 
-        .fee-mobile-label {
-          display: block;
-          margin-bottom: 0.2rem;
-          color: #8a98a7;
-          font-size: 0.68rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-        }
+.fee-department-cards {
+  display: none;
+}
 
-        .fee-mobile-card-top h5 {
-          margin: 0;
-          color: #1a4b6d;
-          font-size: 0.95rem;
-          font-weight: 700;
-          line-height: 1.35;
-        }
+.fee-department-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 16px rgba(15, 58, 74, 0.07);
+}
 
-        .fee-mobile-details {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 0.75rem;
-          margin-top: 1rem;
-          padding-top: 0.9rem;
-          border-top: 1px solid #edf1f4;
-        }
+.fee-department-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  background: #f5f9fc;
+  border-bottom: 1px solid #e3ebf1;
+}
 
-        .fee-mobile-detail {
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-        }
+.fee-department-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
 
-        .fee-mobile-detail > svg {
-          color: #2e7d32;
-          font-size: 1rem;
-        }
+.fee-department-icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #e7f4fb;
+  color: #1a4b6d;
+  font-size: 1rem;
+}
 
-        .fee-mobile-detail:last-child > svg {
-          color: #6c757d;
-        }
+.fee-department-title span {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: #8493a3;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
-        .fee-mobile-detail span {
-          display: block;
-          color: #8a98a7;
-          font-size: 0.68rem;
-          font-weight: 600;
-        }
+.fee-department-title h4 {
+  margin: 0;
+  color: #1a4b6d;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
 
-        .fee-mobile-detail strong {
-          display: block;
-          margin-top: 0.1rem;
-          color: #1a4b6d;
-          font-size: 0.9rem;
-          font-weight: 700;
-        }
+.fee-department-count {
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  border-radius: 20px;
+  background: #e8f1f6;
+  color: #1a4b6d;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
 
-        .fee-mobile-actions {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 0.5rem;
-          margin-top: 1rem;
-        }
+.fee-department-structures {
+  padding: 0.75rem;
+}
 
-        .fee-mobile-action {
-          min-height: 38px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.35rem;
-          border: none;
-          border-radius: 8px;
-          font-size: 0.76rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
+.fee-structure-mobile-card {
+  padding: 1rem;
+  background: #ffffff;
+  border: 1px solid #e5ebf0;
+  border-radius: 12px;
+}
 
-        .fee-mobile-action.view {
-          background: #e8f3ff;
-          color: #1976d2;
-        }
+.fee-structure-mobile-card + .fee-structure-mobile-card {
+  margin-top: 0.75rem;
+}
 
-        .fee-mobile-action.edit {
-          background: #fff3e5;
-          color: #e68a00;
-        }
+.fee-mobile-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
 
-        .fee-mobile-action.delete {
-          background: #ffebeb;
-          color: #d32f2f;
-        }
+.fee-mobile-label {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: #8a98a7;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 
-        .fee-mobile-action:hover {
-          transform: translateY(-1px);
-        }
+.fee-mobile-card-top h5 {
+  margin: 0;
+  color: #1a4b6d;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
 
-        /* TABLET */
-        @media (max-width: 992px) {
-          .fee-desktop-table {
-            display: none;
-          }
+.fee-mobile-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid #edf1f4;
+}
 
-          .fee-department-cards {
-            display: block;
-          }
-        }
-
-        /* MOBILE */
-        @media (max-width: 576px) {
-          .fee-department-card-header {
-            align-items: flex-start;
-            flex-direction: column;
-          }
-
-          .fee-department-count {
-            align-self: flex-start;
-          }
-
-          .fee-department-structures {
-            padding: 0.65rem;
-          }
-
-          .fee-structure-mobile-card {
-            padding: 0.85rem;
-          }
-
-          .fee-mobile-details {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .fee-mobile-actions {
-            grid-template-columns: 1fr;
-          }
-
-          .fee-mobile-action {
-            min-height: 40px;
-          }
-            .controls-container {
-  padding: 0.85rem;
+.fee-mobile-detail {
+  display: flex;
+  align-items: center;
   gap: 0.6rem;
 }
 
-.search-box input {
-  height: 42px;
-  font-size: 0.78rem;
+.fee-mobile-detail > svg {
+  color: #2e7d32;
+  font-size: 1rem;
 }
 
-.refresh-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 9px;
+.fee-mobile-detail:last-child > svg {
+  color: #6c757d;
 }
 
-.refresh-icon {
-  font-size: 1.15rem;
+.fee-mobile-detail span {
+  display: block;
+  color: #8a98a7;
+  font-size: 0.68rem;
+  font-weight: 600;
 }
-        }
 
-        /* =====================================================
+.fee-mobile-detail strong {
+  display: block;
+  margin-top: 0.1rem;
+  color: #1a4b6d;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.fee-mobile-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.fee-mobile-action {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fee-mobile-action.view {
+  background: #e8f3ff;
+  color: #1976d2;
+}
+
+.fee-mobile-action.edit {
+  background: #fff3e5;
+  color: #e68a00;
+}
+
+.fee-mobile-action.delete {
+  background: #ffebeb;
+  color: #d32f2f;
+}
+
+.fee-mobile-action:hover {
+  transform: translateY(-1px);
+}
+
+/* TABLET */
+@media (max-width: 992px) {
+  .fee-desktop-table {
+    display: none;
+  }
+
+  .fee-department-cards {
+    display: block;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 576px) {
+  .fee-department-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .fee-department-count {
+    align-self: flex-start;
+  }
+
+  .fee-department-structures {
+    padding: 0.65rem;
+  }
+
+  .fee-structure-mobile-card {
+    padding: 0.85rem;
+  }
+
+  .fee-mobile-details {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fee-mobile-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .fee-mobile-action {
+    min-height: 40px;
+  }
+
+  .controls-container {
+    padding: 0.85rem;
+    gap: 0.6rem;
+  }
+
+  .search-box input {
+    height: 42px;
+    font-size: 0.78rem;
+  }
+
+  .refresh-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 9px;
+  }
+
+  .refresh-icon {
+    font-size: 1.15rem;
+  }
+}
+
+/* =====================================================
    FEE STRUCTURE HEADER - TABLET & MOBILE
    ===================================================== */
 

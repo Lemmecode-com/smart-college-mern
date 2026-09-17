@@ -919,30 +919,34 @@ export default function PaymentHistory() {
           font-style: italic;
         }
 
-        @media (max-width: 768px) {
-          .receipt-dropdown-menu {
-            position: fixed;
-            left: 1rem;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            max-width: none;
-            max-height: 80vh;
-            overflow-y: auto;
-            z-index: 10000;
-          }
+@media (max-width: 768px) {
+  .receipt-dropdown-wrapper.active {
+    transform: none !important;
+  }
 
-          .receipt-dropdown-btn {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.8125rem;
-          }
+  .receipt-dropdown-menu {
+    position: fixed !important;
+    left: 1rem;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    max-width: none;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 100000 !important;
+  }
 
-          .receipt-count-badge {
-            min-width: 20px;
-            height: 20px;
-            font-size: 0.6875rem;
-          }
-        }
+  .receipt-dropdown-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .receipt-count-badge {
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.6875rem;
+  }
+}
 
         .payment-empty-state {
           text-align: center;
