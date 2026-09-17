@@ -1,5 +1,8 @@
 const SemesterResult = require("../models/semesterResult.model");
 const { RESULT_STATUS } = require("../utils/constants");
+const {
+  academicYearRepresentations,
+} = require("../utils/academicYear.util");
 
 const RESULT_AUTHORITY_STATUS = {
   FOUND: "FOUND",
@@ -14,6 +17,12 @@ const RESULT_AUTHORITY_STATUS = {
  * DRAFT and LOCKED results are intentionally excluded. The bounded query is
  * enough to distinguish zero, one, and multiple published candidates without
  * choosing an arbitrary historical result.
+ *
+ * Academic-year matching is format-agnostic: the stored value may use either
+ * the full representation ("2026-2027") or the short representation
+ * ("2026-27"). Both are derived from the input academic year and matched
+ * exactly via $in — no substring or regex matching is used, so unrelated
+ * academic years never produce false positives.
  */
 exports.resolveAuthoritativeResult = async ({
   collegeId,
@@ -22,12 +31,18 @@ exports.resolveAuthoritativeResult = async ({
   semester,
   academicYear,
 }) => {
+  const academicYearReps = academicYearRepresentations(academicYear);
+
+  if (!academicYearReps) {
+    return { status: RESULT_AUTHORITY_STATUS.NO_RESULT };
+  }
+
   const results = await SemesterResult.find({
     college_id: collegeId,
     student_id: studentId,
     course_id: courseId,
     semester,
-    academicYear,
+    academicYear: { $in: academicYearReps },
     status: RESULT_STATUS.PUBLISHED,
   })
     .limit(2)
