@@ -32,6 +32,10 @@ import {
   FaUndo,
 } from "react-icons/fa";
 
+/* ============================================================================
+ * Constants
+ * ==========================================================================*/
+
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
   "TOKEN_EXPIRED",
@@ -43,11 +47,14 @@ const AUTH_ERROR_CODES = new Set([
   "UNAUTHORIZED",
 ]);
 
+const EVALUATED_RESULT_STATUSES = new Set(["PASS", "FAIL", "CLEARED"]);
+
+/* ============================================================================
+ * Helpers — auth, labels, badges, formatting
+ * ==========================================================================*/
+
 function isAuthError(statusCode, errorCode) {
-  return (
-    statusCode === 401 ||
-    (errorCode && AUTH_ERROR_CODES.has(errorCode))
-  );
+  return statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
 }
 
 function getExamTypeLabel(examType) {
@@ -80,8 +87,6 @@ function getStatusBadge(status) {
       return "badge badge-secondary";
   }
 }
-
-const EVALUATED_RESULT_STATUSES = new Set(["PASS", "FAIL", "CLEARED"]);
 
 function getEvaluationStatusBadge(status) {
   switch (String(status || "").toUpperCase()) {
@@ -133,6 +138,10 @@ function formatDate(value) {
   return date.toLocaleDateString();
 }
 
+/* ============================================================================
+ * Helpers — exam / subject response normalization
+ * ==========================================================================*/
+
 const normalizeExamList = (res) => {
   if (!res) return [];
   if (Array.isArray(res)) return res;
@@ -149,9 +158,7 @@ const normalizeExamDetail = (res) => {
 const normalizeSubjects = (exam) => {
   const list = exam?.subjects;
   if (!Array.isArray(list)) return [];
-  return list.filter(
-    (item) => item && (item.subject || item._id),
-  );
+  return list.filter((item) => item && (item.subject || item._id));
 };
 
 const getSubjectId = (subject) => {
@@ -176,6 +183,155 @@ const getSubjectLabel = (subject) => {
 const getSubjectType = (subject) => {
   return subject.subjectType || subject.subject?.subjectType || subject.type || "-";
 };
+
+/* ============================================================================
+ * Helpers — per-row derived view model for the roster table
+ * All values here are computed exactly as before; only pulled out of the
+ * JSX map() callback so the table body stays readable.
+ * ==========================================================================*/
+
+function getRosterRowViewModel(student, { marksMap, evaluatingStudents, evaluationErrors }) {
+  const evaluationKey = getEvaluationKey(student);
+  const hasMarks = Boolean(student.marks);
+  const calc = student.calculation || {};
+  const calcStatus = calc.status || "INCOMPLETE";
+
+  const marksStatus = hasMarks
+    ? calcStatus === "PASS"
+      ? "Pass"
+      : calcStatus === "FAIL"
+        ? "Fail"
+        : "Incomplete"
+    : "Not Entered";
+
+  const marksBadge =
+    calcStatus === "PASS"
+      ? "badge badge-success"
+      : calcStatus === "FAIL"
+        ? "badge badge-danger"
+        : hasMarks
+          ? "badge badge-warning"
+          : "badge badge-secondary";
+
+  const attemptStatus = student.attemptResultStatus || "INCOMPLETE";
+  const attemptBadge = getEvaluationStatusBadge(attemptStatus);
+
+  const backlogStatus = student.backlogStatus || "N/A";
+  const backlogBadge =
+    backlogStatus === "OPEN"
+      ? "badge badge-warning"
+      : backlogStatus === "ATTEMPTED"
+        ? "badge badge-info"
+        : backlogStatus === "CLEARED"
+          ? "badge badge-success"
+          : "badge badge-secondary";
+
+  const studentMarks = marksMap[String(student.studentId)] || {};
+  const internalValue =
+    studentMarks.internalMarks !== undefined
+      ? studentMarks.internalMarks
+      : hasMarks
+        ? student.marks.internalMarks
+        : "";
+  const externalValue =
+    studentMarks.externalMarks !== undefined
+      ? studentMarks.externalMarks
+      : hasMarks
+        ? student.marks.externalMarks
+        : "";
+  const totalMarks = calc.totalMarks ?? "-";
+
+  const isEvaluating = Boolean(evaluatingStudents[evaluationKey]);
+  const alreadyEvaluated = isEvaluatedAttempt(student);
+  const hasAttempt = Boolean(student.backlogId && student.attemptId);
+  const canEvaluate = hasAttempt && !alreadyEvaluated && !isEvaluating;
+  const evaluationError = evaluationErrors[evaluationKey];
+  const evaluationStatus = student.attemptResultStatus || "INCOMPLETE";
+  const actionClass = isEvaluating
+    ? "btn-primary"
+    : alreadyEvaluated
+      ? "btn-outline-success"
+      : hasAttempt
+        ? "btn-primary"
+        : "btn-outline-secondary";
+
+  return {
+    evaluationKey,
+    hasMarks,
+    calcStatus,
+    marksStatus,
+    marksBadge,
+    attemptStatus,
+    attemptBadge,
+    backlogStatus,
+    backlogBadge,
+    internalValue,
+    externalValue,
+    totalMarks,
+    isEvaluating,
+    alreadyEvaluated,
+    hasAttempt,
+    canEvaluate,
+    evaluationError,
+    evaluationStatus,
+    actionClass,
+  };
+}
+
+/* ============================================================================
+ * Small presentational building blocks
+ * Pure UI, no logic — extracted only to remove duplicate markup that appeared
+ * more than once in the page (search boxes, empty states, stat cards).
+ * ==========================================================================*/
+
+function SearchBox({ value, onChange, onClear, placeholder, clearLabel }) {
+  return (
+    <div className="search-box mb-3">
+      <FaSearch className="search-icon" />
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="search-input"
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="clear-search-btn"
+          title="Clear search"
+          aria-label={clearLabel}
+        >
+          <FaTimes />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, iconClassName = "empty-icon", title, text }) {
+  return (
+    <div className="empty-state">
+      <Icon className={iconClassName} />
+      <p className="empty-title">{title}</p>
+      <p className="empty-text">{text}</p>
+    </div>
+  );
+}
+
+function StatCard({ label, value, tone }) {
+  return (
+    <div className="summary-stat-card">
+      <span className="summary-stat-label">{label}</span>
+      <span className={`summary-stat-value${tone ? ` text-${tone}` : ""}`}>{value}</span>
+    </div>
+  );
+}
+
+/* ============================================================================
+ * Page: Supplementary Evaluation
+ * ==========================================================================*/
 
 export default function SupplementaryEvaluation() {
   const { user } = useContext(AuthContext);
@@ -738,6 +894,11 @@ export default function SupplementaryEvaluation() {
 
   const hasSavedMarks = roster.some((student) => Boolean(student.marks));
 
+  // Whether the subject takes an external-marks component (used to show/hide
+  // the "External Marks" column consistently across headers and rows).
+  const showExternalColumn =
+    rosterMeta?.subjectType === "THEORY" || rosterMeta?.subjectType === "COMPOSITE";
+
   const filteredExams = useMemo(() => {
     if (!search.trim()) return exams;
     const term = search.toLowerCase();
@@ -768,6 +929,25 @@ export default function SupplementaryEvaluation() {
   }, [roster, rosterSearch]);
 
   const selectedExamItem = exams.find((e) => String(e._id) === String(selectedExamId));
+
+  // Roster-derived counts, shared between the summary stat cards and the
+  // table header badges so the same figure is computed once per render.
+  const passedCount = useMemo(
+    () =>
+      roster.filter((s) => {
+        const st = String(s.attemptResultStatus || "").toUpperCase();
+        return st === "PASS" || st === "CLEARED";
+      }).length,
+    [roster],
+  );
+  const failedCount = useMemo(
+    () => roster.filter((s) => String(s.attemptResultStatus || "").toUpperCase() === "FAIL").length,
+    [roster],
+  );
+  const pendingEvaluationCount = useMemo(
+    () => roster.filter((s) => !isEvaluatedAttempt(s)).length,
+    [roster],
+  );
 
   // Auth guard — placed after all hooks so React's rules-of-hooks are respected.
   // ProtectedRoute already enforces authentication; this is a defensive fallback.
@@ -829,7 +1009,7 @@ export default function SupplementaryEvaluation() {
         </div>
       </div>
 
-      {/* Exam Summary */}
+      {/* Progress alerts */}
       {selectedExamId && selectedExamItem && (
         <div className="alert alert-info">
           <FaCheckCircle />
@@ -864,42 +1044,18 @@ export default function SupplementaryEvaluation() {
         </div>
       )}
       {validationError && (
-        <div className="alert alert-warning">
+        <div className="alert alert-warning" role="alert">
           <FaExclamationTriangle /> {validationError}
         </div>
       )}
 
       {selectedExamId && selectedSubjectId && roster.length > 0 && (
         <div className="summary-stats" role="region" aria-label="Student summary statistics">
-          <div className="summary-stat-card">
-            <span className="summary-stat-label">Total Students</span>
-            <span className="summary-stat-value">{roster.length}</span>
-          </div>
-          <div className="summary-stat-card">
-            <span className="summary-stat-label">Marks Entered</span>
-            <span className="summary-stat-value text-info">{rosterMeta?.markedCount ?? 0}</span>
-          </div>
-          <div className="summary-stat-card">
-            <span className="summary-stat-label">Pending Evaluation</span>
-            <span className="summary-stat-value text-warning">
-              {roster.filter((s) => !isEvaluatedAttempt(s)).length}
-            </span>
-          </div>
-          <div className="summary-stat-card">
-            <span className="summary-stat-label">Passed / Cleared</span>
-            <span className="summary-stat-value text-success">
-              {roster.filter((s) => {
-                const st = String(s.attemptResultStatus || "").toUpperCase();
-                return st === "PASS" || st === "CLEARED";
-              }).length}
-            </span>
-          </div>
-          <div className="summary-stat-card">
-            <span className="summary-stat-label">Failed</span>
-            <span className="summary-stat-value text-danger">
-              {roster.filter((s) => String(s.attemptResultStatus || "").toUpperCase() === "FAIL").length}
-            </span>
-          </div>
+          <StatCard label="Total Students" value={roster.length} />
+          <StatCard label="Marks Entered" value={rosterMeta?.markedCount ?? 0} tone="info" />
+          <StatCard label="Pending Evaluation" value={pendingEvaluationCount} tone="warning" />
+          <StatCard label="Passed / Cleared" value={passedCount} tone="success" />
+          <StatCard label="Failed" value={failedCount} tone="danger" />
         </div>
       )}
 
@@ -918,40 +1074,26 @@ export default function SupplementaryEvaluation() {
               <span className="badge badge-secondary ms-2">Step 1 of 3</span>
             </div>
             <div className="card-body">
-              {/* Search */}
-              <div className="search-box mb-3">
-                <FaSearch className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search exams by name, subject, course..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="search-input"
-                />
-                {search && (
-                  <button
-                    onClick={() => setSearch("")}
-                    className="clear-search-btn"
-                    title="Clear search"
-                    aria-label="Clear search"
-                  >
-                    <FaTimes />
-                  </button>
-                )}
-              </div>
+              <SearchBox
+                value={search}
+                onChange={setSearch}
+                onClear={() => setSearch("")}
+                placeholder="Search exams by name, subject, course..."
+                clearLabel="Clear search"
+              />
 
               {examsLoading ? (
                 <Loading text="Loading supplementary exams..." />
               ) : filteredExams.length === 0 ? (
-                <div className="empty-state">
-                  <FaBookOpen className="empty-icon" />
-                  <p className="empty-title">No supplementary exams found</p>
-                  <p className="empty-text">
-                    {search
+                <EmptyState
+                  icon={FaBookOpen}
+                  title="No supplementary exams found"
+                  text={
+                    search
                       ? "No exams match your search. Try clearing the search term."
-                      : "No supplementary exams are available at this time."}
-                  </p>
-                </div>
+                      : "No supplementary exams are available at this time."
+                  }
+                />
               ) : (
                 <div className="table-responsive">
                   <table className="data-table">
@@ -1030,30 +1172,26 @@ export default function SupplementaryEvaluation() {
             </div>
             <div className="card-body">
               {!selectedExamId ? (
-                <div className="empty-state">
-                  <FaLayerGroup className="empty-icon" />
-                  <p className="empty-title">No exam selected</p>
-                  <p className="empty-text">
-                    Select a supplementary exam from the list on the left to view its subjects.
-                  </p>
-                </div>
+                <EmptyState
+                  icon={FaLayerGroup}
+                  title="No exam selected"
+                  text="Select a supplementary exam from the list on the left to view its subjects."
+                />
               ) : examDetailLoading ? (
                 <Loading text="Loading exam details..." />
               ) : examDetailError ? (
-                <div className="alert alert-danger">
+                <div className="alert alert-danger" role="alert">
                   <FaExclamationTriangle />
                   <strong>Could not load exam details:</strong>{" "}
                   {examDetailError.message}
                 </div>
               ) : subjects.length === 0 ? (
-                <div className="empty-state">
-                  <FaExclamationTriangle className="empty-icon text-warning" />
-                  <p className="empty-title">No subjects available</p>
-                  <p className="empty-text">
-                    The selected supplementary exam does not contain any subjects.
-                    Please choose a different exam.
-                  </p>
-                </div>
+                <EmptyState
+                  icon={FaExclamationTriangle}
+                  iconClassName="empty-icon text-warning"
+                  title="No subjects available"
+                  text="The selected supplementary exam does not contain any subjects. Please choose a different exam."
+                />
               ) : (
                 <div className="table-responsive">
                   <table className="data-table">
@@ -1132,17 +1270,10 @@ export default function SupplementaryEvaluation() {
                 </span>
               )}
               {rosterMeta && !marksEntryMode && !evaluationMode && (
-                <span className="badge badge-success ms-2">
-                  {roster.filter((s) => {
-                    const st = String(s.attemptResultStatus || "").toUpperCase();
-                    return st === "PASS" || st === "CLEARED";
-                  }).length} passed
-                </span>
+                <span className="badge badge-success ms-2">{passedCount} passed</span>
               )}
               {rosterMeta && !marksEntryMode && !evaluationMode && (
-                <span className="badge badge-danger ms-2">
-                  {roster.filter((s) => String(s.attemptResultStatus || "").toUpperCase() === "FAIL").length} failed
-                </span>
+                <span className="badge badge-danger ms-2">{failedCount} failed</span>
               )}
               {marksEntryMode && (
                 <span className="badge badge-warning ms-2">
@@ -1156,45 +1287,29 @@ export default function SupplementaryEvaluation() {
               )}
             </div>
             <div className="card-body">
-              {/* Search */}
-              <div className="search-box mb-3">
-                <FaSearch className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search students by name, enrollment, roll number..."
-                  value={rosterSearch}
-                  onChange={(e) => setRosterSearch(e.target.value)}
-                  className="search-input"
-                />
-                {rosterSearch && (
-                  <button
-                    onClick={() => setRosterSearch("")}
-                    className="clear-search-btn"
-                    title="Clear search"
-                    aria-label="Clear student search"
-                  >
-                    <FaTimes />
-                  </button>
-                )}
-              </div>
+              <SearchBox
+                value={rosterSearch}
+                onChange={setRosterSearch}
+                onClear={() => setRosterSearch("")}
+                placeholder="Search students by name, enrollment, roll number..."
+                clearLabel="Clear student search"
+              />
 
               {rosterLoading ? (
                 <Loading text="Loading eligible backlog students..." />
               ) : rosterError ? (
-                <div className="alert alert-danger">
+                <div className="alert alert-danger" role="alert">
                   <FaExclamationTriangle />
                   <strong>Could not load roster:</strong>{" "}
                   {rosterError.message}
                 </div>
               ) : filteredRoster.length === 0 ? (
-                <div className="empty-state">
-                  <FaExclamationTriangle className="empty-icon text-warning" />
-                  <p className="empty-title">No eligible backlog students found</p>
-                  <p className="empty-text">
-                    No eligible backlog students found for the selected supplementary exam and subject.
-                    You can change the exam or subject selection above.
-                  </p>
-                </div>
+                <EmptyState
+                  icon={FaExclamationTriangle}
+                  iconClassName="empty-icon text-warning"
+                  title="No eligible backlog students found"
+                  text="No eligible backlog students found for the selected supplementary exam and subject. You can change the exam or subject selection above."
+                />
               ) : (
                 <>
                   {marksLoading && (
@@ -1204,7 +1319,7 @@ export default function SupplementaryEvaluation() {
                     </div>
                   )}
                   {marksError && !marksLoading && (
-                    <div className="alert alert-warning d-flex align-items-center mb-3">
+                    <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
                       <FaExclamationTriangle className="me-2" />
                       <span>
                         <strong>Could not load marks:</strong>{" "}
@@ -1213,7 +1328,7 @@ export default function SupplementaryEvaluation() {
                     </div>
                   )}
                   {saveError && (
-                    <div className="alert alert-danger d-flex align-items-center mb-3">
+                    <div className="alert alert-danger d-flex align-items-center mb-3" role="alert">
                       <FaExclamationTriangle className="me-2" />
                       <span><strong>Save failed:</strong> {saveError}</span>
                     </div>
@@ -1227,270 +1342,225 @@ export default function SupplementaryEvaluation() {
                     </div>
                   )}
                   {Object.values(evaluationErrors).some(Boolean) && (
-                    <div className="alert alert-danger d-flex align-items-center mb-3">
+                    <div className="alert alert-danger d-flex align-items-center mb-3" role="alert">
                       <FaExclamationTriangle className="me-2" />
                       <span>One or more evaluations failed. Review the affected student row and try again.</span>
                     </div>
                   )}
                   <div className="table-responsive">
                     <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th className="col-narrow">#</th>
-                        <th className="col-student">Student</th>
-                        <th className="col-enrollment">Enrollment / Roll</th>
-                        <th className="col-course">Course</th>
-                        <th className="col-sem">Current Sem / Year</th>
-                        <th className="col-sem">Backlog Sem / Year</th>
-                        <th className="col-status">Backlog Status</th>
-                        <th className="col-attempt">Attempt</th>
-                        <th className="col-status">Attempt Status</th>
-                        {marksEntryMode ? (
-                          <>
-                            <th className="col-marks">Internal Marks</th>
-                            {(rosterMeta?.subjectType === "THEORY" || rosterMeta?.subjectType === "COMPOSITE") && <th className="col-marks">External Marks</th>}
-                            <th className="col-marks">Total</th>
-                            <th className="col-status">Status</th>
-                          </>
-                        ) : evaluationMode ? (
-                          <>
-                            <th className="col-marks">Internal Marks</th>
-                            {(rosterMeta?.subjectType === "THEORY" || rosterMeta?.subjectType === "COMPOSITE") && <th className="col-marks">External Marks</th>}
-                            <th className="col-marks">Total Marks</th>
-                            <th className="col-action">Evaluation</th>
-                            <th className="col-status">Status</th>
-                          </>
-                        ) : (
-                          <th>Marks Status</th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRoster.map((student, index) => {
-                        const evaluationKey = getEvaluationKey(student);
-                        const hasMarks = Boolean(student.marks);
-                        const calc = student.calculation || {};
-                        const calcStatus = calc.status || "INCOMPLETE";
-                        const marksStatus = hasMarks
-                          ? calcStatus === "PASS"
-                            ? "Pass"
-                            : calcStatus === "FAIL"
-                              ? "Fail"
-                              : "Incomplete"
-                          : "Not Entered";
-                        const marksBadge =
-                          calcStatus === "PASS"
-                            ? "badge badge-success"
-                            : calcStatus === "FAIL"
-                              ? "badge badge-danger"
-                              : hasMarks
-                                ? "badge badge-warning"
-                                : "badge badge-secondary";
+                      <thead>
+                        <tr>
+                          <th className="col-narrow">#</th>
+                          <th className="col-student">Student</th>
+                          <th className="col-enrollment">Enrollment / Roll</th>
+                          <th className="col-course">Course</th>
+                          <th className="col-sem">Current Sem / Year</th>
+                          <th className="col-sem">Backlog Sem / Year</th>
+                          <th className="col-status">Backlog Status</th>
+                          <th className="col-attempt">Attempt</th>
+                          <th className="col-status">Attempt Status</th>
+                          {marksEntryMode ? (
+                            <>
+                              <th className="col-marks">Internal Marks</th>
+                              {showExternalColumn && <th className="col-marks">External Marks</th>}
+                              <th className="col-marks">Total</th>
+                              <th className="col-status">Status</th>
+                            </>
+                          ) : evaluationMode ? (
+                            <>
+                              <th className="col-marks">Internal Marks</th>
+                              {showExternalColumn && <th className="col-marks">External Marks</th>}
+                              <th className="col-marks">Total Marks</th>
+                              <th className="col-action">Evaluation</th>
+                              <th className="col-status">Status</th>
+                            </>
+                          ) : (
+                            <th>Marks Status</th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredRoster.map((student, index) => {
+                          const row = getRosterRowViewModel(student, {
+                            marksMap,
+                            evaluatingStudents,
+                            evaluationErrors,
+                          });
 
-                        const attemptStatus = student.attemptResultStatus || "INCOMPLETE";
-                        const attemptBadge = getEvaluationStatusBadge(attemptStatus);
-                        const backlogStatus = student.backlogStatus || "N/A";
-                        const backlogBadge =
-                          backlogStatus === "OPEN"
-                            ? "badge badge-warning"
-                            : backlogStatus === "ATTEMPTED"
-                              ? "badge badge-info"
-                              : backlogStatus === "CLEARED"
-                                ? "badge badge-success"
-                                : "badge badge-secondary";
-
-                        const studentMarks = marksMap[String(student.studentId)] || {};
-                        const internalValue = studentMarks.internalMarks !== undefined ? studentMarks.internalMarks : (hasMarks ? student.marks.internalMarks : "");
-                        const externalValue = studentMarks.externalMarks !== undefined ? studentMarks.externalMarks : (hasMarks ? student.marks.externalMarks : "");
-                        const totalMarks = calc.totalMarks ?? "-";
-
-                        const isEvaluating = Boolean(evaluatingStudents[evaluationKey]);
-                        const alreadyEvaluated = isEvaluatedAttempt(student);
-                        const hasAttempt = Boolean(student.backlogId && student.attemptId);
-                        const canEvaluate = hasAttempt && !alreadyEvaluated && !isEvaluating;
-                        const evaluationError = evaluationErrors[evaluationKey];
-                        const evaluationStatus = student.attemptResultStatus || "INCOMPLETE";
-                        const actionClass = isEvaluating
-                          ? "btn-primary"
-                          : alreadyEvaluated
-                            ? "btn-outline-success"
-                            : hasAttempt
-                              ? "btn-primary"
-                              : "btn-outline-secondary";
-
-                        return (
-                          <tr key={student.studentId || index}>
-                            <td className="text-center">{index + 1}</td>
-                            <td>
-                              <div className="fw-bold" title={student.fullName || "-"}>{student.fullName || "-"}</div>
-                              <small className="text-muted">ID: {student.studentId || "-"}</small>
-                            </td>
-                            <td>
-                              <div title={student.enrollmentNumber || "-"}>{student.enrollmentNumber || "-"}</div>
-                              <small className="text-muted">Roll: {student.rollNumber || "-"}</small>
-                            </td>
-                            <td>
-                              <div>{student.course?.name || student.course?.code || "-"}</div>
-                              <small className="text-muted">{student.course?.code || ""}</small>
-                            </td>
-                            <td>
-                              Sem {student.currentSemester ?? "-"} / {student.currentAcademicYear || "-"}
-                            </td>
-                            <td>
-                              Sem {student.backlogSemester ?? "-"} / {student.backlogAcademicYear || "-"}
-                            </td>
-                            <td>
-                              <span className={backlogBadge}>{backlogStatus}</span>
-                            </td>
-                            <td>
-                              {student.attemptNumber ? (
+                          return (
+                            <tr key={student.studentId || index}>
+                              <td className="text-center">{index + 1}</td>
+                              <td>
+                                <div className="fw-bold" title={student.fullName || "-"}>{student.fullName || "-"}</div>
+                                <small className="text-muted">ID: {student.studentId || "-"}</small>
+                              </td>
+                              <td>
+                                <div title={student.enrollmentNumber || "-"}>{student.enrollmentNumber || "-"}</div>
+                                <small className="text-muted">Roll: {student.rollNumber || "-"}</small>
+                              </td>
+                              <td>
+                                <div>{student.course?.name || student.course?.code || "-"}</div>
+                                <small className="text-muted">{student.course?.code || ""}</small>
+                              </td>
+                              <td>
+                                Sem {student.currentSemester ?? "-"} / {student.currentAcademicYear || "-"}
+                              </td>
+                              <td>
+                                Sem {student.backlogSemester ?? "-"} / {student.backlogAcademicYear || "-"}
+                              </td>
+                              <td>
+                                <span className={row.backlogBadge}>{row.backlogStatus}</span>
+                              </td>
+                              <td>
+                                {student.attemptNumber ? (
+                                  <>
+                                    Attempt {student.attemptNumber}
+                                    {student.attemptId && (
+                                      <small className="text-muted d-block">
+                                        ID: {String(student.attemptId).slice(-8)}
+                                      </small>
+                                    )}
+                                  </>
+                                ) : (
+                                  "-"
+                                )}
+                              </td>
+                              <td>
+                                <span className={row.attemptBadge}>{row.attemptStatus}</span>
+                              </td>
+                              {marksEntryMode ? (
                                 <>
-                                  Attempt {student.attemptNumber}
-                                  {student.attemptId && (
-                                    <small className="text-muted d-block">
-                                      ID: {String(student.attemptId).slice(-8)}
-                                    </small>
-                                  )}
-                                </>
-                              ) : (
-                                "-"
-                              )}
-                            </td>
-                            <td>
-                              <span className={attemptBadge}>{attemptStatus}</span>
-                            </td>
-                            {marksEntryMode ? (
-                              <>
-                                <td>
-                                  <div className="marks-input-wrapper">
-                                    <span className="marks-input-label">Internal</span>
-                                    <input
-                                      type="number"
-                                      className="form-input marks-input"
-                                      style={{ maxWidth: 100 }}
-                                      min="0"
-                                      max={rosterMeta?.internalMaxMarks ?? undefined}
-                                      placeholder={rosterMeta?.internalMaxMarks !== undefined ? `Max ${rosterMeta.internalMaxMarks}` : "0"}
-                                      value={internalValue === null ? "" : internalValue}
-                                      onChange={(e) => handleMarksChange(student.studentId, "internalMarks", e.target.value)}
-                                      disabled={saving}
-                                      aria-label={`Internal marks for ${student.fullName || student.studentId}`}
-                                    />
-                                  </div>
-                                </td>
-                                {(rosterMeta?.subjectType === "THEORY" || rosterMeta?.subjectType === "COMPOSITE") && (
                                   <td>
                                     <div className="marks-input-wrapper">
-                                      <span className="marks-input-label">External</span>
+                                      <span className="marks-input-label">Internal</span>
                                       <input
                                         type="number"
                                         className="form-input marks-input"
                                         style={{ maxWidth: 100 }}
                                         min="0"
-                                        max={rosterMeta?.externalMaxMarks ?? undefined}
-                                        placeholder={rosterMeta?.externalMaxMarks !== undefined ? `Max ${rosterMeta.externalMaxMarks}` : "0"}
-                                        value={externalValue === null ? "" : externalValue}
-                                        onChange={(e) => handleMarksChange(student.studentId, "externalMarks", e.target.value)}
+                                        max={rosterMeta?.internalMaxMarks ?? undefined}
+                                        placeholder={rosterMeta?.internalMaxMarks !== undefined ? `Max ${rosterMeta.internalMaxMarks}` : "0"}
+                                        value={row.internalValue === null ? "" : row.internalValue}
+                                        onChange={(e) => handleMarksChange(student.studentId, "internalMarks", e.target.value)}
                                         disabled={saving}
-                                        aria-label={`External marks for ${student.fullName || student.studentId}`}
+                                        aria-label={`Internal marks for ${student.fullName || student.studentId}`}
                                       />
                                     </div>
                                   </td>
-                                )}
-                                <td>{totalMarks}</td>
-                                <td>
-                                  {calcStatus ? (
-                                    <span className={marksBadge}>{calcStatus}</span>
-                                  ) : (
-                                    <span className="badge badge-secondary">INCOMPLETE</span>
+                                  {showExternalColumn && (
+                                    <td>
+                                      <div className="marks-input-wrapper">
+                                        <span className="marks-input-label">External</span>
+                                        <input
+                                          type="number"
+                                          className="form-input marks-input"
+                                          style={{ maxWidth: 100 }}
+                                          min="0"
+                                          max={rosterMeta?.externalMaxMarks ?? undefined}
+                                          placeholder={rosterMeta?.externalMaxMarks !== undefined ? `Max ${rosterMeta.externalMaxMarks}` : "0"}
+                                          value={row.externalValue === null ? "" : row.externalValue}
+                                          onChange={(e) => handleMarksChange(student.studentId, "externalMarks", e.target.value)}
+                                          disabled={saving}
+                                          aria-label={`External marks for ${student.fullName || student.studentId}`}
+                                        />
+                                      </div>
+                                    </td>
                                   )}
-                                </td>
-                              </>
-                            ) : evaluationMode ? (
-                              <>
-                                <td>
-                                  <strong>{internalValue === "" || internalValue === null || internalValue === undefined ? "-" : internalValue}</strong>
-                                  <div className="small text-muted">Internal</div>
-                                </td>
-                                {(rosterMeta?.subjectType === "THEORY" || rosterMeta?.subjectType === "COMPOSITE") && (
+                                  <td>{row.totalMarks}</td>
                                   <td>
-                                    <strong>{externalValue === "" || externalValue === null || externalValue === undefined ? "-" : externalValue}</strong>
-                                    <div className="small text-muted">External</div>
+                                    {row.calcStatus ? (
+                                      <span className={row.marksBadge}>{row.calcStatus}</span>
+                                    ) : (
+                                      <span className="badge badge-secondary">INCOMPLETE</span>
+                                    )}
                                   </td>
-                                )}
+                                </>
+                              ) : evaluationMode ? (
+                                <>
+                                  <td>
+                                    <strong>{row.internalValue === "" || row.internalValue === null || row.internalValue === undefined ? "-" : row.internalValue}</strong>
+                                    <div className="small text-muted">Internal</div>
+                                  </td>
+                                  {showExternalColumn && (
+                                    <td>
+                                      <strong>{row.externalValue === "" || row.externalValue === null || row.externalValue === undefined ? "-" : row.externalValue}</strong>
+                                      <div className="small text-muted">External</div>
+                                    </td>
+                                  )}
+                                  <td>
+                                    <strong>{row.totalMarks}</strong>
+                                    <div className="small text-muted">Backend total</div>
+                                  </td>
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className={`btn btn-sm eval-btn ${row.actionClass}`}
+                                      disabled={!row.canEvaluate}
+                                      onClick={() => handleEvaluateStudent(student)}
+                                      title={
+                                        row.alreadyEvaluated
+                                          ? "This attempt already has a result"
+                                          : row.hasAttempt
+                                            ? "Evaluate this saved attempt"
+                                            : "No supplementary attempt is available"
+                                      }
+                                      aria-label={
+                                        row.alreadyEvaluated
+                                          ? `Evaluated: ${student.fullName || student.studentId}`
+                                          : row.hasAttempt
+                                            ? `Evaluate ${student.fullName || student.studentId}`
+                                            : `No attempt for ${student.fullName || student.studentId}`
+                                      }
+                                    >
+                                      {row.isEvaluating && <FaSpinner className="evaluation-spinner" />}
+                                      {!row.isEvaluating && row.alreadyEvaluated && <FaEye className="me-1" />}
+                                      {row.isEvaluating
+                                        ? "Evaluating..."
+                                        : row.alreadyEvaluated
+                                          ? "Evaluated"
+                                          : row.hasAttempt
+                                            ? "Evaluate"
+                                            : "No Attempt"}
+                                    </button>
+                                    {row.evaluationError && (
+                                      <div className="small text-danger mt-1">{row.evaluationError}</div>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <span className={getEvaluationStatusBadge(row.evaluationStatus)}>
+                                      {row.evaluationStatus}
+                                    </span>
+                                    {row.evaluationStatus === "PASS" && (
+                                      <div className="small text-success mt-1">Backlog cleared</div>
+                                    )}
+                                    {row.evaluationStatus === "FAIL" && (
+                                      <div className="small text-danger mt-1">Backlog remains {row.backlogStatus.toLowerCase()}</div>
+                                    )}
+                                    {row.evaluationStatus === "INCOMPLETE" && (
+                                      <div className="small text-muted mt-1">Evaluation pending</div>
+                                    )}
+                                  </td>
+                                </>
+                              ) : (
                                 <td>
-                                  <strong>{totalMarks}</strong>
-                                  <div className="small text-muted">Backend total</div>
-                                </td>
-                                <td>
-                                  <button
-                                    type="button"
-                                    className={`btn btn-sm eval-btn ${actionClass}`}
-                                    disabled={!canEvaluate}
-                                    onClick={() => handleEvaluateStudent(student)}
-                                    title={
-                                      alreadyEvaluated
-                                        ? "This attempt already has a result"
-                                        : hasAttempt
-                                          ? "Evaluate this saved attempt"
-                                          : "No supplementary attempt is available"
-                                    }
-                                    aria-label={
-                                      alreadyEvaluated
-                                        ? `Evaluated: ${student.fullName || student.studentId}`
-                                        : hasAttempt
-                                          ? `Evaluate ${student.fullName || student.studentId}`
-                                          : `No attempt for ${student.fullName || student.studentId}`
-                                    }
-                                  >
-                                    {isEvaluating && <FaSpinner className="evaluation-spinner" />}
-                                    {!isEvaluating && alreadyEvaluated && <FaEye className="me-1" />}
-                                    {isEvaluating
-                                      ? "Evaluating..."
-                                      : alreadyEvaluated
-                                        ? "Evaluated"
-                                        : hasAttempt
-                                          ? "Evaluate"
-                                          : "No Attempt"}
-                                  </button>
-                                  {evaluationError && (
-                                    <div className="small text-danger mt-1">{evaluationError}</div>
+                                  <span className={row.marksBadge}>{row.marksStatus}</span>
+                                  {row.hasMarks && student.marks && (
+                                    <div className="small text-muted mt-1">
+                                      I: {student.marks.internalMarks ?? "-"} / E:{" "}
+                                      {student.marks.externalMarks ?? "-"}
+                                    </div>
                                   )}
                                 </td>
-                                <td>
-                                  <span className={getEvaluationStatusBadge(evaluationStatus)}>
-                                    {evaluationStatus}
-                                  </span>
-                                  {evaluationStatus === "PASS" && (
-                                    <div className="small text-success mt-1">Backlog cleared</div>
-                                  )}
-                                  {evaluationStatus === "FAIL" && (
-                                    <div className="small text-danger mt-1">Backlog remains {backlogStatus.toLowerCase()}</div>
-                                  )}
-                                  {evaluationStatus === "INCOMPLETE" && (
-                                    <div className="small text-muted mt-1">Evaluation pending</div>
-                                  )}
-                                </td>
-                              </>
-                            ) : (
-                              <td>
-                                <span className={marksBadge}>{marksStatus}</span>
-                                {hasMarks && student.marks && (
-                                  <div className="small text-muted mt-1">
-                                    I: {student.marks.internalMarks ?? "-"} / E:{" "}
-                                    {student.marks.externalMarks ?? "-"}
-                                  </div>
-                                )}
-                              </td>
-                            )}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            )}
+                              )}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1582,14 +1652,46 @@ export default function SupplementaryEvaluation() {
   );
 }
 
+/* ============================================================================
+ * Scoped styles
+ * All colors below are unchanged from the original page — only local,
+ * non-global values are aliased into CSS custom properties for readability.
+ * Values that come from the app's shared theme (--primary-color,
+ * --secondary-color, --light) keep their original fallbacks untouched.
+ * ==========================================================================*/
 const pageStyles = `
+.supplementary-evaluation {
+  --se-border: #e2e8f0;
+  --se-surface: #ffffff;
+  --se-ink: #1e293b;
+  --se-muted: #64748b;
+  --se-muted-soft: #94a3b8;
+  --se-success: #16a34a;
+  --se-danger: #dc2626;
+  --se-warning: #d97706;
+  --se-info: #0891b2;
+  --se-radius-lg: 12px;
+  --se-focus-ring: rgba(23, 174, 203, 0.4);
+}
+
+/* Animations --------------------------------------------------------------*/
 @keyframes supplementary-spin {
   to { transform: translateY(-50%) rotate(360deg); }
 }
+@media (prefers-reduced-motion: reduce) {
+  .supplementary-evaluation .spinner-icon,
+  .supplementary-evaluation .evaluation-spinner {
+    animation: none;
+  }
+}
+
+/* Header --------------------------------------------------------------- */
 .supplementary-evaluation .header-icon {
   color: var(--primary-color, #1a4b6d);
   margin-right: 8px;
 }
+
+/* Loading / status icons ---------------------------------------------- */
 .supplementary-evaluation .spinner-icon {
   display: inline-block;
   width: 2.5rem;
@@ -1603,19 +1705,23 @@ const pageStyles = `
   height: 1rem;
   animation: supplementary-spin 0.9s linear infinite;
 }
+
+/* Empty states ----------------------------------------------------------- */
 .supplementary-evaluation .empty-icon {
   font-size: 2.25rem;
   color: var(--secondary-color, #6c757d);
+}
+
+/* Search ------------------------------------------------------------------*/
+.supplementary-evaluation .search-box {
+  position: relative;
 }
 .supplementary-evaluation .search-icon {
   position: absolute;
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
-}
-.supplementary-evaluation .search-box {
-  position: relative;
+  color: var(--se-muted-soft);
 }
 .supplementary-evaluation .search-input {
   width: 100%;
@@ -1627,12 +1733,20 @@ const pageStyles = `
   top: 50%;
   transform: translateY(-50%);
 }
+
+/* Data tables ---------------------------------------------------------- */
 .supplementary-evaluation .data-table th {
   background: var(--light, #f8f9fa);
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 .supplementary-evaluation .data-table td {
   vertical-align: middle;
+}
+.supplementary-evaluation .data-table tbody tr:hover {
+  background-color: var(--light, #f8f9fa);
 }
 .supplementary-evaluation .data-table th.col-narrow {
   width: 1%;
@@ -1671,6 +1785,16 @@ const pageStyles = `
   max-width: 200px;
   display: inline-block;
 }
+.supplementary-evaluation .table-responsive {
+  -webkit-overflow-scrolling: touch;
+  max-height: 640px;
+  overflow-y: auto;
+}
+.supplementary-evaluation .table-responsive .data-table {
+  min-width: 960px;
+}
+
+/* Summary stat cards ------------------------------------------------------*/
 .supplementary-evaluation .summary-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -1678,9 +1802,9 @@ const pageStyles = `
   margin-bottom: 1.5rem;
 }
 .supplementary-evaluation .summary-stat-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: var(--se-surface);
+  border: 1px solid var(--se-border);
+  border-radius: var(--se-radius-lg);
   padding: 1rem 1.25rem;
   display: flex;
   flex-direction: column;
@@ -1693,20 +1817,22 @@ const pageStyles = `
 .supplementary-evaluation .summary-stat-label {
   font-size: 0.78rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--se-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 .supplementary-evaluation .summary-stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--se-ink);
   line-height: 1.2;
 }
-.supplementary-evaluation .summary-stat-value.text-success { color: #16a34a; }
-.supplementary-evaluation .summary-stat-value.text-danger { color: #dc2626; }
-.supplementary-evaluation .summary-stat-value.text-warning { color: #d97706; }
-.supplementary-evaluation .summary-stat-value.text-info { color: #0891b2; }
+.supplementary-evaluation .summary-stat-value.text-success { color: var(--se-success); }
+.supplementary-evaluation .summary-stat-value.text-danger { color: var(--se-danger); }
+.supplementary-evaluation .summary-stat-value.text-warning { color: var(--se-warning); }
+.supplementary-evaluation .summary-stat-value.text-info { color: var(--se-info); }
+
+/* Marks entry inputs ----------------------------------------------------- */
 .supplementary-evaluation .marks-input-wrapper {
   display: flex;
   flex-direction: column;
@@ -1716,7 +1842,7 @@ const pageStyles = `
 .supplementary-evaluation .marks-input-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--se-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -1729,6 +1855,8 @@ const pageStyles = `
   max-width: 100px;
   text-align: center;
 }
+
+/* Evaluation action button ------------------------------------------------*/
 .supplementary-evaluation .eval-btn {
   min-width: 110px;
   justify-content: center;
@@ -1736,21 +1864,28 @@ const pageStyles = `
 .supplementary-evaluation .eval-btn .evaluation-spinner {
   margin-right: 6px;
 }
-.supplementary-evaluation .table-responsive {
-  -webkit-overflow-scrolling: touch;
-}
-.supplementary-evaluation .table-responsive .data-table {
-  min-width: 960px;
-}
+
+/* Focus states --------------------------------------------------------- */
 .supplementary-evaluation .search-input:focus,
 .supplementary-evaluation .form-input:focus {
-  outline: 2px solid rgba(23, 174, 203, 0.4);
+  outline: 2px solid var(--se-focus-ring);
   outline-offset: 0;
 }
 .supplementary-evaluation input[type="radio"].form-check-input:focus {
-  outline: 2px solid rgba(23, 174, 203, 0.4);
+  outline: 2px solid var(--se-focus-ring);
   outline-offset: 2px;
 }
+
+/* Action footer ------------------------------------------------------- */
+.supplementary-evaluation .action-footer {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.supplementary-evaluation .action-footer .d-flex {
+  flex-wrap: wrap;
+}
+
+/* Responsive breakpoints ------------------------------------------------- */
 @media (max-width: 991.98px) {
   .supplementary-evaluation .row.g-4 > [class*="col-"] {
     width: 100%;
@@ -1788,20 +1923,6 @@ const pageStyles = `
     padding: 0.25rem 0.5rem;
     font-size: 0.78rem;
   }
-}
-@media (max-width: 400px) {
-  .supplementary-evaluation .summary-stats {
-    grid-template-columns: 1fr;
-  }
-}
-.supplementary-evaluation .action-footer {
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-.supplementary-evaluation .action-footer .d-flex {
-  flex-wrap: wrap;
-}
-@media (max-width: 575.98px) {
   .supplementary-evaluation .action-footer {
     flex-direction: column;
     align-items: flex-start !important;
@@ -1812,6 +1933,11 @@ const pageStyles = `
   }
   .supplementary-evaluation .action-footer .btn {
     flex: 1;
+  }
+}
+@media (max-width: 400px) {
+  .supplementary-evaluation .summary-stats {
+    grid-template-columns: 1fr;
   }
 }
 `;
