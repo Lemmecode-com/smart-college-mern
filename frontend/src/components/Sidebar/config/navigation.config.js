@@ -49,6 +49,7 @@ import {
   FaArrowUp,
   FaEye,
   FaClipboardCheck,
+  FaBookmark,
 } from "react-icons/fa";
 
 export const navigationConfig = {
@@ -251,6 +252,20 @@ export const navigationConfig = {
             path: "/students/alumni",
             icon: FaUserGraduate,
             label: "Alumni List",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "supplementary-backlog",
+        title: "Supplementary & Backlog",
+        icon: FaBookmark,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/students/supplementary",
+            icon: FaListOl,
+            label: "Supplementary Evaluation",
             exact: true,
           },
         ],

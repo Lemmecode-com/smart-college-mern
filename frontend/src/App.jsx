@@ -245,6 +245,9 @@ const RazorpayConfiguration = lazy(
 const StudentPromotion = lazy(
   () => import("./pages/dashboard/College-Admin/StudentPromotion"),
 );
+const SupplementaryEvaluation = lazy(
+  () => import("./pages/dashboard/College-Admin/SupplementaryEvaluation"),
+);
 const AlumniList = lazy(
   () => import("./pages/dashboard/College-Admin/AlumniList"),
 );
@@ -1747,6 +1750,16 @@ function AppContent({
                 element={
                   <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                     <StudentPromotion />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* ================= SUPPLEMENTARY / BACKLOG (Step 8) ================= */}
+              <Route
+                path="/students/supplementary"
+                element={
+                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN", "ADMISSION_OFFICER"]}>
+                    <SupplementaryEvaluation />
                   </ProtectedRoute>
                 }
               />
