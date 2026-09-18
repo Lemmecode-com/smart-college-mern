@@ -11,19 +11,20 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
   const [blobUrl, setBlobUrl] = useState(
     documentId ? logoCache.get(documentId) || null : null
   );
-  const [loadError, setLoadError] = useState(false);
 
-  const url = getDocumentViewUrl(documentId);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    if (!documentId || !url) {
+    /* No document ID */
+    if (!documentId) {
+      setBlobUrl(null);
       setLoadError(true);
       return;
     }
 
-    /* Already loaded */
+    /* Already loaded in cache */
     if (logoCache.has(documentId)) {
       setBlobUrl(logoCache.get(documentId));
       setLoadError(false);
@@ -34,9 +35,16 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
       try {
         setLoadError(false);
 
+        const url = getDocumentViewUrl(documentId);
+
+        /* Make sure the document URL exists */
+        if (!url) {
+          throw new Error("Unable to generate logo document URL");
+        }
+
         /*
-         * If another component is already fetching the same logo,
-         * reuse that request instead of making another API call.
+         * Reuse an existing request if another LogoImage
+         * component is already loading the same logo.
          */
         let request = logoRequestCache.get(documentId);
 
@@ -46,7 +54,57 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
               responseType: "blob",
             })
             .then((response) => {
-              const newBlobUrl = URL.createObjectURL(response.data);
+              /*
+               * Validate HTTP response
+               */
+              if (!response) {
+                throw new Error("No response received while loading logo");
+              }
+
+              if (response.status < 200 || response.status >= 300) {
+                throw new Error(
+                  `Logo request failed with status ${response.status}`
+                );
+              }
+
+              /*
+               * Validate response data
+               */
+              if (!response.data) {
+                throw new Error("Logo response is empty");
+              }
+
+              const blob = response.data;
+
+              if (!(blob instanceof Blob)) {
+                throw new Error("Logo response is not a valid Blob");
+              }
+
+              if (blob.size === 0) {
+                throw new Error("Logo file is empty");
+              }
+
+              /*
+               * Make sure we received an image.
+               */
+              const contentType =
+                response.headers?.["content-type"] ||
+                response.headers?.["Content-Type"] ||
+                blob.type;
+
+              if (
+                contentType &&
+                !contentType.startsWith("image/")
+              ) {
+                throw new Error(
+                  `Invalid logo content type: ${contentType}`
+                );
+              }
+
+              /*
+               * Convert Blob into browser-readable URL
+               */
+              const newBlobUrl = URL.createObjectURL(blob);
 
               logoCache.set(documentId, newBlobUrl);
 
@@ -63,9 +121,25 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
 
         if (isMounted) {
           setBlobUrl(newBlobUrl);
+          setLoadError(false);
         }
       } catch (error) {
+        console.error("====================================");
+        console.error("Failed to load college logo");
+        console.error("Document ID:", documentId);
+        console.error("Logo URL:", getDocumentViewUrl(documentId));
+        console.error("Status:", error?.response?.status);
+        console.error(
+          "Content-Type:",
+          error?.response?.headers?.["content-type"]
+        );
+        console.error("Response:", error?.response?.data);
+        console.error("Message:", error?.message);
+        console.error("Full error:", error);
+        console.error("====================================");
+
         if (isMounted) {
+          setBlobUrl(null);
           setLoadError(true);
         }
       }
@@ -76,7 +150,7 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
     return () => {
       isMounted = false;
     };
-  }, [documentId, url]);
+  }, [documentId]);
 
   const iconSize = Math.round(size * 0.45);
   const padding = Math.round(size * 0.12);
@@ -127,7 +201,7 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
           src={blobUrl}
           alt={alt}
           loading="eager"
-          fetchPriority="high"
+          decoding="async"
           style={{
             width: size - padding * 2,
             height: size - padding * 2,
@@ -135,6 +209,15 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
             display: "block",
             position: "relative",
             zIndex: 2,
+          }}
+          onError={() => {
+            console.error("College logo image failed to render:", {
+              documentId,
+              blobUrl,
+            });
+
+            setLoadError(true);
+            setBlobUrl(null);
           }}
         />
       )}
