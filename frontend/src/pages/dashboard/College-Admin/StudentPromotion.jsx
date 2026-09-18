@@ -495,7 +495,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     setBacklogError(null);
     try {
       const res = await getStudentBacklogs(studentId, status === "ALL" ? undefined : status);
-      const payload = res?.data;
+      const payload = res?.data || res;
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.backlogs)
@@ -532,7 +532,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     setAttempts([]);
     try {
       const res = await getBacklogAttempts(backlogId);
-      const payload = res?.data;
+      const payload = res?.data || res;
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.attempts)
@@ -586,10 +586,10 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
    * a supplementary exam and the first attempt row. Backend remains authoritative
    * for attempt limits, status transitions, and exam creation.
    *
-   * NOTE: The controller wraps the response with `ApiResponse.status(...)`, which
-   * does NOT exist on the `ApiResponse` utility. This is a confirmed backend
-   * defect (see Known Backend Limitations). The frontend wires the action anyway
-   * so that DB work still happens, but the HTTP response will be a 500.
+   * Response mapping: the axios interceptor flattens the standardized
+   * `{ success, message, data: {...} }` envelope so the attempt/exam payload
+   * arrives at the top level. The `payload` extraction below handles both the
+   * flattened shape and a legacy nested `{ data: {...} }` shape.
    */
   const handleCreateAttempt = async () => {
     const backlogId = selectedBacklog?._id;
@@ -601,7 +601,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     setAttemptCreateError(null);
     try {
       const res = await createBacklogAttempt(backlogId, {});
-      const payload = res?.data;
+      const payload = res?.data || res;
       const attempt = payload?.data?.attempt || payload?.attempt || null;
       const exam = payload?.data?.exam || payload?.exam || null;
 
@@ -781,8 +781,8 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     try {
       const response = await executePromotionDecision(decisionId);
       const responseStatus =
-        response?.data?.workflow_status ||
-        response?.workflow_status ||
+        response?.decision?.workflow_status ||
+        response?.executionStatus ||
         eligibilityData?.workflow_status;
       toast.success("Promotion executed successfully.");
       setShowExecuteModal(false);
@@ -2118,23 +2118,35 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                               <span className="detail-label">Failed Subjects:</span>
                               <div className="detail-value">
                                 <ul style={{ margin: "8px 0 0 0", paddingLeft: "20px" }}>
-                                  {eligibilityData.failed_subject_ids.map((subj, idx) => (
-                                    <li key={idx} style={{ fontSize: "13px" }}>{subj}</li>
-                                  ))}
+                                  {eligibilityData.failed_subject_ids.map((subj, idx) => {
+                                    const displayName =
+                                      typeof subj === "string"
+                                        ? subj
+                                        : subj?.name
+                                          ? `${subj.name}${subj.code ? ` (${subj.code})` : ""}`
+                                          : subj?.code || subj?._id || String(subj);
+                                    return (
+                                      <li key={idx} style={{ fontSize: "13px" }}>
+                                        {displayName}
+                                      </li>
+                                    );
+                                  })}
                                 </ul>
                               </div>
                             </div>
                           )}
                           {eligibilityData.backlog_ids && eligibilityData.backlog_ids.length > 0 && (
                             <div className="detail-row">
-                              <span className="detail-label">Backlog IDs:</span>
-                              <div className="detail-value">
-                                <ul style={{ margin: "8px 0 0 0", paddingLeft: "20px" }}>
-                                  {eligibilityData.backlog_ids.map((bid, idx) => (
-                                    <li key={idx} style={{ fontSize: "13px", fontFamily: "monospace" }}>{bid}</li>
-                                  ))}
-                                </ul>
-                              </div>
+                              <span className="detail-label">Backlog Records:</span>
+                              <span className="detail-value">
+                                {eligibilityData.backlog_ids.length} backlog record{eligibilityData.backlog_ids.length === 1 ? "" : "s"}
+                                <span
+                                  className="text-muted"
+                                  style={{ fontSize: "11px", display: "block", marginTop: "4px" }}
+                                >
+                                  See Backlog Details table below for subject-level information
+                                </span>
+                              </span>
                             </div>
                           )}
                         </div>
@@ -2315,15 +2327,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                      </div>
                    </div>
 
-                  {/* Raw Decision Data (for debugging) */}
-                  <details style={{ marginTop: "24px", padding: "16px", background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                    <summary style={{ cursor: "pointer", fontWeight: "600", color: "#64748b" }}>
-                      View Raw Decision Data (Debug)
-                    </summary>
-                    <pre style={{ marginTop: "12px", fontSize: "11px", overflow: "auto", maxHeight: "300px", background: "#1e293b", color: "#e2e8f0", padding: "12px", borderRadius: "8px" }}>
-                      {JSON.stringify(eligibilityData, null, 2)}
-                    </pre>
-                  </details>
+                  {/* Raw Decision Data (for debugging) removed */}
                 </>
               ) : (
                 <div className="empty-state">

@@ -363,14 +363,15 @@ const createPromotionDecision = async ({
       existing._id,
       { $set: update },
       { new: true, runValidators: true },
-    );
+    ).populate("failed_subject_ids", "name code");
   }
 
-  return PromotionDecision.create({
+  const created = await PromotionDecision.create({
     ...lookup,
     ...freshFields,
     createdBy: userId,
   });
+  return created.populate("failed_subject_ids", "name code");
 };
 
 module.exports = {
