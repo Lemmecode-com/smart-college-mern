@@ -194,11 +194,28 @@ function getOutcomeIcon(outcome) {
 /**
  * Get user-friendly display label for promotion outcome
  * This is the primary status shown to users - clearer than "Outcome: X"
+ * Considers workflow_status to avoid misleading "Promoted" before execution
  */
-function getOutcomeDisplayLabel(outcome) {
+function getOutcomeDisplayLabel(outcome, workflowStatus) {
   if (!outcome) return "Status Unknown";
+  
+  // If outcome is PASS but workflow hasn't executed yet, show eligibility status
+  if (outcome === "PASS") {
+    const executedStatuses = ["PROMOTED", "EXECUTED"];
+    const isExecuted = workflowStatus && executedStatuses.includes(workflowStatus);
+    
+    if (isExecuted) {
+      return "Promoted Successfully";
+    }
+    
+    // Not yet executed - show based on workflow stage
+    if (workflowStatus === "APPROVED") return "Approved - Ready to Promote";
+    if (workflowStatus === "RECOMMENDED" || workflowStatus === "UNDER_REVIEW") return "Recommended for Promotion";
+    if (workflowStatus === "DRAFT") return "Eligible for Promotion";
+    return "Eligible for Promotion"; // fallback
+  }
+  
   const labelMap = {
-    PASS: "Promoted Successfully",
     ATKT: "Allowed to Keep Term (ATKT)",
     FAIL: "Promotion Failed",
     INCOMPLETE: "Result Incomplete",
@@ -2095,9 +2112,9 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                          {getOutcomeIcon(eligibilityData.promotion_outcome)}
                        </div>
                        <div className="outcome-text">
-                         <div className="outcome-label">
-                           {getOutcomeDisplayLabel(eligibilityData.promotion_outcome)}
-                         </div>
+<div className="outcome-label">
+                            {getOutcomeDisplayLabel(eligibilityData.promotion_outcome, eligibilityData.workflow_status)}
+                          </div>
                          <div className="outcome-reason">
                            {eligibilityData.decision_reason && (
                              <>
