@@ -96,6 +96,7 @@ const auditLogSchema = new mongoose.Schema(
         "RESULT_LOCKED",
         "RESULT_UNLOCKED",
         "RESULT_PUBLISHED",
+        "RESULT_PUBLISH_BLOCKED",
         "PROMOTION_RECOMMENDED",
         "PROMOTION_APPROVED",
         "PROMOTION_REJECTED",
