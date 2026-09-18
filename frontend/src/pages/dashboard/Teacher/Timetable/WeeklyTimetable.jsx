@@ -673,6 +673,7 @@ export default function WeeklyTimetable() {
       <AnimatePresence mode="wait">
         <>
           <motion.div
+            className="weekly-timetable-page"
             key="weekly-timetable-main"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -687,32 +688,6 @@ export default function WeeklyTimetable() {
             }}
           >
         <div style={{ maxWidth: "100%", margin: "0 auto" }}>
-          {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(-1)}
-              style={{
-                display: "flex", alignItems: "center", gap: "0.5rem", color: BRAND_COLORS.primary.main,
-                background: "none", border: "none", fontSize: "0.95rem", fontWeight: 500, cursor: "pointer",
-                padding: "0.5rem", borderRadius: "8px", transition: "all 0.3s ease",
-              }}
-              onMouseEnter={(e) => (e.target.style.backgroundColor = "#f1f5f9")}
-              onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: "#94a3b8" }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: "1rem" }}>
-              Weekly Timetable
-            </span>
-          </motion.div>
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -801,6 +776,357 @@ export default function WeeklyTimetable() {
                       {timetable?.status}
                     </motion.div>
                   </div>
+<style>
+
+  {`
+  /* =========================================================
+   WEEKLY TIMETABLE RESPONSIVE
+   Mobile + Tablet only
+   Desktop remains unchanged
+   ========================================================= */
+
+@media (max-width: 991.98px) {
+
+  .weekly-timetable-page {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
+
+  /* Main timetable header */
+  .weekly-timetable-page .rounded-4 {
+    border-radius: 18px !important;
+  }
+
+  /* Header content */
+  .weekly-timetable-page .rounded-4 > .p-4 {
+    padding: 1.25rem !important;
+  }
+
+  /* Title + calendar */
+  .weekly-timetable-page .rounded-4 > .p-4 > .d-flex {
+    gap: 1rem !important;
+  }
+
+  /* Calendar icon */
+  .weekly-timetable-page .rounded-4 > .p-4 > .d-flex > .d-flex:first-child {
+    min-width: 0;
+  }
+
+  /* Header title */
+  .weekly-timetable-page h1,
+  .weekly-timetable-page h2,
+  .weekly-timetable-page h3 {
+    overflow-wrap: anywhere;
+  }
+
+  /* Timetable title */
+  .weekly-timetable-page h1 {
+    font-size: 1.6rem !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Header information */
+  .weekly-timetable-page .rounded-4 > .p-4 > .d-flex:first-child {
+    flex-wrap: wrap !important;
+  }
+
+  /* Create button */
+  .weekly-timetable-page .rounded-4 button {
+    max-width: 100%;
+  }
+
+  /* Timetable table */
+  .weekly-timetable-page .erp-timetable-responsive {
+    width: 100%;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .weekly-timetable-page .erp-timetable-responsive table {
+    min-width: 1100px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+
+  .weekly-timetable-page {
+    padding: 0.6rem !important;
+  }
+
+  /* ================= HEADER ================= */
+
+  .weekly-timetable-page .rounded-4 > .p-4 {
+    padding: 1rem !important;
+  }
+
+  /*
+     Stack header vertically on mobile.
+     Prevents the timetable title from becoming
+     extremely narrow.
+  */
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex {
+
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+  }
+
+  /* Title section */
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex
+    > div:first-child {
+
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Calendar + title row */
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex
+    > div:first-child
+    > div {
+
+    min-width: 0 !important;
+  }
+
+  /* Calendar icon */
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex
+    > div:first-child
+    > div:first-child {
+
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+
+    font-size: 1.35rem !important;
+  }
+
+  /* Timetable title */
+  .weekly-timetable-page h1 {
+    font-size: 1.35rem !important;
+    line-height: 1.25 !important;
+  }
+
+  /* Header details */
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex
+    > div:first-child
+    > div:last-child
+    > div {
+
+    gap: 0.5rem !important;
+    margin-top: 0.5rem !important;
+  }
+
+  /* Metadata */
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex
+    > div:first-child
+    > div:last-child
+    > div
+    > div {
+
+    font-size: 0.8rem !important;
+  }
+
+  /* Create timetable button */
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex
+    > div:last-child {
+
+    width: 100% !important;
+  }
+
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex
+    > div:last-child
+    button {
+
+    width: 100% !important;
+    justify-content: center !important;
+
+    padding: 0.75rem 1rem !important;
+
+    font-size: 0.9rem !important;
+  }
+
+
+  /* ================= INFO BANNER ================= */
+
+  .weekly-timetable-page
+    .rounded-4
+    > div:last-child {
+
+    padding: 0.9rem 1rem !important;
+  }
+
+  .weekly-timetable-page
+    .rounded-4
+    > div:last-child
+    span {
+
+    font-size: 0.8rem !important;
+    line-height: 1.45 !important;
+  }
+
+
+  /* ================= WEEKLY SCHEDULE ================= */
+
+  .weekly-timetable-page
+    .erp-timetable-responsive
+    + div {
+
+    overflow-x: auto;
+  }
+
+  /* Schedule heading area */
+  .weekly-timetable-page
+    .erp-timetable-responsive
+    ~ div {
+
+    max-width: 100%;
+  }
+
+  /* Keep timetable horizontally scrollable */
+  .weekly-timetable-page .erp-timetable-responsive {
+    border-radius: 0;
+  }
+
+  .weekly-timetable-page
+    .erp-timetable-responsive
+    table {
+
+    min-width: 1050px !important;
+  }
+
+  .weekly-timetable-page
+    .erp-timetable-responsive
+    th {
+
+    font-size: 0.75rem !important;
+    padding: 0.65rem 0.5rem !important;
+  }
+
+  .weekly-timetable-page
+    .erp-timetable-responsive
+    td {
+
+    font-size: 0.75rem !important;
+    padding: 0.5rem !important;
+  }
+
+  /* Time column */
+  .weekly-timetable-page
+    .erp-timetable-responsive
+    .erp-timetable-time {
+
+    min-width: 105px !important;
+    width: 105px !important;
+  }
+
+  /* Day columns */
+  .weekly-timetable-page
+    .erp-timetable-responsive
+    .erp-timetable-day {
+
+    min-width: 155px !important;
+  }
+
+
+  /* ================= MODALS ================= */
+
+  .weekly-timetable-page + * .modal-box {
+    width: calc(100% - 1rem) !important;
+    max-width: calc(100% - 1rem) !important;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .weekly-timetable-page {
+    padding: 0.45rem !important;
+  }
+
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4 {
+
+    padding: 0.9rem !important;
+  }
+
+  .weekly-timetable-page h1 {
+    font-size: 1.15rem !important;
+  }
+
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex
+    > div:first-child
+    > div:first-child {
+
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+
+    font-size: 1.1rem !important;
+  }
+
+  .weekly-timetable-page
+    .rounded-4
+    > .p-4
+    > .d-flex
+    > div:first-child {
+
+    gap: 0.7rem !important;
+  }
+
+  .weekly-timetable-page
+    .erp-timetable-responsive
+    table {
+
+    min-width: 1000px !important;
+  }
+
+  .weekly-timetable-page
+    .erp-timetable-responsive
+    .erp-timetable-day {
+
+    min-width: 145px !important;
+  }
+}
+  `}
+</style>
+
                 </div>
               </div>
               {canManageTimetable && (
