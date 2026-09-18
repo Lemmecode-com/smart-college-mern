@@ -1192,3 +1192,39 @@
   outline: 2px solid var(--navbar-accent);
   outline-offset: 2px;
 }
+/* =========================================================
+   PROFILE DROPDOWN - MOBILE & TABLET ONLY
+   ========================================================= */
+
+@media (max-width: 991.98px) {
+  .profile-dropdown {
+    position: fixed !important;
+
+    /* Directly below the navbar */
+    top: 70px !important;
+
+    right: 12px !important;
+    left: auto !important;
+
+    transform: none !important;
+    margin: 0 !important;
+
+    width: min(410px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+
+    z-index: 1100 !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .profile-dropdown {
+    top: 70px !important;
+    right: 10px !important;
+    left: auto !important;
+
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+
+    border-radius: 10px !important;
+  }
+}
