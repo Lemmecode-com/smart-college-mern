@@ -143,6 +143,22 @@ function isStudentPromotable(student) {
 }
 
 /**
+ * Format promotion decision reason for display
+ */
+function formatDecisionReason(reason) {
+  if (!reason) return "-";
+  const reasonMap = {
+    FEE_NOT_CLEARED: "Fee Not Cleared",
+    ATTENDANCE_INSUFFICIENT: "Attendance Insufficient",
+    ATTENDANCE_NOT_AVAILABLE: "Attendance Not Available",
+    KT_LIMIT_EXCEEDED: "KT Limit Exceeded",
+    RESULT_INCOMPLETE: "Result Incomplete",
+    ELIGIBLE: "Eligible",
+  };
+  return reasonMap[reason] || reason.replace(/_/g, " ");
+}
+
+/**
  * Format promotion outcome for display
  */
 function formatOutcome(outcome) {
@@ -216,6 +232,26 @@ function formatWorkflowStatus(status) {
 }
 
 /**
+ * Format a snapshot value for human-readable display.
+ * - Booleans render as Yes/No (React JSX omits raw true/false).
+ * - null/undefined render as a muted dash.
+ * - Objects/arrays render as JSON.
+ * - Strings and numbers render as-is.
+ */
+function formatSnapshotValue(value) {
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  if (value === null || value === undefined) {
+    return <span className="text-muted">-</span>;
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return value;
+}
+
+/**
  * Render snapshot object as key-value pairs
  */
 function renderSnapshot(snapshot) {
@@ -236,7 +272,7 @@ function renderSnapshot(snapshot) {
             {key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}:
           </span>
           <span className="detail-value" style={{ color: "#0f3a4a", fontSize: "13px" }}>
-            {typeof value === "object" ? JSON.stringify(value) : value}
+            {formatSnapshotValue(value)}
           </span>
         </div>
       ))}
@@ -2042,9 +2078,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                         <div style={{ fontSize: "18px", fontWeight: "700", textTransform: "uppercase" }}>
                           Outcome: {formatOutcome(eligibilityData.promotion_outcome)}
                         </div>
-                        <div style={{ fontSize: "13px", opacity: 0.9 }}>
-                          Workflow Status: {formatWorkflowStatus(eligibilityData.workflow_status)}
-                        </div>
+                         <div style={{ fontSize: "13px", opacity: 0.9 }}>
+                           Workflow Status: {formatWorkflowStatus(eligibilityData.workflow_status)}
+                         </div>
+                         {eligibilityData.decision_reason && (
+                           <div style={{ fontSize: "13px", opacity: 0.9, marginTop: "2px" }}>
+                             Reason: {formatDecisionReason(eligibilityData.decision_reason)}
+                           </div>
+                         )}
                       </div>
                     </div>
                   </div>
@@ -2066,10 +2107,10 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                               {eligibilityData.kt_count ?? "N/A"}
                             </span>
                           </div>
-                          {eligibilityData.max_allowed_kts !== undefined && eligibilityData.max_allowed_kts !== null && (
+                          {eligibilityData.policy_snapshot?.maxAllowedKTs !== undefined && eligibilityData.policy_snapshot?.maxAllowedKTs !== null && (
                             <div className="detail-row">
                               <span className="detail-label">Max Allowed KTs:</span>
-                              <span className="detail-value">{eligibilityData.max_allowed_kts}</span>
+                              <span className="detail-value">{eligibilityData.policy_snapshot?.maxAllowedKTs}</span>
                             </div>
                           )}
                           {eligibilityData.failed_subject_ids && eligibilityData.failed_subject_ids.length > 0 && (

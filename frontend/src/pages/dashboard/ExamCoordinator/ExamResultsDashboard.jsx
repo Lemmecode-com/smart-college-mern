@@ -165,6 +165,7 @@ export default function ExamResultsDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [actionBusy, setActionBusy] = useState(null);
+  const [publishBlocked, setPublishBlocked] = useState(null);
 
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockReason, setUnlockReason] = useState("");
@@ -313,12 +314,19 @@ export default function ExamResultsDashboard() {
 
   const handlePublish = async (examId) => {
     setActionBusy(examId);
+    setPublishBlocked(null);
     try {
       await publishResultsForExam(examId);
       toast.success("All locked results published.");
       await refreshResult(examId);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to publish results.");
+      const data = err.response?.data;
+      const code = data?.error?.code;
+      const msg = data?.error?.message || err.response?.data?.message || "Failed to publish results.";
+      if (code === "INCOMPLETE_MARKS" && data?.error?.details) {
+        setPublishBlocked(data.error.details);
+      }
+      toast.error(msg);
     } finally {
       setActionBusy(null);
     }
@@ -474,6 +482,33 @@ export default function ExamResultsDashboard() {
           </div>
         </div>
       </div>
+
+      {publishBlocked && (
+        <div className="erd-alert mb-3">
+          <div style={{ fontWeight: 700, marginBottom: "0.5rem" }}>
+            <FaExclamationTriangle style={{ marginRight: "0.4rem" }} />
+            Cannot Publish Result
+          </div>
+          <div style={{ marginBottom: "0.5rem" }}>Incomplete marks found.</div>
+          <div style={{ marginBottom: "0.5rem" }}>
+            Affected Students: {publishBlocked.totalAffectedStudents} ·
+            Incomplete Subjects: {publishBlocked.totalIncompleteSubjects}
+          </div>
+          <div style={{ marginBottom: "0.75rem" }}>
+            {publishBlocked.issues.map((issue, idx) => (
+              <div key={idx} style={{ paddingLeft: "1rem", borderLeft: "2px solid var(--edx-red-500)", marginBottom: "0.5rem" }}>
+                <div style={{ fontWeight: 600 }}>{issue.studentName || "Unknown"}</div>
+                <div style={{ fontSize: "0.82rem", color: "var(--edx-red-500)" }}>
+                  {issue.subjectName || "Unknown"} — {issue.issue === "MARKS_NOT_ENTERED" ? "Marks not entered" : "Marks incomplete"}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: "0.85rem" }}>
+            Please complete the missing marks and regenerate/review the result before publishing.
+          </div>
+        </div>
+      )}
 
       <div className="table-card">
         {filteredExams.length === 0 ? (
