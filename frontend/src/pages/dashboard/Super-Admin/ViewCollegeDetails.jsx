@@ -133,13 +133,342 @@ export default function ViewCollegeDetails() {
         white-space: normal;
       }
 
-      /* Responsive card adjustments */
+      /* =========================================================
+        COLLEGE DETAILS - TABLET
+        ========================================================= */
+
+      @media (min-width: 769px) and (max-width: 991.98px) {
+
+        .college-details-page {
+          padding: 1.25rem !important;
+        }
+
+        .college-details-header {
+          border-radius: 18px !important;
+          margin-bottom: 1.25rem !important;
+        }
+
+        .college-details-header > div {
+          padding: 1.25rem !important;
+        }
+
+        .college-details-header-content {
+          gap: 1.1rem !important;
+        }
+
+        .college-details-header-content > div:first-child {
+          width: 68px !important;
+          height: 68px !important;
+          min-width: 68px !important;
+        }
+
+        .college-details-header-content > div:first-child svg {
+          width: 28px !important;
+          height: 28px !important;
+        }
+
+        .college-details-header h1 {
+          font-size: 1.55rem !important;
+          line-height: 1.25 !important;
+          overflow-wrap: anywhere;
+        }
+
+        .college-details-header span {
+          font-size: 0.82rem !important;
+        }
+
+        .college-details-header button {
+          padding: 0.7rem 1.2rem !important;
+          font-size: 0.88rem !important;
+          white-space: nowrap;
+        }
+
+        .college-information-card {
+          border-radius: 16px !important;
+        }
+
+        .college-information-card > div:first-child {
+          padding: 0.9rem 1.25rem !important;
+        }
+
+        .college-information-card > div:last-child {
+          padding: 1.25rem !important;
+        }
+
+        .college-information-card .row {
+          --bs-gutter-x: 1rem;
+          --bs-gutter-y: 1rem;
+        }
+
+        .info-item-container {
+          padding: 0.9rem !important;
+          border-radius: 14px !important;
+        }
+
+        .info-item-container > div:first-child {
+          min-width: 44px !important;
+          min-height: 44px !important;
+          padding: 0.65rem !important;
+        }
+
+        .info-item-container .info-item-value {
+          font-size: 0.9rem !important;
+          line-height: 1.4 !important;
+        }
+      }
+
+
+      /* =========================================================
+        COLLEGE DETAILS - MOBILE
+        ========================================================= */
+
       @media (max-width: 768px) {
+
+        .college-details-page {
+          padding: 0.75rem !important;
+          min-height: 100vh;
+          overflow-x: hidden;
+        }
+
+
+        /* ================= HEADER ================= */
+
+        .college-details-header {
+          border-radius: 16px !important;
+          margin-bottom: 1rem !important;
+        }
+
+        .college-details-header > div {
+          padding: 1rem !important;
+        }
+
+        .college-details-header > div > div {
+          gap: 0.85rem !important;
+        }
+
+        .college-details-header-content {
+          gap: 0.85rem !important;
+          width: 100% !important;
+        }
+
+        .college-details-header-content > div:first-child {
+          width: 58px !important;
+          height: 58px !important;
+          min-width: 58px !important;
+          border-radius: 14px !important;
+        }
+
+        .college-details-header-content > div:first-child svg {
+          width: 24px !important;
+          height: 24px !important;
+        }
+
+
+        /* College name */
+
+        .college-details-header h1 {
+          font-size: 1.35rem !important;
+          line-height: 1.2 !important;
+          margin-bottom: 0.35rem !important;
+
+          word-break: break-word;
+          overflow-wrap: anywhere;
+        }
+
+
+        /* Code + established year */
+
+        .college-details-header-content span {
+          font-size: 0.75rem !important;
+        }
+
+        .college-details-header-content span:first-child {
+          padding: 0.4rem 0.7rem !important;
+        }
+
+        .college-details-header-content span:last-child {
+          gap: 0.25rem !important;
+        }
+
+
+        /* Back button */
+
+        .college-details-header button {
+          width: 100% !important;
+          justify-content: center !important;
+
+          padding: 0.7rem 1rem !important;
+          min-height: 44px;
+
+          font-size: 0.85rem !important;
+          border-radius: 10px !important;
+
+          margin-top: 0.15rem;
+        }
+
+
+        /* ================= INFORMATION CARD ================= */
+
+        .college-information-card {
+          border-radius: 15px !important;
+        }
+
+        .college-information-card > div:first-child {
+          padding: 0.85rem 1rem !important;
+        }
+
+        .college-information-card h2 {
+          font-size: 1.05rem !important;
+          line-height: 1.3 !important;
+        }
+
+        .college-information-card > div:last-child {
+          padding: 1rem !important;
+        }
+
+        .college-information-card .row {
+          --bs-gutter-x: 0;
+          --bs-gutter-y: 0.85rem;
+        }
+
+
+        /* ================= INFO ITEMS ================= */
+
+        .info-item-container {
+          padding: 0.85rem !important;
+
+          border-radius: 14px !important;
+
+          min-height: auto !important;
+        }
+
+        .info-item-container > div:first-child {
+          min-width: 42px !important;
+          min-height: 42px !important;
+
+          padding: 0.6rem !important;
+
+          border-radius: 11px !important;
+
+          margin-right: 0 !important;
+          margin-bottom: 0.65rem !important;
+        }
+
+        .info-item-container > div:first-child svg {
+          width: 18px !important;
+          height: 18px !important;
+        }
+
+        .info-item-container small {
+          font-size: 0.72rem !important;
+        }
+
+        .info-item-container .info-item-value {
+          font-size: 0.88rem !important;
+          line-height: 1.4 !important;
+
+          word-break: break-word !important;
+          overflow-wrap: anywhere !important;
+        }
+
+
+        /* ================= STATISTICS ================= */
+
+        .college-details-page .card h2 {
+          font-size: 1.05rem !important;
+        }
+
+
+        /* ================= REGISTRATION ================= */
+
+        .college-details-page input[type="text"] {
+          min-width: 0 !important;
+          font-size: 0.8rem !important;
+        }
+
+        .college-details-page button {
+          touch-action: manipulation;
+        }
+      }
+
+
+      /* =========================================================
+        SMALL MOBILE
+        ========================================================= */
+
+      @media (max-width: 480px) {
+
+        .college-details-page {
+          padding: 0.55rem !important;
+        }
+
+
+        /* Header */
+
+        .college-details-header > div {
+          padding: 0.85rem !important;
+        }
+
+        .college-details-header-content {
+          gap: 0.7rem !important;
+        }
+
+        .college-details-header-content > div:first-child {
+          width: 52px !important;
+          height: 52px !important;
+          min-width: 52px !important;
+          border-radius: 12px !important;
+        }
+
+        .college-details-header h1 {
+          font-size: 1.2rem !important;
+        }
+
+        .college-details-header-content span {
+          font-size: 0.7rem !important;
+        }
+
+        .college-details-header-content span:first-child {
+          padding: 0.35rem 0.6rem !important;
+        }
+
+        .college-details-header button {
+          min-height: 42px;
+          padding: 0.65rem 0.85rem !important;
+          font-size: 0.8rem !important;
+        }
+
+
+        /* Information */
+
+        .college-information-card > div:first-child {
+          padding: 0.75rem 0.85rem !important;
+        }
+
+        .college-information-card h2 {
+          font-size: 0.98rem !important;
+        }
+
+        .college-information-card > div:last-child {
+          padding: 0.8rem !important;
+        }
+
         .info-item-container {
           padding: 0.75rem !important;
         }
-        .info-item-value {
-          font-size: 0.875rem !important;
+
+        .info-item-container > div:first-child {
+          min-width: 40px !important;
+          min-height: 40px !important;
+          padding: 0.55rem !important;
+        }
+
+        .info-item-container small {
+          font-size: 0.68rem !important;
+        }
+
+        .info-item-container .info-item-value {
+          font-size: 0.82rem !important;
         }
       }
     `;
@@ -306,6 +635,7 @@ export default function ViewCollegeDetails() {
   return (
     <AnimatePresence mode="wait">
       <motion.div
+        className="college-details-page"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -321,6 +651,7 @@ export default function ViewCollegeDetails() {
         <div style={{ maxWidth: "100%", margin: "0 auto" }}>
           {/* Header Card with Animated Icon */}
           <motion.div
+            className="college-details-header"
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -351,6 +682,7 @@ export default function ViewCollegeDetails() {
                 }}
               >
                 <div
+                  className="college-details-header-content"
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -458,7 +790,7 @@ export default function ViewCollegeDetails() {
             {/* College Information Card */}
             <motion.div variants={itemVariants} className="col-12">
               <div
-                className="card border-0 shadow-sm"
+                className="card border-0 shadow-sm college-information-card"
                 style={{ borderRadius: "18px", overflow: "hidden" }}
               >
                 <div
