@@ -265,7 +265,12 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
     });
 
     it("L4. LOCKED -> PUBLISHED", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
 
@@ -289,7 +294,12 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
     });
 
     it("L6. PUBLISHED -> DRAFT rejected (unlock)", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
       await publishResult(agent, resultId).expect(200);
@@ -303,7 +313,12 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
     });
 
     it("L7. PUBLISHED -> LOCKED rejected", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
       await publishResult(agent, resultId).expect(200);
@@ -326,7 +341,12 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
     });
 
     it("L9. PUBLISHED -> PUBLISHED rejected (double publish)", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
       await publishResult(agent, resultId).expect(200);
@@ -431,9 +451,15 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
     });
 
     it("A8. EXAM_COORDINATOR can publish", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
+
       await publishResult(agent, resultId).expect(200);
       const result = await findResult({ _id: resultId });
       expect(result.status).toBe("PUBLISHED");
@@ -683,6 +709,11 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
 
     it("M4. marks modification after PUBLISHED rejected", async () => {
       const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
       await publishResult(agent, resultId).expect(200);
@@ -766,7 +797,12 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
     });
 
     it("G3. PUBLISHED result cannot regenerate", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
       await publishResult(agent, resultId).expect(200);
@@ -815,9 +851,15 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
     });
 
     it("AL3. RESULT_PUBLISHED created on publish", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
+
       await publishResult(agent, resultId).expect(200);
 
       const count = await countAudit({
@@ -840,9 +882,15 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
     });
 
     it("C2. double publish prevented", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
+
       await publishResult(agent, resultId).expect(200);
       await publishResult(agent, resultId).expect(409);
     });
@@ -861,9 +909,15 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
     });
 
     it("C4. lock only from DRAFT state (after publish)", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
+
       await publishResult(agent, resultId).expect(200);
       // Cannot re-lock a published result.
       await lockResult(agent, resultId).expect(409);
@@ -944,6 +998,184 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
         { studentId: student._id, internalMarks: 25, externalMarks: 60 },
       ]);
       expect(res.body.success).toBe(true);
+    });
+  });
+
+  // ---- INCOMPLETE MARKS — publish blocked --------------------------------
+
+  describe("INCOMPLETE MARKS — publish blocked", () => {
+    it("IM1. LOCKED + INCOMPLETE (marksRecorded=false) → 409 INCOMPLETE_MARKS, remains LOCKED", async () => {
+      const { agent, exam, student } = await baseSetup();
+      const resultId = await generateResult(agent, exam._id, student._id);
+      await lockResult(agent, resultId).expect(200);
+
+      const res = await publishResult(agent, resultId).expect(409);
+      expect(res.body.error.code).toBe("INCOMPLETE_MARKS");
+      expect(res.body.error.message).toBe("Result cannot be published because some required marks are incomplete.");
+      expect(res.body.error.data.totalIncompleteSubjects).toBeGreaterThan(0);
+      expect(res.body.error.data.totalAffectedStudents).toBe(1);
+      expect(Array.isArray(res.body.error.data.issues)).toBe(true);
+
+      const result = await findResult({ _id: resultId });
+      expect(result.status).toBe("LOCKED");
+    });
+
+    it("IM2. LOCKED + INCOMPLETE (marksRecorded=true) → 409 INCOMPLETE_MARKS, remains LOCKED", async () => {
+      const { agent, exam, student, subject } = await baseSetup();
+
+      // Enter only external marks → THEORY INCOMPLETE, marksRecorded=true
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, externalMarks: 60 },
+      ]);
+
+      const resultId = await generateResult(agent, exam._id, student._id);
+      await lockResult(agent, resultId).expect(200);
+
+      const res = await publishResult(agent, resultId).expect(409);
+      expect(res.body.error.code).toBe("INCOMPLETE_MARKS");
+
+      const result = await findResult({ _id: resultId });
+      expect(result.status).toBe("LOCKED");
+    });
+
+    it("IM3. LOCKED + PASS/FAIL only → publish succeeds", async () => {
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
+      const resultId = await generateResult(agent, exam._id, student._id);
+      await lockResult(agent, resultId).expect(200);
+
+      const res = await publishResult(agent, resultId).expect(200);
+      expect(res.body.data.status).toBe("PUBLISHED");
+
+      const result = await findResult({ _id: resultId });
+      expect(result.status).toBe("PUBLISHED");
+    });
+
+    it("IM4. Bulk publish with mixed results → 409, ZERO published", async () => {
+      const { agent, exam, student, subject } = await baseSetup();
+
+      // Student 1: complete (PASS)
+      const student1 = await createStudent({
+        college_id: exam.college_id,
+        department_id: (await createDepartment({
+          college_id: exam.college_id,
+          createdBy: new mongoose.Types.ObjectId(),
+          name: "CS-Dept1",
+          code: "CS1",
+          type: "ACADEMIC",
+          status: "ACTIVE",
+          programsOffered: ["UG"],
+          startYear: 2021,
+          sanctionedFacultyCount: 10,
+          sanctionedStudentIntake: 60,
+        }))._id,
+        course_id: exam.course_id,
+        createdBy: new mongoose.Types.ObjectId(),
+        fullName: "Complete Student",
+        email: `complete.${Date.now()}@test.com`,
+        currentSemester: exam.semester,
+        status: "APPROVED",
+      });
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student1._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
+      // Student 2: incomplete (no marks)
+      const student2 = await createStudent({
+        college_id: exam.college_id,
+        department_id: (await createDepartment({
+          college_id: exam.college_id,
+          createdBy: new mongoose.Types.ObjectId(),
+          name: "CS-Dept2",
+          code: "CS2",
+          type: "ACADEMIC",
+          status: "ACTIVE",
+          programsOffered: ["UG"],
+          startYear: 2021,
+          sanctionedFacultyCount: 10,
+          sanctionedStudentIntake: 60,
+        }))._id,
+        course_id: exam.course_id,
+        createdBy: new mongoose.Types.ObjectId(),
+        fullName: "Incomplete Student",
+        email: `incomplete.${Date.now()}@test.com`,
+        currentSemester: exam.semester,
+        status: "APPROVED",
+      });
+
+      // Generate and lock both results
+      const res1 = await agent
+        .post("/api/results/generate")
+        .send({ examId: exam._id, studentId: student1._id })
+        .expect(200);
+      const res2 = await agent
+        .post("/api/results/generate")
+        .send({ examId: exam._id, studentId: student2._id })
+        .expect(200);
+
+      await lockResult(agent, res1.body.data._id).expect(200);
+      await lockResult(agent, res2.body.data._id).expect(200);
+
+      // Bulk publish → should be blocked
+      const res = await agent
+        .post("/api/results/publish-exam")
+        .send({ examId: exam._id })
+        .expect(409);
+      expect(res.body.error.code).toBe("INCOMPLETE_MARKS");
+      expect(res.body.error.data.totalAffectedStudents).toBeGreaterThanOrEqual(1);
+      expect(res.body.error.data.totalIncompleteSubjects).toBeGreaterThanOrEqual(1);
+
+      // Verify NEITHER result was published
+      const r1 = await findResult({ _id: res1.body.data._id });
+      const r2 = await findResult({ _id: res2.body.data._id });
+      expect(r1.status).toBe("LOCKED");
+      expect(r2.status).toBe("LOCKED");
+    });
+
+    it("IM5. RESULT_PUBLISH_BLOCKED audit log on blocked publish", async () => {
+      const { agent, exam, student } = await baseSetup();
+      const resultId = await generateResult(agent, exam._id, student._id);
+      await lockResult(agent, resultId).expect(200);
+
+      await publishResult(agent, resultId).expect(409);
+
+      const log = await AuditLog.findOne({
+        action: "RESULT_PUBLISH_BLOCKED",
+        resourceType: "SemesterResult",
+        resourceId: new mongoose.Types.ObjectId(String(resultId)),
+      }).lean();
+
+      expect(log).not.toBeNull();
+      expect(log.statusCode).toBe(409);
+      const meta = log.metadata;
+      const storedReason =
+        meta && typeof meta.get === "function" ? meta.get("reason") : meta.reason;
+      expect(storedReason).toBe("INCOMPLETE_MARKS");
+    });
+
+    it("IM6. audit log RESULT_PUBLISHED on successful publish (no regression)", async () => {
+      const { agent, exam, student, subject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, subject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+
+      const resultId = await generateResult(agent, exam._id, student._id);
+      await lockResult(agent, resultId).expect(200);
+      await publishResult(agent, resultId).expect(200);
+
+      const log = await AuditLog.findOne({
+        action: "RESULT_PUBLISHED",
+        resourceType: "SemesterResult",
+        resourceId: new mongoose.Types.ObjectId(String(resultId)),
+      }).lean();
+
+      expect(log).not.toBeNull();
     });
   });
 });
