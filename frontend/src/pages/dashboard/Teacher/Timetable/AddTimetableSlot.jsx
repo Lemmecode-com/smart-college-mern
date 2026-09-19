@@ -215,7 +215,7 @@ export default function AddTimetableSlot() {
       try {
 
         const [subjectsRes, teachersRes] = await Promise.all([
-          api.get(`/subjects/course/${timetable.course_id}`),
+          api.get(`/subjects/course/${timetable.course_id}?semester=${timetable.semester}`),
           api.get(`/teachers/department/${timetable.department_id}`)
         ]);
 
