@@ -30,27 +30,28 @@ import {
   FaEye
 } from "react-icons/fa";
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function SubjectList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { canCreate, canEdit, canDelete } = useRole();
-
-  const AUTH_ERROR_CODES = new Set([
-    "TOKEN_MISSING",
-    "TOKEN_EXPIRED",
-    "INVALID_TOKEN",
-    "TOKEN_BLACKLISTED",
-    "TOKEN_INVALIDATED",
-    "USER_NOT_FOUND",
-    "ACCOUNT_DEACTIVATED",
-    "UNAUTHORIZED",
-  ]);
 
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [error, setError] = useState(null);
@@ -59,13 +60,11 @@ export default function SubjectList() {
   const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
   const [searchTerm, setSearchTerm] = useState("");
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
-    return <Navigate to="/dashboard" replace />;
-
-  /* ================= FETCH DEPARTMENTS ================= */
   useEffect(() => {
+    if (!user || (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")) {
+      return;
+    }
+
     const fetchDepartments = async () => {
       try {
         const res = await api.get("/departments");
@@ -100,7 +99,11 @@ export default function SubjectList() {
     };
 
     fetchDepartments();
-  }, []);
+  }, [user]);
+
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH COURSES BY DEPARTMENT ================= */
   const fetchCourses = async (deptId) => {
@@ -111,6 +114,7 @@ export default function SubjectList() {
                           Array.isArray(res.data.data) ? res.data.data : [];
       setCourses(coursesData);
       setSelectedCourse("");
+      setSelectedSemester("");
       setSubjects([]);
     } catch (err) {
       const statusCode = err.response?.status;
@@ -134,15 +138,18 @@ export default function SubjectList() {
         toast.error(errorMessage);
       }
       setCourses([]);
+      setSelectedSemester("");
     }
   };
 
   /* ================= FETCH SUBJECTS BY COURSE ================= */
-  const fetchSubjects = async (courseId) => {
+  const fetchSubjects = async (courseId, semester = "") => {
     setLoadingSubjects(true);
     setError(null);
     try {
-      const res = await api.get(`/subjects/course/${courseId}`);
+      const res = await api.get(`/subjects/course/${courseId}`, {
+        params: semester ? { semester } : undefined,
+      });
       const subjectsData = Array.isArray(res.data) ? res.data :
                            Array.isArray(res.data.subjects) ? res.data.subjects :
                            Array.isArray(res.data.data) ? res.data.data : [];
@@ -214,7 +221,7 @@ export default function SubjectList() {
       setShowDeleteModal(false);
       setSubjectToDelete(null);
       setError(null);
-    } catch (err) {
+    } catch {
       setError("Failed to delete subject. Please try again.");
     }
   };
@@ -250,7 +257,7 @@ export default function SubjectList() {
         onRetry={() => {
           setError(null);
           if (selectedDepartment) fetchCourses(selectedDepartment);
-          if (selectedCourse) fetchSubjects(selectedCourse);
+          if (selectedCourse) fetchSubjects(selectedCourse, selectedSemester);
         }}
         onGoBack={() => navigate(-1)}
       />
@@ -264,17 +271,24 @@ export default function SubjectList() {
 
   const filteredSubjects = getFilteredSubjects();
   const selectedDeptName = Array.isArray(departments) ? departments.find(d => d._id === selectedDepartment)?.name || "Select Department" : "Select Department";
-  const selectedCourseName = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse)?.name || "Select Course" : "Select Course";
+  const selectedCourseData = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse) : undefined;
+  const selectedCourseName = selectedCourseData?.name || "Select Course";
+  const semesterOptions = Array.from(
+    { length: selectedCourseData?.durationSemesters || 8 },
+    (_, index) => index + 1
+  );
 
   return (
     <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
       {/* BREADCRUMBS */}
+      <div className="course-breadcrumb-wrapper">
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
           { label: "Subject Management" }
         ]}
       />
+      </div>
 
       {/* HEADER */}
       <div className="erp-page-header">
@@ -322,6 +336,7 @@ export default function SubjectList() {
                   onChange={(e) => {
                     setSelectedDepartment(e.target.value);
                     setSelectedCourse("");
+                    setSelectedSemester("");
                     setSubjects([]);
                     if (e.target.value) fetchCourses(e.target.value);
                   }}
@@ -351,6 +366,7 @@ export default function SubjectList() {
                   disabled={!selectedDepartment}
                   onChange={(e) => {
                     setSelectedCourse(e.target.value);
+                    setSelectedSemester("");
                     if (e.target.value) fetchSubjects(e.target.value);
                   }}
                 >
@@ -358,6 +374,34 @@ export default function SubjectList() {
                   {courses.map((course) => (
                     <option key={course._id} value={course._id}>
                       {course.name} ({course.code})
+                    </option>
+                  ))}
+                </select>
+                <div className="filter-select-arrow">
+                  <FaChevronDown />
+                </div>
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <label className="filter-label">
+                <FaClock className="filter-icon" />
+                <span>Semester</span>
+              </label>
+              <div className="filter-select-wrapper">
+                <select
+                  className="filter-select"
+                  value={selectedSemester}
+                  disabled={!selectedCourse}
+                  onChange={(e) => {
+                    setSelectedSemester(e.target.value);
+                    if (selectedCourse) fetchSubjects(selectedCourse, e.target.value);
+                  }}
+                >
+                  <option value="">-- Select Semester --</option>
+                  {semesterOptions.map((semester) => (
+                    <option key={semester} value={semester}>
+                      Semester {semester}
                     </option>
                   ))}
                 </select>
@@ -624,6 +668,12 @@ export default function SubjectList() {
           --card-shadow: 0 4px 20px rgba(15, 58, 74, 0.08);
           --card-hover-shadow: 0 8px 30px rgba(15, 58, 74, 0.12);
         }
+      /* BREADCRUMBS */
+        .course-breadcrumb-wrapper {
+          width: 100%;
+          margin-top: 20px;
+          padding-top: 25px;
+        }
 
         .erp-page-header {
           background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 50%, #3db5e6 100%);
@@ -698,6 +748,10 @@ export default function SubjectList() {
           position: relative;
           z-index: 1;
         }
+          .erp-header-actions .erp-btn .erp-btn-icon {
+            margin-right: 8px !important;
+          }
+
 
         .erp-header-actions .erp-btn:hover {
           transform: translateY(-3px);
@@ -755,7 +809,7 @@ export default function SubjectList() {
         /* FILTERS */
         .filter-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: 1fr 1fr 1fr auto;
           gap: 1.5rem;
           align-items: end;
         }
@@ -776,6 +830,7 @@ export default function SubjectList() {
           gap: 0.625rem;
           padding: 0.25rem 0;
           white-space: nowrap;
+          padding-left: 20px !important;
         }
 
         .filter-icon {
@@ -787,7 +842,7 @@ export default function SubjectList() {
           justify-content: center;
           line-height: 1;
           position: absolute;
-          left: -18px;
+          left: 0px;
         }
 
         .filter-select-wrapper {
@@ -846,6 +901,7 @@ export default function SubjectList() {
         .filter-actions {
           display: flex;
           align-items: center;
+          justify-content: flex-end;
         }
 
         /* ADD SUBJECT BUTTON - Enhanced Design */
@@ -1574,97 +1630,883 @@ export default function SubjectList() {
           animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .filter-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .filter-actions {
-            width: 100%;
-          }
-          
-          .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-          
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .erp-card-body {
-            padding: 1.25rem;
-          }
-          
-          .erp-card-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .header-right {
-            width: 100%;
-          }
-          
-          .search-box {
-            width: 100%;
-            min-width: auto;
-          }
-          
-          .erp-table {
-            min-width: 700px;
-          }
-          
-          .action-buttons {
-            flex-direction: column;
-            align-items: center;
-          }
-          
-          .action-btn {
-            width: 100%;
-            margin-bottom: 0.5rem;
-          }
-          
-          .modal-content {
-            width: 95%;
-            margin: 1rem;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .erp-table {
-            min-width: 600px;
-          }
-          
-          .subject-name {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .subject-meta {
-            margin-left: 2.5rem;
-          }
-          
-          .erp-card-header h3 {
-            font-size: 1.25rem;
-          }
-        }
+       /* =========================================================
+   RESPONSIVE DESIGN
+   Desktop remains unchanged
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   769px - 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  /* Page spacing */
+  .erp-page {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    overflow-x: hidden;
+  }
+
+
+  /* ---------------- Breadcrumb ---------------- */
+
+  .course-breadcrumb-wrapper {
+    width: 100%;
+    overflow: hidden;
+    margin-top: 15px;
+    padding-top: 15px;
+  }
+
+  .course-breadcrumb-wrapper > * {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .course-breadcrumb-wrapper > *::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------------- Header ---------------- */
+
+  .erp-page-header {
+    padding: 1.25rem 1.4rem;
+
+    display: flex;
+    flex-direction: row;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    border-radius: 14px;
+  }
+
+  .erp-header-content {
+    min-width: 0;
+    gap: 0.9rem;
+  }
+
+  .erp-header-icon {
+    width: 50px;
+    height: 50px;
+
+    min-width: 50px;
+
+    font-size: 1.45rem;
+    border-radius: 12px;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+  }
+
+  .erp-page-title {
+    font-size: 1.45rem;
+    line-height: 1.2;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .erp-header-actions {
+    flex-shrink: 0;
+    width: auto;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: auto;
+    min-width: 160px;
+
+    padding: 0.65rem 1rem;
+
+    font-size: 0.82rem;
+
+    justify-content: center;
+  }
+
+
+  /* ---------------- Filter Card ---------------- */
+
+  .erp-card {
+    margin-bottom: 1.15rem;
+    border-radius: 14px;
+  }
+
+  .erp-card-header {
+    padding: 1.15rem 1.35rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.15rem;
+  }
+
+  .erp-card-body {
+    padding: 1.25rem;
+  }
+
+
+  /* Two-column filters on tablet */
+
+  .filter-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+    gap: 1rem;
+
+    align-items: end;
+  }
+
+  .filter-group {
+    min-width: 0;
+  }
+
+  .filter-label {
+    font-size: 0.85rem;
+  }
+
+  .filter-select {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 0.75rem 1rem;
+
+    font-size: 0.9rem;
+  }
+
+  .filter-actions {
+    grid-column: 1 / -1;
+
+    width: 100%;
+
+    display: flex;
+    justify-content: flex-end;
+
+    margin-top: 0.15rem;
+  }
+
+  .add-subject-btn {
+    width: auto;
+
+    padding: 0.7rem 1.3rem;
+
+    font-size: 0.85rem;
+  }
+
+
+  /* ---------------- Subjects Header ---------------- */
+
+  .erp-card-header .header-left {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .erp-card-header .header-left h3 {
+    min-width: 0;
+
+    font-size: 1.1rem;
+  }
+
+  .subject-count {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.7rem;
+  }
+
+  .header-right {
+    flex-shrink: 0;
+  }
+
+  .search-box {
+    min-width: 220px;
+  }
+
+  .search-box input {
+    padding: 0.65rem 0.8rem 0.65rem 2.25rem;
+    font-size: 0.82rem;
+  }
+
+
+  /* ---------------- Table ---------------- */
+
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .erp-table {
+    min-width: 850px;
+  }
+
+  .erp-table th,
+  .erp-table td {
+    padding: 0.8rem 1rem;
+  }
+
+  .action-buttons {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .action-btn {
+    width: 34px;
+    height: 34px;
+
+    margin-bottom: 0;
+
+    flex-shrink: 0;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .erp-page {
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
+
+    overflow-x: hidden;
+  }
+
+
+  /* ---------------- Breadcrumb ---------------- */
+
+  .course-breadcrumb-wrapper {
+    width: 100%;
+
+    margin-top: 10px;
+    padding-top: 10px;
+
+    overflow: hidden;
+  }
+
+  .course-breadcrumb-wrapper > * {
+    width: 100%;
+    max-width: 100%;
+
+    overflow-x: auto;
+
+    scrollbar-width: none;
+  }
+
+  .course-breadcrumb-wrapper > *::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------------- Header ---------------- */
+
+  .erp-page-header {
+    padding: 1rem;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 0.85rem;
+
+    margin-bottom: 1rem;
+
+    border-radius: 14px;
+
+    text-align: center;
+  }
+
+  .erp-header-content {
+    width: 100%;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 0.55rem;
+
+    text-align: center;
+  }
+
+  .erp-header-icon {
+    width: 52px;
+    height: 52px;
+
+    min-width: 52px;
+
+    font-size: 1.35rem;
+
+    border-radius: 12px;
+  }
+
+  .erp-header-text {
+    width: 100%;
+  }
+
+  .erp-page-title {
+    font-size: 1.4rem;
+
+    line-height: 1.2;
+
+    word-break: normal;
+  }
+
+  .erp-page-subtitle {
+    margin-top: 0.35rem;
+
+    font-size: 0.78rem;
+
+    line-height: 1.45;
+  }
+
+  .erp-header-actions {
+    width: 100%;
+
+    margin-top: 0.15rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding: 0.65rem 1rem;
+
+    font-size: 0.8rem;
+
+    justify-content: center;
+  }
+
+
+  /* ---------------- Cards ---------------- */
+
+  .erp-card {
+    margin-bottom: 0.9rem;
+
+    border-radius: 12px;
+  }
+
+  .erp-card-header {
+    padding: 0.9rem 1rem;
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 0.7rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.05rem;
+
+    gap: 0.55rem;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+
+  /* ---------------- Filter ---------------- */
+
+  .filter-grid {
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.9rem;
+
+    align-items: stretch;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-label {
+    font-size: 0.82rem;
+
+    gap: 0.5rem;
+
+    padding-left: 20px !important;
+  }
+
+  .filter-select {
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 44px;
+
+    padding: 0.65rem 0.85rem;
+
+    padding-right: 2.5rem;
+
+    font-size: 0.82rem;
+
+    border-radius: 9px;
+  }
+
+  .filter-select-arrow {
+    right: 0.8rem;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* Add Subject */
+
+  .filter-actions {
+    width: 100%;
+
+    display: flex;
+
+    justify-content: stretch;
+
+    margin-top: 0.1rem;
+  }
+
+  .add-subject-btn {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding: 0.65rem 1rem;
+
+    font-size: 0.8rem;
+
+    border-radius: 10px;
+
+    justify-content: center;
+  }
+
+
+  /* ---------------- Subject List Header ---------------- */
+
+  .erp-card-header .header-left {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 0.5rem;
+
+    flex-wrap: nowrap;
+  }
+
+  .erp-card-header .header-left h3 {
+    min-width: 0;
+
+    font-size: 0.95rem;
+
+    line-height: 1.3;
+  }
+
+  .subject-count {
+    flex-shrink: 0;
+
+    padding: 0.25rem 0.55rem;
+
+    font-size: 0.68rem;
+  }
+
+
+  /* Search */
+
+  .header-right {
+    width: 100%;
+  }
+
+  .search-box {
+    width: 100%;
+
+    min-width: 0;
+  }
+
+  .search-box input {
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 40px;
+
+    padding: 0.6rem 0.75rem 0.6rem 2.2rem;
+
+    font-size: 0.78rem;
+
+    border-radius: 9px;
+  }
+
+  .search-icon {
+    left: 0.8rem;
+
+    font-size: 0.85rem;
+  }
+
+
+  /* ---------------- Table ---------------- */
+
+  .table-container {
+    width: 100%;
+
+    overflow-x: auto;
+
+    -webkit-overflow-scrolling: touch;
+
+    border-radius: 9px;
+  }
+
+  .erp-table {
+    min-width: 700px;
+  }
+
+  .erp-table th {
+    padding: 0.7rem 0.8rem;
+
+    font-size: 0.75rem;
+  }
+
+  .erp-table td {
+    padding: 0.7rem 0.8rem;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* Keep action buttons horizontal */
+
+  .action-buttons {
+    flex-direction: row;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 0.35rem;
+  }
+
+  .action-btn {
+    width: 32px;
+    height: 32px;
+
+    min-width: 32px;
+
+    margin-bottom: 0;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* ---------------- Subject Details ---------------- */
+
+  .subject-name {
+    gap: 0.65rem;
+  }
+
+  .subject-icon {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+
+    border-radius: 8px;
+  }
+
+  .subject-title {
+    font-size: 0.78rem;
+  }
+
+  .course-badge,
+  .dept-badge {
+    font-size: 0.62rem;
+
+    padding: 0.1rem 0.35rem;
+  }
+
+  .subject-code-badge {
+    padding: 0.3rem 0.6rem;
+
+    font-size: 0.7rem;
+  }
+
+  .semester-badge,
+  .credits-badge {
+    padding: 0.3rem 0.6rem;
+
+    font-size: 0.7rem;
+  }
+
+  .teacher-info {
+    gap: 0.5rem;
+  }
+
+  .teacher-avatar {
+    width: 30px;
+    height: 30px;
+
+    min-width: 30px;
+
+    font-size: 0.75rem;
+  }
+
+  .teacher-name {
+    font-size: 0.75rem;
+  }
+
+  .teacher-role {
+    font-size: 0.68rem;
+  }
+
+  .status-badge {
+    padding: 0.3rem 0.6rem;
+
+    font-size: 0.68rem;
+  }
+
+
+  /* ---------------- Empty State ---------------- */
+
+  .empty-state {
+    padding: 2.5rem 1rem;
+  }
+
+  .empty-icon {
+    width: 70px;
+    height: 70px;
+
+    margin-bottom: 1rem;
+
+    font-size: 2rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.25rem;
+  }
+
+  .empty-description {
+    font-size: 0.85rem;
+
+    line-height: 1.5;
+  }
+
+
+  /* ---------------- Modal ---------------- */
+
+  .modal-content {
+    width: calc(100% - 1.5rem);
+
+    max-width: none;
+
+    margin: 0.75rem;
+
+    border-radius: 14px;
+  }
+
+  .modal-header {
+    padding: 1rem;
+
+    border-radius: 14px 14px 0 0;
+  }
+
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-warning {
+    padding: 0.9rem;
+
+    gap: 0.7rem;
+  }
+
+  .warning-icon {
+    font-size: 1.5rem;
+  }
+
+  .warning-text h4 {
+    font-size: 0.95rem;
+  }
+
+  .warning-text p {
+    font-size: 0.75rem;
+
+    line-height: 1.5;
+  }
+
+  .subject-preview {
+    padding: 0.9rem;
+  }
+
+  .preview-item {
+    gap: 0.75rem;
+
+    flex-wrap: wrap;
+
+    padding: 0.6rem 0;
+  }
+
+  .preview-label,
+  .preview-value {
+    font-size: 0.75rem;
+  }
+
+  .modal-footer {
+    padding: 0.9rem;
+
+    gap: 0.6rem;
+
+    flex-direction: column;
+  }
+
+  .modal-footer .erp-btn {
+    width: 100%;
+
+    justify-content: center;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .erp-page {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+
+  /* Header */
+
+  .erp-page-header {
+    padding: 0.85rem;
+
+    border-radius: 12px;
+  }
+
+  .erp-header-icon {
+    width: 46px;
+    height: 46px;
+
+    min-width: 46px;
+
+    font-size: 1.15rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.2rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.7rem;
+  }
+
+
+  /* Cards */
+
+  .erp-card {
+    border-radius: 10px;
+  }
+
+  .erp-card-header {
+    padding: 0.75rem 0.8rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 0.92rem;
+  }
+
+  .erp-card-body {
+    padding: 0.8rem;
+  }
+
+
+  /* Filter */
+
+  .filter-grid {
+    gap: 0.75rem;
+  }
+
+  .filter-label {
+    font-size: 0.75rem;
+  }
+
+  .filter-select {
+    min-height: 42px;
+
+    font-size: 0.75rem;
+  }
+
+  .add-subject-btn {
+    min-height: 40px;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* Subject header */
+
+  .erp-card-header .header-left h3 {
+    font-size: 0.85rem;
+  }
+
+  .subject-count {
+    font-size: 0.62rem;
+
+    padding: 0.22rem 0.45rem;
+  }
+
+
+  /* Table */
+
+  .erp-table {
+    min-width: 650px;
+  }
+
+  .erp-table th,
+  .erp-table td {
+    padding: 0.6rem 0.7rem;
+  }
+
+  .erp-table th {
+    font-size: 0.7rem;
+  }
+
+  .erp-table td {
+    font-size: 0.7rem;
+  }
+
+
+  /* Empty state */
+
+  .empty-state {
+    padding: 2rem 0.75rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.1rem;
+  }
+
+  .empty-description {
+    font-size: 0.75rem;
+  }
+}
       `}</style>
     </div>
   );

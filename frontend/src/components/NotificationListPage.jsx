@@ -395,6 +395,14 @@ export default function NotificationListPage({ role = "college-admin" }) {
 
   const totalPages = Math.ceil(getUniqueNotes.length / CONFIG.ITEMS_PER_PAGE);
 
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    }
+  };
+
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -867,9 +875,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
               }}
             >
               <Pagination
-                currentPage={currentPage}
+                page={currentPage}
                 totalPages={totalPages}
-                onPageChange={setCurrentPage}
+                setPage={handlePageChange}
               />
             </div>
           )}
@@ -894,6 +902,64 @@ export default function NotificationListPage({ role = "college-admin" }) {
         <style>{`
           /* Notification page specific mobile styles */
           @media (max-width: 767.98px) {
+            .pagination-wrapper {
+              width: 100% !important;
+              margin-top: 1.5rem !important;
+              overflow: hidden !important;
+            }
+
+            .pagination-wrapper .erp-pagination {
+              width: 100% !important;
+              min-width: 0 !important;
+              box-sizing: border-box !important;
+              flex-wrap: nowrap !important;
+              gap: 0.25rem !important;
+              padding: 0.6rem !important;
+              margin: 0 !important;
+              justify-content: center !important;
+            }
+
+            .pagination-wrapper .erp-pagination > button,
+            .pagination-wrapper .erp-pagination__pages button {
+              box-sizing: border-box !important;
+              min-width: 32px !important;
+              width: 32px !important;
+              min-height: 34px !important;
+              height: 34px !important;
+              padding: 0 !important;
+              border-radius: 9px !important;
+              font-size: 0.85rem !important;
+              line-height: 1 !important;
+              vertical-align: middle !important;
+              flex: 0 0 32px !important;
+            }
+
+            .pagination-wrapper .erp-pagination__pages {
+              display: inline-flex !important;
+              flex-wrap: nowrap !important;
+              gap: 0.35rem !important;
+              align-items: center !important;
+              align-self: center !important;
+            }
+
+            .pagination-wrapper .erp-pagination__pages button span {
+              display: inline-flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              line-height: 1 !important;
+            }
+
+            .pagination-wrapper .erp-pagination > span {
+              box-sizing: border-box !important;
+              align-self: center !important;
+              margin-left: 0.25rem !important;
+              padding: 0.4rem 0.5rem !important;
+              font-size: 0.7rem !important;
+              line-height: 1 !important;
+              white-space: nowrap !important;
+              flex: 0 0 auto !important;
+            }
+
             .search-icon,
             .filter-select-icon {
               position: relative !important;
@@ -916,22 +982,88 @@ export default function NotificationListPage({ role = "college-admin" }) {
               justify-content: center !important;
             }
 
-            /* Stack notification row content on small screens */
+            /* Keep mobile metadata inside the card content width */
             .notification-row {
-              flex-wrap: wrap !important;
+              display: grid !important;
+              grid-template-columns: 42px minmax(0, 1fr) !important;
+              column-gap: 0.875rem !important;
+              row-gap: 0.55rem !important;
             }
 
-            .notification-row > div:last-child {
+            .notification-row-content {
+              grid-column: 2 !important;
+              min-width: 0 !important;
+            }
+
+            .notification-row-meta {
+              grid-column: 2 !important;
               width: 100% !important;
-              justify-content: flex-start !important;
-              flex-wrap: wrap !important;
-              margin-left: 3.25rem !important;
-              margin-top: 0.25rem !important;
+              display: grid !important;
+              grid-template-columns: auto auto minmax(0, 1fr) 34px !important;
+              align-items: center !important;
+              column-gap: 0.45rem !important;
+              row-gap: 0.45rem !important;
+              margin: 0 !important;
+              min-width: 0 !important;
+            }
+
+            .notification-meta-time {
+              grid-column: 1 !important;
+              grid-row: 1 !important;
+            }
+
+            .notification-meta-type {
+              grid-column: 2 !important;
+              grid-row: 1 !important;
+            }
+
+            .notification-meta-priority {
+              grid-column: 1 / 4 !important;
+              grid-row: 2 !important;
+              justify-self: start !important;
+              max-width: 100% !important;
+              overflow: hidden !important;
+              text-overflow: ellipsis !important;
+            }
+
+            .notification-row-actions {
+              grid-column: 4 !important;
+              grid-row: 1 / 3 !important;
+              align-self: center !important;
+              justify-self: end !important;
             }
           }
 
           /* Small mobile: Further reduce sizes */
           @media (max-width: 479.98px) {
+            .pagination-wrapper .erp-pagination {
+              gap: 0.15rem !important;
+              padding: 0.4rem !important;
+            }
+
+            .pagination-wrapper .erp-pagination > button,
+            .pagination-wrapper .erp-pagination__pages button,
+            .pagination-wrapper .erp-pagination__pages span {
+              box-sizing: border-box !important;
+              min-width: 24px !important;
+              width: 24px !important;
+              min-height: 28px !important;
+              height: 28px !important;
+              flex: 0 0 24px !important;
+              font-size: 0.65rem !important;
+            }
+
+            .pagination-wrapper .erp-pagination__pages {
+              gap: 0.15rem !important;
+            }
+
+            .pagination-wrapper .erp-pagination > span {
+              margin-left: 0.05rem !important;
+              padding: 0.3rem 0.35rem !important;
+              font-size: 0.6rem !important;
+              line-height: 1 !important;
+            }
+
             .search-icon,
             .filter-select-icon {
               margin-left: 0.75rem !important;

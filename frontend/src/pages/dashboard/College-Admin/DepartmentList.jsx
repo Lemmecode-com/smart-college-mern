@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import useRole from "../../../hooks/useRole";
 
@@ -480,6 +481,25 @@ export default function DepartmentList() {
       }}
     >
       <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
+
+        {/* ================= BREADCRUMB ================= */}
+          <div
+            style={{
+              width: "100%",
+              margin: "10px auto",
+              paddingTop: "5px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/dashboard" },
+                  { label: "Department Management" },
+                ]}
+              />
+            </div>
+          </div>
+
         {/* ================= TOP BAR ================= */}
         <div
           style={{
@@ -881,23 +901,42 @@ export default function DepartmentList() {
           {/* ================= TABLE FOOTER ================= */}
           {filteredDepartments.length > 0 && (
             <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              position: "relative",
+              minHeight: "90px",
+              padding: "1rem 1.35rem",
+            }}
+          >
+            <div className="department-list-showing">
+              Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
+              {filteredDepartments.length} departments
+            </div>
+            <style>
+              {`
+                @media (max-width: 991px) {
+                  .department-list-showing {
+                    display: none !important;
+                  }
+                }
+              `}
+            </style>
+
+            <div
               style={{
-                background: "#fafbfc",
-                borderTop: `1px solid ${T.border}`,
-                padding: "1rem 1.35rem",
-                display: "flex",
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "0.75rem",
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%) scale(0.95)",
               }}
             >
-              <div style={{ fontSize: "0.8rem", color: T.textMuted }}>
-                Showing <strong style={{ color: T.text }}>{Math.min(indexOfLastItem, filteredDepartments.length)}</strong> of{" "}
-                <strong style={{ color: T.text }}>{filteredDepartments.length}</strong> departments
-              </div>
-              <Pagination page={currentPage} totalPages={totalPages} setPage={setCurrentPage} />
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
             </div>
+          </div>
           )}
         </div>
 
@@ -915,6 +954,7 @@ export default function DepartmentList() {
             justifyContent: "space-between",
             alignItems: "center",
             gap: "0.75rem",
+            
           }}
         >
           <p style={{ margin: 0, fontSize: "0.8rem", color: T.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
@@ -985,3 +1025,4 @@ const tdStyle = {
   verticalAlign: "middle",
   color: "#1f2530",
 };
+

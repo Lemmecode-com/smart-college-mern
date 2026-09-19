@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -291,6 +292,24 @@ export default function EditDepartment() {
 
   return (
     <div className="container-fluid py-3 py-md-4 animate-fade-in">
+      {/* ================= BREADCRUMB ================= */}
+      <div
+        style={{
+          width: "100%",
+          margin: "10px auto",
+          paddingTop: "5px",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Department Management", path: "/departments" },
+              { label: "Edit Department" },
+            ]}
+          />
+        </div>
+      </div>
       {/* ================= TOP NAVIGATION ================= */}
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
         <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">

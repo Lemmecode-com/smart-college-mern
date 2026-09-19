@@ -11,6 +11,7 @@ import {
 } from "react-icons/fa";
 import { getGeneralSettings, updateGeneralSettings } from "../../../../api/generalSettings";
 import { showSuccess, showError } from "../../../../utils/toast";
+import Breadcrumb from "../../../../components/Breadcrumb";
 
 const GeneralSetting = () => {
   const [formData, setFormData] = useState({
@@ -665,9 +666,607 @@ const GeneralSetting = () => {
           outline: 2px solid var(--gs-cyan-primary);
           outline-offset: 2px;
         }
+/* =========================================================
+   GENERAL SETTINGS - MOBILE & TABLET RESPONSIVE
+   Desktop remains completely unchanged
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET : 769px - 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .general-settings-page {
+    padding: 1rem;
+    overflow-x: hidden;
+  }
+
+  /* ---------- Breadcrumb ---------- */
+
+  .general-settings-page > div:first-of-type {
+    overflow: hidden;
+  }
+
+  .general-settings-page > div:first-of-type > div {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .general-settings-page > div:first-of-type > div::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------- Page Banner ---------- */
+
+  .settings-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1.25rem;
+
+    padding: 1.25rem;
+
+    border-radius: 1rem;
+
+    overflow: hidden;
+  }
+
+  .header-content {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 0.85rem;
+  }
+
+  .header-icon-wrapper {
+    width: 58px;
+    height: 58px;
+    min-width: 58px;
+
+    border-radius: 0.75rem;
+  }
+
+  .header-icon {
+    font-size: 1.45rem;
+  }
+
+  .header-text {
+    min-width: 0;
+  }
+
+  .settings-title {
+    font-size: 1.5rem;
+    line-height: 1.2;
+
+    white-space: normal;
+  }
+
+  .settings-subtitle {
+    max-width: 420px;
+
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  .header-actions {
+    flex-shrink: 0;
+
+    display: flex;
+    gap: 0.6rem;
+
+    width: auto;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 44px;
+
+    padding: 0.65rem 0.8rem;
+
+    font-size: 0.8rem;
+
+    white-space: nowrap;
+
+    justify-content: center;
+  }
+
+
+  /* ---------- Settings Cards ---------- */
+
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 1rem;
+  }
+
+  .settings-card {
+    min-width: 0;
+  }
+
+  .card-header-custom {
+    padding: 0.9rem 1rem;
+
+    gap: 0.65rem;
+  }
+
+  .card-icon-wrapper {
+    width: 42px;
+    height: 42px;
+
+    min-width: 42px;
+  }
+
+  .card-icon {
+    font-size: 1.1rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .card-body-custom {
+    padding: 1rem;
+  }
+
+  .form-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.65rem;
+  }
+
+  .form-group {
+    min-width: 0;
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+  }
+
+  .form-input,
+  .form-select {
+    font-size: 0.85rem;
+
+    padding: 0.65rem 0.7rem;
+  }
+
+  .form-input {
+    padding-right: 60px;
+  }
+
+  .input-suffix {
+    right: 0.65rem;
+    font-size: 0.75rem;
+  }
+
+  .form-hint {
+    font-size: 0.7rem;
+  }
+}
+
+
+/* =========================================================
+   MOBILE : 0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .general-settings-page {
+    padding: 0.75rem;
+
+    overflow-x: hidden;
+  }
+
+
+  /* ---------- Breadcrumb ---------- */
+
+  .general-settings-page > div:first-of-type {
+    width: 100% !important;
+
+    height: auto !important;
+
+    margin: 0.5rem auto 1rem !important;
+
+    overflow: hidden;
+  }
+
+  .general-settings-page > div:first-of-type > div {
+    width: 100% !important;
+
+    overflow-x: auto;
+
+    scrollbar-width: none;
+  }
+
+  .general-settings-page > div:first-of-type > div::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------- Page Banner ---------- */
+
+  .settings-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 1rem;
+
+    padding: 1rem;
+
+    margin-bottom: 1rem;
+
+    border-radius: 0.9rem;
+
+    overflow: hidden;
+  }
+
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 0.65rem;
+
+    text-align: center;
+  }
+
+  .header-icon-wrapper {
+    width: 54px;
+    height: 54px;
+
+    min-width: 54px;
+
+    border-radius: 0.75rem;
+  }
+
+  .header-icon {
+    font-size: 1.35rem;
+  }
+
+  .header-text {
+    width: 100%;
+  }
+
+  .settings-title {
+    margin: 0;
+
+    font-size: 1.35rem;
+
+    line-height: 1.2;
+
+    text-align: center;
+  }
+
+  .settings-subtitle {
+    max-width: 100%;
+
+    margin-top: 0.35rem;
+
+    font-size: 0.8rem;
+
+    line-height: 1.45;
+
+    text-align: center;
+  }
+
+
+  /* ---------- Banner Buttons ---------- */
+
+  .header-actions {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.6rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: 100%;
+
+    min-height: 44px;
+
+    padding: 0.6rem 0.4rem;
+
+    font-size: 0.72rem;
+
+    gap: 0.35rem;
+
+    justify-content: center;
+
+    white-space: nowrap;
+  }
+
+  .btn-icon {
+    font-size: 0.8rem;
+  }
+
+
+  /* ---------- Cards ---------- */
+
+  .settings-grid {
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.9rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .settings-card {
+    width: 100%;
+
+    min-width: 0;
+
+    border-radius: 0.9rem;
+  }
+
+  .card-header-custom {
+    padding: 0.85rem 1rem;
+
+    gap: 0.65rem;
+  }
+
+  .card-icon-wrapper {
+    width: 42px;
+    height: 42px;
+
+    min-width: 42px;
+
+    border-radius: 0.65rem;
+  }
+
+  .card-icon {
+    font-size: 1.05rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+
+    line-height: 1.25;
+  }
+
+  .card-body-custom {
+    padding: 1rem;
+  }
+
+
+  /* ---------- Forms ---------- */
+
+  .form-row {
+    grid-template-columns: 1fr;
+
+    gap: 0;
+
+    margin-bottom: 0;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+
+    line-height: 1.35;
+
+    margin-bottom: 0.4rem;
+  }
+
+  .form-input,
+  .form-select {
+    width: 100%;
+
+    min-height: 42px;
+
+    box-sizing: border-box;
+
+    font-size: 0.85rem;
+
+    padding: 0.65rem 0.7rem;
+  }
+
+  .form-input {
+    padding-right: 58px;
+  }
+
+  .form-select {
+    padding-right: 36px;
+  }
+
+  .input-suffix {
+    right: 0.65rem;
+
+    font-size: 0.72rem;
+  }
+
+  .form-hint {
+    font-size: 0.7rem;
+
+    margin-top: 0.2rem;
+  }
+
+
+  /* ---------- Modified Indicator ---------- */
+
+  .modified-indicator {
+    left: 0.75rem;
+    right: 0.75rem;
+
+    bottom: 0.75rem;
+
+    width: auto;
+
+    box-sizing: border-box;
+
+    padding: 0.7rem 0.85rem;
+
+    gap: 0.65rem;
+
+    justify-content: space-between;
+
+    border-radius: 0.75rem;
+
+    transform: none;
+
+    flex-direction: row;
+
+    text-align: left;
+  }
+
+  .indicator-content {
+    min-width: 0;
+
+    font-size: 0.75rem;
+  }
+
+  .btn-save-small {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.65rem;
+
+    font-size: 0.72rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE : 0px - 420px
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .general-settings-page {
+    padding: 0.6rem;
+  }
+
+  .settings-header {
+    padding: 0.85rem;
+
+    gap: 0.85rem;
+
+    border-radius: 0.8rem;
+  }
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+
+    min-width: 48px;
+  }
+
+  .header-icon {
+    font-size: 1.2rem;
+  }
+
+  .settings-title {
+    font-size: 1.2rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.72rem;
+
+    line-height: 1.4;
+  }
+
+  .header-actions {
+    gap: 0.45rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 40px;
+
+    padding: 0.5rem 0.3rem;
+
+    font-size: 0.65rem;
+  }
+
+  .btn-icon {
+    font-size: 0.7rem;
+  }
+
+  .card-header-custom {
+    padding: 0.75rem 0.85rem;
+  }
+
+  .card-icon-wrapper {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+  }
+
+  .card-title {
+    font-size: 0.9rem;
+  }
+
+  .card-body-custom {
+    padding: 0.85rem;
+  }
+
+  .form-input,
+  .form-select {
+    min-height: 40px;
+
+    font-size: 0.8rem;
+  }
+
+  .modified-indicator {
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: 0.6rem;
+  }
+}
+
       `}</style>
 
       <div className="general-settings-page">
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "General Settings" },
+              ]}
+            />
+          </div>
+        </div>
+
         {/* ================= PAGE HEADER ================= */}
         <div className="settings-header">
           <div className="header-content">

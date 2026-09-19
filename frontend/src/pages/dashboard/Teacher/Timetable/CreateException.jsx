@@ -11,6 +11,7 @@ import {
 import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import ApiError from "../../../../components/ApiError";
 import { logger } from "../../../../utils/logger";
 import SearchableSelect from "../../../../components/SearchableSelect";
@@ -352,6 +353,26 @@ const fetchTeachersForSearch = async (query) => {
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
+
+            {/* ================= BREADCRUMB ================= */}   
+                      <div
+                  style={{
+                    width: "100%",
+                    margin: "10px auto",
+                    paddingTop: "30px",
+                  }}
+                >
+                  <div style={{ width: "100%" }}>
+                    <Breadcrumb
+                      items={[
+                        { label: "Dashboard", path: "/teacher/dashboard" },
+                        { label: "My Exceptions", path: "/timetable/exceptions"},
+                        { label: "Create Exceptions"}
+                      ]}
+                    />
+                  </div>
+                </div>
+
        <PageHero
          icon={<FaCalendarAlt />}
          title="Create Exception"

@@ -951,22 +951,31 @@ export default function AttendanceSummary() {
         }
         
         .progress-center {
-          position: relative;
-          z-index: 1;
-          text-align: center;
-        }
-        
-        .progress-value {
-          font-size: 2.5rem;
-          font-weight: 800;
-          color: #1a4b6d;
-        }
-        
-        .progress-label {
-          font-size: 1.1rem;
-          color: #6c757d;
-          margin-top: 0.25rem;
-        }
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        width: 100%;
+        max-width: 150px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .progress-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1a4b6d;
+        line-height: 1;
+      }
+
+      .progress-label {
+        font-size: 1.1rem;
+        color: #6c757d;
+        margin-top: 0.35rem;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
         
         .progress-legend {
           display: flex;
@@ -1485,151 +1494,527 @@ export default function AttendanceSummary() {
           animation: fadeIn 0.6s ease;
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .visual-container {
-            grid-template-columns: 1fr;
-            text-align: center;
-          }
+/* ================= RESPONSIVE DESIGN ================= */
 
-          .metrics-grid {
-            grid-template-columns: 1fr;
-          }
+/* TABLET */
+@media (min-width: 769px) and (max-width: 992px) {
 
-          .erp-header-actions {
-            flex-direction: column;
-            width: 100%;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+  .erp-container {
+    padding: 1.25rem;
+  }
 
-          .export-actions-group {
-            width: 100%;
-            justify-content: flex-start;
-          }
+  /* HEADER */
+  .erp-page-header {
+    padding: 1.5rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
 
-          .export-buttons {
-            flex-wrap: wrap;
-          }
+  .erp-header-content {
+    justify-content: flex-start;
+  }
 
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
+  .erp-header-actions {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
 
-          .info-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
-        }
+  .export-actions-group {
+    width: auto;
+  }
 
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
+  .export-buttons {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+  }
 
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+  .btn-export {
+    min-width: 90px;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.8rem;
+  }
 
-          .erp-header-actions {
-            width: 100%;
-            flex-direction: column;
-            align-items: stretch;
-          }
+  .erp-header-actions .erp-btn {
+    width: auto;
+    min-width: 130px;
+    justify-content: center;
+  }
 
-          .export-actions-group {
-            width: 100%;
-            justify-content: center;
-          }
+  /* INFO BANNER */
+  .info-banner {
+    padding: 1rem 1.25rem;
+    gap: 0.85rem;
+  }
 
-          .export-buttons {
-            justify-content: center;
-            gap: 0.5rem;
-          }
+  .info-content {
+    font-size: 0.9rem;
+  }
 
-          .btn-export {
-            min-width: 90px;
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
-          }
+  /* STATS */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
 
-          .erp-header-actions .erp-btn {
-            flex: 1;
-            justify-content: center;
-          }
+  .stat-card-header {
+    padding: 1rem 1.25rem;
+  }
 
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
+  .stat-card-body {
+    padding: 1.25rem;
+  }
 
-          .footer-note {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
+  .stat-value {
+    font-size: 2rem;
+  }
 
-          .refresh-btn {
-            align-self: center;
-          }
+  /* VISUAL SECTION */
+  .erp-card-body {
+    padding: 1.5rem;
+  }
 
-          .visual-container {
-            gap: 1rem;
-          }
+  .visual-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 
-          .progress-circle {
-            width: 160px;
-            height: 160px;
-          }
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
 
-          .progress-value {
-            font-size: 2rem;
-          }
+  /* ANALYSIS */
+  .analysis-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
 
-          .metrics-grid,
-          .analysis-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .stat-value {
-            font-size: 1.75rem;
-          }
-          
-          .erp-card-header h3 {
-            font-size: 1.25rem;
-          }
-          
-          .erp-page-title {
-            font-size: 1.5rem;
-          }
-          
-          .progress-circle {
-            width: 140px;
-            height: 140px;
-          }
-          
-          .progress-value {
-            font-size: 1.75rem;
-          }
-          
-          .progress-label {
-            font-size: 1rem;
-          }
-          
-          .metric-value {
-            font-size: 1.25rem;
-          }
-          
-          .analysis-value {
-            font-size: 1.25rem;
-          }
-        }
+  .analysis-card {
+    padding: 1.25rem;
+  }
+
+  .analysis-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+/* MOBILE */
+@media (max-width: 768px) {
+
+  .erp-container {
+    padding: 0.75rem;
+  }
+
+  /* BREADCRUMB */
+  .erp-container > nav {
+    margin-bottom: 0.9rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .erp-container > nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* HEADER */
+  .erp-page-header {
+    padding: 1.25rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.15rem;
+    border-radius: 14px;
+  }
+
+  .erp-header-content {
+    gap: 0.85rem;
+    align-items: center;
+  }
+
+  .erp-header-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 1.35rem;
+    border-radius: 10px;
+  }
+
+  .erp-page-title {
+    font-size: 1.45rem;
+    line-height: 1.25;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    margin-top: 0.3rem;
+  }
+
+  /* HEADER ACTIONS */
+  .erp-header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .export-actions-group {
+    width: 100%;
+  }
+
+  .export-buttons {
+    width: 100%;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-export {
+    flex: 1;
+    min-width: 0;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.65rem 1rem;
+  }
+
+  /* INFO BANNER */
+  .info-banner {
+    padding: 1rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .info-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .info-content {
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  /* STATS */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card-header {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 42px;
+    height: 42px;
+    font-size: 1.25rem;
+  }
+
+  .stat-title {
+    font-size: 0.95rem;
+  }
+
+  .stat-card-body {
+    padding: 1.15rem;
+  }
+
+  .stat-value {
+    font-size: 1.85rem;
+  }
+
+  .stat-trend {
+    font-size: 0.8rem;
+  }
+
+  .stat-card-footer {
+    padding: 0.65rem 1rem;
+  }
+
+  /* CARDS */
+  .erp-card {
+    border-radius: 14px;
+    margin-bottom: 1rem;
+  }
+
+  .erp-card-header {
+    padding: 1rem 1.15rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.15rem;
+  }
+
+  .erp-card-body {
+    padding: 1.15rem;
+  }
+
+  /* VISUAL SECTION */
+  .visual-container {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .progress-circle {
+    width: 150px;
+    height: 150px;
+  }
+
+  .progress-circle::before {
+    width: 134px;
+    height: 134px;
+  }
+
+  .progress-value {
+    font-size: 1.8rem;
+  }
+
+  .progress-label {
+    font-size: 0.55rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  }
+
+  .progress-legend {
+    gap: 0.6rem;
+  }
+
+  .legend-item {
+    font-size: 0.85rem;
+  }
+
+  .progress-note {
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  /* METRICS */
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .metric-item {
+    padding: 0.9rem;
+    gap: 0.75rem;
+  }
+
+  .metric-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+  }
+
+  .metric-label {
+    font-size: 0.8rem;
+  }
+
+  .metric-value {
+    font-size: 1.25rem;
+  }
+
+  .metric-description {
+    font-size: 0.75rem;
+  }
+
+  /* ANALYSIS */
+  .analysis-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .analysis-card {
+    padding: 1rem;
+    gap: 0.85rem;
+  }
+
+  .analysis-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    border-radius: 10px;
+  }
+
+  .analysis-title {
+    font-size: 0.9rem;
+  }
+
+  .analysis-value {
+    font-size: 1.2rem;
+  }
+
+  .analysis-description {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .analysis-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding-top: 1rem;
+  }
+
+  .footer-note {
+    font-size: 0.78rem;
+  }
+
+  .footer-disclaimer {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  /* FOOTER */
+  .erp-container > .footer-note {
+    padding: 0.85rem 1rem;
+    font-size: 0.78rem;
+    text-align: center;
+  }
+
+  .refresh-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+
+/* SMALL MOBILE */
+@media (max-width: 480px) {
+
+  .erp-container {
+    padding: 0.6rem;
+  }
+
+  .erp-page-header {
+    padding: 1rem;
+  }
+
+  .erp-header-content {
+    align-items: flex-start;
+  }
+
+  .erp-header-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.3rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.8rem;
+  }
+
+  /* EXPORT BUTTONS */
+  .btn-export {
+    padding: 0.55rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-export svg {
+    font-size: 0.85rem;
+  }
+
+  /* INFO */
+  .info-banner {
+    padding: 0.9rem;
+  }
+
+  .info-content {
+    font-size: 0.82rem;
+  }
+
+  /* CARDS */
+  .erp-card-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.05rem;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+  /* PROGRESS */
+  .progress-circle {
+    width: 135px;
+    height: 135px;
+  }
+
+  .progress-circle::before {
+    width: 120px;
+    height: 120px;
+  }
+
+  .progress-value {
+    font-size: 1.65rem;
+  }
+
+  .progress-label {
+    font-size: 0.55rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  }
+
+  /* METRICS */
+  .metric-item {
+    padding: 0.8rem;
+  }
+
+  .metric-icon {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+
+  .metric-value {
+    font-size: 1.15rem;
+  }
+
+  /* ANALYSIS */
+  .analysis-card {
+    padding: 0.85rem;
+  }
+
+  .analysis-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .analysis-title {
+    font-size: 0.85rem;
+  }
+
+  .analysis-value {
+    font-size: 1.1rem;
+  }
+
+  .analysis-description {
+    font-size: 0.72rem;
+  }
+
+  .erp-container > .footer-note {
+    padding: 0.75rem;
+    font-size: 0.72rem;
+  }
+}
       `}</style>
     </div>
   );

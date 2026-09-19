@@ -9,6 +9,7 @@ import {
   FaInfoCircle,
   FaCheck,
 } from "react-icons/fa";
+import Breadcrumb from "../../../../components/Breadcrumb";
 
 const AcademicSetting = () => {
   const [formData, setFormData] = useState({
@@ -267,7 +268,7 @@ const AcademicSetting = () => {
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 1.5rem;
           margin-bottom: 1.5rem;
-          align-items: start;
+          align-items: strech;
         }
 
         .card-session {
@@ -285,12 +286,16 @@ const AcademicSetting = () => {
         }
 
         .settings-card {
-          background: var(--as-bg-card);
-          border-radius: var(--as-radius-xl);
-          box-shadow: var(--as-shadow-md);
-          overflow: hidden;
-          transition: all var(--as-transition-slow);
-          border: 1px solid rgba(0, 0, 0, 0.04);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+
+        background: var(--as-bg-card);
+        border-radius: var(--as-radius-xl);
+        box-shadow: var(--as-shadow-md);
+        overflow: hidden;
+        transition: all var(--as-transition-slow);
+        border: 1px solid rgba(0, 0, 0, 0.04);
         }
 
         .settings-card:hover {
@@ -355,6 +360,7 @@ const AcademicSetting = () => {
 
         .card-body-custom {
           padding: 1.5rem;
+          flex: 1;
         }
 
         .form-group {
@@ -381,12 +387,15 @@ const AcademicSetting = () => {
 
         .form-label {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 0.25rem;
+          min-height: 40px;
+          margin-bottom: 0.5rem;
+
           font-size: 0.875rem;
           font-weight: 600;
+          line-height: 1.4;
           color: var(--as-text-primary);
-          margin-bottom: 0.5rem;
         }
 
         .info-icon {
@@ -406,7 +415,7 @@ const AcademicSetting = () => {
         }
 
         .input-wrapper .form-input {
-          padding-right: 2.75rem;
+          padding-right: 3.2rem;
         }
 
         .form-input {
@@ -474,6 +483,7 @@ const AcademicSetting = () => {
 
         .form-hint {
           display: block;
+          min-height: 17px;
           font-size: 0.75rem;
           color: var(--as-text-muted);
           margin-top: 0.25rem;
@@ -669,9 +679,824 @@ const AcademicSetting = () => {
           outline: 2px solid var(--as-cyan-primary);
           outline-offset: 2px;
         }
+
+        /* =========================================================
+   ACADEMIC SETTINGS
+   MOBILE + TABLET RESPONSIVE
+   Desktop remains unchanged
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   769px - 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .academic-settings-page {
+    padding: 1rem;
+    overflow-x: hidden;
+  }
+
+  /* ---------------- Breadcrumb ---------------- */
+
+  .academic-settings-page > div:first-of-type {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0.75rem auto 1.25rem !important;
+    overflow: hidden;
+  }
+
+  .academic-settings-page > div:first-of-type > div {
+    width: 100% !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .academic-settings-page > div:first-of-type > div::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------------- Main Banner ---------------- */
+
+  .settings-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: row;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    padding: 1.25rem;
+
+    margin-bottom: 1.25rem;
+
+    border-radius: 1rem;
+
+    overflow: hidden;
+  }
+
+  .header-content {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 0.85rem;
+  }
+
+  .header-icon-wrapper {
+    width: 58px;
+    height: 58px;
+    min-width: 58px;
+  }
+
+  .header-icon {
+    font-size: 1.45rem;
+  }
+
+  .header-text {
+    min-width: 0;
+  }
+
+  .settings-title {
+    font-size: 1.5rem;
+    line-height: 1.2;
+
+    white-space: normal;
+  }
+
+  .settings-subtitle {
+    max-width: 420px;
+
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  /* Buttons stay compact and side-by-side */
+
+  .header-actions {
+    width: auto;
+
+    flex-shrink: 0;
+
+    display: flex;
+    flex-direction: row;
+
+    gap: 0.5rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: auto;
+
+    min-width: 105px;
+    min-height: 42px;
+
+    padding: 0.6rem 0.7rem;
+
+    font-size: 0.78rem;
+
+    justify-content: center;
+
+    white-space: nowrap;
+  }
+
+
+  /* ---------------- Overview Card ---------------- */
+
+  .as-info-card {
+    padding: 1rem;
+
+    gap: 0.8rem;
+
+    margin-bottom: 1.25rem;
+  }
+
+  .as-info-card-icon {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    font-size: 1.1rem;
+  }
+
+  .as-info-card-title {
+    font-size: 0.95rem;
+  }
+
+  .as-info-card-text {
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+
+  /* ---------------- Settings Grid ---------------- */
+
+  /*
+     Override the existing max-width:1024px rule.
+     Tablet gets 2 columns.
+  */
+
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 1rem;
+
+    align-items: stretch;
+  }
+
+  .card-session {
+    grid-column: 1 / -1;
+  }
+
+
+  /* ---------------- Cards ---------------- */
+
+  .settings-card {
+    min-width: 0;
+
+    border-radius: 0.9rem;
+  }
+
+  .card-header-custom {
+    padding: 0.9rem 1rem;
+
+    gap: 0.65rem;
+  }
+
+  .card-icon-wrapper {
+    width: 42px;
+    height: 42px;
+
+    min-width: 42px;
+  }
+
+  .card-icon {
+    font-size: 1.1rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .card-body-custom {
+    padding: 1rem;
+  }
+
+
+  /* ---------------- Forms ---------------- */
+
+  .form-row,
+  .form-row-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.65rem;
+  }
+
+  .form-group {
+    min-width: 0;
+
+    margin-bottom: 1rem;
+  }
+
+  .form-label {
+    min-height: 34px;
+
+    font-size: 0.78rem;
+
+    line-height: 1.3;
+
+    margin-bottom: 0.4rem;
+  }
+
+  .form-input,
+  .form-select {
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 40px;
+
+    padding: 0.6rem 0.65rem;
+
+    font-size: 0.82rem;
+  }
+
+  .input-wrapper .form-input {
+    padding-right: 3rem;
+  }
+
+  .input-suffix {
+    right: 0.65rem;
+
+    font-size: 0.72rem;
+  }
+
+  .form-hint {
+    font-size: 0.68rem;
+  }
+
+  .badge-info {
+    max-width: 100%;
+    box-sizing: border-box;
+
+    font-size: 0.7rem;
+
+    padding: 0.25rem 0.45rem;
+
+    white-space: normal;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .academic-settings-page {
+    padding: 0.7rem;
+
+    overflow-x: hidden;
+  }
+
+
+  /* ---------------- Breadcrumb ---------------- */
+
+  .academic-settings-page > div:first-of-type {
+    width: 100% !important;
+
+    height: auto !important;
+
+    margin: 0.5rem auto 1rem !important;
+
+    overflow: hidden;
+  }
+
+  .academic-settings-page > div:first-of-type > div {
+    width: 100% !important;
+
+    overflow-x: auto;
+
+    scrollbar-width: none;
+  }
+
+  .academic-settings-page > div:first-of-type > div::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------------- Main Banner ---------------- */
+
+  .settings-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 0.9rem;
+
+    padding: 1rem;
+
+    margin-bottom: 1rem;
+
+    border-radius: 0.9rem;
+
+    overflow: hidden;
+  }
+
+
+  /* Header content */
+
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 0.55rem;
+
+    text-align: center;
+  }
+
+  .header-icon-wrapper {
+    width: 52px;
+    height: 52px;
+
+    min-width: 52px;
+
+    border-radius: 0.7rem;
+  }
+
+  .header-icon {
+    font-size: 1.3rem;
+  }
+
+  .header-text {
+    width: 100%;
+  }
+
+  .settings-title {
+    margin: 0;
+
+    font-size: 1.35rem;
+
+    line-height: 1.2;
+
+    text-align: center;
+  }
+
+  .settings-subtitle {
+    width: 100%;
+    max-width: 100%;
+
+    margin-top: 0.3rem;
+
+    font-size: 0.78rem;
+
+    line-height: 1.45;
+
+    text-align: center;
+  }
+
+
+  /* ---------------- Banner Buttons ---------------- */
+
+  .header-actions {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.55rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: 100%;
+
+    min-width: 0;
+
+    min-height: 42px;
+
+    padding: 0.55rem 0.35rem;
+
+    font-size: 0.72rem;
+
+    gap: 0.3rem;
+
+    justify-content: center;
+
+    white-space: nowrap;
+  }
+
+  .btn-icon {
+    font-size: 0.78rem;
+  }
+
+
+  /* ---------------- Overview ---------------- */
+
+  .as-info-card {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 0.75rem;
+
+    padding: 0.9rem;
+
+    margin-bottom: 1rem;
+
+    border-radius: 0.8rem;
+  }
+
+  .as-info-card-icon {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    font-size: 1rem;
+
+    border-radius: 0.6rem;
+  }
+
+  .as-info-card-content {
+    min-width: 0;
+  }
+
+  .as-info-card-title {
+    margin-bottom: 0.3rem;
+
+    font-size: 0.9rem;
+
+    line-height: 1.3;
+  }
+
+  .as-info-card-text {
+    font-size: 0.75rem;
+
+    line-height: 1.5;
+  }
+
+
+  /* ---------------- Cards ---------------- */
+
+  .settings-grid {
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.85rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .settings-card {
+    width: 100%;
+
+    min-width: 0;
+
+    border-radius: 0.85rem;
+  }
+
+  .card-session {
+    grid-column: auto;
+  }
+
+
+  /* ---------------- Card Header ---------------- */
+
+  .card-header-custom {
+    padding: 0.8rem 0.9rem;
+
+    gap: 0.6rem;
+  }
+
+  .card-icon-wrapper {
+    width: 40px;
+    height: 40px;
+
+    min-width: 40px;
+
+    border-radius: 0.6rem;
+  }
+
+  .card-icon {
+    font-size: 1rem;
+  }
+
+  .card-title {
+    font-size: 0.95rem;
+
+    line-height: 1.25;
+  }
+
+
+  /* ---------------- Card Body ---------------- */
+
+  .card-body-custom {
+    padding: 0.9rem;
+  }
+
+
+  /* ---------------- Info Badge ---------------- */
+
+  .badge-info {
+    display: inline-flex;
+
+    max-width: 100%;
+    box-sizing: border-box;
+
+    padding: 0.25rem 0.45rem;
+
+    margin-bottom: 0.7rem;
+
+    font-size: 0.68rem;
+
+    line-height: 1.3;
+
+    white-space: normal;
+  }
+
+
+  /* ---------------- Forms ---------------- */
+
+  .form-row,
+  .form-row-4 {
+    grid-template-columns: 1fr;
+
+    gap: 0;
+
+    margin-bottom: 0;
+  }
+
+  .form-group {
+    margin-bottom: 0.9rem;
+  }
+
+  .form-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .form-label {
+    min-height: auto;
+
+    font-size: 0.78rem;
+
+    line-height: 1.35;
+
+    margin-bottom: 0.35rem;
+  }
+
+  .form-input,
+  .form-select {
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 40px;
+
+    padding: 0.6rem 0.65rem;
+
+    font-size: 0.8rem;
+  }
+
+  .input-wrapper .form-input {
+    padding-right: 3rem;
+  }
+
+  .input-suffix {
+    right: 0.6rem;
+
+    font-size: 0.7rem;
+  }
+
+  .form-select {
+    padding-right: 2.5rem;
+  }
+
+  .form-hint {
+    min-height: auto;
+
+    font-size: 0.68rem;
+
+    line-height: 1.3;
+
+    margin-top: 0.2rem;
+  }
+
+
+  /* ---------------- Modified Indicator ---------------- */
+
+  .modified-indicator {
+    left: 0.7rem;
+    right: 0.7rem;
+
+    bottom: 0.7rem;
+
+    width: auto;
+
+    box-sizing: border-box;
+
+    padding: 0.65rem 0.75rem;
+
+    gap: 0.6rem;
+
+    flex-direction: row;
+
+    justify-content: space-between;
+
+    text-align: left;
+
+    border-radius: 0.7rem;
+
+    transform: none;
+  }
+
+  .indicator-content {
+    min-width: 0;
+
+    font-size: 0.72rem;
+  }
+
+  .btn-save-small {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.7rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 420px
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .academic-settings-page {
+    padding: 0.55rem;
+  }
+
+
+  /* Banner */
+
+  .settings-header {
+    padding: 0.85rem;
+
+    gap: 0.75rem;
+
+    border-radius: 0.8rem;
+  }
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+
+    min-width: 48px;
+  }
+
+  .header-icon {
+    font-size: 1.15rem;
+  }
+
+  .settings-title {
+    font-size: 1.2rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.7rem;
+
+    line-height: 1.4;
+  }
+
+  .header-actions {
+    gap: 0.45rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 40px;
+
+    padding: 0.5rem 0.25rem;
+
+    font-size: 0.65rem;
+  }
+
+  .btn-icon {
+    font-size: 0.7rem;
+  }
+
+
+  /* Overview */
+
+  .as-info-card {
+    padding: 0.75rem;
+
+    gap: 0.6rem;
+  }
+
+  .as-info-card-icon {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+  }
+
+  .as-info-card-title {
+    font-size: 0.82rem;
+  }
+
+  .as-info-card-text {
+    font-size: 0.7rem;
+  }
+
+
+  /* Cards */
+
+  .settings-grid {
+    gap: 0.75rem;
+  }
+
+  .card-header-custom {
+    padding: 0.7rem 0.8rem;
+  }
+
+  .card-icon-wrapper {
+    width: 36px;
+    height: 36px;
+
+    min-width: 36px;
+  }
+
+  .card-title {
+    font-size: 0.88rem;
+  }
+
+  .card-body-custom {
+    padding: 0.8rem;
+  }
+
+  .badge-info {
+    font-size: 0.64rem;
+  }
+
+  .form-input,
+  .form-select {
+    min-height: 38px;
+
+    font-size: 0.76rem;
+  }
+
+  .form-label {
+    font-size: 0.74rem;
+  }
+
+  .form-hint {
+    font-size: 0.64rem;
+  }
+}
       `}</style>
 
       <div className="academic-settings-page">
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "Academic Settings" },
+              ]}
+            />
+          </div>
+        </div>
+
         {/* ================= PAGE HEADER ================= */}
         <div className="settings-header">
           <div className="header-content">

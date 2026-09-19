@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import ChangeEmailModal from "../../../components/ChangeEmailModal";
 import { logger } from "../../../utils/logger";
@@ -111,6 +112,7 @@ const STAFF_ROLE_OPTIONS = [
   { value: "HOD", label: "Head of Department" },
   { value: "EXAM_COORDINATOR", label: "Exam Coordinator" },
   { value: "PLATFORM_SUPPORT", label: "Platform Support" },
+  { value: "TEACHER", label: "Teacher" },
 ];
 
 export default function EditStaffProfile() {
@@ -377,6 +379,25 @@ export default function EditStaffProfile() {
         className="dashboard-wrapper"
       >
         <div className="dashboard-container-inner">
+    {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Staff Management", path: "/college/staff" },
+                { label: "Edit Profile" },
+              ]}
+            />
+          </div>
+        </div>
+
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}

@@ -1,17 +1,8 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "./Breadcrumb.css";
 
 export default function Breadcrumb({ items = [], className = "", variant = "box" }) {
-  const navigate = useNavigate();
-
   if (!items || items.length === 0) return null;
-
-  const handleBreadcrumbClick = (e, path) => {
-    e.preventDefault();
-    if (path) {
-      navigate(path);
-    }
-  };
 
   return (
     <nav
@@ -26,10 +17,9 @@ export default function Breadcrumb({ items = [], className = "", variant = "box"
           return (
             <li key={index} className="erp-breadcrumb-item">
               {hasPath ? (
-                <a
-                  href={item.path}
+                <Link
+                  to={item.path}
                   className="erp-breadcrumb-link"
-                  onClick={(e) => handleBreadcrumbClick(e, item.path)}
                 >
                   {item.icon && (
                     <span className="erp-breadcrumb-icon" aria-hidden="true">
@@ -37,7 +27,7 @@ export default function Breadcrumb({ items = [], className = "", variant = "box"
                     </span>
                   )}
                   {item.label}
-                </a>
+                </Link>
               ) : (
                 <span
                   className="erp-breadcrumb-current"

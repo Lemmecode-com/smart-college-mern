@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaCreditCard,
   FaWallet,
@@ -661,78 +662,893 @@ const FeeSetting = () => {
           line-height: 1.6;
         }
 
-        /* Responsive */
-        @media (max-width: 1024px) {
-          .settings-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .settings-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .header-actions {
-            width: 100%;
-            justify-content: flex-end;
-          }
-          
-          .fee-type-selector {
-            grid-template-columns: 1fr;
-          }
-        }
+/* =========================================================
+   RESPONSIVE - TABLET
+   Desktop remains unchanged
+   ========================================================= */
 
-        @media (max-width: 768px) {
-          .fee-settings-page {
-            padding: 0.75rem;
-          }
-          
-          .settings-title {
-            font-size: 1.5rem;
-          }
-          
-          .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .header-actions {
-            flex-direction: column;
-          }
-          
-          .btn-save {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .gateway-tabs {
-            flex-direction: column;
-          }
-          
-          .gateway-tab {
-            width: 100%;
-            justify-content: space-between;
-          }
-        }
+@media (min-width: 769px) and (max-width: 1024px) {
 
-        @media (prefers-reduced-motion: reduce) {
-          *,
-          *::before,
-          *::after {
-            animation-duration: 0.01ms !important;
-            transition-duration: 0.01ms !important;
-          }
-        }
+  .fee-settings-page {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
 
-        .form-input:focus,
-        .btn-save:focus {
-          outline: 2px solid var(--fs-cyan-primary);
-          outline-offset: 2px;
-        }
+  /* ---------- Breadcrumb ---------- */
+
+  .fee-settings-page > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 0 1rem !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .fee-settings-page .breadcrumb {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    scrollbar-width: none;
+  }
+
+  .fee-settings-page .breadcrumb::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------- Page Header ---------- */
+
+  .settings-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 1.1rem;
+    margin-bottom: 1.25rem;
+
+    gap: 1rem;
+  }
+
+  .header-content {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .header-text {
+    min-width: 0;
+  }
+
+  .settings-title {
+    font-size: 1.45rem;
+    line-height: 1.25;
+  }
+
+  .settings-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .header-actions {
+    flex-shrink: 0;
+  }
+
+  .btn-save {
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+
+
+  /* ---------- Gateway Tabs ---------- */
+
+  .gateway-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+
+    margin-bottom: 1.25rem;
+  }
+
+  .gateway-tab {
+    width: 100%;
+    min-width: 0;
+
+    padding: 0.7rem 0.85rem;
+
+    box-sizing: border-box;
+
+    justify-content: flex-start;
+  }
+
+
+  /* ---------- Main Grid ---------- */
+
+  .settings-grid {
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+
+  /* ---------- Cards ---------- */
+
+  .settings-card,
+  .sidebar-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .card-header-custom {
+    padding: 1rem 1.15rem;
+  }
+
+  .card-body-custom {
+    padding: 1.15rem;
+  }
+
+
+  /* ---------- Info Card ---------- */
+
+  .info-card {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 1rem;
+    gap: 0.8rem;
+
+    margin-bottom: 1.25rem;
+  }
+
+  .info-card-content {
+    min-width: 0;
+  }
+
+  .info-card-content ul {
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+
+  /* ---------- Fee Type ---------- */
+
+  .fee-type-selector {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .fee-type-option {
+    min-width: 0;
+    padding: 0.9rem 0.5rem;
+  }
+
+  .fee-type-label {
+    text-align: center;
+    font-size: 0.78rem;
+  }
+
+
+  /* ---------- Stripe Preview ---------- */
+
+  .stripe-preview-card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .stripe-preview-card h3 {
+    font-size: 1.3rem !important;
+  }
+
+  .stripe-preview-card p {
+    font-size: 0.85rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .stripe-preview-card .btn-action {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+
+  /* ---------- Sidebar ---------- */
+
+  .sidebar-body {
+    padding: 1rem;
+  }
+
+  .gateway-list-item {
+    padding: 0.7rem 0.85rem;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+   Desktop remains unchanged
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .fee-settings-page {
+    width: 100%;
+    max-width: 100%;
+
+    padding: 0.65rem;
+
+    box-sizing: border-box;
+
+    overflow-x: hidden;
+  }
+
+
+  /* =====================================================
+     BREADCRUMB
+     ===================================================== */
+
+  .fee-settings-page > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+
+    margin: 0 0 0.75rem !important;
+    padding: 0 !important;
+
+    box-sizing: border-box;
+  }
+
+  .fee-settings-page .breadcrumb {
+    width: 100% !important;
+    max-width: 100% !important;
+
+    min-height: 44px;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    white-space: nowrap !important;
+
+    scrollbar-width: none;
+  }
+
+  .fee-settings-page .breadcrumb::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* =====================================================
+     PAGE HEADER
+     ===================================================== */
+
+  .settings-header {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0.9rem;
+
+    padding: 1rem;
+
+    margin-bottom: 1rem;
+
+    border-radius: 14px;
+
+    box-sizing: border-box;
+  }
+
+
+  /* Header content stays horizontal */
+
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    gap: 0.7rem;
+
+    min-width: 0;
+  }
+
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+
+    border-radius: 10px;
+  }
+
+  .header-icon {
+    font-size: 1.2rem;
+  }
+
+
+  .header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .settings-title {
+    font-size: 1.25rem;
+
+    line-height: 1.25;
+
+    letter-spacing: -0.2px;
+  }
+
+  .settings-subtitle {
+    font-size: 0.75rem;
+
+    line-height: 1.4;
+
+    margin-top: 0.25rem;
+  }
+
+
+  /* Save button below header */
+
+  .header-actions {
+    width: 100%;
+
+    display: flex;
+
+    justify-content: stretch;
+
+    gap: 0.5rem;
+  }
+
+  .btn-save {
+    width: 100% !important;
+
+    min-height: 42px;
+
+    justify-content: center;
+
+    padding: 0.65rem 0.75rem;
+
+    font-size: 0.82rem;
+
+    border-radius: 9px;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     INFO CARD
+     ===================================================== */
+
+  .info-card {
+    width: 100%;
+    max-width: 100%;
+
+    display: flex;
+    align-items: flex-start;
+
+    gap: 0.65rem;
+
+    padding: 0.85rem;
+
+    margin-bottom: 1rem;
+
+    box-sizing: border-box;
+
+    border-radius: 12px;
+  }
+
+  .info-card-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+
+    font-size: 1rem;
+
+    border-radius: 9px;
+  }
+
+  .info-card-content {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.92rem;
+
+    line-height: 1.3;
+
+    margin-bottom: 0.4rem;
+  }
+
+  .info-card-content ul {
+    padding-left: 1rem;
+
+    font-size: 0.75rem;
+
+    line-height: 1.5;
+
+    margin: 0;
+  }
+
+  .info-card-content li {
+    margin-bottom: 0.2rem;
+  }
+
+
+  /* =====================================================
+     GATEWAY TABS
+     ===================================================== */
+
+  .gateway-tabs {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.55rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .gateway-tab {
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.35rem;
+
+    padding: 0.65rem 0.55rem;
+
+    border-width: 1.5px;
+
+    border-radius: 9px;
+
+    box-sizing: border-box;
+  }
+
+  .gateway-tab-icon {
+    font-size: 1rem;
+
+    flex-shrink: 0;
+  }
+
+  .gateway-tab > span:nth-child(2) {
+    min-width: 0;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    font-size: 0.78rem;
+  }
+
+  .gateway-tab-status {
+    margin-left: auto;
+
+    flex-shrink: 0;
+
+    font-size: 0.52rem;
+
+    padding: 0.12rem 0.35rem;
+
+    white-space: nowrap;
+  }
+
+
+  /* =====================================================
+     MAIN CONTENT
+     ===================================================== */
+
+  .settings-grid {
+    width: 100%;
+    max-width: 100%;
+
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr);
+
+    gap: 0.85rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     SETTINGS CARD
+     ===================================================== */
+
+  .settings-card,
+  .sidebar-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+
+    box-sizing: border-box;
+
+    border-radius: 12px;
+  }
+
+
+  .card-header-custom {
+    width: 100%;
+
+    padding: 0.9rem 1rem;
+
+    gap: 0.6rem;
+
+    box-sizing: border-box;
+  }
+
+  .card-header-custom h5 {
+    min-width: 0;
+
+    font-size: 0.95rem;
+
+    line-height: 1.3;
+
+    overflow-wrap: anywhere;
+  }
+
+  .card-icon {
+    font-size: 1.05rem;
+
+    flex-shrink: 0;
+  }
+
+
+  .card-body-custom {
+    width: 100%;
+
+    padding: 1rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     STATUS BANNER
+     ===================================================== */
+
+  .status-banner {
+    width: 100%;
+
+    padding: 0.75rem;
+
+    gap: 0.55rem;
+
+    margin-bottom: 1rem;
+
+    box-sizing: border-box;
+  }
+
+  .status-banner-icon {
+    font-size: 1.15rem;
+
+    flex-shrink: 0;
+  }
+
+  .status-banner-content {
+    min-width: 0;
+  }
+
+  .status-banner-content h6 {
+    font-size: 0.85rem;
+
+    line-height: 1.3;
+  }
+
+  .status-banner-content p {
+    font-size: 0.72rem;
+
+    line-height: 1.45;
+
+    overflow-wrap: anywhere;
+  }
+
+
+  /* =====================================================
+     STRIPE PREVIEW
+     ===================================================== */
+
+  .stripe-preview-card {
+    width: 100%;
+
+    box-sizing: border-box;
+  }
+
+  .stripe-preview-card > div {
+    padding: 1.5rem 0.75rem !important;
+  }
+
+  .stripe-preview-card > div > div {
+    width: 62px !important;
+    height: 62px !important;
+
+    margin-bottom: 1rem !important;
+
+    font-size: 1.5rem !important;
+  }
+
+  .stripe-preview-card h3 {
+    font-size: 1.15rem !important;
+
+    line-height: 1.3 !important;
+
+    margin-bottom: 0.4rem !important;
+  }
+
+  .stripe-preview-card p {
+    font-size: 0.78rem !important;
+
+    line-height: 1.5 !important;
+
+    margin-bottom: 1rem !important;
+  }
+
+  .stripe-preview-card .btn-action {
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    justify-content: center !important;
+
+    padding: 0.7rem 0.75rem !important;
+
+    font-size: 0.8rem !important;
+
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     FORM
+     ===================================================== */
+
+  .form-group {
+    width: 100%;
+
+    margin-bottom: 1rem;
+
+    box-sizing: border-box;
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+
+    line-height: 1.35;
+  }
+
+  .form-input {
+    width: 100% !important;
+
+    min-width: 0;
+
+    min-height: 42px;
+
+    padding: 0.65rem 0.75rem;
+
+    font-size: 0.82rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     FEE TYPE OPTIONS
+     ===================================================== */
+
+  .fee-type-selector {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    gap: 0.45rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .fee-type-option {
+    min-width: 0;
+
+    padding: 0.75rem 0.25rem;
+
+    border-width: 1.5px;
+
+    box-sizing: border-box;
+  }
+
+  .fee-type-icon {
+    font-size: 1.4rem;
+
+    margin-bottom: 0.35rem;
+  }
+
+  .fee-type-label {
+    font-size: 0.68rem;
+
+    text-align: center;
+
+    line-height: 1.25;
+
+    word-break: break-word;
+  }
+
+
+  /* =====================================================
+     SIDEBAR
+     ===================================================== */
+
+  .sidebar-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .sidebar-header h6 {
+    font-size: 0.9rem;
+  }
+
+  .sidebar-body {
+    padding: 0.75rem;
+  }
+
+  .gateway-list-item {
+    width: 100%;
+
+    padding: 0.7rem 0.75rem;
+
+    box-sizing: border-box;
+  }
+
+  .gateway-list-content {
+    min-width: 0;
+  }
+
+  .gateway-list-label {
+    font-size: 0.82rem;
+  }
+
+  .gateway-list-status {
+    font-size: 0.58rem;
+  }
+
+
+  /* =====================================================
+     COMING SOON
+     ===================================================== */
+
+  .coming-soon-card {
+    padding: 2rem 1rem;
+  }
+
+  .coming-soon-icon {
+    font-size: 3rem;
+  }
+
+  .coming-soon-title {
+    font-size: 1.25rem;
+  }
+
+  .coming-soon-text {
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .fee-settings-page {
+    padding: 0.5rem;
+  }
+
+  .settings-header {
+    padding: 0.85rem;
+  }
+
+  .header-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .settings-title {
+    font-size: 1.1rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.68rem;
+  }
+
+  .gateway-tabs {
+    gap: 0.4rem;
+  }
+
+  .gateway-tab {
+    padding: 0.6rem 0.4rem;
+  }
+
+  .gateway-tab > span:nth-child(2) {
+    font-size: 0.7rem;
+  }
+
+  .gateway-tab-status {
+    font-size: 0.46rem;
+    padding: 0.1rem 0.25rem;
+  }
+
+  .info-card {
+    padding: 0.7rem;
+  }
+
+  .info-card-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.84rem;
+  }
+
+  .info-card-content ul {
+    font-size: 0.7rem;
+  }
+
+  .card-body-custom {
+    padding: 0.8rem;
+  }
+
+  .fee-type-selector {
+    gap: 0.3rem;
+  }
+
+  .fee-type-option {
+    padding: 0.65rem 0.15rem;
+  }
+
+  .fee-type-label {
+    font-size: 0.62rem;
+  }
+}
       `}</style>
 
       <div className="fee-settings-page">
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "Fee & Payment Settings" },
+              ]}
+            />
+          </div>
+        </div>
+
         {/* ================= PAGE HEADER ================= */}
         <div className="settings-header">
           <div className="header-content">

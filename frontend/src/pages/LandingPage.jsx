@@ -6,6 +6,7 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import { Container, Row, Col, Button, Form, Nav } from "react-bootstrap";
+import { Link } from "react-router-dom";
 import "animate.css";
 import api from "../api/axios";
 
@@ -2300,7 +2301,7 @@ export default function LandingPage() {
                 </Nav.Link>
               </Nav.Item>
               <Nav.Item className="ms-3">
-                <Button className="btn-nav-login" href="/login">
+                <Button className="btn-nav-login" as={Link} to="/login">
                   <i className="fas fa-sign-in-alt me-2"></i>
                   <span>Login</span>
                 </Button>

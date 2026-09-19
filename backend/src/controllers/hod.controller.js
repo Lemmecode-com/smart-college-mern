@@ -80,6 +80,7 @@ const getHodProfile = async (req, res) => {
         employeeId: teacher.employeeId,
         name: teacher.name,
         email: teacher.email,
+        status: teacher.status,
         department: {
           id: department._id,
           name: department.name,

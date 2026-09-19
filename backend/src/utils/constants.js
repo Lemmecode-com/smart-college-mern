@@ -182,6 +182,19 @@ exports.ROLE = {
   PLATFORM_SUPPORT: "PLATFORM_SUPPORT",
 };
 
+/**
+ * SemesterResult lifecycle status.
+ *
+ * NOTE: This is independent of the Exam.status (DRAFT|PUBLISHED) which only governs
+ * exam *configuration* visibility. RESULT_STATUS governs the generated result
+ * document lifecycle: DRAFT -> LOCKED -> PUBLISHED.
+ */
+exports.RESULT_STATUS = {
+  DRAFT: "DRAFT",
+  LOCKED: "LOCKED",
+  PUBLISHED: "PUBLISHED",
+};
+
 // ==================== HELPER FUNCTIONS ====================
 
 /**
