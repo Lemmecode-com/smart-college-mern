@@ -143,6 +143,22 @@ function isStudentPromotable(student) {
 }
 
 /**
+ * Format promotion decision reason for display
+ */
+function formatDecisionReason(reason) {
+  if (!reason) return "-";
+  const reasonMap = {
+    FEE_NOT_CLEARED: "Fee Not Cleared",
+    ATTENDANCE_INSUFFICIENT: "Attendance Insufficient",
+    ATTENDANCE_NOT_AVAILABLE: "Attendance Not Available",
+    KT_LIMIT_EXCEEDED: "KT Limit Exceeded",
+    RESULT_INCOMPLETE: "Result Incomplete",
+    ELIGIBLE: "Eligible",
+  };
+  return reasonMap[reason] || reason.replace(/_/g, " ");
+}
+
+/**
  * Format promotion outcome for display
  */
 function formatOutcome(outcome) {
@@ -173,6 +189,41 @@ function getOutcomeIcon(outcome) {
     BLOCKED: "🚫",
   };
   return iconMap[outcome] || "📋";
+}
+
+/**
+ * Get user-friendly display label for promotion outcome
+ * This is the primary status shown to users - clearer than "Outcome: X"
+ * Considers workflow_status to avoid misleading "Promoted" before execution
+ */
+function getOutcomeDisplayLabel(outcome, workflowStatus) {
+  if (!outcome) return "Status Unknown";
+  
+  // If outcome is PASS but workflow hasn't executed yet, show eligibility status
+  if (outcome === "PASS") {
+    const executedStatuses = ["PROMOTED", "EXECUTED"];
+    const isExecuted = workflowStatus && executedStatuses.includes(workflowStatus);
+    
+    if (isExecuted) {
+      return "Promoted Successfully";
+    }
+    
+    // Not yet executed - show based on workflow stage
+    if (workflowStatus === "APPROVED") return "Approved - Ready to Promote";
+    if (workflowStatus === "RECOMMENDED" || workflowStatus === "UNDER_REVIEW") return "Recommended for Promotion";
+    if (workflowStatus === "DRAFT") return "Eligible for Promotion";
+    return "Eligible for Promotion"; // fallback
+  }
+  
+  const labelMap = {
+    ATKT: "Allowed to Keep Term (ATKT)",
+    FAIL: "Promotion Failed",
+    INCOMPLETE: "Result Incomplete",
+    NO_RESULT: "No Result Available",
+    AMBIGUOUS_RESULT: "Ambiguous Result",
+    BLOCKED: "Promotion Blocked",
+  };
+  return labelMap[outcome] || outcome;
 }
 
 /**
@@ -216,6 +267,26 @@ function formatWorkflowStatus(status) {
 }
 
 /**
+ * Format a snapshot value for human-readable display.
+ * - Booleans render as Yes/No (React JSX omits raw true/false).
+ * - null/undefined render as a muted dash.
+ * - Objects/arrays render as JSON.
+ * - Strings and numbers render as-is.
+ */
+function formatSnapshotValue(value) {
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  if (value === null || value === undefined) {
+    return <span className="text-muted">-</span>;
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return value;
+}
+
+/**
  * Render snapshot object as key-value pairs
  */
 function renderSnapshot(snapshot) {
@@ -236,7 +307,7 @@ function renderSnapshot(snapshot) {
             {key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}:
           </span>
           <span className="detail-value" style={{ color: "#0f3a4a", fontSize: "13px" }}>
-            {typeof value === "object" ? JSON.stringify(value) : value}
+            {formatSnapshotValue(value)}
           </span>
         </div>
       ))}
@@ -459,7 +530,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     setBacklogError(null);
     try {
       const res = await getStudentBacklogs(studentId, status === "ALL" ? undefined : status);
-      const payload = res?.data;
+      const payload = res?.data || res;
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.backlogs)
@@ -496,7 +567,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     setAttempts([]);
     try {
       const res = await getBacklogAttempts(backlogId);
-      const payload = res?.data;
+      const payload = res?.data || res;
       const list = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.attempts)
@@ -550,10 +621,10 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
    * a supplementary exam and the first attempt row. Backend remains authoritative
    * for attempt limits, status transitions, and exam creation.
    *
-   * NOTE: The controller wraps the response with `ApiResponse.status(...)`, which
-   * does NOT exist on the `ApiResponse` utility. This is a confirmed backend
-   * defect (see Known Backend Limitations). The frontend wires the action anyway
-   * so that DB work still happens, but the HTTP response will be a 500.
+   * Response mapping: the axios interceptor flattens the standardized
+   * `{ success, message, data: {...} }` envelope so the attempt/exam payload
+   * arrives at the top level. The `payload` extraction below handles both the
+   * flattened shape and a legacy nested `{ data: {...} }` shape.
    */
   const handleCreateAttempt = async () => {
     const backlogId = selectedBacklog?._id;
@@ -565,7 +636,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     setAttemptCreateError(null);
     try {
       const res = await createBacklogAttempt(backlogId, {});
-      const payload = res?.data;
+      const payload = res?.data || res;
       const attempt = payload?.data?.attempt || payload?.attempt || null;
       const exam = payload?.data?.exam || payload?.exam || null;
 
@@ -745,8 +816,8 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     try {
       const response = await executePromotionDecision(decisionId);
       const responseStatus =
-        response?.data?.workflow_status ||
-        response?.workflow_status ||
+        response?.decision?.workflow_status ||
+        response?.executionStatus ||
         eligibilityData?.workflow_status;
       toast.success("Promotion executed successfully.");
       setShowExecuteModal(false);
@@ -2034,20 +2105,53 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                     </div>
                   </div>
 
-                  {/* Outcome Badge */}
-                  <div className="outcome-banner" style={getOutcomeBannerStyle(eligibilityData.promotion_outcome)}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
-                      <div style={{ fontSize: "24px" }}>{getOutcomeIcon(eligibilityData.promotion_outcome)}</div>
-                      <div>
-                        <div style={{ fontSize: "18px", fontWeight: "700", textTransform: "uppercase" }}>
-                          Outcome: {formatOutcome(eligibilityData.promotion_outcome)}
-                        </div>
-                        <div style={{ fontSize: "13px", opacity: 0.9 }}>
-                          Workflow Status: {formatWorkflowStatus(eligibilityData.workflow_status)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+{/* Outcome Badge - Improved UX */}
+                   <div className="outcome-banner" style={getOutcomeBannerStyle(eligibilityData.promotion_outcome)}>
+                     <div className="outcome-banner-content">
+                       <div className="outcome-icon">
+                         {getOutcomeIcon(eligibilityData.promotion_outcome)}
+                       </div>
+                       <div className="outcome-text">
+<div className="outcome-label">
+                            {getOutcomeDisplayLabel(eligibilityData.promotion_outcome, eligibilityData.workflow_status)}
+                          </div>
+                         <div className="outcome-reason">
+                           {eligibilityData.decision_reason && (
+                             <>
+                               Reason: {formatDecisionReason(eligibilityData.decision_reason)}
+                               {eligibilityData.workflow_status && eligibilityData.workflow_status !== eligibilityData.promotion_outcome && (
+                                 <span className="workflow-badge">
+                                   Workflow: {formatWorkflowStatus(eligibilityData.workflow_status)}
+                                 </span>
+                               )}
+                             </>
+                           )}
+                         </div>
+                       </div>
+                       <div className="outcome-actions">
+                         {showRecommend && (
+                           <button onClick={openRecommendModal} className="btn btn-sm btn-outline-light" disabled={actionLoading}>
+                             <FaClipboardCheck className="mr-1" /> Recommend
+                           </button>
+                         )}
+                         {showApprove && (
+                           <button onClick={openApproveModal} className="btn btn-sm btn-light" disabled={actionLoading}>
+                             <FaCheckCircle className="mr-1" /> Approve
+                           </button>
+                         )}
+                         {showReject && (
+                           <button onClick={openRejectModal} className="btn btn-sm btn-outline-light" disabled={actionLoading}>
+                             <FaTimes className="mr-1" /> Reject
+                           </button>
+                         )}
+                         {showExecute && (
+                           <button onClick={openExecuteModal} className="btn btn-sm btn-light" disabled={actionLoading}>
+                             <FaArrowUp className="mr-1" /> Execute Promotion
+                           </button>
+                         )}
+                       </div>
+                     </div>
+                   </div>
 
                   {/* Decision Details Grid */}
                   <div className="decision-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginTop: "20px" }}>
@@ -2066,10 +2170,10 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                               {eligibilityData.kt_count ?? "N/A"}
                             </span>
                           </div>
-                          {eligibilityData.max_allowed_kts !== undefined && eligibilityData.max_allowed_kts !== null && (
+                          {eligibilityData.policy_snapshot?.maxAllowedKTs !== undefined && eligibilityData.policy_snapshot?.maxAllowedKTs !== null && (
                             <div className="detail-row">
                               <span className="detail-label">Max Allowed KTs:</span>
-                              <span className="detail-value">{eligibilityData.max_allowed_kts}</span>
+                              <span className="detail-value">{eligibilityData.policy_snapshot?.maxAllowedKTs}</span>
                             </div>
                           )}
                           {eligibilityData.failed_subject_ids && eligibilityData.failed_subject_ids.length > 0 && (
@@ -2077,93 +2181,348 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                               <span className="detail-label">Failed Subjects:</span>
                               <div className="detail-value">
                                 <ul style={{ margin: "8px 0 0 0", paddingLeft: "20px" }}>
-                                  {eligibilityData.failed_subject_ids.map((subj, idx) => (
-                                    <li key={idx} style={{ fontSize: "13px" }}>{subj}</li>
-                                  ))}
+                                  {eligibilityData.failed_subject_ids.map((subj, idx) => {
+                                    const displayName =
+                                      typeof subj === "string"
+                                        ? subj
+                                        : subj?.name
+                                          ? `${subj.name}${subj.code ? ` (${subj.code})` : ""}`
+                                          : subj?.code || subj?._id || String(subj);
+                                    return (
+                                      <li key={idx} style={{ fontSize: "13px" }}>
+                                        {displayName}
+                                      </li>
+                                    );
+                                  })}
                                 </ul>
                               </div>
                             </div>
                           )}
                           {eligibilityData.backlog_ids && eligibilityData.backlog_ids.length > 0 && (
                             <div className="detail-row">
-                              <span className="detail-label">Backlog IDs:</span>
-                              <div className="detail-value">
-                                <ul style={{ margin: "8px 0 0 0", paddingLeft: "20px" }}>
-                                  {eligibilityData.backlog_ids.map((bid, idx) => (
-                                    <li key={idx} style={{ fontSize: "13px", fontFamily: "monospace" }}>{bid}</li>
-                                  ))}
-                                </ul>
-                              </div>
+                              <span className="detail-label">Backlog Records:</span>
+                              <span className="detail-value">
+                                {eligibilityData.backlog_ids.length} backlog record{eligibilityData.backlog_ids.length === 1 ? "" : "s"}
+                                <span
+                                  className="text-muted"
+                                  style={{ fontSize: "11px", display: "block", marginTop: "4px" }}
+                                >
+                                  See Backlog Details table below for subject-level information
+                                </span>
+                              </span>
                             </div>
                           )}
                         </div>
                       </div>
                     )}
 
-                    {/* Attendance Snapshot */}
-                    {eligibilityData.attendance_snapshot && (
-                      <div className="decision-card">
-                        <div className="decision-card-header">
-                          <FaInfoCircle style={{ color: "#3db5e6" }} />
-                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Attendance Snapshot</h5>
-                        </div>
-                        <div className="decision-card-body">
-                          {renderSnapshot(eligibilityData.attendance_snapshot)}
-                        </div>
-                      </div>
-                    )}
+                    {/* Attendance Snapshot - Improved UX */}
+                    {eligibilityData.attendance_snapshot && (() => {
+                      const snap = eligibilityData.attendance_snapshot;
+                      const percentage = snap.percentage ?? 0;
+                      const required = snap.requiredPercentage ?? 75;
+                      const passed = snap.passed === true;
+                      const status = snap.status || (passed ? "ELIGIBLE" : "NOT_ELIGIBLE");
+                      const isOverride = snap.overridden === true;
 
-                    {/* Fee Clearance Snapshot */}
-                    {eligibilityData.fee_clearance_snapshot && (
-                      <div className="decision-card">
-                        <div className="decision-card-header">
-                          <FaDollarSign style={{ color: "#059669" }} />
-                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Fee Clearance Snapshot</h5>
-                        </div>
-                        <div className="decision-card-body">
-                          {renderSnapshot(eligibilityData.fee_clearance_snapshot)}
-                        </div>
-                      </div>
-                    )}
+                      return (
+                        <div className="decision-card attendance-snapshot-card">
+                          <div className="decision-card-header">
+                            <FaInfoCircle style={{ color: "#3db5e6" }} />
+                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Attendance Snapshot</h5>
+                            <span className={`badge ${passed ? "badge-success" : "badge-danger"}`}>
+                              {formatStatus(status)}
+                            </span>
+                          </div>
+                          <div className="decision-card-body">
+                            {/* Progress Bar */}
+                            <div className="attendance-progress-section">
+                              <div className="progress-header">
+                                <span className="progress-label">Attendance Percentage</span>
+                                <span className="progress-value">{percentage}%</span>
+                              </div>
+                              <div className="progress-bar-container">
+                                <div 
+                                  className="progress-bar-fill"
+                                  style={{ 
+                                    width: `${Math.min(percentage, 100)}%`,
+                                    background: passed 
+                                      ? "linear-gradient(90deg, #059669 0%, #10b981 100%)"
+                                      : "linear-gradient(90deg, #ef4444 0%, #f87171 100%)"
+                                  }}
+                                ></div>
+                              </div>
+                              <div className="progress-markers">
+                                <span className="marker current">Current: {percentage}%</span>
+                                <span className="marker required">Required: {required}%</span>
+                              </div>
+                            </div>
 
-                    {/* Policy Snapshot */}
+                            {/* Details Grid */}
+                            <div className="attendance-details-grid">
+                              <div className="detail-item">
+                                <span className="detail-label">Total Sessions</span>
+                                <span className="detail-value">{snap.totalSessions ?? "-"}</span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">Override Applied</span>
+                                <span className={`detail-value ${isOverride ? "override-yes" : "override-no"}`}>
+                                  {isOverride ? "Yes" : "No"}
+                                </span>
+                              </div>
+                              {isOverride && snap.overrideReason && (
+                                <div className="detail-item override-reason" style={{ gridColumn: "1 / -1" }}>
+                                  <span className="detail-label">Override Reason</span>
+                                  <span className="detail-value">{snap.overrideReason}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Status Message */}
+                            <div className={`attendance-status-message ${passed ? "passed" : "failed"}`}>
+                              {passed ? (
+                                <>
+                                  <FaCheckCircle style={{ marginRight: "8px" }} />
+                                  Student meets the minimum attendance requirement ({required}%).
+                                </>
+                              ) : (
+                                <>
+                                  <FaExclamationTriangle style={{ marginRight: "8px" }} />
+                                  Student does NOT meet the minimum attendance requirement ({required}%). Shortfall: {required - percentage}%.
+                                </>
+                              )}
+                              {isOverride && (
+                                <div className="override-notice">
+                                  <FaInfoCircle style={{ marginRight: "6px", fontSize: "14px" }} />
+                                  Attendance check was overridden. {snap.overrideReason && `Reason: ${snap.overrideReason}`}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Fee Clearance Snapshot - Improved UX */}
+                    {eligibilityData.fee_clearance_snapshot && (() => {
+                      const snap = eligibilityData.fee_clearance_snapshot;
+                      const totalFee = snap.totalFee ?? 0;
+                      const paidAmount = snap.paidAmount ?? 0;
+                      const pendingAmount = snap.pendingAmount ?? 0;
+                      const requiredClearance = snap.requiredClearance !== false;
+                      const cleared = snap.cleared === true;
+                      const passed = snap.passed === true;
+                      const status = snap.status || (cleared ? "CLEARED" : "PARTIALLY_PAID");
+                      const isOverride = snap.overridden === true;
+                      const progressPercent = totalFee > 0 ? Math.round((paidAmount / totalFee) * 100) : 0;
+
+                      const formatCurrency = (amount) => {
+                        if (amount === null || amount === undefined) return "-";
+                        return new Intl.NumberFormat("en-IN", {
+                          style: "currency",
+                          currency: "INR",
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(amount);
+                      };
+
+                      return (
+                        <div className="decision-card fee-snapshot-card">
+                          <div className="decision-card-header">
+                            <FaDollarSign style={{ color: "#059669" }} />
+                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Fee Clearance Snapshot</h5>
+                            <span className={`badge ${passed ? "badge-success" : "badge-warning"}`}>
+                              {passed ? "Cleared" : status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <div className="decision-card-body">
+                            {/* Progress Bar */}
+                            <div className="fee-progress-section">
+                              <div className="progress-header">
+                                <span className="progress-label">Fee Payment Progress</span>
+                                <span className="progress-value">{progressPercent}%</span>
+                              </div>
+                              <div className="progress-bar-container">
+                                <div 
+                                  className="progress-bar-fill"
+                                  style={{ 
+                                    width: `${Math.min(progressPercent, 100)}%`,
+                                    background: passed 
+                                      ? "linear-gradient(90deg, #059669 0%, #10b981 100%)"
+                                      : "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)"
+                                  }}
+                                ></div>
+                              </div>
+                              <div className="progress-markers">
+                                <span className="marker paid">Paid: {formatCurrency(paidAmount)}</span>
+                                <span className="marker total">Total: {formatCurrency(totalFee)}</span>
+                              </div>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div className="fee-details-grid">
+                              <div className="detail-item highlight">
+                                <span className="detail-label">Total Fee</span>
+                                <span className="detail-value">{formatCurrency(totalFee)}</span>
+                              </div>
+                              <div className="detail-item highlight">
+                                <span className="detail-label">Amount Paid</span>
+                                <span className="detail-value paid-amount">{formatCurrency(paidAmount)}</span>
+                              </div>
+                              <div className="detail-item highlight">
+                                <span className="detail-label">Pending Amount</span>
+                                <span className="detail-value pending-amount">{formatCurrency(pendingAmount)}</span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">Clearance Required</span>
+                                <span className={`detail-value ${requiredClearance ? "clearance-yes" : "clearance-no"}`}>
+                                  {requiredClearance ? "Yes" : "No"}
+                                </span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">Override Applied</span>
+                                <span className={`detail-value ${isOverride ? "override-yes" : "override-no"}`}>
+                                  {isOverride ? "Yes" : "No"}
+                                </span>
+                              </div>
+                              {isOverride && snap.overrideReason && (
+                                <div className="detail-item override-reason" style={{ gridColumn: "1 / -1" }}>
+                                  <span className="detail-label">Override Reason</span>
+                                  <span className="detail-value">{snap.overrideReason}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Status Message */}
+                            <div className={`fee-status-message ${passed ? "passed" : "failed"}`}>
+                              {passed ? (
+                                <>
+                                  <FaCheckCircle style={{ marginRight: "8px" }} />
+                                  All fees cleared. Student is eligible for promotion.
+                                </>
+                              ) : (
+                                <>
+                                  <FaExclamationTriangle style={{ marginRight: "8px" }} />
+                                  Pending fee payment of {formatCurrency(pendingAmount)}. 
+                                  {requiredClearance && " Fee clearance is required for promotion."}
+                                </>
+                              )}
+                              {isOverride && (
+                                <div className="override-notice">
+                                  <FaInfoCircle style={{ marginRight: "6px", fontSize: "14px" }} />
+                                  Fee check was overridden. {snap.overrideReason && `Reason: ${snap.overrideReason}`}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Policy Snapshot - Improved UX */}
                     {eligibilityData.policy_snapshot && (
-                      <div className="decision-card">
+                      <div className="decision-card policy-snapshot-card">
                         <div className="decision-card-header">
                           <FaFileAlt style={{ color: "#9C27B0" }} />
-                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Policy Snapshot</h5>
+                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Promotion Policy Applied</h5>
+                          <span className="badge badge-secondary" style={{ fontSize: "11px", fontWeight: "500" }}>
+                            Version: {formatDate(eligibilityData.policy_version)}
+                          </span>
                         </div>
                         <div className="decision-card-body">
-                          {renderSnapshot(eligibilityData.policy_snapshot)}
+                          <div className="policy-snapshot-grid">
+                            {/* Min Attendance */}
+                            <div className="policy-snapshot-item">
+                              <div className="policy-icon attendance">
+                                <FaUsers style={{ fontSize: "18px" }} />
+                              </div>
+                              <div className="policy-content">
+                                <span className="policy-label">Minimum Attendance</span>
+                                <span className="policy-value">
+                                  {eligibilityData.policy_snapshot.minAttendancePercentage !== undefined && eligibilityData.policy_snapshot.minAttendancePercentage !== null
+                                    ? `${eligibilityData.policy_snapshot.minAttendancePercentage}%`
+                                    : <span className="text-muted">Not configured</span>}
+                                </span>
+                                <span className="policy-desc">Student must meet this attendance %</span>
+                              </div>
+                            </div>
+
+                            {/* Max Allowed KTs */}
+                            <div className="policy-snapshot-item">
+                              <div className="policy-icon kt">
+                                <FaExclamationTriangle style={{ fontSize: "18px" }} />
+                              </div>
+                              <div className="policy-content">
+                                <span className="policy-label">Max Allowed KTs (Backlogs)</span>
+                                <span className="policy-value">
+                                  {eligibilityData.policy_snapshot.maxAllowedKTs !== undefined && eligibilityData.policy_snapshot.maxAllowedKTs !== null
+                                    ? eligibilityData.policy_snapshot.maxAllowedKTs
+                                    : <span className="text-muted">Not configured</span>}
+                                </span>
+                                <span className="policy-desc">Maximum backlogs permitted for promotion</span>
+                              </div>
+                            </div>
+
+                            {/* Scoped Semesters */}
+                            <div className="policy-snapshot-item">
+                              <div className="policy-icon semester">
+                                <FaGraduationCap style={{ fontSize: "18px" }} />
+                              </div>
+                              <div className="policy-content">
+                                <span className="policy-label">Applicable Semesters</span>
+                                <span className="policy-value">
+                                  {eligibilityData.policy_snapshot.scopedSemesters && eligibilityData.policy_snapshot.scopedSemesters.length > 0
+                                    ? eligibilityData.policy_snapshot.scopedSemesters.map((s, i) => (
+                                        <span key={i} className="semester-chip">Sem {s}</span>
+                                      ))
+                                    : <span className="text-muted">All Semesters</span>}
+                                </span>
+                                <span className="policy-desc">Policy scope (empty = all semesters)</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
 
-                    {/* Backlog Details (Step 5 - read-only backlog management) */}
+{/* Backlog Details (Step 5 - read-only backlog management) - Improved UX */}
                     <div className="decision-card backlog-card" style={{ marginTop: "16px" }}>
                       <div className="decision-card-header">
                         <FaClipboardCheck style={{ color: "#3db5e6" }} />
-                        <h5 style={{ margin: 0, color: "#0f3a4a" }}>Backlog Details</h5>
-                        <span className="badge badge-info" style={{ marginLeft: "auto" }}>
-                          {backlogs.length} record{backlogs.length === 1 ? "" : "s"}
-                        </span>
+                        <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Backlog Details (ATKT)</h5>
+                        <div className="d-flex align-items-center gap-2">
+                          <span className={`badge ${backlogs.length > 0 ? "badge-info" : "badge-success"}`} style={{ fontSize: "12px" }}>
+                            {backlogs.length} record{backlogs.length === 1 ? "" : "s"}
+                          </span>
+                          {backlogs.length > 0 && (
+                            <span className="backlog-summary text-muted" style={{ fontSize: "11px" }}>
+                              {(() => {
+                                const open = backlogs.filter(b => b.status === "OPEN").length;
+                                const attempted = backlogs.filter(b => b.status === "ATTEMPTED").length;
+                                const cleared = backlogs.filter(b => b.status === "CLEARED").length;
+                                return `Open: ${open} | Attempted: ${attempted} | Cleared: ${cleared}`;
+                              })()}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="decision-card-body">
                         {/* Status filter */}
                         <div className="backlog-filter" style={{ marginBottom: "16px" }}>
-                          <div className="filter-group" style={{ flexWrap: "wrap" }}>
+                          <div className="filter-group" style={{ flexWrap: "wrap", gap: "8px" }}>
                             {["ALL", "OPEN", "ATTEMPTED", "CLEARED"].map((status) => (
                               <button
                                 key={status}
                                 onClick={() => setBacklogStatusFilter(status)}
-                                className={`btn btn-sm ${
-                                  backlogStatusFilter === status
-                                    ? "btn-primary"
-                                    : "btn-outline-secondary"
-                                }`}
+                                className={`btn btn-sm ${backlogStatusFilter === status ? "btn-primary" : "btn-outline-secondary"}`}
                                 disabled={backlogLoading}
                               >
                                 {status === "ALL" ? "All" : status}
+                                {status !== "ALL" && (
+                                  <span className="filter-count ms-1">
+                                    {backlogs.filter(b => b.status === status).length}
+                                  </span>
+                                )}
                               </button>
                             ))}
                           </div>
@@ -2171,17 +2530,17 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
                         {/* Loading state */}
                         {backlogLoading ? (
-                          <div className="loading-container" style={{ padding: "30px 0" }}>
-                            <FaSpinner className="spinner-icon" style={{ fontSize: "32px" }} />
-                            <p style={{ marginTop: "12px" }}>Loading backlog records...</p>
+                          <div className="loading-container" style={{ padding: "30px 0", textAlign: "center" }}>
+                            <FaSpinner className="spinner-icon" style={{ fontSize: "32px", color: "#3db5e6" }} />
+                            <p style={{ marginTop: "12px", color: "#64748b" }}>Loading backlog records...</p>
                           </div>
                         ) : backlogError ? (
-                          <div className="alert alert-danger">
-                            <FaExclamationCircle />
+                          <div className="alert alert-danger" style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                            <FaExclamationCircle style={{ fontSize: "20px", marginTop: "2px" }} />
                             <div>
-                              <p className="alert-text"><strong>Error:</strong> {backlogError.message}</p>
+                              <p className="alert-text" style={{ margin: 0 }}><strong>Error:</strong> {backlogError.message}</p>
                               {backlogError.statusCode && (
-                                <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
+                                <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px", marginBottom: 0 }}>
                                   Status: {backlogError.statusCode}
                                   {backlogError.errorCode && ` | Code: ${backlogError.errorCode}`}
                                 </p>
@@ -2189,100 +2548,100 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                             </div>
                           </div>
                         ) : backlogs.length === 0 ? (
-                          <div className="empty-state" style={{ padding: "40px 20px" }}>
-                            <FaClipboardCheck className="empty-icon" style={{ fontSize: "64px", color: "#cbd5e1" }} />
-                            <p className="empty-title" style={{ marginTop: "12px" }}>No backlog records found</p>
-                            <p className="empty-text">
-                              {backlogStatusFilter === "ALL"
-                                ? "This student has no ATKT/backlog records."
-                                : `No backlog records with status "${backlogStatusFilter}".`}
+                          <div className="empty-state backlog-empty-state" style={{ padding: "48px 24px", textAlign: "center" }}>
+                            <div className="empty-icon-wrapper">
+                              <FaClipboardCheck className="empty-icon" style={{ fontSize: "56px", color: "#94a3b8" }} />
+                            </div>
+                            <p className="empty-title" style={{ marginTop: "16px", fontSize: "18px", fontWeight: 600, color: "#1e293b" }}>
+                              No Backlog Records
                             </p>
+                            <p className="empty-text" style={{ marginTop: "8px", color: "#64748b", maxWidth: "400px", margin: "8px auto 0" }}>
+                              {backlogStatusFilter === "ALL"
+                                ? "This student has no ATKT/backlog records. They are clear to promote."
+                                : `No backlog records with status "${backlogStatusFilter}". Try "All" to see all records.`}
+                            </p>
+                            {backlogStatusFilter !== "ALL" && (
+                              <button
+                                onClick={() => setBacklogStatusFilter("ALL")}
+                                className="btn btn-outline-primary mt-3"
+                                style={{ fontSize: "13px" }}
+                              >
+                                <FaSyncAlt className="mr-1" /> Show All Statuses
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <div className="table-responsive">
                             <table className="data-table backlog-table">
-<thead>
-                                 <tr>
-                                   <th>Subject</th>
-                                   <th>Semester</th>
-                                   <th>Academic Year</th>
-                                   <th>Status</th>
-                                   <th>Attempts</th>
-                                   <th>Created</th>
-                                   <th>Cleared</th>
-                                   <th>Action</th>
-                                 </tr>
-                               </thead>
-                               <tbody>
-                                 {backlogs.map((backlog) => (
-                                   <tr key={backlog._id}>
-                                     <td>
-                                       <div className="student-name" style={{ textTransform: "none" }}>
-                                         {backlog.subject_name || "-"}
-                                       </div>
-                                       {backlog.subject_code && (
-                                         <div className="student-email">
-                                           Code: {backlog.subject_code}
-                                         </div>
-                                       )}
-                                       {backlog.subject_type && (
-                                         <div className="student-email">
-                                           Type: {backlog.subject_type}
-                                         </div>
-                                       )}
-                                     </td>
-                                     <td>
-                                       <span className="badge badge-info">
-                                         Sem {backlog.semester ?? "-"}
-                                       </span>
-                                     </td>
-                                     <td className="text-muted">
-                                       {backlog.academicYear || "-"}
-                                     </td>
-                                     <td>
-                                       <span className={getBacklogStatusBadge(backlog.status)}>
-                                         {backlog.status ? backlog.status.replace(/_/g, " ") : "-"}
-                                       </span>
-                                     </td>
-                                     <td>
-                                       <span className="fw-bold">
-                                         {backlog.attempt_count ?? 0}
-                                       </span>
-                                     </td>
-                                     <td className="text-muted" style={{ fontSize: "12px" }}>
-                                       {formatDate(backlog.created_at)}
-                                     </td>
-                                     <td className="text-muted" style={{ fontSize: "12px" }}>
-                                       {formatDate(backlog.cleared_at)}
-                                     </td>
-                                     <td>
-                                       <button
-                                         onClick={() => openAttemptsModal(backlog)}
-                                         className="btn btn-sm btn-info"
-                                         title="View and manage backlog attempts"
-                                       >
-                                         <FaEye /> View Attempts
-                                       </button>
-                                     </td>
-                                   </tr>
-                                 ))}
-                               </tbody>
-                             </table>
-                           </div>
-                         )}
-                       </div>
-                     </div>
+                              <thead>
+                                <tr>
+                                  <th style={{ minWidth: "240px" }}>Subject</th>
+                                  <th style={{ width: "90px" }}>Semester</th>
+                                  <th style={{ width: "140px" }}>Academic Year</th>
+                                  <th style={{ width: "110px" }}>Status</th>
+                                  <th style={{ width: "90px", textAlign: "center" }}>Attempts</th>
+                                  <th style={{ width: "120px" }}>Created</th>
+                                  <th style={{ width: "120px" }}>Cleared</th>
+                                  <th style={{ width: "130px" }}>Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {backlogs.map((backlog) => (
+                                  <tr key={backlog._id} className="backlog-row">
+                                    <td>
+                                      <div className="backlog-subject">
+                                        <div className="subject-name">{backlog.subject_name || "-"}</div>
+                                        {backlog.subject_code && (
+                                          <span className="subject-code">Code: {backlog.subject_code}</span>
+                                        )}
+                                        {backlog.subject_type && (
+                                          <span className="subject-type">{backlog.subject_type}</span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <span className="badge badge-info badge-sm">
+                                        Sem {backlog.semester ?? "-"}
+                                      </span>
+                                    </td>
+                                    <td className="text-muted" style={{ fontSize: "13px" }}>
+                                      {backlog.academicYear || "-"}
+                                    </td>
+                                    <td>
+                                      <span className={getBacklogStatusBadge(backlog.status)}>
+                                        {backlog.status ? backlog.status.replace(/_/g, " ") : "-"}
+                                      </span>
+                                    </td>
+                                    <td style={{ textAlign: "center" }}>
+                                      <span className="attempt-count">{backlog.attempt_count ?? 0}</span>
+                                    </td>
+                                    <td className="text-muted" style={{ fontSize: "12px" }}>
+                                      {formatDate(backlog.created_at)}
+                                    </td>
+                                    <td className="text-muted" style={{ fontSize: "12px" }}>
+                                      {backlog.cleared_at ? formatDate(backlog.cleared_at) : <span className="text-muted">-</span>}
+                                    </td>
+                                    <td>
+                                      <button
+                                        onClick={() => openAttemptsModal(backlog)}
+                                        className="btn btn-sm btn-info view-attempts-btn"
+                                        title="View and manage backlog attempts"
+                                        disabled={backlogLoading}
+                                      >
+                                        <FaEye className="mr-1" /> View Attempts
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                    </div>
 
-                  {/* Raw Decision Data (for debugging) */}
-                  <details style={{ marginTop: "24px", padding: "16px", background: "#f8fafc", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
-                    <summary style={{ cursor: "pointer", fontWeight: "600", color: "#64748b" }}>
-                      View Raw Decision Data (Debug)
-                    </summary>
-                    <pre style={{ marginTop: "12px", fontSize: "11px", overflow: "auto", maxHeight: "300px", background: "#1e293b", color: "#e2e8f0", padding: "12px", borderRadius: "8px" }}>
-                      {JSON.stringify(eligibilityData, null, 2)}
-                    </pre>
-                  </details>
+                  {/* Raw Decision Data (for debugging) removed */}
                 </>
               ) : (
                 <div className="empty-state">
@@ -4285,6 +4644,596 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
             margin-bottom: 2px;
             font-size: 12px;
             line-height: 1.5;
+          }
+
+          /* Policy Snapshot Styles */
+          .policy-snapshot-card {
+            border-left: 4px solid #9C27B0;
+          }
+
+          .policy-snapshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+          }
+
+          .policy-snapshot-item {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+          }
+
+          .policy-snapshot-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          }
+
+          .policy-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+
+          .policy-icon.attendance {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1d4ed8;
+          }
+
+          .policy-icon.kt {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #b45309;
+          }
+
+          .policy-icon.semester {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            color: #be185d;
+          }
+
+          .policy-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+          }
+
+          .policy-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .policy-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #0f3a4a;
+          }
+
+          .policy-desc {
+            font-size: 11px;
+            color: #94a3b8;
+          }
+
+          .semester-chip {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 6px;
+            margin-bottom: 4px;
+          }
+
+          @media (max-width: 575.98px) {
+            .policy-snapshot-grid {
+              grid-template-columns: 1fr;
+            }
+            
+            .policy-snapshot-item {
+              padding: 12px;
+            }
+            
+            .policy-icon {
+              width: 38px;
+              height: 38px;
+            }
+          }
+
+          /* Attendance Snapshot Styles */
+          .attendance-snapshot-card {
+            border-left: 4px solid #3db5e6;
+          }
+
+          .attendance-progress-section {
+            margin-bottom: 20px;
+          }
+
+          .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+          }
+
+          .progress-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f3a4a;
+          }
+
+          .progress-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f3a4a;
+          }
+
+          .progress-bar-container {
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+          }
+
+          .progress-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease, background 0.3s ease;
+          }
+
+          .progress-markers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #64748b;
+          }
+
+          .progress-markers .marker.required {
+            font-weight: 600;
+            color: #3db5e6;
+          }
+
+          .attendance-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+          }
+
+          .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .detail-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .detail-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #0f3a4a;
+          }
+
+          .detail-value.override-yes {
+            color: #f59e0b;
+            font-weight: 600;
+          }
+
+          .detail-value.override-no {
+            color: #94a3b8;
+          }
+
+          .detail-item.override-reason {
+            padding-top: 8px;
+            border-top: 1px solid #e2e8f0;
+          }
+
+          .attendance-status-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+          }
+
+          .attendance-status-message.passed {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+          }
+
+          .attendance-status-message.failed {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+          }
+
+          .override-notice {
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            color: #92400e;
+            font-size: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+          }
+
+          @media (max-width: 575.98px) {
+            .attendance-details-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          /* Fee Snapshot Styles */
+          .fee-snapshot-card {
+            border-left: 4px solid #059669;
+          }
+
+          .fee-progress-section {
+            margin-bottom: 20px;
+          }
+
+          .fee-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+          }
+
+          .fee-details-grid .detail-item.highlight {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+          }
+
+          .fee-details-grid .detail-item.highlight .detail-label {
+            font-size: 10px;
+            color: #94a3b8;
+          }
+
+          .fee-details-grid .detail-item.highlight .detail-value {
+            font-size: 16px;
+            font-weight: 700;
+          }
+
+          .detail-value.paid-amount {
+            color: #059669;
+          }
+
+          .detail-value.pending-amount {
+            color: #dc2626;
+          }
+
+          .detail-value.clearance-yes {
+            color: #f59e0b;
+            font-weight: 600;
+          }
+
+          .detail-value.clearance-no {
+            color: #059669;
+            font-weight: 600;
+          }
+
+          .fee-status-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+          }
+
+          .fee-status-message.passed {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+          }
+
+          .fee-status-message.failed {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+          }
+
+          @media (max-width: 575.98px) {
+            .fee-details-grid {
+              grid-template-columns: 1fr;
+            }
+            
+            .fee-details-grid .detail-item.highlight {
+              text-align: left;
+            }
+          }
+
+          /* Backlog Details Styles */
+          .backlog-card {
+            border-left: 4px solid #3db5e6;
+          }
+
+          .backlog-summary {
+            white-space: nowrap;
+          }
+
+          .filter-count {
+            background: rgba(255,255,255,0.3);
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+          }
+
+          .btn-primary .filter-count {
+            background: rgba(255,255,255,0.3);
+          }
+
+          .badge-sm {
+            font-size: 11px;
+            padding: 4px 8px;
+          }
+
+          .backlog-subject {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .subject-name {
+            font-weight: 600;
+            color: #0f3a4a;
+            font-size: 13px;
+          }
+
+          .subject-code {
+            font-size: 11px;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            width: fit-content;
+          }
+
+          .subject-type {
+            font-size: 11px;
+            color: #3db5e6;
+            background: #e0f2fe;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            width: fit-content;
+            font-weight: 500;
+            text-transform: uppercase;
+          }
+
+          .attempt-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            font-weight: 600;
+            font-size: 13px;
+            color: #0f3a4a;
+          }
+
+          .view-attempts-btn {
+            white-space: nowrap;
+          }
+
+          .backlog-row:hover {
+            background: #f8fafc;
+          }
+
+          .backlog-empty-state {
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 2px dashed #e2e8f0;
+          }
+
+          .empty-icon-wrapper {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          @media (max-width: 767.98px) {
+            .backlog-table th,
+            .backlog-table td {
+              padding: 8px 6px;
+              font-size: 12px;
+            }
+            
+            .subject-name {
+              font-size: 12px;
+            }
+            
+            .subject-code,
+            .subject-type {
+              font-size: 10px;
+              padding: 1px 6px;
+            }
+            
+            .attempt-count {
+              width: 24px;
+              height: 24px;
+              font-size: 12px;
+            }
+            
+            .view-attempts-btn {
+              padding: 4px 8px;
+              font-size: 11px;
+            }
+          }
+
+          /* Outcome Banner Styles - Improved */
+          .outcome-banner {
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            border: none;
+            overflow: hidden;
+          }
+
+          .outcome-banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 20px 24px;
+          }
+
+          .outcome-icon {
+            font-size: 40px;
+            flex-shrink: 0;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+          }
+
+          .outcome-text {
+            flex: 1;
+            min-width: 200px;
+          }
+
+          .outcome-label {
+            font-size: 22px;
+            font-weight: 700;
+            text-transform: none;
+            letter-spacing: -0.5px;
+            line-height: 1.3;
+          }
+
+          .outcome-reason {
+            margin-top: 8px;
+            font-size: 14px;
+            opacity: 0.95;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+
+          .workflow-badge {
+            background: rgba(255,255,255,0.25);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+          }
+
+          .outcome-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+          }
+
+          .outcome-actions .btn {
+            font-size: 12px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+          }
+
+          .outcome-actions .btn-outline-light {
+            border: 2px solid rgba(255,255,255,0.5);
+            color: white;
+            background: rgba(255,255,255,0.1);
+          }
+
+          .outcome-actions .btn-outline-light:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.8);
+          }
+
+          .outcome-actions .btn-light {
+            background: white;
+            color: inherit;
+            border: none;
+          }
+
+          .outcome-actions .btn-light:hover {
+            background: rgba(255,255,255,0.9);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          }
+
+          @media (max-width: 767.98px) {
+            .outcome-banner-content {
+              flex-direction: column;
+              align-items: flex-start;
+              padding: 16px 20px;
+              gap: 16px;
+            }
+            
+            .outcome-icon {
+              font-size: 32px;
+            }
+            
+            .outcome-label {
+              font-size: 18px;
+            }
+            
+            .outcome-reason {
+              font-size: 13px;
+              gap: 8px;
+            }
+            
+            .outcome-actions {
+              width: 100%;
+              justify-content: flex-start;
+            }
+            
+            .outcome-actions .btn {
+              flex: 1;
+              min-width: 120px;
+              justify-content: center;
+            }
           }
         `}</style>
     </div>
