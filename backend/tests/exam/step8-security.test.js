@@ -216,6 +216,15 @@ describe("STEP 8 — Security + Regression", () => {
       .send({ examId, subjectId, marks: entries })
       .expect(200);
 
+  const enterAllMarks = async (agent, examId, studentId, subjects, entries) => {
+    for (const subject of subjects) {
+      await enterMarks(agent, examId, subject._id, [{ studentId, ...entries }]);
+    }
+  };
+
+  // ===================================================================
+  // 1. AUTHENTICATION — all exam/result/marks routes reject unauthenticated
+
   // ===================================================================
   // 1. AUTHENTICATION — all exam/result/marks routes reject unauthenticated
   // ===================================================================
@@ -789,7 +798,15 @@ describe("STEP 8 — Security + Regression", () => {
     });
 
     it("PUBLISHED result cannot be unlocked (409)", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, theorySubject, practicalSubject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, theorySubject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+      await enterMarks(agent, exam._id, practicalSubject._id, [
+        { studentId: student._id, internalMarks: 25 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await agent.post(`/api/results/${resultId}/lock`).expect(200);
       await agent.post(`/api/results/${resultId}/publish`).expect(200);
@@ -802,7 +819,15 @@ describe("STEP 8 — Security + Regression", () => {
     });
 
     it("PUBLISHED result cannot be re-locked (409)", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, theorySubject, practicalSubject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, theorySubject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+      await enterMarks(agent, exam._id, practicalSubject._id, [
+        { studentId: student._id, internalMarks: 25 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await agent.post(`/api/results/${resultId}/lock`).expect(200);
       await agent.post(`/api/results/${resultId}/publish`).expect(200);
@@ -812,7 +837,15 @@ describe("STEP 8 — Security + Regression", () => {
     });
 
     it("PUBLISHED result cannot be re-published (409)", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, theorySubject, practicalSubject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, theorySubject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+      await enterMarks(agent, exam._id, practicalSubject._id, [
+        { studentId: student._id, internalMarks: 25 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await agent.post(`/api/results/${resultId}/lock`).expect(200);
       await agent.post(`/api/results/${resultId}/publish`).expect(200);
@@ -847,7 +880,15 @@ describe("STEP 8 — Security + Regression", () => {
     });
 
     it("marks cannot be modified after PUBLISH", async () => {
-      const { agent, exam, student, theorySubject } = await baseSetup();
+      const { agent, exam, student, theorySubject, practicalSubject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, theorySubject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+      await enterMarks(agent, exam._id, practicalSubject._id, [
+        { studentId: student._id, internalMarks: 25 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await agent.post(`/api/results/${resultId}/lock`).expect(200);
       await agent.post(`/api/results/${resultId}/publish`).expect(200);
@@ -975,7 +1016,15 @@ describe("STEP 8 — Security + Regression", () => {
     });
 
     it("RESULT_PUBLISHED is recorded", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, theorySubject, practicalSubject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, theorySubject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+      await enterMarks(agent, exam._id, practicalSubject._id, [
+        { studentId: student._id, internalMarks: 25 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await agent.post(`/api/results/${resultId}/lock`).expect(200);
       await agent.post(`/api/results/${resultId}/publish`).expect(200);
@@ -1008,7 +1057,15 @@ describe("STEP 8 — Security + Regression", () => {
     });
 
     it("PUBLISHED result cannot regenerate (409)", async () => {
-      const { agent, exam, student } = await baseSetup();
+      const { agent, exam, student, theorySubject, practicalSubject } = await baseSetup();
+
+      await enterMarks(agent, exam._id, theorySubject._id, [
+        { studentId: student._id, internalMarks: 25, externalMarks: 60 },
+      ]);
+      await enterMarks(agent, exam._id, practicalSubject._id, [
+        { studentId: student._id, internalMarks: 25 },
+      ]);
+
       const resultId = await generateResult(agent, exam._id, student._id);
       await agent.post(`/api/results/${resultId}/lock`).expect(200);
       await agent.post(`/api/results/${resultId}/publish`).expect(200);
