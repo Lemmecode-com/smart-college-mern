@@ -30,27 +30,28 @@ import {
   FaEye
 } from "react-icons/fa";
 
+const AUTH_ERROR_CODES = new Set([
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
+
 export default function SubjectList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { canCreate, canEdit, canDelete } = useRole();
-
-  const AUTH_ERROR_CODES = new Set([
-    "TOKEN_MISSING",
-    "TOKEN_EXPIRED",
-    "INVALID_TOKEN",
-    "TOKEN_BLACKLISTED",
-    "TOKEN_INVALIDATED",
-    "USER_NOT_FOUND",
-    "ACCOUNT_DEACTIVATED",
-    "UNAUTHORIZED",
-  ]);
 
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedSemester, setSelectedSemester] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [error, setError] = useState(null);
@@ -59,13 +60,11 @@ export default function SubjectList() {
   const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
   const [searchTerm, setSearchTerm] = useState("");
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
-    return <Navigate to="/dashboard" replace />;
-
-  /* ================= FETCH DEPARTMENTS ================= */
   useEffect(() => {
+    if (!user || (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")) {
+      return;
+    }
+
     const fetchDepartments = async () => {
       try {
         const res = await api.get("/departments");
@@ -100,7 +99,11 @@ export default function SubjectList() {
     };
 
     fetchDepartments();
-  }, []);
+  }, [user]);
+
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+    return <Navigate to="/dashboard" replace />;
 
   /* ================= FETCH COURSES BY DEPARTMENT ================= */
   const fetchCourses = async (deptId) => {
@@ -111,6 +114,7 @@ export default function SubjectList() {
                           Array.isArray(res.data.data) ? res.data.data : [];
       setCourses(coursesData);
       setSelectedCourse("");
+      setSelectedSemester("");
       setSubjects([]);
     } catch (err) {
       const statusCode = err.response?.status;
@@ -134,15 +138,18 @@ export default function SubjectList() {
         toast.error(errorMessage);
       }
       setCourses([]);
+      setSelectedSemester("");
     }
   };
 
   /* ================= FETCH SUBJECTS BY COURSE ================= */
-  const fetchSubjects = async (courseId) => {
+  const fetchSubjects = async (courseId, semester = "") => {
     setLoadingSubjects(true);
     setError(null);
     try {
-      const res = await api.get(`/subjects/course/${courseId}`);
+      const res = await api.get(`/subjects/course/${courseId}`, {
+        params: semester ? { semester } : undefined,
+      });
       const subjectsData = Array.isArray(res.data) ? res.data :
                            Array.isArray(res.data.subjects) ? res.data.subjects :
                            Array.isArray(res.data.data) ? res.data.data : [];
@@ -214,7 +221,7 @@ export default function SubjectList() {
       setShowDeleteModal(false);
       setSubjectToDelete(null);
       setError(null);
-    } catch (err) {
+    } catch {
       setError("Failed to delete subject. Please try again.");
     }
   };
@@ -250,7 +257,7 @@ export default function SubjectList() {
         onRetry={() => {
           setError(null);
           if (selectedDepartment) fetchCourses(selectedDepartment);
-          if (selectedCourse) fetchSubjects(selectedCourse);
+          if (selectedCourse) fetchSubjects(selectedCourse, selectedSemester);
         }}
         onGoBack={() => navigate(-1)}
       />
@@ -264,7 +271,12 @@ export default function SubjectList() {
 
   const filteredSubjects = getFilteredSubjects();
   const selectedDeptName = Array.isArray(departments) ? departments.find(d => d._id === selectedDepartment)?.name || "Select Department" : "Select Department";
-  const selectedCourseName = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse)?.name || "Select Course" : "Select Course";
+  const selectedCourseData = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse) : undefined;
+  const selectedCourseName = selectedCourseData?.name || "Select Course";
+  const semesterOptions = Array.from(
+    { length: selectedCourseData?.durationSemesters || 8 },
+    (_, index) => index + 1
+  );
 
   return (
     <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
@@ -324,6 +336,7 @@ export default function SubjectList() {
                   onChange={(e) => {
                     setSelectedDepartment(e.target.value);
                     setSelectedCourse("");
+                    setSelectedSemester("");
                     setSubjects([]);
                     if (e.target.value) fetchCourses(e.target.value);
                   }}
@@ -353,6 +366,7 @@ export default function SubjectList() {
                   disabled={!selectedDepartment}
                   onChange={(e) => {
                     setSelectedCourse(e.target.value);
+                    setSelectedSemester("");
                     if (e.target.value) fetchSubjects(e.target.value);
                   }}
                 >
@@ -360,6 +374,34 @@ export default function SubjectList() {
                   {courses.map((course) => (
                     <option key={course._id} value={course._id}>
                       {course.name} ({course.code})
+                    </option>
+                  ))}
+                </select>
+                <div className="filter-select-arrow">
+                  <FaChevronDown />
+                </div>
+              </div>
+            </div>
+
+            <div className="filter-group">
+              <label className="filter-label">
+                <FaClock className="filter-icon" />
+                <span>Semester</span>
+              </label>
+              <div className="filter-select-wrapper">
+                <select
+                  className="filter-select"
+                  value={selectedSemester}
+                  disabled={!selectedCourse}
+                  onChange={(e) => {
+                    setSelectedSemester(e.target.value);
+                    if (selectedCourse) fetchSubjects(selectedCourse, e.target.value);
+                  }}
+                >
+                  <option value="">-- Select Semester --</option>
+                  {semesterOptions.map((semester) => (
+                    <option key={semester} value={semester}>
+                      Semester {semester}
                     </option>
                   ))}
                 </select>
@@ -767,7 +809,7 @@ export default function SubjectList() {
         /* FILTERS */
         .filter-grid {
           display: grid;
-          grid-template-columns:  1fr 1fr auto;
+          grid-template-columns: 1fr 1fr 1fr auto;
           gap: 1.5rem;
           align-items: end;
         }

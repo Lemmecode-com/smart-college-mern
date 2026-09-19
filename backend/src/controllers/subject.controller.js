@@ -213,10 +213,17 @@ exports.createSubject = async (req, res, next) => {
  */
 exports.getSubjectsByCourse = async (req, res, next) => {
   try {
-    const subjects = await Subject.find({
+    const semester = Number.parseInt(req.query.semester, 10);
+    const filter = {
       course_id: req.params.courseId,
       college_id: req.college_id,
-    }).populate("teacher_id", "name designation")
+    };
+
+    if (Number.isInteger(semester) && semester >= 1 && semester <= 8) {
+      filter.semester = semester;
+    }
+
+    const subjects = await Subject.find(filter).populate("teacher_id", "name designation")
       .populate("course_id", "name code");
 
     res.json(subjects);
