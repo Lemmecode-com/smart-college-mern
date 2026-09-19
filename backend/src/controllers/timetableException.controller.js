@@ -178,14 +178,16 @@ exports.createException = async (req, res, next) => {
           : null;
 
       if (teacherToCheck && timeToCheck) {
-        const hasConflict =
-          await exceptionValidationService.checkTeacherConflict(
-            teacherToCheck,
-            conflictDate,
-            timeToCheck.start,
-            timeToCheck.end,
-            req.college_id,
-          );
+         const hasConflict =
+           await exceptionValidationService.checkTeacherConflict(
+             teacherToCheck,
+             conflictDate,
+             timeToCheck.start,
+             timeToCheck.end,
+             req.college_id,
+             timetable.academicYear,
+             timetable.semester,
+           );
 
         if (hasConflict) {
           throw new AppError(
