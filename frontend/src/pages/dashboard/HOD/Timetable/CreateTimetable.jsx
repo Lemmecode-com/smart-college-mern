@@ -251,7 +251,7 @@ export default function CreateTimetable() {
        }
 
        setTimeout(() => {
-         navigate(`/timetable/${timetableId}/weekly`);
+         navigate(`/timetable/${timetableId}/weeklyy`);
        }, 2000);
       } catch (err) {
         const statusCode = err.response?.status;

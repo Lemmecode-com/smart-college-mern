@@ -1279,332 +1279,881 @@ const getCategoryBadgeClass = (category) => {
           cursor: not-allowed;
         }
 
-        /* Responsive */
-         @media (max-width: 768px) {
-           .security-audit-page {
-             padding: 1rem;
-           }
-
-           .page-header {
-             flex-direction: column;
-             align-items: flex-start;
-             gap: 1rem;
-           }
-
-           .stats-grid {
-             grid-template-columns: 1fr;
-           }
-
-           .filter-grid {
-             grid-template-columns: 1fr;
-           }
-
-           .table-header {
-             flex-direction: column;
-             align-items: flex-start;
-             gap: 0.5rem;
-           }
-
-           .data-table thead {
-             display: none;
-           }
-
-           .data-table tbody tr {
-             display: block;
-             margin-bottom: 1rem;
-             border: 1px solid #e2e8f0;
-             border-radius: 8px;
-             padding: 1rem;
-           }
-
-           .data-table tbody td {
-             display: flex;
-             justify-content: space-between;
-             align-items: center;
-             padding: 0.5rem 0;
-             border-bottom: 1px solid #f1f5f9;
-           }
-
-           .data-table tbody td:last-child {
-             border-bottom: none;
-           }
-
-           .data-table tbody td::before {
-             content: attr(data-label);
-             font-weight: 600;
-             color: #1a4b6d;
-           }
-         }
-
-         @media (max-width: 480px) {
-           .security-audit-page {
-             padding: 0.75rem;
-           }
-
-           .page-header {
-             padding: 1rem;
-             margin-bottom: 1rem;
-           }
-
-           .header-icon {
-             width: 44px;
-             height: 44px;
-             font-size: 1.2rem;
-           }
-
-           .page-title {
-             font-size: 1.35rem;
-           }
-
-           .page-subtitle {
-             font-size: 0.85rem;
-           }
-
-           .stats-grid {
-             gap: 0.75rem;
-             margin-bottom: 1rem;
-           }
-
-           .stat-card {
-             padding: 1rem;
-           }
-
-           .stat-value {
-             font-size: 1.5rem;
-           }
-
-           .stat-title {
-             font-size: 0.75rem;
-           }
-
-           .stat-icon {
-             width: 40px;
-             height: 40px;
-             font-size: 1rem;
-           }
-
-           .filter-section {
-             padding: 1rem;
-             margin-bottom: 1rem;
-           }
-
-           .filter-grid {
-             gap: 0.75rem;
-           }
-
-           .filter-select,
-           .filter-input {
-             padding: 0.5rem 0.75rem;
-             font-size: 0.85rem;
-           }
-
-            .filter-actions {
-              justify-content: center;
-            }
-
-            .btn-apply {
-              width: auto;
-              max-width: 160px;
-              justify-content: center;
-              padding: 0.5rem 0.875rem;
-              font-size: 0.8rem;
-              align-self: center;
-            }
-
-           .table-section {
-             border-radius: 8px;
-           }
-
-           .table-header {
-             padding: 1rem;
-           }
-
-           .table-title {
-             font-size: 0.9rem;
-           }
-
-           .data-table tbody td {
-             padding: 0.4rem 0;
-             font-size: 0.8rem;
-           }
-
-           .severity-badge {
-             padding: 0.2rem 0.5rem;
-             font-size: 0.65rem;
-           }
-
-           .status-badge {
-             padding: 0.2rem 0.5rem;
-             font-size: 0.65rem;
-           }
-
-           .btn-review {
-             padding: 0.25rem 0.5rem;
-             font-size: 0.7rem;
-           }
-
-            .pagination-section {
-              padding: 0.75rem 1rem;
-            }
-
-            .pagination-pages-wrapper {
-              justify-content: flex-start;
-            }
-
-            .page-item button {
-              padding: 0.375rem 0.625rem;
-              font-size: 0.8rem;
-            }
-          }
-
-         @media (max-width: 375px) {
-           .security-audit-page {
-             padding: 0.5rem;
-           }
-
-           .page-header {
-             padding: 0.75rem;
-             margin-bottom: 0.75rem;
-           }
-
-           .header-icon {
-             width: 38px;
-             height: 38px;
-             font-size: 1rem;
-           }
-
-           .page-title {
-             font-size: 1.15rem;
-           }
-
-           .page-subtitle {
-             font-size: 0.75rem;
-           }
-
-           .stats-grid {
-             gap: 0.5rem;
-             margin-bottom: 0.75rem;
-           }
-
-           .stat-card {
-             padding: 0.75rem;
-           }
-
-           .stat-value {
-             font-size: 1.25rem;
-           }
-
-           .stat-title {
-             font-size: 0.7rem;
-           }
-
-           .stat-icon {
-             width: 34px;
-             height: 34px;
-             font-size: 0.85rem;
-           }
-
-           .stat-card-header {
-             gap: 0.5rem;
-             margin-bottom: 0.75rem;
-           }
-
-           .stat-trend {
-             font-size: 0.75rem;
-           }
-
-           .filter-section {
-             padding: 0.75rem;
-             margin-bottom: 0.75rem;
-           }
-
-           .filter-title {
-             font-size: 0.9rem;
-           }
-
-           .filter-grid {
-             gap: 0.5rem;
-           }
-
-           .filter-label {
-             font-size: 0.75rem;
-           }
-
-           .filter-select,
-           .filter-input {
-             padding: 0.4rem 0.625rem;
-             font-size: 0.8rem;
-           }
-
-            .filter-actions {
-              justify-content: center;
-            }
-
-            .btn-apply {
-              max-width: 140px;
-              padding: 0.4rem 0.625rem;
-              font-size: 0.75rem;
-              align-self: center;
-            }
-
-           .table-header {
-             padding: 0.75rem;
-           }
-
-           .table-title {
-             font-size: 0.85rem;
-           }
-
-           .table-info {
-             font-size: 0.75rem;
-           }
-
-           .data-table tbody td {
-             padding: 0.3rem 0;
-             font-size: 0.75rem;
-           }
-
-           .category-badge {
-             padding: 0.15rem 0.4rem;
-             font-size: 0.6rem;
-           }
-
-           .severity-badge {
-             padding: 0.15rem 0.4rem;
-             font-size: 0.6rem;
-           }
-
-           .status-badge {
-             padding: 0.15rem 0.4rem;
-             font-size: 0.6rem;
-           }
-
-           .btn-review {
-             padding: 0.2rem 0.4rem;
-             font-size: 0.65rem;
-           }
-
-            .pagination-section {
-              padding: 0.5rem 0.75rem;
-            }
-
-            .pagination-pages-wrapper {
-              justify-content: flex-start;
-            }
-
-            .page-item button {
-              padding: 0.3rem 0.5rem;
-              font-size: 0.7rem;
-            }
-
-           .empty-icon {
-             font-size: 2rem;
-           }
-
-           .empty-text {
-             font-size: 0.85rem;
-           }
-         }
+ /* =========================================================
+   RESPONSIVE DESIGN
+   Desktop remains unchanged
+   Tablet + Mobile optimized
+   ========================================================= */
+
+/* =========================================================
+   TABLET
+   769px - 991px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 991.98px) {
+
+  .security-audit-page {
+    padding: 1.25rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* =========================
+     HEADER
+     ========================= */
+
+  .page-header {
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-radius: 14px;
+  }
+
+  .header-content {
+    gap: 0.9rem;
+    min-width: 0;
+  }
+
+  .header-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    font-size: 1.35rem;
+  }
+
+  .header-text {
+    min-width: 0;
+  }
+
+  .page-title {
+    font-size: 1.55rem;
+    line-height: 1.25;
+  }
+
+  .page-subtitle {
+    font-size: 0.92rem;
+    line-height: 1.45;
+  }
+
+  .page-meta {
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+  }
+
+  /* =========================
+     STATISTICS
+     ========================= */
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-card {
+    min-width: 0;
+    padding: 1rem;
+  }
+
+  .stat-card-header {
+    gap: 0.65rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 1.15rem;
+  }
+
+  .stat-title {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+
+  .stat-value {
+    font-size: 1.8rem;
+  }
+
+  .stat-trend {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+
+  /* =========================
+     FILTERS
+     ========================= */
+
+  .filter-section {
+    padding: 1.15rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .filter-header {
+    margin-bottom: 0.9rem;
+  }
+
+  .filter-title {
+    font-size: 1rem;
+  }
+
+  .filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+  }
+
+  .filter-item {
+    min-width: 0;
+    gap: 0.45rem;
+  }
+
+  .filter-label {
+    font-size: 0.82rem;
+  }
+
+  .filter-select,
+  .filter-input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    padding: 0.65rem 0.8rem;
+    font-size: 0.88rem;
+  }
+
+  .filter-actions {
+    justify-content: flex-end;
+    align-items: flex-end;
+  }
+
+  .btn-apply {
+    width: auto;
+    min-height: 42px;
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  /* =========================
+     TABLE
+     ========================= */
+
+  .table-section {
+    border-radius: 12px;
+  }
+
+  .table-header {
+    padding: 1rem 1.15rem;
+  }
+
+  .table-title {
+    font-size: 0.95rem;
+  }
+
+  .table-info {
+    font-size: 0.8rem;
+  }
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 850px;
+  }
+
+  .data-table thead th {
+    padding: 0.8rem 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .data-table tbody td {
+    padding: 0.8rem 0.7rem;
+    font-size: 0.82rem;
+  }
+
+  /* =========================
+     PAGINATION
+     ========================= */
+
+  .pagination-section {
+    padding: 0.85rem 1rem;
+  }
+
+  .pagination-nav {
+    gap: 0.35rem;
+  }
+
+  .page-item button {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.82rem;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .security-audit-page {
+    padding: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* =========================
+     PAGE HEADER
+     ========================= */
+
+  .page-header {
+    display: block;
+
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 14px;
+  }
+
+  .header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .header-icon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    border-radius: 11px;
+    font-size: 1.2rem;
+  }
+
+  .header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .page-title {
+    font-size: 1.35rem;
+    line-height: 1.2;
+    margin: 0;
+    word-break: normal;
+  }
+
+  .page-subtitle {
+    font-size: 0.84rem;
+    line-height: 1.4;
+    margin-top: 0.3rem;
+  }
+
+  .page-meta {
+    font-size: 0.76rem;
+    line-height: 1.3;
+    margin-top: 0.45rem;
+    gap: 0.35rem;
+  }
+
+  .meta-icon {
+    font-size: 0.7rem;
+  }
+
+  /* =========================
+     STATISTICS
+     ========================= */
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .stat-card-header {
+    gap: 0.7rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 10px;
+    font-size: 1.05rem;
+  }
+
+  .stat-title {
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+
+  .stat-value {
+    font-size: 1.65rem;
+  }
+
+  .stat-trend {
+    font-size: 0.78rem;
+    line-height: 1.35;
+    flex-wrap: wrap;
+  }
+
+  /* =========================
+     FILTER SECTION
+     ========================= */
+
+  .filter-section {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 14px;
+  }
+
+  .filter-header {
+    margin-bottom: 0.9rem;
+  }
+
+  .filter-title {
+    font-size: 1.05rem;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+    width: 100%;
+  }
+
+  .filter-item {
+    width: 100%;
+    min-width: 0;
+    gap: 0.4rem;
+  }
+
+  .filter-label {
+    font-size: 0.84rem;
+    line-height: 1.3;
+  }
+
+  .label-icon {
+    font-size: 0.72rem;
+  }
+
+  /*
+   * Important:
+   * Prevent select/date inputs from overflowing
+   * the mobile card.
+   */
+
+  .filter-select,
+  .filter-input {
+    display: block;
+
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    height: 44px;
+    padding: 0.6rem 0.75rem;
+
+    font-size: 0.88rem;
+    border-radius: 9px;
+  }
+
+  .filter-select {
+    text-overflow: ellipsis;
+  }
+
+  .filter-input {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Apply button */
+
+  .filter-actions {
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.25rem;
+  }
+
+  .btn-apply {
+    width: 100%;
+    max-width: 210px;
+    min-height: 44px;
+
+    justify-content: center;
+    align-self: center;
+
+    padding: 0.65rem 1rem;
+    font-size: 0.88rem;
+  }
+
+  /* =========================
+     TABLE SECTION
+     ========================= */
+
+  .table-section {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 0.9rem 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+  }
+
+  .table-title {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
+  .table-info {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  /*
+   * Mobile table becomes cards.
+   */
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .data-table {
+    width: 100%;
+    min-width: 0;
+    border-collapse: separate;
+  }
+
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .data-table tbody tr {
+    display: block;
+
+    width: calc(100% - 1rem);
+    margin: 0.5rem;
+
+    box-sizing: border-box;
+
+    padding: 0.8rem;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: white;
+  }
+
+  .data-table tbody td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    width: 100%;
+    box-sizing: border-box;
+
+    gap: 0.75rem;
+
+    padding: 0.55rem 0;
+    font-size: 0.8rem;
+
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .data-table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .data-table tbody td::before {
+    content: attr(data-label);
+
+    flex: 0 0 38%;
+
+    font-weight: 600;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    color: #1a4b6d;
+  }
+
+  .data-table tbody td > * {
+    max-width: 62%;
+    text-align: right;
+  }
+
+  .event-cell {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .category-badge,
+  .severity-badge,
+  .status-badge {
+    white-space: normal;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .user-cell {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  .ip-address {
+    word-break: break-all;
+  }
+
+  .btn-review {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.75rem;
+  }
+
+  /* Empty state */
+
+  .cell-empty {
+    display: block !important;
+    padding: 2rem 1rem !important;
+  }
+
+  .cell-empty::before {
+    display: none;
+  }
+
+  .empty-text {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    text-align: center;
+  }
+
+  .empty-icon {
+    font-size: 2.5rem;
+  }
+
+  /* =========================
+     PAGINATION
+     ========================= */
+
+  .pagination-section {
+    padding: 0.75rem;
+  }
+
+  .pagination-nav {
+    width: 100%;
+    justify-content: center;
+    gap: 0.3rem;
+  }
+
+  .pagination-pages-wrapper {
+    max-width: calc(100vw - 150px);
+    overflow-x: auto;
+  }
+
+  .page-item button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .security-audit-page {
+    padding: 0.6rem;
+  }
+
+  /* Header */
+
+  .page-header {
+    padding: 0.9rem;
+    border-radius: 12px;
+  }
+
+  .header-content {
+    gap: 0.65rem;
+  }
+
+  .header-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    font-size: 1.05rem;
+    border-radius: 10px;
+  }
+
+  .page-title {
+    font-size: 1.2rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .page-meta {
+    font-size: 0.7rem;
+  }
+
+  /* Stats */
+
+  .stat-card {
+    padding: 0.85rem;
+  }
+
+  .stat-card-header {
+    margin-bottom: 0.65rem;
+  }
+
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    font-size: 0.95rem;
+  }
+
+  .stat-title {
+    font-size: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.45rem;
+  }
+
+  .stat-trend {
+    font-size: 0.72rem;
+  }
+
+  /* Filters */
+
+  .filter-section {
+    padding: 0.85rem;
+  }
+
+  .filter-title {
+    font-size: 0.95rem;
+  }
+
+  .filter-grid {
+    gap: 0.7rem;
+  }
+
+  .filter-label {
+    font-size: 0.78rem;
+  }
+
+  .filter-select,
+  .filter-input {
+    height: 42px;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.82rem;
+  }
+
+  .btn-apply {
+    max-width: 190px;
+    min-height: 42px;
+    font-size: 0.82rem;
+  }
+
+  /* Table */
+
+  .table-header {
+    padding: 0.8rem 0.85rem;
+  }
+
+  .table-title {
+    font-size: 0.88rem;
+  }
+
+  .table-info {
+    font-size: 0.7rem;
+  }
+
+  .data-table tbody tr {
+    width: calc(100% - 0.75rem);
+    margin: 0.375rem;
+    padding: 0.7rem;
+  }
+
+  .data-table tbody td {
+    gap: 0.5rem;
+    padding: 0.45rem 0;
+    font-size: 0.74rem;
+  }
+
+  .data-table tbody td::before {
+    flex-basis: 40%;
+    font-size: 0.7rem;
+  }
+
+  .data-table tbody td > * {
+    max-width: 60%;
+  }
+
+  .category-badge,
+  .severity-badge,
+  .status-badge {
+    font-size: 0.62rem;
+    padding: 0.2rem 0.45rem;
+  }
+
+  .btn-review {
+    padding: 0.3rem 0.45rem;
+    font-size: 0.68rem;
+  }
+
+  /* Pagination */
+
+  .pagination-section {
+    padding: 0.6rem;
+  }
+
+  .pagination-pages-wrapper {
+    max-width: calc(100vw - 135px);
+  }
+
+  .page-item button {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.7rem;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL DEVICES
+   0px - 375px
+   ========================================================= */
+
+@media (max-width: 375px) {
+
+  .security-audit-page {
+    padding: 0.5rem;
+  }
+
+  .page-header {
+    padding: 0.75rem;
+  }
+
+  .header-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    font-size: 0.95rem;
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.72rem;
+  }
+
+  .page-meta {
+    font-size: 0.65rem;
+  }
+
+  .filter-section {
+    padding: 0.75rem;
+  }
+
+  .filter-select,
+  .filter-input {
+    height: 40px;
+    font-size: 0.78rem;
+  }
+
+  .btn-apply {
+    max-width: 175px;
+    min-height: 40px;
+    font-size: 0.78rem;
+  }
+
+  .stat-card {
+    padding: 0.7rem;
+  }
+
+  .stat-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    font-size: 0.85rem;
+  }
+
+  .stat-title {
+    font-size: 0.68rem;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+
+  .stat-trend {
+    font-size: 0.68rem;
+  }
+
+  .table-title {
+    font-size: 0.82rem;
+  }
+
+  .table-info {
+    font-size: 0.65rem;
+  }
+
+  .data-table tbody tr {
+    padding: 0.6rem;
+  }
+
+  .data-table tbody td {
+    font-size: 0.7rem;
+  }
+
+  .data-table tbody td::before {
+    font-size: 0.66rem;
+  }
+
+  .empty-icon {
+    font-size: 2rem;
+  }
+
+  .empty-text {
+    font-size: 0.78rem;
+  }
+}
       `}</style>
     </>
   );

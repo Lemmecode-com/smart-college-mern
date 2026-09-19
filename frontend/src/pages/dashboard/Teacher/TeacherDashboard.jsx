@@ -921,24 +921,36 @@ function LectureRow({ lecture, delay = 0 }) {
       </td>
       <td className="py-3 px-3 align-middle">
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/timetable/weekly-timetable`);
-          }}
-          className="btn btn-sm d-flex align-items-center justify-content-center flex-shrink-0"
-          style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: BRAND_COLORS.primary.gradient,
-            color: 'white',
-            border: 'none'
-          }}
-        >
-          <FaEye size={16} />
-        </motion.button>
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/timetable/weekly-timetable`);
+            }}
+            className="d-flex align-items-center justify-content-center flex-shrink-0"
+            aria-label="View attendance"
+            title="View attendance"
+            style={{
+              width: '40px',
+              height: '40px',
+              padding: 0,
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)',
+              color: '#ffffff',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(15, 58, 74, 0.25)',
+              cursor: 'pointer'
+            }}
+          >
+            <FaEye
+              size={16}
+              color="#ffffff"
+              style={{
+                display: 'block',
+                color: '#ffffff'
+              }}
+            />
+          </motion.button>
       </td>
     </motion.tr>
   );

@@ -232,16 +232,16 @@
     min-height: 0;
   }
 
-  .offcanvas-nav-section .sidebar-nav {
-    flex: 0 0 auto;
-    gap: 0.5rem;
-    padding-top: 0;
-    padding-bottom: 0;
-  }
+ .offcanvas-nav-section .sidebar-nav {
+  flex: 0 0 auto;
+  gap: 16px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
 
-  .offcanvas-nav-section .sidebar-section-wrapper {
-    margin-bottom: 0.5rem;
-  }
+.offcanvas-nav-section .sidebar-section-wrapper {
+  margin-bottom: 0;
+}
 
   .offcanvas-nav-section .sidebar-section-title,
   .offcanvas-nav-section .nav-link {
@@ -417,7 +417,7 @@
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: var(--menu-item-gap);
+  gap: 12px;
   flex: 1;
   overflow-y: auto;
   padding: var(--spacing-sm) 0;
