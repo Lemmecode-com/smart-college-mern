@@ -3,6 +3,7 @@ import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { Badge } from "react-bootstrap";
@@ -144,6 +145,24 @@ export default function ViewCourse() {
 
   return (
     <div className="view-course-page">
+      {/* ================= BREADCRUMB ================= */}
+    <div
+      style={{
+        width: "100%",
+        margin: "10px auto",
+        paddingTop: "5px",
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard/college-admin" },
+            { label: "Courses", path: "/courses" },
+            { label: course.name },
+          ]}
+        />
+      </div>
+    </div>
       {/* PAGE HEADER */}
       <header className="page-header">
         <div className="page-header__content">
@@ -898,170 +917,609 @@ export default function ViewCourse() {
           max-width: 400px;
         }
 
-        /* ================= RESPONSIVE STYLES ================= */
-        @media (max-width: 1024px) {
-          .page-header__content {
-            gap: var(--spacing-lg);
-          }
+/* =========================================================
+   VIEW COURSE - MOBILE & TABLET RESPONSIVENESS
+   Desktop layout remains unchanged
+   ========================================================= */
 
-          .page-header__left {
-            min-width: 0;
-          }
-        }
 
-        @media (max-width: 768px) {
-          .page-header {
-            padding: 16px 20px;
-            border-radius: 14px;
-          }
+/* =========================================================
+   TABLET
+   ========================================================= */
 
-          .page-header__content {
-            flex-direction: column;
-            align-items: stretch;
-          }
+@media (min-width: 769px) and (max-width: 1024px) {
 
-          .page-header__left {
-            flex-direction: row;
-            align-items: center;
-            width: 100%;
-            gap: 12px;
-          }
+  .view-course-page {
+    width: 100%;
+    overflow-x: hidden;
+  }
 
-          .page-header__icon-wrapper {
-            width: 44px;
-            height: 44px;
-            font-size: 1.25rem;
-            border-radius: 10px;
-          }
+  /* Fix the 1460px fixed-width problem */
+  .page-header__content {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
 
-          .page-header__title {
-            font-size: 1.25rem;
-          }
+  .page-header {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    padding: 18px 20px;
+  }
 
-          .page-header__info {
-            flex: 1;
-            gap: 8px;
-            min-width: 0;
-          }
+  .page-content {
+    width: 100%;
+    max-width: 100%;
+    padding: 0 1.25rem 2rem;
+  }
 
-          .page-content {
-            padding: 0 var(--spacing-lg) var(--spacing-lg);
-          }
+  /* Overview */
+  .overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
 
-          .card__body {
-            padding: var(--spacing-lg);
-          }
+  .overview-item {
+    padding: 1rem;
+  }
 
-          .overview-grid,
-          .details-grid {
-            grid-template-columns: 1fr;
-          }
+  .overview-item__icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
 
-          .page-header__right {
-            width: 100%;
-            margin-top: 12px;
-          }
+  .overview-item__value {
+    font-size: 0.95rem;
+    word-break: break-word;
+  }
 
-          .btn--primary {
-            width: 100%;
-          }
-        }
+  /* Details */
+  .details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+  }
 
-        @media (max-width: 480px) {
-          .page-header {
-            padding: 14px 16px;
-            border-radius: 12px;
-          }
+  .detail-item {
+    padding: 1rem;
+  }
+}
 
-          .page-header__left {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-          }
 
-          .page-header__info {
-            width: 100%;
-          }
+/* =========================================================
+   MOBILE
+   ========================================================= */
 
-          .page-header__title {
-            font-size: 1.125rem;
-          }
+@media (max-width: 768px) {
 
-          .page-header__badges {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 6px;
-            width: 100%;
-          }
+  /* Prevent horizontal page overflow */
+  .view-course-page {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
 
-          .course-code {
-            width: 100%;
-            justify-content: center;
-          }
 
-          .status-badge {
-            width: 100%;
-            justify-content: center;
-          }
+  /* =====================================================
+     HEADER
+     ===================================================== */
 
-          .btn--primary {
-            width: 100%;
-            justify-content: center;
-          }
+  .page-header {
+    width: calc(100% - 1.5rem);
+    margin: 0.75rem auto 1rem;
+    padding: 1rem;
+    border-radius: 14px;
+    box-sizing: border-box;
+  }
 
-          .overview-item,
-          .detail-item {
-            padding: var(--spacing-md);
-          }
-        }
+  /*
+     IMPORTANT:
+     Remove the desktop 1460px width.
+  */
+  .page-header__content {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
 
-        /* ================= BADGE VARIANTS ================= */
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0.375rem 0.75rem;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          border-radius: 20px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
 
-        .badge-primary {
-          background: rgba(26, 75, 109, 0.15);
-          color: var(--brand-primary);
-        }
+    gap: 1rem;
+  }
 
-        .badge-success {
-          background: rgba(40, 167, 69, 0.15);
-          color: var(--brand-success);
-        }
 
-        .badge-warning {
-          background: rgba(255, 193, 7, 0.15);
-          color: #b18904;
-        }
+  /* Header left section */
+  .page-header__left {
+    width: 100%;
+    min-width: 0;
 
-        .badge-danger {
-          background: rgba(220, 53, 69, 0.15);
-          color: var(--brand-danger);
-        }
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
 
-        .badge-info {
-          background: rgba(23, 162, 184, 0.15);
-          color: var(--brand-info);
-        }
+    gap: 0.65rem;
+  }
 
-        .badge-purple {
-          background: rgba(111, 66, 193, 0.15);
-          color: var(--brand-purple);
-        }
 
-        .badge-secondary {
-          background: rgba(108, 117, 125, 0.15);
-          color: var(--brand-secondary);
-        }
+  /* Back button */
+  .btn--icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    flex-shrink: 0;
+  }
+
+
+  /* Course icon */
+  .page-header__icon-wrapper {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+
+    border-radius: 10px;
+    font-size: 1.1rem;
+  }
+
+
+  /* Course information */
+  .page-header__info {
+    min-width: 0;
+    width: 100%;
+
+    gap: 0.5rem;
+  }
+
+
+  /* Course title */
+  .page-header__title {
+    font-size: 1.2rem;
+    line-height: 1.3;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+
+  /* Badges */
+  .page-header__badges {
+    width: 100%;
+
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+
+    gap: 0.4rem;
+  }
+
+  .course-code {
+    max-width: 100%;
+    font-size: 0.75rem;
+
+    overflow-wrap: anywhere;
+  }
+
+  .status-badge {
+    font-size: 0.7rem;
+  }
+
+
+  /* Edit button */
+  .page-header__right {
+    width: 100%;
+    margin-top: 0;
+
+    display: flex;
+    justify-content: stretch;
+  }
+
+  .page-header__right .btn {
+    width: 100%;
+  }
+
+
+  /* =====================================================
+     MAIN CONTENT
+     ===================================================== */
+
+  .page-content {
+    width: 100%;
+    max-width: 100%;
+
+    margin: 0;
+    padding: 0 0.75rem 1.5rem;
+
+    gap: 1rem;
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     CARDS
+     ===================================================== */
+
+  .card {
+    width: 100%;
+    border-radius: 14px;
+    box-sizing: border-box;
+  }
+
+
+  .card__header {
+    padding: 0.9rem 1rem;
+  }
+
+
+  .card__header-left {
+    gap: 0.6rem;
+  }
+
+
+  .card__header-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+
+  .card__title {
+    font-size: 1.05rem;
+    line-height: 1.3;
+  }
+
+
+  .card__body {
+    padding: 1rem;
+  }
+
+
+  /* =====================================================
+     COURSE OVERVIEW
+     ===================================================== */
+
+  .overview-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+
+    gap: 0.75rem;
+  }
+
+
+  .overview-item {
+    width: 100%;
+    min-width: 0;
+
+    padding: 0.85rem;
+
+    gap: 0.75rem;
+    border-radius: 12px;
+
+    box-sizing: border-box;
+  }
+
+
+  .overview-item__icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+
+    border-radius: 10px;
+    font-size: 1.05rem;
+  }
+
+
+  .overview-item__content {
+    min-width: 0;
+    width: 100%;
+  }
+
+
+  .overview-item__label {
+    font-size: 0.7rem;
+    margin-bottom: 0.2rem;
+  }
+
+
+  .overview-item__value {
+    font-size: 0.92rem;
+    line-height: 1.4;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+
+  /* =====================================================
+     COURSE DETAILS
+     ===================================================== */
+
+  .details-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+
+    gap: 0.75rem;
+  }
+
+
+  .detail-item {
+    width: 100%;
+    min-width: 0;
+
+    padding: 0.85rem;
+    border-radius: 12px;
+
+    box-sizing: border-box;
+  }
+
+
+  .detail-item__label {
+    font-size: 0.7rem;
+  }
+
+
+  .detail-item__value {
+    font-size: 0.9rem;
+    line-height: 1.4;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+
+  /* Always make copy button accessible on touch */
+  .detail-item__copy-btn {
+    opacity: 1;
+    width: 30px;
+    height: 30px;
+
+    top: 0.65rem;
+    right: 0.65rem;
+  }
+
+
+  /* Badge */
+  .detail-badge {
+    font-size: 0.72rem;
+    padding: 0.3rem 0.65rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .page-header {
+    width: calc(100% - 1rem);
+    margin: 0.5rem auto 0.85rem;
+
+    padding: 0.85rem;
+    border-radius: 12px;
+  }
+
+
+  .page-header__left {
+    gap: 0.55rem;
+  }
+
+
+  .btn--icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+
+
+  .page-header__icon-wrapper {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+
+    font-size: 1rem;
+  }
+
+
+  .page-header__title {
+    font-size: 1.05rem;
+  }
+
+
+  .course-code,
+  .status-badge {
+    font-size: 0.68rem;
+  }
+
+
+  .page-content {
+    padding: 0 0.5rem 1.25rem;
+    gap: 0.85rem;
+  }
+
+
+  .card {
+    border-radius: 12px;
+  }
+
+
+  .card__header {
+    padding: 0.8rem 0.9rem;
+  }
+
+
+  .card__title {
+    font-size: 1rem;
+  }
+
+
+  .card__body {
+    padding: 0.85rem;
+  }
+
+
+  .overview-item,
+  .detail-item {
+    padding: 0.75rem;
+  }
+
+
+  .overview-item__icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+  }
+
+
+  .overview-item__value {
+    font-size: 0.88rem;
+  }
+
+
+  .detail-item__value {
+    font-size: 0.86rem;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 360px) {
+
+  .page-header {
+    padding: 0.75rem;
+  }
+
+  .page-header__title {
+    font-size: 0.98rem;
+  }
+
+  .page-content {
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+
+  .card__body {
+    padding: 0.75rem;
+  }
+
+  .overview-item,
+  .detail-item {
+    padding: 0.7rem;
+  }
+}
+  /* =========================================================
+   MOBILE HEADER - BACK BUTTON FIX
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .page-header__left {
+    display: flex;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
+  /* Circular back button */
+  .page-header__left .btn--icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    padding: 0;
+
+    flex: 0 0 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50% !important;
+
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+
+    color: #ffffff;
+
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .page-header__left .btn--icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+  }
+
+  .page-header__icon-wrapper {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    flex: 0 0 44px;
+  }
+
+  .page-header__info {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .page-header__left {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 0.55rem;
+  }
+
+  .page-header__left .btn--icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    flex-basis: 40px;
+
+    border-radius: 50% !important;
+  }
+
+  .page-header__left .btn--icon svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .page-header__icon-wrapper {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    flex-basis: 40px;
+
+    border-radius: 10px;
+  }
+
+  .page-header__title {
+    font-size: 1.05rem;
+    line-height: 1.25;
+  }
+
+  /*
+     Keep badges underneath the title,
+     not underneath the back button.
+  */
+  .page-header__info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .page-header__badges {
+    margin-top: 0.25rem;
+  }
+}
       `}</style>
     </div>
   );
