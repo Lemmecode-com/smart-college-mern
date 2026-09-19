@@ -180,6 +180,27 @@ exports.publishResult = async (req, res, next) => {
       data: result,
     });
   } catch (error) {
+    if (error.code === "INCOMPLETE_MARKS") {
+      await auditLogService.logAudit({
+        collegeId: req.college_id,
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        action: "RESULT_PUBLISH_BLOCKED",
+        resourceType: "SemesterResult",
+        resourceId: req.params.resultId,
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get("user-agent"),
+        endpoint: req.originalUrl,
+        method: req.method,
+        statusCode: 409,
+        metadata: {
+          reason: "INCOMPLETE_MARKS",
+          totalAffectedStudents: error.data?.totalAffectedStudents,
+          totalIncompleteSubjects: error.data?.totalIncompleteSubjects,
+        },
+      });
+    }
     next(error);
   }
 };
@@ -407,6 +428,27 @@ exports.publishResultsForExam = async (req, res, next) => {
       data: result,
     });
   } catch (error) {
+    if (error.code === "INCOMPLETE_MARKS") {
+      await auditLogService.logAudit({
+        collegeId: req.college_id,
+        userId: req.user.id,
+        userEmail: req.user.email,
+        userRole: req.user.role,
+        action: "RESULT_PUBLISH_BLOCKED",
+        resourceType: "Exam",
+        resourceId: req.body.examId,
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get("user-agent"),
+        endpoint: req.originalUrl,
+        method: req.method,
+        statusCode: 409,
+        metadata: {
+          reason: "INCOMPLETE_MARKS",
+          totalAffectedStudents: error.data?.totalAffectedStudents,
+          totalIncompleteSubjects: error.data?.totalIncompleteSubjects,
+        },
+      });
+    }
     next(error);
   }
 };

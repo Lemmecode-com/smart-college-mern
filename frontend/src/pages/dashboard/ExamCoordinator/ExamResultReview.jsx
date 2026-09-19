@@ -203,6 +203,7 @@ export default function ExamResultReview() {
   const [fetchError, setFetchError] = useState(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState(null);
+  const [publishBlockedDetails, setPublishBlockedDetails] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [resultFilter, setResultFilter] = useState("ALL");
   const [showLockConfirm, setShowLockConfirm] = useState(false);
@@ -272,12 +273,18 @@ export default function ExamResultReview() {
     setShowPublishConfirm(false);
     setActionBusy(true);
     setActionError(null);
+    setPublishBlockedDetails(null);
     try {
       const res = await publishResultsForExam(examId);
       toast.success(`${res.modified} result(s) published.`);
       await load();
     } catch (err) {
-      const msg = err.response?.data?.message || "Failed to publish.";
+      const data = err.response?.data;
+      const code = data?.error?.code;
+      const msg = data?.error?.message || err.response?.data?.message || "Failed to publish.";
+      if (code === "INCOMPLETE_MARKS" && data?.error?.details) {
+        setPublishBlockedDetails(data.error.details);
+      }
       setActionError(msg);
       toast.error(msg);
     } finally {
@@ -382,6 +389,33 @@ export default function ExamResultReview() {
 
               {actionError && (
                 <div className="alert-edx alert-edx-danger mb-3"><FaExclamationTriangle />{actionError}</div>
+              )}
+
+              {publishBlockedDetails && (
+                <div className="alert-edx alert-edx-danger mb-3">
+                  <div style={{ fontWeight: 700, marginBottom: "0.5rem" }}>
+                    <FaExclamationTriangle style={{ marginRight: "0.4rem" }} />
+                    Cannot Publish Result
+                  </div>
+                  <div style={{ marginBottom: "0.5rem" }}>Incomplete marks found.</div>
+                  <div style={{ marginBottom: "0.5rem" }}>
+                    Affected Students: {publishBlockedDetails.totalAffectedStudents} ·
+                    Incomplete Subjects: {publishBlockedDetails.totalIncompleteSubjects}
+                  </div>
+                  <div style={{ marginBottom: "0.75rem" }}>
+                    {publishBlockedDetails.issues.map((issue, idx) => (
+                      <div key={idx} style={{ paddingLeft: "1rem", borderLeft: "2px solid var(--edx-red-500)", marginBottom: "0.5rem" }}>
+                        <div style={{ fontWeight: 600 }}>{issue.studentName || "Unknown"}</div>
+                        <div style={{ fontSize: "0.82rem", color: "var(--edx-slate-600)" }}>
+                          {issue.subjectName || "Unknown"} — {issue.issue === "MARKS_NOT_ENTERED" ? "Marks not entered" : "Marks incomplete"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: "0.85rem", color: "var(--edx-slate-600)" }}>
+                    Please complete the missing marks and regenerate/review the result before publishing.
+                  </div>
+                </div>
               )}
 
               {/* Info grid */}

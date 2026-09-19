@@ -307,11 +307,8 @@ const createPromotionDecision = async ({
     academicYear: student.currentAcademicYear,
     source_result_id: calculated.sourceResultId,
   };
-  const existing = await PromotionDecision.findOne(lookup);
-  if (existing) return existing;
 
-  return PromotionDecision.create({
-    ...lookup,
+  const freshFields = {
     source_exam_id: calculated.sourceExamId,
     result_status: calculated.resultStatus,
     failed_subject_ids: calculated.failedSubjectIds,
@@ -326,8 +323,55 @@ const createPromotionDecision = async ({
     policy_id: policy.policyId,
     policy_version: policy.policyVersion,
     policy_snapshot: policy.snapshot,
+  };
+
+  const existing = await PromotionDecision.findOne(lookup);
+
+  if (existing) {
+    // RCA-2 fix: refresh the stored snapshot with freshly-calculated data
+    // instead of returning a stale cached record.
+    //
+    // Idempotency is preserved — the update targets the single existing
+    // document (the unique index on the lookup key guarantees one record),
+    // so no duplicate PromotionDecision is created.
+    //
+    // Workflow states set by human actions (RECOMMENDED, UNDER_REVIEW,
+    // APPROVED, REJECTED, PROMOTED, REVERSED) are preserved: only the pure
+    // data snapshots (attendance, fee, policy) are refreshed for those.
+    // DRAFT and BLOCKED are calculation-only states, so the full decision
+    // is recomputed.
+    const PROCEEDED_STATUSES = [
+      "RECOMMENDED",
+      "UNDER_REVIEW",
+      "APPROVED",
+      "REJECTED",
+      "PROMOTED",
+      "REVERSED",
+    ];
+
+    const update = PROCEEDED_STATUSES.includes(existing.workflow_status)
+      ? {
+          attendance_snapshot: calculated.attendanceSnapshot,
+          fee_clearance_snapshot: calculated.feeClearanceSnapshot,
+          policy_id: policy.policyId,
+          policy_version: policy.policyVersion,
+          policy_snapshot: policy.snapshot,
+        }
+      : freshFields;
+
+    return PromotionDecision.findByIdAndUpdate(
+      existing._id,
+      { $set: update },
+      { new: true, runValidators: true },
+    ).populate("failed_subject_ids", "name code");
+  }
+
+  const created = await PromotionDecision.create({
+    ...lookup,
+    ...freshFields,
     createdBy: userId,
   });
+  return created.populate("failed_subject_ids", "name code");
 };
 
 module.exports = {
