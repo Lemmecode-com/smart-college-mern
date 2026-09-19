@@ -951,22 +951,31 @@ export default function AttendanceSummary() {
         }
         
         .progress-center {
-          position: relative;
-          z-index: 1;
-          text-align: center;
-        }
-        
-        .progress-value {
-          font-size: 2.5rem;
-          font-weight: 800;
-          color: #1a4b6d;
-        }
-        
-        .progress-label {
-          font-size: 1.1rem;
-          color: #6c757d;
-          margin-top: 0.25rem;
-        }
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        width: 100%;
+        max-width: 150px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .progress-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1a4b6d;
+        line-height: 1;
+      }
+
+      .progress-label {
+        font-size: 1.1rem;
+        color: #6c757d;
+        margin-top: 0.35rem;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
         
         .progress-legend {
           display: flex;
@@ -1773,7 +1782,9 @@ export default function AttendanceSummary() {
   }
 
   .progress-label {
-    font-size: 0.9rem;
+    font-size: 0.55rem;
+  line-height: 1.2;
+  white-space: nowrap;
   }
 
   .progress-legend {
@@ -1956,7 +1967,9 @@ export default function AttendanceSummary() {
   }
 
   .progress-label {
-    font-size: 0.8rem;
+    font-size: 0.55rem;
+  line-height: 1.2;
+  white-space: nowrap;
   }
 
   /* METRICS */

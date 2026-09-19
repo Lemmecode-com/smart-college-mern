@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ChangeEmailModal from "../../../components/ChangeEmailModal";
 import {
@@ -271,6 +272,24 @@ export default function EditTeacherProfile() {
       }}
     >
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+         {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "5px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/teacher/dashboard" },
+                { label: "My Profile", path: "/profile/my-profile" },
+                { label: "Edit Profile" },
+              ]}
+            />
+          </div>
+        </div>
         {/* Header */}
         <motion.div
           initial={{ y: -20 }}
