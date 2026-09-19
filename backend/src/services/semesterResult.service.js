@@ -320,6 +320,41 @@ exports.publishResult = async ({ resultId, collegeId, userId }) => {
     throw new AppError("SemesterResult not found", 404, "RESULT_NOT_FOUND");
   }
 
+  if (existing.status !== RESULT_STATUS.LOCKED) {
+    throw new AppError(
+      `Cannot publish result: current status is ${existing.status}`,
+      409,
+      "RESULT_INVALID_TRANSITION",
+      { resultId: existing._id, currentStatus: existing.status },
+    );
+  }
+
+  const incompleteSubjects = (existing.subjects || []).filter(
+    (s) => s.status === "INCOMPLETE",
+  );
+
+  if (incompleteSubjects.length > 0) {
+    const issues = incompleteSubjects.map((s) => ({
+      studentId: existing.student_id,
+      studentName: existing.student_id?.fullName || undefined,
+      enrollmentNumber: existing.student_id?.enrollmentNumber || undefined,
+      subjectId: s.subject,
+      subjectName: s.subjectName || s.subject || undefined,
+      issue: s.marksRecorded === false ? "MARKS_NOT_ENTERED" : "MARKS_INCOMPLETE",
+    }));
+
+    throw new AppError(
+      "Result cannot be published because some required marks are incomplete.",
+      409,
+      "INCOMPLETE_MARKS",
+      {
+        totalAffectedStudents: 1,
+        totalIncompleteSubjects: incompleteSubjects.length,
+        issues,
+      },
+    );
+  }
+
   const updated = await SemesterResult.findOneAndUpdate(
     { _id: resultId, college_id: collegeId, status: RESULT_STATUS.LOCKED },
     {
@@ -642,6 +677,48 @@ exports.publishResultsForExam = async ({ collegeId, examId, userId }) => {
   const exam = await Exam.findOne({ _id: examId, college_id: collegeId });
   if (!exam) {
     throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+  }
+
+  const lockedResults = await SemesterResult.find({
+    college_id: collegeId,
+    exam_id: examId,
+    status: RESULT_STATUS.LOCKED,
+  }).populate("student_id", "fullName enrollmentNumber rollNumber").lean();
+
+  const allIssues = [];
+  let totalIncompleteSubjects = 0;
+
+  for (const result of lockedResults) {
+    const incompleteSubjects = (result.subjects || []).filter(
+      (s) => s.status === "INCOMPLETE",
+    );
+
+    if (incompleteSubjects.length > 0) {
+      totalIncompleteSubjects += incompleteSubjects.length;
+      for (const s of incompleteSubjects) {
+        allIssues.push({
+          studentId: result.student_id,
+          studentName: result.student_id?.fullName || undefined,
+          enrollmentNumber: result.student_id?.enrollmentNumber || undefined,
+          subjectId: s.subject,
+          subjectName: s.subjectName || s.subject || undefined,
+          issue: s.marksRecorded === false ? "MARKS_NOT_ENTERED" : "MARKS_INCOMPLETE",
+        });
+      }
+    }
+  }
+
+  if (allIssues.length > 0) {
+    throw new AppError(
+      "Result cannot be published because some required marks are incomplete.",
+      409,
+      "INCOMPLETE_MARKS",
+      {
+        totalAffectedStudents: new Set(allIssues.map((i) => String(i.studentId))).size,
+        totalIncompleteSubjects,
+        issues: allIssues,
+      },
+    );
   }
 
   const now = new Date();
