@@ -1036,10 +1036,14 @@ exports.getStudentTodayTimetable = async (req, res) => {
     const todayDayName = getDayName(today);
     const todayStr = today.toISOString().split("T")[0];
 
-    // Find all PUBLISHED timetables for student's course and division
+    // Find all PUBLISHED timetables matching student's course, current
+    // semester, current academic year, and division.
     const timetableQuery = {
       college_id: req.college_id,
+      department_id: student.department_id,
       course_id: student.course_id,
+      semester: student.currentSemester,
+      academicYear: student.currentAcademicYear,
       status: "PUBLISHED",
     };
     if (student.division) {
