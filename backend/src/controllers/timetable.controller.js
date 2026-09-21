@@ -909,6 +909,8 @@ exports.getStudentTimetable = async (req, res) => {
 
     const filteredSlots = slots.filter((slot) => {
       if (!slot.timetable_id) return false;
+      if (slot.timetable_id.semester !== student.currentSemester) return false;
+      if (slot.timetable_id.academicYear !== student.currentAcademicYear) return false;
       if (slot.timetable_id.division) {
         return student.division && slot.timetable_id.division === student.division;
       }
