@@ -1,295 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  AnimatePresence,
-} from "framer-motion";
-import { Container, Row, Col, Button, Form, Nav } from "react-bootstrap";
-import { Link } from "react-router-dom";
-import "animate.css";
-import "@fortawesome/fontawesome-free/css/all.min.css";
-import api from "../api/axios";
-
-// Feature images from assets
-import studentPortalImg from "../assets/images/studentportal.png";
-import teacherPortalImg from "../assets/images/teacherportal.png";
-import timetableImg from "../assets/images/timetablemgt.png";
-import feeImg from "../assets/images/feemgt.png";
-import analyticsImg from "../assets/images/analyticsandreportsmgt.png";
-import notificationsImg from "../assets/images/notificationsmgt.png";
-import heroBgImg from "../assets/images/hero-bg.jpg";
-
-// Animation Variants
-const fadeInUp = {
-  hidden: { opacity: 0, y: 40 },
-  visible: (custom = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.7,
-      delay: custom * 0.1,
-      ease: [0.25, 0.46, 0.45, 0.94],
-    },
-  }),
-};
-
-const fadeInLeft = {
-  hidden: { opacity: 0, x: -40 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] },
-  },
-};
-
-const fadeInRight = {
-  hidden: { opacity: 0, x: 40 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] },
-  },
-};
-
-const scaleUp = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] },
-  },
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.2 },
-  },
-};
-
-// Animated counter hook
-function useCounter(end, duration = 2000, startOnView = true) {
-  const [count, setCount] = useState(0);
-  const [hasStarted, setHasStarted] = useState(!startOnView);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!startOnView) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasStarted) {
-          setHasStarted(true);
-        }
-      },
-      { threshold: 0.3 },
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [hasStarted, startOnView]);
-
-  useEffect(() => {
-    if (!hasStarted) return;
-    let startTime;
-    let animationFrame;
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * end));
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      }
-    };
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [end, duration, hasStarted]);
-
-  return [count, ref];
-}
-
-export default function LandingPage() {
-  const [scrollY, setScrollY] = useState(0);
-  const [activeSection, setActiveSection] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [openFaq, setOpenFaq] = useState(null);
-  const [activeFeature, setActiveFeature] = useState(0);
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    totalColleges: 0,
-    totalTeachers: 0,
-    systemUptime: "99.9%",
-  });
-  const [statsLoading, setStatsLoading] = useState(true);
-  const { scrollYProgress } = useScroll();
-  const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
-
-  // Fetch public stats from backend
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await api.get("/dashboard/public-stats");
-        const data = res.data;
-        if (data && data.totalColleges !== undefined) {
-          setStats({
-            totalColleges: data.totalColleges,
-            totalStudents: data.totalStudents,
-            totalTeachers: data.totalTeachers,
-            systemUptime: data.systemUptime || "99.9%",
-          });
-        }
-        setStatsLoading(false);
-      } catch {
-        setStats({
-          totalStudents: 10000,
-          totalColleges: 50,
-          totalTeachers: 500,
-          systemUptime: "99.9%",
-        });
-        setStatsLoading(false);
-      }
-    };
-    fetchStats();
-  }, []);
-
-  useEffect(() => {
-  const handleScroll = () => {
-    setScrollY(window.scrollY);
-
-    const sections = ["about", "features", "faq", "contact"];
-    let currentSection = "";
-
-    sections.forEach((sectionId) => {
-      const section = document.getElementById(sectionId);
-
-      if (section) {
-        const rect = section.getBoundingClientRect();
-
-        if (rect.top <= 150 && rect.bottom > 150) {
-          currentSection = sectionId;
-        }
-      }
-    });
-
-    setActiveSection(currentSection);
-  };
-      
-
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape" && selectedImage) {
-        setSelectedImage(null);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    window.addEventListener("keydown", handleKeyDown);
-    handleScroll();
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [selectedImage]);
-
-const scrollToSection = useCallback((sectionId) => {
-  const element = document.getElementById(sectionId);
-
-  if (element) {
-    const offsetTop =
-      element.getBoundingClientRect().top + window.scrollY - 80;
-
-    setActiveSection(sectionId);
-
-    window.scrollTo({
-      top: offsetTop,
-      behavior: "smooth",
-    });
-
-    document.activeElement?.blur();
-  }
-
-  setMobileMenuOpen(false);
-}, []);
-
-  const features = [
-    {
-      icon: "fa-user-graduate",
-      title: "Student Management",
-      description:
-        "Complete student lifecycle management from admission to graduation with detailed records and analytics.",
-      image: studentPortalImg,
-    },
-    {
-      icon: "fa-chalkboard-teacher",
-      title: "Teacher Portal",
-      description:
-        "Empower educators with tools for attendance, grading, timetables, and communication with students.",
-      image: teacherPortalImg,
-    },
-    {
-      icon: "fa-calendar-alt",
-      title: "Timetable Management",
-      description:
-        "Intelligent scheduling system that creates conflict-free timetables for classes and exams.",
-      image: timetableImg,
-    },
-    {
-      icon: "fa-file-invoice-dollar",
-      title: "Fee Management",
-      description:
-        "Automated fee calculation, payment processing, and financial reporting for transparent billing.",
-      image: feeImg,
-    },
-    {
-      icon: "fa-chart-line",
-      title: "Analytics & Reports",
-      description:
-        "Comprehensive dashboards with insights on academics, attendance, and institutional performance.",
-      image: analyticsImg,
-    },
-    {
-      icon: "fa-bell",
-      title: "Notifications",
-      description:
-        "Real-time alerts and notifications to keep all stakeholders informed about important updates.",
-      image: notificationsImg,
-    },
-  ];
-
-
-    const faqs = [
-    {
-      question: "What is NOVAA College ERP?",
-      answer:
-        "NOVAA is an integrated college ERP platform that brings student management, academics, examinations, fees, faculty operations, communication, and institutional workflows together in one connected system.",
-    },
-    {
-      question: "What can I manage using NOVAA?",
-      answer:
-        "NOVAA supports key institutional operations including student lifecycle management, teacher activities, timetable management, examinations, fee management, analytics, reports, and notifications.",
-    },
-    {
-      question: "Can different users have different access levels?",
-      answer:
-        "Yes. NOVAA is designed around different institutional roles so that administrators, faculty, students, parents, and other users can access the information and functionality relevant to their responsibilities.",
-    },
-    {
-      question: "Can NOVAA be used across different institutional departments?",
-      answer:
-        "Yes. NOVAA connects academic and administrative workflows through a centralized platform, helping different departments work with shared institutional information.",
-    },
-    {
-      question: "How can I get started with NOVAA?",
-      answer:
-        "You can get started by contacting the NOVAA team through the contact section or by using the available demo and registration options on this page.",
-    },
-  ];
-  return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
+ @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap');
 
         /* ============================================================
            NOVAA COLOR THEME — Deep Teal/Navy matching the live site
@@ -447,25 +156,14 @@ const scrollToSection = useCallback((sectionId) => {
           transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-.nav-link-landing.active::after {
-  transform: translateX(-50%) scaleX(1);
-}
+        .nav-link-landing:hover::after,
+        .nav-link-landing.active::after { transform: translateX(-50%) scaleX(1); }
 
-.nav-link-landing.active {
-  color: var(--teal-vivid) !important;
-  background: rgba(56,189,248,0.07);
-}
-
-/* Remove persistent focus style after clicking a nav item */
-
-
-.nav-link-landing:focus,
-.nav-link-landing:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-}
-
+        .nav-link-landing:hover,
+        .nav-link-landing.active {
+          color: var(--teal-vivid) !important;
+          background: rgba(56,189,248,0.07);
+        }
 
         .btn-nav-login {
           background: transparent !important;
@@ -475,7 +173,7 @@ const scrollToSection = useCallback((sectionId) => {
           font-size: 0.875rem;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          padding: 0.6rem 1.35rem !important;
+          padding: 0.55rem 1.5rem !important;
           border-radius: 3px !important;
           border: 1px solid rgba(56,189,248,0.5) !important;
           transition: all 0.35s ease;
@@ -508,7 +206,7 @@ const scrollToSection = useCallback((sectionId) => {
         border: 1px solid rgba(56, 189, 248, 0.45) !important;
         background: rgba(56, 189, 248, 0.12) !important;
         color: #ffffff !important;
-        border-radius: 3px !important;
+        border-radius: 8px !important;
         padding: 0.6rem 1.1rem !important;
         font-size: 0.78rem !important;
         font-weight: 600 !important;
@@ -516,7 +214,7 @@ const scrollToSection = useCallback((sectionId) => {
       }
 
       .btn-nav-demo:hover {
-        background: #38bdf8 !important;
+        background: #1f81aa !important;
         border-color: #38bdf8 !important;
         color: #071a24 !important;
         transform: translateY(-1px);
@@ -633,7 +331,7 @@ const scrollToSection = useCallback((sectionId) => {
 
         .hero-blob-2 {
           width: 550px; height: 550px;
-          background: #7dd3fc;
+          background: #226f92;
           bottom: -18%; left: -12%;
           animation: blobFloat2 20s ease-in-out infinite;
         }
@@ -774,64 +472,116 @@ const scrollToSection = useCallback((sectionId) => {
           opacity: 0.8;
         }
 
-        .btn-hero-primary {
-          font-family: var(--font-body);
-          font-weight: 600;
-          font-size: 0.875rem;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          padding: 1.05rem 2.5rem;
-          border-radius: 3px;
-          border: none;
-          background: #1a3a4a;
-          color: white;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 4px 20px rgba(10,31,43,0.4);
-          position: relative;
-          overflow: hidden;
-        }
+       /* ─── HERO BUTTONS ─── */
 
-        .btn-hero-primary::before {
-          content: '';
-          position: absolute;
-          top: 50%; left: 50%;
-          width: 0; height: 0;
-          border-radius: 50%;
-          background: rgba(56,189,248,0.2);
-          transform: translate(-50%, -50%);
-          transition: width 0.6s ease, height 0.6s ease;
-        }
+.btn-hero-primary {
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  width: 192px;
+  height: 58px;
+  display: inline-flex;
+  align-items: center;
+justify-content: center;
 
-        .btn-hero-primary:hover::before { width: 300px; height: 300px; }
+  padding: 1.05rem 2.5rem;
+  border-radius: 3px;
 
-        .btn-hero-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 36px rgba(10,31,43,0.5);
-          background: #0d2d3a;
-          color: white;
-        }
+  /* Force NOVAA dark button over Bootstrap */
+  background: #1a3a4a !important;
+  background-color: #1a3a4a !important;
+  color: #ffffff !important;
 
-        .btn-hero-secondary {
-          font-family: var(--font-body);
-          font-weight: 500;
-          font-size: 0.875rem;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          padding: 1.05rem 2.5rem;
-          border-radius: 3px;
-          background: transparent;
-          color: rgba(255,255,255,0.92);
-          border: 1px solid rgba(255,255,255,0.28);
-          transition: all 0.35s ease;
-          backdrop-filter: blur(8px);
-        }
+  border: 1px solid transparent !important;
 
-        .btn-hero-secondary:hover {
-          background: rgba(255,255,255,0.09);
-          border-color: rgba(56,189,248,0.5);
-          transform: translateY(-2px);
-          color: white;
-        }
+  transition:
+    transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.4s ease;
+
+  box-shadow: 0 4px 20px rgba(10,31,43,0.4);
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* Existing circular hover effect */
+.btn-hero-primary::before {
+  content: '';
+  position: absolute;
+
+  top: 50%;
+  left: 50%;
+
+  width: 0;
+  height: 0;
+
+  border-radius: 50%;
+
+  background: rgba(56,189,248,0.2);
+
+  transform: translate(-50%, -50%);
+
+  transition:
+    width 0.6s ease,
+    height 0.6s ease;
+}
+
+.btn-hero-primary:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-hero-primary:hover {
+  transform: translateY(-2px);
+
+  box-shadow: 0 12px 36px rgba(10,31,43,0.5);
+
+  background: #0d2d3a !important;
+  background-color: #0d2d3a !important;
+
+  color: #ffffff !important;
+}
+
+
+/* ─── SECONDARY HERO BUTTON ─── */
+
+.btn-hero-secondary {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  padding: 1.05rem 2.5rem;
+  border-radius: 3px;
+
+  /* Transparent like the reference */
+  background: transparent !important;
+  background-color: transparent !important;
+
+  color: rgba(255,255,255,0.92) !important;
+
+  border: 1px solid rgba(255,255,255,0.28) !important;
+
+  transition: all 0.35s ease;
+
+  backdrop-filter: blur(8px);
+}
+
+.btn-hero-secondary:hover {
+  background: rgba(255,255,255,0.09) !important;
+  background-color: rgba(255,255,255,0.09) !important;
+
+  border-color: rgba(56,189,248,0.5) !important;
+
+  transform: translateY(-2px);
+
+  color: #ffffff !important;
+}
 
         /* ─── SECTION BASE ─── */
         .section-landing {
@@ -1577,32 +1327,32 @@ const scrollToSection = useCallback((sectionId) => {
 
         .about-offers-grid {
           display: grid;
-          grid-template-columns: repeat(5, 198px);
+          grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 18px;
 
           width: 100%;
           max-width: 1180px;
-          justify-content: center;
+
           margin: 0 auto;
 
           position: relative;
           z-index: 1;
         }
           .about-offer-index {
-          position: absolute;
+  position: absolute;
 
-          top: 24px;
-          right: 24px;
+  top: 24px;
+  right: 24px;
 
-            font-family: var(--font-body);
+  font-family: var(--font-body);
 
-            font-size: 0.62rem;
-            font-weight: 700;
+  font-size: 0.62rem;
+  font-weight: 700;
 
-            letter-spacing: 0.12em;
+  letter-spacing: 0.12em;
 
-            color: rgba(8, 44, 58, 0.3);
-          }
+  color: rgba(8, 44, 58, 0.3);
+}
           .about-offer-card {
             min-height: 285px;
 
@@ -1901,7 +1651,7 @@ const scrollToSection = useCallback((sectionId) => {
 .workflow-timeline {
   width: 100%;
   max-width: 1320px;
-  gap: 24px;
+
   margin: 0 auto;
 
   display: grid;
@@ -2103,7 +1853,7 @@ const scrollToSection = useCallback((sectionId) => {
   position: absolute;
 
   top: 52px;
-  right: -23px;
+  right: -11px;
 
   width: 22px;
   height: 22px;
@@ -2118,41 +1868,16 @@ const scrollToSection = useCallback((sectionId) => {
 
   color: var(--teal-vivid);
 
-  font-size: 0.6rem;
+  font-size: 0.55rem;
 
   z-index: 4;
 }
 
-.workflow-connector {
-  position: absolute;
-  top: 82px;
-  right: -26px;
-
-  width: 25px;
-  height: 25px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--teal-vivid);
-
-  font-size: 0.7rem;
-  font-weight: 700;
-
-  z-index: 10;
-
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  box-shadow: 0 3px 10px rgba(56, 189, 248, 0.12);
-}
 
 /* Bottom message */
 
 .workflow-bottom-note {
-  margin: 28px auto 0;
+  margin: 40px auto 0;
 
   display: flex;
   align-items: center;
@@ -2928,232 +2653,55 @@ const scrollToSection = useCallback((sectionId) => {
 
 /* ─── FOOTER ─── */
 
-/* ─── FOOTER ─── */
-
-.footer-landing {
-  background: #0a1f2b;
-  padding: 58px 0 24px;
-  position: relative;
-  overflow: hidden;
-}
-
-.footer-landing::before {
-  content: '';
-  position: absolute;
-
-  top: 0;
-  left: 0;
-  right: 0;
-
-  height: 1px;
-
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(56,189,248,0.4),
-    transparent
-  );
-}
-
-.footer-landing::after {
-  content: '';
-
-  position: absolute;
-
-  width: 420px;
-  height: 420px;
-
-  right: -220px;
-  bottom: -250px;
-
-  border-radius: 50%;
-
-  background: radial-gradient(
-    circle,
-    rgba(56,189,248,0.08),
-    transparent 68%
-  );
-
-  pointer-events: none;
-}
-
-
-/* ─── FOOTER MAIN ─── */
-
-.footer-main-row {
-  position: relative;
-  z-index: 1;
-}
-
-
-/* ─── BRAND ─── */
-
-.footer-brand {
-  margin-bottom: 18px;
-}
-
-.footer-brand a {
-  display: inline-flex;
-  align-items: center;
-}
-
-.footer-brand img {
-  height: 42px;
-  width: auto;
-
-  display: block;
-
-  transition:
-    transform 0.3s ease,
-    filter 0.3s ease;
-}
-
-.footer-brand a:hover img {
-  transform: translateY(-2px);
-  filter: brightness(1.08);
-}
-
-.footer-body-text {
-  max-width: 470px;
-
-  margin: 0;
-
-  font-family: var(--font-body);
-  font-size: 0.82rem;
-  line-height: 1.8;
-  font-weight: 300;
-
-  color: rgba(255,255,255,0.58);
-}
-
-
-/* ─── QUICK LINKS ─── */
-
-.footer-links-wrapper {
+.role-card-footer {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-}
+  align-items: center;
 
-.footer-links-label {
-  display: block;
+  margin-top: auto;
+  padding-top: 20px;
 
-  margin-bottom: 18px;
+  border-top: 1px solid rgba(8, 44, 58, 0.06);
 
   font-family: var(--font-body);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
+
+  font-size: 0.6rem;
+  font-weight: 700;
+
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 
   color: var(--teal-vivid);
 }
 
-.footer-links {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 
-  flex-wrap: wrap;
 
-  gap: 24px;
-}
+/* ─── BOTTOM ACCENT ─── */
 
-.footer-links a {
-  position: relative;
-
-  font-family: var(--font-body);
-  font-size: 0.72rem;
-  font-weight: 500;
-
-  letter-spacing: 0.04em;
-
-  color: rgba(255,255,255,0.68);
-
-  text-decoration: none;
-
-  transition:
-    color 0.3s ease,
-    transform 0.3s ease;
-}
-
-.footer-links a::after {
-  content: '';
-
+.role-card-accent {
   position: absolute;
 
   left: 0;
-  bottom: -5px;
+  bottom: 0;
 
-  width: 0;
-  height: 1px;
-
-  background: var(--teal-vivid);
-
-  transition: width 0.3s ease;
-}
-
-.footer-links a:hover {
-  color: white;
-  transform: translateY(-1px);
-}
-
-.footer-links a:hover::after {
   width: 100%;
+  height: 2px;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--teal-vivid),
+      var(--teal-mid)
+    );
+
+  transform: scaleX(0);
+
+  transform-origin: left;
+
+  transition: transform 0.4s ease;
 }
 
-
-/* ─── DIVIDER ─── */
-
-.footer-divider {
-  position: relative;
-  z-index: 1;
-
-  height: 1px;
-
-  margin: 42px 0 22px;
-
-  background: rgba(255,255,255,0.08);
-
-  border: 0;
-}
-
-
-/* ─── FOOTER BOTTOM ─── */
-
-.footer-bottom-row {
-  position: relative;
-  z-index: 1;
-}
-
-.footer-copy {
-  font-family: var(--font-body);
-
-  color: rgba(255,255,255,0.42);
-
-  font-size: 0.68rem;
-
-  letter-spacing: 0.02em;
-}
-
-.version-badge {
-  display: inline-block;
-
-  background: rgba(56,189,248,0.12);
-
-  color: var(--teal-vivid);
-
-  padding: 0.25rem 0.65rem;
-
-  border-radius: 3px;
-
-  font-size: 0.6rem;
-
-  font-weight: 600;
-
-  border: 1px solid rgba(56,189,248,0.22);
-
-  letter-spacing: 0.06em;
+.role-experience-card:hover .role-card-accent {
+  transform: scaleX(1);
 }
 
 
@@ -3965,818 +3513,131 @@ const scrollToSection = useCallback((sectionId) => {
           font-size: 0.875rem;
         }
 
-/* ─── FAQ SECTION ─── */
+        /* ─── CONTACT SECTION ─── */
+        .contact-section-bg {
+          background: var(--paper);
+          position: relative;
+        }
+
+        .contact-section-bg::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, var(--border), transparent);
+        }
+
+        .contact-card {
+          background: var(--surface);
+          border-radius: var(--radius-lg);
+          overflow: hidden;
+          border: 1px solid var(--border);
+          box-shadow: var(--shadow-md);
+          transition: all 0.45s ease;
+          position: relative;
+        }
+
+        .contact-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 64px; right: 64px;
+          height: 2px;
+          background: var(--grad-teal);
+          opacity: 0.7;
+        }
+
+        .contact-card:hover {
+          box-shadow: var(--shadow-lg);
+          border-color: rgba(56,189,248,0.12);
+        }
+
+        .contact-card-inner { padding: 56px; }
+
+        .contact-headline {
+          font-family: var(--font-display);
+          font-weight: 700;
+          color: var(--ink);
+          font-size: 1.75rem;
+          letter-spacing: -0.025em;
+        }
+
+        .contact-subtext {
+          font-family: var(--font-body);
+          color: var(--ink-50);
+          font-weight: 300;
+          font-size: 0.9375rem;
+        }
+
+        .form-label-landing {
+          font-family: var(--font-body);
+          font-weight: 500;
+          font-size: 0.8125rem;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: var(--ink);
+          margin-bottom: 0.5rem;
+          display: block;
+        }
+
+        .form-control-landing,
+        .form-select-landing {
+          font-family: var(--font-body);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          padding: 0.8rem 1rem;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          font-size: 0.9375rem;
+          background: var(--surface-warm);
+          color: var(--ink);
+          font-weight: 300;
+        }
+
+        .form-control-landing:focus,
+        .form-select-landing:focus {
+          border-color: var(--teal-vivid);
+          box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+          outline: none;
+          background: white;
+        }
+
+        .form-control-landing:hover,
+        .form-select-landing:hover { border-color: rgba(56,189,248,0.35); }
+
+        .form-control-landing::placeholder { color: var(--ink-20); }
+
+        .btn-contact-submit {
+          font-family: var(--font-body);
+          font-weight: 600;
+          font-size: 0.875rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          padding: 1rem 3rem;
+          border-radius: 3px;
+          border: none;
+          background: var(--grad-ink);
+          color: white;
+          transition: all 0.4s ease;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .btn-contact-submit::before {
+          content: '';
+          position: absolute;
+          top: 0; left: -100%;
+          width: 100%; height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(56,189,248,0.18), transparent);
+          transition: left 0.5s ease;
+        }
+
+        .btn-contact-submit:hover::before { left: 100%; }
+
+        .btn-contact-submit:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 30px rgba(10,31,43,0.3);
+          color: white;
+        }
 
-.faq-section-bg {
-  background: var(--paper);
-  position: relative;
-  overflow: hidden;
-}
-
-.faq-section-bg::before {
-  content: '';
-  position: absolute;
-  width: 420px;
-  height: 420px;
-  right: -180px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: radial-gradient(
-    circle,
-    rgba(56,189,248,0.07),
-    transparent 68%
-  );
-  pointer-events: none;
-}
-
-.faq-layout {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.8fr) minmax(500px, 1.2fr);
-  gap: 90px;
-  align-items: start;
-  max-width: 1120px;
-  margin: 0 auto;
-}
-
-
-/* ─── FAQ INTRO ─── */
-
-.faq-intro {
-  padding-top: 12px;
-}
-
-.faq-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-
-  margin-bottom: 20px;
-
-  font-family: var(--font-body);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-
-  color: var(--teal-mid);
-}
-
-.faq-eyebrow i {
-  color: var(--teal-vivid);
-  font-size: 0.75rem;
-}
-
-.faq-title {
-  margin: 0 0 22px;
-
-  font-family: var(--font-display);
-  font-size: clamp(2.4rem, 4vw, 3.5rem);
-  font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: -0.035em;
-
-  color: var(--ink);
-}
-
-.faq-title span {
-  color: var(--teal-mid);
-  font-style: italic;
-}
-
-.faq-description {
-  max-width: 390px;
-
-  margin: 0;
-
-  font-family: var(--font-body);
-  font-size: 0.92rem;
-  line-height: 1.8;
-  font-weight: 300;
-
-  color: var(--ink-50);
-}
-
-
-/* ─── SUPPORT NOTE ─── */
-
-.faq-support-note {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-
-  margin-top: 38px;
-  padding-top: 24px;
-
-  border-top: 1px solid rgba(10,31,43,0.08);
-}
-
-.faq-support-icon {
-  width: 42px;
-  height: 42px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border-radius: 50%;
-
-  background: rgba(56,189,248,0.10);
-  color: var(--teal-mid);
-
-  font-size: 0.85rem;
-}
-
-.faq-support-note span {
-  display: block;
-
-  margin-bottom: 3px;
-
-  font-family: var(--font-body);
-  font-size: 0.75rem;
-  font-weight: 600;
-
-  color: var(--ink);
-}
-
-.faq-support-note p {
-  margin: 0;
-
-  font-family: var(--font-body);
-  font-size: 0.68rem;
-  line-height: 1.5;
-
-  color: var(--ink-50);
-}
-
-
-/* ─── FAQ LIST ─── */
-
-.faq-list {
-  width: 100%;
-}
-
-.faq-item {
-  position: relative;
-
-  margin-bottom: 12px;
-
-  background: rgba(255,255,255,0.72);
-
-  border: 1px solid rgba(10,31,43,0.08);
-  border-radius: 10px;
-
-  overflow: hidden;
-
-  transition:
-    border-color 0.3s ease,
-    box-shadow 0.3s ease,
-    transform 0.3s ease;
-}
-
-.faq-item:hover {
-  border-color: rgba(56,189,248,0.25);
-}
-
-.faq-item.open {
-  border-color: rgba(56,189,248,0.35);
-  box-shadow: 0 12px 32px rgba(10,31,43,0.07);
-}
-
-
-/* ─── QUESTION ─── */
-
-.faq-question {
-  width: 100%;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 20px;
-
-  padding: 21px 22px;
-
-  border: none;
-  outline: none;
-
-  background: transparent;
-
-  text-align: left;
-
-  font-family: var(--font-body);
-  font-size: 0.88rem;
-  font-weight: 600;
-
-  color: var(--ink);
-
-  cursor: pointer;
-
-  transition: color 0.3s ease;
-}
-
-.faq-question > span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.faq-number {
-  flex-shrink: 0;
-
-  font-family: var(--font-body);
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-
-  color: var(--teal-mid);
-}
-
-.faq-item.open .faq-question {
-  color: var(--teal-mid);
-}
-
-
-/* ─── TOGGLE ─── */
-
-.faq-toggle {
-  width: 30px;
-  height: 30px;
-
-  flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: rgba(56,189,248,0.08);
-  color: var(--teal-mid);
-
-  font-size: 0.62rem;
-
-  transition:
-    transform 0.3s ease,
-    background 0.3s ease,
-    color 0.3s ease;
-}
-
-.faq-item.open .faq-toggle {
-  background: var(--teal-mid);
-  color: white;
-}
-
-
-/* ─── ANSWER ─── */
-
-.faq-answer-wrapper {
-  overflow: hidden;
-}
-
-.faq-answer {
-  padding: 0 68px 22px 68px;
-
-  font-family: var(--font-body);
-  font-size: 0.78rem;
-  font-weight: 300;
-  line-height: 1.8;
-
-  color: var(--ink-50);
-}
-
-   /* ─── CONTACT SECTION ─── */
-
-.contact-section-bg {
-  background: var(--paper);
-  position: relative;
-  overflow: hidden;
-}
-
-.contact-section-bg::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--border),
-    transparent
-  );
-}
-
-.contact-bg-glow {
-  position: absolute;
-  width: 420px;
-  height: 420px;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(10px);
-}
-
-.contact-bg-glow-left {
-  left: -240px;
-  top: 20%;
-  background: radial-gradient(
-    circle,
-    rgba(56,189,248,0.07),
-    transparent 68%
-  );
-}
-
-.contact-bg-glow-right {
-  right: -220px;
-  bottom: 0;
-  background: radial-gradient(
-    circle,
-    rgba(26,138,170,0.06),
-    transparent 68%
-  );
-}
-
-
-/* ─── CONTACT HEADING ─── */
-
-.contact-section-heading {
-  position: relative;
-  z-index: 1;
-  margin-bottom: 60px;
-}
-
-.contact-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-
-  margin-bottom: 16px;
-
-  font-family: var(--font-body);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-
-  color: var(--teal-mid);
-}
-
-.contact-eyebrow i {
-  color: var(--teal-vivid);
-  font-size: 0.72rem;
-}
-
-.contact-main-row {
-  position: relative;
-  z-index: 1;
-}
-
-
-/* ─── LEFT CONTACT PANEL ─── */
-
-.contact-info-panel {
-  height: 100%;
-
-  padding: 48px 42px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #0a1f2b 0%,
-      #0d2d3a 65%,
-      #123f50 100%
-    );
-
-  border-radius: var(--radius-lg);
-
-  position: relative;
-  overflow: hidden;
-
-  box-shadow: 0 18px 50px rgba(10,31,43,0.15);
-}
-
-.contact-info-panel::before {
-  content: '';
-  position: absolute;
-  width: 280px;
-  height: 280px;
-  right: -130px;
-  top: -130px;
-
-  border-radius: 50%;
-
-  background: radial-gradient(
-    circle,
-    rgba(56,189,248,0.16),
-    transparent 68%
-  );
-}
-
-.contact-info-panel::after {
-  content: '';
-  position: absolute;
-  left: 42px;
-  right: 42px;
-  bottom: 0;
-
-  height: 1px;
-
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(56,189,248,0.35),
-    transparent
-  );
-}
-
-.contact-panel-label {
-  display: block;
-
-  margin-bottom: 18px;
-
-  font-family: var(--font-body);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-
-  color: var(--teal-vivid);
-}
-
-.contact-info-panel h3 {
-  position: relative;
-  z-index: 1;
-
-  margin: 0 0 20px;
-
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 3vw, 2.8rem);
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.035em;
-
-  color: white;
-}
-
-.contact-info-panel h3 span {
-  color: var(--teal-vivid);
-  font-style: italic;
-}
-
-.contact-info-description {
-  position: relative;
-  z-index: 1;
-
-  max-width: 430px;
-
-  margin: 0;
-
-  font-family: var(--font-body);
-  font-size: 0.86rem;
-  line-height: 1.8;
-  font-weight: 300;
-
-  color: rgba(255,255,255,0.68);
-}
-
-
-/* ─── CONTACT INFO ITEMS ─── */
-
-.contact-info-list {
-  position: relative;
-  z-index: 1;
-
-  margin-top: 38px;
-}
-
-.contact-info-item {
-  display: flex;
-  align-items: center;
-
-  gap: 14px;
-
-  padding: 16px 0;
-
-  border-top: 1px solid rgba(255,255,255,0.08);
-}
-
-.contact-info-item:last-child {
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-
-.contact-info-icon {
-  width: 40px;
-  height: 40px;
-
-  flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 8px;
-
-  background: rgba(56,189,248,0.10);
-  border: 1px solid rgba(56,189,248,0.14);
-
-  color: var(--teal-vivid);
-
-  font-size: 0.78rem;
-}
-
-.contact-info-item span {
-  display: block;
-
-  margin-bottom: 3px;
-
-  font-family: var(--font-body);
-  font-size: 0.76rem;
-  font-weight: 600;
-
-  color: rgba(255,255,255,0.92);
-}
-
-.contact-info-item p {
-  margin: 0;
-
-  font-family: var(--font-body);
-  font-size: 0.68rem;
-  font-weight: 300;
-
-  color: rgba(255,255,255,0.50);
-}
-
-.contact-panel-bottom {
-  position: relative;
-  z-index: 1;
-
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  margin-top: 30px;
-
-  font-family: var(--font-body);
-  font-size: 0.7rem;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-
-  color: rgba(255,255,255,0.55);
-}
-
-.contact-panel-bottom i {
-  color: var(--teal-vivid);
-}
-
-
-/* ─── CONTACT FORM CARD ─── */
-
-.contact-card {
-  height: 100%;
-
-  background: var(--surface);
-
-  border-radius: var(--radius-lg);
-
-  overflow: hidden;
-
-  border: 1px solid var(--border);
-
-  box-shadow: var(--shadow-md);
-
-  transition: all 0.45s ease;
-
-  position: relative;
-}
-
-.contact-card::before {
-  content: '';
-
-  position: absolute;
-
-  top: 0;
-  left: 64px;
-  right: 64px;
-
-  height: 2px;
-
-  background: var(--grad-teal);
-
-  opacity: 0.7;
-}
-
-.contact-card:hover {
-  box-shadow: var(--shadow-lg);
-  border-color: rgba(56,189,248,0.15);
-}
-
-.contact-card-inner {
-  padding: 48px;
-}
-
-
-/* ─── FORM HEADING ─── */
-
-.contact-form-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 20px;
-
-  margin-bottom: 8px;
-}
-
-.contact-form-heading > div:first-child > span {
-  display: block;
-
-  margin-bottom: 7px;
-
-  font-family: var(--font-body);
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-
-  color: var(--teal-mid);
-}
-
-.contact-form-heading h3 {
-  margin: 0;
-
-  font-family: var(--font-display);
-  font-size: 1.65rem;
-  font-weight: 700;
-  letter-spacing: -0.025em;
-
-  color: var(--ink);
-}
-
-.contact-form-icon {
-  width: 46px;
-  height: 46px;
-
-  flex-shrink: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  background: rgba(56,189,248,0.09);
-
-  color: var(--teal-mid);
-
-  font-size: 0.8rem;
-}
-
-.contact-subtext {
-  margin-bottom: 32px;
-
-  font-family: var(--font-body);
-  color: var(--ink-50);
-  font-weight: 300;
-  font-size: 0.85rem;
-}
-
-
-/* ─── FORM FIELDS ─── */
-
-.form-label-landing {
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-
-  color: var(--ink);
-
-  margin-bottom: 0.5rem;
-
-  display: block;
-}
-
-.form-control-landing,
-.form-select-landing {
-  font-family: var(--font-body);
-
-  border: 1px solid var(--border);
-
-  border-radius: var(--radius-sm);
-
-  padding: 0.8rem 1rem;
-
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  font-size: 0.875rem;
-
-  background: var(--surface-warm);
-
-  color: var(--ink);
-
-  font-weight: 300;
-}
-
-.form-control-landing:focus,
-.form-select-landing:focus {
-  border-color: var(--teal-vivid);
-
-  box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
-
-  outline: none;
-
-  background: white;
-}
-
-.form-control-landing:hover,
-.form-select-landing:hover {
-  border-color: rgba(56,189,248,0.35);
-}
-
-.form-control-landing::placeholder {
-  color: var(--ink-20);
-}
-
-
-/* ─── SEND BUTTON ─── */
-
-.btn-contact-submit {
-  width: 100%;
-
-  min-height: 54px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  gap: 12px;
-
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 0.78rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-
-  padding: 0.9rem 2rem;
-
-  border-radius: 3px;
-
-  border: none !important;
-
-  background: var(--grad-ink) !important;
-  color: white !important;
-
-  transition: all 0.4s ease;
-
-  position: relative;
-  overflow: hidden;
-}
-
-.btn-contact-submit::before {
-  content: '';
-
-  position: absolute;
-
-  top: 0;
-  left: -100%;
-
-  width: 100%;
-  height: 100%;
-
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(56,189,248,0.18),
-    transparent
-  );
-
-  transition: left 0.5s ease;
-}
-
-.btn-contact-submit:hover::before {
-  left: 100%;
-}
-
-.btn-contact-submit:hover {
-  transform: translateY(-2px);
-
-  box-shadow: 0 10px 30px rgba(10,31,43,0.3);
-
-  color: white !important;
-
-  background: var(--grad-ink) !important;
-}
-
-.btn-contact-submit i {
-  transition: transform 0.3s ease;
-}
-
-.btn-contact-submit:hover i {
-  transform: translateX(4px);
-}
         /* ─── FOOTER ─── */
         .footer-landing {
           background: #0a1f2b;
@@ -4839,7 +3700,7 @@ const scrollToSection = useCallback((sectionId) => {
           bottom: 32px; right: 32px;
           width: 48px; height: 48px;
           background: var(--ink);
-          border-radius: 50%;
+          border-radius: 3px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -4946,10 +3807,6 @@ const scrollToSection = useCallback((sectionId) => {
           .about-numbers-grid { max-width: 720px; }
           .contact-card-inner { padding: 48px; }
         }
-          .faq-layout {
-  gap: 55px;
-  max-width: 960px;
-}
 
         @media (max-width: 991.98px) {
           .hero-section-landing { padding: 120px 0 100px; min-height: 90vh; }
@@ -4963,54 +3820,11 @@ const scrollToSection = useCallback((sectionId) => {
             gap: 42px;
             padding: 48px 44px;
           }
-            .footer-links-wrapper {
-  align-items: flex-start;
-}
-
-.footer-links {
-  justify-content: flex-start;
-}
-            .contact-section-heading {
-  margin-bottom: 45px;
-}
-
-.contact-info-panel {
-  padding: 40px 36px;
-}
-
-.contact-info-panel h3 {
-  font-size: 2.3rem;
-}
-
-.contact-card-inner {
-  padding: 40px 36px;
-}
 
           .operations-confidence-section {
             padding: 75px 0 70px;
           }
-.faq-layout {
-  grid-template-columns: 1fr;
-  gap: 45px;
-  max-width: 720px;
-}
 
-.faq-intro {
-  text-align: center;
-}
-
-.faq-description {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.faq-support-note {
-  justify-content: center;
-  max-width: 360px;
-  margin-left: auto;
-  margin-right: auto;
-  text-align: left;
-}
           .operations-section-heading {
             margin-bottom: 40px;
           }
@@ -5257,113 +4071,11 @@ const scrollToSection = useCallback((sectionId) => {
           width: 100%;
           max-width: 100%;
         }
-.footer-landing {
-  padding: 45px 0 20px;
-}
 
-.footer-body-text {
-  max-width: 100%;
-}
-
-.footer-links-wrapper {
-  align-items: flex-start;
-  margin-top: 10px;
-}
-
-.footer-links {
-  justify-content: flex-start;
-  gap: 16px 22px;
-}
-
-.footer-divider {
-  margin: 32px 0 18px;
-}
-
-.footer-copy {
-  font-size: 0.64rem;
-}
-
-.footer-bottom-row {
-  gap: 12px;
-}
-
-.contact-section-heading {
-  margin-bottom: 35px;
-}
-
-.contact-info-panel {
-  padding: 32px 24px;
-}
-
-.contact-info-panel h3 {
-  font-size: 2rem;
-}
-
-.contact-info-description {
-  font-size: 0.78rem;
-}
-
-.contact-info-list {
-  margin-top: 28px;
-}
-
-.contact-card-inner {
-  padding: 32px 24px;
-}
-
-.contact-form-heading h3 {
-  font-size: 1.35rem;
-}
-
-.contact-form-icon {
-  width: 40px;
-  height: 40px;
-}
-
-.form-control-landing,
-.form-select-landing {
-  font-size: 0.8rem;
-}
         .operations-confidence-section {
             padding: 60px 0 55px;
           }
-.faq-layout {
-  gap: 30px;
-}
 
-.faq-title {
-  font-size: clamp(2rem, 8vw, 2.7rem);
-}
-
-.faq-description {
-  font-size: 0.8rem;
-}
-
-.faq-question {
-  padding: 17px 15px;
-  font-size: 0.78rem;
-  gap: 12px;
-}
-
-.faq-question > span:first-child {
-  gap: 10px;
-}
-
-.faq-number {
-  font-size: 0.52rem;
-}
-
-.faq-toggle {
-  width: 27px;
-  height: 27px;
-  font-size: 0.55rem;
-}
-
-.faq-answer {
-  padding: 0 48px 18px 48px;
-  font-size: 0.7rem;
-  line-height: 1.7;
-}
           .operations-section-heading {
             margin-bottom: 32px;
           }
@@ -5947,78 +4659,6 @@ const scrollToSection = useCallback((sectionId) => {
             padding: 28px 18px;
           }
 
-          .contact-section-heading {
-  margin-bottom: 35px;
-}
-
-.contact-info-panel {
-  padding: 32px 24px;
-}
-
-.contact-info-panel h3 {
-  font-size: 2rem;
-}
-
-.contact-info-description {
-  font-size: 0.78rem;
-}
-
-.contact-info-list {
-  margin-top: 28px;
-}
-
-.contact-card-inner {
-  padding: 32px 24px;
-}
-
-.contact-form-heading h3 {
-  font-size: 1.35rem;
-}
-
-.contact-form-icon {
-  width: 40px;
-  height: 40px;
-}
-
-.form-control-landing,
-.form-select-landing {
-  font-size: 0.8rem;
-}
-.faq-section-bg {
-  overflow: hidden;
-}
-
-.faq-title {
-  font-size: 2rem;
-}
-
-.faq-eyebrow {
-  font-size: 0.58rem;
-}
-
-.faq-description {
-  font-size: 0.75rem;
-}
-
-.faq-support-note {
-  margin-top: 28px;
-  padding-top: 20px;
-}
-
-.faq-question {
-  padding: 15px 13px;
-  font-size: 0.72rem;
-}
-
-.faq-answer {
-  padding: 0 40px 16px 40px;
-  font-size: 0.66rem;
-}
-
-.faq-toggle {
-  width: 25px;
-  height: 25px;
-}
           .operations-confidence-section {
             padding: 50px 0 45px;
           }
@@ -6287,47 +4927,13 @@ const scrollToSection = useCallback((sectionId) => {
           .form-control-landing, .form-select-landing { padding: 0.55rem 0.625rem; font-size: 0.75rem; border-radius: 6px; }
           .btn-contact-submit { padding: 0.7rem 1.5rem; font-size: 0.6875rem; max-width: 100%; }
 
-          .footer-landing {
-  padding: 38px 0 18px;
-}
-
-.footer-brand img {
-  height: 36px;
-}
-
-.footer-body-text {
-  font-size: 0.72rem;
-  line-height: 1.7;
-}
-
-.footer-links-label {
-  font-size: 0.56rem;
-  margin-bottom: 14px;
-}
-
-.footer-links {
-  gap: 14px 18px;
-}
-
-.footer-links a {
-  font-size: 0.65rem;
-}
-
-.footer-divider {
-  margin: 28px 0 16px;
-}
-
-.footer-copy {
-  font-size: 0.58rem;
-}
-
-.version-badge {
-  margin-top: 8px;
-  font-size: 0.55rem;
-}
+          .footer-landing { padding: 12px 0 0px; }
+          .footer-brand-text { font-size: 1rem; margin-bottom: 0.625rem; }
+          .footer-body-text { font-size: 0.75rem; line-height: 1.65; }
+          .footer-copy { font-size: 0.625rem; }
           .version-badge { font-size: 0.55rem; padding: 0.1rem 0.375rem; }
 
-          top { bottom: 12px; right: 12px; width: 38px; height: 38px; font-size: 0.875rem; .floating-}
+          .floating-top { bottom: 12px; right: 12px; width: 38px; height: 38px; font-size: 0.875rem; }
 
           .navbar-brand-landing { font-size: 1.25rem !important; }
           .navbar-brand-landing img { height: 32px; }
@@ -6454,1656 +5060,3 @@ const scrollToSection = useCallback((sectionId) => {
           .hero-section-landing { background: white !important; color: black !important; min-height: auto; }
           .section-landing { padding: 40px 0 !important; }
         }
-      `}</style>
-
-      {/* Scroll Progress Bar */}
-      <motion.div className="scroll-progress-bar" style={{ scaleX }} />
-
-      {/* ─── NAVIGATION ─── */}
-      <nav
-        className={`landing-navbar navbar navbar-expand-lg navbar-dark ${scrollY > 50 ? "scrolled" : ""}`}
-      >
-        <Container>
-          <a
-            className="navbar-brand-landing"
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-          >
-            <img src="/novaaa.png" alt="NOVAA Logo" />
-          </a>
-          <button
-            className="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
-            aria-controls="navbarNav"
-            aria-expanded="false"
-            aria-label="Toggle navigation"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            style={{ borderColor: "rgba(56,189,248,0.35)" }}
-          >
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          <div className="collapse navbar-collapse" id="navbarNav">
-            <Nav
-              className="ms-auto align-items-center"
-              style={{ gap: "0.25rem" }}
-            >
-              <Nav.Item>
-                <Nav.Link
-className={`nav-link-landing ${
-  activeSection === "about" ? "active" : ""
-}`}
-                  href="#about"
-                  onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("about");
-                  setMobileMenuOpen(false);
-                }}
-                >
-                  About
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link
-                  className={`nav-link-landing ${
-  activeSection === "features" ? "active" : ""
-}`}   
-                  href="#features"
-                  onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("features");
-                  setMobileMenuOpen(false);
-                }}
-                >
-                  Features
-                </Nav.Link>
-              </Nav.Item>
-
-              <Nav.Item>
-  <Nav.Link
-    className={`nav-link-landing ${
-      activeSection === "faq" ? "active" : ""
-    }`}
-    href="#faq"
-    onClick={(e) => {
-      e.preventDefault();
-      scrollToSection("faq");
-      setMobileMenuOpen(false);
-    }}
-  >
-    FAQ
-  </Nav.Link>
-</Nav.Item>
-              <Nav.Item>
-                <Nav.Link
-                  className={`nav-link-landing ${
-  activeSection === "contact" ? "active" : ""
-}`}
-                  onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("contact");
-                  setMobileMenuOpen(false);
-                }}
-                >
-                  Contact
-                </Nav.Link>
-              </Nav.Item>
-              <Nav.Item className="ms-3">
-              <Button
-                className="btn-nav-login"
-                as={Link}
-                to="/login"
-              >
-                <i className="fas fa-sign-in-alt me-2"></i>
-                <span>Login</span>
-              </Button>
-            </Nav.Item>
-
-            <Nav.Item>
-              <Button
-                className="btn-nav-demo"
-                onClick={() => {
-                  scrollToSection("contact");
-                  setMobileMenuOpen(false);
-                }}
-              >
-                Book a Demo
-              </Button>
-            </Nav.Item>
-            </Nav>
-          </div>
-        </Container>
-      </nav>
-
-      {/* ─── HERO ─── */}
-      <section className="hero-section-landing">
-        <div className="hero-grid-dots" />
-        <div className="hero-lines" />
-        <div className="hero-blob hero-blob-1" />
-        <div className="hero-blob hero-blob-2" />
-        <div className="hero-blob hero-blob-3" />
-        <div className="hero-diagonal-accent" />
-
-        <Container>
-          <div className="hero-content text-center">
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <div className="hero-badge">
-                <i className="fas fa-sparkles"></i>
-                <span>Next-Gen College ERP</span>
-              </div>
-            </motion.div>
-
-            {/* Title */}
-            <div className="hero-animate-wrapper">
-              <h1
-                className="hero-title-landing mb-4"
-                style={{ overflow: "visible" }}
-              >
-                <span className="d-inline-block animate__animated animate__bounceInDown hero-bounce-in-down">
-                  One Platform.
-                </span>
-                <br />
-                <span className="d-inline-block animate__animated animate__bounceInRight hero-bounce-in-right">
-                  Smarter{" "}
-                  <span className="hero-highlight">College Management.</span>
-                </span>
-              </h1>
-            </div>
-
-            {/* Decorative rule */}
-            <motion.div
-              className="hero-rule"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.7, delay: 0.75 }}
-            >
-              <div className="hero-rule-line"></div>
-              <div className="hero-rule-dot"></div>
-              <div className="hero-rule-line rev"></div>
-            </motion.div>
-
-            {/* Subtitle */}
-            <motion.p
-              className="hero-subtitle mb-5"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.8 }}
-            >
-              Manage students, academics, examinations, fees, faculty, and
-              institutional operations from one intelligent college ERP platform.
-            </motion.p>
-
-            {/* CTAs */}
-            <motion.div
-              className="d-flex gap-3 flex-wrap justify-content-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 1 }}
-            >
-              <Button className="btn-hero-primary" href="/register">
-                <i className="fas fa-rocket me-2"></i>Book a Demo
-              </Button>
-              <Button
-                className="btn-hero-secondary"
-                href="#features"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("features");
-                }}
-              >
-                <i className="fas fa-layer-group me-2"></i>Explore NOVAA
-              </Button>
-            </motion.div>
-          </div>
-        </Container>
-      </section>
-
-      {/* ─── ABOUT SECTION ─── */}
-      <section id="about" className="section-landing about-section-bg">
-        <div className="section-corner-mark tl" />
-        <div className="section-corner-mark br" />
-
-        <Container>
-          {/* Section Heading */}
-          <div className="text-center mb-5">
-            <h2 className="section-heading heading-underline animate__animated animate__bounceIn">
-              About NOVAA
-            </h2>
-            <motion.p
-              className="section-subheading"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-            >
-              Everything your institution needs to manage people, processes, and
-              academic operations — connected in one intelligent platform.
-            </motion.p>
-          </div>
-
-          {/* Main About Card */}
-          {/* Main Platform Introduction */}
-          <motion.div
-            className="about-platform-card"
-            initial={{ opacity: 0, y: 35 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.75, ease: [0.25, 0.46, 0.45, 0.94] }}
-          >
-            <div className="about-platform-left">
-              <span className="about-platform-eyebrow">
-                THE NOVAA PLATFORM
-              </span>
-
-              <h3 className="about-platform-title">
-                Built to Connect
-                <span>Your Entire Institution.</span>
-              </h3>
-
-              <div className="about-platform-line"></div>
-
-              <div className="about-platform-points">
-                <div className="about-platform-point">
-                  <span className="about-platform-number">01</span>
-                  <span>Student Information</span>
-                </div>
-
-                <div className="about-platform-point">
-                  <span className="about-platform-number">02</span>
-                  <span>Academic Operations</span>
-                </div>
-
-                <div className="about-platform-point">
-                  <span className="about-platform-number">03</span>
-                  <span>Examinations & Results</span>
-                </div>
-
-                <div className="about-platform-point">
-                  <span className="about-platform-number">04</span>
-                  <span>Fees & Institutional Insights</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="about-platform-right">
-              <div className="about-platform-orbit">
-                <span className="orbit-dot orbit-dot-1"></span>
-                <span className="orbit-dot orbit-dot-2"></span>
-                <span className="orbit-dot orbit-dot-3"></span>
-
-                <div className="about-platform-core">
-                  <span>NOVAA</span>
-                  <small>COLLEGE ERP</small>
-                </div>
-              </div>
-
-              <div className="about-platform-copy">
-                <span className="about-platform-copy-label">
-                  ONE CONNECTED PLATFORM
-                </span>
-
-                <p>
-                  NOVAA brings students, teachers, administrators, and parents
-                  into one connected ecosystem. From student information and
-                  academics to examinations, fees, communication, and
-                  institutional operations, NOVAA helps your institution manage
-                  everyday workflows from one centralized platform.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Numbers Section */}
-          <div className="about-numbers-section mt-5">
-            <div className="text-center mb-5">
-              <span className="about-numbers-label">NOVAA BY THE NUMBERS</span>
-              <h3 className="about-numbers-heading">We Believe in Numbers</h3>
-            </div>
-
-            <div className="about-numbers-grid">
-              <div
-                className="numbers-section-bg-blob numbers-section-bg-blob-1"
-                style={{ position: "absolute" }}
-              />
-              <div
-                className="numbers-section-bg-blob numbers-section-bg-blob-2"
-                style={{ position: "absolute" }}
-              />
-              <div
-                className="numbers-section-bg-blob numbers-section-bg-blob-3"
-                style={{ position: "absolute" }}
-              />
-
-              {/* Left — Students (tall) */}
-              <motion.div
-                className="about-number-card about-number-card-tall about-number-card-left"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.1 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-blue">
-                  <span className="about-number-value">
-                    {statsLoading
-                      ? "..."
-                      : `${stats.totalStudents.toLocaleString()}+`}
-                  </span>
-                </div>
-                <h5 className="about-number-title">Students Managed</h5>
-                <p className="about-number-desc">
-                  Student information managed through one connected platform.
-                </p>
-              </motion.div>
-
-              {/* Top-center — Institutions */}
-              <motion.div
-                className="about-number-card about-number-card-top-center"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-teal">
-                  <span className="about-number-value">
-                    {statsLoading ? "..." : `${stats.totalColleges}+`}
-                  </span>
-                </div>
-                <h5 className="about-number-title">Institutions Trust NOVAA</h5>
-                <p className="about-number-desc">
-                  Institutions using NOVAA to simplify everyday operations.
-                </p>
-              </motion.div>
-
-              {/* Bottom-center — Teachers */}
-              <motion.div
-                className="about-number-card about-number-card-bottom-center"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.3 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-coral">
-                  <span className="about-number-value">
-                    {statsLoading ? "..." : `${stats.totalTeachers}+`}
-                  </span>
-                </div>
-                <h5 className="about-number-title">Teachers Empowered</h5>
-                <p className="about-number-desc">
-                  Tools designed to simplify academic and teaching workflows.
-                </p>
-              </motion.div>
-
-              {/* Right — Uptime (tall) */}
-              <motion.div
-                className="about-number-card about-number-card-tall about-number-card-right"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.4 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-yellow">
-                  <span className="about-number-value">
-                    {stats.systemUptime}
-                  </span>
-                </div>
-                <h5 className="about-number-title">System Uptime</h5>
-                <p className="about-number-desc">
-                  Reliable infrastructure supporting your institution's operations.
-                </p>
-              </motion.div>
-            </div>
-          </div>
-
-          {/* What NOVAA Offers */}
-          <div className="about-offers-section mt-5">
-            <div className="text-center mb-5">
-              <span className="about-numbers-label">THE NOVAA PLATFORM</span>
-              <h3 className="about-numbers-heading">
-                Everything Connected. Everything In One Place.
-              </h3>
-            </div>
-
-            <div className="about-offers-grid" style={{ position: "relative" }}>
-              <div className="offers-section-bg-blob offers-section-bg-blob-1" />
-              <div className="offers-section-bg-blob offers-section-bg-blob-2" />
-
-              {[
-                  {
-                    icon: "fa-database",
-                    title: "Centralized Student Data",
-                    desc: "Keep student information organized and accessible across the institution from one connected system.",
-                    blobColor: "about-offer-blob-blue",
-                  },
-                  {
-                    icon: "fa-calendar-check",
-                    title: "Academic Operations",
-                    desc: "Simplify attendance, timetables, academic workflows, and day-to-day faculty operations.",
-                    blobColor: "about-offer-blob-teal",
-                  },
-                  {
-                    icon: "fa-file-invoice-dollar",
-                    title: "Fees & Finance",
-                    desc: "Bring fee-related workflows and financial information into a more organized institutional process.",
-                    blobColor: "about-offer-blob-coral",
-                  },
-                  {
-                    icon: "fa-chart-line",
-                    title: "Insights & Reporting",
-                    desc: "Turn institutional data into useful reports and insights for better visibility across operations.",
-                    blobColor: "about-offer-blob-yellow",
-                  },
-                  {
-                    icon: "fa-mobile-screen-button",
-                    title: "Mobile Friendly",
-                    desc: "Access NOVAA seamlessly across phones, tablets, and desktops with a responsive experience.",
-                    blobColor: "about-offer-blob-blue",
-                  },
-                ].map((offer, i) => (
-                <motion.div
-                  className="about-offer-card"
-                  key={i}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.7, delay: 0.1 * i }}
-                >
-                  <div className="offer-bg-blob-tl" />
-                  <div className="offer-bg-blob-br" />
-                  <span className="about-offer-index">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <div className={`about-offer-blob ${offer.blobColor}`}>
-                    <i className={`fas ${offer.icon}`}></i>
-                  </div>
-                  <h5 className="about-offer-title">{offer.title}</h5>
-                  <p className="about-offer-desc">{offer.desc}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </Container>
-      </section>
-
-
-            {/* ─── ERP WORKFLOW SECTION ─── */}
-      <section className="workflow-section-landing">
-        <div className="workflow-bg-glow workflow-bg-glow-1" />
-        <div className="workflow-bg-glow workflow-bg-glow-2" />
-
-        <Container>
-          <motion.div
-            className="text-center workflow-heading-wrap"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={staggerContainer}
-          >
-            <motion.span
-              className="about-numbers-label"
-              variants={fadeInUp}
-            >
-              THE COMPLETE STUDENT LIFECYCLE
-            </motion.span>
-
-            <motion.h2
-              className="section-heading heading-underline"
-              variants={fadeInUp}
-            >
-              From Admission to Graduation
-            </motion.h2>
-
-            <motion.p
-              className="section-subheading"
-              variants={fadeInUp}
-              custom={1}
-            >
-              Connect every stage of the student journey through one
-              centralized college ERP platform.
-            </motion.p>
-          </motion.div>
-
-          <div className="workflow-timeline">
-            {[
-              {
-                number: "01",
-                icon: "fa-user-plus",
-                title: "Admission",
-                desc: "Capture and organize student admission information.",
-              },
-              {
-                number: "02",
-                icon: "fa-user-check",
-                title: "Enrollment",
-                desc: "Create and manage student records across the institution.",
-              },
-              {
-                number: "03",
-                icon: "fa-book-open",
-                title: "Academics",
-                desc: "Manage academic activities, classes, attendance, and schedules.",
-              },
-              {
-                number: "04",
-                icon: "fa-file-circle-check",
-                title: "Examinations",
-                desc: "Coordinate examinations, assessments, and academic results.",
-              },
-              {
-                number: "05",
-                icon: "fa-receipt",
-                title: "Fees & Finance",
-                desc: "Organize fee-related workflows and institutional financial records.",
-              },
-              {
-                number: "06",
-                icon: "fa-graduation-cap",
-                title: "Graduation",
-                desc: "Complete the student lifecycle with connected institutional records.",
-              },
-            ].map((step, index) => (
-              <motion.div
-                className="workflow-step"
-                key={step.number}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{
-                  duration: 0.55,
-                  delay: index * 0.08,
-                }}
-              >
-                <div className="workflow-step-top">
-                  <span className="workflow-step-number">
-                    {step.number}
-                  </span>
-
-                  <div className="workflow-icon">
-                  <span className="workflow-icon-number">
-                    {step.number}
-                  </span>
-
-                  <i className={`fas ${step.icon}`}></i>
-                </div>
-                </div>
-
-                <h3 className="workflow-step-title">
-                  {step.title}
-                </h3>
-
-                <p className="workflow-step-desc">
-                  {step.desc}
-                </p>
-
-                {index < 5 && (
-                  <span className="workflow-connector">
-                    <i className="fas fa-arrow-right"></i>
-                  </span>
-                )}
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div
-            className="workflow-bottom-note"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <span className="workflow-bottom-line"></span>
-
-<p>
-  One connected journey
-  <span>•</span>
-  One source of institutional data
-</p>
-
-            <span className="workflow-bottom-line"></span>
-          </motion.div>
-        </Container>
-      </section>
-
-      {/* ─── FEATURES SECTION ─── */}
-      {/* ─── FEATURES / PRODUCT SHOWCASE SECTION ─── */}
-          <section
-            id="features"
-            className="section-landing features-section-bg product-showcase-section"
-          >
-            <Container>
-              <motion.div
-                className="text-center product-showcase-heading"
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-100px" }}
-                variants={staggerContainer}
-              >
-                <motion.span
-                  className="about-numbers-label"
-                  variants={fadeInUp}
-                >
-                  THE NOVAA PLATFORM
-                </motion.span>
-
-                <motion.h2
-                  className="section-heading heading-underline"
-                  variants={fadeInUp}
-                >
-                  Powerful Tools. One Connected System.
-                </motion.h2>
-
-                <motion.p
-                  className="section-subheading"
-                  variants={fadeInUp}
-                  custom={1}
-                >
-                  Explore the tools that help your institution manage students,
-                  academics, finance, communication, and everyday operations.
-                </motion.p>
-              </motion.div>
-
-              <motion.div
-                className="product-showcase"
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.7 }}
-              >
-                {/* PRODUCT IMAGE */}
-                <div className="product-showcase-visual">
-                  <div
-                    className="product-showcase-image"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() =>
-                      setSelectedImage({
-                        src: features[activeFeature].image,
-                        title: features[activeFeature].title,
-                      })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-
-                        setSelectedImage({
-                          src: features[activeFeature].image,
-                          title: features[activeFeature].title,
-                        });
-                      }
-                    }}
-                    aria-label={`View ${features[activeFeature].title} image`}
-                  >
-                    <img
-                      src={features[activeFeature].image}
-                      alt={features[activeFeature].title}
-                    />
-
-                    <div className="product-showcase-image-overlay">
-                      <span>
-                        <i className="fas fa-expand"></i>
-                        View Preview
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="product-showcase-caption">
-                    <span>
-                      {String(activeFeature + 1).padStart(2, "0")}
-                    </span>
-
-                    <strong>{features[activeFeature].title}</strong>
-                  </div>
-                </div>
-
-                {/* FEATURE LIST */}
-                <div className="product-showcase-list">
-                  {features.map((feature, index) => {
-                    const isActive = activeFeature === index;
-
-                    return (
-                      <button
-                        type="button"
-                        className={`product-feature-item ${
-                          isActive ? "active" : ""
-                        }`}
-                        key={feature.title}
-                        onClick={() => setActiveFeature(index)}
-                        aria-pressed={isActive}
-                      >
-                        <span className="product-feature-number">
-                          {String(index + 1).padStart(2, "0")}
-                        </span>
-
-                        <span className="product-feature-icon">
-                          <i className={`fas ${feature.icon}`}></i>
-                        </span>
-
-                        <span className="product-feature-content">
-                          <span className="product-feature-title">
-                            {feature.title}
-                          </span>
-
-                          <span className="product-feature-description">
-                            {feature.description}
-                          </span>
-                        </span>
-
-                        <span className="product-feature-arrow">
-                          <i className="fas fa-arrow-right"></i>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            </Container>
-          </section>
-
-      {/* ─── ROLE EXPERIENCE SECTION ─── */}
-      <section className="role-experience-section">
-        <div className="role-section-glow role-section-glow-left" />
-        <div className="role-section-glow role-section-glow-right" />
-
-        <Container>
-          <motion.div
-            className="text-center role-section-heading"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={staggerContainer}
-          >
-            <motion.span
-              className="about-numbers-label"
-              variants={fadeInUp}
-            >
-              ONE CONNECTED ECOSYSTEM
-            </motion.span>
-
-            <motion.h2
-              className="section-heading heading-underline"
-              variants={fadeInUp}
-            >
-              One Platform. Every Role.
-            </motion.h2>
-
-            <motion.p
-              className="section-subheading"
-              variants={fadeInUp}
-              custom={1}
-            >
-              Give every member of your institution the tools and
-              information they need — all within one connected platform.
-            </motion.p>
-          </motion.div>
-
-          
-
-              <div className="role-experience-grid">
-  {[
-    {
-      number: "01",
-      icon: "fa-user-tie",
-      category: "INSTITUTIONAL CONTROL",
-      title: "Administrator",
-      desc: "Manage student records, academics, finance, examinations, and institutional operations from one centralized system.",
-      link: "Institutional tools",
-    },
-    {
-      number: "02",
-      icon: "fa-chalkboard-user",
-      category: "ACADEMIC OPERATIONS",
-      title: "Teacher",
-      desc: "Manage attendance, schedules, examinations, student information, and everyday academic activities with ease.",
-      link: "Academic tools",
-    },
-    {
-      number: "03",
-      icon: "fa-user-graduate",
-      category: "STUDENT EXPERIENCE",
-      title: "Student",
-      desc: "Access academics, attendance, examinations, fees, schedules, and important institutional information in one place.",
-      link: "Student tools",
-    },
-    {
-      number: "04",
-      icon: "fa-users",
-      category: "FAMILY CONNECTION",
-      title: "Parent / Guardian",
-      desc: "Stay informed about attendance, academic progress, fees, activities, and important updates from the institution.",
-      link: "Family access",
-    },
-  ].map((role, index) => (
-    <motion.div
-      className="role-experience-card"
-      key={role.title}
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{
-        duration: 0.6,
-        delay: index * 0.08,
-      }}
-    >
-      <div className="role-card-top">
-        <span className="role-card-number">
-          {role.number}
-        </span>
-
-        <div className="role-card-icon">
-  <i className={`fas ${role.icon}`}></i>
-</div>
-      </div>
-
-      <div className="role-card-content">
-        <span className="role-card-tag">
-          {role.category}
-        </span>
-
-        <h3 className="role-card-title">
-          {role.title}
-        </h3>
-
-        <p className="role-card-desc">
-          {role.desc}
-        </p>
-
-        <div className="role-card-footer">
-          <span>{role.link}</span>
-        </div>
-      </div>
-
-      <div className="role-card-accent" />
-    </motion.div>
-  ))}
-</div>
-
-          <motion.div
-            className="role-section-bottom"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.35 }}
-          >
-            <span className="role-bottom-icon">
-              <i className="fas fa-link"></i>
-            </span>
-
-            <p>
-              Everyone stays connected through one institutional system.
-            </p>
-          </motion.div>
-        </Container>
-      </section>
-
-{/* ─── TRUST / OPERATIONS SECTION ─── */}
-<section className="operations-confidence-section">
-  <div className="operations-bg-glow operations-bg-glow-left" />
-  <div className="operations-bg-glow operations-bg-glow-right" />
-
-  <Container>
-    <motion.div
-      className="text-center operations-section-heading"
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-100px" }}
-      variants={staggerContainer}
-    >
-      <motion.span
-        className="about-numbers-label"
-        variants={fadeInUp}
-      >
-        BUILT FOR INSTITUTIONAL OPERATIONS
-      </motion.span>
-
-      <motion.h2
-        className="section-heading heading-underline"
-        variants={fadeInUp}
-      >
-        Secure. Connected. Built to Scale.
-      </motion.h2>
-
-      <motion.p
-        className="section-subheading"
-        variants={fadeInUp}
-        custom={1}
-      >
-        NOVAA brings the tools, access controls, and operational
-        support your institution needs to manage everyday work
-        from one connected platform.
-      </motion.p>
-    </motion.div>
-
-    <motion.div
-      className="operations-confidence-panel"
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-70px" }}
-      transition={{ duration: 0.7 }}
-    >
-      <div className="operations-features-grid">
-
-        {/* 01 */}
-        <div className="operations-feature">
-          <div className="operations-feature-icon">
-            <i className="fas fa-user-shield"></i>
-          </div>
-
-          <div className="operations-feature-content">
-            <span className="operations-feature-number">
-              01
-            </span>
-
-            <h3>Centralized Access</h3>
-
-            <p>
-              Role-based access helps keep institutional
-              information organized according to the needs
-              of different users.
-            </p>
-          </div>
-        </div>
-
-        {/* 02 */}
-        <div className="operations-feature">
-          <div className="operations-feature-icon">
-            <i className="fas fa-lock"></i>
-          </div>
-
-          <div className="operations-feature-content">
-            <span className="operations-feature-number">
-              02
-            </span>
-
-            <h3>Protected Information</h3>
-
-            <p>
-              Keep important institutional information
-              protected through secure workflows and
-              controlled access.
-            </p>
-          </div>
-        </div>
-
-        {/* 03 */}
-        <div className="operations-feature">
-          <div className="operations-feature-icon">
-            <i className="fas fa-headset"></i>
-          </div>
-
-          <div className="operations-feature-content">
-            <span className="operations-feature-number">
-              03
-            </span>
-
-            <h3>Dedicated Support</h3>
-
-            <p>
-              Get onboarding assistance, training, and
-              technical support to help your teams use
-              NOVAA effectively.
-            </p>
-          </div>
-        </div>
-
-      </div>
-
-      <div className="operations-panel-footer">
-        <span className="operations-footer-icon">
-          <i className="fas fa-check"></i>
-        </span>
-
-        <span>
-          One connected platform for everyday institutional operations.
-        </span>
-      </div>
-    </motion.div>
-  </Container>
-</section>
-
-      {/* ─── CTA SECTION ─── */}
-      <section className="cta-section-landing">
-        <div className="cta-grid" />
-        <Container>
-          <motion.div
-            className="text-center"
-            style={{ position: "relative", zIndex: 2 }}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={staggerContainer}
-          >
-            <motion.div variants={fadeInUp}>
-              <span className="cta-badge">
-                <i className="fas fa-rocket"></i>
-                <span>READY WHEN YOUR INSTITUTION IS</span>
-              </span>
-            </motion.div>
-
-            <motion.h2
-              className="section-heading-light heading-underline"
-              variants={fadeInUp}
-              custom={1}
-            >
-              Your Institution.
-             <p> One Connected Platform.</p>
-            </motion.h2>
-
-            <motion.p
-              className="section-subheading-light"
-              variants={fadeInUp}
-              custom={2}
-            >
-              Bring students, academics, faculty, finance, and everyday
-              institutional operations together with NOVAA.
-            </motion.p>
-
-            <motion.div
-              className="d-flex gap-3 flex-wrap justify-content-center mb-4"
-              variants={fadeInUp}
-              custom={3}
-            >
-              <Button
-                className="btn-hero-primary"
-                href="#contact"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("contact");
-                }}
-              >
-                <i className="fas fa-play-circle me-2"></i>Start Free Trial
-              </Button>
-              <Button
-                className="btn-hero-secondary"
-                href="#contact"
-                onClick={(e) => {
-                  e.preventDefault();
-                  scrollToSection("contact");
-                }}
-              >
-                <i className="fas fa-calendar-alt me-2"></i>Schedule Demo
-              </Button>
-            </motion.div>
-
-            <motion.div
-              className="cta-features-list"
-              variants={fadeInUp}
-              custom={4}
-            >
-              <div className="cta-feature-item">
-                <i className="fas fa-check-circle"></i>
-                <span>14-Day Free Trial</span>
-              </div>
-              <div className="cta-feature-item">
-                <i className="fas fa-check-circle"></i>
-                <span>No Credit Card Required</span>
-              </div>
-              <div className="cta-feature-item">
-                <i className="fas fa-check-circle"></i>
-                <span>24/7 Support</span>
-              </div>
-            </motion.div>
-          </motion.div>
-        </Container>
-      </section>
-
-
-            {/* ─── FAQ SECTION ─── */}
-      <section id="faq" className="section-landing faq-section-bg">
-        <div className="section-corner-mark tl" />
-        <div className="section-corner-mark br" />
-
-        <Container>
-          <div className="faq-layout">
-
-            {/* LEFT CONTENT */}
-            <motion.div
-              className="faq-intro"
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.7 }}
-            >
-              <span className="faq-eyebrow">
-                <i className="fas fa-circle-question"></i>
-                FREQUENTLY ASKED QUESTIONS
-              </span>
-
-              <h2 className="faq-title">
-                Questions,
-                <span> Answered.</span>
-              </h2>
-
-              <p className="faq-description">
-                Everything you need to know about NOVAA and how it can bring
-                your institution's academic and administrative operations
-                together.
-              </p>
-
-              <div className="faq-support-note">
-                <div className="faq-support-icon">
-                  <i className="fas fa-headset"></i>
-                </div>
-
-                <div>
-                  <span>Still have questions?</span>
-                  <p>Our team is ready to help you get started.</p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* RIGHT ACCORDION */}
-            <motion.div
-              className="faq-list"
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true, margin: "-100px" }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-            >
-              {faqs.map((faq, index) => {
-                const isOpen = openFaq === index;
-
-                return (
-                  <div
-                    className={`faq-item ${isOpen ? "open" : ""}`}
-                    key={faq.question}
-                  >
-                    <button
-                      type="button"
-                      className="faq-question"
-                      onClick={() =>
-                        setOpenFaq(isOpen ? null : index)
-                      }
-                      aria-expanded={isOpen}
-                    >
-                      <span>
-                        <span className="faq-number">
-                          0{index + 1}
-                        </span>
-
-                        {faq.question}
-                      </span>
-
-                      <span className="faq-toggle">
-                        <i
-                          className={`fas ${
-                            isOpen ? "fa-minus" : "fa-plus"
-                          }`}
-                        ></i>
-                      </span>
-                    </button>
-
-                    <AnimatePresence initial={false}>
-                      {isOpen && (
-                        <motion.div
-                          className="faq-answer-wrapper"
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{
-                            height: {
-                              duration: 0.35,
-                              ease: [0.4, 0, 0.2, 1],
-                            },
-                            opacity: {
-                              duration: 0.25,
-                            },
-                          }}
-                        >
-                          <div className="faq-answer">
-                            {faq.answer}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
-            </motion.div>
-
-          </div>
-        </Container>
-      </section>
-
-            {/* ─── CONTACT SECTION ─── */}
-      <section id="contact" className="section-landing contact-section-bg">
-        <div className="contact-bg-glow contact-bg-glow-left" />
-        <div className="contact-bg-glow contact-bg-glow-right" />
-
-        <Container>
-          {/* Section Heading */}
-          <motion.div
-            className="text-center contact-section-heading"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            variants={staggerContainer}
-          >
-            <motion.span
-              className="contact-eyebrow"
-              variants={fadeInUp}
-            >
-              <i className="fas fa-paper-plane"></i>
-              GET IN TOUCH
-            </motion.span>
-
-            <motion.h2
-              className="section-heading heading-underline"
-              variants={fadeInUp}
-            >
-              Let's Connect.
-            </motion.h2>
-
-            <motion.p
-              className="section-subheading"
-              variants={fadeInUp}
-              custom={1}
-            >
-              Have questions or want to see how NOVAA can fit your institution?
-              Our team is here to help.
-            </motion.p>
-          </motion.div>
-
-          {/* Contact Layout */}
-          <Row className="contact-main-row align-items-stretch">
-            {/* LEFT — CONTACT INFO */}
-            <Col lg={5} className="mb-4 mb-lg-0">
-              <motion.div
-                className="contact-info-panel"
-                initial={{ opacity: 0, x: -35 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.7 }}
-              >
-                <span className="contact-panel-label">
-                  START A CONVERSATION
-                </span>
-
-                <h3>
-                  Bring your institution
-                  <span> together.</span>
-                </h3>
-
-                <p className="contact-info-description">
-                  Tell us a little about your institution and what you are
-                  looking to manage. We'll help you understand how NOVAA can
-                  support your academic and administrative workflows.
-                </p>
-
-                <div className="contact-info-list">
-                  <div className="contact-info-item">
-                    <div className="contact-info-icon">
-                      <i className="fas fa-headset"></i>
-                    </div>
-
-                    <div>
-                      <span>Dedicated Support</span>
-                      <p>Our team is ready to assist you.</p>
-                    </div>
-                  </div>
-
-                  <div className="contact-info-item">
-                    <div className="contact-info-icon">
-                      <i className="fas fa-building-columns"></i>
-                    </div>
-
-                    <div>
-                      <span>Built for Institutions</span>
-                      <p>Designed around everyday college operations.</p>
-                    </div>
-                  </div>
-
-                  <div className="contact-info-item">
-                    <div className="contact-info-icon">
-                      <i className="fas fa-comments"></i>
-                    </div>
-
-                    <div>
-                      <span>Let's Talk</span>
-                      <p>Share your requirements with our team.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="contact-panel-bottom">
-                  <i className="fas fa-arrow-right"></i>
-                  <span>We'd love to hear from you.</span>
-                </div>
-              </motion.div>
-            </Col>
-
-            {/* RIGHT — FORM */}
-            <Col lg={7}>
-              <motion.div
-                className="contact-card"
-                initial={{ opacity: 0, x: 35 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.7, delay: 0.1 }}
-              >
-                <div className="contact-card-inner">
-                  <div className="contact-form-heading">
-                    <div>
-                      <span>CONTACT FORM</span>
-                      <h3>Send Us a Message</h3>
-                    </div>
-
-                    <div className="contact-form-icon">
-                      <i className="fas fa-paper-plane"></i>
-                    </div>
-                  </div>
-
-                  <p className="contact-subtext">
-                    Fill out the form below and our team will get back to you.
-                  </p>
-
-                  <Form id="contactForm">
-                    <Row className="g-4">
-                      <Col xs={12} md={6}>
-                        <label className="form-label-landing">
-                          First Name <span className="text-danger">*</span>
-                        </label>
-
-                        <Form.Control
-                          type="text"
-                          className="form-control-landing"
-                          placeholder="John"
-                          required
-                          minLength={2}
-                          pattern="[A-Za-z\s]+"
-                        />
-                      </Col>
-
-                      <Col xs={12} md={6}>
-                        <label className="form-label-landing">
-                          Last Name <span className="text-danger">*</span>
-                        </label>
-
-                        <Form.Control
-                          type="text"
-                          className="form-control-landing"
-                          placeholder="Doe"
-                          required
-                          minLength={2}
-                          pattern="[A-Za-z\s]+"
-                        />
-                      </Col>
-
-                      <Col xs={12} md={6}>
-                        <label className="form-label-landing">
-                          Email Address <span className="text-danger">*</span>
-                        </label>
-
-                        <Form.Control
-                          type="email"
-                          className="form-control-landing"
-                          placeholder="john@example.com"
-                          required
-                        />
-                      </Col>
-
-                      <Col xs={12} md={6}>
-                        <label className="form-label-landing">
-                          Phone Number{" "}
-                          <span
-                            className="text-muted fw-normal"
-                            style={{
-                              textTransform: "none",
-                              fontSize: "0.75rem",
-                            }}
-                          >
-                            (Optional)
-                          </span>
-                        </label>
-
-                        <Form.Control
-                          type="tel"
-                          className="form-control-landing"
-                          placeholder="+91 00000-00000"
-                          pattern="[+]?[0-9\s()\-]+"
-                          minLength={10}
-                        />
-                      </Col>
-
-                      <Col xs={12}>
-                        <label className="form-label-landing">
-                          Institution / Organization{" "}
-                          <span className="text-danger">*</span>
-                        </label>
-
-                        <Form.Control
-                          type="text"
-                          className="form-control-landing"
-                          placeholder="Your institution name"
-                          required
-                          minLength={3}
-                        />
-                      </Col>
-
-                      <Col xs={12}>
-                        <label className="form-label-landing">
-                          Your Role <span className="text-danger">*</span>
-                        </label>
-
-                        <Form.Select
-                          className="form-select-landing"
-                          required
-                        >
-                          <option value="" disabled>
-                            Select your role
-                          </option>
-                          <option value="principal">Principal</option>
-                          <option value="admin">Administrator</option>
-                          <option value="teacher">Teacher</option>
-                          <option value="student">Student</option>
-                          <option value="parent">Parent</option>
-                          <option value="other">Other</option>
-                        </Form.Select>
-                      </Col>
-
-                      <Col xs={12}>
-                        <label className="form-label-landing">
-                          Your Message <span className="text-danger">*</span>
-                        </label>
-
-                        <Form.Control
-                          as="textarea"
-                          rows={5}
-                          className="form-control-landing"
-                          placeholder="Tell us how we can help you..."
-                          required
-                          minLength={10}
-                        />
-                      </Col>
-
-                      <Col xs={12}>
-                        <Button
-                          variant={null}
-                          type="submit"
-                          className="btn-contact-submit"
-                        >
-                          <span>Send Message</span>
-                          <i className="fas fa-arrow-right"></i>
-                        </Button>
-                      </Col>
-                    </Row>
-                  </Form>
-                </div>
-              </motion.div>
-            </Col>
-          </Row>
-        </Container>
-      </section>
-
-           {/* ─── FOOTER ─── */}
-      <footer className="footer-landing">
-        <Container>
-
-          <Row className="footer-main-row">
-
-            {/* BRAND */}
-            <Col lg={6} md={6} className="mb-4 mb-lg-0">
-              <div className="footer-brand">
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.scrollTo({
-                      top: 0,
-                      behavior: "smooth",
-                    });
-                  }}
-                  aria-label="Go to top"
-                >
-                  <img
-                    src="/novaaa.png"
-                    alt="NOVAA Logo"
-                  />
-                </a>
-              </div>
-
-              <p className="footer-body-text">
-                Modern education management platform designed to streamline
-                operations and connect your institution through one
-                intelligent system.
-              </p>
-            </Col>
-
-            {/* QUICK LINKS */}
-            <Col lg={6} md={6}>
-              <div className="footer-links-wrapper">
-
-                <span className="footer-links-label">
-                  QUICK LINKS
-                </span>
-
-                <nav className="footer-links">
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      window.scrollTo({
-                        top: 0,
-                        behavior: "smooth",
-                      });
-                    }}
-                  >
-                    Home
-                  </a>
-
-                  <a href="#about">
-                    About
-                  </a>
-
-                  <a href="#features">
-                    Features
-                  </a>
-
-                  <a href="#faq">
-                    FAQ
-                  </a>
-
-                  <a href="#contact">
-                    Contact
-                  </a>
-                </nav>
-
-              </div>
-            </Col>
-
-          </Row>
-
-          <div className="footer-divider" />
-
-          <Row className="align-items-center footer-bottom-row">
-
-            <Col md={7}>
-              <p className="footer-copy mb-0">
-                &copy; 2026 NOVAA. All rights reserved.
-              </p>
-            </Col>
-
-            <Col md={5} className="text-md-end">
-              <span className="version-badge">
-                v2.1.0
-              </span>
-            </Col>
-
-          </Row>
-
-        </Container>
-      </footer>
-
-      {/* ─── FLOATING BACK TO TOP ─── */}
-      <motion.button
-        className="floating-top"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        title="Back to Top"
-        initial={{ opacity: 0, y: 20, scale: 0.9 }}
-        animate={
-          scrollY > window.innerHeight
-            ? { opacity: 1, y: 0, scale: 1 }
-            : { opacity: 0, y: 20, scale: 0.9 }
-        }
-        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-      >
-        ↑
-      </motion.button>
-
-      {/* ─── IMAGE LIGHTBOX MODAL ─── */}
-      <AnimatePresence>
-        {selectedImage && (
-          <motion.div
-            className="image-modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            onClick={() => setSelectedImage(null)}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Image preview"
-          >
-            <motion.div
-              className="image-modal-content"
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                className="image-modal-close"
-                onClick={() => setSelectedImage(null)}
-                aria-label="Close image preview"
-              >
-                ✕
-              </button>
-              <motion.img
-                src={selectedImage.src}
-                alt={selectedImage.title}
-                layout
-              />
-              <span className="image-modal-title">{selectedImage.title}</span>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
-  );
-}
