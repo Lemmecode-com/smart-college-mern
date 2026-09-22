@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback,} from "react";
 import {
   motion,
   useScroll,
@@ -69,50 +69,82 @@ const staggerContainer = {
   },
 };
 
-// Animated counter hook
-function useCounter(end, duration = 2000, startOnView = true) {
-  const [count, setCount] = useState(0);
-  const [hasStarted, setHasStarted] = useState(!startOnView);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!startOnView) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasStarted) {
-          setHasStarted(true);
-        }
+  const features = [
+      {
+        icon: "fa-user-graduate",
+        title: "Student Management",
+        description:
+          "Complete student lifecycle management from admission to graduation with detailed records and analytics.",
+        image: studentPortalImg,
       },
-      { threshold: 0.3 },
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [hasStarted, startOnView]);
+      {
+        icon: "fa-chalkboard-teacher",
+        title: "Teacher Portal",
+        description:
+          "Empower educators with tools for attendance, grading, timetables, and communication with students.",
+        image: teacherPortalImg,
+      },
+      {
+        icon: "fa-calendar-alt",
+        title: "Timetable Management",
+        description:
+          "Intelligent scheduling system that creates conflict-free timetables for classes and exams.",
+        image: timetableImg,
+      },
+      {
+        icon: "fa-file-invoice-dollar",
+        title: "Fee Management",
+        description:
+          "Automated fee calculation, payment processing, and financial reporting for transparent billing.",
+        image: feeImg,
+      },
+      {
+        icon: "fa-chart-line",
+        title: "Analytics & Reports",
+        description:
+          "Comprehensive dashboards with insights on academics, attendance, and institutional performance.",
+        image: analyticsImg,
+      },
+      {
+        icon: "fa-bell",
+        title: "Notifications",
+        description:
+          "Real-time alerts and notifications to keep all stakeholders informed about important updates.",
+        image: notificationsImg,
+      },
+    ];
+      const faqs = [
+      {
+        question: "What is NOVAA College ERP?",
+        answer:
+          "NOVAA is an integrated college ERP platform that brings student management, academics, examinations, fees, faculty operations, communication, and institutional workflows together in one connected system.",
+      },
+      {
+        question: "What can I manage using NOVAA?",
+        answer:
+          "NOVAA supports key institutional operations including student lifecycle management, teacher activities, timetable management, examinations, fee management, analytics, reports, and notifications.",
+      },
+      {
+        question: "Can different users have different access levels?",
+        answer:
+          "Yes. NOVAA is designed around different institutional roles so that administrators, faculty, students, parents, and other users can access the information and functionality relevant to their responsibilities.",
+      },
+      {
+        question: "Can NOVAA be used across different institutional departments?",
+        answer:
+          "Yes. NOVAA connects academic and administrative workflows through a centralized platform, helping different departments work with shared institutional information.",
+      },
+      {
+        question: "How can I get started with NOVAA?",
+        answer:
+          "You can get started by contacting the NOVAA team through the contact section or by using the available demo and registration options on this page.",
+      },
+    ];
 
-  useEffect(() => {
-    if (!hasStarted) return;
-    let startTime;
-    let animationFrame;
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * end));
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      }
-    };
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [end, duration, hasStarted]);
-
-  return [count, ref];
-}
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
   const [activeSection, setActiveSection] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
   const [activeFeature, setActiveFeature] = useState(0);
@@ -209,83 +241,11 @@ const scrollToSection = useCallback((sectionId) => {
 
     document.activeElement?.blur();
   }
-
-  setMobileMenuOpen(false);
 }, []);
 
-  const features = [
-    {
-      icon: "fa-user-graduate",
-      title: "Student Management",
-      description:
-        "Complete student lifecycle management from admission to graduation with detailed records and analytics.",
-      image: studentPortalImg,
-    },
-    {
-      icon: "fa-chalkboard-teacher",
-      title: "Teacher Portal",
-      description:
-        "Empower educators with tools for attendance, grading, timetables, and communication with students.",
-      image: teacherPortalImg,
-    },
-    {
-      icon: "fa-calendar-alt",
-      title: "Timetable Management",
-      description:
-        "Intelligent scheduling system that creates conflict-free timetables for classes and exams.",
-      image: timetableImg,
-    },
-    {
-      icon: "fa-file-invoice-dollar",
-      title: "Fee Management",
-      description:
-        "Automated fee calculation, payment processing, and financial reporting for transparent billing.",
-      image: feeImg,
-    },
-    {
-      icon: "fa-chart-line",
-      title: "Analytics & Reports",
-      description:
-        "Comprehensive dashboards with insights on academics, attendance, and institutional performance.",
-      image: analyticsImg,
-    },
-    {
-      icon: "fa-bell",
-      title: "Notifications",
-      description:
-        "Real-time alerts and notifications to keep all stakeholders informed about important updates.",
-      image: notificationsImg,
-    },
-  ];
+  
 
 
-    const faqs = [
-    {
-      question: "What is NOVAA College ERP?",
-      answer:
-        "NOVAA is an integrated college ERP platform that brings student management, academics, examinations, fees, faculty operations, communication, and institutional workflows together in one connected system.",
-    },
-    {
-      question: "What can I manage using NOVAA?",
-      answer:
-        "NOVAA supports key institutional operations including student lifecycle management, teacher activities, timetable management, examinations, fee management, analytics, reports, and notifications.",
-    },
-    {
-      question: "Can different users have different access levels?",
-      answer:
-        "Yes. NOVAA is designed around different institutional roles so that administrators, faculty, students, parents, and other users can access the information and functionality relevant to their responsibilities.",
-    },
-    {
-      question: "Can NOVAA be used across different institutional departments?",
-      answer:
-        "Yes. NOVAA connects academic and administrative workflows through a centralized platform, helping different departments work with shared institutional information.",
-    },
-    {
-      question: "How can I get started with NOVAA?",
-      answer:
-        "You can get started by contacting the NOVAA team through the contact section or by using the available demo and registration options on this page.",
-    },
-  ];
   return (
     <>
       <style>{`
@@ -2674,7 +2634,7 @@ const scrollToSection = useCallback((sectionId) => {
   position: relative;
   overflow: hidden;
 
-  padding: 90px 0 75px;
+  padding: 72px 0 60px;
 
   background:
     linear-gradient(
@@ -2723,7 +2683,7 @@ const scrollToSection = useCallback((sectionId) => {
 
   max-width: 720px;
 
-  margin: 0 auto 48px;
+  margin: 0 auto 34px;
 }
 
 .role-section-heading .section-subheading {
@@ -2738,7 +2698,7 @@ const scrollToSection = useCallback((sectionId) => {
   z-index: 2;
 
   width: 100%;
-  max-width: 1180px;
+  max-width: 1220px;
 
   margin: 0 auto;
 
@@ -2746,7 +2706,7 @@ const scrollToSection = useCallback((sectionId) => {
 
   grid-template-columns: repeat(4, 1fr);
 
-  gap: 16px;
+  gap: 18px;
 }
 
 
@@ -2756,9 +2716,9 @@ const scrollToSection = useCallback((sectionId) => {
   position: relative;
 
   min-width: 0;
-  min-height: 315px;
+  min-height: 300px;
 
-  padding: 24px 22px 20px;
+  padding: 26px 24px 22px;
 
   display: flex;
   flex-direction: column;
@@ -2774,7 +2734,7 @@ const scrollToSection = useCallback((sectionId) => {
 
   border: 1px solid rgba(8, 44, 58, 0.075);
 
-  border-radius: 16px;
+  border-radius: 18px;
 
   box-shadow:
     0 10px 30px rgba(8, 44, 58, 0.045);
@@ -2803,7 +2763,7 @@ const scrollToSection = useCallback((sectionId) => {
   align-items: center;
   justify-content: space-between;
 
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .role-card-number {
@@ -2821,14 +2781,14 @@ const scrollToSection = useCallback((sectionId) => {
 /* ─── ICON ─── */
 
 .role-card-icon {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border-radius: 13px;
+  border-radius: 14px;
 
   background:
     linear-gradient(
@@ -2923,6 +2883,38 @@ const scrollToSection = useCallback((sectionId) => {
   font-weight: 300;
 
   color: var(--ink-50);
+}
+
+.role-card-footer {
+  margin-top: auto;
+  padding-top: 20px;
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+
+  color: var(--teal-mid);
+
+  transition: gap 0.25s ease, color 0.25s ease;
+}
+
+.role-card-footer::after {
+  content: "→";
+  font-size: 0.9rem;
+  transition: transform 0.25s ease;
+}
+
+.role-experience-card:hover .role-card-footer {
+  gap: 10px;
+}
+
+.role-experience-card:hover .role-card-footer::after {
+  transform: translateX(3px);
 }
 
 
@@ -6482,7 +6474,6 @@ const scrollToSection = useCallback((sectionId) => {
             aria-controls="navbarNav"
             aria-expanded="false"
             aria-label="Toggle navigation"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             style={{ borderColor: "rgba(56,189,248,0.35)" }}
           >
             <span className="navbar-toggler-icon"></span>
@@ -6501,7 +6492,7 @@ className={`nav-link-landing ${
                   onClick={(e) => {
                   e.preventDefault();
                   scrollToSection("about");
-                  setMobileMenuOpen(false);
+                  
                 }}
                 >
                   About
@@ -6516,7 +6507,7 @@ className={`nav-link-landing ${
                   onClick={(e) => {
                   e.preventDefault();
                   scrollToSection("features");
-                  setMobileMenuOpen(false);
+                  
                 }}
                 >
                   Features
@@ -6524,20 +6515,20 @@ className={`nav-link-landing ${
               </Nav.Item>
 
               <Nav.Item>
-  <Nav.Link
-    className={`nav-link-landing ${
-      activeSection === "faq" ? "active" : ""
-    }`}
-    href="#faq"
-    onClick={(e) => {
-      e.preventDefault();
-      scrollToSection("faq");
-      setMobileMenuOpen(false);
-    }}
-  >
-    FAQ
-  </Nav.Link>
-</Nav.Item>
+              <Nav.Link
+                className={`nav-link-landing ${
+                  activeSection === "faq" ? "active" : ""
+                }`}
+                href="#faq"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("faq");
+                  
+                }}
+              >
+                FAQ
+              </Nav.Link>
+            </Nav.Item>
               <Nav.Item>
                 <Nav.Link
                   className={`nav-link-landing ${
@@ -6546,7 +6537,7 @@ className={`nav-link-landing ${
                   onClick={(e) => {
                   e.preventDefault();
                   scrollToSection("contact");
-                  setMobileMenuOpen(false);
+                  
                 }}
                 >
                   Contact
@@ -6568,7 +6559,6 @@ className={`nav-link-landing ${
                 className="btn-nav-demo"
                 onClick={() => {
                   scrollToSection("contact");
-                  setMobileMenuOpen(false);
                 }}
               >
                 Book a Demo
