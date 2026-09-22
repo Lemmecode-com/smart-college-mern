@@ -2,6 +2,7 @@ const Subject = require("../models/subject.model");
 const Course = require("../models/course.model");
 const Teacher = require("../models/teacher.model");
 const AppError = require("../utils/AppError");
+const teacherSubjectAssignmentService = require("../services/teacherSubjectAssignment.service");
 
 const SUBJECT_TYPES = ["THEORY", "PRACTICAL", "COMPOSITE"];
 
@@ -159,8 +160,11 @@ exports.createSubject = async (req, res, next) => {
     );
   }
 
+  const hasTeacherAssignment =
+    teacher_id !== undefined && teacher_id !== null && teacher_id !== "";
+
   // Validate teacher only when provided
-  if (teacher_id) {
+  if (hasTeacherAssignment) {
     const teacher = await Teacher.findOne({
       _id: teacher_id,
       college_id: req.college_id,
@@ -191,7 +195,7 @@ exports.createSubject = async (req, res, next) => {
     code,
     semester,
     credits,
-    teacher_id,
+    teacher_id: null,
     subjectType,
     internalMaxMarks,
     externalMaxMarks,
@@ -201,10 +205,25 @@ exports.createSubject = async (req, res, next) => {
     createdBy: req.user.id,
   });
 
+  let responseSubject = subject;
+  if (hasTeacherAssignment) {
+    try {
+      const assignment = await teacherSubjectAssignmentService.assignSubjectToTeacher(
+        teacher_id,
+        subject._id,
+        req.college_id,
+      );
+      responseSubject = assignment.subject;
+    } catch (error) {
+      await Subject.findByIdAndDelete(subject._id);
+      throw error;
+    }
+  }
+
   res.status(201).json({
     success: true,
     message: "Subject created successfully",
-    subject
+    subject: responseSubject
   });
 };
 
@@ -213,10 +232,17 @@ exports.createSubject = async (req, res, next) => {
  */
 exports.getSubjectsByCourse = async (req, res, next) => {
   try {
-    const subjects = await Subject.find({
+    const semester = Number.parseInt(req.query.semester, 10);
+    const filter = {
       course_id: req.params.courseId,
       college_id: req.college_id,
-    }).populate("teacher_id", "name designation")
+    };
+
+    if (Number.isInteger(semester) && semester >= 1 && semester <= 8) {
+      filter.semester = semester;
+    }
+
+    const subjects = await Subject.find(filter).populate("teacher_id", "name designation")
       .populate("course_id", "name code");
 
     res.json(subjects);
@@ -233,8 +259,16 @@ exports.updateSubject = async (req, res, next) => {
     // Validate exam / marks configuration (if supplied)
     validateExamMarksConfig(req.body);
 
+    const hasTeacherAssignment = Object.prototype.hasOwnProperty.call(
+      req.body,
+      "teacher_id",
+    );
+    const requestedTeacherId = req.body.teacher_id;
+    let assignmentResult;
+    let existingSubjectForUnassign;
+
     // ✅ Validate teacher_id if being updated
-    if (req.body.teacher_id) {
+    if (hasTeacherAssignment && requestedTeacherId) {
       // Fetch subject to get course_id and its department
       const existingSubject = await Subject.findOne({
         _id: req.params.id,
@@ -288,14 +322,59 @@ exports.updateSubject = async (req, res, next) => {
       }
     }
 
-    const subject = await Subject.findOneAndUpdate(
-      {
+    if (hasTeacherAssignment && requestedTeacherId) {
+      assignmentResult = await teacherSubjectAssignmentService.assignSubjectToTeacher(
+        requestedTeacherId,
+        req.params.id,
+        req.college_id,
+      );
+    } else if (hasTeacherAssignment && requestedTeacherId === null) {
+      existingSubjectForUnassign = await Subject.findOne({
         _id: req.params.id,
         college_id: req.college_id,
-      },
-      req.body,
-      { new: true },
-    );
+      });
+
+      if (!existingSubjectForUnassign) {
+        throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
+      }
+
+      if (existingSubjectForUnassign.teacher_id) {
+        assignmentResult = await teacherSubjectAssignmentService.unassignSubjectFromTeacher(
+          existingSubjectForUnassign.teacher_id,
+          req.params.id,
+          req.college_id,
+        );
+      } else {
+        assignmentResult = { subject: existingSubjectForUnassign };
+      }
+    }
+
+    const subjectUpdate = { ...req.body };
+    if (hasTeacherAssignment && requestedTeacherId === null) {
+      subjectUpdate.teacher_id = null;
+    } else {
+      delete subjectUpdate.teacher_id;
+    }
+
+    let subject;
+    if (Object.keys(subjectUpdate).length > 0) {
+      subject = await Subject.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          college_id: req.college_id,
+        },
+        subjectUpdate,
+        { new: true },
+      );
+    } else {
+      subject = assignmentResult?.subject;
+      if (!subject) {
+        subject = await Subject.findOne({
+          _id: req.params.id,
+          college_id: req.college_id,
+        });
+      }
+    }
 
     if (!subject) {
       throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
