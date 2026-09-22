@@ -1183,7 +1183,7 @@ const HodDashboard = () => {
                   <motion.button
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
-                    onClick={() => navigate("/timetable/create")}
+                    onClick={() => navigate("/timetable/create-timetable")}
                     style={{
                       background: BRAND.accent,
                       color: "#fff",
