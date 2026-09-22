@@ -339,7 +339,7 @@ const HodDashboard = () => {
       icon: FaCalendarAlt,
       color: BRAND.accent,
       items: [
-        { label: "Create Timetable", icon: FaPlus, route: "/timetable/create" },
+        { label: "Create Timetable", icon: FaPlus, route: "/timetable/create-timetable" },
         { label: "View All", icon: FaEye, route: "/timetable/list" },
       ],
     },
