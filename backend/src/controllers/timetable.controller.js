@@ -909,6 +909,8 @@ exports.getStudentTimetable = async (req, res) => {
 
     const filteredSlots = slots.filter((slot) => {
       if (!slot.timetable_id) return false;
+      if (slot.timetable_id.semester !== student.currentSemester) return false;
+      if (slot.timetable_id.academicYear !== student.currentAcademicYear) return false;
       if (slot.timetable_id.division) {
         return student.division && slot.timetable_id.division === student.division;
       }
@@ -1034,10 +1036,14 @@ exports.getStudentTodayTimetable = async (req, res) => {
     const todayDayName = getDayName(today);
     const todayStr = today.toISOString().split("T")[0];
 
-    // Find all PUBLISHED timetables for student's course and division
+    // Find all PUBLISHED timetables matching student's course, current
+    // semester, current academic year, and division.
     const timetableQuery = {
       college_id: req.college_id,
+      department_id: student.department_id,
       course_id: student.course_id,
+      semester: student.currentSemester,
+      academicYear: student.currentAcademicYear,
       status: "PUBLISHED",
     };
     if (student.division) {

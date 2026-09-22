@@ -985,9 +985,9 @@ export default function CreateExam() {
                       Loading subjects...
                     </div>
                   ) : subjects.length === 0 ? (
-                    <div className="alert-edx alert-edx-warning">
-                      <FaExclamationTriangle />
-                      No subjects found for the selected course and semester.
+                    <div className="alert-edx alert-edx-info">
+                      <FaInfoCircle />
+                      No subjects belong to this semester.
                     </div>
                   ) : (
                     <div className="subject-list">
