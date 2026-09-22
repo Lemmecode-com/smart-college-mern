@@ -7,6 +7,7 @@ const AppError = require("../utils/AppError");
 const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
 const { isValidSlotType } = require("../utils/constants");
 const { cache: scheduleCache } = require("../services/scheduleCache.service");
+const { findTeacherConflictSlot } = require("../services/exceptionValidation.service");
 
 /**
  * ADD SLOT (HOD ONLY)
@@ -136,16 +137,17 @@ exports.addSlot = async (req, res, next) => {
     }
 
     /* ================= TEACHER DOUBLE BOOKING ================= */
-    const teacherConflict = await TimetableSlot.findOne({
-      college_id: collegeId,
-      teacher_id,
+    // Scoped to the target timetable's active academic context (semester +
+    // academicYear, DRAFT/PUBLISHED only) so that ARCHIVED or different-
+    // semester/academic-year timetables do NOT produce false conflicts.
+    const teacherConflict = await findTeacherConflictSlot({
+      collegeId: collegeId,
+      teacherId: teacher_id,
       day,
-      $expr: {
-        $and: [
-          { $lt: ["$startTime", endTime] },
-          { $gt: ["$endTime", startTime] },
-        ],
-      },
+      startTime,
+      endTime,
+      academicYear: timetable.academicYear,
+      semester: timetable.semester,
     });
 
     if (teacherConflict) {
@@ -283,6 +285,34 @@ exports.updateSlot = async (req, res, next) => {
       }
 
       console.log(`✅ Teacher update validated: ${newTeacher.name} is assigned to ${subject.name}`);
+    }
+
+    /* ================= TEACHER DOUBLE BOOKING ON UPDATE ================= */
+    // Effective values: use the incoming value if provided, else the slot's
+    // current value. Scoped to the target timetable's active academic context
+    // (semester + academicYear, DRAFT/PUBLISHED) so ARCHIVED or different-
+    // semester/academic-year timetables do not produce false conflicts.
+    // Exclude the slot being updated so it never conflicts with itself.
+    const effectiveTeacherId = req.body.teacher_id || slot.teacher_id;
+    const effectiveDay = req.body.day || slot.day;
+    const effectiveStartTime = req.body.startTime || slot.startTime;
+    const effectiveEndTime = req.body.endTime || slot.endTime;
+
+    const teacherConflict = await findTeacherConflictSlot({
+      collegeId: req.college_id,
+      teacherId: effectiveTeacherId,
+      day: effectiveDay,
+      startTime: effectiveStartTime,
+      endTime: effectiveEndTime,
+      academicYear: timetable.academicYear,
+      semester: timetable.semester,
+      excludeSlotId: slotId,
+    });
+
+    if (teacherConflict) {
+      return res.status(409).json({
+        message: "Teacher already assigned at this time",
+      });
     }
 
     /* STEP 6: Update slot (NO publish restriction now) */

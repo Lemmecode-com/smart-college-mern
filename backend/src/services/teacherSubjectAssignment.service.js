@@ -3,6 +3,19 @@ const Teacher = require("../models/teacher.model");
 const Course = require("../models/course.model");
 const AppError = require("../utils/AppError");
 
+const deduplicateSubjectIds = (subjectIds = []) => {
+  const seen = new Set();
+
+  return subjectIds.filter((subjectId) => {
+    const id = subjectId.toString();
+    if (seen.has(id)) {
+      return false;
+    }
+    seen.add(id);
+    return true;
+  });
+};
+
 /**
  * Teacher-Subject Assignment Service
  *
@@ -54,6 +67,15 @@ const validateCompatibility = async (teacherId, subjectId, collegeId) => {
     : null;
 
   if (subjectCourseId) {
+    const course = await Course.findOne({
+      _id: subjectCourseId,
+      college_id: collegeId,
+    }).select("name code");
+
+    if (!course) {
+      throw new AppError("Course not found", 404, "COURSE_NOT_FOUND");
+    }
+
     const teacherCourseIds = (teacher.courses || []).map(
       (c) => c._id || c,
     );
@@ -63,10 +85,9 @@ const validateCompatibility = async (teacherId, subjectId, collegeId) => {
     );
 
     if (!matchesCourse) {
-      const course = await Course.findById(subjectCourseId).select("name code");
       throw new AppError(
         `Teacher is not assigned to the required course (${
-          course?.name || course?.code || "N/A"
+          course.name || course.code || "N/A"
         })`,
         400,
         "COURSE_MISMATCH",
@@ -91,6 +112,20 @@ exports.assignSubjectToTeacher = async (teacherId, subjectId, collegeId) => {
   const oldTeacherId = subject.teacher_id;
 
   if (oldTeacherId && oldTeacherId.toString() === teacherId.toString()) {
+    const existingSubjectIds = teacher.subjects || [];
+    const subjectIds = deduplicateSubjectIds(existingSubjectIds);
+    const alreadyInArray = subjectIds.some(
+      (sid) => sid.toString() === subjectId.toString(),
+    );
+
+    if (!alreadyInArray || subjectIds.length !== existingSubjectIds.length) {
+      if (!alreadyInArray) {
+        subjectIds.push(subjectId);
+      }
+      teacher.subjects = subjectIds;
+      await teacher.save();
+    }
+
     return {
       success: true,
       message: "Subject is already assigned to this teacher",
@@ -101,10 +136,15 @@ exports.assignSubjectToTeacher = async (teacherId, subjectId, collegeId) => {
   }
 
   if (oldTeacherId) {
-    const oldTeacher = await Teacher.findById(oldTeacherId);
+    const oldTeacher = await Teacher.findOne({
+      _id: oldTeacherId,
+      college_id: collegeId,
+    });
     if (oldTeacher && oldTeacher.subjects) {
-      oldTeacher.subjects = oldTeacher.subjects.filter(
-        (sid) => sid.toString() !== subjectId.toString(),
+      oldTeacher.subjects = deduplicateSubjectIds(
+        oldTeacher.subjects.filter(
+          (sid) => sid.toString() !== subjectId.toString(),
+        ),
       );
       await oldTeacher.save();
     }
@@ -113,16 +153,17 @@ exports.assignSubjectToTeacher = async (teacherId, subjectId, collegeId) => {
   subject.teacher_id = teacherId;
   await subject.save();
 
-  if (!teacher.subjects) {
-    teacher.subjects = [];
-  }
-
-  const alreadyInArray = teacher.subjects.some(
+  const existingSubjectIds = teacher.subjects || [];
+  const subjectIds = deduplicateSubjectIds(existingSubjectIds);
+  const alreadyInArray = subjectIds.some(
     (sid) => sid.toString() === subjectId.toString(),
   );
 
-  if (!alreadyInArray) {
-    teacher.subjects.push(subjectId);
+  if (!alreadyInArray || subjectIds.length !== existingSubjectIds.length) {
+    if (!alreadyInArray) {
+      subjectIds.push(subjectId);
+    }
+    teacher.subjects = subjectIds;
     await teacher.save();
   }
 
@@ -171,8 +212,10 @@ exports.unassignSubjectFromTeacher = async (teacherId, subjectId, collegeId) => 
   await subject.save();
 
   if (teacher.subjects) {
-    teacher.subjects = teacher.subjects.filter(
-      (sid) => sid.toString() !== subjectId.toString(),
+    teacher.subjects = deduplicateSubjectIds(
+      teacher.subjects.filter(
+        (sid) => sid.toString() !== subjectId.toString(),
+      ),
     );
     await teacher.save();
   }

@@ -1,4 +1,5 @@
 const TimetableSlot = require("../models/timetableSlot.model");
+const Timetable = require("../models/timetable.model");
 const TimetableException = require("../models/timetableException.model");
 const Leave = require("../models/leave.model");
 const { parseLocalDateSafe } = require("../utils/date.utils");
@@ -14,9 +15,91 @@ const { parseLocalDateSafe } = require("../utils/date.utils");
  */
 
 /* =========================================================
+   FIND TEACHER CONFLICT SLOT
+   Finds a conflicting TimetableSlot (returns the slot or null)
+   where the SAME teacher is double-booked on the same day/time,
+   scoped to the SAME active academic context.
+
+   Academic context mirrors the Timetable unique index + the
+   createTimetable / unarchive rules: college_id + semester +
+   academicYear, restricted to DRAFT/PUBLISHED timetables.
+
+   Division, course_id and department_id are intentionally NOT
+   conflict boundaries (a teacher cannot be in two rooms at once).
+
+   ARCHIVED timetables are excluded via the active-status filter
+   (status IN [DRAFT, PUBLISHED]), not as a bare
+   "status !== ARCHIVED" hack. semester + academicYear additionally
+   exclude different teaching periods (e.g. archived Semester 1
+   must not block current Semester 2).
+
+   NOTE: semester / academicYear / status live on Timetable, not on
+   TimetableSlot, so the parent Timetable is looked up to apply them.
+========================================================= */
+async function findTeacherConflictSlot({
+  collegeId,
+  teacherId,
+  day,
+  startTime,
+  endTime,
+  academicYear,
+  semester,
+  excludeSlotId = null,
+}) {
+  const slotQuery = {
+    college_id: collegeId,
+    teacher_id: teacherId,
+    day,
+    $expr: {
+      $and: [
+        { $lt: ["$startTime", endTime] },
+        { $gt: ["$endTime", startTime] },
+      ],
+    },
+  };
+
+  if (excludeSlotId) {
+    slotQuery._id = { $ne: excludeSlotId };
+  }
+
+  // 1️⃣ Candidate overlapping slots for this teacher/day/time (tenant-isolated).
+  //    find() auto-casts string ObjectIds, unlike aggregation $match.
+  const candidateSlots = await TimetableSlot.find(slotQuery).select(
+    "timetable_id",
+  );
+  if (candidateSlots.length === 0) return null;
+
+  // 2️⃣ Keep only those whose parent Timetable shares the SAME academic
+  //    context (semester + academicYear) AND is ACTIVE (DRAFT/PUBLISHED).
+  const timetableIds = [
+    ...new Set(candidateSlots.map((s) => s.timetable_id)),
+  ];
+
+  const conflictingTimetable = await Timetable.findOne({
+    _id: { $in: timetableIds },
+    college_id: collegeId,
+    academicYear,
+    semester,
+    status: { $in: ["DRAFT", "PUBLISHED"] },
+  });
+
+  if (!conflictingTimetable) return null;
+
+  // 3️⃣ Return a representative conflicting slot for the caller.
+  const matchId = String(conflictingTimetable._id);
+  return (
+    candidateSlots.find((s) => String(s.timetable_id) === matchId) ||
+    candidateSlots[0]
+  );
+}
+
+exports.findTeacherConflictSlot = findTeacherConflictSlot;
+
+/* =========================================================
    CHECK TEACHER CONFLICT
-   Checks if a teacher is already assigned to another class
-   on the same date and time
+   Checks if a teacher is already assigned to another class on
+   the same date and time, within the same active academic
+   context (academicYear + semester). Returns boolean.
 ========================================================= */
 exports.checkTeacherConflict = async (
   teacherId,
@@ -24,6 +107,8 @@ exports.checkTeacherConflict = async (
   startTime,
   endTime,
   collegeId,
+  academicYear,
+  semester,
 ) => {
   try {
     const dateObj = parseLocalDateSafe(date);
@@ -31,17 +116,15 @@ exports.checkTeacherConflict = async (
       .toLocaleDateString("en-US", { weekday: "short" })
       .toUpperCase();
 
-    // Check regular timetable slots
-    const slotConflict = await TimetableSlot.findOne({
-      college_id: collegeId,
-      teacher_id: teacherId,
+    // Check regular timetable slots (scoped to active academic context)
+    const slotConflict = await findTeacherConflictSlot({
+      collegeId,
+      teacherId,
       day: dayName,
-      $expr: {
-        $and: [
-          { $lt: ["$startTime", endTime] },
-          { $gt: ["$endTime", startTime] },
-        ],
-      },
+      startTime,
+      endTime,
+      academicYear,
+      semester,
     });
 
     if (slotConflict) {

@@ -327,6 +327,40 @@ describe("SUB-TC-001 — Subject Exam / Marks Configuration", () => {
     expect(found.externalMaxMarks).toBe(70);
   });
 
+  it("10a. filters subjects by semester", async () => {
+    const { agent, course } = await baseSetup();
+
+    const semesterThree = await agent
+      .post("/api/subjects")
+      .send({
+        course_id: course._id,
+        name: "Semester Three Subject",
+        code: `S3-${Date.now()}`,
+        semester: 3,
+        credits: 4,
+      })
+      .expect(201);
+
+    await agent
+      .post("/api/subjects")
+      .send({
+        course_id: course._id,
+        name: "Semester Four Subject",
+        code: `S4-${Date.now()}`,
+        semester: 4,
+        credits: 4,
+      })
+      .expect(201);
+
+    const filtered = await agent
+      .get(`/api/subjects/course/${course._id}?semester=3`)
+      .expect(200);
+
+    expect(filtered.body).toHaveLength(1);
+    expect(filtered.body[0]._id).toBe(semesterThree.body.subject._id);
+    expect(filtered.body[0].semester).toBe(3);
+  });
+
   it("11. creates a Subject without exam configuration (backward compatibility)", async () => {
     const { agent, course } = await baseSetup();
 
