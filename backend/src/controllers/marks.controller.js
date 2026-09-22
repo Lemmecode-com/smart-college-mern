@@ -283,6 +283,7 @@ exports.getStudentRoster = async (req, res, next) => {
       students = await Student.find({
         college_id: req.college_id,
         _id: { $in: studentIds },
+        status: { $in: ["APPROVED", "ENROLLED"] },
       })
         .select("_id fullName enrollmentNumber rollNumber")
         .sort({ fullName: 1 });
@@ -291,6 +292,7 @@ exports.getStudentRoster = async (req, res, next) => {
         college_id: req.college_id,
         course_id: exam.course_id,
         currentSemester: exam.semester,
+        status: { $in: ["APPROVED", "ENROLLED"] },
       })
         .select("_id fullName enrollmentNumber rollNumber")
         .sort({ fullName: 1 });
@@ -474,6 +476,7 @@ exports.saveMarks = async (req, res, next) => {
         college_id: req.college_id,
         course_id: exam.course_id,
         currentSemester: exam.semester,
+        status: { $in: ["APPROVED", "ENROLLED"] },
       });
 
       if (!student && exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
@@ -491,6 +494,7 @@ exports.saveMarks = async (req, res, next) => {
           _id: studentId,
           college_id: req.college_id,
           course_id: exam.course_id,
+          status: { $in: ["APPROVED", "ENROLLED"] },
         });
       }
 
