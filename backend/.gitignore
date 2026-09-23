@@ -1,4 +1,29 @@
 node_modules/
+
+# Environment / Secrets
 .env
+.env.*
+
+# Logs
 logs/
 *.log
+
+# Test / Coverage
+coverage/
+
+# Build
+build/
+
+# Local data
+uploads/
+backups/
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.backup
+
+# Editor temp files
+*.swp
+*.swo
