@@ -1151,10 +1151,12 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
          items={admissionOfficerMode
            ? [
                { label: "Dashboard", path: "/dashboard/admission" },
+               { label: "Students",},
                { label: "Student Promotion" },
              ]
            : [
                { label: "Dashboard", path: "/dashboard" },
+               { label: "Students",},
                { label: "Student Promotion" },
              ]
          }

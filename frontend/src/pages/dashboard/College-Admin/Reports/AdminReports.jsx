@@ -273,6 +273,7 @@ export default function AdminReports() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
+          { label: "Reports & Analytics", },
           { label: "Admission Reports" }
         ]}
       />

@@ -127,12 +127,12 @@ const staggerContainer = {
       {
         question: "Can different users have different access levels?",
         answer:
-          "Yes. NOVAA is designed around different institutional roles so that administrators, faculty, students, parents, and other users can access the information and functionality relevant to their responsibilities.",
+          "Yes. NOVAA is designed around different user roles so that administrators, faculty, students, parents, and other users can access the information and functionality relevant to their responsibilities.",
       },
       {
-        question: "Can NOVAA be used across different institutional departments?",
+        question: "Can NOVAA support different departments?",
         answer:
-          "Yes. NOVAA connects academic and administrative workflows through a centralized platform, helping different departments work with shared institutional information.",
+          "Yes. NOVAA connects academic and administrative workflows, helping departments manage their responsibilities through one organized platform.",
       },
       {
         question: "How can I get started with NOVAA?",
@@ -140,7 +140,169 @@ const staggerContainer = {
           "You can get started by contacting the NOVAA team through the contact section or by using the available demo and registration options on this page.",
       },
     ];
+    
+    const offers = [
+      {
+        icon: "fa-database",
+        title: "Centralized Student Data",
+        desc: "Keep student information organized and accessible across your college from one connected system.",
+        blobColor: "about-offer-blob-blue",
+      },
+      {
+        icon: "fa-calendar-check",
+        title: "Academic Operations",
+        desc: "Simplify attendance, timetables, academic workflows, and day-to-day faculty operations.",
+        blobColor: "about-offer-blob-teal",
+      },
+      {
+        icon: "fa-file-invoice-dollar",
+        title: "Fees & Finance",
+        desc: "Bring fee-related workflows and financial information into a more organized institutional process.",
+        blobColor: "about-offer-blob-coral",
+      },
+      {
+        icon: "fa-chart-line",
+        title: "Insights & Reporting",
+        desc: "Turn institutional data into useful reports and insights for better visibility across operations.",
+        blobColor: "about-offer-blob-yellow",
+      },
+      {
+        icon: "fa-mobile-screen-button",
+        title: "Mobile Friendly",
+        desc: "Access NOVAA seamlessly across phones, tablets, and desktops with a responsive experience.",
+        blobColor: "about-offer-blob-blue",
+      },
+    ];
 
+        const workflowSteps = [
+      {
+        number: "01",
+        icon: "fa-user-plus",
+        title: "Admission",
+        desc: "Capture and organize student admission information.",
+      },
+      {
+        number: "02",
+        icon: "fa-user-check",
+        title: "Enrollment",
+        desc: "Create and manage student records across the institution.",
+      },
+      {
+        number: "03",
+        icon: "fa-book-open",
+        title: "Academics",
+        desc: "Manage academic activities, classes, attendance, and schedules.",
+      },
+      {
+        number: "04",
+        icon: "fa-file-circle-check",
+        title: "Examinations",
+        desc: "Coordinate examinations, assessments, and academic results.",
+      },
+      {
+        number: "05",
+        icon: "fa-receipt",
+        title: "Fees & Finance",
+        desc: "Organize fee-related workflows and institutional financial records.",
+      },
+      {
+        number: "06",
+        icon: "fa-graduation-cap",
+        title: "Graduation",
+        desc: "Complete the student lifecycle with connected institutional records.",
+      },
+    ];
+
+    const roleExperiences = [
+      {
+        number: "01",
+        icon: "fa-user-tie",
+        category: "INSTITUTIONAL CONTROL",
+        title: "Administrator",
+        desc: "Manage student records, academics, finance, examinations, and institutional operations from one centralized system.",
+        link: "Institutional tools",
+      },
+      {
+        number: "02",
+        icon: "fa-chalkboard-user",
+        category: "ACADEMIC OPERATIONS",
+        title: "Teacher",
+        desc: "Manage attendance, schedules, examinations, student information, and everyday academic activities with ease.",
+        link: "Academic tools",
+      },
+      {
+        number: "03",
+        icon: "fa-user-graduate",
+        category: "STUDENT EXPERIENCE",
+        title: "Student",
+        desc: "Access academics, attendance, examinations, fees, schedules, and important institutional information in one place.",
+        link: "Student tools",
+      },
+      {
+        number: "04",
+        icon: "fa-users",
+        category: "FAMILY CONNECTION",
+        title: "Parent / Guardian",
+        desc: "Stay informed about attendance, academic progress, fees, activities, and important updates from the institution.",
+        link: "Family access",
+      },
+    ];
+
+
+    const statCards = [
+      {
+        key: "students",
+        cardClass:
+          "about-number-card about-number-card-tall about-number-card-left",
+        blobClass: "about-number-blob-blue",
+        valueKey: "totalStudents",
+        suffix: "+",
+        useLocaleString: true,
+        title: "Students Managed",
+        description:
+          "Student information managed through one connected platform.",
+        delay: 0.1,
+      },
+      {
+        key: "colleges",
+        cardClass:
+          "about-number-card about-number-card-top-center",
+        blobClass: "about-number-blob-teal",
+        valueKey: "totalColleges",
+        suffix: "+",
+        useLocaleString: false,
+        title: "Institutions Trust NOVAA",
+        description:
+          "Institutions using NOVAA to simplify everyday operations.",
+        delay: 0.2,
+      },
+      {
+        key: "teachers",
+        cardClass:
+          "about-number-card about-number-card-bottom-center",
+        blobClass: "about-number-blob-coral",
+        valueKey: "totalTeachers",
+        suffix: "+",
+        useLocaleString: false,
+        title: "Teachers Empowered",
+        description:
+          "Tools designed to simplify academic and teaching workflows.",
+        delay: 0.3,
+      },
+      {
+        key: "uptime",
+        cardClass:
+          "about-number-card about-number-card-tall about-number-card-right",
+        blobClass: "about-number-blob-yellow",
+        valueKey: "systemUptime",
+        suffix: "",
+        useLocaleString: false,
+        title: "System Uptime",
+        description:
+          "Reliable infrastructure supporting your institution's operations.",
+        delay: 0.4,
+      },
+    ];
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
@@ -483,20 +645,40 @@ const scrollToSection = useCallback((sectionId) => {
         box-shadow: 0 8px 22px rgba(56, 189, 248, 0.2);
       }
         /* ─── HERO ─── */
-        .hero-section-landing {
-          background:
-            linear-gradient(160deg, rgba(10,31,43,0.96) 0%, rgba(13,45,58,0.90) 40%, rgba(26,95,122,0.85) 70%, rgba(42,143,168,0.80) 100%),
-            url(${heroBgImg}) center center / cover no-repeat;
-          background-attachment: fixed;
-          color: white;
-          padding: 0 0 140px;
-          position: relative;
-          overflow: hidden;
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-        }
+ .hero-section-landing {
+  position: relative;
+  color: white;
+  padding: 0 0 140px;
+  overflow: hidden;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  isolation: isolate;
+}
 
+.hero-section-landing {
+  background: none;
+}
+
+.hero-section-landing .hero-background {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+
+  background:
+    linear-gradient(
+      160deg,
+      rgba(10,31,43,0.96) 0%,
+      rgba(13,45,58,0.90) 40%,
+      rgba(26,95,122,0.85) 70%,
+      rgba(42,143,168,0.80) 100%
+    ),
+    url(${heroBgImg}) center center / cover no-repeat;
+
+  pointer-events: none;
+}
+
+        
         /* Mesh gradient layer */
         .hero-section-landing::before {
           content: '';
@@ -6571,6 +6753,7 @@ className={`nav-link-landing ${
 
       {/* ─── HERO ─── */}
       <section className="hero-section-landing">
+        <div className="hero-background" />
         <div className="hero-grid-dots" />
         <div className="hero-lines" />
         <div className="hero-blob hero-blob-1" />
@@ -6774,90 +6957,41 @@ className={`nav-link-landing ${
               />
 
               {/* Left — Students (tall) */}
-              <motion.div
-                className="about-number-card about-number-card-tall about-number-card-left"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.1 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-blue">
-                  <span className="about-number-value">
-                    {statsLoading
-                      ? "..."
-                      : `${stats.totalStudents.toLocaleString()}+`}
-                  </span>
-                </div>
-                <h5 className="about-number-title">Students Managed</h5>
-                <p className="about-number-desc">
-                  Student information managed through one connected platform.
-                </p>
-              </motion.div>
+              {statCards.map((card) => {
+                const value = stats[card.valueKey];
 
-              {/* Top-center — Institutions */}
-              <motion.div
-                className="about-number-card about-number-card-top-center"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-teal">
-                  <span className="about-number-value">
-                    {statsLoading ? "..." : `${stats.totalColleges}+`}
-                  </span>
-                </div>
-                <h5 className="about-number-title">Institutions Trust NOVAA</h5>
-                <p className="about-number-desc">
-                  Institutions using NOVAA to simplify everyday operations.
-                </p>
-              </motion.div>
+                return (
+                  <motion.div
+                    className={card.cardClass}
+                    key={card.key}
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.7, delay: card.delay }}
+                  >
+                    <div className="card-bg-blob-tl" />
+                    <div className="card-bg-blob-br" />
 
-              {/* Bottom-center — Teachers */}
-              <motion.div
-                className="about-number-card about-number-card-bottom-center"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.3 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-coral">
-                  <span className="about-number-value">
-                    {statsLoading ? "..." : `${stats.totalTeachers}+`}
-                  </span>
-                </div>
-                <h5 className="about-number-title">Teachers Empowered</h5>
-                <p className="about-number-desc">
-                  Tools designed to simplify academic and teaching workflows.
-                </p>
-              </motion.div>
+                    <div className={`about-number-blob ${card.blobClass}`}>
+                      <span className="about-number-value">
+                        {statsLoading
+                          ? "..."
+                          : card.useLocaleString
+                          ? `${value.toLocaleString()}${card.suffix}`
+                          : `${value}${card.suffix}`}
+                      </span>
+                    </div>
 
-              {/* Right — Uptime (tall) */}
-              <motion.div
-                className="about-number-card about-number-card-tall about-number-card-right"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.4 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-yellow">
-                  <span className="about-number-value">
-                    {stats.systemUptime}
-                  </span>
-                </div>
-                <h5 className="about-number-title">System Uptime</h5>
-                <p className="about-number-desc">
-                  Reliable infrastructure supporting your institution's operations.
-                </p>
-              </motion.div>
+                    <h5 className="about-number-title">
+                      {card.title}
+                    </h5>
+
+                    <p className="about-number-desc">
+                      {card.description}
+                    </p>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
 
@@ -6874,38 +7008,7 @@ className={`nav-link-landing ${
               <div className="offers-section-bg-blob offers-section-bg-blob-1" />
               <div className="offers-section-bg-blob offers-section-bg-blob-2" />
 
-              {[
-                  {
-                    icon: "fa-database",
-                    title: "Centralized Student Data",
-                    desc: "Keep student information organized and accessible across the institution from one connected system.",
-                    blobColor: "about-offer-blob-blue",
-                  },
-                  {
-                    icon: "fa-calendar-check",
-                    title: "Academic Operations",
-                    desc: "Simplify attendance, timetables, academic workflows, and day-to-day faculty operations.",
-                    blobColor: "about-offer-blob-teal",
-                  },
-                  {
-                    icon: "fa-file-invoice-dollar",
-                    title: "Fees & Finance",
-                    desc: "Bring fee-related workflows and financial information into a more organized institutional process.",
-                    blobColor: "about-offer-blob-coral",
-                  },
-                  {
-                    icon: "fa-chart-line",
-                    title: "Insights & Reporting",
-                    desc: "Turn institutional data into useful reports and insights for better visibility across operations.",
-                    blobColor: "about-offer-blob-yellow",
-                  },
-                  {
-                    icon: "fa-mobile-screen-button",
-                    title: "Mobile Friendly",
-                    desc: "Access NOVAA seamlessly across phones, tablets, and desktops with a responsive experience.",
-                    blobColor: "about-offer-blob-blue",
-                  },
-                ].map((offer, i) => (
+              {offers.map((offer, i) => (
                 <motion.div
                   className="about-offer-card"
                   key={i}
@@ -6970,44 +7073,7 @@ className={`nav-link-landing ${
           </motion.div>
 
           <div className="workflow-timeline">
-            {[
-              {
-                number: "01",
-                icon: "fa-user-plus",
-                title: "Admission",
-                desc: "Capture and organize student admission information.",
-              },
-              {
-                number: "02",
-                icon: "fa-user-check",
-                title: "Enrollment",
-                desc: "Create and manage student records across the institution.",
-              },
-              {
-                number: "03",
-                icon: "fa-book-open",
-                title: "Academics",
-                desc: "Manage academic activities, classes, attendance, and schedules.",
-              },
-              {
-                number: "04",
-                icon: "fa-file-circle-check",
-                title: "Examinations",
-                desc: "Coordinate examinations, assessments, and academic results.",
-              },
-              {
-                number: "05",
-                icon: "fa-receipt",
-                title: "Fees & Finance",
-                desc: "Organize fee-related workflows and institutional financial records.",
-              },
-              {
-                number: "06",
-                icon: "fa-graduation-cap",
-                title: "Graduation",
-                desc: "Complete the student lifecycle with connected institutional records.",
-              },
-            ].map((step, index) => (
+            {workflowSteps.map((step, index) => (
               <motion.div
                 className="workflow-step"
                 key={step.number}
@@ -7245,83 +7311,50 @@ className={`nav-link-landing ${
           
 
               <div className="role-experience-grid">
-  {[
-    {
-      number: "01",
-      icon: "fa-user-tie",
-      category: "INSTITUTIONAL CONTROL",
-      title: "Administrator",
-      desc: "Manage student records, academics, finance, examinations, and institutional operations from one centralized system.",
-      link: "Institutional tools",
-    },
-    {
-      number: "02",
-      icon: "fa-chalkboard-user",
-      category: "ACADEMIC OPERATIONS",
-      title: "Teacher",
-      desc: "Manage attendance, schedules, examinations, student information, and everyday academic activities with ease.",
-      link: "Academic tools",
-    },
-    {
-      number: "03",
-      icon: "fa-user-graduate",
-      category: "STUDENT EXPERIENCE",
-      title: "Student",
-      desc: "Access academics, attendance, examinations, fees, schedules, and important institutional information in one place.",
-      link: "Student tools",
-    },
-    {
-      number: "04",
-      icon: "fa-users",
-      category: "FAMILY CONNECTION",
-      title: "Parent / Guardian",
-      desc: "Stay informed about attendance, academic progress, fees, activities, and important updates from the institution.",
-      link: "Family access",
-    },
-  ].map((role, index) => (
-    <motion.div
-      className="role-experience-card"
-      key={role.title}
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{
-        duration: 0.6,
-        delay: index * 0.08,
-      }}
-    >
-      <div className="role-card-top">
-        <span className="role-card-number">
-          {role.number}
-        </span>
+            {roleExperiences.map((role, index) => (
+              <motion.div
+                className="role-experience-card"
+                key={role.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{
+                  duration: 0.6,
+                  delay: index * 0.08,
+                }}
+              >
+                <div className="role-card-top">
+                  <span className="role-card-number">
+                    {role.number}
+                  </span>
 
-        <div className="role-card-icon">
-  <i className={`fas ${role.icon}`}></i>
-</div>
-      </div>
+                  <div className="role-card-icon">
+            <i className={`fas ${role.icon}`}></i>
+          </div>
+                </div>
 
-      <div className="role-card-content">
-        <span className="role-card-tag">
-          {role.category}
-        </span>
+                <div className="role-card-content">
+                  <span className="role-card-tag">
+                    {role.category}
+                  </span>
 
-        <h3 className="role-card-title">
-          {role.title}
-        </h3>
+                  <h3 className="role-card-title">
+                    {role.title}
+                  </h3>
 
-        <p className="role-card-desc">
-          {role.desc}
-        </p>
+                  <p className="role-card-desc">
+                    {role.desc}
+                  </p>
 
-        <div className="role-card-footer">
-          <span>{role.link}</span>
-        </div>
-      </div>
+                  <div className="role-card-footer">
+                    <span>{role.link}</span>
+                  </div>
+                </div>
 
-      <div className="role-card-accent" />
-    </motion.div>
-  ))}
-</div>
+                <div className="role-card-accent" />
+              </motion.div>
+            ))}
+          </div>
 
           <motion.div
             className="role-section-bottom"

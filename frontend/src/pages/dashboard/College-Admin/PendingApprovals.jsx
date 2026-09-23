@@ -452,7 +452,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
             ]
           : [
               { label: "Dashboard", path: "/dashboard" },
-              { label: "Students", path: "/students" },
+              { label: "Students",},
               { label: "Pending Approvals" },
             ]
         }

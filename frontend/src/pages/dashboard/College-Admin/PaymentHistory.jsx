@@ -1997,6 +1997,7 @@ export default function PaymentHistory() {
             label: "Dashboard",
             path: user?.role === "ACCOUNTANT" ? "/dashboard/accountant" : "/dashboard"
           },
+          { label: "Reports & Analytics", },
           { label: "Payment History" },
         ]}
       />
