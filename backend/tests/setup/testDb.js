@@ -10,6 +10,16 @@ const connectTestDb = async () => {
 };
 
 const clearTestDb = async () => {
+  if (process.env.NODE_ENV !== 'test') {
+    throw new Error('🛑 clearTestDb BLOCKED: NODE_ENV is "' + process.env.NODE_ENV + '" (expected "test") — refusing to clear database');
+  }
+  if (!mongoose.connection || mongoose.connection.readyState === 0) {
+    throw new Error('🛑 clearTestDb BLOCKED: not connected to MongoDB');
+  }
+  const dbName = mongoose.connection.db.databaseName;
+  if (dbName !== 'novaa-test') {
+    throw new Error('🛑 clearTestDb BLOCKED: active database is "' + dbName + '" — must be "novaa-test"');
+  }
   const collections = mongoose.connection.collections;
   for (const key in collections) {
     await collections[key].deleteMany({});
