@@ -1,661 +1,1432 @@
 import { useContext, useEffect, useState } from "react";
+
 import { Navigate, useNavigate } from "react-router-dom";
+
 import { AuthContext } from "../../../auth/AuthContext";
+
 import api from "../../../api/axios";
+
 import Loading from "../../../components/Loading";
+
 import Breadcrumb from "../../../components/Breadcrumb";
+
 import useRole from "../../../hooks/useRole";
+
 import ApiError from "../../../components/ApiError";
+
 import { toast } from "react-toastify";
+
 import { logger } from "../../../utils/logger";
 
+
+
 import {
+
   FaBook,
+
   FaTrash,
+
   FaEdit,
+
   FaLayerGroup,
+
   FaAward,
+
   FaChalkboardTeacher,
+
   FaSearch,
+
   FaFilter,
+
   FaPlus,
+
   FaArrowLeft,
+
   FaCheckCircle,
+
   FaExclamationTriangle,
+
   FaClock,
+
   FaUsers,
+
   FaGraduationCap,
+
   FaChevronDown,
+
   FaChevronUp,
+
   FaEye
+
 } from "react-icons/fa";
 
+
+
 const AUTH_ERROR_CODES = new Set([
+
   "TOKEN_MISSING",
+
   "TOKEN_EXPIRED",
+
   "INVALID_TOKEN",
+
   "TOKEN_BLACKLISTED",
+
   "TOKEN_INVALIDATED",
+
   "USER_NOT_FOUND",
+
   "ACCOUNT_DEACTIVATED",
+
   "UNAUTHORIZED",
+
 ]);
 
+
+
 export default function SubjectList() {
+
   const { user } = useContext(AuthContext);
+
   const navigate = useNavigate();
+
   const { canCreate, canEdit, canDelete } = useRole();
 
+
+
   const [departments, setDepartments] = useState([]);
+
   const [courses, setCourses] = useState([]);
+
   const [subjects, setSubjects] = useState([]);
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [selectedCourse, setSelectedCourse] = useState("");
-  const [selectedSemester, setSelectedSemester] = useState("");
+
+  const savedSubjectFilters = JSON.parse(
+    sessionStorage.getItem("subjectListFilters") || "null"
+  );
+
+  const [selectedDepartment, setSelectedDepartment] = useState(
+    savedSubjectFilters?.department || ""
+  );
+
+  const [selectedCourse, setSelectedCourse] = useState(
+    savedSubjectFilters?.course || ""
+  );
+
+  const [selectedSemester, setSelectedSemester] = useState(
+    savedSubjectFilters?.semester || ""
+  );
+
   const [loading, setLoading] = useState(true);
+
   const [loadingSubjects, setLoadingSubjects] = useState(false);
+
   const [error, setError] = useState(null);
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const [subjectToDelete, setSubjectToDelete] = useState(null);
+
   const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
+
   const [searchTerm, setSearchTerm] = useState("");
 
+
+
   useEffect(() => {
+
     if (!user || (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")) {
+
       return;
+
     }
 
+
+
     const fetchDepartments = async () => {
+
       try {
+
         const res = await api.get("/departments");
+
         const departmentsData = Array.isArray(res.data) ? res.data :
+
                                 Array.isArray(res.data.departments) ? res.data.departments :
+
                                 Array.isArray(res.data.data) ? res.data.data : [];
+
         setDepartments(departmentsData);
+
       } catch (err) {
+
         const statusCode = err.response?.status;
+
         const errorCode = err.response?.data?.code;
+
         const backendMessage = err.response?.data?.message;
+
         const errorMessage = backendMessage || "Failed to load departments.";
+
+
 
         logger.error("Error fetching departments:", statusCode, errorCode);
 
+
+
         setError({
+
           message: errorMessage,
+
           statusCode,
+
           errorCode,
+
         });
 
+
+
         const isAuthError =
+
           statusCode === 401 ||
+
           (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
+
+
         if (!isAuthError) {
+
           toast.error(errorMessage);
+
         }
+
       } finally {
+
         setLoading(false);
+
       }
+
     };
 
+
+
     fetchDepartments();
+
   }, [user]);
 
+
+
   if (!user) return <Navigate to="/login" />;
+
   if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+
     return <Navigate to="/dashboard" replace />;
 
+
+
   /* ================= FETCH COURSES BY DEPARTMENT ================= */
-  const fetchCourses = async (deptId) => {
+
+  const fetchCourses = async (deptId, preserveSelection = false) => {
+
     try {
+
       const res = await api.get(`/courses/department/${deptId}`);
+
       const coursesData = Array.isArray(res.data) ? res.data :
+
                           Array.isArray(res.data.courses) ? res.data.courses :
+
                           Array.isArray(res.data.data) ? res.data.data : [];
+
       setCourses(coursesData);
-      setSelectedCourse("");
-      setSelectedSemester("");
-      setSubjects([]);
+
+
+
+      if (!preserveSelection) {
+
+
+        setSelectedCourse("");
+
+
+        setSelectedSemester("");
+
+
+        setSubjects([]);
+
+
+      }
+
+
+
+      return coursesData;
+
     } catch (err) {
+
       const statusCode = err.response?.status;
+
       const errorCode = err.response?.data?.code;
+
       const backendMessage = err.response?.data?.message;
+
       const errorMessage = backendMessage || "Failed to load courses.";
+
+
 
       logger.error("Error fetching courses:", statusCode, errorCode);
 
+
+
       setError({
+
         message: errorMessage,
+
         statusCode,
+
         errorCode,
+
       });
+
+
 
       const isAuthError =
+
         statusCode === 401 ||
+
         (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
+
+
       if (!isAuthError) {
+
         toast.error(errorMessage);
+
       }
+
       setCourses([]);
+
       setSelectedSemester("");
+
     }
+
   };
 
+
+
   /* ================= FETCH SUBJECTS BY COURSE ================= */
+
   const fetchSubjects = async (courseId, semester = "") => {
+
     setLoadingSubjects(true);
+
     setError(null);
+
     try {
+
       const res = await api.get(`/subjects/course/${courseId}`, {
+
         params: semester ? { semester } : undefined,
+
       });
+
       const subjectsData = Array.isArray(res.data) ? res.data :
+
                            Array.isArray(res.data.subjects) ? res.data.subjects :
+
                            Array.isArray(res.data.data) ? res.data.data : [];
+
       setSubjects(subjectsData);
+
     } catch (err) {
+
       const statusCode = err.response?.status;
+
       const errorCode = err.response?.data?.code;
+
       const backendMessage = err.response?.data?.message;
+
       const errorMessage = backendMessage || "Failed to load subjects.";
+
+
 
       logger.error("Error fetching subjects:", statusCode, errorCode);
 
+
+
       setError({
+
         message: errorMessage,
+
         statusCode,
+
         errorCode,
+
       });
 
+
+
       const isAuthError =
+
         statusCode === 401 ||
+
         (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
+
+
       if (!isAuthError) {
+
         toast.error(errorMessage);
+
       }
+
       setSubjects([]);
+
     } finally {
+
       setLoadingSubjects(false);
+
     }
+
   };
+
+
+
+  /* ================= RESTORE SUBJECT LIST FILTERS ================= */
+
+  useEffect(() => {
+    const savedFilters = JSON.parse(
+      sessionStorage.getItem("subjectListFilters") || "null"
+    );
+
+    if (!savedFilters?.department || !savedFilters?.course) return;
+
+    const restoreFilters = async () => {
+      try {
+        setSelectedDepartment(savedFilters.department);
+
+        const coursesData = await fetchCourses(
+          savedFilters.department,
+          true
+        );
+
+        const savedCourseExists = coursesData?.some(
+          (course) => course._id === savedFilters.course
+        );
+
+        if (!savedCourseExists) {
+          sessionStorage.removeItem("subjectListFilters");
+          setSelectedDepartment("");
+          setSelectedCourse("");
+          setSelectedSemester("");
+          setSubjects([]);
+          return;
+        }
+
+        setSelectedCourse(savedFilters.course);
+        setSelectedSemester(savedFilters.semester || "");
+
+        await fetchSubjects(
+          savedFilters.course,
+          savedFilters.semester || ""
+        );
+      } catch (err) {
+        console.error("Error restoring subject list filters:", err);
+      }
+    };
+
+    restoreFilters();
+  }, [user]);
 
   /* ================= SORTING ================= */
+
   const handleSort = (key) => {
+
     let direction = "asc";
+
     if (sortConfig.key === key && sortConfig.direction === "asc") {
+
       direction = "desc";
+
     }
+
     setSortConfig({ key, direction });
 
+
+
     const sorted = [...subjects].sort((a, b) => {
+
       if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
+
       if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
+
       return 0;
+
     });
+
     setSubjects(sorted);
+
   };
+
+
 
   /* ================= FILTERING ================= */
+
   const getFilteredSubjects = () => {
+
     return subjects.filter(subject => 
+
       subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+
       subject.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+
       (subject.teacher_id?.name && subject.teacher_id.name.toLowerCase().includes(searchTerm.toLowerCase()))
+
     );
+
   };
+
+
 
   /* ================= DELETE SUBJECT ================= */
+
   const handleDeleteClick = (subject) => {
+
     setSubjectToDelete(subject);
+
     setShowDeleteModal(true);
+
   };
+
+
 
   const confirmDelete = async () => {
+
     if (!subjectToDelete) return;
 
+
+
     try {
+
       await api.delete(`/subjects/${subjectToDelete._id}`);
+
       setSubjects(subjects.filter(s => s._id !== subjectToDelete._id));
+
       setShowDeleteModal(false);
+
       setSubjectToDelete(null);
+
       setError(null);
+
     } catch {
+
       setError("Failed to delete subject. Please try again.");
+
     }
+
   };
 
+
+
   /* ================= LOADING SKELETON ================= */
+
   const renderSkeleton = () => (
+
     <div className="skeleton-table">
+
       {[...Array(5)].map((_, i) => (
+
         <div key={i} className="skeleton-row">
+
           <div className="skeleton-cell skeleton-text long"></div>
+
           <div className="skeleton-cell skeleton-text short"></div>
+
           <div className="skeleton-cell skeleton-text short"></div>
+
           <div className="skeleton-cell skeleton-text short"></div>
+
           <div className="skeleton-cell skeleton-text medium"></div>
+
           <div className="skeleton-cell skeleton-badge"></div>
+
           <div className="skeleton-cell skeleton-actions">
+
             <div className="skeleton-action"></div>
+
             <div className="skeleton-action"></div>
+
           </div>
+
         </div>
+
       ))}
+
     </div>
+
   );
+
+
 
   /* ================= ERROR STATE ================= */
+
   if (error && !loading) {
+
     return (
+
       <ApiError
+
         title="Subject Loading Error"
+
         message={error.message}
+
         statusCode={error.statusCode}
+
         errorCode={error.errorCode}
+
         onRetry={() => {
+
           setError(null);
+
           if (selectedDepartment) fetchCourses(selectedDepartment);
+
           if (selectedCourse) fetchSubjects(selectedCourse, selectedSemester);
+
         }}
+
         onGoBack={() => navigate(-1)}
+
       />
+
     );
+
   }
+
+
 
   /* ================= LOADING STATE ================= */
+
   if (loading) {
+
     return <Loading fullScreen size="lg" text="Loading departments..." />;
+
   }
 
+
+
   const filteredSubjects = getFilteredSubjects();
+
   const selectedDeptName = Array.isArray(departments) ? departments.find(d => d._id === selectedDepartment)?.name || "Select Department" : "Select Department";
+
   const selectedCourseData = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse) : undefined;
+
   const selectedCourseName = selectedCourseData?.name || "Select Course";
+
   const semesterOptions = Array.from(
+
     { length: selectedCourseData?.durationSemesters || 8 },
+
     (_, index) => index + 1
+
   );
 
+
+
   return (
+
     <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
+
       {/* BREADCRUMBS */}
+
       <div className="course-breadcrumb-wrapper">
+
       <Breadcrumb
+
         items={[
+
           { label: "Dashboard", path: "/dashboard" },
+
+          { label: "Courses" },
+
           { label: "Subject Management" }
+
         ]}
+
       />
+
       </div>
+
+
 
       {/* HEADER */}
+
       <div className="erp-page-header">
+
         <div className="erp-header-content">
+
           <div className="erp-header-icon">
+
             <FaBook />
+
           </div>
+
           <div className="erp-header-text">
+
             <h1 className="erp-page-title">Subject Management</h1>
+
             <p className="erp-page-subtitle">
+
               Manage academic subjects by department and course
+
             </p>
+
           </div>
+
         </div>
+
         <div className="erp-header-actions">
+
           <button
+
             className="erp-btn erp-btn-secondary"
+
             onClick={() => navigate("/dashboard")}
+
           >
+
             <FaArrowLeft className="erp-btn-icon" />
+
             <span>Back to Dashboard</span>
+
           </button>
+
         </div>
+
       </div>
 
+
+
       {/* FILTERS CARD */}
+
       <div className="erp-card animate-fade-in">
+
         <div className="erp-card-header">
+
           <h3>
+
             <FaFilter className="erp-card-icon" />
+
             Filter Subjects
+
           </h3>
+
         </div>
+
         <div className="erp-card-body">
+
           <div className="filter-grid">
+
             <div className="filter-group">
+
               <label className="filter-label">
+
                 <FaLayerGroup className="filter-icon" />
+
                 <span>Department</span>
+
               </label>
+
               <div className="filter-select-wrapper">
+
                 <select
+
                   className="filter-select"
+
                   value={selectedDepartment}
+
                   onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
+                    const departmentId = e.target.value;
+
+                    setSelectedDepartment(departmentId);
                     setSelectedCourse("");
                     setSelectedSemester("");
                     setSubjects([]);
-                    if (e.target.value) fetchCourses(e.target.value);
+
+                    if (departmentId) {
+                      sessionStorage.setItem(
+                        "subjectListFilters",
+                        JSON.stringify({
+                          department: departmentId,
+                          course: "",
+                          semester: "",
+                        })
+                      );
+
+                      fetchCourses(departmentId);
+                    } else {
+                      sessionStorage.removeItem("subjectListFilters");
+                    }
                   }}
+
                 >
+
                   <option value="">-- Select Department --</option>
+
                   {departments.map((dept) => (
+
                     <option key={dept._id} value={dept._id}>
+
                       {dept.name} {dept.code && `(${dept.code})`}
+
                     </option>
+
                   ))}
+
                 </select>
+
                 <div className="filter-select-arrow">
+
                   <FaChevronDown />
+
                 </div>
+
               </div>
+
             </div>
 
+
+
             <div className="filter-group">
+
               <label className="filter-label">
+
                 <FaAward className="filter-icon" />
+
                 <span>Course</span>
+
               </label>
+
               <div className="filter-select-wrapper">
+
                 <select
+
                   className="filter-select"
+
                   value={selectedCourse}
+
                   disabled={!selectedDepartment}
+
                   onChange={(e) => {
-                    setSelectedCourse(e.target.value);
+                    const courseId = e.target.value;
+
+                    setSelectedCourse(courseId);
                     setSelectedSemester("");
-                    if (e.target.value) fetchSubjects(e.target.value);
+
+                    if (courseId) {
+                      sessionStorage.setItem(
+                        "subjectListFilters",
+                        JSON.stringify({
+                          department: selectedDepartment,
+                          course: courseId,
+                          semester: "",
+                        })
+                      );
+
+                      fetchSubjects(courseId);
+                    }
                   }}
+
                 >
+
                   <option value="">-- Select Course --</option>
+
                   {courses.map((course) => (
+
                     <option key={course._id} value={course._id}>
+
                       {course.name} ({course.code})
+
                     </option>
+
                   ))}
+
                 </select>
+
                 <div className="filter-select-arrow">
+
                   <FaChevronDown />
+
                 </div>
+
               </div>
+
             </div>
 
+
+
             <div className="filter-group">
+
               <label className="filter-label">
+
                 <FaClock className="filter-icon" />
+
                 <span>Semester</span>
+
               </label>
+
               <div className="filter-select-wrapper">
+
                 <select
+
                   className="filter-select"
+
                   value={selectedSemester}
+
                   disabled={!selectedCourse}
+
                   onChange={(e) => {
-                    setSelectedSemester(e.target.value);
-                    if (selectedCourse) fetchSubjects(selectedCourse, e.target.value);
+                    const semester = e.target.value;
+
+                    setSelectedSemester(semester);
+
+                    if (selectedCourse) {
+                      sessionStorage.setItem(
+                        "subjectListFilters",
+                        JSON.stringify({
+                          department: selectedDepartment,
+                          course: selectedCourse,
+                          semester,
+                        })
+                      );
+
+                      fetchSubjects(selectedCourse, semester);
+                    }
                   }}
+
                 >
+
                   <option value="">-- Select Semester --</option>
+
                   {semesterOptions.map((semester) => (
+
                     <option key={semester} value={semester}>
+
                       Semester {semester}
+
                     </option>
+
                   ))}
+
                 </select>
+
                 <div className="filter-select-arrow">
+
                   <FaChevronDown />
+
                 </div>
+
               </div>
+
             </div>
+
+
 
             {selectedCourse && (
+
               <div className="filter-actions">
+
                 {canCreate('subjects') && (
+
                   <button
+
                     className="add-subject-btn"
+
                     onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
+
                   >
+
                     <FaPlus className="erp-btn-icon" />
+
                     <span>Add Subject</span>
+
                   </button>
+
                 )}
+
               </div>
+
             )}
+
           </div>
+
         </div>
+
       </div>
 
+
+
       {/* SUBJECTS SECTION */}
+
       {selectedCourse && (
+
         <div className="erp-card animate-fade-in">
+
           <div className="erp-card-header">
+
             <div className="header-left">
+
               <h3>
+
                 <FaBook className="erp-card-icon" />
+
                 {selectedCourseName} Subjects
+
               </h3>
+
               <span className="subject-count">
+
                 {filteredSubjects.length} {filteredSubjects.length === 1 ? "Subject" : "Subjects"}
+
               </span>
+
             </div>
+
             <div className="header-right">
+
               <div className="search-box">
+
                 <FaSearch className="search-icon" />
+
                 <input
+
                   type="text"
+
                   placeholder="Search subjects..."
+
                   value={searchTerm}
+
                   onChange={(e) => setSearchTerm(e.target.value)}
+
                 />
+
               </div>
+
             </div>
+
           </div>
+
+
 
           <div className="erp-card-body">
+
             {/* TABLE */}
+
             <div className="erp-table-responsive table-container">
+
               {loadingSubjects ? (
+
                 renderSkeleton()
+
               ) : filteredSubjects.length === 0 ? (
+
                 <div className="empty-state">
+
                   <div className="empty-icon">
+
                     <FaBook />
+
                   </div>
+
                   <h3>No Subjects Found</h3>
+
                   <p className="empty-description">
+
                     {searchTerm 
+
                       ? "No subjects match your search criteria." 
+
                       : `No subjects found for ${selectedCourseName}.`}
+
                   </p>
+
                    {!searchTerm && canCreate('subjects') && (
+
                      <button
+
                        className="add-subject-btn large"
+
                        onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
+
                      >
+
                        <FaPlus className="erp-btn-icon" />
+
                        Add Your First Subject
+
                      </button>
+
                    )}
+
                 </div>
+
               ) : (
+
                 <table className="erp-table">
+
                   <thead>
+
                     <tr>
+
                       <th onClick={() => handleSort('name')}>
+
                         Subject Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+
                       </th>
+
                       <th onClick={() => handleSort('code')}>
+
                         Code {sortConfig.key === 'code' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+
                       </th>
+
                       <th onClick={() => handleSort('semester')}>
+
                         Semester {sortConfig.key === 'semester' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+
                       </th>
+
                       <th onClick={() => handleSort('credits')}>
+
                         Credits {sortConfig.key === 'credits' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+
                       </th>
+
                       <th>Teacher</th>
+
                       <th onClick={() => handleSort('status')}>
+
                         Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
+
                       </th>
+
                       <th className="text-center">Actions</th>
+
                     </tr>
+
                   </thead>
+
                   <tbody>
+
                     {filteredSubjects.map((subject) => (
+
                       <tr key={subject._id} className="table-row">
+
                         <td>
+
                           <div className="subject-name">
+
                             <div className="subject-icon">
+
                               <FaGraduationCap />
+
                             </div>
+
                             <div className="subject-details">
+
                               <div className="subject-title">{subject.name}</div>
+
                               <div className="subject-meta">
+
                                 {subject.course_id?.name && (
+
                                   <>
+
                                     <span className="course-badge">{subject.course_id.name}</span>
+
                                     <span className="dept-badge">{selectedDeptName}</span>
+
                                   </>
+
                                 )}
+
                               </div>
+
                             </div>
+
                           </div>
+
                         </td>
+
                         <td>
+
                           <span className="subject-code-badge">{subject.code}</span>
+
                         </td>
+
                         <td>
+
                           <span className="semester-badge">
+
                             <FaClock className="semester-icon" />
+
                             Sem {subject.semester}
+
                           </span>
+
                         </td>
+
                         <td>
+
                           <span className="credits-badge">
+
                             <FaAward className="credits-icon" />
+
                             {subject.credits}
+
                           </span>
+
                         </td>
+
                         <td>
+
                           {subject.teacher_id?.name ? (
+
                             <div className="teacher-info">
+
                               <div className="teacher-avatar">
+
                                 {subject.teacher_id.name.charAt(0).toUpperCase()}
+
                               </div>
+
                               <div className="teacher-details">
+
                                 <div className="teacher-name">{subject.teacher_id.name}</div>
+
                                 <div className="teacher-role">{subject.teacher_id.designation || "Faculty"}</div>
+
                               </div>
+
                             </div>
+
                           ) : (
+
                             <span className="not-assigned">Not Assigned</span>
+
                           )}
+
                         </td>
+
                         <td>
+
                           <span className={`status-badge status-${subject.status?.toLowerCase() || 'inactive'}`}>
+
                             {subject.status || "INACTIVE"}
+
                           </span>
+
                         </td>
+
                         <td className="action-cell">
+
                           <div className="action-buttons">
+
                             <button 
+
                               className="action-btn view-btn"
+
                               title="View Details"
-                              onClick={() => navigate(`/subjects/view/${subject._id}`)}
+
+                              onClick={() => {
+                              sessionStorage.setItem(
+                                "subjectListFilters",
+                                JSON.stringify({
+                                  department: selectedDepartment,
+                                  course: selectedCourse,
+                                  semester: selectedSemester,
+                                })
+                              );
+
+                              navigate(`/subjects/view/${subject._id}`);
+                            }}
+
                             >
+
                               <FaEye />
+
                             </button>
+
                             {canEdit('subjects') && (
+
                               <button 
+
                                 className="action-btn edit-btn"
+
                                 title="Edit Subject"
+
                                 onClick={() => navigate(`/subjects/edit/${subject._id}`)}
+
                               >
+
                                 <FaEdit />
+
                               </button>
+
                             )}
+
                             {canDelete('subjects') && (
+
                               <button 
+
                                 className="action-btn delete-btn"
+
                                 title="Delete Subject"
+
                                 onClick={() => handleDeleteClick(subject)}
+
                               >
+
                                 <FaTrash />
+
                               </button>
+
                             )}
+
                           </div>
+
                         </td>
+
                       </tr>
+
                     ))}
+
                   </tbody>
+
                 </table>
+
               )}
+
             </div>
+
           </div>
+
         </div>
+
       )}
+
+
 
       {/* DELETE MODAL */}
+
       {showDeleteModal && subjectToDelete && (
+
         <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+
             <div className="modal-header">
+
               <h3>Delete Subject</h3>
+
               <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
+
                 <FaTimes />
+
               </button>
+
             </div>
+
             <div className="modal-body">
+
               <div className="modal-warning">
+
                 <FaExclamationTriangle className="warning-icon" />
+
                 <div className="warning-text">
+
                   <h4>Are you sure you want to delete this subject?</h4>
+
                   <p>This action cannot be undone. All related data will be permanently deleted.</p>
+
                 </div>
+
               </div>
+
               <div className="subject-preview">
+
                 <div className="preview-item">
+
                   <span className="preview-label">Subject Name:</span>
+
                   <span className="preview-value">{subjectToDelete.name}</span>
+
                 </div>
+
                 <div className="preview-item">
+
                   <span className="preview-label">Subject Code:</span>
+
                   <span className="preview-value">{subjectToDelete.code}</span>
+
                 </div>
+
                 <div className="preview-item">
+
                   <span className="preview-label">Course:</span>
+
                   <span className="preview-value">{selectedCourseName}</span>
+
                 </div>
+
                 <div className="preview-item">
+
                   <span className="preview-label">Department:</span>
+
                   <span className="preview-value">{selectedDeptName}</span>
+
                 </div>
+
               </div>
+
             </div>
+
             <div className="modal-footer">
+
               <button 
+
                 className="erp-btn erp-btn-secondary"
+
                 onClick={() => setShowDeleteModal(false)}
+
               >
+
                 Cancel
+
               </button>
+
               <button 
+
                 className="erp-btn erp-btn-danger"
+
                 onClick={confirmDelete}
+
               >
+
                 <FaTrash className="erp-btn-icon" />
+
                 Delete Permanently
+
               </button>
+
             </div>
+
           </div>
+
         </div>
+
       )}
 
+
+
       {/* STYLES */}
-      <style>{`
+
+            <style>{`
         /* CSS Custom Properties for consistent theming */
         :root {
           --sidebar-primary: #0f3a4a;
@@ -2543,19 +3314,35 @@ export default function SubjectList() {
   }
 }
       `}</style>
+
     </div>
+
   );
+
 }
 
+
+
 /* CUSTOM ICONS */
+
 const FaTimes = ({ size = 20, color = "#666" }) => (
+
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+
   </svg>
+
 );
 
+
+
 const FaSyncAlt = ({ size = 16, color = "#3db5e6" }) => (
+
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+
   </svg>
+
 );
