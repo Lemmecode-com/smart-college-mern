@@ -803,7 +803,7 @@ export default function CourseList() {
         <Breadcrumb
           items={[
             { label: "Dashboard", path: "/dashboard" },
-            { label: "Academics", icon: FaGraduationCap },
+            { label: "Courses", },
             { label: "Course Management" },
           ]}
         />
