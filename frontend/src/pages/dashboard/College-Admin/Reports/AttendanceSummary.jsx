@@ -207,7 +207,7 @@ export default function AttendanceSummary() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Reports", path: "/college-admin/reports-dashboard" },
+          { label: "Reports & Analytics",},
           { label: "Attendance Summary" },
         ]}
       />

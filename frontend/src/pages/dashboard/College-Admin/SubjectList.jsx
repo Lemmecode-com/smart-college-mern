@@ -763,20 +763,19 @@ export default function SubjectList() {
         }
         
         .erp-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: var(--card-shadow);
-          margin-bottom: 1.5rem;
-          overflow: hidden;
-          animation: fadeIn 0.6s ease;
-          border: 1px solid rgba(15, 58, 74, 0.08);
-          transition: all 0.3s ease;
-        }
+        background: white;
+        border-radius: 16px;
+        box-shadow: var(--card-shadow);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        animation: fadeIn 0.6s ease;
+        border: 1px solid rgba(15, 58, 74, 0.08);
+        transition: box-shadow 0.3s ease;
+      }
 
-        .erp-card:hover {
-          box-shadow: var(--card-hover-shadow);
-          transform: translateY(-2px);
-        }
+      .erp-card:hover {
+        box-shadow: var(--card-hover-shadow);
+      }
 
         .erp-card-header {
           padding: 1.5rem 1.75rem;
@@ -1090,9 +1089,12 @@ export default function SubjectList() {
           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .erp-table tbody tr:hover {
-          background: linear-gradient(90deg, rgba(61, 181, 230, 0.08) 0%, rgba(79, 195, 247, 0.05) 100%);
-          transform: scale(1.005);
+       .erp-table tbody tr:hover {
+          background: linear-gradient(
+            90deg,
+            rgba(61, 181, 230, 0.08) 0%,
+            rgba(79, 195, 247, 0.05) 100%
+          );
           box-shadow: 0 2px 8px rgba(61, 181, 230, 0.1);
         }
 
@@ -2505,6 +2507,39 @@ export default function SubjectList() {
 
   .empty-description {
     font-size: 0.75rem;
+  }
+}
+
+/* =========================================================
+   MOBILE / TABLET JITTER FIX
+   Disable hover transforms on touch-sized screens
+   ========================================================= */
+
+@media (max-width: 1024px) {
+
+  .erp-card,
+  .erp-table tbody tr {
+    transition: none !important;
+  }
+
+  .erp-card:hover {
+    transform: none !important;
+    box-shadow: var(--card-shadow) !important;
+  }
+
+  .erp-table tbody tr:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    background: inherit !important;
+  }
+
+  /* Prevent entrance animations from causing visual jumps */
+  .animate-fade-in {
+    animation: none !important;
+  }
+
+  .erp-page-header {
+    animation: none !important;
   }
 }
       `}</style>
