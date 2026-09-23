@@ -380,18 +380,18 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
           items={principalMode
             ? [
                 { label: "Dashboard", path: "/dashboard/principal" },
-                { label: "Students", path: "/principal/students" },
+                { label: "Students",},
                 { label: "All Students" },
               ]
             : admissionOfficerMode
             ? [
                 { label: "Dashboard", path: "/dashboard/admission" },
-                { label: "Admissions", path: "/admission/applications" },
+                { label: "Admissions",},
                 { label: "Approved Students" },
               ]
             : [
                 { label: "Dashboard", path: "/dashboard" },
-                { label: "Students", path: "/students" },
+                { label: "Students", },
                 { label: "Approved Students" },
               ]
           }

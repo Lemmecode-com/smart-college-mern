@@ -335,7 +335,7 @@ export default function PaymentReports() {
         items={[
           { label: "Dashboard", path: "/dashboard" },
           ...(user?.role === "COLLEGE_ADMIN" || user?.role === "PRINCIPAL"
-            ? [{ label: "Reports", path: "/college-admin/reports-dashboard" }]
+            ? [{ label: "Reports & Analytics", }]
             : []
           ),
           { label: "Payment Summary" },

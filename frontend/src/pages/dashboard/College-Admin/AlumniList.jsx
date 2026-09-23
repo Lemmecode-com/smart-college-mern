@@ -687,6 +687,7 @@ export default function AlumniList({ admissionOfficerMode = false }) {
         <Breadcrumb
           items={[
             { label: "Dashboard", path: "/dashboard" },
+            { label: "Students",},
             { label: "Alumni Records" },
           ]}
         />
