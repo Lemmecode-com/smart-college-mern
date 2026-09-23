@@ -1131,21 +1131,29 @@ export default function SubjectList() {
 
                               <div className="subject-title">{subject.name}</div>
 
-                              <div className="subject-meta">
+<div className="subject-meta">
+  <div className="subject-main-badges">
+    {subject.course_id?.name && (
+      <>
+        <span className="course-badge">
+          {subject.course_id.name}
+        </span>
 
-                                {subject.course_id?.name && (
+        <span className="dept-badge">
+          {selectedDeptName}
+        </span>
+      </>
+    )}
+  </div>
 
-                                  <>
-
-                                    <span className="course-badge">{subject.course_id.name}</span>
-
-                                    <span className="dept-badge">{selectedDeptName}</span>
-
-                                  </>
-
-                                )}
-
-                              </div>
+  {subject.subjectType && (
+    <div className="subject-type-row">
+      <span className="subject-type-badge">
+        {subject.subjectType}
+      </span>
+    </div>
+  )}
+</div>
 
                             </div>
 
@@ -1808,10 +1816,46 @@ export default function SubjectList() {
 
         .erp-table {
           width: 100%;
+          min-width: 1100px;
+          table-layout: fixed;
           border-collapse: collapse;
-          min-width: 900px;
         }
 
+        /* FIXED TABLE COLUMN WIDTHS */
+        .erp-table th:nth-child(1),
+        .erp-table td:nth-child(1) {
+          width: 32%;
+        }
+
+        .erp-table th:nth-child(2),
+        .erp-table td:nth-child(2) {
+          width: 15%;
+        }
+
+        .erp-table th:nth-child(3),
+        .erp-table td:nth-child(3) {
+          width: 12%;
+        }
+
+        .erp-table th:nth-child(4),
+        .erp-table td:nth-child(4) {
+          width: 8%;
+        }
+
+        .erp-table th:nth-child(5),
+        .erp-table td:nth-child(5) {
+          width: 17%;
+        }
+
+        .erp-table th:nth-child(6),
+        .erp-table td:nth-child(6) {
+          width: 8%;
+        }
+
+        .erp-table th:nth-child(7),
+        .erp-table td:nth-child(7) {
+          width: 14%;
+        }
         .erp-table thead {
           background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
           color: white;
@@ -1875,11 +1919,13 @@ export default function SubjectList() {
           font-weight: 500;
         }
         
-        .subject-name {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
+.subject-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+}
 
         .subject-icon {
           width: 40px;
@@ -1896,6 +1942,7 @@ export default function SubjectList() {
 
         .subject-details {
           flex: 1;
+          min-width: 0;
         }
 
         .subject-title {
@@ -1904,12 +1951,27 @@ export default function SubjectList() {
           margin-bottom: 0.25rem;
         }
 
-        .subject-meta {
-          display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-        }
+.subject-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
 
+.subject-main-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+  .subject-main-badges .course-badge,
+.subject-main-badges .dept-badge {
+  white-space: nowrap;
+}
+
+.subject-type-row {
+  display: flex;
+  align-items: center;
+}
         .course-badge,
         .dept-badge {
           font-size: 0.75rem;
@@ -1925,6 +1987,16 @@ export default function SubjectList() {
           color: #0f3a4a;
         }
 
+        .subject-type-badge {
+          font-size: 0.65rem;
+          color: #0f3a4a;
+          background: rgba(61, 181, 230, 0.12);
+          padding: 0.125rem 0.5rem;
+          border-radius: 4px;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
         .subject-code-badge {
           display: inline-block;
           background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.1) 100%);
@@ -1934,6 +2006,7 @@ export default function SubjectList() {
           font-weight: 700;
           font-size: 0.9rem;
           border: 1px solid rgba(61, 181, 230, 0.2);
+          flex-wrap: nowrap;
         }
 
         .semester-badge,
