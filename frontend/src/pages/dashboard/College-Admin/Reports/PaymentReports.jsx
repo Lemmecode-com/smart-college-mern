@@ -751,85 +751,165 @@ export default function PaymentReports() {
 
       {/* DETAILED METRICS SECTION */}
       <div className="erp-card animate-fade-in">
-        <div className="erp-card-header">
+      <div className="erp-card-header metrics-section-header">
+        <div>
           <h3>
             <FaWallet className="erp-card-icon" />
             Financial Metrics Breakdown
           </h3>
+          <p className="metrics-section-subtitle">
+            Key indicators of fee collection performance
+          </p>
         </div>
+      </div>
         <div className="erp-card-body">
-          <div className="metrics-grid">
-            <div className="metric-card">
-              <div className="metric-icon-wrapper collected">
-                <FaCheckCircle className="metric-icon-large" />
-              </div>
-              <div className="metric-content">
-                <div className="metric-title">Collection Performance</div>
-                <div className="metric-value-large">
-                  {collectionRate.toFixed(1)}%
-                </div>
-                <div className="metric-description">
-                  {collectionRate >= 90
-                    ? "Excellent collection rate"
-                    : collectionRate >= 75
-                      ? "Good collection rate"
-                      : collectionRate >= 60
-                        ? "Fair collection rate - needs attention"
-                        : "Poor collection rate - immediate action required"}
-                </div>
-              </div>
-            </div>
+         <div className="metrics-grid">
 
-            <div className="metric-card">
-              <div className="metric-icon-wrapper pending">
-                <FaHourglassHalf className="metric-icon-large" />
-              </div>
-              <div className="metric-content">
-                <div className="metric-title">Pending Amount</div>
-                <div className="metric-value-large">
-                  ₹{data.totalPending?.toLocaleString() || "0"}
-                </div>
-                <div className="metric-description">
-                  Requires follow-up with {Math.round(data.totalPending / 5000)}{" "}
-                  students*
-                </div>
-              </div>
-            </div>
+  {/* COLLECTION PERFORMANCE */}
+  <div className="metric-card collection-card">
+    <div className="metric-card-top">
+      <div className="metric-icon-wrapper collected">
+        <FaCheckCircle className="metric-icon-large" />
+      </div>
 
-            <div className="metric-card">
-              <div className="metric-icon-wrapper expected">
-                <FaFileInvoice className="metric-icon-large" />
-              </div>
-              <div className="metric-content">
-                <div className="metric-title">Expected Revenue</div>
-                <div className="metric-value-large">
-                  ₹{data.totalExpectedFee?.toLocaleString() || "0"}
-                </div>
-                <div className="metric-description">
-                  Total fee amount for current academic year
-                </div>
-              </div>
-            </div>
+      <span className="metric-status-label success">
+        Collection
+      </span>
+    </div>
 
-            <div className="metric-card">
-              <div className="metric-icon-wrapper rate">
-                <FaPercentage className="metric-icon-large" />
-              </div>
-              <div className="metric-content">
-                <div className="metric-title">Collection Target</div>
-                <div className="metric-value-large">{collectionRate.toFixed(0)}%</div>
-                <div className="metric-description">
-                  {collectionRate >= 90 ? (
-                    <span className="target-met">✓ Target achieved</span>
-                  ) : (
-                    <span className="target-pending">
-                      {Math.ceil(90 - collectionRate)}% to target
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+    <div className="metric-content">
+      <div className="metric-title">
+        Collection Performance
+      </div>
+
+      <div className="metric-value-large">
+        {collectionRate.toFixed(1)}%
+      </div>
+
+      <div className="metric-progress">
+        <div
+          className="metric-progress-fill collected"
+          style={{
+            width: `${Math.min(collectionRate, 100)}%`,
+          }}
+        />
+      </div>
+
+      <div className="metric-description">
+        {collectionRate >= 90
+          ? "Excellent collection rate"
+          : collectionRate >= 75
+            ? "Good collection rate"
+            : collectionRate >= 60
+              ? "Fair collection rate - needs attention"
+              : "Poor collection rate - immediate action required"}
+      </div>
+    </div>
+  </div>
+
+
+  {/* PENDING AMOUNT */}
+  <div className="metric-card pending-card">
+    <div className="metric-card-top">
+      <div className="metric-icon-wrapper pending">
+        <FaHourglassHalf className="metric-icon-large" />
+      </div>
+
+      <span className="metric-status-label warning">
+        Pending
+      </span>
+    </div>
+
+    <div className="metric-content">
+      <div className="metric-title">
+        Pending Amount
+      </div>
+
+      <div className="metric-value-large">
+        ₹{data.totalPending?.toLocaleString() || "0"}
+      </div>
+
+      <div className="metric-description">
+        Requires follow-up with{" "}
+        {Math.round(data.totalPending / 5000)} students*
+      </div>
+    </div>
+  </div>
+
+
+  {/* EXPECTED REVENUE */}
+  <div className="metric-card expected-card">
+    <div className="metric-card-top">
+      <div className="metric-icon-wrapper expected">
+        <FaFileInvoice className="metric-icon-large" />
+      </div>
+
+      <span className="metric-status-label neutral">
+        Expected
+      </span>
+    </div>
+
+    <div className="metric-content">
+      <div className="metric-title">
+        Expected Revenue
+      </div>
+
+      <div className="metric-value-large">
+        ₹{data.totalExpectedFee?.toLocaleString() || "0"}
+      </div>
+
+      <div className="metric-description">
+        Total fee amount for current academic year
+      </div>
+    </div>
+  </div>
+
+
+  {/* COLLECTION TARGET */}
+  <div className="metric-card target-card">
+    <div className="metric-card-top">
+      <div className="metric-icon-wrapper rate">
+        <FaPercentage className="metric-icon-large" />
+      </div>
+
+      <span className="metric-status-label target">
+        Target
+      </span>
+    </div>
+
+    <div className="metric-content">
+      <div className="metric-title">
+        Collection Target
+      </div>
+
+      <div className="metric-value-large">
+        {collectionRate.toFixed(0)}%
+      </div>
+
+      <div className="target-progress">
+        <div
+          className="target-progress-fill"
+          style={{
+            width: `${Math.min((collectionRate / 90) * 100, 100)}%`,
+          }}
+        />
+      </div>
+
+      <div className="metric-description">
+        {collectionRate >= 90 ? (
+          <span className="target-met">
+            ✓ Target achieved
+          </span>
+        ) : (
+          <span className="target-pending">
+            {Math.ceil(90 - collectionRate)}% to target
+          </span>
+        )}
+      </div>
+    </div>
+  </div>
+
+</div>
 
           <div className="metrics-footer">
             <div className="footer-note">
@@ -867,25 +947,31 @@ export default function PaymentReports() {
 
       {/* STYLES */}
       <style>{`
-        .erp-container {
-          padding: 1.5rem;
-          background: #f5f7fa;
-          min-height: 100vh;
-          animation: fadeIn 0.6s ease;
-        }
+.erp-container {
+  padding: 1.5rem;
+  background:
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(61, 181, 230, 0.06),
+      transparent 28%
+    ),
+    #f5f7fa;
+  min-height: 100vh;
+  animation: fadeIn 0.6s ease;
+}
         
-        .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-        }
+.erp-page-header {
+  background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+  padding: 1.5rem 1.75rem;
+  border-radius: 16px;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 8px 28px rgba(26, 75, 109, 0.18);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  animation: slideDown 0.6s ease;
+}
         
         .erp-header-content {
           display: flex;
@@ -1051,17 +1137,18 @@ export default function PaymentReports() {
         }
         
         /* INFO BANNER */
-        .info-banner {
-          background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-          border-radius: 12px;
-          padding: 1rem 1.5rem;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          border-left: 4px solid #4CAF50;
-          box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
-        }
+.info-banner {
+  background: #f0f9f2;
+  border-radius: 12px;
+  padding: 0.9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #d8ecd9;
+  border-left: 4px solid #4CAF50;
+  box-shadow: 0 3px 12px rgba(76, 175, 80, 0.08);
+}
         
         .info-icon {
           width: 40px;
@@ -1087,24 +1174,47 @@ export default function PaymentReports() {
         }
         
         /* STATS GRID */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.15rem;
+  margin-bottom: 1.5rem;
+}
         
-        .stat-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-          transition: all 0.3s ease;
-          display: flex;
-          flex-direction: column;
-          animation: fadeIn 0.5s ease forwards;
-        }
-        
+.stat-card {
+  position: relative;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 18px rgba(20, 40, 55, 0.07);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 285px;
+  animation: fadeIn 0.5s ease forwards;
+  border: 1px solid #e8edf1;
+}
+        .stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+}
+
+.stat-card:nth-child(1)::before {
+  background: #1a4b6d;
+}
+
+.stat-card:nth-child(2)::before {
+  background: #4CAF50;
+}
+
+.stat-card:nth-child(3)::before {
+  background: #FF9800;
+}
+
         .stat-card:hover {
           transform: translateY(-5px);
           box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -1115,23 +1225,23 @@ export default function PaymentReports() {
         .stat-card:nth-child(3) { animation-delay: 0.3s; }
         
         .stat-card-header {
-          padding: 1.25rem 1.5rem;
+          padding: 1.0rem 1.2rem;
           display: flex;
           align-items: center;
           gap: 1rem;
           border-bottom: 1px solid #f0f2f5;
         }
         
-        .stat-icon-wrapper {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          font-size: 1.5rem;
-        }
+.stat-icon-wrapper {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.35rem;
+}
         
         .stat-icon-wrapper.expected { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
         .stat-icon-wrapper.collected { background: linear-gradient(135deg, #4CAF50 0%, #43A047 100%); }
@@ -1143,9 +1253,9 @@ export default function PaymentReports() {
         }
         
         .stat-title {
-          font-weight: 600;
+          font-weight: 650;
           color: #2c3e50;
-          font-size: 1.05rem;
+          font-size: 0.98rem;
         }
         
         .stat-card-body {
@@ -1156,24 +1266,27 @@ export default function PaymentReports() {
           justify-content: center;
         }
         
-        .stat-value {
-          font-size: 2.25rem;
-          font-weight: 800;
-          color: #1a4b6d;
-          line-height: 1;
-          margin-bottom: 0.5rem;
-        }
+.stat-value {
+  font-size: 2.15rem;
+  font-weight: 800;
+  color: #1a4b6d;
+  line-height: 1;
+  margin-bottom: 0.6rem;
+  letter-spacing: -0.02em;
+}
         
         .stat-value.collected { color: #4CAF50; }
         .stat-value.pending { color: #FF9800; }
         
-        .stat-trend {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.9rem;
-          font-weight: 500;
-        }
+.stat-trend {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.45;
+  color: #6c757d;
+}
         
         .stat-trend.positive { color: #4CAF50; }
         .stat-trend.warning { color: #FF9800; }
@@ -1183,29 +1296,30 @@ export default function PaymentReports() {
           font-size: 0.95rem;
         }
         
-        .stat-card-footer {
-          padding: 0.75rem 1.5rem;
-          background: #f8f9fa;
-          border-top: 1px solid #e9ecef;
-          font-size: 0.875rem;
-        }
-        
-        .stat-footer-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        
-        .footer-label {
-          color: #6c757d;
-        }
-        
-        .footer-value {
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-        }
+.stat-card-footer {
+  padding: 0.7rem 1.2rem;
+  background: #f8fafb;
+  border-top: 1px solid #edf0f2;
+  font-size: 0.78rem;
+}
+
+.stat-footer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.footer-label {
+  color: #7a8790;
+}
+
+.footer-value {
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
         
         .footer-value.excellent { color: #4CAF50; }
         .footer-value.good { color: #8BC34A; }
@@ -1223,11 +1337,66 @@ export default function PaymentReports() {
           animation: fadeIn 0.6s ease;
         }
         
-        .erp-card-header {
-          padding: 1.5rem 1.75rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-bottom: 1px solid #e9ecef;
-        }
+.erp-card-header {
+  padding: 1.15rem 1.5rem;
+  background: linear-gradient(
+    135deg,
+    #f8fafc 0%,
+    #eef2f5 100%
+  );
+  border-bottom: 1px solid #e8edf1;
+}
+
+.filter-controls {
+  display: flex !important;
+  align-items: flex-end !important;
+  gap: 1.25rem !important;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 420px;
+}
+
+.filter-group label {
+  font-size: 0.78rem !important;
+  color: #6c757d !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filter-group > div {
+  display: flex !important;
+  gap: 0.45rem !important;
+}
+
+.filter-group .btn {
+  border-radius: 8px;
+  padding: 0.6rem 0.95rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.filter-group .btn:hover {
+  transform: translateY(-1px);
+}
+
+.erp-card-body > div[style*="marginTop"] {
+  background: #f5f9fc !important;
+  border: 1px solid #dce8ef !important;
+  border-radius: 8px !important;
+  padding: 0.65rem 0.85rem !important;
+}
+
+.erp-card-body > div[style*="marginTop"] small {
+  color: #60717d !important;
+}
+
+.erp-card-body > div[style*="marginTop"] strong {
+  color: #1a4b6d;
+}
         
         .erp-card-header h3 {
           margin: 0;
@@ -1248,13 +1417,12 @@ export default function PaymentReports() {
           padding: 2rem;
         }
         
-        .visual-container {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 2rem;
-          align-items: center;
-        }
-        
+.visual-container {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 3rem;
+  align-items: center;
+}
         /* CIRCULAR PROGRESS */
         .circular-progress {
           display: flex;
@@ -1263,22 +1431,21 @@ export default function PaymentReports() {
           gap: 1.5rem;
         }
         
-        .progress-circle {
-          width: 200px;
-          height: 200px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-        
+ .progress-circle {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 6px 20px rgba(26, 75, 109, 0.12);
+}
         .progress-circle::before {
           content: "";
           position: absolute;
-          width: 180px;
-          height: 180px;
+          width: 162px;
+          height: 162px;
           border-radius: 50%;
           background: white;
         }
@@ -1350,27 +1517,25 @@ export default function PaymentReports() {
         }
         
         .horizontal-bar {
-          height: 40px;
-          background: #f0f2f5;
-          border-radius: 20px;
-          overflow: hidden;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-          position: relative;
+          height: 30px;
+            background: #eef1f4;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+            position: relative;
         }
         
-        .bar-collected {
-          height: 100%;
-          background: linear-gradient(90deg, #4CAF50 0%, #43A047 100%);
-          border-radius: 20px 0 0 20px;
-          transition: width 1s ease;
-        }
-        
-        .bar-pending {
-          height: 100%;
-          background: linear-gradient(90deg, #FF9800 0%, #F57C00 100%);
-          border-radius: 0 20px 20px 0;
-          transition: width 1s ease;
-        }
+.bar-collected {
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #43A047);
+  transition: width 0.8s ease;
+}
+
+.bar-pending {
+  height: 100%;
+  background: linear-gradient(90deg, #FF9800, #F57C00);
+  transition: width 0.8s ease;
+}
         
         .bar-metrics {
           display: grid;
@@ -1378,20 +1543,21 @@ export default function PaymentReports() {
           gap: 1rem;
         }
         
-        .metric-item {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 1rem;
-          background: #f8f9fa;
-          border-radius: 12px;
-          transition: all 0.3s ease;
-        }
-        
-        .metric-item:hover {
-          background: #f0f5ff;
-          transform: translateY(-2px);
-        }
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  background: #f8fafb;
+  border: 1px solid #edf1f3;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.metric-item:hover {
+  background: #f3f7fa;
+  transform: translateY(-2px);
+}
         
         .metric-icon {
           width: 32px;
@@ -1419,48 +1585,115 @@ export default function PaymentReports() {
         }
         
         /* DETAILED METRICS */
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
         
-        .metric-card {
-          display: flex;
-          align-items: flex-start;
-          gap: 1.25rem;
-          padding: 1.5rem;
-          background: #f8f9fa;
-          border-radius: 16px;
-          transition: all 0.3s ease;
-          border-left: 4px solid transparent;
-        }
+ .metric-card {
+  position: relative;
+  min-height: 235px;
+  padding: 1.25rem;
+  background: #ffffff;
+  border: 1px solid #e6ebef;
+  border-radius: 14px;
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+
+  box-shadow: 0 3px 14px rgba(20, 40, 55, 0.05);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+    .metric-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+}
+
+.metric-card.collection-card::before {
+  background: #4CAF50;
+}
+
+.metric-card.pending-card::before {
+  background: #FF9800;
+}
+
+.metric-card.expected-card::before {
+  background: #667eea;
+}
+
+.metric-card.target-card::before {
+  background: #2196F3;
+}
+  .metric-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.15rem;
+}
+  .metric-status-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.3rem 0.55rem;
+  border-radius: 20px;
+}
+
+.metric-status-label.success {
+  color: #2e7d32;
+  background: #eaf6ec;
+}
+
+.metric-status-label.warning {
+  color: #c76a00;
+  background: #fff3e2;
+}
+
+.metric-status-label.neutral {
+  color: #5365a5;
+  background: #eef0fb;
+}
+
+.metric-status-label.target {
+  color: #1769aa;
+  background: #e7f3fb;
+}
         
-        .metric-card:hover {
-          background: #f0f5ff;
-          transform: translateX(5px);
-          border-left: 4px solid #1a4b6d;
-        }
+.metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(20, 40, 55, 0.09);
+  border-color: #d9e3e9;
+}
         
-        .metric-icon-wrapper {
-          width: 56px;
-          height: 56px;
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          font-size: 1.75rem;
-        }
-        
+.metric-icon-wrapper {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
         .metric-icon-wrapper.collected { background: rgba(76, 175, 80, 0.15); }
         .metric-icon-wrapper.pending { background: rgba(255, 152, 0, 0.15); }
         .metric-icon-wrapper.expected { background: rgba(102, 126, 234, 0.15); }
         .metric-icon-wrapper.rate { background: rgba(33, 150, 243, 0.15); }
         
         .metric-icon-large {
-          font-size: 1.5rem;
+          font-size: 1.25rem;
         }
         
         .metric-icon-large.collected { color: #4CAF50; }
@@ -1468,29 +1701,57 @@ export default function PaymentReports() {
         .metric-icon-large.expected { color: #667eea; }
         .metric-icon-large.rate { color: #2196F3; }
         
-        .metric-content {
-          flex: 1;
-        }
+.metric-title {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: #64717c;
+  margin-bottom: 0.4rem;
+  line-height: 1.3;
+}
         
-        .metric-title {
-          font-weight: 600;
-          color: #2c3e50;
-          margin-bottom: 0.5rem;
-          font-size: 1rem;
-        }
+.metric-title {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: #64717c;
+  margin-bottom: 0.4rem;
+  line-height: 1.3;
+}
         
-        .metric-value-large {
-          font-size: 1.75rem;
-          font-weight: 800;
-          color: #1a4b6d;
-          margin-bottom: 0.5rem;
-        }
+.metric-value-large {
+  font-size: 1.85rem;
+  line-height: 1.1;
+  font-weight: 800;
+  color: #1a4b6d;
+  margin-bottom: 0.7rem;
+  letter-spacing: -0.02em;
+}
+  .metric-progress {
+  width: 100%;
+  height: 6px;
+  background: #edf1f3;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.metric-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.7s ease;
+}
+
+.metric-progress-fill.collected {
+  background: #4CAF50;
+}
+  
         
-        .metric-description {
-          font-size: 0.9rem;
-          color: #6c757d;
-          line-height: 1.5;
-        }
+.metric-description {
+  margin-top: auto;
+  font-size: 0.78rem;
+  color: #7a8790;
+  line-height: 1.45;
+  max-width: 95%;
+}
         
         .target-met {
           color: #4CAF50;
@@ -1501,25 +1762,45 @@ export default function PaymentReports() {
           color: #FF9800;
           font-weight: 600;
         }
+        .target-progress {
+  width: 100%;
+  height: 6px;
+  background: #edf1f3;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.target-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #2196F3;
+  transition: width 0.7s ease;
+}
+
+.metrics-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+
+  border-top: 1px solid #edf1f3;
+}
         
-        .metrics-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 1.5rem;
-          border-top: 1px solid #f0f2f5;
-          margin-top: 1rem;
-          flex-wrap: wrap;
-          gap: 1rem;
-        }
-        
-        .footer-note {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.875rem;
-          color: #6c757d;
-        }
+.metrics-footer .footer-note {
+  background: #eef7ff;
+  border: 1px solid #d8ebfa;
+  border-left: 3px solid #2196F3;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+
+  color: #1769aa;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
         
         .note-icon {
           font-size: 1rem;
@@ -3049,13 +3330,12 @@ export default function PaymentReports() {
   }
 
   .metrics-footer .footer-note,
-  .metrics-footer .footer-disclaimer {
-    width: 100%;
-
-    font-size: 0.7rem;
-
-    line-height: 1.4;
-  }
+.metrics-footer .footer-disclaimer {
+  color: #8a959d;
+  font-size: 0.72rem;
+  font-style: normal;
+  text-align: right;
+}
 
 
   /* =====================================================
@@ -3488,16 +3768,17 @@ export default function PaymentReports() {
 }
         /* ================= TREND ANALYSIS ================= */
         .trend-analysis-section {
-          margin-top: 2rem;
+          margin-top: 1.5rem;
         }
 
-        .trend-chart-container {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          padding: 2rem;
-          margin-top: 1rem;
-        }
+.trend-chart-container {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #edf1f3;
+  box-shadow: none;
+  padding: 1.25rem;
+  margin-top: 1rem;
+}
 
         .trend-header {
           display: flex;
@@ -3519,14 +3800,22 @@ export default function PaymentReports() {
           gap: 0.5rem;
         }
 
-        .year-select {
-          padding: 0.5rem;
-          border: 2px solid #e9ecef;
-          border-radius: 8px;
-          font-weight: 600;
-          color: #1a4b6d;
-        }
+.year-select {
+  height: 40px;
+  padding: 0 2.2rem 0 0.8rem;
+  border: 1px solid #dce4e9;
+  border-radius: 8px;
+  background: white;
+  font-weight: 600;
+  color: #1a4b6d;
+  outline: none;
+  cursor: pointer;
+}
 
+.year-select:focus {
+  border-color: #1a4b6d;
+  box-shadow: 0 0 0 3px rgba(26, 75, 109, 0.08);
+}
         .trend-chart-placeholder {
           height: 300px;
           display: flex;
@@ -3547,6 +3836,88 @@ export default function PaymentReports() {
           margin-bottom: 1rem;
           opacity: 0.5;
         }
+
+        /* =========================================================
+   PAYMENT REPORTS - FINAL DESKTOP POLISH
+   ========================================================= */
+
+@media (min-width: 1025px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1100px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .visual-container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .visual-container {
+    grid-template-columns: 1fr;
+  }
+
+  .trend-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.9rem;
+  }
+
+  .year-selector {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .year-select {
+    min-width: 110px;
+  }
+}
+  @media (max-width: 1100px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card {
+    min-height: 210px;
+  }
+
+  .metrics-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .metrics-footer .footer-disclaimer {
+    text-align: left;
+  }
+}
       `}</style>
 
       {/* TREND ANALYSIS SECTION */}
