@@ -613,11 +613,11 @@ export default function AddSubject() {
             <div className="row g-4">
               {/* ================= ACADEMIC HIERARCHY CARD ================= */}
               <motion.div
-                variants={fadeInVariants}
+                variants={fadeInVariants} 
                 custom={0}
                 initial="hidden"
                 animate="visible"
-                className="col-12"
+                className="col-12 academic-hierarchy-section"
               >
                 <div
                   style={{
@@ -666,9 +666,9 @@ export default function AddSubject() {
                     </h2>
                   </div>
 
-                  <div className="p-4">
+                  <div className="p-4 academic-hierarchy-body">
                     <div className="row g-4">
-                      <div className="col-12 col-md-6 col-lg-4">
+                      <div className="col-12 col-md-6 col-lg-6 subject-name-column">
                         <FormField
                           icon={<FaUniversity />}
                           label="Department"
@@ -693,7 +693,7 @@ export default function AddSubject() {
                         </FormField>
                       </div>
 
-                      <div className="col-12 col-md-6 col-lg-4">
+                      <div className="col-12 col-md-6 col-lg-6">
                         <FormField
                           icon={<FaGraduationCap />}
                           label="Course"
@@ -730,6 +730,7 @@ export default function AddSubject() {
 
               {/* ================= SUBJECT DETAILS CARD ================= */}
               <motion.div
+                className="col-12 subject-details-section"
                 variants={fadeInVariants}
                 custom={1}
                 initial="hidden"
@@ -783,9 +784,9 @@ export default function AddSubject() {
                     </h2>
                   </div>
 
-                  <div className="p-4">
+                 <div className="p-4 subject-details-body">
                     <div className="row g-4">
-                      <div className="col-12 col-md-8">
+                      <div className="col-12 col-md-6 subject-name-column">
                         <FormField
                           icon={<FaBookOpen />}
                           label="Subject Name"
@@ -804,7 +805,7 @@ export default function AddSubject() {
                         </FormField>
                       </div>
 
-                      <div className="col-12 col-md-6 col-lg-4">
+                      <div className="col-12 col-md-6 col-lg-3">
                         <FormField
                           icon={<FaLayerGroup />}
                           label="Semester"
@@ -834,7 +835,7 @@ export default function AddSubject() {
                         </FormField>
                       </div>
 
-                      <div className="col-12 col-md-6 col-lg-4">
+                      <div className="col-12 col-md-6 col-lg-3">
                         <FormField
                           icon={<FaCreditCard />}
                           label="Credits"
@@ -1256,6 +1257,7 @@ export default function AddSubject() {
               {/* ================= EXAM / MARKS CONFIGURATION CARD ================= */}
               <motion.div
                 variants={fadeInVariants}
+                className="col-12 exam-marks-section"
                 custom={3}
                 initial="hidden"
                 animate="visible"
@@ -1308,9 +1310,13 @@ export default function AddSubject() {
                     </h2>
                   </div>
 
-                  <div className="p-4">
+                  <div className="p-4 exam-marks-body">
                     <div className="row g-4">
-                      <div className="col-12 col-md-6 col-lg-4">
+                      <div
+                        className={`col-12 col-md-6 col-lg-4 ${
+                          formData.subjectType === "THEORY" ? "exam-subject-type-theory" : ""
+                        }`}
+                      >
                         <FormField
                           icon={<FaLayerGroup />}
                           label="Subject Type"
@@ -1335,7 +1341,7 @@ export default function AddSubject() {
 
                       {formData.subjectType === "THEORY" && (
                         <>
-                          <div className="col-12 col-md-6 col-lg-4">
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
                             <FormField
                               icon={<FaBookOpen />}
                               label="Internal Max Marks"
@@ -1353,7 +1359,7 @@ export default function AddSubject() {
                               />
                             </FormField>
                           </div>
-                          <div className="col-12 col-md-6 col-lg-4">
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
                             <FormField
                               icon={<FaUniversity />}
                               label="External Max Marks"
@@ -1371,7 +1377,7 @@ export default function AddSubject() {
                               />
                             </FormField>
                           </div>
-                          <div className="col-12 col-md-6 col-lg-4">
+                          <div className="col-12 col-md-6 col-lg-4 exam-theory-pass-internal exam-field-no-helper">
                             <FormField
                               icon={<FaCreditCard />}
                               label="Internal Pass Marks"
@@ -1389,7 +1395,7 @@ export default function AddSubject() {
                               />
                             </FormField>
                           </div>
-                          <div className="col-12 col-md-6 col-lg-4">
+                          <div className="col-12 col-md-6 col-lg-4 exam-theory-pass-external exam-field-no-helper">
                             <FormField
                               icon={<FaCreditCard />}
                               label="External Pass Marks"
@@ -1412,7 +1418,7 @@ export default function AddSubject() {
 
                       {formData.subjectType === "PRACTICAL" && (
                         <>
-                          <div className="col-12 col-md-6 col-lg-4">
+                          <div className="col-12 col-md-6 col-lg-4 exam-practical-max exam-field-no-helper">
                             <FormField
                               icon={<FaBookOpen />}
                               label="Applicable Maximum Marks"
@@ -1430,7 +1436,7 @@ export default function AddSubject() {
                               />
                             </FormField>
                           </div>
-                          <div className="col-12 col-md-6 col-lg-4">
+                          <div className="col-12 col-md-6 col-lg-4 exam-practical-pass exam-field-no-helper">
                             <FormField
                               icon={<FaCreditCard />}
                               label="Pass Marks"
@@ -1453,7 +1459,7 @@ export default function AddSubject() {
 
                       {formData.subjectType === "COMPOSITE" && (
                         <>
-                          <div className="col-12 col-md-6 col-lg-4">
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
                             <FormField
                               icon={<FaBookOpen />}
                               label="Internal Max Marks"
@@ -1471,7 +1477,7 @@ export default function AddSubject() {
                               />
                             </FormField>
                           </div>
-                          <div className="col-12 col-md-6 col-lg-4">
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
                             <FormField
                               icon={<FaUniversity />}
                               label="External Max Marks"
@@ -1489,7 +1495,7 @@ export default function AddSubject() {
                               />
                             </FormField>
                           </div>
-                          <div className="col-12 col-md-6 col-lg-4">
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
                             <FormField
                               icon={<FaCreditCard />}
                               label="Pass Marks"
@@ -1631,6 +1637,175 @@ export default function AddSubject() {
               transition-duration: 0.01ms !important;
             }
           }
+
+          @media (min-width: 1025px) {
+
+  /* ================= ACADEMIC HIERARCHY ================= */
+
+  .academic-hierarchy-body > .row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 28px;
+    margin: 0 !important;
+    align-items: start !important;
+  }
+
+
+  /* ================= SUBJECT DETAILS ================= */
+
+  .subject-details-body > .row {
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 2fr)
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+
+    column-gap: 28px;
+    margin: 0 !important;
+    align-items: start !important;
+  }
+
+
+  /* ================= EXAM / MARKS ================= */
+
+  .exam-marks-body > .row {
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+
+    column-gap: 28px;
+    row-gap: 20px !important;
+
+    margin: 0 !important;
+    align-items: start !important;
+  }
+
+
+  /* ================= REMOVE BOOTSTRAP COLUMN SIZING ================= */
+
+  .academic-hierarchy-body > .row > [class*="col-"],
+  .subject-details-body > .row > [class*="col-"],
+  .exam-marks-body > .row > [class*="col-"] {
+    width: 100% !important;
+    max-width: none !important;
+    flex: none !important;
+
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+
+    margin: 0 !important;
+  }
+
+
+  /* ================= FIELD SPACING ================= */
+
+  .academic-hierarchy-body .add-subject-field,
+  .subject-details-body .add-subject-field,
+  .exam-marks-body .add-subject-field {
+    margin-bottom: 0 !important;
+  }
+
+
+  /* ================= SUBJECT DETAILS ================= */
+
+  .subject-details-body
+  .add-subject-field > .form-control {
+    width: 100% !important;
+  }
+
+
+  /* Subject name has no helper text,
+     so align its input with the other fields */
+
+  .subject-details-body
+  .subject-name-column
+  .add-subject-field > .form-control {
+    margin-top: 2.143rem !important;
+  }
+
+
+  /* ================= EXAM FIELD ALIGNMENT ================= */
+
+  .exam-marks-body
+  .exam-field-no-helper
+  .add-subject-field > .form-control {
+    margin-top: 2.1rem !important;
+  }
+
+
+  /* ================= THEORY LAYOUT ================= */
+
+  /* Subject Type occupies the complete left column */
+
+  .exam-subject-type-theory {
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .exam-subject-type-theory .add-subject-field {
+    width: 100% !important;
+  }
+
+
+  /* Internal Pass Marks */
+
+  .exam-theory-pass-internal {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+  }
+
+
+  /* External Pass Marks */
+
+  .exam-theory-pass-external {
+    grid-column: 3 !important;
+    grid-row: 2 !important;
+  }
+
+
+  /* ================= PRACTICAL ================= */
+
+  .exam-practical-max {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .exam-practical-pass {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+  }
+
+
+  /* ================= COMPOSITE ================= */
+
+  .exam-marks-body > .row
+  > .exam-field-no-helper:not(
+    .exam-theory-pass-internal,
+    .exam-theory-pass-external,
+    .exam-practical-max,
+    .exam-practical-pass
+  ) {
+    grid-row: 1 !important;
+  }
+}
+
+/* =========================================================
+   FORM LABEL + HELPER ALIGNMENT
+   ========================================================= */
+
+.add-subject-page .add-subject-field > label {
+  margin-bottom: 0.3rem !important;
+  gap: 0.65rem !important;
+}
+
+.add-subject-page .add-subject-field > label + div {
+  margin-bottom: 0.55rem !important;
+}
 /* =========================================================
    ADD SUBJECT - MOBILE & TABLET
    DESKTOP DESIGN REMAINS UNCHANGED
@@ -2371,7 +2546,10 @@ function FormField({
   helperText,
 }) {
   return (
-    <div style={{ marginBottom: "1.5rem" }}>
+    <div
+  className="add-subject-field"
+  style={{ marginBottom: "1.5rem" }}
+>
       <label
         style={{
           display: "flex",

@@ -337,7 +337,7 @@ const InfoRow = ({ icon: Icon, label, value, color = BRAND.muted }) => {
         alignItems: "center",
         justifyContent: "space-between",
         gap: "0.75rem",
-        padding: "0.65rem 1.25rem",
+        padding: "0.87rem 1.25rem",
         borderBottom: `1px solid ${BRAND.border}`,
         transition: "background 0.2s ease",
       }}
