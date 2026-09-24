@@ -279,6 +279,7 @@ export default function DepartmentList() {
   const [showRemoveHodModal, setShowRemoveHodModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [removingHod, setRemovingHod] = useState(false);
+  const [hodSubjectCount, setHodSubjectCount] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState(null);
   const [deletingDepartment, setDeletingDepartment] = useState(false);
@@ -367,6 +368,30 @@ export default function DepartmentList() {
   };
 
   /* ================= REMOVE HOD ================= */
+  const fetchHodSubjectCount = async (hodTeacherId) => {
+    try {
+      const res = await api.get(
+        `/teachers/${hodTeacherId}/reassignment-data`,
+      );
+      const payload = res.data?.data || res.data;
+      const subjects = payload?.subjects || [];
+      return subjects.length;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleRemoveHodClick = async (department) => {
+    const hodId = department.hod_id?._id || department.hod_id;
+    if (!hodId) return;
+
+    setSelectedDepartment(department);
+    setHodSubjectCount(null);
+    const count = await fetchHodSubjectCount(hodId);
+    setHodSubjectCount(count);
+    setShowRemoveHodModal(true);
+  };
+
   const handleRemoveHod = async () => {
     if (!selectedDepartment) return;
 
@@ -375,9 +400,17 @@ export default function DepartmentList() {
       await api.delete(`/departments/${selectedDepartment._id}/hod`);
       setShowRemoveHodModal(false);
       setSelectedDepartment(null);
+      setHodSubjectCount(null);
       fetchDepartments();
-    } catch {
-      alert("Failed to remove HOD. Please try again.");
+    } catch (err) {
+      const backendMessage =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        "Failed to remove HOD. Please try again.";
+      toast.error(backendMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setRemovingHod(false);
     }
@@ -873,10 +906,7 @@ export default function DepartmentList() {
                                 title="Remove HOD"
                                 color={T.textMuted}
                                 tint={T.inactiveBg}
-                                onClick={() => {
-                                  setSelectedDepartment(d);
-                                  setShowRemoveHodModal(true);
-                                }}
+                                onClick={() => handleRemoveHodClick(d)}
                               />
                             )}
                             {canDelete('departments') && (
@@ -972,17 +1002,23 @@ export default function DepartmentList() {
         onClose={() => {
           setShowRemoveHodModal(false);
           setSelectedDepartment(null);
+          setHodSubjectCount(null);
         }}
         onConfirm={handleRemoveHod}
         title="Remove HOD"
         message={
           selectedDepartment
-            ? `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
+            ? hodSubjectCount === null
+              ? "Checking assigned subjects..."
+              : hodSubjectCount > 0
+                ? `This HOD has ${hodSubjectCount} active subject(s) assigned. Please reassign these subjects before removing the HOD.`
+                : `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
             : ""
         }
-        type="warning"
+        type={hodSubjectCount && hodSubjectCount > 0 ? "warning" : "warning"}
         confirmText="Remove HOD"
         cancelText="Cancel"
+        confirmDisabled={!!(hodSubjectCount && hodSubjectCount > 0)}
         isLoading={removingHod}
       />
 
