@@ -2,6 +2,7 @@ const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
 const User = require("../models/user.model");
 const Course = require("../models/course.model");
+const Subject = require("../models/subject.model");
 const ApiResponse = require("../utils/ApiResponse");
 const AuditService = require("../services/auditLog.service");
 
@@ -321,6 +322,27 @@ exports.removeHOD = async (req, res) => {
     if (oldHodTeacher) {
       oldHodUserId = oldHodTeacher.user_id;
       oldHodName = oldHodTeacher.name;
+    }
+
+    // 🛑 SAFETY GUARD: Block HOD removal while the HOD still has ACTIVE subjects.
+    // Subjects must be explicitly reassigned by the admin using the existing
+    // teacher reassignment workflow BEFORE the HOD can be removed.
+    if (oldHodTeacher) {
+      const activeSubjectCount = await Subject.countDocuments({
+        teacher_id: oldHodTeacher._id,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      });
+
+      if (activeSubjectCount > 0) {
+        return ApiResponse.error(
+          res,
+          "This HOD cannot be removed because active subjects are still assigned. Reassign the subjects first.",
+          "SUBJECTS_STILL_ASSIGNED",
+          400,
+          { subjectCount: activeSubjectCount }
+        );
+      }
     }
 
     // Remove HOD from department
