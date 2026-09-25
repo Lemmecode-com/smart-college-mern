@@ -306,6 +306,7 @@ const staggerContainer = {
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
@@ -7264,14 +7265,14 @@ className={`nav-link-landing ${
             </Nav.Item>
 
             <Nav.Item>
-              <Button
+              {/* <Button
                 className="btn-nav-demo"
                 onClick={() => {
                   scrollToSection("contact");
                 }}
               >
                 Book a Demo
-              </Button>
+              </Button> */}
             </Nav.Item>
             </Nav>
           </div>
@@ -7349,7 +7350,12 @@ className={`nav-link-landing ${
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 1 }}
             >
-              <Button className="btn-hero-primary" href="/register">
+              <Button className="btn-hero-primary" href="#contact"
+               onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("contact");
+                }}
+              >
                 <i className="fas fa-rocket me-2"></i>Book a Demo
               </Button>
               <Button

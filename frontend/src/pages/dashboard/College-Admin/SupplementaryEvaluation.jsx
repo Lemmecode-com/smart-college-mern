@@ -1061,7 +1061,7 @@ export default function SupplementaryEvaluation() {
 
       <div className="row g-4">
         {/* ===== Stage 1: Supplementary Exam Selection ===== */}
-        <div className="col-lg-5">
+        <div className="col-lg-6">
           <div className="card h-100">
             <div className="card-header">
               <h3 className="card-title">
@@ -1159,7 +1159,7 @@ export default function SupplementaryEvaluation() {
         </div>
 
         {/* ===== Stage 2: Subject Selection ===== */}
-        <div className="col-lg-7">
+        <div className="col-lg-6">
           <div className="card h-100">
             <div className="card-header">
               <h3 className="card-title">
@@ -1660,284 +1660,1240 @@ export default function SupplementaryEvaluation() {
  * --secondary-color, --light) keep their original fallbacks untouched.
  * ==========================================================================*/
 const pageStyles = `
+/* =========================================================
+   SUPPLEMENTARY EVALUATION
+   Clean / aligned / compact ERP layout
+   ========================================================= */
+
 .supplementary-evaluation {
-  --se-border: #e2e8f0;
+  --se-primary: #123f56;
+  --se-primary-light: #1f607d;
+  --se-accent: #18a9d1;
+
+  --se-border: #dbe6ec;
+  --se-border-soft: #e8eef2;
+
   --se-surface: #ffffff;
-  --se-ink: #1e293b;
-  --se-muted: #64748b;
+  --se-surface-soft: #f7fafc;
+
+  --se-text: #243b4d;
+  --se-muted: #6b7b88;
   --se-muted-soft: #94a3b8;
+
   --se-success: #16a34a;
   --se-danger: #dc2626;
   --se-warning: #d97706;
   --se-info: #0891b2;
-  --se-radius-lg: 12px;
-  --se-focus-ring: rgba(23, 174, 203, 0.4);
+
+  --se-radius: 14px;
+  --se-shadow: 0 6px 20px rgba(18, 63, 86, 0.07);
+  --se-shadow-hover: 0 10px 28px rgba(18, 63, 86, 0.10);
 }
 
-/* Animations --------------------------------------------------------------*/
-@keyframes supplementary-spin {
-  to { transform: translateY(-50%) rotate(360deg); }
+
+/* =========================================================
+   PAGE SPACING
+   ========================================================= */
+
+.supplementary-evaluation {
+  padding-bottom: 2rem;
 }
-@media (prefers-reduced-motion: reduce) {
-  .supplementary-evaluation .spinner-icon,
-  .supplementary-evaluation .evaluation-spinner {
-    animation: none;
+
+.supplementary-evaluation > .breadcrumb,
+.supplementary-evaluation .breadcrumb {
+  margin-bottom: 1.25rem;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.supplementary-evaluation .page-header {
+  margin-bottom: 1.25rem;
+
+  min-height: 92px;
+  padding: 1.35rem 1.6rem;
+
+  display: flex;
+  align-items: center;
+
+  border-radius: 16px;
+
+  background: linear-gradient(
+    135deg,
+    #123f56 0%,
+    #0e3447 100%
+  );
+
+  box-shadow:
+    0 8px 24px rgba(18, 63, 86, 0.12);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+/* Header content must stack title + subtitle */
+
+.supplementary-evaluation .header-content {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+
+  gap: 0.3rem;
+}
+
+
+/* Title */
+
+.supplementary-evaluation .page-title {
+  margin: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+
+  color: #ffffff;
+
+  font-size: 1.55rem;
+  font-weight: 700;
+
+  line-height: 1.2;
+}
+
+
+/* Title icon */
+
+.supplementary-evaluation .header-icon {
+  margin: 0;
+
+  color: #42b9df;
+
+  font-size: 1.05rem;
+}
+
+
+/* Subtitle */
+
+.supplementary-evaluation .page-subtitle {
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.78);
+
+  font-size: 0.84rem;
+  font-weight: 400;
+
+  line-height: 1.45;
+}
+
+
+/* =========================================================
+   ALERT / PROGRESS BANNERS
+   ========================================================= */
+
+.supplementary-evaluation .alert {
+  margin-bottom: 1rem;
+
+  min-height: 48px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.55rem;
+
+  border-radius: 10px;
+
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.supplementary-evaluation .alert-info {
+  border: 1px solid #bfe5f2;
+  background: #eef9fd;
+  color: #155e75;
+}
+
+.supplementary-evaluation .alert-success {
+  border: 1px solid #bce6ca;
+  background: #f0faf3;
+  color: #166534;
+}
+
+.supplementary-evaluation .alert-warning {
+  border: 1px solid #f3d39c;
+  background: #fff9ed;
+  color: #92400e;
+}
+
+
+/* =========================================================
+   STEP CARDS
+   ========================================================= */
+
+.supplementary-evaluation .row.g-4 {
+  --bs-gutter-x: 1.25rem;
+  --bs-gutter-y: 1.25rem;
+}
+
+.supplementary-evaluation .card {
+  overflow: hidden;
+
+  border: 1px solid var(--se-border);
+
+  border-radius: var(--se-radius);
+
+  background: var(--se-surface);
+
+  box-shadow: var(--se-shadow);
+
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.supplementary-evaluation .card:hover {
+  border-color: #cbdce5;
+
+  box-shadow: var(--se-shadow-hover);
+}
+
+
+/* =========================================================
+   CARD HEADER
+   ========================================================= */
+
+.supplementary-evaluation .card-header {
+  min-height: 66px;
+
+  padding: 0.95rem 1.25rem;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.65rem;
+
+  background: linear-gradient(
+    180deg,
+    #f9fbfc 0%,
+    #f3f7f9 100%
+  );
+
+  border-bottom: 1px solid var(--se-border-soft);
+}
+
+
+/* Keep title on left */
+
+.supplementary-evaluation .card-header .card-title {
+  margin: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.5rem;
+
+  flex: 1;
+
+  color: var(--se-primary);
+
+  font-size: 1.05rem;
+  font-weight: 700;
+
+  line-height: 1.3;
+}
+
+
+/* Step number slightly stronger */
+
+.supplementary-evaluation .card-header .card-title::first-letter {
+  color: var(--se-primary);
+}
+
+
+/* Header badges */
+
+.supplementary-evaluation .card-header > .badge {
+  flex-shrink: 0;
+
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  padding: 0.35rem 0.55rem;
+
+  border-radius: 999px;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   CARD BODY
+   ========================================================= */
+
+.supplementary-evaluation .card-body {
+  padding: 1.15rem 1.25rem;
+}
+
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+/* Search --------------------------------------------------------------- */
+
+.supplementary-evaluation .search-box {
+  position: relative;
+  width: 100%;
+  height: 44px;
+  margin-bottom: 1rem;
+}
+
+.supplementary-evaluation .search-input {
+  width: 100%;
+  height: 44px;
+  box-sizing: border-box;
+
+  padding: 0 40px 0 40px;
+
+  line-height: 44px;
+}
+
+.supplementary-evaluation .search-icon {
+  position: absolute;
+
+  left: 14px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  margin: 0;
+  padding: 0;
+
+  color: var(--se-muted-soft);
+
+  width: 16px;
+  height: 16px;
+
+  z-index: 2;
+
+  pointer-events: none;
+}
+
+.supplementary-evaluation .clear-search-btn {
+  position: absolute;
+
+  right: 10px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0;
+  margin: 0;
+
+  z-index: 2;
+}
+
+.supplementary-evaluation .search-input::placeholder {
+  color: #9aa9b5;
+}
+
+.supplementary-evaluation .search-input:hover {
+  border-color: #bfd0d9;
+}
+
+.supplementary-evaluation .search-input:focus {
+  border-color: var(--se-accent);
+
+  box-shadow:
+    0 0 0 3px rgba(24, 169, 209, 0.12);
+}
+
+
+
+.supplementary-evaluation .clear-search-btn {
+  right: 10px;
+
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 6px;
+
+  background: transparent;
+
+  color: #8798a5;
+
+  cursor: pointer;
+}
+
+.supplementary-evaluation .clear-search-btn:hover {
+  background: #eef3f6;
+  color: var(--se-primary);
+}
+
+
+/* =========================================================
+   TABLE CONTAINER
+   ========================================================= */
+
+.supplementary-evaluation .table-responsive {
+  width: 100%;
+
+  overflow-x: auto;
+
+  border: 1px solid var(--se-border-soft);
+
+  border-radius: 9px;
+
+  background: #ffffff;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+
+/* Selection tables */
+
+.supplementary-evaluation .data-table {
+  width: 100%;
+
+  border-collapse: separate;
+  border-spacing: 0;
+
+  font-size: 0.78rem;
+}
+
+
+/* =========================================================
+   TABLE HEADER
+   ========================================================= */
+
+.supplementary-evaluation .data-table th {
+  padding: 0.7rem 0.75rem;
+
+  background: #123f56;
+
+  color: #ffffff;
+
+  border: none;
+
+  font-size: 0.72rem;
+  font-weight: 700;
+
+  line-height: 1.3;
+
+  white-space: nowrap;
+
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.supplementary-evaluation .data-table th:first-child {
+  border-top-left-radius: 8px;
+}
+
+.supplementary-evaluation .data-table th:last-child {
+  border-top-right-radius: 8px;
+}
+
+
+/* =========================================================
+   TABLE BODY
+   ========================================================= */
+
+.supplementary-evaluation .data-table td {
+  padding: 0.75rem;
+
+  color: var(--se-text);
+
+  border-bottom: 1px solid #edf2f5;
+
+  vertical-align: middle;
+
+  font-size: 0.78rem;
+
+  line-height: 1.4;
+}
+
+.supplementary-evaluation .data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.supplementary-evaluation .data-table tbody tr {
+  background: #ffffff;
+
+  transition: background 0.15s ease;
+}
+
+.supplementary-evaluation .data-table tbody tr:hover {
+  background: #f7fbfd;
+}
+
+
+/* Selected row */
+
+.supplementary-evaluation .data-table tbody tr:has(
+  input[type="radio"]:checked
+) {
+  background: #eef9fd;
+}
+
+.supplementary-evaluation .data-table tbody tr:has(
+  input[type="radio"]:checked
+) td {
+  border-bottom-color: #d5edf5;
+}
+
+
+/* Exam / subject title */
+
+.supplementary-evaluation .data-table .fw-bold {
+  color: var(--se-primary);
+
+  font-size: 0.8rem;
+
+  line-height: 1.35;
+}
+
+
+/* Radio */
+
+.supplementary-evaluation input[type="radio"].form-check-input {
+  width: 16px;
+  height: 16px;
+
+  margin: 0;
+
+  cursor: pointer;
+
+  accent-color: var(--se-accent);
+}
+
+
+/* =========================================================
+   BADGES
+   ========================================================= */
+
+.supplementary-evaluation .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 24px;
+
+  padding: 0.28rem 0.55rem;
+
+  border-radius: 999px;
+
+  font-size: 0.67rem;
+  font-weight: 700;
+
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+.supplementary-evaluation .badge-info {
+  background: #e4f6fb;
+  color: #08738d;
+}
+
+.supplementary-evaluation .badge-success {
+  background: #e9f8ed;
+  color: #16803b;
+}
+
+.supplementary-evaluation .badge-warning {
+  background: #fff3df;
+  color: #a35c00;
+}
+
+.supplementary-evaluation .badge-danger {
+  background: #fdeaea;
+  color: #c62828;
+}
+
+.supplementary-evaluation .badge-secondary {
+  background: #edf1f4;
+  color: #5f6f7a;
+}
+
+
+/* =========================================================
+   EMPTY STATES
+   ========================================================= */
+
+.supplementary-evaluation .empty-state {
+  min-height: 330px;
+
+  padding: 2.5rem 1.25rem;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+}
+
+
+/* Empty icon container */
+
+.supplementary-evaluation .empty-icon {
+  width: 58px;
+  height: 58px;
+
+  margin-bottom: 1rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: #72808b;
+
+  font-size: 1.65rem;
+
+  background: #f1f5f7;
+
+  border-radius: 50%;
+}
+
+
+/* Empty title */
+
+.supplementary-evaluation .empty-title {
+  margin: 0 0 0.5rem;
+
+  color: var(--se-primary);
+
+  font-size: 1rem;
+  font-weight: 700;
+
+  line-height: 1.35;
+}
+
+
+/* Empty description */
+
+.supplementary-evaluation .empty-text {
+  max-width: 390px;
+
+  margin: 0;
+
+  color: #718096;
+
+  font-size: 0.8rem;
+
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.supplementary-evaluation .spinner-icon {
+  display: inline-block;
+
+  width: 2rem;
+  height: 2rem;
+
+  color: var(--se-accent);
+
+  animation: supplementary-spin 0.9s linear infinite;
+}
+
+.supplementary-evaluation .evaluation-spinner {
+  display: inline-block;
+
+  width: 1rem;
+  height: 1rem;
+
+  animation: supplementary-spin 0.9s linear infinite;
+}
+
+@keyframes supplementary-spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-/* Header --------------------------------------------------------------- */
-.supplementary-evaluation .header-icon {
-  color: var(--primary-color, #1a4b6d);
-  margin-right: 8px;
+
+/* =========================================================
+   SUMMARY STATISTICS
+   ========================================================= */
+
+.supplementary-evaluation .summary-stats {
+  display: grid;
+
+  grid-template-columns:
+    repeat(5, minmax(0, 1fr));
+
+  gap: 0.85rem;
+
+  margin-bottom: 1.25rem;
 }
 
-/* Loading / status icons ---------------------------------------------- */
-.supplementary-evaluation .spinner-icon {
-  display: inline-block;
-  width: 2.5rem;
-  height: 2.5rem;
-  color: var(--primary-color, #1a4b6d);
-  animation: supplementary-spin 0.9s linear infinite;
-}
-.supplementary-evaluation .evaluation-spinner {
-  display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  animation: supplementary-spin 0.9s linear infinite;
+.supplementary-evaluation .summary-stat-card {
+  min-width: 0;
+
+  padding: 0.9rem 1rem;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 0.25rem;
+
+  border: 1px solid var(--se-border);
+
+  border-radius: 11px;
+
+  background: #ffffff;
+
+  box-shadow: 0 3px 12px rgba(18, 63, 86, 0.05);
 }
 
-/* Empty states ----------------------------------------------------------- */
-.supplementary-evaluation .empty-icon {
-  font-size: 2.25rem;
-  color: var(--secondary-color, #6c757d);
+.supplementary-evaluation .summary-stat-label {
+  color: var(--se-muted);
+
+  font-size: 0.68rem;
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.35px;
 }
 
-/* Search ------------------------------------------------------------------*/
-.supplementary-evaluation .search-box {
-  position: relative;
-}
-.supplementary-evaluation .search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--se-muted-soft);
-}
-.supplementary-evaluation .search-input {
-  width: 100%;
-  padding-left: 38px;
-}
-.supplementary-evaluation .clear-search-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+.supplementary-evaluation .summary-stat-value {
+  color: var(--se-primary);
+
+  font-size: 1.35rem;
+  font-weight: 700;
+
+  line-height: 1.2;
 }
 
-/* Data tables ---------------------------------------------------------- */
-.supplementary-evaluation .data-table th {
-  background: var(--light, #f8f9fa);
-  white-space: nowrap;
-  position: sticky;
-  top: 0;
-  z-index: 1;
+.supplementary-evaluation .summary-stat-value.text-success {
+  color: var(--se-success);
 }
-.supplementary-evaluation .data-table td {
-  vertical-align: middle;
+
+.supplementary-evaluation .summary-stat-value.text-danger {
+  color: var(--se-danger);
 }
-.supplementary-evaluation .data-table tbody tr:hover {
-  background-color: var(--light, #f8f9fa);
+
+.supplementary-evaluation .summary-stat-value.text-warning {
+  color: var(--se-warning);
 }
-.supplementary-evaluation .data-table th.col-narrow {
-  width: 1%;
-  white-space: nowrap;
+
+.supplementary-evaluation .summary-stat-value.text-info {
+  color: var(--se-info);
 }
+
+
+/* =========================================================
+   ROSTER TABLE
+   ========================================================= */
+
 .supplementary-evaluation .data-table th.col-student {
-  min-width: 180px;
+  min-width: 160px;
 }
+
 .supplementary-evaluation .data-table th.col-enrollment {
-  min-width: 140px;
+  min-width: 125px;
 }
+
 .supplementary-evaluation .data-table th.col-course {
-  min-width: 140px;
+  min-width: 125px;
 }
+
 .supplementary-evaluation .data-table th.col-sem {
-  min-width: 150px;
+  min-width: 135px;
 }
+
 .supplementary-evaluation .data-table th.col-status {
   min-width: 100px;
 }
+
 .supplementary-evaluation .data-table th.col-attempt {
-  min-width: 100px;
+  min-width: 90px;
 }
+
 .supplementary-evaluation .data-table th.col-marks {
-  min-width: 120px;
+  min-width: 105px;
+
   text-align: center;
 }
+
 .supplementary-evaluation .data-table th.col-action {
-  min-width: 140px;
+  min-width: 115px;
+
   text-align: center;
 }
-.supplementary-evaluation .data-table td .fw-bold {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
-  display: inline-block;
-}
-.supplementary-evaluation .table-responsive {
-  -webkit-overflow-scrolling: touch;
-  max-height: 640px;
-  overflow-y: auto;
-}
-.supplementary-evaluation .table-responsive .data-table {
-  min-width: 960px;
-}
 
-/* Summary stat cards ------------------------------------------------------*/
-.supplementary-evaluation .summary-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-.supplementary-evaluation .summary-stat-card {
-  background: var(--se-surface);
-  border: 1px solid var(--se-border);
-  border-radius: var(--se-radius-lg);
-  padding: 1rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  transition: box-shadow 0.2s ease;
-}
-.supplementary-evaluation .summary-stat-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-.supplementary-evaluation .summary-stat-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--se-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.supplementary-evaluation .summary-stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--se-ink);
-  line-height: 1.2;
-}
-.supplementary-evaluation .summary-stat-value.text-success { color: var(--se-success); }
-.supplementary-evaluation .summary-stat-value.text-danger { color: var(--se-danger); }
-.supplementary-evaluation .summary-stat-value.text-warning { color: var(--se-warning); }
-.supplementary-evaluation .summary-stat-value.text-info { color: var(--se-info); }
 
-/* Marks entry inputs ----------------------------------------------------- */
+/* =========================================================
+   MARKS INPUTS
+   ========================================================= */
+
 .supplementary-evaluation .marks-input-wrapper {
   display: flex;
+
   flex-direction: column;
+
   gap: 0.2rem;
+
   align-items: flex-start;
 }
+
 .supplementary-evaluation .marks-input-label {
-  font-size: 0.7rem;
-  font-weight: 600;
   color: var(--se-muted);
+
+  font-size: 0.65rem;
+  font-weight: 700;
+
   text-transform: uppercase;
-  letter-spacing: 0.3px;
 }
+
 .supplementary-evaluation .marks-input {
-  width: 100%;
-  max-width: 100px;
-}
-.supplementary-evaluation .marks-input .form-input,
-.supplementary-evaluation .marks-input input.form-input {
-  max-width: 100px;
+  width: 82px !important;
+
+  max-width: 82px !important;
+
+  min-height: 36px;
+
+  padding: 0.4rem;
+
   text-align: center;
 }
 
-/* Evaluation action button ------------------------------------------------*/
+
+/* =========================================================
+   EVALUATION BUTTON
+   ========================================================= */
+
 .supplementary-evaluation .eval-btn {
-  min-width: 110px;
+  min-width: 100px;
+
   justify-content: center;
-}
-.supplementary-evaluation .eval-btn .evaluation-spinner {
-  margin-right: 6px;
+
+  font-size: 0.75rem;
 }
 
-/* Focus states --------------------------------------------------------- */
+
+/* =========================================================
+   ACTION FOOTER
+   ========================================================= */
+
+.supplementary-evaluation .action-footer {
+  margin-top: 1.25rem !important;
+
+  padding: 0.9rem 1rem !important;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 0.75rem;
+
+  border: 1px solid var(--se-border-soft);
+
+  border-radius: 10px;
+
+  background: #ffffff !important;
+
+  box-shadow: 0 3px 12px rgba(18, 63, 86, 0.04);
+}
+
+
+/* =========================================================
+   FOCUS
+   ========================================================= */
+
 .supplementary-evaluation .search-input:focus,
 .supplementary-evaluation .form-input:focus {
-  outline: 2px solid var(--se-focus-ring);
-  outline-offset: 0;
+  outline: none;
+
+  border-color: var(--se-accent);
+
+  box-shadow:
+    0 0 0 3px rgba(24, 169, 209, 0.12);
 }
+
 .supplementary-evaluation input[type="radio"].form-check-input:focus {
-  outline: 2px solid var(--se-focus-ring);
+  outline: 2px solid rgba(24, 169, 209, 0.35);
+
   outline-offset: 2px;
 }
 
-/* Action footer ------------------------------------------------------- */
-.supplementary-evaluation .action-footer {
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-.supplementary-evaluation .action-footer .d-flex {
-  flex-wrap: wrap;
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 991.98px) {
+
+  .supplementary-evaluation .page-header {
+    min-height: auto;
+
+    padding: 1.15rem 1.25rem;
+  }
+
+  .supplementary-evaluation .page-title {
+    font-size: 1.35rem;
+  }
+
+  .supplementary-evaluation .page-subtitle {
+    font-size: 0.78rem;
+  }
+
+  .supplementary-evaluation .summary-stats {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  .supplementary-evaluation .card-body {
+    padding: 1rem;
+  }
 }
 
-/* Responsive breakpoints ------------------------------------------------- */
-@media (max-width: 991.98px) {
-  .supplementary-evaluation .row.g-4 > [class*="col-"] {
-    width: 100%;
-  }
-  .supplementary-evaluation .summary-stats {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
 @media (max-width: 767.98px) {
+
+  .supplementary-evaluation .page-header {
+    padding: 1rem;
+
+    border-radius: 12px;
+  }
+
+  .supplementary-evaluation .page-title {
+    font-size: 1.15rem;
+  }
+
+  .supplementary-evaluation .page-subtitle {
+    font-size: 0.74rem;
+  }
+
+  .supplementary-evaluation .card-header {
+    min-height: 58px;
+
+    padding: 0.8rem 0.9rem;
+
+    flex-wrap: wrap;
+  }
+
+  .supplementary-evaluation .card-header .card-title {
+    font-size: 0.92rem;
+  }
+
+  .supplementary-evaluation .card-body {
+    padding: 0.85rem;
+  }
+
+  .supplementary-evaluation .empty-state {
+    min-height: 270px;
+
+    padding: 2rem 1rem;
+  }
+
   .supplementary-evaluation .summary-stats {
     grid-template-columns: repeat(2, 1fr);
+
+    gap: 0.6rem;
   }
-}
-@media (max-width: 575.98px) {
-  .supplementary-evaluation .summary-stats {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5rem;
-  }
+
   .supplementary-evaluation .summary-stat-card {
     padding: 0.75rem;
   }
+
   .supplementary-evaluation .summary-stat-value {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
   }
+
   .supplementary-evaluation .data-table th,
   .supplementary-evaluation .data-table td {
-    padding: 10px 12px;
-    font-size: 0.82rem;
+    padding: 0.6rem 0.65rem;
+
+    font-size: 0.72rem;
   }
-  .supplementary-evaluation .data-table td .fw-bold {
-    max-width: 120px;
+
+  .supplementary-evaluation .data-table {
+    min-width: 760px;
   }
-  .supplementary-evaluation .eval-btn {
-    min-width: auto;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.78rem;
-  }
+
   .supplementary-evaluation .action-footer {
     flex-direction: column;
-    align-items: flex-start !important;
-  }
-  .supplementary-evaluation .action-footer > div:last-child {
-    width: 100%;
-    justify-content: stretch;
-  }
-  .supplementary-evaluation .action-footer .btn {
-    flex: 1;
+
+    align-items: stretch !important;
   }
 }
-@media (max-width: 400px) {
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+
   .supplementary-evaluation .summary-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .supplementary-evaluation .summary-stat-label {
+    font-size: 0.62rem;
+  }
+
+  .supplementary-evaluation .summary-stat-value {
+    font-size: 1.05rem;
+  }
+
+  .supplementary-evaluation .empty-state {
+    min-height: 240px;
   }
 }
+
+
+/* =========================================================
+   REDUCE HOVER / TRANSFORM JITTER
+   ========================================================= */
+
+@media (max-width: 1024px) {
+
+  .supplementary-evaluation .card,
+  .supplementary-evaluation .data-table tbody tr {
+    transition: none !important;
+  }
+
+  .supplementary-evaluation .card:hover {
+    transform: none !important;
+
+    box-shadow: var(--se-shadow) !important;
+  }
+
+  .supplementary-evaluation .data-table tbody tr:hover {
+    transform: none !important;
+  }
+}
+
+/* =========================================================
+   TOP SELECTION CARD ALIGNMENT
+   ========================================================= */
+
+.supplementary-evaluation .row.g-4 {
+  align-items: stretch;
+}
+
+.supplementary-evaluation .row.g-4 > [class*="col-"] {
+  display: flex;
+}
+
+.supplementary-evaluation .row.g-4 > [class*="col-"] > .card {
+  width: 100%;
+}
+
+
+/* Keep both card headers exactly the same height */
+
+.supplementary-evaluation .row.g-4 > [class*="col-"] .card-header {
+  min-height: 70px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0.85rem 1.1rem;
+
+  gap: 0.6rem;
+}
+
+
+/* Title gets the available space */
+
+.supplementary-evaluation .row.g-4 > [class*="col-"] .card-header .card-title {
+  min-width: 0;
+  flex: 1;
+
+  margin: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.45rem;
+
+  white-space: nowrap;
+
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+
+/* Prevent the icon from shrinking */
+
+.supplementary-evaluation .row.g-4 > [class*="col-"] .card-header .card-title svg {
+  flex-shrink: 0;
+}
+
+
+/* Badges stay together */
+
+.supplementary-evaluation .row.g-4 > [class*="col-"] .card-header > .badge {
+  flex-shrink: 0;
+
+  margin-left: 0 !important;
+
+  white-space: nowrap;
+}
+
+
+/* Step badge spacing */
+
+.supplementary-evaluation .row.g-4 > [class*="col-"] .card-header > .badge + .badge {
+  margin-left: 0.25rem !important;
+}
+  /* =========================================================
+   EMPTY STATE ALIGNMENT
+   ========================================================= */
+
+.supplementary-evaluation .row.g-4 .card-body {
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* Search stays at the top */
+
+.supplementary-evaluation .row.g-4 .search-box {
+  flex-shrink: 0;
+}
+
+
+/* Empty state fills remaining card space */
+
+.supplementary-evaluation .row.g-4 .empty-state {
+  flex: 1;
+
+  min-height: 330px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  padding: 2rem 1.25rem;
+}
+
+
+/* Keep icon/title/text spacing consistent */
+
+.supplementary-evaluation .row.g-4 .empty-icon {
+  margin-bottom: 1rem;
+
+  width: 56px;
+  height: 56px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 1.65rem;
+
+  border-radius: 50%;
+
+  background: #f1f5f7;
+}
+
+
+.supplementary-evaluation .row.g-4 .empty-title {
+  margin: 0 0 0.45rem;
+
+  font-size: 1rem;
+  font-weight: 700;
+
+  color: var(--se-ink, #1e293b);
+}
+
+
+.supplementary-evaluation .row.g-4 .empty-text {
+  max-width: 360px;
+
+  margin: 0;
+
+  font-size: 0.78rem;
+
+  line-height: 1.55;
+
+  color: var(--se-muted, #64748b);
+
+  
+}
+
+/* =========================================================
+   FINAL CARD HOVER / JITTER FIX
+   ========================================================= */
+
+/* Keep selection cards completely stationary */
+.supplementary-evaluation .row.g-4 > [class*="col-"] > .card {
+  width: 100%;
+  transform: none !important;
+  position: relative;
+  top: 0 !important;
+  left: 0 !important;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease !important;
+}
+
+/* Do not move/scale the cards when hovering */
+.supplementary-evaluation .row.g-4 > [class*="col-"] > .card:hover {
+  transform: none !important;
+  top: 0 !important;
+  left: 0 !important;
+
+  border-color: #cbdce5;
+
+  box-shadow: var(--se-shadow-hover);
+
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease !important;
+}
+
+/* Prevent focus states from moving the card */
+.supplementary-evaluation .row.g-4 > [class*="col-"] > .card:focus,
+.supplementary-evaluation .row.g-4 > [class*="col-"] > .card:focus-within {
+  transform: none !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+/* Keep card contents stable */
+.supplementary-evaluation .row.g-4 > [class*="col-"] > .card .card-header,
+.supplementary-evaluation .row.g-4 > [class*="col-"] > .card .card-body {
+  transform: none !important;
+}
+
+/* No transform animation on these cards */
+.supplementary-evaluation .row.g-4 > [class*="col-"] > .card * {
+  backface-visibility: visible;
+}
+
 `;

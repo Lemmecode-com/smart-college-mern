@@ -1768,9 +1768,11 @@ export default function SubjectList() {
           gap: 1rem;
         }
 
+        /* SEARCH BOX */
         .search-box {
           position: relative;
-          min-width: 280px;
+          width: 250px;
+          min-width: 380px;
         }
 
         .search-icon {
@@ -1807,60 +1809,76 @@ export default function SubjectList() {
         }
         
         /* TABLE */
-        .table-container {
-          overflow-x: auto;
-          border-radius: 12px;
-          box-shadow: 0 2px 12px rgba(15, 58, 74, 0.08);
-          background: white;
-        }
+        
+.table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e4ebef;
+  box-shadow: 0 2px 10px rgba(15, 58, 74, 0.05);
+  background: white;
+}
+  .erp-table thead th:first-child {
+  border-top-left-radius: 11px;
+}
 
-        .erp-table {
-          width: 100%;
-          min-width: 1100px;
-          table-layout: fixed;
-          border-collapse: collapse;
-        }
+.erp-table thead th:last-child {
+  border-top-right-radius: 11px;
+}
 
-        /* FIXED TABLE COLUMN WIDTHS */
-        .erp-table th:nth-child(1),
-        .erp-table td:nth-child(1) {
-          width: 32%;
-        }
+.erp-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
 
-        .erp-table th:nth-child(2),
-        .erp-table td:nth-child(2) {
-          width: 15%;
-        }
+/* Subject Name */
+.erp-table th:nth-child(1),
+.erp-table td:nth-child(1) {
+  width: 30%;
+}
 
-        .erp-table th:nth-child(3),
-        .erp-table td:nth-child(3) {
-          width: 12%;
-        }
+/* Code */
+.erp-table th:nth-child(2),
+.erp-table td:nth-child(2) {
+  width: 13%;
+}
 
-        .erp-table th:nth-child(4),
-        .erp-table td:nth-child(4) {
-          width: 8%;
-        }
+/* Semester */
+.erp-table th:nth-child(3),
+.erp-table td:nth-child(3) {
+  width: 10%;
+}
 
-        .erp-table th:nth-child(5),
-        .erp-table td:nth-child(5) {
-          width: 17%;
-        }
+/* Credits */
+.erp-table th:nth-child(4),
+.erp-table td:nth-child(4) {
+  width: 8%;
+}
 
-        .erp-table th:nth-child(6),
-        .erp-table td:nth-child(6) {
-          width: 8%;
-        }
+/* Teacher */
+.erp-table th:nth-child(5),
+.erp-table td:nth-child(5) {
+  width: 16%;
+}
 
-        .erp-table th:nth-child(7),
-        .erp-table td:nth-child(7) {
-          width: 14%;
-        }
-        .erp-table thead {
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
-          color: white;
-          position: relative;
-        }
+/* Status */
+.erp-table th:nth-child(6),
+.erp-table td:nth-child(6) {
+  width: 9%;
+}
+
+/* Actions */
+.erp-table th:nth-child(7),
+.erp-table td:nth-child(7) {
+  width: 14%;
+}
+        
+.erp-table thead {
+  background: linear-gradient(135deg, #103f50 0%, #0d3442 100%);
+  color: white;
+}
 
         .erp-table thead::after {
           content: '';
@@ -1872,16 +1890,18 @@ export default function SubjectList() {
           background: linear-gradient(90deg, #3db5e6 0%, transparent 100%);
         }
 
-        .erp-table th {
-          padding: 1rem 1.25rem;
-          text-align: left;
-          font-weight: 600;
-          font-size: 0.95rem;
-          cursor: pointer;
-          user-select: none;
-          position: relative;
-          transition: all 0.3s ease;
-        }
+.erp-table th {
+  padding: 0.8rem 0.9rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background 0.2s ease;
+}
 
         .erp-table th:hover {
           background: rgba(61, 181, 230, 0.15);
@@ -1899,57 +1919,61 @@ export default function SubjectList() {
           border-right: 5px solid transparent;
         }
 
-        .erp-table tbody tr {
-          border-bottom: 1px solid #f0f4f8;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+.erp-table tbody tr {
+  border-bottom: 1px solid #edf2f5;
+  transition: background 0.2s ease;
+}
 
-       .erp-table tbody tr:hover {
-          background: linear-gradient(
-            90deg,
-            rgba(61, 181, 230, 0.08) 0%,
-            rgba(79, 195, 247, 0.05) 100%
-          );
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.1);
-        }
+.erp-table tbody tr:nth-child(even) {
+  background: #fbfdfe;
+}
 
-        .erp-table td {
-          padding: 1rem 1.25rem;
-          color: #2c3e50;
-          font-weight: 500;
-        }
+.erp-table tbody tr:hover {
+  background: rgba(61, 181, 230, 0.055);
+}
+
+ .erp-table td {
+  padding: 0.75rem 0.9rem;
+  color: #2c3e50;
+  font-weight: 500;
+  font-size: 0.82rem;
+  vertical-align: middle;
+}
         
 .subject-name {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 0.75rem;
   width: 100%;
   min-width: 0;
 }
 
-        .subject-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
-        }
+.subject-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 6px rgba(61, 181, 230, 0.25);
+}
 
         .subject-details {
           flex: 1;
           min-width: 0;
         }
 
-        .subject-title {
-          font-weight: 700;
-          color: #0f3a4a;
-          margin-bottom: 0.25rem;
-        }
+.subject-title {
+  font-weight: 700;
+  color: #123f52;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  margin-bottom: 0.3rem;
+}
 
 .subject-meta {
   display: flex;
@@ -1961,7 +1985,7 @@ export default function SubjectList() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
   .subject-main-badges .course-badge,
 .subject-main-badges .dept-badge {
@@ -1973,110 +1997,150 @@ export default function SubjectList() {
   align-items: center;
 }
         .course-badge,
-        .dept-badge {
-          font-size: 0.75rem;
-          color: #0f3a4a;
-          background: rgba(61, 181, 230, 0.1);
-          padding: 0.125rem 0.5rem;
-          border-radius: 4px;
-          font-weight: 600;
-        }
+.dept-badge {
+  font-size: 0.62rem;
+  color: #0f3a4a;
+  background: rgba(61, 181, 230, 0.1);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 700;
+  line-height: 1.2;
+}
 
-        .dept-badge {
-          background: rgba(15, 58, 74, 0.08);
-          color: #0f3a4a;
-        }
+.dept-badge {
+  background: rgba(15, 58, 74, 0.07);
+  color: #0f3a4a;
+}
 
-        .subject-type-badge {
-          font-size: 0.65rem;
-          color: #0f3a4a;
-          background: rgba(61, 181, 230, 0.12);
-          padding: 0.125rem 0.5rem;
-          border-radius: 4px;
-          font-weight: 700;
-          text-transform: uppercase;
-        }
+.subject-type-badge {
+  display: inline-flex;
+  align-items: center;
 
-        .subject-code-badge {
-          display: inline-block;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.1) 100%);
-          color: #0f3a4a;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-weight: 700;
-          font-size: 0.9rem;
-          border: 1px solid rgba(61, 181, 230, 0.2);
-          flex-wrap: nowrap;
-        }
+  font-size: 0.58rem;
+  line-height: 1;
+  color: #0f3a4a;
 
-        .semester-badge,
-        .credits-badge {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
-          padding: 0.375rem 0.875rem;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.95rem;
-          border: 1px solid rgba(61, 181, 230, 0.15);
-        }
+  background: rgba(61, 181, 230, 0.1);
+  border: 1px solid rgba(61, 181, 230, 0.16);
+
+  padding: 0.22rem 0.45rem;
+  border-radius: 4px;
+
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.subject-code-badge {
+  display: inline-flex;
+  align-items: center;
+
+  max-width: 100%;
+
+  background: rgba(61, 181, 230, 0.08);
+  color: #0f3a4a;
+
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+
+  font-weight: 700;
+  font-size: 0.72rem;
+
+  border: 1px solid rgba(61, 181, 230, 0.16);
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+.semester-badge,
+.credits-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+
+  background: #f3f7fa;
+  padding: 0.35rem 0.55rem;
+
+  border-radius: 7px;
+
+  font-weight: 700;
+  font-size: 0.72rem;
+
+  border: 1px solid #e0eaf0;
+  white-space: nowrap;
+}
 
         .semester-icon,
         .credits-icon {
-          font-size: 0.9rem;
+          font-size: 0.65rem;
           color: #3db5e6;
         }
 
-        .teacher-info {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
+.teacher-info {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
 
-        .teacher-avatar {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 600;
-          font-size: 0.9rem;
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
-        }
+.teacher-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
 
-        .teacher-details {
-          flex: 1;
-        }
+  background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+  color: white;
 
-        .teacher-name {
-          font-weight: 700;
-          color: #0f3a4a;
-          font-size: 0.95rem;
-        }
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-        .teacher-role {
-          font-size: 0.85rem;
-          color: #666;
-        }
+  font-weight: 700;
+  font-size: 0.72rem;
+
+  flex-shrink: 0;
+}
+
+.teacher-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.teacher-name {
+  font-weight: 700;
+  color: #0f3a4a;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.teacher-role {
+  font-size: 0.68rem;
+  color: #77838c;
+  line-height: 1.25;
+}
 
         .not-assigned {
           color: #9e9e9e;
           font-style: italic;
         }
 
-        .status-badge {
-          display: inline-block;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: 700;
-          border: 1px solid;
-        }
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+
+  border: 1px solid;
+  white-space: nowrap;
+}
 
         .status-active {
           background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(56, 142, 60, 0.1) 100%);
@@ -2090,31 +2154,39 @@ export default function SubjectList() {
           border-color: rgba(158, 158, 158, 0.2);
         }
         
-        .action-cell {
-          text-align: center;
-          min-width: 150px;
-        }
+.action-cell {
+  text-align: center;
+  min-width: 0;
+}
 
-        .action-buttons {
-          display: flex;
-          justify-content: center;
-          gap: 0.5rem;
-        }
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+}
 
-        .action-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          color: white;
-          font-size: 0.9rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
+.action-btn {
+  width: 31px;
+  height: 31px;
+  border-radius: 8px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  color: white;
+  font-size: 0.75rem;
+
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+}
 
         .view-btn {
           background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
@@ -2129,9 +2201,9 @@ export default function SubjectList() {
         }
 
         .action-btn:hover {
-          transform: translateY(-3px) scale(1.05);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-          filter: brightness(1.1);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+          filter: brightness(1.05);
         }
 
         .action-btn:active {

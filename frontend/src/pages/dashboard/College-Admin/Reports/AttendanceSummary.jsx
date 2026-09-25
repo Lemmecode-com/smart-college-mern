@@ -323,12 +323,17 @@ export default function AttendanceSummary() {
 
       {/* VISUAL SUMMARY SECTION */}
       <div className="erp-card animate-fade-in">
-        <div className="erp-card-header">
-          <h3>
-            <FaChartPie className="erp-card-icon" />
-            Attendance Visualization
-          </h3>
-        </div>
+<div className="erp-card-header visualization-header">
+  <div>
+    <h3>
+      <FaChartPie className="erp-card-icon" />
+      Attendance Visualization
+    </h3>
+    <p className="erp-card-subtitle">
+      Attendance performance across recorded sessions
+    </p>
+  </div>
+</div>
         <div className="erp-card-body">
           <div className="visual-container">
             {/* CIRCULAR PROGRESS */}
@@ -500,7 +505,7 @@ export default function AttendanceSummary() {
           </div>
 
           <div className="analysis-footer">
-            <div className="footer-note">
+            <div className="analysis-footer-note">
               <FaInfoCircle className="note-icon" />
               <span>
                 * Attendance rate calculated based on estimated class size of 50
@@ -764,23 +769,44 @@ export default function AttendanceSummary() {
         }
         
         .stat-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          position: relative;
+          background: #ffffff;
+          border: 1px solid #e7edf1;
+          border-radius: 14px;
+          box-shadow: 0 4px 16px rgba(26, 75, 109, 0.06);
           overflow: hidden;
-          transition: all 0.3s ease;
+
           display: flex;
           flex-direction: column;
-          animation: fadeIn 0.5s ease forwards;
+
+          transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            border-color 0.2s ease;
         }
-        
+
+        .stat-card::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 3px;
+        }
+
+        .stat-card:nth-child(1)::before {
+          background: #667eea;
+        }
+
+        .stat-card:nth-child(2)::before {
+          background: #4caf50;
+        }
+
         .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(26, 75, 109, 0.1);
+          border-color: #dbe5eb;
         }
-        
-        .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stat-card:nth-child(2) { animation-delay: 0.2s; }
         
         .stat-card-header {
           padding: 1.25rem 1.5rem;
@@ -815,21 +841,22 @@ export default function AttendanceSummary() {
           font-size: 1.05rem;
         }
         
-        .stat-card-body {
-          padding: 1.5rem;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
+.stat-card-body {
+  padding: 1.25rem 1.5rem 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
         
-        .stat-value {
-          font-size: 2.25rem;
-          font-weight: 800;
-          color: #1a4b6d;
-          line-height: 1;
-          margin-bottom: 0.5rem;
-        }
+.stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1a4b6d;
+  line-height: 1;
+  margin: 0.5rem 0 0.65rem;
+  letter-spacing: -0.03em;
+}
         
         .stat-value.attendance { color: #4CAF50; }
         
@@ -851,29 +878,28 @@ export default function AttendanceSummary() {
           font-size: 0.95rem;
         }
         
-        .stat-card-footer {
-          padding: 0.75rem 1.5rem;
-          background: #f8f9fa;
-          border-top: 1px solid #e9ecef;
-          font-size: 0.875rem;
-        }
+.stat-card-footer {
+  padding: 0.8rem 1.5rem;
+  background: #f8fafb;
+  border-top: 1px solid #edf1f3;
+  font-size: 0.78rem;
+}
         
-        .stat-footer-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        
-        .footer-label {
-          color: #6c757d;
-        }
-        
-        .footer-value {
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-        }
+.stat-footer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.footer-label {
+  color: #7a8790;
+}
+
+.footer-value {
+  font-weight: 700;
+  color: #334e60;
+}
         
         .footer-value.excellent { color: #4CAF50; }
         .footer-value.good { color: #8BC34A; }
@@ -895,6 +921,11 @@ export default function AttendanceSummary() {
           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
           border-bottom: 1px solid #e9ecef;
         }
+          .erp-card-subtitle {
+  margin: 0.25rem 0 0 2rem;
+  font-size: 0.78rem;
+  color: #7b8790;
+}
         
         .erp-card-header h3 {
           margin: 0;
@@ -912,7 +943,7 @@ export default function AttendanceSummary() {
         }
         
         .erp-card-body {
-          padding: 2rem;
+          padding: 1.5rem;
         }
         
         .visual-container {
@@ -931,8 +962,8 @@ export default function AttendanceSummary() {
         }
         
         .progress-circle {
-          width: 200px;
-          height: 200px;
+          width: 180px;
+          height: 180px;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -944,8 +975,8 @@ export default function AttendanceSummary() {
         .progress-circle::before {
           content: "";
           position: absolute;
-          width: 180px;
-          height: 180px;
+          width: 160px;
+          height: 160px;
           border-radius: 50%;
           background: white;
         }
@@ -1021,20 +1052,28 @@ export default function AttendanceSummary() {
           gap: 1.5rem;
         }
         
-        .metric-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.25rem;
-          background: #f8f9fa;
-          border-radius: 12px;
-          transition: all 0.3s ease;
-        }
-        
-        .metric-item:hover {
-          background: #f0f5ff;
-          transform: translateX(5px);
-        }
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+
+  padding: 1rem;
+
+  background: #f8fafb;
+  border: 1px solid #edf1f3;
+  border-radius: 12px;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.metric-item:hover {
+  background: #ffffff;
+  border-color: #dce7ed;
+  transform: translateY(-2px);
+}
         
         .metric-icon {
           width: 40px;
@@ -1063,11 +1102,12 @@ export default function AttendanceSummary() {
           font-weight: 500;
         }
         
-        .metric-value {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1a4b6d;
-        }
+.metric-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #1a4b6d;
+  line-height: 1.1;
+}
         
         .metric-description {
           font-size: 0.85rem;
@@ -1187,8 +1227,8 @@ export default function AttendanceSummary() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.875rem;
-          color: #6c757d;
+          font-size: 0.8rem;
+          color: #66727d;
         }
         
         .footer-disclaimer {
@@ -1198,19 +1238,24 @@ export default function AttendanceSummary() {
         }
         
         /* FOOTER NOTE */
-        .footer-note {
-          background: #e8f5e9;
-          border-radius: 12px;
-          padding: 1rem 1.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          margin-top: 1rem;
-          border-left: 4px solid #4CAF50;
-          font-size: 0.9rem;
-          color: #1b5e20;
-        }
+.footer-note {
+  background: #f7fafb;
+  border: 1px solid #e4ebef;
+  border-left: 3px solid #4CAF50;
+
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  margin-top: 0.5rem;
+
+  font-size: 0.78rem;
+  color: #62717b;
+}
         
         .note-icon {
           font-size: 1.25rem;
@@ -2013,6 +2058,48 @@ export default function AttendanceSummary() {
   .erp-container > .footer-note {
     padding: 0.75rem;
     font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 1100px) {
+  .analysis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+  .erp-card-header {
+    padding: 1rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.05rem;
+  }
+
+  .erp-card-subtitle {
+    margin-left: 1.7rem;
+    font-size: 0.72rem;
+  }
+
+  .analysis-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .analysis-card {
+    padding: 1rem;
+  }
+
+  .metric-item {
+    padding: 0.85rem;
+  }
+
+  .footer-note {
+    align-items: flex-start;
   }
 }
       `}</style>

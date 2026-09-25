@@ -3841,83 +3841,83 @@ export default function PaymentReports() {
    PAYMENT REPORTS - FINAL DESKTOP POLISH
    ========================================================= */
 
-@media (min-width: 1025px) {
-  .stats-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+        @media (min-width: 1025px) {
+          .stats-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
 
-  .metrics-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
+          .metrics-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+          }
+        }
 
-@media (min-width: 769px) and (max-width: 1100px) {
-  .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+        @media (min-width: 769px) and (max-width: 1100px) {
+          .stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
 
-  .metrics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+          .metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
 
-  .visual-container {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-}
+          .visual-container {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+          }
+        }
 
-@media (max-width: 768px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
+        @media (max-width: 768px) {
+          .stats-grid {
+            grid-template-columns: 1fr;
+          }
 
-  .metrics-grid {
-    grid-template-columns: 1fr;
-  }
+          .metrics-grid {
+            grid-template-columns: 1fr;
+          }
 
-  .visual-container {
-    grid-template-columns: 1fr;
-  }
+          .visual-container {
+            grid-template-columns: 1fr;
+          }
 
-  .trend-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.9rem;
-  }
+          .trend-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.9rem;
+          }
 
-  .year-selector {
-    width: 100%;
-    justify-content: space-between;
-  }
+          .year-selector {
+            width: 100%;
+            justify-content: space-between;
+          }
 
-  .year-select {
-    min-width: 110px;
-  }
-}
-  @media (max-width: 1100px) {
-  .metrics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
+          .year-select {
+            min-width: 110px;
+          }
+        }
+          @media (max-width: 1100px) {
+          .metrics-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
 
-@media (max-width: 768px) {
-  .metrics-grid {
-    grid-template-columns: 1fr;
-  }
+        @media (max-width: 768px) {
+          .metrics-grid {
+            grid-template-columns: 1fr;
+          }
 
-  .metric-card {
-    min-height: 210px;
-  }
+          .metric-card {
+            min-height: 210px;
+          }
 
-  .metrics-footer {
-    flex-direction: column;
-    align-items: stretch;
-  }
+          .metrics-footer {
+            flex-direction: column;
+            align-items: stretch;
+          }
 
-  .metrics-footer .footer-disclaimer {
-    text-align: left;
-  }
-}
+          .metrics-footer .footer-disclaimer {
+            text-align: left;
+          }
+        }
       `}</style>
 
       {/* TREND ANALYSIS SECTION */}
