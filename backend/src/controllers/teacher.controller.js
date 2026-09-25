@@ -237,8 +237,10 @@ exports.getTeachers = async (req, res) => {
     // Build filter
     const filter = { college_id: req.college_id };
 
+    // Default to ACTIVE teachers only; allow explicit status query to override
+    filter.status = status || "ACTIVE";
+
     if (department_id) filter.department_id = department_id;
-    if (status) filter.status = status;
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: "i" } },
