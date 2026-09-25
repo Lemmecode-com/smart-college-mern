@@ -176,6 +176,7 @@ export default function EditStaffProfile() {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [previousSubjectId, setPreviousSubjectId] = useState("");
   const [hodTeacherId, setHodTeacherId] = useState("");
+  const [isCurrentlyHOD, setIsCurrentlyHOD] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -198,11 +199,14 @@ export default function EditStaffProfile() {
       //  - flat:          { name, email, role, ... }
       //  - populated:     { user_id: { name, email, role }, ... }  (Issue #312-class compatibility)
       const u = p.user_id || {};
+      const currentRole = p.role || u.role || "";
+      const isCurrentlyHOD = currentRole === "HOD";
+
       if (raw) {
         setFormData({
           name: p.name || u.name || "",
           email: p.email || u.email || "",
-          role: p.role || u.role || "",
+          role: currentRole,
           mobileNumber: p.mobileNumber || "",
           designation: p.designation || "",
           employmentType: p.employmentType || "FULL_TIME",
@@ -222,7 +226,7 @@ export default function EditStaffProfile() {
         });
 
         // Load HOD teaching data if applicable
-        if (p.role === "HOD" && p.teacher && !isSelfEdit) {
+        if (isCurrentlyHOD && p.teacher && !isSelfEdit) {
           const teacher = p.teacher;
           setHodTeacherId(teacher.id || "");
           setSelectedCourse(teacher.courses?.[0]?._id || teacher.courses?.[0] || "");
@@ -242,6 +246,7 @@ export default function EditStaffProfile() {
           }
         }
       }
+      setIsCurrentlyHOD(isCurrentlyHOD);
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -545,11 +550,18 @@ export default function EditStaffProfile() {
                             required
                           >
                           <option value="">Select Role</option>
-                          {STAFF_ROLE_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
+                          {STAFF_ROLE_OPTIONS
+                            .filter((opt) => isCurrentlyHOD || opt.value !== "HOD")
+                            .map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          {!isCurrentlyHOD && formData.role === "HOD" && (
+                            <option value="HOD" disabled>
+                              Head of Department (not allowed — use Create Staff)
                             </option>
-                          ))}
+                          )}
                           {/* Preserve a persisted role that is not in the standard list (avoids blank selection) */}
                           {formData.role &&
                             !STAFF_ROLE_OPTIONS.some((o) => o.value === formData.role) && (
@@ -558,6 +570,11 @@ export default function EditStaffProfile() {
                               </option>
                             )}
                         </select>
+                        {!isCurrentlyHOD && (
+                          <small className="text-muted mt-1 d-block">
+                            HOD role can only be assigned during Staff Creation.
+                          </small>
+                        )}
                         </FormField>
                       </div>
                       <div className="col-12 col-md-4">

@@ -1,5 +1,5 @@
 ﻿require('dotenv').config(); // Load .env first (contains GLITCHTIP config)
-require('dotenv').config({ path: '.env.test' }); // Load .env.test for test-specific overrides
+require('dotenv').config({ path: '.env.test', override: true }); // Load .env.test for test-specific overrides
 
 module.exports = {
   testEnvironment: 'node',
