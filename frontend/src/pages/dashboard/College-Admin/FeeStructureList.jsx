@@ -287,6 +287,7 @@ export default function FeeStructureList() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
+          { label: "Fee Management",},
           { label: "Fee Structures" }
         ]}
       />
