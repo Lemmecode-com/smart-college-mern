@@ -171,7 +171,12 @@ promotionHistorySchema.index({ student_id: 1, promotionDate: -1 });
 promotionHistorySchema.index({ college_id: 1, promotionDate: -1 });
 promotionHistorySchema.index(
   { promotion_decision_id: 1 },
-  { unique: true, sparse: true },
+  {
+    unique: true,
+    partialFilterExpression: {
+      promotion_decision_id: { $type: "objectId" },
+    },
+  },
 );
 
 module.exports = mongoose.model("PromotionHistory", promotionHistorySchema);
