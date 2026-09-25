@@ -176,8 +176,9 @@ export default function ViewStaffProfile() {
         <div
           style={{
                 width: "100%",
-                margin: "10px auto",
-                paddingTop: "5px",
+                // margin: "10px auto",
+                paddingTop: "-1rem",
+                height: "60px",
           }}
         >
           <div style={{ width: "100%" }}>
@@ -185,7 +186,7 @@ export default function ViewStaffProfile() {
               items={[
                 { label: "Dashboard", path: "/dashboard" },
                 { label: "Staff Management", path: "/college/staff" },
-                { label: "View Profile" },
+                { label: "Staff Profile" },
               ]}
             />
           </div>
