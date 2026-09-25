@@ -6,7 +6,7 @@ import ApiError from "./ApiError";
 import { getDashboardPath } from "./Sidebar/config/navigation.config";
 
 export default function ProtectedRoute({ allowedRoles, children }) {
-  const { user, loading, authError, retryAuthCheck } = useContext(AuthContext);
+  const { user, loading, authError, retryAuthCheck, sessionExpiryRedirectInProgress } = useContext(AuthContext);
 
   if (loading) return <Loading fullScreen text="Authenticating..." />;
 
@@ -18,6 +18,14 @@ export default function ProtectedRoute({ allowedRoles, children }) {
         onRetry={retryAuthCheck}
       />
     );
+  }
+
+  // When a session-expiry hard navigation (window.location.href) is already
+  // in progress, suppress the secondary <Navigate>. The hard redirect is
+  // the single navigation mechanism for session expiry; letting
+  // ProtectedRoute also render <Navigate> causes a double-navigation flicker.
+  if (!user && sessionExpiryRedirectInProgress) {
+    return null;
   }
 
   if (!user) return <Navigate to="/login" replace />;
