@@ -162,6 +162,7 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
            ]
          : [
              { label: "Dashboard", path: "/dashboard" },
+             { label: "Students",},
              { label: "Deactivated Students" },
            ]
        } />

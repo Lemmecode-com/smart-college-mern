@@ -734,6 +734,7 @@ export default function AuditLogs() {
           <Breadcrumb
             items={[
               { label: "Dashboard", path: "/dashboard" },
+              { label: "Reports & Analytics", },
               { label: "Audit Logs", active: true },
             ]}
           />
