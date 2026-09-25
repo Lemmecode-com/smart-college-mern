@@ -229,7 +229,7 @@ export default function ViewSubject() {
         </div>
 
         {/* EXAM / MARKS CONFIGURATION CARD */}
-        <div className="info-card">
+        <div className="info-card exam-config-card">
           <div className="card-header">
             <FaClipboardList className="card-header-icon" />
             <h3>Exam / Marks Configuration</h3>
@@ -554,8 +554,14 @@ export default function ViewSubject() {
           grid-column: 1 / 3;
         }
 
+        .exam-config-card {
+          grid-column: 1 / 3;
+          grid-row: 2;
+        }
+
         .timeline-card {
-          grid-column: 3 / 4;
+          grid-column: 3;
+          grid-row: 2;
         }
 
         .card-header {

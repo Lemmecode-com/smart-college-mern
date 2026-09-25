@@ -273,6 +273,7 @@ export default function AdminReports() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
+          { label: "Reports & Analytics", },
           { label: "Admission Reports" }
         ]}
       />
@@ -608,18 +609,22 @@ export default function AdminReports() {
         }
 
         /* ================= CONTAINER ================= */
-        .erp-container {
-          padding: 1.5rem;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-          min-height: 100vh;
-          font-family: var(--font-family-base);
-          font-size: var(--font-size-base);
-          line-height: var(--line-height-base);
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-          animation: fadeIn 0.6s ease;
-        }
-
+.erp-container {
+  padding: 1.5rem;
+  background:
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(61, 181, 230, 0.06),
+      transparent 28%
+    ),
+    #f5f7fa;
+  min-height: 100vh;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
         /* ================= HEADER - ENTERPRISE LAYOUT ================= */
         .erp-page-header {
           background: var(--primary);
@@ -801,17 +806,18 @@ export default function AdminReports() {
         }
 
         /* INFO BANNER */
-        .info-banner {
-          background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-          border-radius: 12px;
-          padding: 1rem 1.5rem;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          border-left: 4px solid #4caf50;
-          box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
-        }
+.info-banner {
+  background: #f0f9f2;
+  border: 1px solid #d7ecd9;
+  border-left: 4px solid #4caf50;
+  border-radius: 12px;
+  padding: 0.9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 14px rgba(76, 175, 80, 0.08);
+}
 
         .info-icon {
           width: 40px;
@@ -837,30 +843,37 @@ export default function AdminReports() {
         }
 
         /* STATS GRID */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 1.5rem;
-        }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
 
-        .stat-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-          transition: all 0.3s ease;
-          display: flex;
-          flex-direction: column;
-          animation: fadeIn 0.5s ease forwards;
-          height: 88%;
-          width: 90%;
-        }
+ .stat-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.25s ease;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.5s ease forwards;
 
-        .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
+  /* remove these */
+  /* height: 88%; */
+  /* width: 90%; */
+
+  width: 100%;
+  min-height: 245px;
+  box-sizing: border-box;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(15, 58, 74, 0.12);
+}
 
         .stat-card:nth-child(1) {
           animation-delay: 0.1s;
@@ -875,24 +888,24 @@ export default function AdminReports() {
           animation-delay: 0.4s;
         }
 
-        .stat-card-header {
-          padding: 1.25rem 1.5rem;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          border-bottom: 1px solid #f0f2f5;
-        }
+.stat-card-header {
+  padding: 1.25rem 1.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  border-bottom: 1px solid #eef1f4;
+}
 
-        .stat-icon-wrapper {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          font-size: 1.5rem;
-        }
+.stat-icon-wrapper {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1.4rem;
+}
 
         .stat-icon-wrapper.total {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -912,28 +925,53 @@ export default function AdminReports() {
           font-size: 1.4rem;
         }
 
-        .stat-title {
-          font-weight: 600;
-          color: #2c3e50;
-          font-size: 1.05rem;
-        }
+.stat-title {
+  font-weight: 650;
+  color: #183b4a;
+  font-size: 1rem;
+  line-height: 1.3;
+}
 
-        .stat-card-body {
-          padding: 1.5rem;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
+.stat-card-body {
+  padding: 1.35rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
-        .stat-value {
-          font-size: 2.25rem;
-          font-weight: 800;
-          color: #1a4b6d;
-          line-height: 1;
-          margin-bottom: 0.5rem;
-        }
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #1a4b6d;
+  line-height: 1;
+  margin-bottom: 0.6rem;
+}
+  .stat-card {
+  position: relative;
+}
 
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: #1a4b6d;
+}
+
+.stat-card:nth-child(2)::before {
+  background: #4caf50;
+}
+
+.stat-card:nth-child(3)::before {
+  background: #ff9800;
+}
+
+.stat-card:nth-child(4)::before {
+  background: #dc3545;
+}
         .stat-value.approved {
           color: #4caf50;
         }
@@ -1004,21 +1042,22 @@ export default function AdminReports() {
           padding: 1.5rem;
         }
 
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .metric-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.25rem;
-          background: #f8f9fa;
-          border-radius: 12px;
-          transition: all 0.3s ease;
-        }
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+}
+        
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem;
+  background: #f8fafb;
+  border: 1px solid #edf1f3;
+  border-radius: 12px;
+  transition: all 0.25s ease;
+}
 
         .metric-item:hover {
           background: #f0f5ff;

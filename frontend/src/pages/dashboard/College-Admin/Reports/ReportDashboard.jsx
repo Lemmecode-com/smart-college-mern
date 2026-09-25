@@ -572,7 +572,8 @@ export default function ReportDashboard() {
           <Breadcrumb
             items={[
               { label: "Dashboard", path: "/dashboard" },
-              { label: "Reports & Analytics" },
+              { label: "Reports & Analytics", },
+              { label: "Reports Dashboard" },
             ]}
           />
         </div>
