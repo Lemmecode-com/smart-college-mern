@@ -700,7 +700,7 @@ const EmailConfigurations = () => {
         .header-subtitle {
           font-size: 0.9375rem;
           color: rgba(255, 255, 255, 0.85);
-          margin-top: -1.0rem;
+          margin-top: 1.0rem;
         }
 
         .header-badge {
