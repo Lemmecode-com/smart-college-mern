@@ -31,6 +31,7 @@ import {
 } from "react-icons/fa";
 
 import ConfirmModal from "../../../components/ConfirmModal";
+import HodSubjectReassignmentModal from "../../../components/HodSubjectReassignmentModal";
 import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
@@ -280,6 +281,7 @@ export default function DepartmentList() {
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [removingHod, setRemovingHod] = useState(false);
   const [hodSubjectCount, setHodSubjectCount] = useState(null);
+  const [showReassignSubjectsModal, setShowReassignSubjectsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState(null);
   const [deletingDepartment, setDeletingDepartment] = useState(false);
@@ -414,6 +416,33 @@ export default function DepartmentList() {
     } finally {
       setRemovingHod(false);
     }
+  };
+
+  /* ================= REASSIGN HOD SUBJECTS =================
+     Triggered from the blocked state of the Remove HOD confirmation
+     (see the ConfirmModal below). This never removes or replaces the
+     HOD — it only moves subjects/slots/sessions to another teacher so
+     the admin can, in a separate explicit step, remove the HOD once
+     the active subject count reaches zero. */
+  const handleOpenReassignModal = () => {
+    // Keep selectedDepartment set — the reassignment modal needs the
+    // same department/HOD context. Just swap which dialog is visible.
+    setShowRemoveHodModal(false);
+    setShowReassignSubjectsModal(true);
+  };
+
+  const handleReassignModalClose = () => {
+    setShowReassignSubjectsModal(false);
+  };
+
+  const handleReassignSuccess = () => {
+    // Do NOT call handleRemoveHod here — removal must remain an explicit,
+    // separate admin action. We just clear stale state so the next
+    // "Remove HOD" click re-fetches a fresh (now lower/zero) count.
+    setShowReassignSubjectsModal(false);
+    setSelectedDepartment(null);
+    setHodSubjectCount(null);
+    fetchDepartments();
   };
 
   /* ================= FILTER LOGIC ================= */
@@ -1004,22 +1033,43 @@ export default function DepartmentList() {
           setSelectedDepartment(null);
           setHodSubjectCount(null);
         }}
-        onConfirm={handleRemoveHod}
-        title="Remove HOD"
+        onConfirm={
+          hodSubjectCount && hodSubjectCount > 0
+            ? handleOpenReassignModal
+            : handleRemoveHod
+        }
+        title={
+          hodSubjectCount && hodSubjectCount > 0
+            ? "Subjects Still Assigned"
+            : "Remove HOD"
+        }
         message={
           selectedDepartment
             ? hodSubjectCount === null
               ? "Checking assigned subjects..."
               : hodSubjectCount > 0
-                ? `This HOD has ${hodSubjectCount} active subject(s) assigned. Please reassign these subjects before removing the HOD.`
+                ? `This HOD has ${hodSubjectCount} active subject(s) assigned. Reassign these subjects to another teacher before removing the HOD.`
                 : `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
             : ""
         }
-        type={hodSubjectCount && hodSubjectCount > 0 ? "warning" : "warning"}
-        confirmText="Remove HOD"
+        type="warning"
+        confirmText={
+          hodSubjectCount && hodSubjectCount > 0 ? "Reassign Subjects" : "Remove HOD"
+        }
         cancelText="Cancel"
-        confirmDisabled={!!(hodSubjectCount && hodSubjectCount > 0)}
+        confirmDisabled={hodSubjectCount === null}
         isLoading={removingHod}
+      />
+
+      <HodSubjectReassignmentModal
+        isOpen={showReassignSubjectsModal}
+        onClose={handleReassignModalClose}
+        departmentId={selectedDepartment?._id}
+        hodTeacherId={
+          selectedDepartment?.hod_id?._id || selectedDepartment?.hod_id
+        }
+        hodName={selectedDepartment?.hod_id?.name}
+        onSuccess={handleReassignSuccess}
       />
 
       <ConfirmModal
@@ -1061,4 +1111,3 @@ const tdStyle = {
   verticalAlign: "middle",
   color: "#1f2530",
 };
-
