@@ -839,6 +839,17 @@ exports.updateStaffProfile = async (req, res, next) => {
             "ROLE_ASSIGN_FORBIDDEN"
           ));
         }
+
+        // Block promotion TO HOD for non-HOD users
+        const isCurrentlyHOD = previousRole === "HOD";
+        const isPromotingToHOD = userFields.role === "HOD";
+        if (!isCurrentlyHOD && isPromotingToHOD) {
+          return next(new AppError(
+            "HOD role can only be assigned during Staff Creation.",
+            400,
+            "HOD_ROLE_ASSIGN_NOT_ALLOWED"
+          ));
+        }
       }
 
       // ─── Joining date validation ───
@@ -848,6 +859,22 @@ exports.updateStaffProfile = async (req, res, next) => {
 
       if (Object.keys(userFields).length > 0) {
         await User.findByIdAndUpdate(id, userFields, { session, new: true });
+      }
+
+      // Sync Teacher.name with User.name when name changes
+      if (userFields.name && userFields.name !== user.name) {
+        const Teacher = require("../models/teacher.model");
+        const teacher = await Teacher.findOne({
+          user_id: id,
+          college_id: req.user.college_id,
+        });
+        if (teacher) {
+          await Teacher.findByIdAndUpdate(
+            teacher._id,
+            { name: userFields.name },
+            { session, new: true }
+          );
+        }
       }
 
       // Update or create staff profile
