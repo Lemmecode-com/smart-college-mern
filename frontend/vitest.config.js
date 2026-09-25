@@ -5,9 +5,6 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/tests/setup.js'],
-    env: {
-      VITE_API_BASE_URL: 'http://localhost:5000/api',
-    },
     server: {
       deps: {
         inline: ['axios'],
