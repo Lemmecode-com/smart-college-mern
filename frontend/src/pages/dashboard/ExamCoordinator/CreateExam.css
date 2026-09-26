@@ -941,8 +941,18 @@ select.create-exam-field-input:disabled {
 
 .exam-schedule-table {
   width: 100%;
+  min-width: 100%;
   margin-bottom: 0;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.exam-schedule-table th:nth-child(1),
+.exam-schedule-table td:nth-child(1) {
+  min-width: 220px;
+}
+.exam-schedule-table th:last-child,
+.exam-schedule-table td:last-child {
+  min-width: 125px;
 }
 
 .exam-schedule-table thead th {
@@ -973,7 +983,10 @@ select.create-exam-field-input:disabled {
 }
 
 .exam-schedule-subject-name {
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   font-weight: 600;
   color: var(--edx-slate-900);
   line-height: 1.2;
@@ -1291,7 +1304,7 @@ select.exam-schedule-field {
 /* Table header */
 .exam-timetable-page .exam-schedule-table {
   width: 100%;
-  min-width: 1120px;
+  min-width: 100%;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -1301,6 +1314,10 @@ select.exam-schedule-field {
 .exam-timetable-page .exam-schedule-table th:last-child,
 .exam-timetable-page .exam-schedule-table td:last-child {
   min-width: 125px;
+}
+.exam-timetable-page .exam-schedule-table th:nth-child(1),
+.exam-timetable-page .exam-schedule-table td:nth-child(1) {
+  min-width: 220px;
 }
 
 .exam-timetable-page .exam-schedule-table thead th {
@@ -1336,7 +1353,10 @@ select.exam-schedule-field {
 
 /* Subject */
 .exam-timetable-page .exam-schedule-subject-name {
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   color: #102a43;
   font-size: 0.86rem;
   font-weight: 700;
