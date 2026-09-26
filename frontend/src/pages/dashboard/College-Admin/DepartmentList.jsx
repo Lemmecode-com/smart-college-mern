@@ -31,7 +31,7 @@ import {
 } from "react-icons/fa";
 
 import ConfirmModal from "../../../components/ConfirmModal";
-import HodSubjectReassignmentModal from "../../../components/HodSubjectReassignmentModal";
+import HodSubjectReassign from "../../../components/HodSubjectReassign";
 import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
@@ -1061,7 +1061,7 @@ export default function DepartmentList() {
         isLoading={removingHod}
       />
 
-      <HodSubjectReassignmentModal
+      <HodSubjectReassign
         isOpen={showReassignSubjectsModal}
         onClose={handleReassignModalClose}
         departmentId={selectedDepartment?._id}
