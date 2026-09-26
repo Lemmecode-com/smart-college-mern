@@ -41,7 +41,7 @@ exports.studentDashboard = async (req, res, next) => {
     })
       .populate("course_id", "name")
       .populate("department_id", "name")
-      .select("user_id college_id department_id course_id currentSemester approvedAt createdAt");
+      .select("user_id college_id department_id course_id currentSemester approvedAt createdAt fullName enrollmentNumber division");
 
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
