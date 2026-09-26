@@ -58,19 +58,39 @@ const STATUS_META = {
   },
   [STATUS.MISSING_DATE]: {
     label: "Missing date",
+    title: "Add an exam date",
     icon: FaExclamationTriangle,
     className: "warning",
   },
   [STATUS.MISSING_TIME]: {
     label: "Missing time",
+    title: "Add the missing start or end time",
     icon: FaExclamationTriangle,
     className: "warning",
   },
   [STATUS.INVALID_RANGE]: {
     label: "Invalid range",
+    title: "Start time must be earlier than end time",
     icon: FaTimesCircle,
     className: "danger",
   },
+};
+
+const SESSION_LABEL = {
+  FORENOON: "Morning",
+  AFTERNOON: "Afternoon",
+};
+
+const getSessionFromStartTime = (startTime) => {
+  if (!startTime) return "";
+  const [hours] = startTime.split(":").map(Number);
+  if (Number.isNaN(hours)) return "";
+  return hours < 12 ? "FORENOON" : "AFTERNOON";
+};
+
+const sessionLabel = (startTime) => {
+  const session = getSessionFromStartTime(startTime);
+  return session ? SESSION_LABEL[session] : "";
 };
 
 function ExamTimetableTable({
@@ -98,7 +118,10 @@ function ExamTimetableTable({
     const meta = STATUS_META[status] || STATUS_META[STATUS.MISSING_DATE];
     const Icon = meta.icon;
     return (
-      <span className={`exam-schedule-pill ${meta.className}`}>
+      <span
+        className={`exam-schedule-pill ${meta.className}`}
+        title={meta.title}
+      >
         <Icon className="exam-schedule-pill-icon" aria-hidden="true" />
         <span className="exam-schedule-pill-dot" />
         {meta.label}
@@ -184,7 +207,7 @@ function ExamTimetableTable({
             />
             <span>
               Schedule each subject with an exam date, start time, end time,
-              session and room.
+              and room. Session is derived automatically from the start time.
             </span>
           </>
         )}
@@ -299,7 +322,14 @@ function ScheduleRow({
   const startError = rowValidation?.startTime;
   const endError = rowValidation?.endTime;
   const handle = (field) => (e) => {
-    onRowChange(row.subject, field, e.target.value);
+    const value = e.target.value;
+    if (field === "startTime") {
+      const session = getSessionFromStartTime(value);
+      onRowChange(row.subject, "startTime", value);
+      onRowChange(row.subject, "session", session);
+    } else {
+      onRowChange(row.subject, field, value);
+    }
   };
 
   return (
@@ -325,6 +355,7 @@ function ScheduleRow({
           disabled={fieldDisabled}
           aria-label={`Exam date for ${row.subjectName || "subject"}`}
           aria-invalid={!readOnly && invalidDate ? "true" : "false"}
+          min={new Date().toISOString().split("T")[0]}
         />
       </td>
       <td>
@@ -342,6 +373,7 @@ function ScheduleRow({
           aria-describedby={
             startError ? `sched-${row.subject}-start-error` : undefined
           }
+          step="900"
         />
         {startError && (
           <p
@@ -368,6 +400,7 @@ function ScheduleRow({
           aria-describedby={
             endError ? `sched-${row.subject}-end-error` : undefined
           }
+          step="900"
         />
         {endError && (
           <p
@@ -380,18 +413,12 @@ function ScheduleRow({
         )}
       </td>
       <td>
-        <select
-          id={`sched-${row.subject}-session`}
-          className="exam-schedule-field"
-          value={row.session || ""}
-          onChange={handle("session")}
-          disabled={fieldDisabled}
+        <span
+          className={`exam-schedule-session-badge${!sessionLabel(row.startTime) ? " is-placeholder" : ""}`}
           aria-label={`Session for ${row.subjectName || "subject"}`}
         >
-          <option value="">Select Session</option>
-          <option value="FORENOON">FORENOON</option>
-          <option value="AFTERNOON">AFTERNOON</option>
-        </select>
+          {sessionLabel(row.startTime) || (readOnly ? "—" : "Select Start Time")}
+        </span>
       </td>
       <td>
         <input
@@ -427,7 +454,14 @@ function ScheduleCard({
   const startError = rowValidation?.startTime;
   const endError = rowValidation?.endTime;
   const handle = (field) => (e) => {
-    onRowChange(row.subject, field, e.target.value);
+    const value = e.target.value;
+    if (field === "startTime") {
+      const session = getSessionFromStartTime(value);
+      onRowChange(row.subject, "startTime", value);
+      onRowChange(row.subject, "session", session);
+    } else {
+      onRowChange(row.subject, field, value);
+    }
   };
 
   return (
@@ -461,6 +495,7 @@ function ScheduleCard({
             onChange={handle("examDate")}
             disabled={fieldDisabled}
             aria-invalid={!readOnly && invalidDate ? "true" : "false"}
+            min={new Date().toISOString().split("T")[0]}
           />
         </div>
         <div className="exam-schedule-mobile-field-row">
@@ -479,6 +514,7 @@ function ScheduleCard({
               aria-describedby={
                 startError ? `m-sched-${row.subject}-start-error` : undefined
               }
+              step="900"
             />
             {startError && (
               <p
@@ -505,6 +541,7 @@ function ScheduleCard({
               aria-describedby={
                 endError ? `m-sched-${row.subject}-end-error` : undefined
               }
+              step="900"
             />
             {endError && (
               <p
@@ -519,18 +556,12 @@ function ScheduleCard({
         </div>
         <div className="exam-schedule-mobile-field-row">
           <div className="exam-schedule-mobile-field">
-            <label htmlFor={`m-sched-${row.subject}-session`}>Session</label>
-            <select
-              id={`m-sched-${row.subject}-session`}
-              className="exam-schedule-field"
-              value={row.session || ""}
-              onChange={handle("session")}
-              disabled={fieldDisabled}
+            <label>Session</label>
+            <span
+              className={`exam-schedule-mobile-session-value${!sessionLabel(row.startTime) ? " is-placeholder" : ""}`}
             >
-<option value="">Select Session</option>
-              <option value="FORENOON">FORENOON</option>
-              <option value="AFTERNOON">AFTERNOON</option>
-            </select>
+              {sessionLabel(row.startTime) || "—"}
+            </span>
           </div>
           <div className="exam-schedule-mobile-field">
             <label htmlFor={`m-sched-${row.subject}-room`}>Room</label>
