@@ -187,13 +187,14 @@ describe("Timetable teacher-conflict scoping (Priority 2)", () => {
 
   it("T2 — ARCHIVED Semester 1 does NOT block current Semester 2", async () => {
     const ctx = await setupContext("T2");
-    const subject = await subjectFor(ctx, ctx.course, 1, "SUB2", ctx.hodTeacher);
+    const subjectSem1 = await subjectFor(ctx, ctx.course, 1, "SUB2", ctx.hodTeacher);
+    const subjectSem2 = await subjectFor(ctx, ctx.course, 2, "SUB2B", ctx.hodTeacher);
     const ttSem1 = await timetableFor(ctx, ctx.course, 1, ACADEMIC_YEAR_1, "A", "ARCHIVED");
     const ttSem2 = await timetableFor(ctx, ctx.course, 2, ACADEMIC_YEAR_1, "B", "DRAFT");
-    await seedSlot(ttSem1, subject, ctx.hodTeacher, "MON", "10:00", "11:00");
+    await seedSlot(ttSem1, subjectSem1, ctx.hodTeacher, "MON", "10:00", "11:00");
 
     const res = await addSlotViaApi(
-      ctx.agent, ttSem2, subject, ctx.hodTeacher, "MON", "10:30", "11:30",
+      ctx.agent, ttSem2, subjectSem2, ctx.hodTeacher, "MON", "10:30", "11:30",
     );
 
     expect(res.status).toBe(201);
@@ -202,13 +203,14 @@ describe("Timetable teacher-conflict scoping (Priority 2)", () => {
 
   it("T3 — different semester is not a conflict (Semester 1 vs Semester 2)", async () => {
     const ctx = await setupContext("T3");
-    const subject = await subjectFor(ctx, ctx.course, 1, "SUB3", ctx.hodTeacher);
+    const subjectSem1 = await subjectFor(ctx, ctx.course, 1, "SUB3", ctx.hodTeacher);
+    const subjectSem2 = await subjectFor(ctx, ctx.course, 2, "SUB3B", ctx.hodTeacher);
     const ttSem1 = await timetableFor(ctx, ctx.course, 1, ACADEMIC_YEAR_1, "A", "PUBLISHED");
     const ttSem2 = await timetableFor(ctx, ctx.course, 2, ACADEMIC_YEAR_1, "B", "DRAFT");
-    await seedSlot(ttSem1, subject, ctx.hodTeacher, "MON", "10:00", "11:00");
+    await seedSlot(ttSem1, subjectSem1, ctx.hodTeacher, "MON", "10:00", "11:00");
 
     const res = await addSlotViaApi(
-      ctx.agent, ttSem2, subject, ctx.hodTeacher, "MON", "10:30", "11:30",
+      ctx.agent, ttSem2, subjectSem2, ctx.hodTeacher, "MON", "10:30", "11:30",
     );
 
     expect(res.status).toBe(201);
@@ -372,5 +374,31 @@ describe("Timetable teacher-conflict scoping (Priority 2)", () => {
       semester: 1,
     });
     expect(leak).toBeNull();
+  });
+
+  it("T11 — semester mismatch blocks addSlot (Semester 1 subject on Semester 2 timetable)", async () => {
+    const ctx = await setupContext("T11");
+    const subjectSem1 = await subjectFor(ctx, ctx.course, 1, "SUB11S1", ctx.hodTeacher);
+    const ttSem2 = await timetableFor(ctx, ctx.course, 2, ACADEMIC_YEAR_1, "A", "DRAFT");
+
+    const res = await addSlotViaApi(
+      ctx.agent, ttSem2, subjectSem1, ctx.hodTeacher, "MON", "10:00", "11:00",
+    );
+
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe("SUBJECT_SEMESTER_MISMATCH");
+  });
+
+  it("T12 — matching semester allows addSlot (Semester 2 subject on Semester 2 timetable)", async () => {
+    const ctx = await setupContext("T12");
+    const subjectSem2 = await subjectFor(ctx, ctx.course, 2, "SUB12S2", ctx.hodTeacher);
+    const ttSem2 = await timetableFor(ctx, ctx.course, 2, ACADEMIC_YEAR_1, "A", "DRAFT");
+
+    const res = await addSlotViaApi(
+      ctx.agent, ttSem2, subjectSem2, ctx.hodTeacher, "MON", "10:00", "11:00",
+    );
+
+    expect(res.status).toBe(201);
+    expect(res.body.message).toBe("Slot added successfully");
   });
 });
