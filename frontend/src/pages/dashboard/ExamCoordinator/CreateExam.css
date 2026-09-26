@@ -931,7 +931,42 @@ select.create-exam-field-input:disabled {
 .exam-schedule-pill.type.type-theory    { background: rgba(12, 43, 71, 0.08); color: var(--edx-navy-800); }
 .exam-schedule-pill.type.type-practical { background: var(--edx-cyan-50); color: var(--edx-cyan-600); }
 .exam-schedule-pill.type.type-composite { background: var(--edx-amber-50); color: var(--edx-amber-600); }
-.exam-schedule-pill.type.type-default   { background: var(--edx-slate-100); color: var(--edx-slate-600); }
+  .exam-schedule-pill.type.type-default   { background: var(--edx-slate-100); color: var(--edx-slate-600); }
+
+.exam-schedule-session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--edx-slate-600);
+  background: var(--edx-slate-100);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.exam-schedule-session-badge.is-placeholder {
+  color: var(--edx-slate-400);
+  font-style: italic;
+}
+
+.exam-schedule-mobile-session-value {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--edx-slate-200);
+  border-radius: 8px;
+  font-size: 0.86rem;
+  color: var(--edx-slate-600);
+  background: var(--edx-slate-100);
+  white-space: nowrap;
+}
+
+.exam-schedule-mobile-session-value.is-placeholder {
+  color: var(--edx-slate-400);
+}
 
 /* ---------- Desktop table ---------- */
 .exam-schedule-table-wrap {
