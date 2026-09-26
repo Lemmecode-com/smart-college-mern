@@ -83,6 +83,17 @@ exports.addSlot = async (req, res, next) => {
       throw new AppError("Subject does not belong to this course", 404, "SUBJECT_NOT_FOUND");
     }
 
+    /* ================= SEMESTER VALIDATION ================= */
+    // The subject's semester must match the timetable's semester.
+    // Prevents assigning Semester 1 subjects to a Semester 2 timetable.
+    if (Number(subject.semester) !== Number(timetable.semester)) {
+      throw new AppError(
+        `Subject "${subject.name}" belongs to semester ${subject.semester}, but the timetable is for semester ${timetable.semester}. Only subjects from semester ${timetable.semester} can be assigned.`,
+        400,
+        "SUBJECT_SEMESTER_MISMATCH"
+      );
+    }
+
     /* ================= TEACHER VALIDATION ================= */
     const teacher = await Teacher.findOne({
       _id: teacher_id,
@@ -252,6 +263,27 @@ exports.updateSlot = async (req, res, next) => {
     const updateData = { ...req.body };
     if (!updateData.division && timetable.division) {
       updateData.division = timetable.division;
+    }
+
+    /* ================= SEMESTER VALIDATION ON SUBJECT CHANGE ================= */
+    // If the subject is being changed, validate that the new subject's
+    // semester matches the timetable's semester.
+    if (req.body.subject_id && req.body.subject_id !== slot.subject_id.toString()) {
+      const newSubject = await Subject.findOne({
+        _id: req.body.subject_id,
+        course_id: timetable.course_id,
+        college_id: req.college_id,
+      });
+      if (!newSubject) {
+        throw new AppError("Subject does not belong to this course", 404, "SUBJECT_NOT_FOUND");
+      }
+      if (Number(newSubject.semester) !== Number(timetable.semester)) {
+        throw new AppError(
+          `Subject "${newSubject.name}" belongs to semester ${newSubject.semester}, but the timetable is for semester ${timetable.semester}. Only subjects from semester ${timetable.semester} can be assigned.`,
+          400,
+          "SUBJECT_SEMESTER_MISMATCH"
+        );
+      }
     }
 
     /* ================= SLOT TYPE VALIDATION ================= */
