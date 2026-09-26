@@ -283,15 +283,15 @@ export default function WeeklyTimetable() {
           setTimetable(res.data?.timetable);
           setWeekly(res.data?.weekly || {});
 
-         if (res.data?.timetable) {
-           setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
-           
-           // ✅ FIXED: Only fetch subjects/teachers if user has management permissions
-           if (canManageTimetable) {
-             try {
-               const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}`);
-               setSubjects(subRes.data || []);
-             } catch (subErr) {
+            if (res.data?.timetable) {
+            setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
+            
+            // ✅ FIXED: Only fetch subjects/teachers if user has management permissions
+            if (canManageTimetable) {
+              try {
+                const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}?semester=${res.data.timetable.semester}`);
+                setSubjects(subRes.data || []);
+              } catch (subErr) {
                logger.warn("Failed to load subjects:", subErr.response?.status);
                setSubjects([]);
              }
@@ -338,23 +338,23 @@ export default function WeeklyTimetable() {
           if (res.data?.timetable && !isReadOnly) {
             setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
 
-            if (canManageTimetable) {
-             try {
-               const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}`);
-               setSubjects(subRes.data || []);
-             } catch (subErr) {
-               setSubjects([]);
-             }
+             if (canManageTimetable) {
+              try {
+                const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}?semester=${res.data.timetable.semester}`);
+                setSubjects(subRes.data || []);
+              } catch (subErr) {
+                setSubjects([]);
+              }
 
-             try {
-               const teachRes = await api.get(`/teachers/department/${res.data.timetable.department_id}`);
-               setTeachers(teachRes.data || []);
-             } catch (teachErr) {
-               setTeachers([]);
-             }
-           }
-         }
-       }
+              try {
+                const teachRes = await api.get(`/teachers/department/${res.data.timetable.department_id}`);
+                setTeachers(teachRes.data || []);
+              } catch (teachErr) {
+                setTeachers([]);
+              }
+            }
+          }
+        }
        setError(null);
      } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to load weekly timetable. Please try again.";
@@ -388,7 +388,7 @@ export default function WeeklyTimetable() {
 
         if (res.data?.timetable && canManageTimetable) {
           try {
-            const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}`);
+            const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}?semester=${res.data.timetable.semester}`);
             setSubjects(subRes.data || []);
           } catch (subErr) {
             setSubjects([]);

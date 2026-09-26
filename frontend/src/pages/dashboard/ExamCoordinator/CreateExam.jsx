@@ -1141,7 +1141,7 @@ export default function CreateExam() {
                       type="button"
                       className="btn-edx-publish"
                       onClick={handlePublishClick}
-                      disabled={loading}
+                      disabled={loading || !allScheduled || scheduleRows.length === 0}
                     >
                       {loading ? (
                         <>
