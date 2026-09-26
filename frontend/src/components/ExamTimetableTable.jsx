@@ -305,7 +305,7 @@ function ScheduleRow({
   return (
     <tr className={showError ? "has-error" : ""}>
       <td>
-        <span className="exam-schedule-subject-name">
+        <span className="exam-schedule-subject-name" title={row.subjectName}>
           {row.subjectName || "Subject"}
         </span>
       </td>
@@ -388,7 +388,7 @@ function ScheduleRow({
           disabled={fieldDisabled}
           aria-label={`Session for ${row.subjectName || "subject"}`}
         >
-          <option value="">—</option>
+          <option value="">Select Session</option>
           <option value="FORENOON">FORENOON</option>
           <option value="AFTERNOON">AFTERNOON</option>
         </select>
@@ -401,7 +401,7 @@ function ScheduleRow({
           value={row.room || ""}
           onChange={handle("room")}
           disabled={fieldDisabled}
-          placeholder="Room"
+          placeholder="Room (optional)"
           aria-label={`Room for ${row.subjectName || "subject"}`}
         />
       </td>
@@ -527,7 +527,7 @@ function ScheduleCard({
               onChange={handle("session")}
               disabled={fieldDisabled}
             >
-              <option value="">—</option>
+<option value="">Select Session</option>
               <option value="FORENOON">FORENOON</option>
               <option value="AFTERNOON">AFTERNOON</option>
             </select>
@@ -541,7 +541,7 @@ function ScheduleCard({
               value={row.room || ""}
               onChange={handle("room")}
               disabled={fieldDisabled}
-              placeholder="Room"
+placeholder="Room (optional)"
             />
           </div>
         </div>
