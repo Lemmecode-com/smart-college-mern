@@ -535,6 +535,13 @@ export default function StudentDashboard() {
     });
   };
 
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
   const quickActions = [
     { icon: <FaChartPie />, label: "Attendance", path: "/my-attendance" },
     { icon: <FaCalendarAlt />, label: "Timetable", path: "/student/timetable" },
@@ -611,7 +618,7 @@ export default function StudentDashboard() {
               <FaGraduationCap />
             </div>
             <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.text }}>
-              Welcome, {studentData.name}!
+              {getGreeting()}, {studentData.name}!
             </h1>
           </div>
           <Btn onClick={handleRetry} color={T.navy}>
