@@ -990,6 +990,15 @@ select.create-exam-field-input:disabled {
   min-width: 125px;
 }
 
+/* Room column (8th) — needs enough width for "Room (optional)"
+   and long room names like "Seminar Hall" / "CR-204". The last-child
+   rule above targets the Status column, so Room is targeted here. */
+.exam-schedule-table th:nth-child(8),
+.exam-schedule-table td:nth-child(8) {
+  min-width: 150px;
+  width: 150px;
+}
+
 .exam-schedule-table thead th {
   background: var(--edx-slate-100);
   color: var(--edx-navy-900);
@@ -1349,6 +1358,15 @@ select.exam-schedule-field {
 .exam-timetable-page .exam-schedule-table th:last-child,
 .exam-timetable-page .exam-schedule-table td:last-child {
   min-width: 125px;
+}
+
+/* Room column (8th) — needs enough width for "Room (optional)"
+   and long room names like "Seminar Hall" / "CR-204". The last-child
+   rule above targets the Status column, so Room is targeted here. */
+.exam-timetable-page .exam-schedule-table th:nth-child(8),
+.exam-timetable-page .exam-schedule-table td:nth-child(8) {
+  min-width: 150px;
+  width: 150px;
 }
 .exam-timetable-page .exam-schedule-table th:nth-child(1),
 .exam-timetable-page .exam-schedule-table td:nth-child(1) {
