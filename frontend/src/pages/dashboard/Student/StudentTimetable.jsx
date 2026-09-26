@@ -222,7 +222,7 @@ export default function StudentTimetable() {
 
   // Security check
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
 
   const isClient = typeof window !== "undefined";
 
@@ -2572,12 +2572,45 @@ const componentStyles = `
   }
 
   /* ================= RESPONSIVE ================= */
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .st-header {
+      padding: 1.25rem;
+      gap: 1rem;
+    }
+
+    .st-header-icon {
+      width: 56px;
+      height: 56px;
+      font-size: 1.7rem;
+    }
+
+    .st-header-title {
+      font-size: 1.55rem;
+    }
+
+    .st-header-subtitle {
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+
+    .st-header-right {
+      gap: 0.65rem;
+    }
+
+    .st-time-badge,
+    .st-refresh-btn {
+      padding: 0.65rem 0.9rem;
+    }
+  }
+
   @media (max-width: 768px) {
     .st-container {
       padding: 1rem;
     }
 
     .st-header {
+      padding: 1.1rem;
+      gap: 1rem;
       flex-direction: column;
       text-align: center;
     }
@@ -2594,6 +2627,41 @@ const componentStyles = `
 
     .st-header-title {
       font-size: 1.5rem;
+      line-height: 1.2;
+    }
+
+    .st-header-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      font-size: 1.6rem;
+    }
+
+    .st-header-subtitle {
+      justify-content: center;
+      line-height: 1.5;
+      font-size: 0.88rem;
+    }
+
+    .st-header-right {
+      gap: 0.65rem;
+    }
+
+    .st-time-badge {
+      padding: 0.6rem 0.85rem;
+    }
+
+    .st-badge-icon {
+      font-size: 1.2rem;
+    }
+
+    .st-badge-value {
+      font-size: 1rem;
+    }
+
+    .st-refresh-btn {
+      padding: 0.65rem 0.9rem;
+      font-size: 0.82rem;
     }
 
     /* Phase 2: Mobile responsive date navigation */

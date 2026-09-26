@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import api from "../../../api/axios";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import { logger } from "../../../utils/logger";
 import "./StaffList.css";
@@ -43,7 +44,7 @@ const ROLE_LABELS = {
   SUPER_ADMIN: "System Administrator",
   COLLEGE_ADMIN: "College Administrator",
   PRINCIPAL: "Principal",
-  HOD: "Head of Department",
+  HOD: "HOD",
   TEACHER: "Teacher",
   ACCOUNTANT: "Accountant",
   ADMISSION_OFFICER: "Admission Officer",
@@ -57,9 +58,10 @@ const ROLE_OPTIONS = [
   { value: "ACCOUNTANT", label: "Accountant" },
   { value: "ADMISSION_OFFICER", label: "Admission Officer" },
   { value: "PRINCIPAL", label: "Principal" },
-  { value: "HOD", label: "Head of Department" },
+  { value: "HOD", label: "HOD" },
   { value: "EXAM_COORDINATOR", label: "Exam Coordinator" },
   { value: "PLATFORM_SUPPORT", label: "Platform Support" },
+  { value: "TEACHER", label: "Teacher" },
 ];
 
 const formatRole = (role) => {
@@ -301,6 +303,26 @@ export default function StaffList() {
       className="erp-staff-page erp-viewport-min-100"
     >
       <div className="erp-staff-page-content">
+
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Staff Management" },
+              ]}
+            />
+          </div>
+        </div>
+
         {/* ================= HEADER ================= */}
         <motion.header
           variants={fadeInUp}

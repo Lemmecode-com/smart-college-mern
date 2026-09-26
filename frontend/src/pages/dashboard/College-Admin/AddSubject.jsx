@@ -15,7 +15,6 @@ import {
   FaSyncAlt,
   FaInfoCircle,
   FaGraduationCap,
-  FaChalkboardTeacher,
   FaLayerGroup,
   FaCreditCard,
   FaCode,
@@ -109,7 +108,6 @@ export default function AddSubject() {
 
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [teachers, setTeachers] = useState([]);
 
   // College Code Generation State
   const [codeGenerationMode, setCodeGenerationMode] = useState("auto"); // 'auto' or 'manual'
@@ -118,11 +116,16 @@ export default function AddSubject() {
   const [formData, setFormData] = useState({
     department_id: "",
     course_id: "",
-    teacher_id: "",
     name: "",
     code: "",
     semester: "",
     credits: "",
+    subjectType: "",
+    internalMaxMarks: "",
+    externalMaxMarks: "",
+    internalPassMarks: "",
+    externalPassMarks: "",
+    passMarks: "",
   });
 
   // ✅ Get selected course for UI display (with safety check)
@@ -153,8 +156,7 @@ export default function AddSubject() {
   useEffect(() => {
     if (!formData.department_id) {
       setCourses([]);
-      setTeachers([]);
-      setFormData((prev) => ({ ...prev, course_id: "", teacher_id: "" }));
+      setFormData((prev) => ({ ...prev, course_id: "" }));
       return;
     }
 
@@ -175,29 +177,6 @@ export default function AddSubject() {
     };
     fetchCourses();
   }, [formData.department_id]);
-
-  /* ================= LOAD TEACHERS BY COURSE ================= */
-  useEffect(() => {
-    if (!formData.course_id) {
-      setTeachers([]);
-      setFormData((prev) => ({ ...prev, teacher_id: "" }));
-      return;
-    }
-
-    const fetchTeachers = async () => {
-      try {
-        const res = await api.get(`/teachers/course/${formData.course_id}`);
-        // Ensure teachers is always an array
-        const teachersData = Array.isArray(res.data)
-          ? res.data
-          : res.data?.teachers || [];
-        setTeachers(teachersData);
-      } catch (err) {
-        setTeachers([]);
-      }
-    };
-    fetchTeachers();
-  }, [formData.course_id]);
 
   /* ================= AUTO-GENERATE CODE PREVIEW ================= */
   useEffect(() => {
@@ -266,6 +245,43 @@ export default function AddSubject() {
       isValid = false;
     }
 
+    // Exam / Marks Configuration validation (UI only; backend is authoritative)
+    if (formData.subjectType) {
+      const VALID_TYPES = ["THEORY", "PRACTICAL", "COMPOSITE"];
+      if (!VALID_TYPES.includes(formData.subjectType)) {
+        errors.subjectType = "Select a valid subject type";
+        isValid = false;
+      } else {
+        const numField = (field, label) => {
+          const v = formData[field];
+          if (v === "" || v === null || v === undefined) {
+            errors[field] = `${label} is required`;
+            isValid = false;
+            return;
+          }
+          const n = Number(v);
+          if (isNaN(n) || n < 0) {
+            errors[field] = `${label} must be a non-negative number`;
+            isValid = false;
+          }
+        };
+
+        if (formData.subjectType === "THEORY") {
+          numField("internalMaxMarks", "Internal Max Marks");
+          numField("externalMaxMarks", "External Max Marks");
+          numField("internalPassMarks", "Internal Pass Marks");
+          numField("externalPassMarks", "External Pass Marks");
+        } else if (formData.subjectType === "PRACTICAL") {
+          numField("internalMaxMarks", "Applicable Maximum Marks");
+          numField("passMarks", "Pass Marks");
+        } else if (formData.subjectType === "COMPOSITE") {
+          numField("internalMaxMarks", "Internal Max Marks");
+          numField("externalMaxMarks", "External Max Marks");
+          numField("passMarks", "Pass Marks");
+        }
+      }
+    }
+
     setValidationErrors(errors);
     return isValid;
   };
@@ -320,7 +336,22 @@ export default function AddSubject() {
         code: formData.code.trim(),
         semester: Number(formData.semester),
         credits: Number(formData.credits),
-        teacher_id: formData.teacher_id || null, // Allow null if not assigned
+        subjectType: formData.subjectType || undefined,
+        ...(formData.internalMaxMarks !== ""
+          ? { internalMaxMarks: Number(formData.internalMaxMarks) }
+          : {}),
+        ...(formData.externalMaxMarks !== ""
+          ? { externalMaxMarks: Number(formData.externalMaxMarks) }
+          : {}),
+        ...(formData.internalPassMarks !== ""
+          ? { internalPassMarks: Number(formData.internalPassMarks) }
+          : {}),
+        ...(formData.externalPassMarks !== ""
+          ? { externalPassMarks: Number(formData.externalPassMarks) }
+          : {}),
+        ...(formData.passMarks !== ""
+          ? { passMarks: Number(formData.passMarks) }
+          : {}),
       });
 
       setSuccess("Subject created successfully!");
@@ -331,7 +362,6 @@ export default function AddSubject() {
         setFormData({
           department_id: "",
           course_id: "",
-          teacher_id: "",
           name: "",
           code: "",
           semester: "",
@@ -375,7 +405,7 @@ export default function AddSubject() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="erp-page erp-viewport-min-100"
+        className="erp-page erp-viewport-min-100 add-subject-page"
         style={{
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
           paddingTop: "1.5rem",
@@ -395,18 +425,31 @@ export default function AddSubject() {
             />
           )}
           {/* ================= BREADCRUMB ================= */}
-          <Breadcrumb
-            items={[
-              { label: "Subjects", path: "/subjects" },
-              { label: "Add New Subject" },
-            ]}
-          />
+          <div
+            style={{
+              width: "100%",
+              margin: "10px auto",
+              paddingTop: "2px",
+              height: "60px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/dashboard" },
+                  { label: "Subjects", path: "/subjects" },
+                  { label: "Add New Subject" },
+                ]}
+              />
+            </div>
+          </div>
 
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
+            className="add-subject-hero"
             style={{
               marginBottom: "2rem",
               backgroundColor: "white",
@@ -479,6 +522,7 @@ export default function AddSubject() {
 
             {/* Info Banner */}
             <div
+              className="add-subject-workflow"
               style={{
                 padding: "1rem 2rem",
                 backgroundColor: "#dbeafe",
@@ -496,13 +540,12 @@ export default function AddSubject() {
                   flexShrink: 0,
                 }}
               />
-              <div
-                style={{ color: "#1e293b", fontWeight: 500, lineHeight: 1.5 }}
-              >
-                <strong>Workflow:</strong> Select Department → Choose Course →
-                Assign Teacher → Enter Subject Details → Generate/Enter Subject
-                Code
-              </div>
+                <div
+                  style={{ color: "#1e293b", fontWeight: 500, lineHeight: 1.5 }}
+                >
+                  <strong>Workflow:</strong> Select Department → Choose Course →
+                  Enter Subject Details → Generate/Enter Subject Code
+                </div>
             </div>
           </motion.div>
 
@@ -570,11 +613,11 @@ export default function AddSubject() {
             <div className="row g-4">
               {/* ================= ACADEMIC HIERARCHY CARD ================= */}
               <motion.div
-                variants={fadeInVariants}
+                variants={fadeInVariants} 
                 custom={0}
                 initial="hidden"
                 animate="visible"
-                className="col-12"
+                className="col-12 academic-hierarchy-section"
               >
                 <div
                   style={{
@@ -623,9 +666,9 @@ export default function AddSubject() {
                     </h2>
                   </div>
 
-                  <div className="p-4">
+                  <div className="p-4 academic-hierarchy-body">
                     <div className="row g-4">
-                      <div className="col-12 col-md-6 col-lg-4">
+                      <div className="col-12 col-md-6 col-lg-6 subject-name-column">
                         <FormField
                           icon={<FaUniversity />}
                           label="Department"
@@ -650,7 +693,7 @@ export default function AddSubject() {
                         </FormField>
                       </div>
 
-                      <div className="col-12 col-md-6 col-lg-4">
+                      <div className="col-12 col-md-6 col-lg-6">
                         <FormField
                           icon={<FaGraduationCap />}
                           label="Course"
@@ -680,30 +723,6 @@ export default function AddSubject() {
                           </select>
                         </FormField>
                       </div>
-
-                      <div className="col-12 col-md-6 col-lg-4">
-                        <FormField
-                          icon={<FaChalkboardTeacher />}
-                          label="Teacher"
-                          helperText="Assign a teacher"
-                        >
-                          <select
-                            name="teacher_id"
-                            value={formData.teacher_id}
-                            onChange={handleChange}
-                            className="form-control"
-                            disabled={!formData.course_id}
-                          >
-                            <option value="">Select teacher</option>
-                            {Array.isArray(teachers) &&
-                              teachers.map((teacher) => (
-                                <option key={teacher._id} value={teacher._id}>
-                                  {teacher.name} - {teacher.designation}
-                                </option>
-                              ))}
-                          </select>
-                        </FormField>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -711,6 +730,7 @@ export default function AddSubject() {
 
               {/* ================= SUBJECT DETAILS CARD ================= */}
               <motion.div
+                className="col-12 subject-details-section"
                 variants={fadeInVariants}
                 custom={1}
                 initial="hidden"
@@ -764,9 +784,9 @@ export default function AddSubject() {
                     </h2>
                   </div>
 
-                  <div className="p-4">
+                 <div className="p-4 subject-details-body">
                     <div className="row g-4">
-                      <div className="col-12 col-md-8">
+                      <div className="col-12 col-md-6 subject-name-column">
                         <FormField
                           icon={<FaBookOpen />}
                           label="Subject Name"
@@ -785,7 +805,7 @@ export default function AddSubject() {
                         </FormField>
                       </div>
 
-                      <div className="col-12 col-md-6 col-lg-4">
+                      <div className="col-12 col-md-6 col-lg-3">
                         <FormField
                           icon={<FaLayerGroup />}
                           label="Semester"
@@ -815,7 +835,7 @@ export default function AddSubject() {
                         </FormField>
                       </div>
 
-                      <div className="col-12 col-md-6 col-lg-4">
+                      <div className="col-12 col-md-6 col-lg-3">
                         <FormField
                           icon={<FaCreditCard />}
                           label="Credits"
@@ -902,6 +922,7 @@ export default function AddSubject() {
                   <div style={{ padding: "2rem" }}>
                     {/* Code Generation Mode Toggle */}
                     <div
+                      className="code-generation-method"
                       style={{
                         marginBottom: "1.5rem",
                         padding: "1.25rem",
@@ -929,6 +950,7 @@ export default function AddSubject() {
                       </h4>
 
                       <div
+                        className="code-generation-options"
                         style={{
                           display: "flex",
                           gap: "1.5rem",
@@ -936,6 +958,7 @@ export default function AddSubject() {
                         }}
                       >
                         <div
+                          className="code-mode-option"
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -1009,6 +1032,7 @@ export default function AddSubject() {
                         </div>
 
                         <div
+                        className="code-mode-option"
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -1084,6 +1108,7 @@ export default function AddSubject() {
                       {codeGenerationMode === "auto" &&
                         generatedCodePreview && (
                           <div
+                            className="generated-code-preview"
                             style={{
                               marginTop: "1rem",
                               padding: "1rem",
@@ -1138,7 +1163,9 @@ export default function AddSubject() {
                           : "Enter unique subject code (e.g., CS301-DSA)"
                       }
                     >
-                      <div style={{ position: "relative" }}>
+                      <div
+                      className="subject-code-input-wrap"
+                      style={{ position: "relative" }}>
                         <input
                           type="text"
                           name="code"
@@ -1191,6 +1218,7 @@ export default function AddSubject() {
                       </div>
 
                       <div
+                       className="security-note"
                         style={{
                           marginTop: "0.75rem",
                           padding: "0.75rem",
@@ -1226,7 +1254,273 @@ export default function AddSubject() {
               </motion.div>
             </div>
 
-            {/* ================= SUBMIT BUTTON ================= */}
+              {/* ================= EXAM / MARKS CONFIGURATION CARD ================= */}
+              <motion.div
+                variants={fadeInVariants}
+                className="col-12 exam-marks-section"
+                custom={3}
+                initial="hidden"
+                animate="visible"
+                style={{ gridColumn: "1 / -1" }}
+              >
+                <div
+                  style={{
+                    backgroundColor: "white",
+                    borderRadius: "20px",
+                    boxShadow: "0 10px 40px rgba(0, 0, 0, 0.08)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "1.75rem",
+                      background:
+                        "linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)",
+                      borderBottom: "1px solid #c7d2fe",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "1rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        borderRadius: "12px",
+                        backgroundColor: `${BRAND_COLORS.primary.main}15`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: BRAND_COLORS.primary.main,
+                        fontSize: "1.5rem",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <FaLayerGroup />
+                    </div>
+                    <h2
+                      style={{
+                        margin: 0,
+                        fontSize: "1.5rem",
+                        fontWeight: 700,
+                        color: "#1e293b",
+                      }}
+                    >
+                      Exam / Marks Configuration
+                    </h2>
+                  </div>
+
+                  <div className="p-4 exam-marks-body">
+                    <div className="row g-4">
+                      <div
+                        className={`col-12 col-md-6 col-lg-4 ${
+                          formData.subjectType === "THEORY" ? "exam-subject-type-theory" : ""
+                        }`}
+                      >
+                        <FormField
+                          icon={<FaLayerGroup />}
+                          label="Subject Type"
+                          required
+                          error={validationErrors.subjectType}
+                          helperText="Determines which marks fields apply"
+                        >
+                          <select
+                            name="subjectType"
+                            value={formData.subjectType}
+                            onChange={handleChange}
+                            className="form-control"
+                            required
+                          >
+                            <option value="">Select subject type</option>
+                            <option value="THEORY">THEORY</option>
+                            <option value="PRACTICAL">PRACTICAL</option>
+                            <option value="COMPOSITE">COMPOSITE</option>
+                          </select>
+                        </FormField>
+                      </div>
+
+                      {formData.subjectType === "THEORY" && (
+                        <>
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
+                            <FormField
+                              icon={<FaBookOpen />}
+                              label="Internal Max Marks"
+                              required
+                              error={validationErrors.internalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="internalMaxMarks"
+                                value={formData.internalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="30"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
+                            <FormField
+                              icon={<FaUniversity />}
+                              label="External Max Marks"
+                              required
+                              error={validationErrors.externalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="externalMaxMarks"
+                                value={formData.externalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="70"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4 exam-theory-pass-internal exam-field-no-helper">
+                            <FormField
+                              icon={<FaCreditCard />}
+                              label="Internal Pass Marks"
+                              required
+                              error={validationErrors.internalPassMarks}
+                            >
+                              <input
+                                type="number"
+                                name="internalPassMarks"
+                                value={formData.internalPassMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="12"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4 exam-theory-pass-external exam-field-no-helper">
+                            <FormField
+                              icon={<FaCreditCard />}
+                              label="External Pass Marks"
+                              required
+                              error={validationErrors.externalPassMarks}
+                            >
+                              <input
+                                type="number"
+                                name="externalPassMarks"
+                                value={formData.externalPassMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="28"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                        </>
+                      )}
+
+                      {formData.subjectType === "PRACTICAL" && (
+                        <>
+                          <div className="col-12 col-md-6 col-lg-4 exam-practical-max exam-field-no-helper">
+                            <FormField
+                              icon={<FaBookOpen />}
+                              label="Applicable Maximum Marks"
+                              required
+                              error={validationErrors.internalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="internalMaxMarks"
+                                value={formData.internalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="100"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4 exam-practical-pass exam-field-no-helper">
+                            <FormField
+                              icon={<FaCreditCard />}
+                              label="Pass Marks"
+                              required
+                              error={validationErrors.passMarks}
+                            >
+                              <input
+                                type="number"
+                                name="passMarks"
+                                value={formData.passMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="40"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                        </>
+                      )}
+
+                      {formData.subjectType === "COMPOSITE" && (
+                        <>
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
+                            <FormField
+                              icon={<FaBookOpen />}
+                              label="Internal Max Marks"
+                              required
+                              error={validationErrors.internalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="internalMaxMarks"
+                                value={formData.internalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="40"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
+                            <FormField
+                              icon={<FaUniversity />}
+                              label="External Max Marks"
+                              required
+                              error={validationErrors.externalMaxMarks}
+                            >
+                              <input
+                                type="number"
+                                name="externalMaxMarks"
+                                value={formData.externalMaxMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="60"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
+                            <FormField
+                              icon={<FaCreditCard />}
+                              label="Pass Marks"
+                              required
+                              error={validationErrors.passMarks}
+                            >
+                              <input
+                                type="number"
+                                name="passMarks"
+                                value={formData.passMarks}
+                                onChange={handleChange}
+                                className="form-control"
+                                placeholder="50"
+                                min="0"
+                              />
+                            </FormField>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* ================= SUBMIT BUTTON ================= */}
             <motion.div
               variants={fadeInVariants}
               custom={3}
@@ -1343,6 +1637,899 @@ export default function AddSubject() {
               transition-duration: 0.01ms !important;
             }
           }
+
+          @media (min-width: 1025px) {
+
+  /* ================= ACADEMIC HIERARCHY ================= */
+
+  .academic-hierarchy-body > .row {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 28px;
+    margin: 0 !important;
+    align-items: start !important;
+  }
+
+
+  /* ================= SUBJECT DETAILS ================= */
+
+  .subject-details-body > .row {
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 2fr)
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+
+    column-gap: 28px;
+    margin: 0 !important;
+    align-items: start !important;
+  }
+
+
+  /* ================= EXAM / MARKS ================= */
+
+  .exam-marks-body > .row {
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+
+    column-gap: 28px;
+    row-gap: 20px !important;
+
+    margin: 0 !important;
+    align-items: start !important;
+  }
+
+
+  /* ================= REMOVE BOOTSTRAP COLUMN SIZING ================= */
+
+  .academic-hierarchy-body > .row > [class*="col-"],
+  .subject-details-body > .row > [class*="col-"],
+  .exam-marks-body > .row > [class*="col-"] {
+    width: 100% !important;
+    max-width: none !important;
+    flex: none !important;
+
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+
+    margin: 0 !important;
+  }
+
+
+  /* ================= FIELD SPACING ================= */
+
+  .academic-hierarchy-body .add-subject-field,
+  .subject-details-body .add-subject-field,
+  .exam-marks-body .add-subject-field {
+    margin-bottom: 0 !important;
+  }
+
+
+  /* ================= SUBJECT DETAILS ================= */
+
+  .subject-details-body
+  .add-subject-field > .form-control {
+    width: 100% !important;
+  }
+
+
+  /* Subject name has no helper text,
+     so align its input with the other fields */
+
+  .subject-details-body
+  .subject-name-column
+  .add-subject-field > .form-control {
+    margin-top: 2.143rem !important;
+  }
+
+
+  /* ================= EXAM FIELD ALIGNMENT ================= */
+
+  .exam-marks-body
+  .exam-field-no-helper
+  .add-subject-field > .form-control {
+    margin-top: 2.1rem !important;
+  }
+
+
+  /* ================= THEORY LAYOUT ================= */
+
+  /* Subject Type occupies the complete left column */
+
+  .exam-subject-type-theory {
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .exam-subject-type-theory .add-subject-field {
+    width: 100% !important;
+  }
+
+
+  /* Internal Pass Marks */
+
+  .exam-theory-pass-internal {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+  }
+
+
+  /* External Pass Marks */
+
+  .exam-theory-pass-external {
+    grid-column: 3 !important;
+    grid-row: 2 !important;
+  }
+
+
+  /* ================= PRACTICAL ================= */
+
+  .exam-practical-max {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .exam-practical-pass {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+  }
+
+
+  /* ================= COMPOSITE ================= */
+
+  .exam-marks-body > .row
+  > .exam-field-no-helper:not(
+    .exam-theory-pass-internal,
+    .exam-theory-pass-external,
+    .exam-practical-max,
+    .exam-practical-pass
+  ) {
+    grid-row: 1 !important;
+  }
+}
+
+/* =========================================================
+   FORM LABEL + HELPER ALIGNMENT
+   ========================================================= */
+
+.add-subject-page .add-subject-field > label {
+  margin-bottom: 0.3rem !important;
+  gap: 0.65rem !important;
+}
+
+.add-subject-page .add-subject-field > label + div {
+  margin-bottom: 0.55rem !important;
+}
+/* =========================================================
+   ADD SUBJECT - MOBILE & TABLET
+   DESKTOP DESIGN REMAINS UNCHANGED
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   768px - 1024px
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+
+  .add-subject-page {
+    padding: 1rem !important;
+    overflow-x: hidden !important;
+  }
+
+  .add-subject-page > div {
+    width: 100% !important;
+    max-width: 900px !important;
+    margin: 0 auto !important;
+  }
+
+
+  /* ================= BREADCRUMB ================= */
+
+  .add-subject-page .breadcrumb {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+
+  /* ================= HERO ================= */
+
+  .add-subject-hero {
+    margin-bottom: 1.25rem !important;
+    border-radius: 18px !important;
+  }
+
+  .add-subject-hero > div:first-child {
+    padding: 1.4rem 1.5rem !important;
+    gap: 1rem !important;
+  }
+
+  .add-subject-hero > div:first-child > div:first-child {
+    gap: 1rem !important;
+  }
+
+  .add-subject-hero h1 {
+    font-size: 1.8rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .add-subject-hero p {
+    font-size: 0.95rem !important;
+    line-height: 1.45 !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .add-subject-hero > div:first-child
+  > div:first-child
+  > div:first-child {
+    width: 64px !important;
+    height: 64px !important;
+    min-width: 64px !important;
+    border-radius: 16px !important;
+    font-size: 2rem !important;
+  }
+
+
+  /* ================= WORKFLOW ================= */
+
+  .add-subject-workflow {
+    padding: 0.9rem 1.25rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .add-subject-workflow > div {
+    font-size: 0.85rem !important;
+    line-height: 1.45 !important;
+  }
+
+
+  /* ================= FORM CARDS ================= */
+
+  .add-subject-page form > .row {
+    --bs-gutter-y: 1rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div {
+    border-radius: 16px !important;
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.07) !important;
+  }
+
+
+  /* Card header */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child {
+    padding: 1.1rem 1.25rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child > div {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    border-radius: 10px !important;
+    font-size: 1.2rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child h2 {
+    font-size: 1.15rem !important;
+  }
+
+
+  /* Card body */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:last-child {
+    padding: 1.25rem !important;
+  }
+
+
+  /* Inputs */
+
+  .add-subject-page .form-control {
+    min-height: 46px !important;
+    font-size: 0.9rem !important;
+    border-radius: 10px !important;
+  }
+
+
+  /* ================= CODE GENERATION ================= */
+
+  .code-generation-method {
+    padding: 1rem !important;
+    border-radius: 14px !important;
+  }
+
+  .code-generation-options {
+    gap: 0.75rem !important;
+  }
+
+  .code-mode-option {
+    min-width: 0 !important;
+    padding: 0.85rem !important;
+    border-radius: 11px !important;
+  }
+
+  .code-mode-option > div:last-child {
+    min-width: 0 !important;
+  }
+
+  .code-mode-option > div:last-child > div:last-child {
+    font-size: 0.78rem !important;
+    line-height: 1.4 !important;
+  }
+
+  .generated-code-preview {
+    padding: 0.85rem !important;
+  }
+
+  .subject-code-input-wrap input {
+    padding-right: 75px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0 - 767px
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+  .add-subject-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.55rem !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  .add-subject-page > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+
+  /* =====================================================
+     BREADCRUMB
+     ===================================================== */
+
+  .add-subject-page .breadcrumb {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 42px !important;
+    border-radius: 10px !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    scrollbar-width: none !important;
+    font-size: 0.75rem !important;
+  }
+
+  .add-subject-page .breadcrumb::-webkit-scrollbar {
+    display: none !important;
+  }
+
+
+  /* =====================================================
+     HERO
+     ===================================================== */
+
+  .add-subject-hero {
+    width: 100% !important;
+    margin-bottom: 0.75rem !important;
+    border-radius: 14px !important;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.09) !important;
+  }
+
+
+  /* Blue hero */
+
+  .add-subject-hero > div:first-child {
+    padding: 1rem !important;
+    gap: 0.7rem !important;
+    flex-wrap: nowrap !important;
+  }
+
+
+  /* Hero inner */
+
+  .add-subject-hero > div:first-child > div:first-child {
+    width: 100% !important;
+    gap: 0.7rem !important;
+    align-items: center !important;
+  }
+
+
+  /* Hero icon */
+
+  .add-subject-hero > div:first-child
+  > div:first-child
+  > div:first-child {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    border-radius: 12px !important;
+    font-size: 1.45rem !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+
+  /* Hero content */
+
+  .add-subject-hero > div:first-child
+  > div:first-child
+  > div:last-child {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+
+  /* Hero title */
+
+  .add-subject-hero h1 {
+    margin: 0 !important;
+    font-size: 1.25rem !important;
+    line-height: 1.2 !important;
+    font-weight: 700 !important;
+  }
+
+
+  /* Hero description */
+
+  .add-subject-hero p {
+    margin: 0.25rem 0 0 !important;
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+  }
+
+
+  /* =====================================================
+     WORKFLOW
+     ===================================================== */
+
+  .add-subject-workflow {
+    padding: 0.7rem 0.85rem !important;
+    gap: 0.55rem !important;
+    align-items: flex-start !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .add-subject-workflow svg {
+    flex-shrink: 0 !important;
+    font-size: 1rem !important;
+    margin-top: 2px !important;
+  }
+
+  .add-subject-workflow > div {
+    min-width: 0 !important;
+    font-size: 0.72rem !important;
+    line-height: 1.4 !important;
+  }
+
+
+  /* =====================================================
+     FORM
+     ===================================================== */
+
+  .add-subject-page form {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .add-subject-page form > .row {
+    width: 100% !important;
+    margin: 0 !important;
+    --bs-gutter-x: 0 !important;
+    --bs-gutter-y: 0.7rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    padding: 0 !important;
+    margin-bottom: 0.7rem !important;
+  }
+
+
+  /* =====================================================
+     FORM CARDS
+     ===================================================== */
+
+  .add-subject-page form > .row > [class*="col-"] > div {
+    width: 100% !important;
+    border-radius: 13px !important;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.055) !important;
+    overflow: hidden !important;
+  }
+
+
+  /* =====================================================
+     CARD HEADERS
+     ===================================================== */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child {
+    min-height: 50px !important;
+    padding: 0.75rem 0.85rem !important;
+    gap: 0.65rem !important;
+  }
+
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child > div {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 9px !important;
+    font-size: 1rem !important;
+  }
+
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child h2 {
+    font-size: 0.95rem !important;
+    line-height: 1.25 !important;
+  }
+
+
+  /* =====================================================
+     CARD BODY
+     ===================================================== */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:last-child {
+    padding: 0.9rem !important;
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     LABELS
+     ===================================================== */
+
+  .add-subject-page label {
+    margin-bottom: 0.45rem !important;
+    font-size: 0.82rem !important;
+    gap: 0.45rem !important;
+  }
+
+  .add-subject-page label span {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    border-radius: 7px !important;
+    font-size: 0.8rem !important;
+  }
+
+
+  /* =====================================================
+     INPUTS / SELECTS
+     ===================================================== */
+
+  .add-subject-page .form-control {
+    width: 100% !important;
+    min-height: 43px !important;
+    padding: 0.62rem 0.75rem !important;
+    font-size: 0.82rem !important;
+    border-radius: 9px !important;
+    box-sizing: border-box !important;
+  }
+
+
+  /* =====================================================
+     CODE GENERATION METHOD
+     ===================================================== */
+
+  .code-generation-method {
+    padding: 0.8rem !important;
+    margin-bottom: 0.9rem !important;
+    border-radius: 12px !important;
+  }
+
+
+  .code-generation-method h4 {
+    margin-bottom: 0.65rem !important;
+    font-size: 0.88rem !important;
+  }
+
+
+  /* Auto + Manual */
+
+  .code-generation-options {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.55rem !important;
+  }
+
+
+  .code-mode-option {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+
+    padding: 0.7rem 0.75rem !important;
+
+    border-radius: 10px !important;
+
+    box-sizing: border-box !important;
+
+    gap: 0.65rem !important;
+  }
+
+
+  /* Radio */
+
+  .code-mode-option > div:first-child {
+    width: 21px !important;
+    height: 21px !important;
+    min-width: 21px !important;
+  }
+
+
+  /* Text */
+
+  .code-mode-option > div:last-child {
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+
+
+  .code-mode-option > div:last-child > div:first-child {
+    font-size: 0.84rem !important;
+    line-height: 1.25 !important;
+  }
+
+
+  .code-mode-option > div:last-child > div:last-child {
+    margin-top: 0.15rem !important;
+    font-size: 0.7rem !important;
+    line-height: 1.35 !important;
+  }
+
+
+  /* =====================================================
+     GENERATED CODE PREVIEW
+     ===================================================== */
+
+  .generated-code-preview {
+    margin-top: 0.7rem !important;
+    padding: 0.7rem !important;
+
+    display: flex !important;
+    align-items: flex-start !important;
+
+    gap: 0.55rem !important;
+
+    border-radius: 9px !important;
+
+    overflow: hidden !important;
+  }
+
+  .generated-code-preview > div {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+
+  .generated-code-preview [style*="fontSize"] {
+    font-size: 0.85rem !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+
+
+  /* =====================================================
+     SUBJECT CODE INPUT
+     ===================================================== */
+
+  .subject-code-input-wrap {
+    width: 100% !important;
+    position: relative !important;
+  }
+
+
+  .subject-code-input-wrap input {
+    width: 100% !important;
+
+    padding-right: 4.5rem !important;
+
+    font-size: 0.8rem !important;
+
+    text-overflow: ellipsis !important;
+
+    white-space: nowrap !important;
+
+    overflow: hidden !important;
+  }
+
+
+  /* AUTO badge */
+
+  .subject-code-input-wrap > div {
+    right: 10px !important;
+
+    font-size: 0.68rem !important;
+
+    gap: 0.2rem !important;
+
+    white-space: nowrap !important;
+  }
+
+  .subject-code-input-wrap > div svg {
+    font-size: 0.7rem !important;
+  }
+
+
+  /* =====================================================
+     SECURITY NOTE
+     ===================================================== */
+
+  .security-note {
+    margin-top: 0.6rem !important;
+
+    padding: 0.65rem !important;
+
+    font-size: 0.7rem !important;
+
+    line-height: 1.4 !important;
+
+    border-radius: 8px !important;
+  }
+
+
+  /* =====================================================
+     SUBMIT BUTTONS
+     ===================================================== */
+
+  .add-subject-page form > div:last-child {
+    width: 100% !important;
+
+    margin-top: 0.4rem !important;
+
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    gap: 0.5rem !important;
+  }
+
+  .add-subject-page form > div:last-child button {
+    width: 100% !important;
+
+    min-height: 44px !important;
+
+    padding: 0.65rem 1rem !important;
+
+    border-radius: 10px !important;
+
+    font-size: 0.84rem !important;
+
+    justify-content: center !important;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   <= 400px
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .add-subject-page {
+    padding: 0.45rem !important;
+  }
+
+
+  /* Hero */
+
+  .add-subject-hero > div:first-child {
+    padding: 0.85rem !important;
+  }
+
+  .add-subject-hero > div:first-child
+  > div:first-child {
+    gap: 0.6rem !important;
+  }
+
+  .add-subject-hero > div:first-child
+  > div:first-child
+  > div:first-child {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    font-size: 1.3rem !important;
+  }
+
+  .add-subject-hero h1 {
+    font-size: 1.12rem !important;
+  }
+
+  .add-subject-hero p {
+    font-size: 0.68rem !important;
+  }
+
+
+  /* Workflow */
+
+  .add-subject-workflow {
+    padding: 0.6rem 0.7rem !important;
+  }
+
+  .add-subject-workflow > div {
+    font-size: 0.68rem !important;
+  }
+
+
+  /* Card */
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child {
+    padding: 0.7rem 0.75rem !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child > div {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+  }
+
+  .add-subject-page form > .row > [class*="col-"] > div
+  > div:first-child h2 {
+    font-size: 0.9rem !important;
+  }
+
+
+  /* Code options */
+
+  .code-generation-method {
+    padding: 0.7rem !important;
+  }
+
+  .code-mode-option {
+    padding: 0.65rem !important;
+  }
+
+  .code-mode-option > div:last-child > div:first-child {
+    font-size: 0.8rem !important;
+  }
+
+  .code-mode-option > div:last-child > div:last-child {
+    font-size: 0.67rem !important;
+  }
+
+
+  /* Subject code */
+
+  .subject-code-input-wrap input {
+    padding-right: 4rem !important;
+    font-size: 0.76rem !important;
+  }
+
+  .subject-code-input-wrap > div {
+    right: 8px !important;
+    font-size: 0.62rem !important;
+  }
+
+
+  /* Security */
+
+  .security-note {
+    font-size: 0.67rem !important;
+  }
+}
         `}</style>
       </motion.div>
     </AnimatePresence>
@@ -1359,7 +2546,10 @@ function FormField({
   helperText,
 }) {
   return (
-    <div style={{ marginBottom: "1.5rem" }}>
+    <div
+  className="add-subject-field"
+  style={{ marginBottom: "1.5rem" }}
+>
       <label
         style={{
           display: "flex",

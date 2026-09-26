@@ -396,7 +396,7 @@ export default function SupportTickets() {
                     </td>
                     <td>
                       {ticket.college_id ? (
-                        <Link to={`/colleges/${ticket.college_id._id}`} className="text-decoration-none">
+                        <Link to={`/super-admin/college/${ticket.college_id._id}`} className="text-decoration-none">
                           {ticket.college_id.name}
                         </Link>
                       ) : (

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback,} from "react";
 import {
   motion,
   useScroll,
@@ -6,7 +6,9 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import { Container, Row, Col, Button, Form, Nav } from "react-bootstrap";
+import { Link } from "react-router-dom";
 import "animate.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import api from "../api/axios";
 
 // Feature images from assets
@@ -67,51 +69,247 @@ const staggerContainer = {
   },
 };
 
-// Animated counter hook
-function useCounter(end, duration = 2000, startOnView = true) {
-  const [count, setCount] = useState(0);
-  const [hasStarted, setHasStarted] = useState(!startOnView);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!startOnView) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasStarted) {
-          setHasStarted(true);
-        }
+  const features = [
+      {
+        icon: "fa-user-graduate",
+        title: "Student Management",
+        description:
+          "Complete student lifecycle management from admission to graduation with detailed records and analytics.",
+        image: studentPortalImg,
       },
-      { threshold: 0.3 },
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [hasStarted, startOnView]);
+      {
+        icon: "fa-chalkboard-teacher",
+        title: "Teacher Portal",
+        description:
+          "Empower educators with tools for attendance, grading, timetables, and communication with students.",
+        image: teacherPortalImg,
+      },
+      {
+        icon: "fa-calendar-alt",
+        title: "Timetable Management",
+        description:
+          "Intelligent scheduling system that creates conflict-free timetables for classes and exams.",
+        image: timetableImg,
+      },
+      {
+        icon: "fa-file-invoice-dollar",
+        title: "Fee Management",
+        description:
+          "Automated fee calculation, payment processing, and financial reporting for transparent billing.",
+        image: feeImg,
+      },
+      {
+        icon: "fa-chart-line",
+        title: "Analytics & Reports",
+        description:
+          "Comprehensive dashboards with insights on academics, attendance, and institutional performance.",
+        image: analyticsImg,
+      },
+      {
+        icon: "fa-bell",
+        title: "Notifications",
+        description:
+          "Real-time alerts and notifications to keep all stakeholders informed about important updates.",
+        image: notificationsImg,
+      },
+    ];
+      const faqs = [
+      {
+        question: "What is NOVAA College ERP?",
+        answer:
+          "NOVAA is an integrated college ERP platform that brings student management, academics, examinations, fees, faculty operations, communication, and institutional workflows together in one connected system.",
+      },
+      {
+        question: "What can I manage using NOVAA?",
+        answer:
+          "NOVAA supports key institutional operations including student lifecycle management, teacher activities, timetable management, examinations, fee management, analytics, reports, and notifications.",
+      },
+      {
+        question: "Can different users have different access levels?",
+        answer:
+          "Yes. NOVAA is designed around different user roles so that administrators, faculty, students, parents, and other users can access the information and functionality relevant to their responsibilities.",
+      },
+      {
+        question: "Can NOVAA support different departments?",
+        answer:
+          "Yes. NOVAA connects academic and administrative workflows, helping departments manage their responsibilities through one organized platform.",
+      },
+      {
+        question: "How can I get started with NOVAA?",
+        answer:
+          "You can get started by contacting the NOVAA team through the contact section or by using the available demo and registration options on this page.",
+      },
+    ];
+    
+    const offers = [
+      {
+        icon: "fa-database",
+        title: "Centralized Student Data",
+        desc: "Keep student information organized and accessible across your college from one connected system.",
+        blobColor: "about-offer-blob-blue",
+      },
+      {
+        icon: "fa-calendar-check",
+        title: "Academic Operations",
+        desc: "Simplify attendance, timetables, academic workflows, and day-to-day faculty operations.",
+        blobColor: "about-offer-blob-teal",
+      },
+      {
+        icon: "fa-file-invoice-dollar",
+        title: "Fees & Finance",
+        desc: "Bring fee-related workflows and financial information into a more organized institutional process.",
+        blobColor: "about-offer-blob-coral",
+      },
+      {
+        icon: "fa-chart-line",
+        title: "Insights & Reporting",
+        desc: "Turn institutional data into useful reports and insights for better visibility across operations.",
+        blobColor: "about-offer-blob-yellow",
+      },
+      {
+        icon: "fa-mobile-screen-button",
+        title: "Mobile Friendly",
+        desc: "Access NOVAA seamlessly across phones, tablets, and desktops with a responsive experience.",
+        blobColor: "about-offer-blob-blue",
+      },
+    ];
 
-  useEffect(() => {
-    if (!hasStarted) return;
-    let startTime;
-    let animationFrame;
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * end));
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      }
-    };
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [end, duration, hasStarted]);
+        const workflowSteps = [
+      {
+        number: "01",
+        icon: "fa-user-plus",
+        title: "Admission",
+        desc: "Capture and organize student admission information.",
+      },
+      {
+        number: "02",
+        icon: "fa-user-check",
+        title: "Enrollment",
+        desc: "Create and manage student records across the institution.",
+      },
+      {
+        number: "03",
+        icon: "fa-book-open",
+        title: "Academics",
+        desc: "Manage academic activities, classes, attendance, and schedules.",
+      },
+      {
+        number: "04",
+        icon: "fa-file-circle-check",
+        title: "Examinations",
+        desc: "Coordinate examinations, assessments, and academic results.",
+      },
+      {
+        number: "05",
+        icon: "fa-receipt",
+        title: "Fees & Finance",
+        desc: "Organize fee-related workflows and institutional financial records.",
+      },
+      {
+        number: "06",
+        icon: "fa-graduation-cap",
+        title: "Graduation",
+        desc: "Complete the student lifecycle with connected institutional records.",
+      },
+    ];
 
-  return [count, ref];
-}
+    const roleExperiences = [
+      {
+        number: "01",
+        icon: "fa-user-tie",
+        category: "INSTITUTIONAL CONTROL",
+        title: "Administrator",
+        desc: "Manage student records, academics, finance, examinations, and institutional operations from one centralized system.",
+        link: "Institutional tools",
+      },
+      {
+        number: "02",
+        icon: "fa-chalkboard-user",
+        category: "ACADEMIC OPERATIONS",
+        title: "Teacher",
+        desc: "Manage attendance, schedules, examinations, student information, and everyday academic activities with ease.",
+        link: "Academic tools",
+      },
+      {
+        number: "03",
+        icon: "fa-user-graduate",
+        category: "STUDENT EXPERIENCE",
+        title: "Student",
+        desc: "Access academics, attendance, examinations, fees, schedules, and important institutional information in one place.",
+        link: "Student tools",
+      },
+      {
+        number: "04",
+        icon: "fa-users",
+        category: "FAMILY CONNECTION",
+        title: "Parent / Guardian",
+        desc: "Stay informed about attendance, academic progress, fees, activities, and important updates from the institution.",
+        link: "Family access",
+      },
+    ];
+
+
+    const statCards = [
+      {
+        key: "students",
+        cardClass:
+          "about-number-card about-number-card-tall about-number-card-left",
+        blobClass: "about-number-blob-blue",
+        valueKey: "totalStudents",
+        suffix: "+",
+        useLocaleString: true,
+        title: "Students Managed",
+        description:
+          "Student information managed through one connected platform.",
+        delay: 0.1,
+      },
+      {
+        key: "colleges",
+        cardClass:
+          "about-number-card about-number-card-top-center",
+        blobClass: "about-number-blob-teal",
+        valueKey: "totalColleges",
+        suffix: "+",
+        useLocaleString: false,
+        title: "College Trust NOVAA",
+        description:
+          "College using NOVAA to simplify everyday operations.",
+        delay: 0.2,
+      },
+      {
+        key: "teachers",
+        cardClass:
+          "about-number-card about-number-card-bottom-center",
+        blobClass: "about-number-blob-coral",
+        valueKey: "totalTeachers",
+        suffix: "+",
+        useLocaleString: false,
+        title: "Teachers Empowered",
+        description:
+          "Tools designed to simplify academic and teaching workflows.",
+        delay: 0.3,
+      },
+      {
+        key: "uptime",
+        cardClass:
+          "about-number-card about-number-card-tall about-number-card-right",
+        blobClass: "about-number-blob-yellow",
+        valueKey: "systemUptime",
+        suffix: "",
+        useLocaleString: false,
+        title: "System Uptime",
+        description:
+          "Reliable infrastructure supporting your institution's operations.",
+        delay: 0.4,
+      },
+    ];
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = useState(0);
   const [activeSection, setActiveSection] = useState("");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [openFaq, setOpenFaq] = useState(null);
+  const [activeFeature, setActiveFeature] = useState(0);
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalColleges: 0,
@@ -151,21 +349,27 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-      const sections = ["about", "features", "contact"];
-      let currentSection = "";
-      sections.forEach((sectionId) => {
-        const section = document.getElementById(sectionId);
-        if (section) {
-          const rect = section.getBoundingClientRect();
-          if (rect.top <= 200 && rect.bottom >= 200) {
-            currentSection = sectionId;
-          }
+  const handleScroll = () => {
+    setScrollY(window.scrollY);
+
+    const sections = ["about", "features", "faq", "contact"];
+    let currentSection = "";
+
+    sections.forEach((sectionId) => {
+      const section = document.getElementById(sectionId);
+
+      if (section) {
+        const rect = section.getBoundingClientRect();
+
+        if (rect.top <= 150 && rect.bottom > 150) {
+          currentSection = sectionId;
         }
-      });
-      setActiveSection(currentSection);
-    };
+      }
+    });
+
+    setActiveSection(currentSection);
+  };
+      
 
     const handleKeyDown = (e) => {
       if (e.key === "Escape" && selectedImage) {
@@ -183,60 +387,26 @@ export default function LandingPage() {
     };
   }, [selectedImage]);
 
-  const scrollToSection = useCallback((sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const offsetTop =
-        element.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({ top: offsetTop, behavior: "smooth" });
-    }
-    setMobileMenuOpen(false);
-  }, []);
+const scrollToSection = useCallback((sectionId) => {
+  const element = document.getElementById(sectionId);
 
-  const features = [
-    {
-      icon: "fa-user-graduate",
-      title: "Student Management",
-      description:
-        "Complete student lifecycle management from admission to graduation with detailed records and analytics.",
-      image: studentPortalImg,
-    },
-    {
-      icon: "fa-chalkboard-teacher",
-      title: "Teacher Portal",
-      description:
-        "Empower educators with tools for attendance, grading, timetables, and communication with students.",
-      image: teacherPortalImg,
-    },
-    {
-      icon: "fa-calendar-alt",
-      title: "Timetable Management",
-      description:
-        "Intelligent scheduling system that creates conflict-free timetables for classes and exams.",
-      image: timetableImg,
-    },
-    {
-      icon: "fa-file-invoice-dollar",
-      title: "Fee Management",
-      description:
-        "Automated fee calculation, payment processing, and financial reporting for transparent billing.",
-      image: feeImg,
-    },
-    {
-      icon: "fa-chart-line",
-      title: "Analytics & Reports",
-      description:
-        "Comprehensive dashboards with insights on academics, attendance, and institutional performance.",
-      image: analyticsImg,
-    },
-    {
-      icon: "fa-bell",
-      title: "Notifications",
-      description:
-        "Real-time alerts and notifications to keep all stakeholders informed about important updates.",
-      image: notificationsImg,
-    },
-  ];
+  if (element) {
+    const offsetTop =
+      element.getBoundingClientRect().top + window.scrollY - 80;
+
+    setActiveSection(sectionId);
+
+    window.scrollTo({
+      top: offsetTop,
+      behavior: "smooth",
+    });
+
+    document.activeElement?.blur();
+  }
+}, []);
+
+  
+
 
   return (
     <>
@@ -399,14 +569,25 @@ export default function LandingPage() {
           transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .nav-link-landing:hover::after,
-        .nav-link-landing.active::after { transform: translateX(-50%) scaleX(1); }
+          .nav-link-landing.active::after {
+            transform: translateX(-50%) scaleX(1);
+          }
 
-        .nav-link-landing:hover,
-        .nav-link-landing.active {
-          color: var(--teal-vivid) !important;
-          background: rgba(56,189,248,0.07);
-        }
+          .nav-link-landing.active {
+            color: var(--teal-vivid) !important;
+            background: rgba(56,189,248,0.07);
+          }
+
+          /* Remove persistent focus style after clicking a nav item */
+
+
+          .nav-link-landing:focus,
+          .nav-link-landing:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+            background: transparent !important;
+          }
+
 
         .btn-nav-login {
           background: transparent !important;
@@ -416,7 +597,7 @@ export default function LandingPage() {
           font-size: 0.875rem;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          padding: 0.55rem 1.5rem !important;
+          padding: 0.6rem 1.35rem !important;
           border-radius: 3px !important;
           border: 1px solid rgba(56,189,248,0.5) !important;
           transition: all 0.35s ease;
@@ -445,22 +626,59 @@ export default function LandingPage() {
           transform: translateY(-1px);
           box-shadow: 0 6px 20px rgba(56,189,248,0.4) !important;
         }
+        .btn-nav-demo {
+        border: 1px solid rgba(56, 189, 248, 0.45) !important;
+        background: rgba(56, 189, 248, 0.12) !important;
+        color: #ffffff !important;
+        border-radius: 3px !important;
+        padding: 0.6rem 1.1rem !important;
+        font-size: 0.78rem !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+      }
 
+      .btn-nav-demo:hover {
+        background: #38bdf8 !important;
+        border-color: #38bdf8 !important;
+        color: #071a24 !important;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 22px rgba(56, 189, 248, 0.2);
+      }
         /* ─── HERO ─── */
-        .hero-section-landing {
-          background:
-            linear-gradient(160deg, rgba(10,31,43,0.96) 0%, rgba(13,45,58,0.90) 40%, rgba(26,95,122,0.85) 70%, rgba(42,143,168,0.80) 100%),
-            url(${heroBgImg}) center center / cover no-repeat;
-          background-attachment: fixed;
-          color: white;
-          padding: 0 0 140px;
-          position: relative;
-          overflow: hidden;
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-        }
+          .hero-section-landing {
+            position: relative;
+            color: white;
+            padding: 0 0 140px;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            isolation: isolate;
+          }
 
+          .hero-section-landing {
+            background: none;
+          }
+
+          .hero-section-landing .hero-background {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+
+            background:
+              linear-gradient(
+                160deg,
+                rgba(10,31,43,0.96) 0%,
+                rgba(13,45,58,0.90) 40%,
+                rgba(26,95,122,0.85) 70%,
+                rgba(42,143,168,0.80) 100%
+              ),
+              url(${heroBgImg}) center center / cover no-repeat;
+
+            pointer-events: none;
+          }
+
+        
         /* Mesh gradient layer */
         .hero-section-landing::before {
           content: '';
@@ -626,12 +844,14 @@ export default function LandingPage() {
 
         .hero-title-landing {
           font-family: var(--font-display);
-          font-size: clamp(3rem, 6.5vw, 5.5rem);
-          font-weight: 800;
+          font-size: clamp(3rem, 6.5vw, 5.50rem);
+          font-weight: 700;
           line-height: 1.06;
           margin-bottom: 1.75rem;
           letter-spacing: -0.03em;
           padding-top: 15px;
+          overflow: visible;
+          max-width: 100%;
         }
 
         .hero-highlight {
@@ -653,6 +873,25 @@ export default function LandingPage() {
           margin-right: auto;
           font-weight: 300;
         }
+
+        .hero-content {
+        max-width: 2000px;
+        margin: 0 auto;
+        font-size: 0.5rem;
+        
+      }
+
+      .hero-badge {
+        letter-spacing: 0.12em;
+        
+      }
+
+      .hero-subtitle {
+        max-width: 720px;
+        margin-left: auto;
+        margin-right: auto;
+        
+      }
 
         /* Hero rule decoration */
         .hero-rule {
@@ -825,8 +1064,21 @@ export default function LandingPage() {
 
         /* ─── ABOUT SECTION ─── */
         .about-section-bg {
-          background: var(--paper);
+          background:
+            radial-gradient(
+              circle at 8% 18%,
+              rgba(56, 189, 248, 0.055),
+              transparent 26%
+            ),
+            radial-gradient(
+              circle at 92% 68%,
+              rgba(45, 212, 191, 0.045),
+              transparent 24%
+            ),
+            var(--paper);
+
           position: relative;
+          overflow: hidden;
         }
 
         .about-section-bg::before {
@@ -837,57 +1089,462 @@ export default function LandingPage() {
           background: linear-gradient(90deg, transparent, var(--border), transparent);
         }
 
-        .about-card {
-          max-width: 820px;
+        /* ─── PLATFORM INTRODUCTION ─── */
+
+        .about-platform-card {
+          max-width: 1280px;
+          min-height: 430px;
           margin: 0 auto;
-          padding: 56px 64px;
-          background: var(--surface);
-          border-radius: var(--radius-md);
-          box-shadow: var(--shadow-sm);
-          border: 1px solid var(--border);
-          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+          padding: 58px 72px;
+          display: grid;
+          grid-template-columns: 0.95fr 1.05fr;
+          gap: 70px;
+          align-items: center;
+
           position: relative;
+          overflow: hidden;
+
+          background:
+            radial-gradient(
+              circle at 100% 0%,
+              rgba(56, 189, 248, 0.12),
+              transparent 38%
+            ),
+            linear-gradient(
+              135deg,
+              rgba(255, 255, 255, 0.98),
+              rgba(247, 251, 253, 0.96)
+            );
+
+          border: 1px solid rgba(8, 44, 58, 0.09);
+          border-radius: 24px;
+
+          box-shadow:
+            0 20px 60px rgba(8, 44, 58, 0.08),
+            0 4px 18px rgba(8, 44, 58, 0.04);
+
+          transition:
+            transform 0.45s ease,
+            box-shadow 0.45s ease;
         }
 
-        .about-card::before {
-          content: '';
+        .about-platform-card::before {
+          content: "";
           position: absolute;
-          top: 0; left: 48px; right: 48px;
-          height: 2px;
+          top: 0;
+          left: 0;
+          width: 5px;
+          height: 100%;
           background: var(--grad-teal);
-          border-radius: 0 0 2px 2px;
+        }
+
+        .about-platform-card::after {
+          content: "";
+          position: absolute;
+          width: 320px;
+          height: 320px;
+          right: -120px;
+          bottom: -150px;
+          border-radius: 50%;
+          background: rgba(56, 189, 248, 0.08);
+          filter: blur(5px);
+          pointer-events: none;
+        }
+
+        .about-platform-card:hover {
+          transform: translateY(-5px);
+          box-shadow:
+            0 28px 70px rgba(8, 44, 58, 0.11),
+            0 6px 20px rgba(8, 44, 58, 0.05);
+        }
+
+
+        /* LEFT SIDE */
+
+        .about-platform-left {
+          position: relative;
+          z-index: 2;
+        }
+
+        .about-platform-eyebrow,
+        .about-platform-copy-label {
+          display: inline-block;
+          font-family: var(--font-body);
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: var(--teal-mid);
+        }
+
+        .about-platform-title {
+          margin: 16px 0 0;
+          max-width: 440px;
+
+          font-family: var(--font-display);
+          font-size: clamp(2rem, 3.4vw, 3rem);
+          font-weight: 800;
+          line-height: 1.08;
+          letter-spacing: -0.035em;
+          color: var(--ink);
+        }
+
+        .about-platform-title span {
+          display: block;
+          color: var(--teal-mid);
+          font-style: italic;
+        }
+
+        .about-platform-line {
+          width: 70px;
+          height: 3px;
+          margin: 28px 0 25px;
+          border-radius: 20px;
+          background: var(--grad-teal);
+        }
+
+        .about-platform-points {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px 24px;
+        }
+
+        .about-platform-point {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          font-family: var(--font-body);
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: var(--ink);
+        }
+
+        .about-platform-number {
+          font-size: 0.62rem;
+          font-weight: 700;
+          color: var(--teal-mid);
+          letter-spacing: 0.05em;
+        }
+
+
+        /* RIGHT SIDE */
+
+          .about-platform-right {
+            min-height: 310px;
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            min-width: 0;
+          }
+
+        .about-platform-orbit {
+          width: 205px;
+          height: 205px;
+          flex: 0 0 205px;
+
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border: 1px solid rgba(56, 189, 248, 0.18);
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.62);
+
+          box-shadow:
+            inset 0 0 40px rgba(56, 189, 248, 0.06),
+            0 15px 40px rgba(8, 44, 58, 0.07);
+
+          animation: aboutOrbitFloat 7s ease-in-out infinite;
+        }
+
+        .about-platform-orbit-wrap {
+          position: relative;
+          width: 255px;
+          height: 255px;
+          flex: 0 0 255px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .about-platform-orbit {
+          width: 205px;
+          height: 205px;
+          flex: 0 0 205px;
+        }
+          .orbit-module {
+          position: absolute;
+          z-index: 3;
+
+          font-family: var(--font-body);
+          font-size: 0.56rem;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          color: var(--teal-mid);
+          text-transform: uppercase;
+
+          padding: 5px 9px;
+          border: 1px solid rgba(56, 189, 248, 0.18);
+          background: rgba(255, 255, 255, 0.72);
+          border-radius: 20px;
+
+          box-shadow: 0 4px 14px rgba(8, 44, 58, 0.05);
+          white-space: nowrap;
+        }
+
+        .orbit-module-top {
+          top: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .orbit-module-right {
+          right: -2px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .orbit-module-bottom {
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .orbit-module-left {
+          left: -2px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .orbit-module::before {
+          content: "";
+          position: absolute;
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background: var(--teal-vivid);
+          box-shadow: 0 0 8px rgba(56, 189, 248, 0.45);
+        }
+
+        .orbit-module-top::before,
+        .orbit-module-bottom::before {
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .orbit-module-top::before {
+          bottom: -8px;
+        }
+
+        .orbit-module-bottom::before {
+          top: -8px;
+        }
+
+        .orbit-module-left::before {
+          right: -8px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .orbit-module-right::before {
+          left: -8px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+          .about-section-bg .section-subheading {
+          margin-bottom: 2.0rem;
+        }
+
+        .about-platform-orbit::before,
+        .about-platform-orbit::after {
+          content: "";
+          position: absolute;
+          border-radius: 50%;
+          border: 1px solid rgba(56, 189, 248, 0.14);
+        }
+
+        .about-platform-orbit::before {
+          inset: 20px;
+        }
+
+        .about-platform-orbit::after {
+          inset: 42px;
+        }
+
+        .about-platform-core {
+          width: 92px;
+          height: 92px;
+
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 50%;
+          background: var(--deep-navy);
+
+          color: #ffffff;
+
+          box-shadow:
+            0 12px 30px rgba(8, 44, 58, 0.2),
+            0 0 0 8px rgba(56, 189, 248, 0.07);
+        }
+
+        .about-platform-core span {
+          font-family: var(--font-display);
+          font-size: 1rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+        }
+
+        .about-platform-core small {
+          margin-top: 3px;
+          font-family: var(--font-body);
+          font-size: 0.42rem;
+          letter-spacing: 0.16em;
           opacity: 0.7;
         }
 
-        .about-card:hover {
-          box-shadow: var(--shadow-md);
-          transform: translateY(-3px);
-          border-color: rgba(56,189,248,0.15);
+        .orbit-dot {
+          position: absolute;
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          background: #38bdf8;
+          box-shadow: 0 0 14px rgba(56, 189, 248, 0.55);
         }
 
-        .about-card-headline {
-          font-family: var(--font-display);
-          font-weight: 700;
-          color: var(--ink);
-          font-size: 1.65rem;
-          letter-spacing: -0.025em;
-          line-height: 1.3;
-          margin-bottom: 1.25rem;
+        .orbit-dot-1 {
+          top: 18px;
+          left: 88px;
         }
 
-        .about-card-text {
-          font-family: var(--font-body);
+        .orbit-dot-2 {
+          right: 12px;
+          top: 100px;
+        }
+
+        .orbit-dot-3 {
+          bottom: 28px;
+          left: 42px;
+          background: #2dd4bf;
+        }
+
+          .about-platform-copy {
+            flex: 1;
+            min-width: 0;
+            max-width: 380px;
+          }
+
+        .about-platform-copy-label {
+          margin-bottom: 13px;
           color: var(--ink-50);
-          line-height: 1.85;
-          font-size: 1.0625rem;
-          font-weight: 300;
+          font-size: 0.6rem;
+        }
+
+        .about-platform-copy p {
+          margin: 0;
+
+          font-family: var(--font-body);
+          font-size: 0.92rem;
+          line-height: 1.8;
+          font-weight: 400;
+          color: var(--ink-50);
+        }
+
+        @keyframes aboutOrbitFloat {
+          0%,
+          100% {
+            transform: translateY(0) rotate(0deg);
+          }
+
+          50% {
+            transform: translateY(-7px) rotate(2deg);
+          }
         }
 
         /* Numbers section */
-        .about-numbers-section {
-          position: relative;
-          padding: 40px 0;
-        }
+          .about-numbers-section {
+            position: relative;
+            padding: 70px 0 65px;
+            overflow: hidden;
+
+            background-image:
+              radial-gradient(
+                circle at 50% 45%,
+                rgba(56, 189, 248, 0.055),
+                transparent 38%
+              ),
+              linear-gradient(
+                rgba(56, 189, 248, 0.025) 1px,
+                transparent 1px
+              ),
+              linear-gradient(
+                90deg,
+                rgba(56, 189, 248, 0.025) 1px,
+                transparent 1px
+              );
+
+            background-size:
+              100% 100%,
+              42px 42px,
+              42px 42px;
+          }
+
+          /* subtle technical grid behind the metrics */
+          .about-numbers-section {
+            background-image:
+              radial-gradient(
+                circle at 50% 45%,
+                rgba(56, 189, 248, 0.055) 0,
+                transparent 38%
+              ),
+              linear-gradient(
+                rgba(56, 189, 248, 0.025) 1px,
+                transparent 1px
+              ),
+              linear-gradient(
+                90deg,
+                rgba(56, 189, 248, 0.025) 1px,
+                transparent 1px
+              );
+            background-size:
+              100% 100%,
+              42px 42px,
+              42px 42px;
+          }
+              .about-number-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 5px;
+            margin-bottom: 13px;
+          }
+
+          .about-number-indicator span {
+            width: 4px;
+            height: 4px;
+
+            border-radius: 50%;
+
+            background: var(--teal-vivid);
+            opacity: 0.55;
+          }
+
+          .about-number-indicator span:nth-child(2) {
+            width: 18px;
+            height: 1px;
+
+            border-radius: 0;
+            opacity: 0.35;
+          }
+
+          .about-number-indicator span:nth-child(3) {
+            opacity: 0.25;
+          }
 
         .about-numbers-section::before {
           content: '';
@@ -941,18 +1598,104 @@ export default function LandingPage() {
         }
 
         /* Diamond/staggered grid */
-        .about-numbers-grid {
-          display: grid;
-          grid-template-columns: 1fr 1.1fr 1fr;
-          grid-template-rows: auto auto;
-          gap: 20px;
-          max-width: 840px;
-          margin: 0 auto;
-          position: relative;
-          z-index: 1;
-          overflow: visible;
-        }
+          .about-numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            overflow: visible;
+          }
+          .about-numbers-grid::before {
+            content: "";
+            position: absolute;
 
+            top: 50%;
+            left: 2%;
+            right: 2%;
+
+            height: 1px;
+
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(56, 189, 248, 0.15),
+              rgba(56, 189, 248, 0.22),
+              rgba(56, 189, 248, 0.15),
+              transparent
+            );
+
+            z-index: 0;
+            pointer-events: none;
+          }
+
+          .about-numbers-grid::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 8%;
+            right: 8%;
+            height: 1px;
+
+            background: repeating-linear-gradient(
+              90deg,
+              transparent 0,
+              transparent 20px,
+              rgba(56, 189, 248, 0.18) 20px,
+              rgba(56, 189, 248, 0.18) 21px,
+              transparent 21px,
+              transparent 42px
+            );
+
+            z-index: 0;
+            pointer-events: none;
+          }
+
+          .numbers-corner {
+            position: absolute;
+
+            width: 40px;
+            height: 40px;
+
+            opacity: 0.18;
+
+            pointer-events: none;
+          }
+
+          .numbers-corner-tl {
+            top: 35px;
+            left: 4%;
+
+            border-top: 1px solid var(--teal-vivid);
+            border-left: 1px solid var(--teal-vivid);
+          }
+
+          .numbers-corner-tr {
+            top: 35px;
+            right: 4%;
+
+            border-top: 1px solid var(--teal-vivid);
+            border-right: 1px solid var(--teal-vivid);
+          }
+
+          .numbers-corner-bl {
+            bottom: 35px;
+            left: 4%;
+
+            border-bottom: 1px solid var(--teal-vivid);
+            border-left: 1px solid var(--teal-vivid);
+          }
+
+          .numbers-corner-br {
+            bottom: 35px;
+            right: 4%;
+
+            border-bottom: 1px solid var(--teal-vivid);
+            border-right: 1px solid var(--teal-vivid);
+          }
         /* ── Section-level background blob (sits behind the whole numbers grid) ── */
         .numbers-section-bg-blob {
           position: absolute;
@@ -994,17 +1737,58 @@ export default function LandingPage() {
         }
 
         .about-number-card {
-          background: var(--surface);
-          border-radius: var(--radius-md);
-          padding: 32px 24px;
-          text-align: center;
-          box-shadow: var(--shadow-sm);
-          border: 1px solid var(--border);
-          transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+          min-height: 305px;
+          padding: 34px 26px;
+          
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-start;
+
+          background:
+            linear-gradient(
+              145deg,
+              rgba(255, 255, 255, 0.98),
+              rgba(247, 251, 253, 0.94)
+            );
+
+          border-radius: 22px;
+
+          box-shadow:
+            0 14px 38px rgba(8, 44, 58, 0.055),
+            0 2px 8px rgba(8, 44, 58, 0.025);
+
+          border: 1px solid rgba(8, 44, 58, 0.08);
+
+          transition:
+            transform 0.4s ease,
+            box-shadow 0.4s ease,
+            border-color 0.4s ease;
+
           position: relative;
           overflow: hidden;
+          z-index: 2;
+        }
+        .about-number-card::before {
+          content: "";
+          position: absolute;
+          width: 180px;
+          height: 180px;
+          right: -90px;
+          top: -90px;
+
+          border-radius: 50%;
+
+          background: rgba(56, 189, 248, 0.09);
+          filter: blur(5px);
+
+          pointer-events: none;
+          transition: transform 0.5s ease, opacity 0.5s ease;
         }
 
+        .about-number-card:hover::before {
+          transform: scale(1.25);
+          opacity: 0.8;
+        }
         /* Large organic blob INSIDE each number card — bottom-right quadrant */
         .about-number-card .card-bg-blob-tl {
           position: absolute;
@@ -1064,18 +1848,25 @@ export default function LandingPage() {
         }
 
         .about-number-card::after {
-          content: '';
+          content: "";
           position: absolute;
-          bottom: 0; left: 0; right: 0;
+          top: 0;
+          left: 24px;
+          right: 24px;
           height: 2px;
+
           background: var(--grad-teal);
+
           transform: scaleX(0);
           transform-origin: left;
+
           transition: transform 0.4s ease;
-          z-index: 1;
+          z-index: 2;
         }
 
-        .about-number-card:hover::after { transform: scaleX(1); }
+        .about-number-card:hover::after {
+          transform: scaleX(1);
+        }
 
         .about-number-card:hover {
           transform: translateY(-6px);
@@ -1084,25 +1875,45 @@ export default function LandingPage() {
         }
 
         .about-number-card-tall {
-          grid-row: 1 / 3;
-          align-self: center;
-          padding: 44px 28px;
+          grid-row: auto;
+          align-self: stretch;
+          padding: 32px 24px;
         }
 
-        .about-number-card-left { grid-column: 1; }
-        .about-number-card-top-center { grid-column: 2; grid-row: 1; }
-        .about-number-card-bottom-center { grid-column: 2; grid-row: 2; }
-        .about-number-card-right { grid-column: 3; }
+        .about-number-card-left,
+        .about-number-card-top-center,
+        .about-number-card-bottom-center,
+        .about-number-card-right {
+          grid-column: auto;
+          grid-row: auto;
+        }
 
         /* Blob shapes */
         .about-number-blob {
-          width: 100px; height: 80px;
-          margin: 0 auto 20px;
+          width: 108px;
+          height: 84px;
+          margin: 0 auto 24px;
+
           display: flex;
           align-items: center;
           justify-content: center;
+
           position: relative;
-          filter: drop-shadow(0 8px 20px rgba(0,0,0,0.1));
+
+          filter:
+            drop-shadow(0 8px 18px rgba(8, 44, 58, 0.10))
+            drop-shadow(0 0 20px rgba(56, 189, 248, 0.08));
+        }
+            .about-number-blob::after {
+          content: "";
+          position: absolute;
+          inset: -9px;
+
+          border-radius: 50%;
+
+          border: 1px solid rgba(56, 189, 248, 0.10);
+
+          pointer-events: none;
         }
 
         .about-number-blob::before {
@@ -1184,31 +1995,68 @@ export default function LandingPage() {
 
         /* What NOVAA Offers */
         .about-offers-section {
-          position: relative;
-          padding: 40px 0;
+           position: relative;
+            padding: 70px 0 50px;;
         }
 
         .about-offers-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          max-width: 720px;
+          grid-template-columns: repeat(5, 198px);
+          gap: 18px;
+
+          width: 100%;
+          max-width: 1180px;
+          justify-content: center;
           margin: 0 auto;
+
           position: relative;
           z-index: 1;
         }
+          .about-offer-index {
+          position: absolute;
 
-        .about-offer-card {
-          background: var(--surface);
-          border-radius: var(--radius-md);
-          padding: 36px 28px;
-          text-align: center;
-          box-shadow: var(--shadow-sm);
-          border: 1px solid var(--border);
-          transition: all 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-        }
+          top: 24px;
+          right: 24px;
+
+            font-family: var(--font-body);
+
+            font-size: 0.62rem;
+            font-weight: 700;
+
+            letter-spacing: 0.12em;
+
+            color: rgba(8, 44, 58, 0.3);
+          }
+          .about-offer-card {
+            min-height: 285px;
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.98),
+                rgba(247, 251, 253, 0.96)
+              );
+
+            border-radius: 20px;
+
+            padding: 30px 25px;
+
+            text-align: left;
+
+            box-shadow:
+              0 12px 35px rgba(8, 44, 58, 0.055),
+              0 2px 8px rgba(8, 44, 58, 0.025);
+
+            border: 1px solid rgba(8, 44, 58, 0.08);
+
+            transition:
+              transform 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.45s ease,
+              border-color 0.45s ease;
+
+            position: relative;
+            overflow: hidden;
+          }
 
         /* ── Section-level background blob behind the offers grid ── */
         .offers-section-bg-blob {
@@ -1220,14 +2068,14 @@ export default function LandingPage() {
         }
 
         .offers-section-bg-blob-1 {
-          width: 380px; height: 300px;
+          width: 300px; height: 240px;
           background: radial-gradient(ellipse, rgba(56,189,248,0.10) 0%, rgba(125,211,252,0.05) 60%, transparent 100%);
           top: -40px; right: -60px;
           border-radius: 56% 44% 48% 52% / 44% 56% 44% 56%;
         }
 
         .offers-section-bg-blob-2 {
-          width: 320px; height: 260px;
+          width: 260px; height: 210px;
           background: radial-gradient(ellipse, rgba(42,143,168,0.08) 0%, rgba(56,189,248,0.04) 60%, transparent 100%);
           bottom: -40px; left: -50px;
           border-radius: 44% 56% 60% 40% / 52% 48% 52% 48%;
@@ -1240,7 +2088,7 @@ export default function LandingPage() {
           top: 0; left: 0; right: 0;
           height: 2px;
           background: var(--grad-teal);
-          transform: scaleX(0);
+          transform: scaleX(0.20);
           transform-origin: center;
           transition: transform 0.4s ease;
           z-index: 2;
@@ -1298,15 +2146,28 @@ export default function LandingPage() {
           border-color: rgba(56,189,248,0.15);
         }
 
-        .about-offer-blob {
-          width: 72px; height: 60px;
-          margin: 0 auto 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          filter: drop-shadow(0 6px 14px rgba(0,0,0,0.08));
-        }
+          .about-offer-blob {
+            width: 62px;
+            height: 52px;
+
+            margin: 0 0 28px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            position: relative;
+
+            filter: drop-shadow(0 6px 14px rgba(0,0,0,0.08));
+
+            transition:
+              transform 0.4s ease,
+              filter 0.4s ease;
+          }
+              .about-offer-card:hover .about-offer-blob {
+              transform: translateY(-3px) scale(1.04);
+              filter: drop-shadow(0 9px 18px rgba(8, 44, 58, 0.12));
+            }
 
         .about-offer-blob::before {
           content: '';
@@ -1352,24 +2213,410 @@ export default function LandingPage() {
         }
         .about-offer-blob-yellow::before { background: #38bdf8; }
 
-        .about-offer-title {
-          font-family: var(--font-body);
-          font-size: 0.9375rem;
-          font-weight: 600;
-          color: var(--ink);
-          margin-bottom: 8px;
-          letter-spacing: -0.01em;
-          line-height: 1.3;
-        }
+          .about-offer-title {
+            font-family: var(--font-body);
+            font-size: 0.95rem;
+            font-weight: 700;
 
-        .about-offer-desc {
-          font-family: var(--font-body);
-          font-size: 0.8125rem;
-          color: var(--ink-50);
-          line-height: 1.65;
-          margin: 0;
-          font-weight: 300;
-        }
+            color: var(--ink);
+
+            margin-bottom: 10px;
+
+            letter-spacing: -0.015em;
+            line-height: 1.35;
+          }
+
+          .about-offer-desc {
+            font-family: var(--font-body);
+
+            font-size: 0.78rem;
+
+            color: var(--ink-50);
+
+            line-height: 1.7;
+
+            margin: 0;
+
+            font-weight: 400;
+
+            max-width: 240px;
+          }
+
+
+
+          /* ─── ERP WORKFLOW SECTION ─── */
+
+          .workflow-section-landing {
+            position: relative;
+            overflow: hidden;
+
+            padding: 75px 0 65px;
+
+            background:
+              linear-gradient(
+                180deg,
+                #ffffff 0%,
+                #f4f9fc 50%,
+                #eef6f9 100%
+              );
+
+            border-top: 1px solid rgba(8, 44, 58, 0.06);
+            border-bottom: 1px solid rgba(8, 44, 58, 0.06);
+          }
+
+          .workflow-bg-glow {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            filter: blur(55px);
+            opacity: 0.55;
+          }
+
+          .workflow-bg-glow-1 {
+            width: 360px;
+            height: 300px;
+
+            top: -130px;
+            left: -100px;
+
+            background:
+              radial-gradient(
+                circle,
+                rgba(56, 189, 248, 0.12),
+                transparent 70%
+              );
+          }
+
+          .workflow-bg-glow-2 {
+            width: 360px;
+            height: 300px;
+
+            bottom: -140px;
+            right: -100px;
+
+            background:
+              radial-gradient(
+                circle,
+                rgba(45, 212, 191, 0.10),
+                transparent 70%
+              );
+          }
+
+          .workflow-heading-wrap {
+            position: relative;
+            z-index: 2;
+
+            max-width: 820px;
+
+            margin: 0 auto 48px;
+          }
+
+          .workflow-heading-wrap .section-heading {
+            margin-bottom: 14px;
+          }
+
+          .workflow-heading-wrap .section-subheading {
+            max-width: 620px;
+          }
+
+
+          /* TIMELINE */
+
+          .workflow-timeline {
+            width: 100%;
+            max-width: 1320px;
+            gap: 24px;
+            margin: 0 auto;
+
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+
+            position: relative;
+            z-index: 2;
+          }
+
+
+          /* Horizontal connector */
+
+          .workflow-timeline::before {
+            content: "";
+
+            position: absolute;
+
+            top: 55px;
+            left: 5%;
+            right: 5%;
+
+            height: 1px;
+
+            background:
+              linear-gradient(
+                90deg,
+                transparent,
+                rgba(56, 189, 248, 0.3),
+                rgba(45, 212, 191, 0.3),
+                transparent
+              );
+
+            z-index: 0;
+          }
+
+
+          /* Individual step */
+
+          .workflow-step {
+            min-width: 0;
+
+            position: relative;
+
+            padding: 24px 18px 22px;
+
+            text-align: center;
+
+            border: 1px solid rgba(8, 44, 58, 0.06);
+            border-radius: 18px;
+
+            background: rgba(255, 255, 255, 0.72);
+
+            box-shadow:
+              0 8px 24px rgba(8, 44, 58, 0.035);
+
+            transition:
+              transform 0.4s ease,
+              box-shadow 0.4s ease,
+              border-color 0.4s ease;
+
+            z-index: 1;
+          }
+            .workflow-step:hover {
+            transform: translateY(-5px);
+
+            box-shadow:
+              0 16px 32px rgba(8, 44, 58, 0.08);
+
+            border-color: rgba(56, 189, 248, 0.18);
+          }
+
+
+          /* Top section */
+
+          .workflow-step-top {
+            height: 64px;
+
+            position: relative;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+
+          /* Number */
+
+          .workflow-step-number {
+          display:none;
+          }
+
+
+          /* Icon */
+
+          .workflow-icon {
+            width: 64px;
+            height: 64px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            background:
+              linear-gradient(
+                145deg,
+                #ffffff,
+                #eaf7fb
+              );
+
+            border: 1px solid rgba(56, 189, 248, 0.28);
+
+            color: var(--teal-vivid);
+
+            box-shadow:
+              0 8px 24px rgba(8, 44, 58, 0.07),
+              0 0 0 7px rgba(56, 189, 248, 0.035);
+
+            position: relative;
+
+            z-index: 2;
+
+            transition:
+              transform 0.4s ease,
+              box-shadow 0.4s ease,
+              background 0.4s ease;
+          }
+          .workflow-icon i {
+            position: absolute;
+
+            right: 6px;
+            bottom: 5px;
+
+            width: 21px;
+            height: 21px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            background: var(--teal-vivid);
+
+            color: white;
+
+            font-size: 0.55rem;
+
+            box-shadow: 0 3px 8px rgba(8, 44, 58, 0.15);
+          }
+
+          .workflow-step:hover .workflow-icon {
+            transform: translateY(-5px);
+
+            box-shadow:
+              0 13px 30px rgba(8, 44, 58, 0.11),
+              0 0 0 9px rgba(56, 189, 248, 0.055);
+          }
+
+
+          /* Title */
+
+          .workflow-step-title {
+            margin: 20px 0 9px;
+
+            font-family: var(--font-display);
+
+            font-size: 1rem;
+            font-weight: 700;
+
+            line-height: 1.25;
+
+            color: var(--ink);
+
+            letter-spacing: -0.015em;
+          }
+
+
+          /* Description */
+
+          .workflow-step-desc {
+            max-width: 175px;
+
+            margin: 0 auto;
+
+            font-family: var(--font-body);
+
+            font-size: 0.74rem;
+
+            line-height: 1.65;
+
+            color: var(--ink-50);
+          }
+
+          /* Arrow */
+
+          .workflow-connector {
+            position: absolute;
+
+            top: 52px;
+            right: -23px;
+
+            width: 22px;
+            height: 22px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            background: var(--paper);
+
+            color: var(--teal-vivid);
+
+            font-size: 0.6rem;
+
+            z-index: 4;
+          }
+
+          .workflow-connector {
+            position: absolute;
+            top: 82px;
+            right: -26px;
+
+            width: 25px;
+            height: 25px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            background: rgba(255, 255, 255, 0.95);
+            color: var(--teal-vivid);
+
+            font-size: 0.7rem;
+            font-weight: 700;
+
+            z-index: 10;
+
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            box-shadow: 0 3px 10px rgba(56, 189, 248, 0.12);
+          }
+
+          /* Bottom message */
+
+          .workflow-bottom-note {
+            margin: 28px auto 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 18px;
+
+            max-width: 700px;
+
+            position: relative;
+            z-index: 2;
+          }
+
+          .workflow-bottom-note p {
+            margin: 0;
+
+            font-family: var(--font-body);
+
+            font-size: 0.82rem;
+
+            font-weight: 600;
+
+            letter-spacing: 0.04em;
+
+            color: var(--ink-50);
+
+            text-align: center;
+          }
+
+          .workflow-bottom-note p span {
+            margin: 0 9px;
+            color: var(--teal-vivid);
+          }
+
+          .workflow-bottom-line {
+            width: 70px;
+            height: 1px;
+
+            background: var(--border);
+          }
 
         /* ─── FEATURES SECTION ─── */
         .features-section-bg {
@@ -1395,81 +2642,1808 @@ export default function LandingPage() {
           background: linear-gradient(90deg, transparent, var(--border), transparent);
         }
 
-        .feature-card-landing {
-          background: var(--surface);
-          border-radius: var(--radius-md);
-          overflow: hidden;
-          height: 100%;
-          border: 1px solid var(--border);
-          transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: var(--shadow-sm);
-          position: relative;
-        }
+          /* ─── PRODUCT SHOWCASE ─── */
 
-        .feature-card-landing::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 2px;
-          background: var(--grad-teal);
-          transform: scaleX(0);
-          transform-origin: left;
-          transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-          z-index: 1;
-        }
+          .product-showcase-section {
+            padding-top: 100px;
+            padding-bottom: 105px;
+          }
 
-        .feature-card-landing:hover::before { transform: scaleX(1); }
+          .product-showcase-heading {
+            max-width: 820px;
+            margin: 0 auto 58px;
+          }
 
-        .feature-card-landing:hover {
-          transform: translateY(-8px);
-          box-shadow: var(--shadow-lg);
-          border-color: rgba(56,189,248,0.15);
-        }
+          .product-showcase-heading .section-subheading {
+            max-width: 650px;
+          }
 
-        .feature-img-wrapper {
-          height: 200px;
-          overflow: hidden;
-          position: relative;
-        }
 
-        /* Overlay on feature images */
-        .feature-img-wrapper::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(180deg, transparent 50%, rgba(10,31,43,0.08) 100%);
-          pointer-events: none;
-        }
+          /* MAIN SHOWCASE */
 
-        .feature-img-wrapper img {
-          width: 100%; height: 100%;
-          object-fit: cover;
-          transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+          .product-showcase {
+            width: 100%;
+            max-width: 1240px;
 
-        .feature-card-landing:hover .feature-img-wrapper img { transform: scale(1.06); }
+            margin: 0 auto;
 
-        .feature-icon {
-          color: var(--teal-vivid);
-          font-size: 1rem;
-          margin-right: 0.5rem;
-        }
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(390px, 0.85fr);
 
-        .feature-card-title {
-          font-family: var(--font-display);
-          font-size: 1.05rem;
-          font-weight: 700;
-          color: var(--ink);
-          letter-spacing: -0.01em;
-        }
+            gap: 34px;
 
-        .feature-card-desc {
-          font-family: var(--font-body);
-          color: var(--ink-50);
-          font-size: 0.875rem;
-          line-height: 1.75;
-          font-weight: 300;
-        }
+            padding: 18px;
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.98),
+                rgba(244, 249, 251, 0.96)
+              );
+
+            border: 1px solid rgba(8, 44, 58, 0.08);
+
+            border-radius: 24px;
+
+            box-shadow:
+              0 25px 70px rgba(8, 44, 58, 0.08),
+              0 4px 15px rgba(8, 44, 58, 0.035);
+
+            position: relative;
+          }
+
+
+          /* IMAGE */
+
+          .product-showcase-visual {
+            min-width: 0;
+
+            display: flex;
+            flex-direction: column;
+
+            position: relative;
+          }
+
+          .product-showcase-image {
+            width: 100%;
+            height: 510px;
+
+            position: relative;
+
+            overflow: hidden;
+
+            border-radius: 16px;
+
+            background: #f1f7f9;
+
+            border: 1px solid rgba(8, 44, 58, 0.08);
+
+            cursor: zoom-in;
+          }
+
+          .product-showcase-image img {
+            width: 100%;
+            height: 100%;
+
+            display: block;
+
+            object-fit: contain;
+
+            transition:
+              transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+          }
+
+          .product-showcase-image:hover img {
+            transform: scale(1.035);
+          }
+
+
+          /* IMAGE OVERLAY */
+
+          .product-showcase-image-overlay {
+            position: absolute;
+
+            inset: 0;
+
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+
+            padding: 20px;
+
+            background:
+              linear-gradient(
+                180deg,
+                transparent 55%,
+                rgba(8, 44, 58, 0.18)
+              );
+
+            opacity: 0;
+
+            transition: opacity 0.35s ease;
+
+            pointer-events: none;
+          }
+
+          .product-showcase-image:hover
+            .product-showcase-image-overlay {
+            opacity: 1;
+          }
+
+          .product-showcase-image-overlay span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 9px 14px;
+
+            border-radius: 7px;
+
+            background: rgba(8, 44, 58, 0.88);
+
+            color: white;
+
+            font-family: var(--font-body);
+
+            font-size: 0.68rem;
+            font-weight: 600;
+
+            letter-spacing: 0.04em;
+
+            backdrop-filter: blur(10px);
+          }
+
+          .product-showcase-image-overlay i {
+            color: var(--teal-vivid);
+          }
+
+
+          /* IMAGE CAPTION */
+
+          .product-showcase-caption {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            padding: 16px 6px 3px;
+          }
+
+          .product-showcase-caption span {
+            font-family: var(--font-body);
+
+            font-size: 0.62rem;
+            font-weight: 700;
+
+            letter-spacing: 0.14em;
+
+            color: var(--teal-vivid);
+          }
+
+          .product-showcase-caption strong {
+            font-family: var(--font-display);
+
+            font-size: 1.05rem;
+            font-weight: 700;
+
+            color: var(--ink);
+          }
+
+
+          /* FEATURE LIST */
+
+          .product-showcase-list {
+            display: flex;
+            flex-direction: column;
+
+            justify-content: center;
+
+            gap: 5px;
+
+            min-width: 0;
+          }
+
+          .product-feature-item {
+            width: 100%;
+
+            display: grid;
+
+            position: relative;
+
+            grid-template-columns: 30px 42px minmax(0, 1fr) 22px;
+
+            align-items: center;
+
+            gap: 12px;
+
+            padding: 14px 14px;
+
+            border: 1px solid transparent;
+
+            border-radius: 13px;
+
+            background: transparent;
+
+            text-align: left;
+
+            cursor: pointer;
+
+            transition:
+              background 0.35s ease,
+              border-color 0.35s ease,
+              transform 0.35s ease;
+          }
+
+          .product-feature-item:hover {
+            background: rgba(255, 255, 255, 0.72);
+
+            border-color: rgba(8, 44, 58, 0.06);
+
+            transform: translateX(3px);
+          }
+
+          .product-feature-item.active {
+            background:
+              linear-gradient(
+                135deg,
+                rgba(255, 255, 255, 0.98),
+                rgba(239, 248, 251, 0.96)
+              );
+
+            border-color: rgba(56, 189, 248, 0.18);
+
+            box-shadow:
+              0 8px 24px rgba(8, 44, 58, 0.055);
+          }
+          .product-feature-item.active::before {
+            content: "";
+
+            position: absolute;
+
+            left: 0;
+
+            width: 3px;
+            height: 32px;
+
+            border-radius: 0 4px 4px 0;
+
+            background: var(--teal-vivid);
+          }
+
+          /* FEATURE NUMBER */
+
+          .product-feature-number {
+            width: 30px;
+
+            font-family: var(--font-body);
+
+            font-size: 0.6rem;
+            font-weight: 700;
+
+            letter-spacing: 0.08em;
+
+            color: rgba(8, 44, 58, 0.32);
+
+            text-align: center;
+
+            transition:
+              color 0.3s ease,
+              transform 0.3s ease;
+          }
+
+          .product-feature-item.active
+            .product-feature-number {
+            color: var(--teal-vivid);
+
+            transform: translateX(1px);
+          }
+
+          .product-feature-item.active
+            .product-feature-number {
+            color: var(--teal-vivid);
+          }
+
+
+          /* FEATURE ICON */
+
+          .product-feature-icon {
+            width: 42px;
+            height: 42px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            flex-shrink: 0;
+
+            border-radius: 12px;
+
+            background:
+              linear-gradient(
+                145deg,
+                #edf0e8 0%,
+                #edf0e8 100%
+              );
+
+            border: 1px solid rgba(56, 189, 248, 0.18);
+
+            color: var(--teal-vivid);
+
+            font-size: 0.85rem;
+
+            box-shadow:
+              0 5px 14px rgba(8, 44, 58, 0.06);
+
+            position: relative;
+
+            transition:
+              background 0.35s ease,
+              color 0.35s ease,
+              transform 0.35s ease,
+              box-shadow 0.35s ease;
+          }
+
+          .product-feature-icon::after {
+            content: "";
+
+            position: absolute;
+
+            width: 6px;
+            height: 6px;
+
+            top: 5px;
+            right: 5px;
+
+            
+
+            border-radius: 50%;
+
+            background: var(--teal-vivid);
+
+            opacity: 0.45;
+          }
+
+          .product-feature-item.active
+            .product-feature-icon {
+            background:
+              linear-gradient(
+                145deg,
+                var(--deep-navy),
+                var(--teal-mid)
+              );
+
+            
+
+            border-color: transparent;
+
+            transform: scale(1.05);
+
+            box-shadow:
+              0 8px 20px rgba(8, 44, 58, 0.16);
+          }
+
+          .product-feature-item.active
+            .product-feature-icon::after {
+            background: var(--teal-vivid);
+
+            opacity: 1;
+          }
+
+
+          /* CONTENT */
+
+          .product-feature-content {
+            min-width: 0;
+
+            display: flex;
+            flex-direction: column;
+
+            gap: 4px;
+          }
+
+          .product-feature-title {
+            font-family: var(--font-body);
+
+            font-size: 0.88rem;
+            font-weight: 700;
+
+            line-height: 1.3;
+
+            color: var(--ink);
+          }
+
+          .product-feature-description {
+            font-family: var(--font-body);
+
+            font-size: 0.68rem;
+
+            line-height: 1.55;
+
+            color: var(--ink-50);
+
+            display: -webkit-box;
+
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+
+            overflow: hidden;
+          }
+
+
+          /* ARROW */
+
+          .product-feature-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            color: rgba(8, 44, 58, 0.28);
+
+            font-size: 0.65rem;
+
+            transition:
+              transform 0.35s ease,
+              color 0.35s ease;
+          }
+
+          .product-feature-item.active
+            .product-feature-arrow {
+            color: var(--teal-vivid);
+
+            transform: translateX(3px);
+          }      
+            
+          /* ─── ROLE EXPERIENCE SECTION ─── */
+
+          .role-experience-section {
+            position: relative;
+            overflow: hidden;
+
+            padding: 72px 0 60px;
+
+            background:
+              linear-gradient(
+                180deg,
+                #f5fafc 0%,
+                #ffffff 48%,
+                #f3f9fb 100%
+              );
+
+            border-top: 1px solid rgba(8, 44, 58, 0.05);
+            border-bottom: 1px solid rgba(8, 44, 58, 0.05);
+          }
+
+          .role-section-glow {
+            position: absolute;
+
+            width: 420px;
+            height: 320px;
+
+            border-radius: 50%;
+            filter: blur(70px);
+
+            pointer-events: none;
+          }
+
+          .role-section-glow-left {
+            top: -170px;
+            left: -180px;
+
+            background: rgba(56, 189, 248, 0.08);
+          }
+
+          .role-section-glow-right {
+            right: -180px;
+            bottom: -170px;
+
+            background: rgba(45, 212, 191, 0.07);
+          }
+
+
+          /* ─── HEADING ─── */
+
+          .role-section-heading {
+            position: relative;
+            z-index: 2;
+
+            max-width: 720px;
+
+            margin: 0 auto 34px;
+          }
+
+          .role-section-heading .section-subheading {
+            max-width: 650px;
+          }
+
+
+          /* ─── GRID ─── */
+
+          .role-experience-grid {
+            position: relative;
+            z-index: 2;
+
+            width: 100%;
+            max-width: 1220px;
+
+            margin: 0 auto;
+
+            display: grid;
+
+            grid-template-columns: repeat(4, 1fr);
+
+            gap: 18px;
+          }
+
+
+          /* ─── CARD ─── */
+
+          .role-experience-card {
+            position: relative;
+
+            min-width: 0;
+            min-height: 300px;
+
+            padding: 26px 24px 22px;
+
+            display: flex;
+            flex-direction: column;
+
+            overflow: hidden;
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.98),
+                rgba(247, 251, 253, 0.98)
+              );
+
+            border: 1px solid rgba(8, 44, 58, 0.075);
+
+            border-radius: 18px;
+
+            box-shadow:
+              0 10px 30px rgba(8, 44, 58, 0.045);
+
+            transition:
+              transform 0.35s ease,
+              box-shadow 0.35s ease,
+              border-color 0.35s ease;
+          }
+
+          .role-experience-card:hover {
+            transform: translateY(-6px);
+
+            border-color: rgba(56, 189, 248, 0.22);
+
+            box-shadow:
+              0 18px 42px rgba(8, 44, 58, 0.09);
+          }
+
+
+          /* ─── TOP ─── */
+
+          .role-card-top {
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+
+            margin-bottom: 24px;
+          }
+
+          .role-card-number {
+            font-family: var(--font-body);
+
+            font-size: 0.58rem;
+            font-weight: 700;
+
+            letter-spacing: 0.16em;
+
+            color: rgba(8, 44, 58, 0.32);
+          }
+
+
+          /* ─── ICON ─── */
+
+          .role-card-icon {
+            width: 52px;
+            height: 52px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 14px;
+
+            background:
+              linear-gradient(
+                145deg,
+                #e9f8fc,
+                #f7fcfe
+              );
+
+            border: 1px solid rgba(56, 189, 248, 0.20);
+
+            color: var(--teal-vivid);
+
+            font-size: 0.95rem;
+
+            box-shadow:
+              0 6px 18px rgba(8, 44, 58, 0.05);
+
+            transition:
+              background 0.35s ease,
+              color 0.35s ease,
+              transform 0.35s ease;
+          }
+
+          .role-experience-card:hover .role-card-icon {
+            background:
+              linear-gradient(
+                145deg,
+                #e9f8fc,
+                #f7fcfe
+              );
+
+            color: var(--teal-vivid) !important;
+
+            border-color: rgba(56, 189, 248, 0.30);
+
+            transform: translateY(-2px);
+
+            box-shadow:
+              0 8px 22px rgba(8, 44, 58, 0.08);
+          }
+              .role-experience-card:hover .role-card-icon i {
+            color: var(--teal-vivid) !important;
+          }
+
+
+          /* ─── CONTENT ─── */
+
+          .role-card-content {
+            flex: 1;
+
+            display: flex;
+            flex-direction: column;
+          }
+
+          .role-card-tag {
+            margin-bottom: 9px;
+
+            font-family: var(--font-body);
+
+            font-size: 0.5rem;
+            font-weight: 700;
+
+            letter-spacing: 0.14em;
+
+            color: var(--teal-vivid);
+          }
+
+          .role-card-title {
+            margin: 0 0 11px;
+
+            font-family: var(--font-display);
+
+            font-size: 1.3rem;
+            font-weight: 700;
+
+            line-height: 1.15;
+
+            letter-spacing: -0.025em;
+
+            color: var(--ink);
+          }
+
+          .role-card-desc {
+            margin: 0;
+
+            font-family: var(--font-body);
+
+            font-size: 0.72rem;
+
+            line-height: 1.7;
+
+            font-weight: 300;
+
+            color: var(--ink-50);
+          }
+
+          .role-card-footer {
+            margin-top: auto;
+            padding-top: 20px;
+
+            display: flex;
+            align-items: center;
+            gap: 7px;
+
+            font-family: var(--font-body);
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+
+            color: var(--teal-mid);
+
+            transition: gap 0.25s ease, color 0.25s ease;
+          }
+
+          .role-card-footer::after {
+            content: "→";
+            font-size: 0.9rem;
+            transition: transform 0.25s ease;
+          }
+
+          .role-experience-card:hover .role-card-footer {
+            gap: 10px;
+          }
+
+          .role-experience-card:hover .role-card-footer::after {
+            transform: translateX(3px);
+          }
+
+
+          /* ─── FOOTER ─── */
+
+          /* ─── FOOTER ─── */
+
+          .footer-landing {
+            background: #0a1f2b;
+            padding: 58px 0 24px;
+            position: relative;
+            overflow: hidden;
+          }
+
+          .footer-landing::before {
+            content: '';
+            position: absolute;
+
+            top: 0;
+            left: 0;
+            right: 0;
+
+            height: 1px;
+
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(56,189,248,0.4),
+              transparent
+            );
+          }
+
+          .footer-landing::after {
+            content: '';
+
+            position: absolute;
+
+            width: 420px;
+            height: 420px;
+
+            right: -220px;
+            bottom: -250px;
+
+            border-radius: 50%;
+
+            background: radial-gradient(
+              circle,
+              rgba(56,189,248,0.08),
+              transparent 68%
+            );
+
+            pointer-events: none;
+          }
+
+
+          /* ─── FOOTER MAIN ─── */
+
+          .footer-main-row {
+            position: relative;
+            z-index: 1;
+          }
+
+
+          /* ─── BRAND ─── */
+
+          .footer-brand {
+            margin-bottom: 18px;
+          }
+
+          .footer-brand a {
+            display: inline-flex;
+            align-items: center;
+          }
+
+          .footer-brand img {
+            height: 42px;
+            width: auto;
+
+            display: block;
+
+            transition:
+              transform 0.3s ease,
+              filter 0.3s ease;
+          }
+
+          .footer-brand a:hover img {
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+          }
+
+          .footer-body-text {
+            max-width: 470px;
+
+            margin: 0;
+
+            font-family: var(--font-body);
+            font-size: 0.82rem;
+            line-height: 1.8;
+            font-weight: 300;
+
+            color: rgba(255,255,255,0.58);
+          }
+
+
+          /* ─── QUICK LINKS ─── */
+
+          .footer-links-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+          }
+
+          .footer-links-label {
+            display: block;
+
+            margin-bottom: 18px;
+
+            font-family: var(--font-body);
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+
+            color: var(--teal-vivid);
+          }
+
+          .footer-links {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+
+            flex-wrap: wrap;
+
+            gap: 24px;
+          }
+
+          .footer-links a {
+            position: relative;
+
+            font-family: var(--font-body);
+            font-size: 0.72rem;
+            font-weight: 500;
+
+            letter-spacing: 0.04em;
+
+            color: rgba(255,255,255,0.68);
+
+            text-decoration: none;
+
+            transition:
+              color 0.3s ease,
+              transform 0.3s ease;
+          }
+
+          .footer-links a::after {
+            content: '';
+
+            position: absolute;
+
+            left: 0;
+            bottom: -5px;
+
+            width: 0;
+            height: 1px;
+
+            background: var(--teal-vivid);
+
+            transition: width 0.3s ease;
+          }
+
+          .footer-links a:hover {
+            color: white;
+            transform: translateY(-1px);
+          }
+
+          .footer-links a:hover::after {
+            width: 100%;
+          }
+
+
+          /* ─── DIVIDER ─── */
+
+          .footer-divider {
+            position: relative;
+            z-index: 1;
+
+            height: 1px;
+
+            margin: 42px 0 22px;
+
+            background: rgba(255,255,255,0.08);
+
+            border: 0;
+          }
+
+
+          /* ─── FOOTER BOTTOM ─── */
+
+          .footer-bottom-row {
+            position: relative;
+            z-index: 1;
+          }
+
+          .footer-copy {
+            font-family: var(--font-body);
+
+            color: rgba(255,255,255,0.42);
+
+            font-size: 0.68rem;
+
+            letter-spacing: 0.02em;
+          }
+
+          .version-badge {
+            display: inline-block;
+
+            background: rgba(56,189,248,0.12);
+
+            color: var(--teal-vivid);
+
+            padding: 0.25rem 0.65rem;
+
+            border-radius: 3px;
+
+            font-size: 0.6rem;
+
+            font-weight: 600;
+
+            border: 1px solid rgba(56,189,248,0.22);
+
+            letter-spacing: 0.06em;
+          }
+
+
+          /* ─── CONNECTED MESSAGE ─── */
+
+          .role-section-bottom {
+            position: relative;
+            z-index: 2;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            gap: 10px;
+
+            margin: 32px auto 0;
+          }
+
+          .role-section-bottom p {
+            margin: 0;
+
+            font-family: var(--font-body);
+
+            font-size: 0.65rem;
+
+            font-weight: 600;
+
+            letter-spacing: 0.05em;
+
+            color: var(--ink-50);
+
+            text-align: center;
+          }
+
+          .role-bottom-icon {
+            width: 25px;
+            height: 25px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            background: #eaf8fc;
+
+            border: 1px solid rgba(56, 189, 248, 0.12);
+
+            color: var(--teal-vivid);
+
+            font-size: 0.55rem;
+          }
+
+
+          /* BACKGROUND GLOWS */
+
+          .role-section-glow {
+            position: absolute;
+
+            width: 420px;
+            height: 320px;
+
+            border-radius: 50%;
+
+            filter: blur(65px);
+
+            pointer-events: none;
+
+            opacity: 0.5;
+          }
+
+          .role-section-glow-left {
+            top: -150px;
+            left: -180px;
+
+            background:
+              radial-gradient(
+                circle,
+                rgba(56, 189, 248, 0.12),
+                transparent 70%
+              );
+          }
+
+          .role-section-glow-right {
+            bottom: -150px;
+            right: -180px;
+
+            background:
+              radial-gradient(
+                circle,
+                rgba(45, 212, 191, 0.10),
+                transparent 70%
+              );
+          }
+
+
+          /* HEADING */
+
+          .role-section-heading {
+            position: relative;
+
+            z-index: 2;
+
+            max-width: 780px;
+
+            margin: 0 auto 58px;
+          }
+
+          .role-section-heading .section-subheading {
+            max-width: 650px;
+          }
+
+
+          /* ROLE GRID */
+
+          .role-experience-grid {
+            width: 100%;
+
+            max-width: 1240px;
+
+            margin: 0 auto;
+
+            display: grid;
+
+            grid-template-columns: repeat(4, 1fr);
+
+            gap: 18px;
+
+            position: relative;
+
+            z-index: 2;
+          }
+
+
+          /* CARD */
+
+          .role-experience-card {
+            position: relative;
+
+            min-width: 0;
+
+            min-height: 330px;
+
+            padding: 28px 25px 25px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            overflow: hidden;
+
+            border-radius: 18px;
+
+            background:
+              linear-gradient(
+                145deg,
+                rgba(255, 255, 255, 0.98),
+                rgba(246, 250, 252, 0.96)
+              );
+
+            border: 1px solid rgba(8, 44, 58, 0.07);
+
+            box-shadow:
+              0 12px 35px rgba(8, 44, 58, 0.045);
+
+            transition:
+              transform 0.4s ease,
+              box-shadow 0.4s ease,
+              border-color 0.4s ease;
+          }
+
+          .role-experience-card:hover {
+            transform: translateY(-7px);
+
+            border-color:
+              rgba(56, 189, 248, 0.20);
+
+            box-shadow:
+              0 20px 45px rgba(8, 44, 58, 0.09);
+          }
+
+
+          /* CARD TOP */
+
+          .role-card-top {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            margin-bottom: 27px;
+          }
+
+          .role-card-number {
+            font-family: var(--font-body);
+
+            font-size: 0.6rem;
+
+            font-weight: 700;
+
+            letter-spacing: 0.13em;
+
+            color: rgba(8, 44, 58, 0.32);
+          }
+
+          .role-card-icon {
+            width: 54px;
+            height: 54px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border-radius: 14px;
+
+            background:
+              linear-gradient(
+                145deg,
+                #ffffff,
+                #e9f7fb
+              );
+
+            border: 1px solid rgba(56, 189, 248, 0.16);
+
+            color: var(--teal-vivid);
+
+            font-size: 1rem;
+
+            box-shadow:
+              0 8px 20px rgba(8, 44, 58, 0.06);
+
+            transition:
+              transform 0.4s ease,
+              background 0.4s ease,
+              color 0.4s ease;
+          }
+
+          .role-experience-card:hover
+            .role-card-icon {
+            transform: translateY(-3px) scale(1.04);
+
+            background:
+              linear-gradient(
+                145deg,
+                var(--deep-navy),
+                var(--teal-mid)
+              );
+
+            color: #ffffff;
+          }
+
+
+          /* CONTENT */
+
+          .role-card-content {
+            display: flex;
+
+            flex-direction: column;
+
+            flex: 1;
+          }
+
+          .role-card-tag {
+            align-self: flex-start;
+
+            margin-bottom: 11px;
+
+            font-family: var(--font-body);
+
+            font-size: 0.55rem;
+
+            font-weight: 700;
+
+            letter-spacing: 0.12em;
+
+            text-transform: uppercase;
+
+            color: var(--teal-vivid);
+          }
+
+          .role-card-title {
+            margin: 0 0 12px;
+
+            font-family: var(--font-display);
+
+            font-size: 1.3rem;
+
+            font-weight: 700;
+
+            line-height: 1.15;
+
+            letter-spacing: -0.02em;
+
+            color: var(--ink);
+          }
+
+          .role-card-desc {
+            margin: 0;
+
+            font-family: var(--font-body);
+
+            font-size: 0.75rem;
+
+            line-height: 1.7;
+
+            font-weight: 300;
+
+            color: var(--ink-50);
+          }
+
+
+          /* LINK */
+
+          .role-card-link {
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            margin-top: auto;
+
+            padding-top: 25px;
+
+            font-family: var(--font-body);
+
+            font-size: 0.67rem;
+
+            font-weight: 700;
+
+            letter-spacing: 0.04em;
+
+            color: var(--teal-vivid);
+
+            transition:
+              gap 0.3s ease,
+              color 0.3s ease;
+          }
+
+          .role-experience-card:hover
+            .role-card-link {
+            gap: 12px;
+
+            color: var(--teal-mid);
+          }
+
+          .role-card-link i {
+            font-size: 0.55rem;
+          }
+
+
+          /* ACCENT */
+
+          .role-card-accent {
+            position: absolute;
+
+            left: 0;
+            bottom: 0;
+
+            width: 100%;
+            height: 2px;
+
+            background:
+              linear-gradient(
+                90deg,
+                var(--teal-vivid),
+                var(--teal-mid)
+              );
+
+            transform: scaleX(0);
+
+            transform-origin: left;
+
+            transition: transform 0.45s ease;
+          }
+
+          .role-experience-card:hover
+            .role-card-accent {
+            transform: scaleX(1);
+          }
+
+
+          /* BOTTOM MESSAGE */
+
+          .role-section-bottom {
+            position: relative;
+
+            z-index: 2;
+
+            margin: 45px auto 0;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 12px;
+          }
+
+          .role-section-bottom p {
+            margin: 0;
+
+            font-family: var(--font-body);
+
+            font-size: 0.72rem;
+
+            font-weight: 600;
+
+            letter-spacing: 0.04em;
+
+            color: var(--ink-50);
+
+            text-align: center;
+          }
+
+          .role-bottom-icon {
+            width: 27px;
+            height: 27px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border-radius: 50%;
+
+            background: #eaf7fb;
+
+            color: var(--teal-vivid);
+
+            font-size: 0.6rem;
+          }
+
+          /* ─── TRUST / OPERATIONS SECTION ─── */
+
+          .operations-confidence-section {
+            position: relative;
+            padding: 125px 0 120px;
+
+            overflow: hidden;
+
+            background:
+              radial-gradient(
+                circle at 10% 45%,
+                rgba(56, 189, 248, 0.075),
+                transparent 28%
+              ),
+              radial-gradient(
+                circle at 90% 55%,
+                rgba(26, 138, 170, 0.065),
+                transparent 30%
+              ),
+              linear-gradient(
+                rgba(56, 189, 248, 0.018) 1px,
+                transparent 1px
+              ),
+              linear-gradient(
+                90deg,
+                rgba(56, 189, 248, 0.018) 1px,
+                transparent 1px
+              ),
+              var(--paper);
+
+            background-size:
+              100% 100%,
+              100% 100%,
+              44px 44px,
+              44px 44px;
+          }
+              
+          .operations-feature-label {
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-family: var(--font-body);
+
+            font-size: 0.56rem;
+            font-weight: 700;
+
+            letter-spacing: 0.15em;
+
+            text-transform: uppercase;
+
+            color: rgba(10, 31, 43, 0.42);
+          }
+
+          .operations-bg-glow {
+            position: absolute;
+
+            width: 420px;
+            height: 420px;
+
+            border-radius: 50%;
+
+            filter: blur(90px);
+
+            pointer-events: none;
+
+            opacity: 0.35;
+          }
+
+          .operations-bg-glow-left {
+            left: -260px;
+            top: 20%;
+
+            background: rgba(56,189,248,0.10);
+          }
+
+          .operations-bg-glow-right {
+            right: -260px;
+            bottom: 10%;
+
+            background: rgba(26,138,170,0.09);
+          }
+
+          .operations-bg-glow-left {
+            top: -130px;
+            left: -150px;
+
+            background:
+              rgba(56, 189, 248, 0.07);
+          }
+
+          .operations-bg-glow-right {
+            right: -150px;
+            bottom: -130px;
+
+            background:
+              rgba(45, 212, 191, 0.06);
+          }
+
+
+          /* ─── HEADING ─── */
+
+          .operations-section-heading {
+            position: relative;
+            z-index: 2;
+
+            max-width: 850px;
+
+            margin: 0 auto 58px;
+          }
+
+          .operations-section-heading .about-numbers-label {
+            margin-bottom: 18px;
+          }
+
+          .operations-section-heading .section-heading {
+            margin-bottom: 8px;
+          }
+
+          .operations-section-heading .section-subheading {
+            max-width: 720px;
+          }
+
+          .operations-section-heading
+          .section-subheading {
+            max-width: 690px;
+          }
+
+
+          /* ─── MAIN PANEL ─── */
+
+          .operations-confidence-panel {
+            position: relative;
+            z-index: 2;
+
+            width: min(1280px, calc(100% - 80px));
+            max-width: 1280px;
+
+            margin: 0 auto;
+
+            padding: 52px 54px 30px;
+
+            border-radius: 26px;
+
+            background:
+              radial-gradient(
+                circle at 100% 0%,
+                rgba(56, 189, 248, 0.10),
+                transparent 30%
+              ),
+              linear-gradient(
+                145deg,
+                rgba(255,255,255,0.98),
+                rgba(244,249,251,0.94)
+              );
+
+            border: 1px solid rgba(8, 44, 58, 0.09);
+
+            box-shadow:
+              0 24px 70px rgba(8, 44, 58, 0.09),
+              0 5px 20px rgba(8, 44, 58, 0.04);
+
+            overflow: hidden;
+          }
+
+          .operations-confidence-panel::before {
+            content: "";
+
+            position: absolute;
+
+            top: 0;
+            left: 0;
+
+            width: 100%;
+            height: 4px;
+
+            background: var(--grad-teal);
+          }
+          .operations-confidence-panel::after {
+            content: "";
+
+            position: absolute;
+
+            width: 420px;
+            height: 420px;
+
+            right: -220px;
+            bottom: -260px;
+
+            border-radius: 50%;
+
+            background: rgba(56, 189, 248, 0.07);
+
+            filter: blur(10px);
+
+            pointer-events: none;
+          }
+          /* ─── FEATURES ─── */
+
+          .operations-features-grid {
+            display: grid;
+
+            grid-template-columns: repeat(3, 1fr);
+
+            gap: 0;
+          }
+
+          .operations-feature {
+            position: relative;
+
+            display: flex;
+            gap: 22px;
+
+            min-height: 220px;
+
+            padding: 28px 42px 30px;
+
+            align-items: flex-start;
+          }
+
+          .operations-feature:first-child {
+            padding-left: 10px;
+          }
+
+          .operations-feature:last-child {
+            padding-right: 10px;
+          }
+
+
+                    /* DIVIDERS */
+
+          .operations-feature + .operations-feature {
+            border-left: 1px solid rgba(26, 138, 170, 0.13);
+          }
+
+          .operations-feature + .operations-feature::before {
+            content: "";
+
+            position: absolute;
+
+            left: -1px;
+            top: 28px;
+            bottom: 28px;
+
+            width: 2px;
+
+            background: linear-gradient(
+              to bottom,
+              transparent,
+              rgba(56, 189, 248, 0.35),
+              transparent
+            );
+          }
+
+
+                    /* ─── ICON ─── */
+
+          .operations-feature-icon {
+            width: 58px;
+            height: 58px;
+
+            flex: 0 0 58px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 16px;
+
+            background:
+              linear-gradient(
+                145deg,
+                #e8f8fd,
+                #ffffff
+              );
+
+            border: 1px solid rgba(56, 189, 248, 0.20);
+
+            color: var(--teal-vivid);
+
+            font-size: 1rem;
+
+            box-shadow:
+              0 8px 22px rgba(8, 44, 58, 0.06);
+          }
+
+          .operations-feature:hover
+          .operations-feature-icon {
+            transform: translateY(-3px);
+
+            background:
+              linear-gradient(
+                145deg,
+                var(--teal-mid),
+                var(--teal-deep)
+              );
+
+            color: #ffffff;
+          }
+
+
+          /* ─── CONTENT ─── */
+
+          .operations-feature-content {
+            min-width: 0;
+          }
+
+          .operations-feature-number {
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-family: var(--font-body);
+
+            font-size: 0.62rem;
+            font-weight: 700;
+
+            letter-spacing: 0.16em;
+
+            color: var(--teal-mid);
+          }
+
+          .operations-feature-content h3 {
+            margin: 0 0 12px;
+
+            font-family: var(--font-display);
+
+            font-size: 1.25rem;
+            font-weight: 700;
+
+            line-height: 1.2;
+
+            color: var(--ink);
+          }
+
+          .operations-feature-content p {
+            margin: 0;
+
+            max-width: 260px;
+
+            font-family: var(--font-body);
+
+            font-size: 0.78rem;
+
+            line-height: 1.75;
+
+            color: var(--ink-50);
+          }
+
+
+
+                    /* ─── FOOTER ─── */
+
+            .operations-panel-footer {
+            position: relative;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            gap: 12px;
+
+            margin-top: 20px;
+            padding-top: 24px;
+
+            border-top: 1px solid rgba(8, 44, 58, 0.08);
+
+            font-family: var(--font-body);
+
+            font-size: 0.68rem;
+            font-weight: 600;
+
+            letter-spacing: 0.08em;
+
+            color: rgba(10,31,43,0.55);
+          }
+
+          .operations-footer-icon {
+            width: 28px;
+            height: 28px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 50%;
+
+            background: rgba(56,189,248,0.10);
+
+            color: var(--teal-mid);
+
+            font-size: 0.6rem;
+          }
+
+
 
         /* ─── CTA SECTION ─── */
         .cta-section-landing {
@@ -1558,131 +4532,952 @@ export default function LandingPage() {
           font-size: 0.875rem;
         }
 
-        /* ─── CONTACT SECTION ─── */
+        /* ─── FAQ SECTION ─── */
+
+        .faq-section-bg {
+          background:
+            radial-gradient(
+              circle at 15% 50%,
+              rgba(56,189,248,0.055),
+              transparent 30%
+            ),
+            radial-gradient(
+              circle at 85% 45%,
+              rgba(56,189,248,0.045),
+              transparent 32%
+            ),
+            linear-gradient(
+              rgba(56,189,248,0.018) 1px,
+              transparent 1px
+            ),
+            linear-gradient(
+              90deg,
+              rgba(56,189,248,0.018) 1px,
+              transparent 1px
+            ),
+            var(--paper);
+
+          background-size:
+            100% 100%,
+            100% 100%,
+            42px 42px,
+            42px 42px;
+
+          position: relative;
+          overflow: hidden;
+        }
+
+        .faq-section-bg::before {
+          content: '';
+          position: absolute;
+          width: 420px;
+          height: 420px;
+          right: -180px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: radial-gradient(
+            circle,
+            rgba(56,189,248,0.07),
+            transparent 68%
+          );
+          pointer-events: none;
+        }
+
+        .faq-layout {
+          display: grid;
+          grid-template-columns: minmax(340px, 0.85fr) minmax(620px, 1.15fr);
+          gap: 70px;
+          align-items: stretch;
+
+          width: min(1280px, calc(100% - 80px));
+          max-width: 1280px;
+
+          margin: 0 auto;
+
+          position: relative;
+          z-index: 1;
+        }
+
+        .faq-meta {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          margin-top: 32px;
+
+          font-family: var(--font-body);
+          font-size: 0.58rem;
+          font-weight: 600;
+          letter-spacing: 0.14em;
+
+          color: rgba(10,31,43,0.38);
+        }
+
+        .faq-meta-line {
+          width: 28px;
+          height: 1px;
+
+          background: var(--teal-vivid);
+
+          opacity: 0.55;
+        }
+
+
+        /* ─── FAQ INTRO ─── */
+
+        .faq-intro {
+          position: relative;
+
+          padding: 38px 42px;
+
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+
+          min-height: 520px;
+
+          border-left: 2px solid rgba(56,189,248,0.25);
+
+          background:
+            linear-gradient(
+              135deg,
+              rgba(255,255,255,0.55),
+              rgba(255,255,255,0.15)
+            );
+
+          border-radius: 0 24px 24px 0;
+        }
+
+        .faq-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+
+          margin-bottom: 20px;
+
+          font-family: var(--font-body);
+          font-size: 0.68rem;
+          font-weight: 600;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+
+          color: var(--teal-mid);
+        }
+
+        .faq-eyebrow i {
+          color: var(--teal-vivid);
+          font-size: 0.75rem;
+        }
+
+        .faq-title {
+          margin: 0 0 22px;
+
+          font-family: var(--font-display);
+          font-size: clamp(2.4rem, 4vw, 3.5rem);
+          font-weight: 700;
+          line-height: 1.08;
+          letter-spacing: -0.035em;
+
+          color: var(--ink);
+        }
+
+        .faq-title span {
+          color: var(--teal-mid);
+          font-style: italic;
+        }
+
+        .faq-description {
+          max-width: 390px;
+
+          margin: 0;
+
+          font-family: var(--font-body);
+          font-size: 0.92rem;
+          line-height: 1.8;
+          font-weight: 300;
+
+          color: var(--ink-50);
+        }
+
+
+        /* ─── SUPPORT NOTE ─── */
+
+        .faq-support-note {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+
+          margin-top: 38px;
+          padding-top: 24px;
+
+          border-top: 1px solid rgba(10,31,43,0.08);
+        }
+
+        .faq-support-icon {
+          width: 42px;
+          height: 42px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          flex-shrink: 0;
+
+          border-radius: 50%;
+
+          background: rgba(56,189,248,0.10);
+          color: var(--teal-mid);
+
+          font-size: 0.85rem;
+        }
+
+        .faq-support-note span {
+          display: block;
+
+          margin-bottom: 3px;
+
+          font-family: var(--font-body);
+          font-size: 0.75rem;
+          font-weight: 600;
+
+          color: var(--ink);
+        }
+
+        .faq-support-note p {
+          margin: 0;
+
+          font-family: var(--font-body);
+          font-size: 0.68rem;
+          line-height: 1.5;
+
+          color: var(--ink-50);
+        }
+
+
+        /* ─── FAQ LIST ─── */
+
+        .faq-list {
+          width: 100%;
+        }
+          .faq-list {
+          width: 100%;
+          position: relative;
+          padding-left: 28px;
+        }
+
+        .faq-list::before {
+          content: "";
+
+          position: absolute;
+
+          left: 7px;
+          top: 25px;
+          bottom: 25px;
+
+          width: 1px;
+
+          background: linear-gradient(
+            to bottom,
+            transparent,
+            rgba(56,189,248,0.20) 10%,
+            rgba(56,189,248,0.20) 90%,
+            transparent
+          );
+        }
+          .faq-item::before {
+          content: "";
+
+          position: absolute;
+
+          left: -22px;
+          top: 50%;
+
+          width: 7px;
+          height: 7px;
+
+          transform: translateY(-50%);
+
+          border-radius: 50%;
+
+          background: var(--teal-vivid);
+
+          box-shadow: 0 0 0 4px rgba(56,189,248,0.07);
+
+          z-index: 2;
+        }
+          .faq-section-bg {
+          padding-top: 95px;
+          padding-bottom: 95px;
+        }
+
+        .faq-item {
+          position: relative;
+
+          margin-bottom: 16px;
+
+          min-height: 78px;
+
+          background: rgba(255,255,255,0.82);
+
+          border: 1px solid rgba(10,31,43,0.08);
+          border-radius: 14px;
+
+          overflow: hidden;
+
+          box-shadow:
+            0 2px 8px rgba(10,31,43,0.025);
+
+          transition:
+            border-color 0.3s ease,
+            box-shadow 0.3s ease;
+        }
+
+        .faq-item:hover {
+          border-color: rgba(56,189,248,0.25);
+        }
+
+        .faq-item.open {
+          border-color: rgba(56,189,248,0.35);
+          box-shadow: 0 12px 32px rgba(10,31,43,0.07);
+        }
+
+
+        /* ─── QUESTION ─── */
+
+        .faq-question {
+          width: 100%;
+
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          gap: 20px;
+
+          padding: 24px 26px;
+
+          border: none;
+          outline: none;
+
+          background: transparent;
+
+          text-align: left;
+
+          font-family: var(--font-body);
+          font-size: 0.92rem;
+          font-weight: 600;
+
+          color: var(--ink);
+
+          cursor: pointer;
+
+          transition: color 0.3s ease;
+        }
+        .faq-question > span:first-child {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+        }
+
+        .faq-number {
+          flex-shrink: 0;
+
+          font-family: var(--font-body);
+          font-size: 0.58rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+
+          color: var(--teal-mid);
+        }
+
+        .faq-item.open .faq-question {
+          color: var(--teal-mid);
+        }
+
+
+        /* ─── TOGGLE ─── */
+
+        .faq-toggle {
+          width: 38px;
+          height: 38px;
+
+          flex-shrink: 0;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 50%;
+
+          background: rgba(56,189,248,0.08);
+          color: var(--teal-mid);
+
+          font-size: 0.7rem;
+
+          border: 1px solid rgba(56,189,248,0.12);
+
+          transition:
+            transform 0.3s ease,
+            background 0.3s ease,
+            color 0.3s ease,
+            border-color 0.3s ease;
+        }
+
+        .faq-item.open .faq-toggle {
+          background: var(--teal-mid);
+          color: white;
+          border-color: var(--teal-mid);
+
+          transform: rotate(180deg);
+        }
+
+        /* ─── ANSWER ─── */
+
+        .faq-answer-wrapper {
+          overflow: hidden;
+        }
+
+        .faq-answer {
+          padding: 0 68px 22px 68px;
+
+          font-family: var(--font-body);
+          font-size: 0.78rem;
+          font-weight: 300;
+          line-height: 1.8;
+
+          color: var(--ink-50);
+        }
+
+          /* ─── CONTACT SECTION ─── */
+
         .contact-section-bg {
           background: var(--paper);
           position: relative;
+          overflow: hidden;
         }
 
         .contact-section-bg::before {
           content: '';
           position: absolute;
-          top: 0; left: 0; right: 0;
+          top: 0;
+          left: 0;
+          right: 0;
           height: 1px;
-          background: linear-gradient(90deg, transparent, var(--border), transparent);
+          background: linear-gradient(
+            90deg,
+            transparent,
+            var(--border),
+            transparent
+          );
         }
 
-        .contact-card {
-          background: var(--surface);
+        .contact-bg-glow {
+          position: absolute;
+          width: 420px;
+          height: 420px;
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(10px);
+        }
+
+        .contact-bg-glow-left {
+          left: -240px;
+          top: 20%;
+          background: radial-gradient(
+            circle,
+            rgba(56,189,248,0.07),
+            transparent 68%
+          );
+        }
+
+        .contact-bg-glow-right {
+          right: -220px;
+          bottom: 0;
+          background: radial-gradient(
+            circle,
+            rgba(26,138,170,0.06),
+            transparent 68%
+          );
+        }
+
+
+        /* ─── CONTACT HEADING ─── */
+
+        .contact-section-heading {
+          position: relative;
+          z-index: 1;
+          margin-bottom: 60px;
+        }
+
+        .contact-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+
+          margin-bottom: 16px;
+
+          font-family: var(--font-body);
+          font-size: 0.68rem;
+          font-weight: 600;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+
+          color: var(--teal-mid);
+        }
+
+        .contact-eyebrow i {
+          color: var(--teal-vivid);
+          font-size: 0.72rem;
+        }
+
+        .contact-main-row {
+          position: relative;
+          z-index: 1;
+        }
+
+
+        /* ─── LEFT CONTACT PANEL ─── */
+
+        .contact-info-panel {
+          height: 100%;
+
+          padding: 48px 42px;
+
+          background:
+            linear-gradient(
+              145deg,
+              #0a1f2b 0%,
+              #0d2d3a 65%,
+              #123f50 100%
+            );
+
           border-radius: var(--radius-lg);
+
+          position: relative;
           overflow: hidden;
+
+          box-shadow: 0 18px 50px rgba(10,31,43,0.15);
+        }
+
+        .contact-info-panel::before {
+          content: '';
+          position: absolute;
+          width: 280px;
+          height: 280px;
+          right: -130px;
+          top: -130px;
+
+          border-radius: 50%;
+
+          background: radial-gradient(
+            circle,
+            rgba(56,189,248,0.16),
+            transparent 68%
+          );
+        }
+
+        .contact-info-panel::after {
+          content: '';
+          position: absolute;
+          left: 42px;
+          right: 42px;
+          bottom: 0;
+
+          height: 1px;
+
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(56,189,248,0.35),
+            transparent
+          );
+        }
+
+        .contact-panel-label {
+          display: block;
+
+          margin-bottom: 18px;
+
+          font-family: var(--font-body);
+          font-size: 0.65rem;
+          font-weight: 600;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+
+          color: var(--teal-vivid);
+        }
+
+        .contact-info-panel h3 {
+          position: relative;
+          z-index: 1;
+
+          margin: 0 0 20px;
+
+          font-family: var(--font-display);
+          font-size: clamp(2rem, 3vw, 2.8rem);
+          font-weight: 700;
+          line-height: 1.1;
+          letter-spacing: -0.035em;
+
+          color: white;
+        }
+
+        .contact-info-panel h3 span {
+          color: var(--teal-vivid);
+          font-style: italic;
+        }
+
+        .contact-info-description {
+          position: relative;
+          z-index: 1;
+
+          max-width: 430px;
+
+          margin: 0;
+
+          font-family: var(--font-body);
+          font-size: 0.86rem;
+          line-height: 1.8;
+          font-weight: 300;
+
+          color: rgba(255,255,255,0.68);
+        }
+
+
+        /* ─── CONTACT INFO ITEMS ─── */
+
+        .contact-info-list {
+          position: relative;
+          z-index: 1;
+
+          margin-top: 38px;
+        }
+
+        .contact-info-item {
+          display: flex;
+          align-items: center;
+
+          gap: 14px;
+
+          padding: 16px 0;
+
+          border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .contact-info-item:last-child {
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .contact-info-icon {
+          width: 40px;
+          height: 40px;
+
+          flex-shrink: 0;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 8px;
+
+          background: rgba(56,189,248,0.10);
+          border: 1px solid rgba(56,189,248,0.14);
+
+          color: var(--teal-vivid);
+
+          font-size: 0.78rem;
+        }
+
+        .contact-info-item span {
+          display: block;
+
+          margin-bottom: 3px;
+
+          font-family: var(--font-body);
+          font-size: 0.76rem;
+          font-weight: 600;
+
+          color: rgba(255,255,255,0.92);
+        }
+
+        .contact-info-item p {
+          margin: 0;
+
+          font-family: var(--font-body);
+          font-size: 0.68rem;
+          font-weight: 300;
+
+          color: rgba(255,255,255,0.50);
+        }
+
+        .contact-panel-bottom {
+          position: relative;
+          z-index: 1;
+
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          margin-top: 30px;
+
+          font-family: var(--font-body);
+          font-size: 0.7rem;
+          font-weight: 500;
+          letter-spacing: 0.03em;
+
+          color: rgba(255,255,255,0.55);
+        }
+
+        .contact-panel-bottom i {
+          color: var(--teal-vivid);
+        }
+
+
+        /* ─── CONTACT FORM CARD ─── */
+
+        .contact-card {
+          height: 100%;
+
+          background: var(--surface);
+
+          border-radius: var(--radius-lg);
+
+          overflow: hidden;
+
           border: 1px solid var(--border);
+
           box-shadow: var(--shadow-md);
+
           transition: all 0.45s ease;
+
           position: relative;
         }
 
         .contact-card::before {
           content: '';
+
           position: absolute;
-          top: 0; left: 64px; right: 64px;
+
+          top: 0;
+          left: 64px;
+          right: 64px;
+
           height: 2px;
+
           background: var(--grad-teal);
+
           opacity: 0.7;
         }
 
         .contact-card:hover {
           box-shadow: var(--shadow-lg);
-          border-color: rgba(56,189,248,0.12);
+          border-color: rgba(56,189,248,0.15);
         }
 
-        .contact-card-inner { padding: 56px; }
+        .contact-card-inner {
+          padding: 48px;
+        }
 
-        .contact-headline {
+
+        /* ─── FORM HEADING ─── */
+
+        .contact-form-heading {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          gap: 20px;
+
+          margin-bottom: 8px;
+        }
+
+        .contact-form-heading > div:first-child > span {
+          display: block;
+
+          margin-bottom: 7px;
+
+          font-family: var(--font-body);
+          font-size: 0.6rem;
+          font-weight: 600;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+
+          color: var(--teal-mid);
+        }
+
+        .contact-form-heading h3 {
+          margin: 0;
+
           font-family: var(--font-display);
+          font-size: 1.65rem;
           font-weight: 700;
-          color: var(--ink);
-          font-size: 1.75rem;
           letter-spacing: -0.025em;
+
+          color: var(--ink);
+        }
+
+        .contact-form-icon {
+          width: 46px;
+          height: 46px;
+
+          flex-shrink: 0;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          border-radius: 50%;
+
+          background: rgba(56,189,248,0.09);
+
+          color: var(--teal-mid);
+
+          font-size: 0.8rem;
         }
 
         .contact-subtext {
+          margin-bottom: 32px;
+
           font-family: var(--font-body);
           color: var(--ink-50);
           font-weight: 300;
-          font-size: 0.9375rem;
+          font-size: 0.85rem;
         }
+
+
+        /* ─── FORM FIELDS ─── */
 
         .form-label-landing {
           font-family: var(--font-body);
-          font-weight: 500;
-          font-size: 0.8125rem;
-          letter-spacing: 0.05em;
+          font-weight: 600;
+          font-size: 0.72rem;
+          letter-spacing: 0.06em;
           text-transform: uppercase;
+
           color: var(--ink);
+
           margin-bottom: 0.5rem;
+
           display: block;
         }
 
         .form-control-landing,
         .form-select-landing {
           font-family: var(--font-body);
+
           border: 1px solid var(--border);
+
           border-radius: var(--radius-sm);
+
           padding: 0.8rem 1rem;
+
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          font-size: 0.9375rem;
+
+          font-size: 0.875rem;
+
           background: var(--surface-warm);
+
           color: var(--ink);
+
           font-weight: 300;
         }
 
         .form-control-landing:focus,
         .form-select-landing:focus {
           border-color: var(--teal-vivid);
+
           box-shadow: 0 0 0 3px rgba(56,189,248,0.12);
+
           outline: none;
+
           background: white;
         }
 
         .form-control-landing:hover,
-        .form-select-landing:hover { border-color: rgba(56,189,248,0.35); }
+        .form-select-landing:hover {
+          border-color: rgba(56,189,248,0.35);
+        }
 
-        .form-control-landing::placeholder { color: var(--ink-20); }
+        .form-control-landing::placeholder {
+          color: var(--ink-20);
+        }
+
+
+        /* ─── SEND BUTTON ─── */
 
         .btn-contact-submit {
+          width: 100%;
+
+          min-height: 54px;
+
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+
+          gap: 12px;
+
           font-family: var(--font-body);
           font-weight: 600;
-          font-size: 0.875rem;
+          font-size: 0.78rem;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          padding: 1rem 3rem;
+
+          padding: 0.9rem 2rem;
+
           border-radius: 3px;
-          border: none;
-          background: var(--grad-ink);
-          color: white;
+
+          border: none !important;
+
+          background: var(--grad-ink) !important;
+          color: white !important;
+
           transition: all 0.4s ease;
+
           position: relative;
           overflow: hidden;
         }
 
         .btn-contact-submit::before {
           content: '';
+
           position: absolute;
-          top: 0; left: -100%;
-          width: 100%; height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(56,189,248,0.18), transparent);
+
+          top: 0;
+          left: -100%;
+
+          width: 100%;
+          height: 100%;
+
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(56,189,248,0.18),
+            transparent
+          );
+
           transition: left 0.5s ease;
         }
 
-        .btn-contact-submit:hover::before { left: 100%; }
+        .btn-contact-submit:hover::before {
+          left: 100%;
+        }
 
         .btn-contact-submit:hover {
           transform: translateY(-2px);
+
           box-shadow: 0 10px 30px rgba(10,31,43,0.3);
-          color: white;
+
+          color: white !important;
+
+          background: var(--grad-ink) !important;
         }
 
+        .btn-contact-submit i {
+          transition: transform 0.3s ease;
+        }
+
+        .btn-contact-submit:hover i {
+          transform: translateX(4px);
+        }
         /* ─── FOOTER ─── */
         .footer-landing {
           background: #0a1f2b;
@@ -1745,7 +5540,7 @@ export default function LandingPage() {
           bottom: 32px; right: 32px;
           width: 48px; height: 48px;
           background: var(--ink);
-          border-radius: 3px;
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1852,6 +5647,10 @@ export default function LandingPage() {
           .about-numbers-grid { max-width: 720px; }
           .contact-card-inner { padding: 48px; }
         }
+          .faq-layout {
+            gap: 55px;
+            max-width: 960px;
+          }
 
         @media (max-width: 991.98px) {
           .hero-section-landing { padding: 120px 0 100px; min-height: 90vh; }
@@ -1860,7 +5659,244 @@ export default function LandingPage() {
           .section-landing { padding: 80px 0; }
           .section-heading, .section-heading-light { font-size: clamp(1.9rem, 4vw, 2.8rem); }
           .section-subheading, .section-subheading-light { font-size: 1rem; max-width: 540px; }
+          .about-platform-card {
+            grid-template-columns: 1fr;
+            gap: 42px;
+            padding: 48px 44px;
+          }
+            .footer-links-wrapper {
+            align-items: flex-start;
+          }
 
+          .footer-links {
+            justify-content: flex-start;
+          }
+                      .contact-section-heading {
+            margin-bottom: 45px;
+          }
+
+          .contact-info-panel {
+            padding: 40px 36px;
+          }
+
+          .contact-info-panel h3 {
+            font-size: 2.3rem;
+          }
+
+          .contact-card-inner {
+            padding: 40px 36px;
+          }
+
+          .operations-confidence-section {
+            padding: 75px 0 70px;
+          }
+          .faq-layout {
+            grid-template-columns: 1fr;
+            gap: 45px;
+            max-width: 720px;
+          }
+
+          .faq-intro {
+            text-align: center;
+          }
+
+          .faq-description {
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          .faq-support-note {
+            justify-content: center;
+            max-width: 360px;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: left;
+          }
+          .operations-section-heading {
+            margin-bottom: 40px;
+          }
+
+          .operations-confidence-panel {
+            max-width: 820px;
+
+            padding: 30px 26px 24px;
+          }
+
+          .operations-features-grid {
+            grid-template-columns: 1fr;
+            gap: 0;
+          }
+
+          .operations-feature {
+            padding: 20px 5px;
+          }
+
+          .operations-feature:first-child {
+            padding-left: 5px;
+          }
+
+          .operations-feature:last-child {
+            padding-right: 5px;
+          }
+
+          .operations-feature + .operations-feature {
+            border-left: 0;
+
+            border-top: 1px solid rgba(8, 44, 58, 0.07);
+          }
+
+          .operations-feature-content p {
+            max-width: 600px;
+          }
+
+          .role-experience-section {
+            padding: 80px 0 70px;
+          }
+
+          .role-section-heading {
+            margin-bottom: 45px;
+          }
+
+          .role-experience-grid {
+            grid-template-columns: repeat(2, 1fr);
+
+            gap: 16px;
+
+            max-width: 760px;
+          }
+
+          .role-experience-card {
+            min-height: 300px;
+
+            padding: 25px 22px;
+          }
+
+          .role-card-title {
+            font-size: 1.2rem;
+          }
+
+          .role-card-desc {
+            font-size: 0.72rem;
+          }
+
+          .role-section-bottom {
+            margin-top: 38px;
+          }
+            .product-showcase-section {
+              padding-top: 75px;
+              padding-bottom: 80px;
+            }
+
+            .product-showcase-heading {
+              margin-bottom: 45px;
+            }
+
+            .product-showcase {
+              grid-template-columns: 1fr;
+
+              max-width: 760px;
+
+              gap: 24px;
+
+              padding: 14px;
+            }
+
+            .product-showcase-image {
+              height: 420px;
+            }
+
+            .product-showcase-list {
+              gap: 4px;
+            }
+
+            .product-feature-item {
+              padding: 15px 12px;
+            }
+            .workflow-section-landing {
+              padding: 65px 0 55px;
+            }
+
+            .workflow-heading-wrap {
+              margin-bottom: 42px;
+            }
+
+            .workflow-timeline {
+              grid-template-columns: repeat(3, 1fr);
+              row-gap: 18px;
+              column-gap: 16px;
+              max-width: 850px;
+            }
+
+            .workflow-timeline::before {
+              display: none;
+            }
+
+            .workflow-step {
+              padding: 22px 16px;
+            }
+
+            .workflow-connector {
+              display: none;
+            }
+
+            .workflow-step-desc {
+              max-width: 190px;
+            }
+            .workflow-section-landing {
+              padding: 80px 0 70px;
+            }
+
+            .workflow-heading-wrap {
+              margin-bottom: 55px;
+            }
+
+            .workflow-timeline {
+              grid-template-columns: repeat(3, 1fr);
+              row-gap: 55px;
+              max-width: 850px;
+            }
+
+            .workflow-timeline::before {
+              display: none;
+            }
+
+            .workflow-step {
+              padding: 0 20px;
+            }
+
+            .workflow-connector {
+              display: none;
+            }
+
+            .workflow-step-desc {
+              max-width: 190px;
+            }
+
+            .workflow-bottom-note {
+              margin-top: 55px;
+            }
+          .about-platform-right {
+            min-height: auto;
+            justify-content: center;
+          }
+
+          .about-platform-copy {
+            max-width: 380px;
+          }
+
+          .about-platform-orbit {
+            width: 180px;
+            height: 180px;
+            flex-basis: 180px;
+          }
+
+          .hero-content {
+          max-width: 760px;
+        }
+
+        .hero-subtitle {
+          max-width: 600px;
+        }
           .navbar-collapse {
             background: rgba(10,31,43,0.99);
             backdrop-filter: blur(24px);
@@ -1870,6 +5906,11 @@ export default function LandingPage() {
             box-shadow: var(--shadow-lg);
             border: 1px solid rgba(56,189,248,0.1);
           }
+            .about-card-text {
+              max-width: 720px;
+              margin-left: auto;
+              margin-right: auto;
+            }
 
           .nav-link-landing { padding: 0.75rem 1rem !important; margin: 0.2rem 0; text-align: center !important; }
           .btn-nav-login { width: 100%; text-align: center; margin-top: 0.5rem; }
@@ -1881,9 +5922,25 @@ export default function LandingPage() {
           .about-numbers-section { padding: 30px 0; }
           .about-numbers-label { font-size: 0.65rem; }
           .about-numbers-heading { font-size: clamp(1.6rem, 3vw, 2.2rem); }
-          .about-numbers-grid { max-width: 600px; gap: 16px; }
+          .about-numbers-grid {
+            grid-template-columns: repeat(2, 1fr);
+            max-width: 720px;
+            gap: 16px;
+          }
+            .about-number-card {
+              min-height: 250px;
+            }
 
-          .about-offers-grid { max-width: 600px; gap: 16px; }
+          .about-offers-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            max-width: 760px;
+            gap: 16px;
+          }
+
+          .about-offer-card {
+            min-height: 250px;
+            padding: 28px 22px;
+          }
           .about-offer-card { padding: 32px 24px; }
 
           .feature-img-wrapper { height: 180px; }
@@ -1897,7 +5954,459 @@ export default function LandingPage() {
         @media (max-width: 767.98px) {
           html, body { overflow-x: hidden; width: 100%; }
           .container { padding-right: 12px; padding-left: 12px; }
+          .about-card-text {
+          width: 100%;
+          max-width: 100%;
+        }
+          .footer-landing {
+            padding: 45px 0 20px;
+          }
 
+          .footer-body-text {
+            max-width: 100%;
+          }
+
+          .footer-links-wrapper {
+            align-items: flex-start;
+            margin-top: 10px;
+          }
+
+          .footer-links {
+            justify-content: flex-start;
+            gap: 16px 22px;
+          }
+
+          .footer-divider {
+            margin: 32px 0 18px;
+          }
+
+          .footer-copy {
+            font-size: 0.64rem;
+          }
+
+          .footer-bottom-row {
+            gap: 12px;
+          }
+
+          .contact-section-heading {
+            margin-bottom: 35px;
+          }
+
+          .contact-info-panel {
+            padding: 32px 24px;
+          }
+
+          .contact-info-panel h3 {
+            font-size: 2rem;
+          }
+
+          .contact-info-description {
+            font-size: 0.78rem;
+          }
+
+          .contact-info-list {
+            margin-top: 28px;
+          }
+
+          .contact-card-inner {
+            padding: 32px 24px;
+          }
+
+          .contact-form-heading h3 {
+            font-size: 1.35rem;
+          }
+
+          .contact-form-icon {
+            width: 40px;
+            height: 40px;
+          }
+
+          .form-control-landing,
+          .form-select-landing {
+            font-size: 0.8rem;
+          }
+                  .operations-confidence-section {
+                      padding: 60px 0 55px;
+                    }
+          .faq-layout {
+            gap: 30px;
+          }
+
+          .faq-title {
+            font-size: clamp(2rem, 8vw, 2.7rem);
+          }
+
+          .faq-description {
+            font-size: 0.8rem;
+          }
+
+          .faq-question {
+            padding: 17px 15px;
+            font-size: 0.78rem;
+            gap: 12px;
+          }
+
+          .faq-question > span:first-child {
+            gap: 10px;
+          }
+
+          .faq-number {
+            font-size: 0.52rem;
+          }
+
+          .faq-toggle {
+            width: 27px;
+            height: 27px;
+            font-size: 0.55rem;
+          }
+
+          .faq-answer {
+            padding: 0 48px 18px 48px;
+            font-size: 0.7rem;
+            line-height: 1.7;
+          }
+          .operations-section-heading {
+            margin-bottom: 32px;
+          }
+
+          .operations-confidence-panel {
+            padding: 22px 18px 20px;
+
+            border-radius: 16px;
+          }
+
+          .operations-feature {
+            gap: 14px;
+
+            padding: 18px 2px;
+          }
+
+          .operations-feature-icon {
+            width: 42px;
+            height: 42px;
+
+            border-radius: 11px;
+
+            font-size: 0.78rem;
+          }
+
+          .operations-feature-content h3 {
+            font-size: 0.98rem;
+
+            margin-bottom: 7px;
+          }
+
+          .operations-feature-content p {
+            font-size: 0.65rem;
+
+            line-height: 1.65;
+          }
+
+          .operations-panel-footer {
+            margin-top: 20px;
+
+            padding-top: 17px;
+
+            font-size: 0.58rem;
+          }
+          .role-experience-section {
+            padding: 60px 0 55px;
+          }
+
+          .role-section-heading {
+            margin-bottom: 35px;
+          }
+
+          .role-section-heading .section-subheading {
+            padding: 0 8px;
+          }
+
+          .role-experience-grid {
+            grid-template-columns: 1fr;
+
+            gap: 12px;
+
+            max-width: 100%;
+          }
+
+          .role-experience-card {
+            min-height: auto;
+
+            padding: 22px 19px;
+
+            border-radius: 15px;
+          }
+
+          .role-card-top {
+            margin-bottom: 20px;
+          }
+
+          .role-card-icon {
+            width: 46px;
+            height: 46px;
+
+            border-radius: 12px;
+
+            font-size: 0.85rem;
+          }
+
+          .role-card-title {
+            font-size: 1.08rem;
+
+            margin-bottom: 9px;
+          }
+
+          .role-card-desc {
+            font-size: 0.69rem;
+
+            line-height: 1.65;
+          }
+
+          .role-card-link {
+            padding-top: 18px;
+
+            font-size: 0.62rem;
+          }
+
+          .role-section-bottom {
+            margin-top: 28px;
+
+            padding: 0 12px;
+          }
+
+          .role-section-bottom p {
+            font-size: 0.64rem;
+          }
+
+        .product-showcase-section {
+          padding-top: 55px;
+          padding-bottom: 60px;
+        }
+
+        .product-showcase-heading {
+          margin-bottom: 32px;
+        }
+
+        .product-showcase-heading .section-subheading {
+          padding: 0 8px;
+        }
+
+        .product-showcase {
+          grid-template-columns: 1fr;
+
+          gap: 18px;
+
+          padding: 10px;
+
+          border-radius: 18px;
+        }
+
+        .product-showcase-image {
+          height: 250px;
+
+          border-radius: 12px;
+        }
+
+        .product-showcase-caption {
+          padding: 12px 4px 2px;
+        }
+
+        .product-showcase-caption strong {
+          font-size: 0.9rem;
+        }
+
+        .product-feature-item {
+          grid-template-columns: 24px 36px minmax(0, 1fr) 18px;
+
+          gap: 9px;
+
+          padding: 13px 10px;
+
+          border-radius: 10px;
+        }
+
+        .product-feature-icon {
+          width: 34px;
+          height: 34px;
+
+          font-size: 0.72rem;
+        }
+
+        .product-feature-title {
+          font-size: 0.76rem;
+        }
+
+        .product-feature-description {
+          font-size: 0.62rem;
+
+          -webkit-line-clamp: 2;
+        }
+
+        .product-feature-number {
+          font-size: 0.5rem;
+        }
+
+        .product-feature-arrow {
+          font-size: 0.55rem;
+        }
+          .about-number-card {
+            min-height: 220px;
+            padding: 24px 18px;
+          }
+
+          .about-number-blob {
+            width: 62px;
+            height: 48px;
+            margin-bottom: 16px;
+          }
+
+          .about-number-value {
+            font-size: 1.05rem;
+          }
+
+          .about-number-title {
+            font-size: 0.78rem;
+          }
+
+          .about-number-desc {
+            font-size: 0.68rem;
+          }
+          .about-platform-card {
+            display: block;
+            padding: 34px 22px;
+            border-radius: 18px;
+          }
+
+          .about-platform-title {
+            font-size: clamp(1.8rem, 8vw, 2.35rem);
+          }
+
+          .about-platform-points {
+            grid-template-columns: 1fr;
+            gap: 11px;
+          }
+
+          .about-platform-right {
+            margin-top: 36px;
+            display: flex;
+            flex-direction: column;
+            gap: 26px;
+          }
+
+          .workflow-section-landing {
+              padding: 55px 0 45px;
+            }
+
+            .workflow-heading-wrap {
+              margin-bottom: 38px;
+            }
+
+            .workflow-timeline {
+              display: flex;
+              flex-direction: column;
+
+              gap: 12px;
+
+              max-width: 100%;
+            }
+
+            .workflow-timeline::before {
+              display: block;
+
+              top: 30px;
+              bottom: 30px;
+
+              left: 28px;
+              right: auto;
+
+              width: 1px;
+              height: auto;
+            }
+
+            .workflow-step {
+              min-height: 105px;
+
+              display: grid;
+
+              grid-template-columns: 56px 1fr;
+
+              column-gap: 16px;
+
+              padding: 18px 16px;
+
+              text-align: left;
+            }
+
+            .workflow-step-top {
+              width: 56px;
+              height: 56px;
+
+              grid-row: 1 / span 2;
+            }
+
+            .workflow-icon {
+              width: 52px;
+              height: 52px;
+            }
+
+            .workflow-icon-number {
+              font-size: 0.72rem;
+            }
+
+            .workflow-icon i {
+              width: 18px;
+              height: 18px;
+
+              right: 3px;
+              bottom: 3px;
+
+              font-size: 0.45rem;
+            }
+
+            .workflow-step-title {
+              margin: 3px 0 5px;
+
+              font-size: 0.92rem;
+            }
+
+            .workflow-step-desc {
+              max-width: none;
+
+              margin: 0;
+
+              font-size: 0.69rem;
+
+              line-height: 1.6;
+            }
+
+            .workflow-connector {
+              display: none;
+            }
+
+            .workflow-bottom-note {
+              margin-top: 28px;
+            }
+
+          .about-platform-orbit {
+            width: 165px;
+            height: 165px;
+            flex-basis: 165px;
+          }
+
+          .about-platform-copy {
+            max-width: 100%;
+            text-align: center;
+          }
+
+          .about-platform-copy-label {
+            margin-bottom: 10px;
+          }
+
+          .about-platform-copy p {
+            font-size: 0.84rem;
+            line-height: 1.7;
+          }
+          
           .hero-section-landing {
             padding: 100px 0 60px;
             min-height: 100vh;
@@ -1907,8 +6416,17 @@ export default function LandingPage() {
             align-items: center;
             width: 100%;
           }
+            .hero-content {
+            width: 100%;
+            max-width: 100%;
+          }
 
-          .hero-title-landing { font-size: clamp(1.75rem, 6vw, 2.5rem); margin-bottom: 1rem; padding-top: 5px; line-height: 1.15; }
+          .hero-subtitle {
+            max-width: 100%;
+            padding: 0 8px;
+          } 
+
+          .hero-title-landing { font-size: clamp(1.75rem, 6vw, 2.5rem); margin-bottom: 1rem; padding-top: 5px; line-height: 1.15; overflow: visible; max-width: 100%; }
           .hero-subtitle { font-size: clamp(0.85rem, 3vw, 0.95rem); margin-bottom: 1.75rem; line-height: 1.6; max-width: 100%; }
           .hero-badge { font-size: 0.65rem; padding: 0.35rem 0.875rem; margin-bottom: 1.25rem; }
           .hero-rule { margin-bottom: 1.75rem; }
@@ -1936,7 +6454,123 @@ export default function LandingPage() {
             margin: 0;
             width: 100%;
           }
+          .workflow-section-landing {
+            padding: 65px 0 55px;
+          }
 
+          .workflow-heading-wrap {
+            margin-bottom: 45px;
+          }
+
+          .workflow-heading-wrap .section-heading {
+            font-size: clamp(1.65rem, 7vw, 2.2rem);
+          }
+
+          .workflow-heading-wrap .section-subheading {
+            font-size: 0.8rem;
+            line-height: 1.65;
+            padding: 0 10px;
+          }
+
+          .workflow-timeline {
+            display: flex;
+            flex-direction: column;
+
+            gap: 0;
+
+            max-width: 100%;
+          }
+
+          .workflow-timeline::before {
+            display: block;
+
+            top: 30px;
+            bottom: 30px;
+
+            left: 31px;
+            right: auto;
+
+            width: 1px;
+            height: auto;
+
+            background:
+              linear-gradient(
+                180deg,
+                transparent,
+                rgba(56, 189, 248, 0.3),
+                rgba(45, 212, 191, 0.3),
+                transparent
+              );
+          }
+
+          .workflow-step {
+            min-height: 125px;
+
+            display: grid;
+
+            grid-template-columns: 64px 1fr;
+
+            column-gap: 20px;
+
+            padding: 0;
+
+            text-align: left;
+          }
+
+          .workflow-step-top {
+            width: 64px;
+            height: 64px;
+
+            grid-row: 1 / span 2;
+          }
+
+          .workflow-icon {
+            width: 54px;
+            height: 54px;
+          }
+
+          .workflow-icon i {
+            font-size: 0.9rem;
+          }
+
+          .workflow-step-number {
+            top: -5px;
+            right: -2px;
+          }
+
+          .workflow-step-title {
+            margin: 4px 0 6px;
+
+            font-size: 0.95rem;
+          }
+
+          .workflow-step-desc {
+            max-width: none;
+
+            margin: 0;
+
+            font-size: 0.7rem;
+
+            line-height: 1.6;
+          }
+
+          .workflow-connector {
+            display: none;
+          }
+
+          .workflow-bottom-note {
+            margin-top: 35px;
+
+            gap: 10px;
+          }
+
+          .workflow-bottom-line {
+            width: 30px;
+          }
+
+          .workflow-bottom-note p {
+            font-size: 0.62rem;
+          }
           .about-number-card-tall { grid-row: auto; padding: 20px 14px; }
           .about-number-card-left { grid-column: 1; grid-row: 1; }
           .about-number-card-top-center { grid-column: 2; grid-row: 1; }
@@ -1952,9 +6586,12 @@ export default function LandingPage() {
           .about-offers-grid {
             grid-template-columns: 1fr;
             max-width: 100%;
-            margin: 0;
             gap: 12px;
-            width: 100%;
+          }
+
+          .about-offer-card {
+            min-height: auto;
+            padding: 25px 20px;
           }
 
           .about-offer-card { padding: 24px 18px; width: 100%; }
@@ -2007,8 +6644,264 @@ export default function LandingPage() {
 
         @media (max-width: 575.98px) {
           .container { padding-right: 10px; padding-left: 10px; }
+          .about-platform-card {
+            padding: 28px 18px;
+          }
 
-          .hero-section-landing { padding: 90px 0 50px; min-height: 100vh; min-height: 100dvh; }
+          .contact-section-heading {
+            margin-bottom: 35px;
+          }
+
+          .contact-info-panel {
+            padding: 32px 24px;
+          }
+
+          .contact-info-panel h3 {
+            font-size: 2rem;
+          }
+
+          .contact-info-description {
+            font-size: 0.78rem;
+          }
+
+          .contact-info-list {
+            margin-top: 28px;
+          }
+
+          .contact-card-inner {
+            padding: 32px 24px;
+          }
+
+          .contact-form-heading h3 {
+            font-size: 1.35rem;
+          }
+
+          .contact-form-icon {
+            width: 40px;
+            height: 40px;
+          }
+
+          .form-control-landing,
+          .form-select-landing {
+            font-size: 0.8rem;
+          }
+          .faq-section-bg {
+            overflow: hidden;
+          }
+
+          .faq-title {
+            font-size: 2rem;
+          }
+
+          .faq-eyebrow {
+            font-size: 0.58rem;
+          }
+
+          .faq-description {
+            font-size: 0.75rem;
+          }
+
+          .faq-support-note {
+            margin-top: 28px;
+            padding-top: 20px;
+          }
+
+          .faq-question {
+            padding: 15px 13px;
+            font-size: 0.72rem;
+          }
+
+          .faq-answer {
+            padding: 0 40px 16px 40px;
+            font-size: 0.66rem;
+          }
+
+          .faq-toggle {
+            width: 25px;
+            height: 25px;
+          }
+          .operations-confidence-section {
+            padding: 50px 0 45px;
+          }
+
+          .operations-confidence-panel {
+            padding: 18px 15px 17px;
+          }
+
+          .operations-feature {
+            gap: 11px;
+
+            padding: 16px 0;
+          }
+
+          .operations-feature-icon {
+            width: 38px;
+            height: 38px;
+
+            flex-shrink: 0;
+
+            font-size: 0.7rem;
+          }
+
+          .operations-feature-number {
+            font-size: 0.5rem;
+          }
+
+          .operations-feature-content h3 {
+            font-size: 0.9rem;
+          }
+
+          .operations-feature-content p {
+            font-size: 0.61rem;
+          }
+
+          .operations-panel-footer {
+            font-size: 0.54rem;
+          }
+          .product-showcase {
+            padding: 8px;
+          }
+          .role-experience-section {
+            padding: 50px 0 45px;
+          }
+
+          .role-experience-card {
+            padding: 20px 16px;
+          }
+
+          .role-card-icon {
+            width: 42px;
+            height: 42px;
+
+            font-size: 0.78rem;
+          }
+
+          .role-card-number {
+            font-size: 0.55rem;
+          }
+
+          .role-card-tag {
+            font-size: 0.5rem;
+          }
+
+          .role-card-title {
+            font-size: 1rem;
+          }
+
+          .role-card-desc {
+            font-size: 0.65rem;
+          }
+
+          .role-section-bottom {
+            padding: 0 5px;
+          }
+
+          .role-bottom-icon {
+            width: 24px;
+            height: 24px;
+          }
+
+          .role-section-bottom p {
+            font-size: 0.6rem;
+          }
+          .product-showcase-image {
+            height: 215px;
+          }
+
+          .product-showcase-caption {
+            padding-left: 2px;
+          }
+
+          .product-feature-item {
+            grid-template-columns: 20px 32px minmax(0, 1fr) 14px;
+            gap: 7px;
+
+            padding: 11px 8px;
+          }
+
+          .product-feature-icon {
+            width: 30px;
+            height: 30px;
+          }
+
+          .product-feature-title {
+            font-size: 0.7rem;
+          }
+
+          .product-feature-description {
+            font-size: 0.58rem;
+          }
+
+          .product-feature-arrow {
+            display: none;
+          }
+          .workflow-section-landing {
+            padding: 55px 0 45px;
+          }
+
+          .workflow-step {
+            min-height: 118px;
+            grid-template-columns: 58px 1fr;
+            column-gap: 16px;
+          }
+
+          .workflow-step-top {
+            width: 58px;
+          }
+
+          .workflow-icon {
+            width: 48px;
+            height: 48px;
+          }
+
+          .workflow-step-title {
+            font-size: 0.88rem;
+          }
+
+          .workflow-step-desc {
+            font-size: 0.66rem;
+          }
+
+          .workflow-bottom-note {
+            margin-top: 25px;
+          }
+
+          .workflow-bottom-line {
+            display: none;
+          }
+
+          .about-platform-eyebrow,
+          .about-platform-copy-label {
+            font-size: 0.56rem;
+          }
+
+          .about-platform-title {
+            font-size: 1.75rem;
+          }
+
+          .about-platform-point {
+            font-size: 0.76rem;
+          }
+
+          .about-platform-orbit {
+            width: 145px;
+            height: 145px;
+            flex-basis: 145px;
+          }
+
+          .about-platform-core {
+            width: 76px;
+            height: 76px;
+          }
+
+          .about-platform-core span {
+            font-size: 0.85rem;
+          }
+
+          .about-platform-core small {
+            font-size: 0.36rem;
+          }
+                    .hero-section-landing { padding: 90px 0 50px; min-height: 100vh; min-height: 100dvh; }
           .hero-title-landing { font-size: clamp(1.5rem, 7vw, 2.2rem); margin-bottom: 0.875rem; }
           .hero-subtitle { font-size: 0.8125rem; margin-bottom: 1.5rem; line-height: 1.55; }
           .hero-badge { font-size: 0.6rem; padding: 0.3rem 0.75rem; margin-bottom: 1rem; }
@@ -2095,13 +6988,47 @@ export default function LandingPage() {
           .form-control-landing, .form-select-landing { padding: 0.55rem 0.625rem; font-size: 0.75rem; border-radius: 6px; }
           .btn-contact-submit { padding: 0.7rem 1.5rem; font-size: 0.6875rem; max-width: 100%; }
 
-          .footer-landing { padding: 12px 0 0px; }
-          .footer-brand-text { font-size: 1rem; margin-bottom: 0.625rem; }
-          .footer-body-text { font-size: 0.75rem; line-height: 1.65; }
-          .footer-copy { font-size: 0.625rem; }
+          .footer-landing {
+            padding: 38px 0 18px;
+          }
+
+          .footer-brand img {
+            height: 36px;
+          }
+
+          .footer-body-text {
+            font-size: 0.72rem;
+            line-height: 1.7;
+          }
+
+          .footer-links-label {
+            font-size: 0.56rem;
+            margin-bottom: 14px;
+          }
+
+          .footer-links {
+            gap: 14px 18px;
+          }
+
+          .footer-links a {
+            font-size: 0.65rem;
+          }
+
+          .footer-divider {
+            margin: 28px 0 16px;
+          }
+
+          .footer-copy {
+            font-size: 0.58rem;
+          }
+
+          .version-badge {
+            margin-top: 8px;
+            font-size: 0.55rem;
+          }
           .version-badge { font-size: 0.55rem; padding: 0.1rem 0.375rem; }
 
-          .floating-top { bottom: 12px; right: 12px; width: 38px; height: 38px; font-size: 0.875rem; }
+          top { bottom: 12px; right: 12px; width: 38px; height: 38px; font-size: 0.875rem; .floating-}
 
           .navbar-brand-landing { font-size: 1.25rem !important; }
           .navbar-brand-landing img { height: 32px; }
@@ -2199,7 +7126,10 @@ export default function LandingPage() {
           .contact-card-inner { padding: 64px; }
         }
 
-        @media (prefers-reduced-motion: reduce) {
+          @media (prefers-reduced-motion: reduce) {
+          .workflow-bg-glow {
+            animation: none !important;
+          }
           *, *::before, *::after {
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
@@ -2253,7 +7183,6 @@ export default function LandingPage() {
             aria-controls="navbarNav"
             aria-expanded="false"
             aria-label="Toggle navigation"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             style={{ borderColor: "rgba(56,189,248,0.35)" }}
           >
             <span className="navbar-toggler-icon"></span>
@@ -2265,46 +7194,85 @@ export default function LandingPage() {
             >
               <Nav.Item>
                 <Nav.Link
-                  className={`nav-link-landing ${activeSection === "about" ? "active" : ""}`}
+className={`nav-link-landing ${
+  activeSection === "about" ? "active" : ""
+}`}
                   href="#about"
                   onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection("about");
-                  }}
+                  e.preventDefault();
+                  scrollToSection("about");
+                  
+                }}
                 >
                   About
                 </Nav.Link>
               </Nav.Item>
               <Nav.Item>
                 <Nav.Link
-                  className={`nav-link-landing ${activeSection === "features" ? "active" : ""}`}
+                  className={`nav-link-landing ${
+                  activeSection === "features" ? "active" : ""
+                }`}   
                   href="#features"
                   onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection("features");
-                  }}
+                  e.preventDefault();
+                  scrollToSection("features");
+                  
+                }}
                 >
                   Features
                 </Nav.Link>
               </Nav.Item>
+
+              <Nav.Item>
+              <Nav.Link
+                className={`nav-link-landing ${
+                  activeSection === "faq" ? "active" : ""
+                }`}
+                href="#faq"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection("faq");
+                  
+                }}
+              >
+                FAQ
+              </Nav.Link>
+            </Nav.Item>
               <Nav.Item>
                 <Nav.Link
-                  className={`nav-link-landing ${activeSection === "contact" ? "active" : ""}`}
-                  href="#contact"
+                  className={`nav-link-landing ${
+                  activeSection === "contact" ? "active" : ""
+                }`}
                   onClick={(e) => {
-                    e.preventDefault();
-                    scrollToSection("contact");
-                  }}
+                  e.preventDefault();
+                  scrollToSection("contact");
+                  
+                }}
                 >
                   Contact
                 </Nav.Link>
               </Nav.Item>
               <Nav.Item className="ms-3">
-                <Button className="btn-nav-login" href="/login">
-                  <i className="fas fa-sign-in-alt me-2"></i>
-                  <span>Login</span>
-                </Button>
-              </Nav.Item>
+              <Button
+                className="btn-nav-login"
+                as={Link}
+                to="/login"
+              >
+                <i className="fas fa-sign-in-alt me-2"></i>
+                <span>Login</span>
+              </Button>
+            </Nav.Item>
+
+            <Nav.Item>
+              <Button
+                className="btn-nav-demo"
+                onClick={() => {
+                  scrollToSection("contact");
+                }}
+              >
+                Book a Demo
+              </Button>
+            </Nav.Item>
             </Nav>
           </div>
         </Container>
@@ -2312,6 +7280,7 @@ export default function LandingPage() {
 
       {/* ─── HERO ─── */}
       <section className="hero-section-landing">
+        <div className="hero-background" />
         <div className="hero-grid-dots" />
         <div className="hero-lines" />
         <div className="hero-blob hero-blob-1" />
@@ -2329,7 +7298,7 @@ export default function LandingPage() {
             >
               <div className="hero-badge">
                 <i className="fas fa-sparkles"></i>
-                <span>Next-Gen Education Platform</span>
+                <span>Next-Gen College ERP</span>
               </div>
             </motion.div>
 
@@ -2337,15 +7306,15 @@ export default function LandingPage() {
             <div className="hero-animate-wrapper">
               <h1
                 className="hero-title-landing mb-4"
-                style={{ overflow: "hidden" }}
+                style={{ overflow: "visible" }}
               >
                 <span className="d-inline-block animate__animated animate__bounceInDown hero-bounce-in-down">
-                  Transform Your
+                  One Platform.
                 </span>
                 <br />
                 <span className="d-inline-block animate__animated animate__bounceInRight hero-bounce-in-right">
-                  Educational{" "}
-                  <span className="hero-highlight">Institution</span>
+                  Smarter{" "}
+                  <span className="hero-highlight">College Management.</span>
                 </span>
               </h1>
             </div>
@@ -2369,9 +7338,8 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.8 }}
             >
-              Comprehensive college management platform designed to streamline
-              operations, enhance learning experiences, and connect students,
-              teachers, and administrators seamlessly.
+              Manage students, academics, examinations, fees, faculty, and
+              institutional operations from one intelligent college ERP platform.
             </motion.p>
 
             {/* CTAs */}
@@ -2382,7 +7350,7 @@ export default function LandingPage() {
               transition={{ duration: 0.7, delay: 1 }}
             >
               <Button className="btn-hero-primary" href="/register">
-                <i className="fas fa-rocket me-2"></i>Get Started
+                <i className="fas fa-rocket me-2"></i>Book a Demo
               </Button>
               <Button
                 className="btn-hero-secondary"
@@ -2392,7 +7360,7 @@ export default function LandingPage() {
                   scrollToSection("features");
                 }}
               >
-                <i className="fas fa-info-circle me-2"></i>Learn More
+                <i className="fas fa-layer-group me-2"></i>Explore NOVAA
               </Button>
             </motion.div>
           </div>
@@ -2417,33 +7385,113 @@ export default function LandingPage() {
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              Transforming education through innovative technology solutions
+              Everything your institution needs to manage people, processes, and
+              academic operations — connected in one intelligent platform.
             </motion.p>
           </div>
 
           {/* Main About Card */}
+          {/* Main Platform Introduction */}
           <motion.div
-            className="about-card text-center"
-            initial={{ opacity: 0, y: 30 }}
+            className="about-platform-card"
+            initial={{ opacity: 0, y: 35 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ duration: 0.75, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
-            <h3 className="about-card-headline">
-              Revolutionizing Educational Management
-            </h3>
-            <p className="about-card-text mb-0">
-              NOVAA is a comprehensive education management platform designed to
-              streamline operations across educational institutions. Our
-              platform connects students, teachers, administrators, and parents
-              through a unified digital ecosystem.
-            </p>
+            <div className="about-platform-left">
+              <span className="about-platform-eyebrow">
+                THE NOVAA PLATFORM
+              </span>
+
+              <h3 className="about-platform-title">
+                Built to Connect
+                <span>Your Entire Institution.</span>
+              </h3>
+
+              <div className="about-platform-line"></div>
+
+              <div className="about-platform-points">
+                <div className="about-platform-point">
+                  <span className="about-platform-number">01</span>
+                  <span>Student Information</span>
+                </div>
+
+                <div className="about-platform-point">
+                  <span className="about-platform-number">02</span>
+                  <span>Academic Operations</span>
+                </div>
+
+                <div className="about-platform-point">
+                  <span className="about-platform-number">03</span>
+                  <span>Examinations & Results</span>
+                </div>
+
+                <div className="about-platform-point">
+                  <span className="about-platform-number">04</span>
+                  <span>Fees & Institutional Insights</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="about-platform-right">
+
+              <div className="about-platform-orbit-wrap">
+                <span className="orbit-module orbit-module-top">
+                  STUDENTS
+                </span>
+
+                <span className="orbit-module orbit-module-right">
+                  ACADEMICS
+                </span>
+
+                <span className="orbit-module orbit-module-bottom">
+                  EXAMS
+                </span>
+
+                <span className="orbit-module orbit-module-left">
+                  FINANCE
+                </span>
+
+                <div className="about-platform-orbit">
+                  <span className="orbit-dot orbit-dot-1"></span>
+                  <span className="orbit-dot orbit-dot-2"></span>
+                  <span className="orbit-dot orbit-dot-3"></span>
+
+                  <div className="about-platform-core">
+                    <span>NOVAA</span>
+                    <small>COLLEGE ERP</small>
+                  </div>
+                </div>
+              </div>
+
+              {/* CLOSE ORBIT WRAPPER HERE */}
+
+              <div className="about-platform-copy">
+                <span className="about-platform-copy-label">
+                  ONE CONNECTED PLATFORM
+                </span>
+
+                <p>
+                  NOVAA brings students, teachers, administrators, and parents
+                  into one connected ecosystem. From student information and
+                  academics to examinations, fees, communication, and
+                  institutional operations, NOVAA helps your institution manage
+                  everyday workflows from one centralized platform.
+                </p>
+              </div>
+
+            </div>
           </motion.div>
 
           {/* Numbers Section */}
           <div className="about-numbers-section mt-5">
+            <span className="numbers-corner numbers-corner-tl"></span>
+            <span className="numbers-corner numbers-corner-tr"></span>
+            <span className="numbers-corner numbers-corner-bl"></span>
+            <span className="numbers-corner numbers-corner-br"></span>
             <div className="text-center mb-5">
-              <span className="about-numbers-label">TALKING ABOUT NUMBERS</span>
+              <span className="about-numbers-label">NOVAA BY THE NUMBERS</span>
               <h3 className="about-numbers-heading">We Believe in Numbers</h3>
             </div>
 
@@ -2462,130 +7510,63 @@ export default function LandingPage() {
               />
 
               {/* Left — Students (tall) */}
-              <motion.div
-                className="about-number-card about-number-card-tall about-number-card-left"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.1 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-blue">
-                  <span className="about-number-value">
-                    {statsLoading
-                      ? "..."
-                      : `${stats.totalStudents.toLocaleString()}+`}
-                  </span>
-                </div>
-                <h5 className="about-number-title">Students Managed</h5>
-                <p className="about-number-desc">
-                  Complete student lifecycle managed through our platform.
-                </p>
-              </motion.div>
+              {statCards.map((card) => {
+                const value = stats[card.valueKey];
 
-              {/* Top-center — Institutions */}
-              <motion.div
-                className="about-number-card about-number-card-top-center"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.2 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-teal">
-                  <span className="about-number-value">
-                    {statsLoading ? "..." : `${stats.totalColleges}+`}
-                  </span>
-                </div>
-                <h5 className="about-number-title">Institutions Trust NOVAA</h5>
-                <p className="about-number-desc">
-                  Leading institutions powered by our technology solutions.
-                </p>
-              </motion.div>
+                return (
+                  <motion.div
+                    className={card.cardClass}
+                    key={card.key}
+                    initial={{ opacity: 0, y: 40 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.7, delay: card.delay }}
+                  >
+                    <div className="card-bg-blob-tl" />
+                    <div className="card-bg-blob-br" />
 
-              {/* Bottom-center — Teachers */}
-              <motion.div
-                className="about-number-card about-number-card-bottom-center"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.3 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-coral">
-                  <span className="about-number-value">
-                    {statsLoading ? "..." : `${stats.totalTeachers}+`}
-                  </span>
-                </div>
-                <h5 className="about-number-title">Teachers Empowered</h5>
-                <p className="about-number-desc">
-                  Educators streamlined with intelligent tools.
-                </p>
-              </motion.div>
+                    <div className={`about-number-blob ${card.blobClass}`}>
+                      <span className="about-number-value">
+                        {statsLoading
+                          ? "..."
+                          : card.useLocaleString
+                          ? `${value.toLocaleString()}${card.suffix}`
+                          : `${value}${card.suffix}`}
+                      </span>
+                    </div>
+                    <div className="about-number-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
 
-              {/* Right — Uptime (tall) */}
-              <motion.div
-                className="about-number-card about-number-card-tall about-number-card-right"
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.7, delay: 0.4 }}
-              >
-                <div className="card-bg-blob-tl" />
-                <div className="card-bg-blob-br" />
-                <div className="about-number-blob about-number-blob-yellow">
-                  <span className="about-number-value">
-                    {stats.systemUptime}
-                  </span>
-                </div>
-                <h5 className="about-number-title">System Uptime</h5>
-                <p className="about-number-desc">
-                  Reliable, always-on infrastructure for your campus.
-                </p>
-              </motion.div>
+                    <h5 className="about-number-title">
+                      {card.title}
+                    </h5>
+
+                    <p className="about-number-desc">
+                      {card.description}
+                    </p>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
 
           {/* What NOVAA Offers */}
           <div className="about-offers-section mt-5">
             <div className="text-center mb-5">
-              <span className="about-numbers-label">WHY CHOOSE US</span>
-              <h3 className="about-numbers-heading">What NOVAA Offers</h3>
+              <span className="about-numbers-label">THE NOVAA PLATFORM</span>
+              <h3 className="about-numbers-heading">
+                Everything Connected. Everything In One Place.
+              </h3>
             </div>
 
             <div className="about-offers-grid" style={{ position: "relative" }}>
               <div className="offers-section-bg-blob offers-section-bg-blob-1" />
               <div className="offers-section-bg-blob offers-section-bg-blob-2" />
 
-              {[
-                {
-                  icon: "fa-shield-halved",
-                  title: "Secure & Reliable",
-                  desc: "Enterprise-grade security with role-based access control, data encryption, and automated backups.",
-                  blobColor: "about-offer-blob-blue",
-                },
-                {
-                  icon: "fa-mobile-screen-button",
-                  title: "Mobile-First Design",
-                  desc: "Access your college ERP anytime, anywhere with a fully responsive interface for all devices.",
-                  blobColor: "about-offer-blob-teal",
-                },
-                {
-                  icon: "fa-puzzle-piece",
-                  title: "Modular & Scalable",
-                  desc: "Start with what you need and expand as your institution grows to multi-campus universities.",
-                  blobColor: "about-offer-blob-coral",
-                },
-                {
-                  icon: "fa-headset",
-                  title: "Dedicated Support",
-                  desc: "Expert onboarding assistance, training, and 24/7 technical support for a smooth experience.",
-                  blobColor: "about-offer-blob-yellow",
-                },
-              ].map((offer, i) => (
+              {offers.map((offer, i) => (
                 <motion.div
                   className="about-offer-card"
                   key={i}
@@ -2596,6 +7577,9 @@ export default function LandingPage() {
                 >
                   <div className="offer-bg-blob-tl" />
                   <div className="offer-bg-blob-br" />
+                  <span className="about-offer-index">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
                   <div className={`about-offer-blob ${offer.blobColor}`}>
                     <i className={`fas ${offer.icon}`}></i>
                   </div>
@@ -2608,79 +7592,474 @@ export default function LandingPage() {
         </Container>
       </section>
 
-      {/* ─── FEATURES SECTION ─── */}
-      <section id="features" className="section-landing features-section-bg">
+
+            {/* ─── ERP WORKFLOW SECTION ─── */}
+      <section className="workflow-section-landing">
+        <div className="workflow-bg-glow workflow-bg-glow-1" />
+        <div className="workflow-bg-glow workflow-bg-glow-2" />
+
         <Container>
           <motion.div
-            className="text-center mb-5"
+            className="text-center workflow-heading-wrap"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
             variants={staggerContainer}
           >
+            <motion.span
+              className="about-numbers-label"
+              variants={fadeInUp}
+            >
+              THE COMPLETE STUDENT LIFECYCLE
+            </motion.span>
+
             <motion.h2
               className="section-heading heading-underline"
               variants={fadeInUp}
             >
-              Powerful Features
+              From Admission to Graduation
             </motion.h2>
+
             <motion.p
               className="section-subheading"
               variants={fadeInUp}
               custom={1}
             >
-              Everything you need to manage your educational institution
-              efficiently
+              Connect every stage of the student journey through one
+              centralized college ERP platform.
             </motion.p>
           </motion.div>
 
-          <Row className="g-4">
-            {features.map((feature, index) => (
-              <Col xs={12} sm={6} lg={4} key={index}>
-                <motion.div
-                  className="feature-card-landing"
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, margin: "-50px" }}
+          <div className="workflow-timeline">
+            {workflowSteps.map((step, index) => (
+              <motion.div
+                className="workflow-step"
+                key={step.number}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{
+                  duration: 0.55,
+                  delay: index * 0.08,
+                }}
+              >
+                <div className="workflow-step-top">
+                  <span className="workflow-step-number">
+                    {step.number}
+                  </span>
+
+                  <div className="workflow-icon">
+                  <span className="workflow-icon-number">
+                    {step.number}
+                  </span>
+
+                  <i className={`fas ${step.icon}`}></i>
+                </div>
+                </div>
+
+                <h3 className="workflow-step-title">
+                  {step.title}
+                </h3>
+
+                <p className="workflow-step-desc">
+                  {step.desc}
+                </p>
+
+                {index < 5 && (
+                  <span className="workflow-connector">
+                    <i className="fas fa-arrow-right"></i>
+                  </span>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            className="workflow-bottom-note"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <span className="workflow-bottom-line"></span>
+
+            <p>
+              One connected journey
+              <span>•</span>
+              One source of institutional data
+            </p>
+
+            <span className="workflow-bottom-line"></span>
+          </motion.div>
+        </Container>
+      </section>
+
+      {/* ─── FEATURES SECTION ─── */}
+      {/* ─── FEATURES / PRODUCT SHOWCASE SECTION ─── */}
+          <section
+            id="features"
+            className="section-landing features-section-bg product-showcase-section"
+          >
+            <Container>
+              <motion.div
+                className="text-center product-showcase-heading"
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: "-100px" }}
+                variants={staggerContainer}
+              >
+                <motion.span
+                  className="about-numbers-label"
                   variants={fadeInUp}
-                  custom={index * 0.1}
                 >
+                  THE NOVAA PLATFORM
+                </motion.span>
+
+                <motion.h2
+                  className="section-heading heading-underline"
+                  variants={fadeInUp}
+                >
+                  Powerful Tools. One Connected System.
+                </motion.h2>
+
+                <motion.p
+                  className="section-subheading"
+                  variants={fadeInUp}
+                  custom={1}
+                >
+                  Explore the tools that help your institution manage students,
+                  academics, finance, communication, and everyday operations.
+                </motion.p>
+              </motion.div>
+
+              <motion.div
+                className="product-showcase"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.7 }}
+              >
+                {/* PRODUCT IMAGE */}
+                <div className="product-showcase-visual">
                   <div
-                    className="feature-img-wrapper feature-image-clickable"
-                    onClick={() =>
-                      setSelectedImage({
-                        src: feature.image,
-                        title: feature.title,
-                      })
-                    }
+                    className="product-showcase-image"
                     role="button"
                     tabIndex={0}
+                    onClick={() =>
+                      setSelectedImage({
+                        src: features[activeFeature].image,
+                        title: features[activeFeature].title,
+                      })
+                    }
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
                         e.preventDefault();
+
                         setSelectedImage({
-                          src: feature.image,
-                          title: feature.title,
+                          src: features[activeFeature].image,
+                          title: features[activeFeature].title,
                         });
                       }
                     }}
-                    aria-label={`View ${feature.title} image`}
+                    aria-label={`View ${features[activeFeature].title} image`}
                   >
-                    <img src={feature.image} alt={feature.title} />
+                    <img
+                      src={features[activeFeature].image}
+                      alt={features[activeFeature].title}
+                    />
+
+                    <div className="product-showcase-image-overlay">
+                      <span>
+                        <i className="fas fa-expand"></i>
+                        View Preview
+                      </span>
+                    </div>
                   </div>
-                  <div className="p-4">
-                    <h5 className="feature-card-title text-center mb-3">
-                      <i className={`fas ${feature.icon} feature-icon`}></i>
-                      {feature.title}
-                    </h5>
-                    <p className="feature-card-desc text-center">
-                      {feature.description}
-                    </p>
+
+                  <div className="product-showcase-caption">
+                    <span>
+                      {String(activeFeature + 1).padStart(2, "0")}
+                    </span>
+
+                    <strong>{features[activeFeature].title}</strong>
                   </div>
-                </motion.div>
-              </Col>
+                </div>
+
+                {/* FEATURE LIST */}
+                <div className="product-showcase-list">
+                  {features.map((feature, index) => {
+                    const isActive = activeFeature === index;
+
+                    return (
+                      <button
+                        type="button"
+                        className={`product-feature-item ${
+                          isActive ? "active" : ""
+                        }`}
+                        key={feature.title}
+                        onClick={() => setActiveFeature(index)}
+                        aria-pressed={isActive}
+                      >
+                        <span className="product-feature-number">
+                          {String(index + 1).padStart(2, "0")}
+                        </span>
+
+                        <span className="product-feature-icon">
+                          <i className={`fas ${feature.icon}`}></i>
+                        </span>
+
+                        <span className="product-feature-content">
+                          <span className="product-feature-title">
+                            {feature.title}
+                          </span>
+
+                          <span className="product-feature-description">
+                            {feature.description}
+                          </span>
+                        </span>
+
+                        <span className="product-feature-arrow">
+                          <i className="fas fa-arrow-right"></i>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </Container>
+          </section>
+
+      {/* ─── ROLE EXPERIENCE SECTION ─── */}
+      <section className="role-experience-section">
+        <div className="role-section-glow role-section-glow-left" />
+        <div className="role-section-glow role-section-glow-right" />
+
+        <Container>
+          <motion.div
+            className="text-center role-section-heading"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={staggerContainer}
+          >
+            <motion.span
+              className="about-numbers-label"
+              variants={fadeInUp}
+            >
+              ONE CONNECTED ECOSYSTEM
+            </motion.span>
+
+            <motion.h2
+              className="section-heading heading-underline"
+              variants={fadeInUp}
+            >
+              One Platform. Every Role.
+            </motion.h2>
+
+            <motion.p
+              className="section-subheading"
+              variants={fadeInUp}
+              custom={1}
+            >
+              Give every member of your institution the tools and
+              information they need — all within one connected platform.
+            </motion.p>
+          </motion.div>
+
+          
+
+              <div className="role-experience-grid">
+            {roleExperiences.map((role, index) => (
+              <motion.div
+                className="role-experience-card"
+                key={role.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{
+                  duration: 0.6,
+                  delay: index * 0.08,
+                }}
+              >
+                <div className="role-card-top">
+                  <span className="role-card-number">
+                    {role.number}
+                  </span>
+
+                  <div className="role-card-icon">
+            <i className={`fas ${role.icon}`}></i>
+          </div>
+                </div>
+
+                <div className="role-card-content">
+                  <span className="role-card-tag">
+                    {role.category}
+                  </span>
+
+                  <h3 className="role-card-title">
+                    {role.title}
+                  </h3>
+
+                  <p className="role-card-desc">
+                    {role.desc}
+                  </p>
+
+                  <div className="role-card-footer">
+                    <span>{role.link}</span>
+                  </div>
+                </div>
+
+                <div className="role-card-accent" />
+              </motion.div>
             ))}
-          </Row>
+          </div>
+
+          <motion.div
+            className="role-section-bottom"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.35 }}
+          >
+            <span className="role-bottom-icon">
+              <i className="fas fa-link"></i>
+            </span>
+
+            <p>
+              Everyone stays connected through one institutional system.
+            </p>
+          </motion.div>
+        </Container>
+      </section>
+
+      {/* ─── TRUST / OPERATIONS SECTION ─── */}
+      <section className="operations-confidence-section">
+        <div className="operations-bg-glow operations-bg-glow-left" />
+        <div className="operations-bg-glow operations-bg-glow-right" />
+
+        <Container>
+          <motion.div
+            className="text-center operations-section-heading"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={staggerContainer}
+          >
+            <motion.span
+              className="about-numbers-label"
+              variants={fadeInUp}
+            >
+              BUILT FOR INSTITUTIONAL OPERATIONS
+            </motion.span>
+
+            <motion.h2
+              className="section-heading heading-underline"
+              variants={fadeInUp}
+            >
+              Secure. Connected. Built to Scale.
+            </motion.h2>
+
+            <motion.p
+              className="section-subheading"
+              variants={fadeInUp}
+              custom={1}
+            >
+              NOVAA brings the tools, access controls, and operational
+              support your institution needs to manage everyday work
+              from one connected platform.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            className="operations-confidence-panel"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-70px" }}
+            transition={{ duration: 0.7 }}
+          >
+            <div className="operations-features-grid">
+
+              {/* 01 */}
+              <div className="operations-feature">
+                <div className="operations-feature-icon">
+                  <i className="fas fa-user-shield"></i>
+                </div>
+
+                <div className="operations-feature-content">
+                  <span className="operations-feature-number">
+                    01
+                  </span>
+                    <span className="operations-feature-label">
+                    ACCESS CONTROL
+                  </span>
+                  <h3>Centralized Access</h3>
+
+                  <p>
+                    Role-based access helps keep institutional
+                    information organized according to the needs
+                    of different users.
+                  </p>
+                </div>
+              </div>
+
+              {/* 02 */}
+              <div className="operations-feature">
+                <div className="operations-feature-icon">
+                  <i className="fas fa-lock"></i>
+                </div>
+
+                <div className="operations-feature-content">
+                  <span className="operations-feature-number">
+                    02
+                  </span>
+      <span className="operations-feature-label">
+        DATA SECURITY
+      </span>
+                  <h3>Protected Information</h3>
+
+                  <p>
+                    Keep important institutional information
+                    protected through secure workflows and
+                    controlled access.
+                  </p>
+                </div>
+              </div>
+
+              {/* 03 */}
+              <div className="operations-feature">
+                <div className="operations-feature-icon">
+                  <i className="fas fa-headset"></i>
+                </div>
+
+                <div className="operations-feature-content">
+                  <span className="operations-feature-number">
+                    03
+                  </span>
+                  <span className="operations-feature-label">
+                    HUMAN SUPPORT
+                  </span>
+                  <h3>Dedicated Support</h3>
+
+                  <p>
+                    Get onboarding assistance, training, and
+                    technical support to help your teams use
+                    NOVAA effectively.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="operations-panel-footer">
+              <span className="operations-footer-icon">
+                <i className="fas fa-check"></i>
+              </span>
+
+              <span>
+                One connected platform for everyday institutional operations.
+              </span>
+            </div>
+          </motion.div>
         </Container>
       </section>
 
@@ -2699,7 +8078,7 @@ export default function LandingPage() {
             <motion.div variants={fadeInUp}>
               <span className="cta-badge">
                 <i className="fas fa-rocket"></i>
-                <span>Limited Time Offer</span>
+                <span>READY WHEN YOUR INSTITUTION IS</span>
               </span>
             </motion.div>
 
@@ -2708,7 +8087,8 @@ export default function LandingPage() {
               variants={fadeInUp}
               custom={1}
             >
-              Ready to Transform Your Institution?
+              Your Institution.
+             <p> One Connected Platform.</p>
             </motion.h2>
 
             <motion.p
@@ -2716,9 +8096,8 @@ export default function LandingPage() {
               variants={fadeInUp}
               custom={2}
             >
-              Join hundreds of educational institutions that trust NOVAA for
-              their management needs. Start your journey towards digital
-              excellence today.
+              Bring students, academics, faculty, finance, and everyday
+              institutional operations together with NOVAA.
             </motion.p>
 
             <motion.div
@@ -2770,51 +8149,258 @@ export default function LandingPage() {
         </Container>
       </section>
 
-      {/* ─── CONTACT SECTION ─── */}
-      <section id="contact" className="section-landing contact-section-bg">
+
+            {/* ─── FAQ SECTION ─── */}
+      <section id="faq" className="section-landing faq-section-bg">
+        <div className="section-corner-mark tl" />
+        <div className="section-corner-mark br" />
+
         <Container>
+          <div className="faq-layout">
+
+            {/* LEFT CONTENT */}
+            <motion.div
+              className="faq-intro"
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.7 }}
+            >
+              <span className="faq-eyebrow">
+                <i className="fas fa-circle-question"></i>
+                FREQUENTLY ASKED QUESTIONS
+              </span>
+
+              <h2 className="faq-title">
+                Questions,
+                <span> Answered.</span>
+              </h2>
+
+              <p className="faq-description">
+                Everything you need to know about NOVAA and how it can bring
+                your institution's academic and administrative operations
+                together.
+              </p>
+
+              <div className="faq-support-note">
+                <div className="faq-support-icon">
+                  <i className="fas fa-headset"></i>
+                </div>
+
+                <div>
+                  <span>Still have questions?</span>
+                  <p>Our team is ready to help you get started.</p>
+                </div>
+              </div>
+              <div className="faq-meta">
+                <span className="faq-meta-line"></span>
+                <span>5 QUESTIONS · QUICK ANSWERS</span>
+              </div>
+            </motion.div>
+
+            {/* RIGHT ACCORDION */}
+            <motion.div
+              className="faq-list"
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+            >
+              {faqs.map((faq, index) => {
+                const isOpen = openFaq === index;
+
+                return (
+                  <div
+                    className={`faq-item ${isOpen ? "open" : ""}`}
+                    key={faq.question}
+                  >
+                    <button
+                      type="button"
+                      className="faq-question"
+                      onClick={() =>
+                        setOpenFaq(isOpen ? null : index)
+                      }
+                      aria-expanded={isOpen}
+                    >
+                      <span>
+                        <span className="faq-number">
+                          0{index + 1}
+                        </span>
+
+                        {faq.question}
+                      </span>
+
+                      <span className="faq-toggle">
+                        <i
+                          className={`fas ${
+                            isOpen ? "fa-minus" : "fa-plus"
+                          }`}
+                        ></i>
+                      </span>
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          className="faq-answer-wrapper"
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{
+                            height: {
+                              duration: 0.35,
+                              ease: [0.4, 0, 0.2, 1],
+                            },
+                            opacity: {
+                              duration: 0.25,
+                            },
+                          }}
+                        >
+                          <div className="faq-answer">
+                            {faq.answer}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </motion.div>
+
+          </div>
+        </Container>
+      </section>
+
+            {/* ─── CONTACT SECTION ─── */}
+      <section id="contact" className="section-landing contact-section-bg">
+        <div className="contact-bg-glow contact-bg-glow-left" />
+        <div className="contact-bg-glow contact-bg-glow-right" />
+
+        <Container>
+          {/* Section Heading */}
           <motion.div
-            className="text-center mb-5"
+            className="text-center contact-section-heading"
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
             variants={staggerContainer}
           >
+            <motion.span
+              className="contact-eyebrow"
+              variants={fadeInUp}
+            >
+              <i className="fas fa-paper-plane"></i>
+              GET IN TOUCH
+            </motion.span>
+
             <motion.h2
               className="section-heading heading-underline"
               variants={fadeInUp}
             >
-              Get In Touch
+              Let's Connect.
             </motion.h2>
+
             <motion.p
               className="section-subheading"
               variants={fadeInUp}
               custom={1}
             >
-              Have questions? Our team is here to help you get started
+              Have questions or want to see how NOVAA can fit your institution?
+              Our team is here to help.
             </motion.p>
           </motion.div>
 
-          <Row className="justify-content-center">
-            <Col lg={8}>
+          {/* Contact Layout */}
+          <Row className="contact-main-row align-items-stretch">
+            {/* LEFT — CONTACT INFO */}
+            <Col lg={5} className="mb-4 mb-lg-0">
+              <motion.div
+                className="contact-info-panel"
+                initial={{ opacity: 0, x: -35 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.7 }}
+              >
+                <span className="contact-panel-label">
+                  START A CONVERSATION
+                </span>
+
+                <h3>
+                  Bring your institution
+                  <span> together.</span>
+                </h3>
+
+                <p className="contact-info-description">
+                  Tell us a little about your institution and what you are
+                  looking to manage. We'll help you understand how NOVAA can
+                  support your academic and administrative workflows.
+                </p>
+
+                <div className="contact-info-list">
+                  <div className="contact-info-item">
+                    <div className="contact-info-icon">
+                      <i className="fas fa-headset"></i>
+                    </div>
+
+                    <div>
+                      <span>Dedicated Support</span>
+                      <p>Our team is ready to assist you.</p>
+                    </div>
+                  </div>
+
+                  <div className="contact-info-item">
+                    <div className="contact-info-icon">
+                      <i className="fas fa-building-columns"></i>
+                    </div>
+
+                    <div>
+                      <span>Built for Institutions</span>
+                      <p>Designed around everyday college operations.</p>
+                    </div>
+                  </div>
+
+                  <div className="contact-info-item">
+                    <div className="contact-info-icon">
+                      <i className="fas fa-comments"></i>
+                    </div>
+
+                    <div>
+                      <span>Let's Talk</span>
+                      <p>Share your requirements with our team.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="contact-panel-bottom">
+                  <i className="fas fa-arrow-right"></i>
+                  <span>We'd love to hear from you.</span>
+                </div>
+              </motion.div>
+            </Col>
+
+            {/* RIGHT — FORM */}
+            <Col lg={7}>
               <motion.div
                 className="contact-card"
-                initial="hidden"
-                whileInView="visible"
+                initial={{ opacity: 0, x: 35 }}
+                whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
-                variants={fadeInUp}
+                transition={{ duration: 0.7, delay: 0.1 }}
               >
                 <div className="contact-card-inner">
-                  <h3 className="contact-headline fw-bold mb-2 text-center">
-                    <i
-                      className="fas fa-paper-plane me-2"
-                      style={{ color: "var(--teal-vivid)" }}
-                    ></i>
-                    Send Us a Message
-                  </h3>
-                  <p className="contact-subtext text-center mb-5">
-                    Fill out the form below and we'll get back to you within 24
-                    hours.
+                  <div className="contact-form-heading">
+                    <div>
+                      <span>CONTACT FORM</span>
+                      <h3>Send Us a Message</h3>
+                    </div>
+
+                    <div className="contact-form-icon">
+                      <i className="fas fa-paper-plane"></i>
+                    </div>
+                  </div>
+
+                  <p className="contact-subtext">
+                    Fill out the form below and our team will get back to you.
                   </p>
 
                   <Form id="contactForm">
@@ -2823,6 +8409,7 @@ export default function LandingPage() {
                         <label className="form-label-landing">
                           First Name <span className="text-danger">*</span>
                         </label>
+
                         <Form.Control
                           type="text"
                           className="form-control-landing"
@@ -2832,10 +8419,12 @@ export default function LandingPage() {
                           pattern="[A-Za-z\s]+"
                         />
                       </Col>
+
                       <Col xs={12} md={6}>
                         <label className="form-label-landing">
                           Last Name <span className="text-danger">*</span>
                         </label>
+
                         <Form.Control
                           type="text"
                           className="form-control-landing"
@@ -2845,10 +8434,12 @@ export default function LandingPage() {
                           pattern="[A-Za-z\s]+"
                         />
                       </Col>
+
                       <Col xs={12} md={6}>
                         <label className="form-label-landing">
                           Email Address <span className="text-danger">*</span>
                         </label>
+
                         <Form.Control
                           type="email"
                           className="form-control-landing"
@@ -2856,6 +8447,7 @@ export default function LandingPage() {
                           required
                         />
                       </Col>
+
                       <Col xs={12} md={6}>
                         <label className="form-label-landing">
                           Phone Number{" "}
@@ -2869,19 +8461,22 @@ export default function LandingPage() {
                             (Optional)
                           </span>
                         </label>
+
                         <Form.Control
                           type="tel"
                           className="form-control-landing"
-                          placeholder="+1 (555) 000-0000"
+                          placeholder="+91 00000-00000"
                           pattern="[+]?[0-9\s()\-]+"
                           minLength={10}
                         />
                       </Col>
+
                       <Col xs={12}>
                         <label className="form-label-landing">
-                          Institution/Organization{" "}
+                          Institution / Organization{" "}
                           <span className="text-danger">*</span>
                         </label>
+
                         <Form.Control
                           type="text"
                           className="form-control-landing"
@@ -2890,11 +8485,16 @@ export default function LandingPage() {
                           minLength={3}
                         />
                       </Col>
+
                       <Col xs={12}>
                         <label className="form-label-landing">
                           Your Role <span className="text-danger">*</span>
                         </label>
-                        <Form.Select className="form-select-landing" required>
+
+                        <Form.Select
+                          className="form-select-landing"
+                          required
+                        >
                           <option value="" disabled>
                             Select your role
                           </option>
@@ -2906,10 +8506,12 @@ export default function LandingPage() {
                           <option value="other">Other</option>
                         </Form.Select>
                       </Col>
+
                       <Col xs={12}>
                         <label className="form-label-landing">
                           Your Message <span className="text-danger">*</span>
                         </label>
+
                         <Form.Control
                           as="textarea"
                           rows={5}
@@ -2919,13 +8521,15 @@ export default function LandingPage() {
                           minLength={10}
                         />
                       </Col>
-                      <Col xs={12} className="text-center">
+
+                      <Col xs={12}>
                         <Button
+                          variant={null}
                           type="submit"
-                          className="btn-contact-submit btn-lg px-5 py-3"
+                          className="btn-contact-submit"
                         >
-                          <i className="fas fa-paper-plane me-2"></i>
                           <span>Send Message</span>
+                          <i className="fas fa-arrow-right"></i>
                         </Button>
                       </Col>
                     </Row>
@@ -2937,42 +8541,102 @@ export default function LandingPage() {
         </Container>
       </section>
 
-      {/* ─── FOOTER ─── */}
+           {/* ─── FOOTER ─── */}
       <footer className="footer-landing">
         <Container>
-          <Row className="align-items-center">
-            <Col lg={4} className="mb-4 mb-lg-0">
-              <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
-                <img
-                  src="/novaaa.png"
-                  alt="NOVAA Logo"
-                  style={{
-                    height: "38px",
-                    width: "auto",
-                    filter: "brightness(0.9)",
+
+          <Row className="footer-main-row">
+
+            {/* BRAND */}
+            <Col lg={6} md={6} className="mb-4 mb-lg-0">
+              <div className="footer-brand">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.scrollTo({
+                      top: 0,
+                      behavior: "smooth",
+                    });
                   }}
-                />
-              </h5>
-              <p className="footer-body-text mb-0">
+                  aria-label="Go to top"
+                >
+                  <img
+                    src="/novaaa.png"
+                    alt="NOVAA Logo"
+                  />
+                </a>
+              </div>
+
+              <p className="footer-body-text">
                 Modern education management platform designed to streamline
-                operations and enhance learning experiences for institutions
-                worldwide.
+                operations and connect your institution through one
+                intelligent system.
               </p>
             </Col>
-            <Col
-              lg={8}
-              className="d-flex align-items-end justify-content-lg-end"
-            >
-              <p className="footer-copy mb-0">
-                &copy; 2026 NOVAA <span className="version-badge">v2.1.0</span>{" "}
-                All rights reserved.
-              </p>
+
+            {/* QUICK LINKS */}
+            <Col lg={6} md={6}>
+              <div className="footer-links-wrapper">
+
+                <span className="footer-links-label">
+                  QUICK LINKS
+                </span>
+
+                <nav className="footer-links">
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.scrollTo({
+                        top: 0,
+                        behavior: "smooth",
+                      });
+                    }}
+                  >
+                    Home
+                  </a>
+
+                  <a href="#about">
+                    About
+                  </a>
+
+                  <a href="#features">
+                    Features
+                  </a>
+
+                  <a href="#faq">
+                    FAQ
+                  </a>
+
+                  <a href="#contact">
+                    Contact
+                  </a>
+                </nav>
+
+              </div>
             </Col>
+
           </Row>
-          <hr
-            className="footer-divider"
-            style={{ marginTop: "36px", marginBottom: 0 }}
-          />
+
+          <div className="footer-divider" />
+
+          <Row className="align-items-center footer-bottom-row">
+
+            <Col md={7}>
+              <p className="footer-copy mb-0">
+                &copy; 2026 NOVAA. All rights reserved.
+              </p>
+            </Col>
+
+            <Col md={5} className="text-md-end">
+              <span className="version-badge">
+                v2.1.0
+              </span>
+            </Col>
+
+          </Row>
+
         </Container>
       </footer>
 

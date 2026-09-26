@@ -224,10 +224,32 @@
 }
 
 @media (max-width: 767.98px) {
-  .offcanvas-nav-section {
+    .offcanvas-nav-section {
     max-height: calc(100dvh - 180px);
+    overflow-y: auto;
+    overflow-x: hidden;
     padding-top: var(--erp-safe-top);
     padding-bottom: var(--erp-safe-bottom);
+    flex: 0 1 auto;
+    min-height: 0;
+  }
+
+ .offcanvas-nav-section .sidebar-nav {
+  flex: 0 0 auto;
+  gap: 16px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.offcanvas-nav-section .sidebar-section-wrapper {
+  margin-bottom: 0;
+}
+
+  .offcanvas-nav-section .sidebar-section-title,
+  .offcanvas-nav-section .nav-link {
+    min-height: 48px;
+    padding-top: 0.625rem !important;
+    padding-bottom: 0.625rem !important;
   }
 
   /* Chrome, Edge, Safari */
@@ -397,9 +419,9 @@
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: var(--menu-item-gap);
+  gap: 12px;
   flex: 1;
-  overflow-y: auto;
+  overflow: visible;
   padding: var(--spacing-sm) 0;
 }
 
@@ -629,8 +651,7 @@
 
 .submenu.open {
   max-height: 500px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: visible;
   padding: 4px 0;
 }
 
@@ -660,7 +681,7 @@
 
 @media (max-width: 767.98px) {
   .submenu {
-    max-height: 400px;
+    max-height: 0;
   }
 
   .submenu.open {

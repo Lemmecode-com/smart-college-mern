@@ -41,7 +41,7 @@ exports.studentDashboard = async (req, res, next) => {
     })
       .populate("course_id", "name")
       .populate("department_id", "name")
-      .select("user_id college_id department_id course_id currentSemester approvedAt createdAt");
+      .select("user_id college_id department_id course_id currentSemester approvedAt createdAt fullName enrollmentNumber division");
 
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
@@ -111,7 +111,8 @@ exports.studentDashboard = async (req, res, next) => {
     }));
 
     /* =====================================================
-       4️⃣ TODAY TIMETABLE (FILTERED BY COURSE + SEMESTER)
+       4️⃣ TODAY TIMETABLE (FILTERED BY COURSE + SEMESTER + ACADEMIC YEAR + STATUS)
+       — Mirrors GET /api/timetable/student/today logic
     ===================================================== */
 
     const todayDate = new Date();
@@ -120,22 +121,34 @@ exports.studentDashboard = async (req, res, next) => {
     let todaysTimetable = [];
     try {
       const semester = Number(student.currentSemester);
+      const academicYear = student.currentAcademicYear;
 
-      const timetableFilters = {
+      // Build timetable query matching student's context
+      // Only PUBLISHED timetables are visible to students
+      const timetableQuery = {
         college_id: collegeId,
-        status: { $in: ["PUBLISHED", "DRAFT"] },
+        department_id: student.department_id,
+        course_id: student.course_id,
         semester,
+        academicYear,
+        status: "PUBLISHED",
       };
 
-      if (student.course_id) {
-        timetableFilters.course_id = student.course_id;
+      // Division filtering with null fallback (same as getStudentTodayTimetable)
+      if (student.division) {
+        timetableQuery.$or = [
+          { division: student.division },
+          { division: null },
+        ];
+      } else {
+        timetableQuery.division = null;
       }
 
-      const timetables = await Timetable.find(timetableFilters)
-        .select("_id semester")
-        .limit(20);
+      const matchingTimetables = await Timetable.find(timetableQuery)
+        .select("_id semester academicYear division")
+        .lean();
 
-      const timetableIds = timetables.map((t) => t._id);
+      const timetableIds = matchingTimetables.map((t) => t._id);
 
       if (timetableIds.length > 0) {
         const todaySlots = await TimetableSlot.find({

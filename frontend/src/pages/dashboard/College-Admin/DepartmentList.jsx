@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import useRole from "../../../hooks/useRole";
 
@@ -30,6 +31,7 @@ import {
 } from "react-icons/fa";
 
 import ConfirmModal from "../../../components/ConfirmModal";
+import HodSubjectReassign from "../../../components/HodSubjectReassign";
 import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
@@ -278,6 +280,8 @@ export default function DepartmentList() {
   const [showRemoveHodModal, setShowRemoveHodModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [removingHod, setRemovingHod] = useState(false);
+  const [hodSubjectCount, setHodSubjectCount] = useState(null);
+  const [showReassignSubjectsModal, setShowReassignSubjectsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState(null);
   const [deletingDepartment, setDeletingDepartment] = useState(false);
@@ -366,6 +370,30 @@ export default function DepartmentList() {
   };
 
   /* ================= REMOVE HOD ================= */
+  const fetchHodSubjectCount = async (hodTeacherId) => {
+    try {
+      const res = await api.get(
+        `/teachers/${hodTeacherId}/reassignment-data`,
+      );
+      const payload = res.data?.data || res.data;
+      const subjects = payload?.subjects || [];
+      return subjects.length;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleRemoveHodClick = async (department) => {
+    const hodId = department.hod_id?._id || department.hod_id;
+    if (!hodId) return;
+
+    setSelectedDepartment(department);
+    setHodSubjectCount(null);
+    const count = await fetchHodSubjectCount(hodId);
+    setHodSubjectCount(count);
+    setShowRemoveHodModal(true);
+  };
+
   const handleRemoveHod = async () => {
     if (!selectedDepartment) return;
 
@@ -374,12 +402,47 @@ export default function DepartmentList() {
       await api.delete(`/departments/${selectedDepartment._id}/hod`);
       setShowRemoveHodModal(false);
       setSelectedDepartment(null);
+      setHodSubjectCount(null);
       fetchDepartments();
-    } catch {
-      alert("Failed to remove HOD. Please try again.");
+    } catch (err) {
+      const backendMessage =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        "Failed to remove HOD. Please try again.";
+      toast.error(backendMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setRemovingHod(false);
     }
+  };
+
+  /* ================= REASSIGN HOD SUBJECTS =================
+     Triggered from the blocked state of the Remove HOD confirmation
+     (see the ConfirmModal below). This never removes or replaces the
+     HOD — it only moves subjects/slots/sessions to another teacher so
+     the admin can, in a separate explicit step, remove the HOD once
+     the active subject count reaches zero. */
+  const handleOpenReassignModal = () => {
+    // Keep selectedDepartment set — the reassignment modal needs the
+    // same department/HOD context. Just swap which dialog is visible.
+    setShowRemoveHodModal(false);
+    setShowReassignSubjectsModal(true);
+  };
+
+  const handleReassignModalClose = () => {
+    setShowReassignSubjectsModal(false);
+  };
+
+  const handleReassignSuccess = () => {
+    // Do NOT call handleRemoveHod here — removal must remain an explicit,
+    // separate admin action. We just clear stale state so the next
+    // "Remove HOD" click re-fetches a fresh (now lower/zero) count.
+    setShowReassignSubjectsModal(false);
+    setSelectedDepartment(null);
+    setHodSubjectCount(null);
+    fetchDepartments();
   };
 
   /* ================= FILTER LOGIC ================= */
@@ -480,6 +543,25 @@ export default function DepartmentList() {
       }}
     >
       <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
+
+        {/* ================= BREADCRUMB ================= */}
+          <div
+            style={{
+              width: "100%",
+              margin: "10px auto",
+              paddingTop: "5px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/dashboard" },
+                  { label: "Department Management" },
+                ]}
+              />
+            </div>
+          </div>
+
         {/* ================= TOP BAR ================= */}
         <div
           style={{
@@ -853,10 +935,7 @@ export default function DepartmentList() {
                                 title="Remove HOD"
                                 color={T.textMuted}
                                 tint={T.inactiveBg}
-                                onClick={() => {
-                                  setSelectedDepartment(d);
-                                  setShowRemoveHodModal(true);
-                                }}
+                                onClick={() => handleRemoveHodClick(d)}
                               />
                             )}
                             {canDelete('departments') && (
@@ -881,23 +960,42 @@ export default function DepartmentList() {
           {/* ================= TABLE FOOTER ================= */}
           {filteredDepartments.length > 0 && (
             <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              position: "relative",
+              minHeight: "90px",
+              padding: "1rem 1.35rem",
+            }}
+          >
+            <div className="department-list-showing">
+              Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
+              {filteredDepartments.length} departments
+            </div>
+            <style>
+              {`
+                @media (max-width: 991px) {
+                  .department-list-showing {
+                    display: none !important;
+                  }
+                }
+              `}
+            </style>
+
+            <div
               style={{
-                background: "#fafbfc",
-                borderTop: `1px solid ${T.border}`,
-                padding: "1rem 1.35rem",
-                display: "flex",
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "0.75rem",
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%) scale(0.95)",
               }}
             >
-              <div style={{ fontSize: "0.8rem", color: T.textMuted }}>
-                Showing <strong style={{ color: T.text }}>{Math.min(indexOfLastItem, filteredDepartments.length)}</strong> of{" "}
-                <strong style={{ color: T.text }}>{filteredDepartments.length}</strong> departments
-              </div>
-              <Pagination page={currentPage} totalPages={totalPages} setPage={setCurrentPage} />
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
             </div>
+          </div>
           )}
         </div>
 
@@ -915,6 +1013,7 @@ export default function DepartmentList() {
             justifyContent: "space-between",
             alignItems: "center",
             gap: "0.75rem",
+            
           }}
         >
           <p style={{ margin: 0, fontSize: "0.8rem", color: T.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
@@ -932,18 +1031,45 @@ export default function DepartmentList() {
         onClose={() => {
           setShowRemoveHodModal(false);
           setSelectedDepartment(null);
+          setHodSubjectCount(null);
         }}
-        onConfirm={handleRemoveHod}
-        title="Remove HOD"
+        onConfirm={
+          hodSubjectCount && hodSubjectCount > 0
+            ? handleOpenReassignModal
+            : handleRemoveHod
+        }
+        title={
+          hodSubjectCount && hodSubjectCount > 0
+            ? "Subjects Still Assigned"
+            : "Remove HOD"
+        }
         message={
           selectedDepartment
-            ? `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
+            ? hodSubjectCount === null
+              ? "Checking assigned subjects..."
+              : hodSubjectCount > 0
+                ? `This HOD has ${hodSubjectCount} active subject(s) assigned. Reassign these subjects to another teacher before removing the HOD.`
+                : `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
             : ""
         }
         type="warning"
-        confirmText="Remove HOD"
+        confirmText={
+          hodSubjectCount && hodSubjectCount > 0 ? "Reassign Subjects" : "Remove HOD"
+        }
         cancelText="Cancel"
+        confirmDisabled={hodSubjectCount === null}
         isLoading={removingHod}
+      />
+
+      <HodSubjectReassign
+        isOpen={showReassignSubjectsModal}
+        onClose={handleReassignModalClose}
+        departmentId={selectedDepartment?._id}
+        hodTeacherId={
+          selectedDepartment?.hod_id?._id || selectedDepartment?.hod_id
+        }
+        hodName={selectedDepartment?.hod_id?.name}
+        onSuccess={handleReassignSuccess}
       />
 
       <ConfirmModal

@@ -4,6 +4,7 @@ import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import { logger } from "../../../../utils/logger";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaEnvelope,
   FaArrowLeft,
@@ -659,7 +660,14 @@ const EmailConfigurations = () => {
           pointer-events: none;
         }
 
-        .header-content { position: relative; z-index: 1; }
+        .header-content { position: relative;
+        z-index: 1;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start; 
+        }
 
         .btn-back {
           display: inline-flex;
@@ -674,7 +682,7 @@ const EmailConfigurations = () => {
           font-weight: 500;
           cursor: pointer;
           transition: all 0.25s ease;
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.5rem;
         }
 
         .btn-back:hover {
@@ -686,13 +694,13 @@ const EmailConfigurations = () => {
           font-size: 1.75rem;
           font-weight: 700;
           color: #ffffff;
-          margin: 0 0 0.25rem 0;
+          margin: 0;
         }
 
         .header-subtitle {
           font-size: 0.9375rem;
           color: rgba(255, 255, 255, 0.85);
-          margin: 0;
+          margin-top: -1.0rem;
         }
 
         .header-badge {
@@ -705,6 +713,9 @@ const EmailConfigurations = () => {
           font-weight: 600;
           background: rgba(255, 255, 255, 0.2);
           color: #ffffff;
+          position: absolute;
+          top: 1.5rem;
+          right: calc(35% + 1.8rem);
         }
 
         .info-card {
@@ -947,12 +958,13 @@ const EmailConfigurations = () => {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          margin-right: 0.5rem;
+          margin-right: 0.2rem;
+
         }
 
         .status-dot.active {
-          background: var(--sc-success);
-          box-shadow: 0 0 8px var(--sc-success);
+          background: #22c55e;
+          box-shadow: 0 0 10px #22c55e;
         }
 
         .status-dot.inactive { background: var(--sc-text-muted); }
@@ -1004,17 +1016,645 @@ const EmailConfigurations = () => {
           background: #f0fdfa;
         }
 
-        @media (max-width: 1024px) {
-          .settings-header { flex-direction: column; gap: 1rem; }
-        }
+ /* =========================================================
+   RESPONSIVE - TABLET
+   Desktop layout remains unchanged
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .email-settings-page {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* ---------- Header ---------- */
+
+  .settings-header {
+    width: 100%;
+    padding: 1.25rem;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 1rem;
+  }
+
+  .header-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .btn-back {
+    align-self: flex-start;
+    margin-bottom: 0.75rem;
+  }
+
+  .header-title {
+    font-size: 1.6rem;
+    line-height: 1.25;
+  }
+
+  .header-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.45;
+    margin-top: 0.25rem;
+  }
+
+  /* Badge should not overlap header */
+
+  .header-badge {
+    position: static;
+    align-self: flex-start;
+
+    width: fit-content;
+
+    padding: 0.45rem 0.75rem;
+
+    font-size: 0.75rem;
+  }
+
+  /* Verification card */
+
+  .settings-header > .settings-card {
+    width: 100%;
+    margin: 0;
+    box-sizing: border-box;
+  }
+
+  .verification-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+
+  /* ---------- Breadcrumb ---------- */
+
+  .email-settings-page > div:first-child {
+    width: 100% !important;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+
+  /* ---------- Info Card ---------- */
+
+  .info-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+
+  /* ---------- Form ---------- */
+
+  .row {
+    gap: 0.75rem;
+  }
+
+  .card-body-custom {
+    padding: 1.25rem;
+  }
+
+
+  /* ---------- Action Buttons ---------- */
+
+  .action-buttons {
+    gap: 0.6rem;
+  }
+
+  .btn-action {
+    padding: 0.7rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE - MOBILE
+   Desktop remains unchanged
+   ========================================================= */
 
 @media (max-width: 768px) {
-           .email-settings-page { padding: 0.75rem; }
-           .header-title { font-size: 1.5rem; }
-           .row { flex-direction: column; }
-           .action-buttons { flex-direction: column; }
-           .btn-action { width: 100%; justify-content: center; }
-         }
+
+  .email-settings-page {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.65rem;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+
+  /* =====================================================
+     BREADCRUMB
+     ===================================================== */
+
+  .email-settings-page > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 48px;
+
+    margin: 0 0 0.75rem !important;
+    padding: 0 !important;
+
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .email-settings-page > div:first-child > div {
+    width: 100% !important;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+
+  /* =====================================================
+     MAIN HEADER
+     ===================================================== */
+
+  .settings-header {
+    width: 100%;
+    padding: 0.9rem;
+
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0.75rem;
+
+    border-radius: 14px;
+  }
+
+
+  /* ---------- Header Content ---------- */
+
+  .header-content {
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+
+  /* ---------- Back Button ---------- */
+
+  .btn-back {
+    width: 100%;
+
+    justify-content: center;
+
+    padding: 0.6rem 0.75rem;
+
+    margin-bottom: 0.75rem;
+
+    font-size: 0.78rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* ---------- Title ---------- */
+
+  .header-title {
+    width: 100%;
+
+    font-size: 1.3rem;
+    line-height: 1.25;
+
+    text-align: center;
+
+    margin: 0;
+  }
+
+  .header-subtitle {
+    width: 100%;
+
+    font-size: 0.78rem;
+    line-height: 1.45;
+
+    text-align: center;
+
+    margin: 0.25rem 0 0;
+  }
+
+
+  /* =====================================================
+     STATUS BADGE
+     Fixes overlap with Back button
+     ===================================================== */
+
+  .header-badge {
+    position: static !important;
+
+    align-self: center;
+
+    width: fit-content;
+    max-width: 100%;
+
+    padding: 0.4rem 0.7rem;
+
+    font-size: 0.7rem;
+
+    box-sizing: border-box;
+
+    text-align: center;
+  }
+
+
+  /* =====================================================
+     VERIFICATION STATUS CARD
+     ===================================================== */
+
+  .settings-header > .settings-card {
+    width: 100%;
+
+    margin: 0;
+
+    box-sizing: border-box;
+
+    border-radius: 14px;
+  }
+
+  .settings-header > .settings-card .card-header-custom {
+    padding: 0.8rem 0.9rem;
+
+    gap: 0.55rem;
+  }
+
+  .settings-header > .settings-card .card-header-custom h5 {
+    font-size: 0.95rem;
+  }
+
+  .settings-header > .settings-card .card-body-custom {
+    padding: 0.9rem;
+  }
+
+
+  /* Verification items */
+
+  .verification-status-grid {
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.8rem;
+  }
+
+  .verification-status-item {
+    gap: 0.3rem;
+  }
+
+  .status-item-label {
+    font-size: 0.68rem;
+  }
+
+  .status-item-value {
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
+  .verification-badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+  }
+
+
+  /* =====================================================
+     INFO CARD
+     ===================================================== */
+
+  .info-card {
+    width: 100%;
+
+    padding: 0.85rem;
+
+    gap: 0.65rem;
+
+    margin-bottom: 0.9rem;
+
+    box-sizing: border-box;
+  }
+
+  .info-card-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+
+    font-size: 1rem;
+  }
+
+  .info-card-content {
+    min-width: 0;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.9rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .info-card-content ul {
+    padding-left: 1rem;
+
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+
+  /* =====================================================
+     WARNING / ERROR BANNERS
+     ===================================================== */
+
+  .warning-banner,
+  .error-banner {
+    padding: 0.85rem;
+
+    gap: 0.65rem;
+
+    margin-bottom: 0.9rem;
+
+    box-sizing: border-box;
+  }
+
+  .warning-banner-icon,
+  .error-banner-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+
+    font-size: 1rem;
+  }
+
+  .warning-banner-content strong,
+  .error-banner-content strong {
+    font-size: 0.8rem;
+    line-height: 1.35;
+  }
+
+  .warning-banner-content p,
+  .error-banner-content p {
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+
+  .error-checklist {
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+
+  /* =====================================================
+     SETTINGS CARD
+     ===================================================== */
+
+  .settings-card {
+    width: 100%;
+    min-width: 0;
+
+    border-radius: 12px;
+
+    box-sizing: border-box;
+  }
+
+  .card-header-custom {
+    padding: 0.85rem 0.9rem;
+
+    gap: 0.55rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 0.95rem;
+  }
+
+  .card-body-custom {
+    padding: 0.9rem;
+  }
+
+
+  /* =====================================================
+     FORM ROWS
+     ===================================================== */
+
+  .row {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 0;
+
+    margin: 0;
+  }
+
+  .row .form-group {
+    width: 100%;
+    flex: none !important;
+  }
+
+
+  /* =====================================================
+     FORM FIELDS
+     ===================================================== */
+
+  .form-group {
+    width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .form-label {
+    font-size: 0.78rem;
+    gap: 0.4rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .form-input {
+    width: 100%;
+
+    padding: 0.65rem 0.75rem;
+
+    font-size: 0.82rem;
+
+    box-sizing: border-box;
+  }
+
+  .error-message {
+    font-size: 0.7rem;
+  }
+
+  .helper-text {
+    font-size: 0.67rem;
+  }
+
+
+  /* ---------- SSL/TLS ---------- */
+
+  .checkbox-label {
+    align-items: flex-start;
+
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+
+  .checkbox-label input {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+  }
+
+
+  /* =====================================================
+     ACTION BUTTONS
+     ===================================================== */
+
+  .action-buttons {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.55rem;
+
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  .btn-action {
+    width: 100%;
+
+    min-height: 42px;
+
+    justify-content: center;
+
+    padding: 0.65rem 0.75rem;
+
+    font-size: 0.78rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* =====================================================
+     MODIFIED INDICATOR
+     ===================================================== */
+
+  .modified-indicator {
+    left: 0.5rem;
+    right: 0.5rem;
+
+    bottom: 0.5rem;
+
+    width: auto;
+
+    padding: 0.6rem 0.7rem;
+
+    gap: 0.6rem;
+
+    box-sizing: border-box;
+  }
+
+  .indicator-content {
+    min-width: 0;
+
+    font-size: 0.7rem;
+  }
+
+  .btn-save-small {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.68rem;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .email-settings-page {
+    padding: 0.5rem;
+  }
+
+  .settings-header {
+    padding: 0.75rem;
+  }
+
+  .btn-back {
+    font-size: 0.72rem;
+    padding: 0.55rem 0.65rem;
+  }
+
+  .header-title {
+    font-size: 1.15rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .header-badge {
+    font-size: 0.64rem;
+    padding: 0.35rem 0.55rem;
+  }
+
+  .settings-header > .settings-card .card-header-custom {
+    padding: 0.7rem 0.75rem;
+  }
+
+  .settings-header > .settings-card .card-body-custom {
+    padding: 0.75rem;
+  }
+
+  .status-item-label {
+    font-size: 0.63rem;
+  }
+
+  .status-item-value {
+    font-size: 0.76rem;
+  }
+
+  .verification-badge {
+    font-size: 0.7rem;
+  }
+
+  .info-card {
+    padding: 0.7rem;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.82rem;
+  }
+
+  .info-card-content ul {
+    font-size: 0.66rem;
+  }
+
+  .card-body-custom {
+    padding: 0.75rem;
+  }
+
+  .form-input {
+    padding: 0.6rem 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .btn-action {
+    min-height: 40px;
+    font-size: 0.72rem;
+  }
+}
 
          .warning-banner {
            display: flex;
@@ -1195,6 +1835,27 @@ const EmailConfigurations = () => {
        `}</style>
 
       <div className="email-settings-page">
+
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "Email Configuration" },
+              ]}
+            />
+          </div>
+        </div>
+
         <div className="settings-header">
           <div className="header-content">
             <button className="btn-back" onClick={() => navigate("/system-settings/fees")}>

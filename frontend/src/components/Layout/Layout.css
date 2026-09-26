@@ -71,6 +71,7 @@
   .layout-wrapper.layout-collapsed .layout-main {
     margin-left: var(--erp-sidebar-collapsed-width);
     width: calc(100% - var(--erp-sidebar-collapsed-width));
+    min-width: 0;
   }
 }
 
@@ -100,6 +101,11 @@
   .layout-main .navbar {
     left: var(--erp-sidebar-width);
     width: calc(100% - var(--erp-sidebar-width));
+  }
+
+  .layout-wrapper.layout-collapsed .layout-main .navbar {
+    left: var(--erp-sidebar-collapsed-width);
+    width: calc(100% - var(--erp-sidebar-collapsed-width));
   }
 }
 

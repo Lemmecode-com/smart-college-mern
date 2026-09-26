@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { Container, Row, Col, Card, Badge, Button } from "react-bootstrap";
@@ -170,6 +171,25 @@ export default function ViewStaffProfile() {
   return (
     <div className="dashboard-wrapper erp-viewport-min-100">
       <Container fluid className="py-4">
+
+    {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Staff Management", path: "/college/staff" },
+                { label: "View Profile" },
+              ]}
+            />
+          </div>
+        </div>
 
         {/* Header */}
         <Row className="mb-4">

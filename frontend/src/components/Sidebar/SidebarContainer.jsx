@@ -66,6 +66,26 @@ export default function SidebarContainer({
     }
   }, [location.pathname]);
 
+  // Scroll active menu item into view when mobile/tablet sidebar opens
+  useEffect(() => {
+    if (!isMobileOpen || !sidebar.isMobileDevice) return;
+
+    const timer = setTimeout(() => {
+      const activeItem = document.querySelector(
+        ".offcanvas-nav-section [aria-current='page']"
+      );
+
+      if (activeItem) {
+        activeItem.scrollIntoView({
+          behavior: "auto",
+          block: "center",
+        });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [isMobileOpen, location.pathname, sidebar.isMobileDevice]);
+
   // Ensure body scroll is restored when sidebar closes
   useEffect(() => {
     if (!isMobileOpen && sidebar.isMobileDevice) {
@@ -85,6 +105,7 @@ export default function SidebarContainer({
   useEffect(() => {
     if (!sidebar.isMobileDevice) {
       document.body.classList.add(CSS_CLASSES.HAS_SIDEBAR);
+
       if (isCollapsed) {
         document.body.classList.add(CSS_CLASSES.SIDEBAR_COLLAPSED);
       } else {
@@ -110,11 +131,14 @@ export default function SidebarContainer({
   const handleConfirmLogout = useCallback(async () => {
     try {
       setLoggingOut(true);
+
       await logout();
+
       toast.success("Logged out successfully", {
         position: "top-right",
         autoClose: 3000,
       });
+
       navigate("/login", { replace: true });
     } catch (err) {
       toast.error("Failed to logout. Please try again.", {
@@ -140,7 +164,9 @@ export default function SidebarContainer({
       {/* Desktop Sidebar - Supports collapsed state */}
       <div
         id="sidebar-main"
-        className={`sidebar-container d-none d-md-block ${isCollapsed ? "sidebar-collapsed" : ""}`}
+        className={`sidebar-container d-none d-md-block ${
+          isCollapsed ? "sidebar-collapsed" : ""
+        }`}
         role="navigation"
         aria-label={ARIA_LABELS.MAIN_NAVIGATION}
         aria-expanded={!isCollapsed}
@@ -182,7 +208,7 @@ export default function SidebarContainer({
         scroll={true}
         aria-label={ARIA_LABELS.MOBILE_NAVIGATION}
       >
-        <Offcanvas.Header closeButton className="border-0 pb-0 offcanvas-header-brand">
+        <Offcanvas.Header className="border-0 pb-0 offcanvas-header-brand">
           <Offcanvas.Title>
             <img
               src="/novaaa.png"
@@ -190,9 +216,24 @@ export default function SidebarContainer({
               className="offcanvas-logo-image"
             />
           </Offcanvas.Title>
+
+          <button
+            onClick={() => setIsMobileOpen(false)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "white",
+              fontSize: "28px",
+              cursor: "pointer",
+              marginLeft: "auto",
+            }}
+          >
+            ×
+          </button>
         </Offcanvas.Header>
+
         <Offcanvas.Body className="p-0">
-          <div className="offcanvas-logo-section p-3 border-bottom">
+          <div className="offcanvas-logo-section p-3 ">
             <div
               className="text-center"
               aria-label={ARIA_LABELS.USER_ROLE(role)}
@@ -206,7 +247,8 @@ export default function SidebarContainer({
               </Badge>
             </div>
           </div>
-          <div className="offcanvas-nav-section">
+
+          <div className="offcanvas-nav-section pt-3">
             <SidebarNav
               role={role}
               openSections={sidebar.openSections}
@@ -216,7 +258,8 @@ export default function SidebarContainer({
               onClose={() => setIsMobileOpen(false)}
             />
           </div>
-          <div className="offcanvas-footer-section p-3 border-top">
+
+          <div className="offcanvas-footer-section p-3">
             <SidebarFooter
               loggingOut={loggingOut}
               onLogout={handleLogoutClick}
@@ -256,7 +299,10 @@ export default function SidebarContainer({
 // Simple Badge component since we're using react-bootstrap
 function Badge({ children, bg, className, style }) {
   return (
-    <span className={`badge bg-${bg} ${className || ""}`} style={style}>
+    <span
+      className={`badge bg-${bg} ${className || ""}`}
+      style={style}
+    >
       {children}
     </span>
   );

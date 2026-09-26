@@ -452,7 +452,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
             ]
           : [
               { label: "Dashboard", path: "/dashboard" },
-              { label: "Students", path: "/students" },
+              { label: "Students",},
               { label: "Pending Approvals" },
             ]
         }
@@ -1973,54 +1973,334 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
           color: var(--erp-slate-500);
         }
 
-        /* ---------- RESPONSIVE ---------- */
-        @media (max-width: 860px) {
-          .erp-container { padding: 1rem; }
-          .erp-page-header { padding: 1.5rem; border-radius: 14px; }
-        }
+ /* ---------- RESPONSIVE ---------- */
 
-        @media (max-width: 640px) {
-          .erp-page-header { flex-direction: column; align-items: flex-start; }
-          .btn-refresh { align-self: flex-end; margin-top: -2.75rem; }
-          .erp-toolbar { flex-direction: column; align-items: stretch; }
-          .search-box { max-width: none; }
-          .toolbar-selection { justify-content: space-between; }
+@media (max-width: 991px) {
+  .erp-container {
+    padding: 1rem;
+  }
 
-          .table-container { overflow-x: visible; }
+  /* Header / Banner */
+  .erp-page-header {
+    padding: 1.35rem 1.4rem;
+    border-radius: 14px;
+    margin: 0.8rem 0 1.15rem;
+    min-height: 150px;
+  }
 
-          .erp-table thead { display: none; }
-          .erp-table, .erp-table tbody, .erp-table tr, .erp-table td {
-            display: block;
-            width: 100%;
-          }
-          .erp-table tbody tr {
-            border: 1px solid var(--erp-slate-200);
-            border-radius: 12px;
-            margin-bottom: 12px;
-            padding: 12px 14px;
-          }
-          .erp-table td {
-            padding: 8px 0;
-            border: none !important;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-          }
-          .erp-table td[data-label]:not([data-label=""])::before {
-            content: attr(data-label);
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--erp-slate-400);
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            flex-shrink: 0;
-          }
-          .cell-checkbox { justify-content: flex-end; }
-          .cell-student { justify-content: flex-start; }
-          .cell-actions { justify-content: flex-start; }
-          .action-buttons { justify-content: flex-start; width: 100%; }
-        }
+  .erp-header-content {
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .erp-header-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    font-size: 1.4rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.35rem;
+    line-height: 1.25;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.86rem;
+    line-height: 1.5;
+    max-width: 500px;
+  }
+
+  .btn-refresh {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Stats */
+  .stats-grid {
+    gap: 0.85rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .stat-card {
+    padding: 1.1rem 1.15rem;
+    gap: 0.85rem;
+  }
+
+  .stat-card-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 1.15rem;
+  }
+
+  .stat-card-label {
+    font-size: 0.76rem;
+  }
+
+  .stat-card-value {
+    font-size: 1.65rem;
+  }
+
+  /* Search / Toolbar */
+  .erp-card-body {
+    padding: 1.15rem;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  /* Main cards */
+  .erp-card {
+    border-radius: 13px;
+    margin-bottom: 1.15rem;
+  }
+
+  .erp-card-header {
+    padding: 1rem 1.15rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1rem;
+  }
+}
+
+
+/* ================= TABLET ================= */
+
+@media (min-width: 576px) and (max-width: 991px) {
+  .erp-page-header {
+    min-height: 145px;
+  }
+
+  .erp-header-content {
+    max-width: calc(100% - 55px);
+  }
+
+  .erp-page-title {
+    font-size: 1.45rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stat-card {
+    min-width: 0;
+  }
+
+  .stat-card-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .erp-toolbar {
+    gap: 1rem;
+  }
+
+  .search-box {
+    flex: 1 1 100%;
+  }
+
+  .toolbar-selection {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 575px) {
+  .erp-container {
+    padding: 0.75rem;
+  }
+
+  /* Header / Banner */
+  .erp-page-header {
+    padding: 1.15rem;
+    border-radius: 14px;
+    margin: 0.65rem 0 1rem;
+    min-height: 0;
+    display: block;
+  }
+
+  .erp-header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: calc(100% - 42px);
+  }
+
+  .erp-header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 11px;
+    font-size: 1.25rem;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+  }
+
+  .erp-page-title {
+    font-size: 1.15rem;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin-top: 0.3rem;
+  }
+
+  .btn-refresh {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+  }
+
+  /* Stats */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    padding: 0.9rem 1rem;
+    min-height: 76px;
+    border-radius: 12px;
+    gap: 0.8rem;
+  }
+
+  .stat-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    font-size: 1.1rem;
+  }
+
+  .stat-card-label {
+    font-size: 0.72rem;
+  }
+
+  .stat-card-value {
+    font-size: 1.55rem;
+  }
+
+  /* Search */
+  .erp-toolbar-card {
+    margin-bottom: 0.9rem;
+  }
+
+  .erp-toolbar {
+    gap: 0.8rem;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+  .search-box input {
+    padding: 0.7rem 0.85rem 0.7rem 2.45rem;
+    font-size: 0.84rem;
+  }
+
+  .toolbar-selection {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .select-all-label {
+    font-size: 0.82rem;
+  }
+
+  .btn-bulk-approve {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Main card */
+  .erp-card {
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .erp-card-header {
+    padding: 0.9rem 1rem;
+    gap: 0.6rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 0.92rem;
+  }
+
+  .record-count {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.65rem;
+  }
+
+  /* Student cards */
+  .erp-table tbody tr {
+    border-radius: 11px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+  }
+
+  .erp-table td {
+    padding: 7px 0;
+  }
+
+  .student-info {
+    gap: 0.6rem;
+  }
+
+  .student-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .student-name-cell {
+    font-size: 0.86rem;
+  }
+
+  .student-email {
+    font-size: 11.5px;
+    word-break: break-word;
+  }
+
+  .department-name {
+    font-size: 0.84rem;
+  }
+
+  .action-buttons {
+    gap: 6px;
+  }
+
+  .btn-action {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+  }
+
+  /* Pagination */
+  .erp-pagination {
+    padding: 1rem 0.5rem;
+    overflow-x: auto;
+  }
+}
       `}</style>
     </div>
   );

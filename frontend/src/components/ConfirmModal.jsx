@@ -15,6 +15,13 @@ export default function ConfirmModal({
   confirmText = "Confirm",
   cancelText = "Cancel",
   isLoading = false,
+  inputValue,
+  onInputChange,
+  inputPlaceholder = "",
+  inputError,
+  maxChars,
+  inputRows = 3,
+  confirmDisabled = false,
 }) {
   const typeConfig = {
     warning: {
@@ -102,18 +109,79 @@ export default function ConfirmModal({
             </div>
 
             <div className="erp-modal-body">
-              <div
-                style={{
-                  margin: 0,
-                  color: "#64748b",
-                  fontSize: "1.05rem",
-                  lineHeight: 1.6,
-                  textAlign: "center",
-                  whiteSpace: "pre-line",
-                }}
-              >
-                {message}
-              </div>
+              {message && (
+                <div
+                  style={{
+                    margin: 0,
+                    color: "#64748b",
+                    fontSize: "1.05rem",
+                    lineHeight: 1.6,
+                    textAlign: "center",
+                    whiteSpace: "pre-line",
+                  }}
+                >
+                  {message}
+                </div>
+              )}
+              {inputValue !== undefined && onInputChange && (
+                <div style={{ marginTop: message ? "1rem" : 0 }}>
+                  <textarea
+                    rows={inputRows}
+                    placeholder={inputPlaceholder}
+                    value={inputValue}
+                    onChange={(e) => onInputChange(e.target.value)}
+                    disabled={isLoading}
+                    style={{
+                      width: "100%",
+                      border: `1px solid ${inputError ? "#e5484d" : "#cbd5e1"}`,
+                      borderRadius: "10px",
+                      padding: "0.6rem 0.85rem",
+                      fontSize: "0.92rem",
+                      color: "#1e293b",
+                      background: "#fff",
+                      resize: "vertical",
+                      outline: "none",
+                      boxSizing: "border-box",
+                      transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.borderColor = inputError ? "#e5484d" : "#17aecb";
+                      e.target.style.boxShadow = inputError ? "0 0 0 3px #fdecec" : "0 0 0 3px #e7f7fa";
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = inputError ? "#e5484d" : "#dfe6ec";
+                      e.target.style.boxShadow = "none";
+                    }}
+                  />
+                  {inputError && (
+                    <div
+                      style={{
+                        color: "#e5484d",
+                        fontSize: "0.8rem",
+                        marginTop: "0.35rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.3rem",
+                      }}
+                    >
+                      <FaExclamationTriangle />
+                      {inputError}
+                    </div>
+                  )}
+                  {maxChars && (
+                    <div
+                      style={{
+                        marginTop: "0.35rem",
+                        fontSize: "0.78rem",
+                        color: inputValue.length >= maxChars ? "#e5484d" : "#94a3b8",
+                        textAlign: "right",
+                      }}
+                    >
+                      {inputValue.length}/{maxChars}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="erp-modal-footer">
@@ -150,7 +218,7 @@ export default function ConfirmModal({
               </button>
               <button
                 onClick={onConfirm}
-                disabled={isLoading}
+                disabled={isLoading || confirmDisabled}
                 className={`btn ${config.confirmBtnClass}`}
                 style={{
                   flex: 1,
@@ -159,22 +227,22 @@ export default function ConfirmModal({
                   borderRadius: "12px",
                   fontWeight: 600,
                   fontSize: "1rem",
-                  cursor: isLoading ? "not-allowed" : "pointer",
+                  cursor: isLoading || confirmDisabled ? "not-allowed" : "pointer",
                   transition: "all 0.3s ease",
-                  boxShadow: isLoading
+                  boxShadow: isLoading || confirmDisabled
                     ? "none"
                     : "0 4px 15px rgba(0, 0, 0, 0.1)",
-                  opacity: isLoading ? 0.7 : 1,
+                  opacity: isLoading || confirmDisabled ? 0.6 : 1,
                 }}
                 onMouseEnter={(e) => {
-                  if (!isLoading) {
+                  if (!isLoading && !confirmDisabled) {
                     e.target.style.transform = "translateY(-2px)";
                     e.target.style.boxShadow =
                       "0 6px 20px rgba(0, 0, 0, 0.15)";
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isLoading) {
+                  if (!isLoading && !confirmDisabled) {
                     e.target.style.transform = "translateY(0)";
                     e.target.style.boxShadow =
                       "0 4px 15px rgba(0, 0, 0, 0.1)";

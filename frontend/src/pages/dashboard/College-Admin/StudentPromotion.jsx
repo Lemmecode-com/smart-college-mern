@@ -8,6 +8,14 @@ import {
   promoteStudent,
   bulkPromoteStudents,
   getCollegePromotionHistory,
+  getPromotionEligibility,
+  getStudentBacklogs,
+  getBacklogAttempts,
+  createBacklogAttempt,
+  recommendPromotionDecision,
+  approvePromotionDecision,
+  rejectPromotionDecision,
+  executePromotionDecision,
 } from "../../../api/promotion";
 import { moveToAlumni } from "../../../api/alumni";
 import Loading from "../../../components/Loading";
@@ -32,6 +40,11 @@ import {
   FaFilter,
   FaSortAmountDown,
   FaSortAmountUp,
+  FaClipboardCheck,
+  FaEye,
+  FaFileAlt,
+  FaInfoCircle,
+  FaExclamationCircle,
 } from "react-icons/fa";
 
 const PAGE_SIZE = 10;
@@ -71,11 +84,235 @@ function getAttendanceStatusBadge(status) {
   }
 }
 
+/**
+ * Backlog status badge styling (Step 5 - read-only backlog management)
+ */
+function getBacklogStatusBadge(status) {
+  switch (status) {
+    case "OPEN":
+      return "badge badge-warning";
+    case "ATTEMPTED":
+      return "badge badge-info";
+    case "CLEARED":
+      return "badge badge-success";
+    case "CANCELLED":
+      return "badge badge-secondary";
+    default:
+      return "badge badge-secondary";
+  }
+}
+
+/**
+ * Backlog attempt status badge styling (Step 6 - attempt history / creation UI).
+ * Statuses are backend-controlled; unknown statuses fall back safely.
+ */
+function getAttemptStatusBadge(status) {
+  switch (status) {
+    case "INCOMPLETE":
+      return "badge badge-warning";
+    case "PASS":
+      return "badge badge-success";
+    case "FAIL":
+      return "badge badge-danger";
+    case "EVALUATED":
+      return "badge badge-info";
+    default:
+      return "badge badge-secondary";
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
+}
+
 function isStudentPromotable(student) {
   if (!student) return false;
   const feeOk = student.allInstallmentsPaid;
   const attendanceOk = student.attendanceStatus === ATTENDANCE_STATUS.ELIGIBLE;
   return feeOk && attendanceOk;
+}
+
+/**
+ * Format promotion decision reason for display
+ */
+function formatDecisionReason(reason) {
+  if (!reason) return "-";
+  const reasonMap = {
+    FEE_NOT_CLEARED: "Fee Not Cleared",
+    ATTENDANCE_INSUFFICIENT: "Attendance Insufficient",
+    ATTENDANCE_NOT_AVAILABLE: "Attendance Not Available",
+    KT_LIMIT_EXCEEDED: "KT Limit Exceeded",
+    RESULT_INCOMPLETE: "Result Incomplete",
+    ELIGIBLE: "Eligible",
+  };
+  return reasonMap[reason] || reason.replace(/_/g, " ");
+}
+
+/**
+ * Format promotion outcome for display
+ */
+function formatOutcome(outcome) {
+  if (!outcome) return "Unknown";
+  const outcomeMap = {
+    PASS: "Pass",
+    ATKT: "ATKT (Allowed to Keep Term)",
+    FAIL: "Fail",
+    INCOMPLETE: "Incomplete",
+    NO_RESULT: "No Result",
+    AMBIGUOUS_RESULT: "Ambiguous Result",
+    BLOCKED: "Blocked",
+  };
+  return outcomeMap[outcome] || outcome;
+}
+
+/**
+ * Get icon for promotion outcome
+ */
+function getOutcomeIcon(outcome) {
+  const iconMap = {
+    PASS: "✅",
+    ATKT: "⚠️",
+    FAIL: "❌",
+    INCOMPLETE: "⏳",
+    NO_RESULT: "❓",
+    AMBIGUOUS_RESULT: "⚡",
+    BLOCKED: "🚫",
+  };
+  return iconMap[outcome] || "📋";
+}
+
+/**
+ * Get user-friendly display label for promotion outcome
+ * This is the primary status shown to users - clearer than "Outcome: X"
+ * Considers workflow_status to avoid misleading "Promoted" before execution
+ */
+function getOutcomeDisplayLabel(outcome, workflowStatus) {
+  if (!outcome) return "Status Unknown";
+  
+  // If outcome is PASS but workflow hasn't executed yet, show eligibility status
+  if (outcome === "PASS") {
+    const executedStatuses = ["PROMOTED", "EXECUTED"];
+    const isExecuted = workflowStatus && executedStatuses.includes(workflowStatus);
+    
+    if (isExecuted) {
+      return "Promoted Successfully";
+    }
+    
+    // Not yet executed - show based on workflow stage
+    if (workflowStatus === "APPROVED") return "Approved - Ready to Promote";
+    if (workflowStatus === "RECOMMENDED" || workflowStatus === "UNDER_REVIEW") return "Recommended for Promotion";
+    if (workflowStatus === "DRAFT") return "Eligible for Promotion";
+    return "Eligible for Promotion"; // fallback
+  }
+  
+  const labelMap = {
+    ATKT: "Allowed to Keep Term (ATKT)",
+    FAIL: "Promotion Failed",
+    INCOMPLETE: "Result Incomplete",
+    NO_RESULT: "No Result Available",
+    AMBIGUOUS_RESULT: "Ambiguous Result",
+    BLOCKED: "Promotion Blocked",
+  };
+  return labelMap[outcome] || outcome;
+}
+
+/**
+ * Get banner style for promotion outcome
+ */
+function getOutcomeBannerStyle(outcome) {
+  const styleMap = {
+    PASS: { background: "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "white" },
+    ATKT: { background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "white" },
+    FAIL: { background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "white" },
+    INCOMPLETE: { background: "linear-gradient(135deg, #3db5e6 0%, #1c7ed6 100%)", color: "white" },
+    NO_RESULT: { background: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)", color: "white" },
+    AMBIGUOUS_RESULT: { background: "linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%)", color: "white" },
+    BLOCKED: { background: "linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%)", color: "white" },
+  };
+  return {
+    padding: "16px 20px",
+    borderRadius: "12px",
+    marginBottom: "20px",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    ...styleMap[outcome],
+  };
+}
+
+/**
+ * Format workflow status for display
+ */
+function formatWorkflowStatus(status) {
+  if (!status) return "Unknown";
+  const statusMap = {
+    DRAFT: "Draft",
+    RECOMMENDED: "Recommended",
+    UNDER_REVIEW: "Under Review",
+    APPROVED: "Approved",
+    REJECTED: "Rejected",
+    PROMOTED: "Promoted",
+    BLOCKED: "Blocked",
+    REVERSED: "Reversed",
+  };
+  return statusMap[status] || status;
+}
+
+/**
+ * Format a snapshot value for human-readable display.
+ * - Booleans render as Yes/No (React JSX omits raw true/false).
+ * - null/undefined render as a muted dash.
+ * - Objects/arrays render as JSON.
+ * - Strings and numbers render as-is.
+ */
+function formatSnapshotValue(value) {
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  if (value === null || value === undefined) {
+    return <span className="text-muted">-</span>;
+  }
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+  return value;
+}
+
+/**
+ * Render snapshot object as key-value pairs
+ */
+function renderSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") {
+    return <span className="text-muted">No data available</span>;
+  }
+
+  const entries = Object.entries(snapshot);
+  if (entries.length === 0) {
+    return <span className="text-muted">No data available</span>;
+  }
+
+  return (
+    <div className="snapshot-content">
+      {entries.map(([key, value]) => (
+        <div key={key} className="detail-row" style={{ marginBottom: "8px" }}>
+          <span className="detail-label" style={{ fontWeight: "600", color: "#64748b", fontSize: "13px" }}>
+            {key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}:
+          </span>
+          <span className="detail-value" style={{ color: "#0f3a4a", fontSize: "13px" }}>
+            {formatSnapshotValue(value)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function StudentPromotion({ admissionOfficerMode = false }) {
@@ -114,6 +351,39 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [alumniStudent, setAlumniStudent] = useState(null);
   const [graduationYear, setGraduationYear] = useState(new Date().getFullYear());
   const [promotionThreshold, setPromotionThreshold] = useState(75);
+
+  // Eligibility Check State
+  const [showEligibilityModal, setShowEligibilityModal] = useState(false);
+  const [eligibilityStudent, setEligibilityStudent] = useState(null);
+  const [eligibilityLoading, setEligibilityLoading] = useState(false);
+  const [eligibilityData, setEligibilityData] = useState(null);
+  const [eligibilityError, setEligibilityError] = useState(null);
+
+  // Backlog Management State (read-only, Step 5)
+  const [backlogs, setBacklogs] = useState([]);
+  const [backlogLoading, setBacklogLoading] = useState(false);
+  const [backlogError, setBacklogError] = useState(null);
+  const [backlogStatusFilter, setBacklogStatusFilter] = useState("ALL");
+
+  // Backlog Attempts State (Step 6 - attempt history / creation UI)
+  const [showAttemptsModal, setShowAttemptsModal] = useState(false);
+  const [selectedBacklog, setSelectedBacklog] = useState(null);
+  const [attempts, setAttempts] = useState([]);
+  const [attemptsLoading, setAttemptsLoading] = useState(false);
+  const [attemptsError, setAttemptsError] = useState(null);
+  const [attemptActionLoading, setAttemptActionLoading] = useState(false);
+  const [attemptCreateError, setAttemptCreateError] = useState(null);
+
+  // Workflow action state
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showRecommendModal, setShowRecommendModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showExecuteModal, setShowExecuteModal] = useState(false);
+  const [recommendComment, setRecommendComment] = useState("");
+  const [approveComment, setApproveComment] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectReasonError, setRejectReasonError] = useState("");
 
   // Bulk Result Modal State
   const [showBulkResultModal, setShowBulkResultModal] = useState(false);
@@ -195,9 +465,412 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     }
   };
 
+  const checkEligibility = async (student) => {
+    try {
+      setEligibilityLoading(true);
+      setEligibilityError(null);
+      setEligibilityData(null);
+      setEligibilityStudent(student);
+      setShowEligibilityModal(true);
+
+      const res = await getPromotionEligibility(student._id);
+      setEligibilityData(res.data || res);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to check eligibility.";
+
+      logger.error("Error checking promotion eligibility:", statusCode, errorCode);
+      setEligibilityError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setEligibilityLoading(false);
+    }
+  };
+
+  const refreshEligibility = async () => {
+    if (!eligibilityStudent) return;
+    try {
+      const res = await getPromotionEligibility(eligibilityStudent._id);
+      setEligibilityData(res.data || res);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to refresh decision state.";
+
+      logger.error("Error refreshing promotion eligibility:", statusCode, errorCode);
+      setEligibilityError({
+        message: errorMessage,
+        statusCode,
+        errorCode,
+      });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    }
+  };
+
+  /**
+   * Fetch student backlogs (Step 5 - read-only backlog management).
+   * Lazy-loaded when the eligibility modal is opened for a student.
+   */
+  const fetchBacklogs = async (studentId, status = backlogStatusFilter) => {
+    if (!studentId) return;
+    setBacklogLoading(true);
+    setBacklogError(null);
+    try {
+      const res = await getStudentBacklogs(studentId, status === "ALL" ? undefined : status);
+      const payload = res?.data || res;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.backlogs)
+          ? payload.backlogs
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+      setBacklogs(list);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load backlog records.";
+
+      logger.error("Error fetching student backlogs:", statusCode, errorCode);
+      setBacklogError({ message: errorMessage, statusCode, errorCode });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setBacklogLoading(false);
+    }
+  };
+
+  /**
+   * Fetch attempts for a single backlog (Step 6 - attempt history / creation UI).
+   * Lazy-loaded only when the user opens the attempts modal for a backlog.
+   */
+  const fetchAttempts = async (backlogId) => {
+    if (!backlogId) return;
+    setAttemptsLoading(true);
+    setAttemptsError(null);
+    setAttempts([]);
+    try {
+      const res = await getBacklogAttempts(backlogId);
+      const payload = res?.data || res;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.attempts)
+          ? payload.attempts
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : [];
+      setAttempts(list);
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to load backlog attempts.";
+
+      logger.error("Error fetching backlog attempts:", statusCode, errorCode);
+      setAttemptsError({ message: errorMessage, statusCode, errorCode });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setAttemptsLoading(false);
+    }
+  };
+
+  /**
+   * Open the attempts modal for a backlog and lazy-load its attempts.
+   */
+  const openAttemptsModal = (backlog) => {
+    if (!backlog?._id) return;
+    setSelectedBacklog(backlog);
+    setAttempts([]);
+    setAttemptsError(null);
+    setAttemptCreateError(null);
+    setShowAttemptsModal(true);
+    fetchAttempts(backlog._id);
+  };
+
+  const closeAttemptsModal = () => {
+    setShowAttemptsModal(false);
+    setSelectedBacklog(null);
+    setAttempts([]);
+    setAttemptsError(null);
+    setAttemptCreateError(null);
+  };
+
+  /**
+   * Create a backlog attempt (Step 6).
+   *
+   * The backend `createAttempt` service requires NO request body: it auto-creates
+   * a supplementary exam and the first attempt row. Backend remains authoritative
+   * for attempt limits, status transitions, and exam creation.
+   *
+   * Response mapping: the axios interceptor flattens the standardized
+   * `{ success, message, data: {...} }` envelope so the attempt/exam payload
+   * arrives at the top level. The `payload` extraction below handles both the
+   * flattened shape and a legacy nested `{ data: {...} }` shape.
+   */
+  const handleCreateAttempt = async () => {
+    const backlogId = selectedBacklog?._id;
+    if (!backlogId) {
+      toast.error("Backlog not available.");
+      return;
+    }
+    setAttemptActionLoading(true);
+    setAttemptCreateError(null);
+    try {
+      const res = await createBacklogAttempt(backlogId, {});
+      const payload = res?.data || res;
+      const attempt = payload?.data?.attempt || payload?.attempt || null;
+      const exam = payload?.data?.exam || payload?.exam || null;
+
+      toast.success("Backlog attempt created successfully.");
+      await fetchAttempts(backlogId);
+      if (eligibilityStudent?._id) {
+        await fetchBacklogs(eligibilityStudent._id, backlogStatusFilter);
+      }
+      if (attempt?._id) {
+        toast.info(`Exam: ${exam?.name || "Supplementary exam created"}`, {
+          autoClose: 6000,
+        });
+      }
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to create backlog attempt.";
+
+      logger.error("Error creating backlog attempt:", statusCode, errorCode);
+      setAttemptCreateError({ message: errorMessage, statusCode, errorCode });
+
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setAttemptActionLoading(false);
+    }
+  };
+
+  const openCreateAttemptConfirm = () => {
+    if (!selectedBacklog) return;
+    showConfirm(
+      "Create Backlog Attempt",
+      `Are you sure you want to create a new attempt for "${selectedBacklog.subject_name || selectedBacklog.subject_code || "this subject"}"?\n\n` +
+        `A supplementary exam will be created automatically by the backend.\n` +
+        `This action cannot be undone.`,
+      "warning",
+      handleCreateAttempt,
+    );
+  };
+
+  const handleRecommend = async () => {
+    const decisionId = eligibilityData?._id;
+    if (!decisionId) {
+      toast.error("Promotion decision not available.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await recommendPromotionDecision(decisionId, recommendComment.trim());
+      toast.success("Promotion recommendation submitted successfully.");
+      setShowRecommendModal(false);
+      setRecommendComment("");
+      await refreshEligibility();
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to submit recommendation.";
+
+      logger.error("Error recommending promotion:", statusCode, errorCode);
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    const decisionId = eligibilityData?._id;
+    if (!decisionId) {
+      toast.error("Promotion decision not available.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await approvePromotionDecision(decisionId, approveComment.trim());
+      toast.success("Promotion decision approved successfully.");
+      setShowApproveModal(false);
+      setApproveComment("");
+      await refreshEligibility();
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to approve promotion decision.";
+
+      logger.error("Error approving promotion:", statusCode, errorCode);
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async () => {
+    const decisionId = eligibilityData?._id;
+    if (!decisionId) {
+      toast.error("Promotion decision not available.");
+      return;
+    }
+    const trimmedReason = rejectReason.trim();
+    if (!trimmedReason) {
+      setRejectReasonError("A rejection reason is required.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await rejectPromotionDecision(decisionId, trimmedReason);
+      toast.success("Promotion decision rejected successfully.");
+      setShowRejectModal(false);
+      setRejectReason("");
+      setRejectReasonError("");
+      await refreshEligibility();
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to reject promotion decision.";
+
+      logger.error("Error rejecting promotion:", statusCode, errorCode);
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openRecommendModal = () => {
+    setRecommendComment("");
+    setShowRecommendModal(true);
+  };
+
+  const openApproveModal = () => {
+    setApproveComment("");
+    setShowApproveModal(true);
+  };
+
+  const openRejectModal = () => {
+    setRejectReason("");
+    setRejectReasonError("");
+    setShowRejectModal(true);
+  };
+
+  const isReviewableOutcome = (outcome) =>
+    outcome === "PASS" || outcome === "ATKT";
+
+  const canShowWorkflowActions = () => {
+    if (!eligibilityData) return false;
+    if (!isReviewableOutcome(eligibilityData.promotion_outcome)) return false;
+    return true;
+  };
+
+  const workflowStatus = eligibilityData?.workflow_status;
+  const showRecommend = canShowWorkflowActions() && workflowStatus === "DRAFT";
+  const showApprove = canShowWorkflowActions() &&
+    (workflowStatus === "RECOMMENDED" || workflowStatus === "UNDER_REVIEW");
+  const showReject = canShowWorkflowActions() &&
+    (workflowStatus === "RECOMMENDED" || workflowStatus === "UNDER_REVIEW");
+  const showExecute = canShowWorkflowActions() && workflowStatus === "APPROVED";
+
+  const openExecuteModal = () => {
+    setShowExecuteModal(true);
+  };
+
+  const handleExecute = async () => {
+    const decisionId = eligibilityData?._id;
+    if (!decisionId) {
+      toast.error("Promotion decision not available.");
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const response = await executePromotionDecision(decisionId);
+      const responseStatus =
+        response?.decision?.workflow_status ||
+        response?.executionStatus ||
+        eligibilityData?.workflow_status;
+      toast.success("Promotion executed successfully.");
+      setShowExecuteModal(false);
+      await refreshEligibility();
+      if (responseStatus === "PROMOTED" && eligibilityStudent) {
+        fetchEligibleStudents();
+        if (showHistory) {
+          await fetchPromotionHistory();
+        }
+      }
+    } catch (err) {
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
+      const errorMessage = backendMessage || "Failed to execute promotion decision.";
+
+      logger.error("Error executing promotion:", statusCode, errorCode);
+      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchEligibleStudents();
   }, []);
+
+  /**
+   * Lazy-load backlog records when the eligibility modal is opened for a student.
+   * Backlogs are fetched once per modal open to avoid duplicate requests.
+   */
+  useEffect(() => {
+    if (showEligibilityModal && eligibilityStudent?._id) {
+      setBacklogs([]);
+      setBacklogError(null);
+      setBacklogStatusFilter("ALL");
+      fetchBacklogs(eligibilityStudent._id, "ALL");
+    } else {
+      setBacklogs([]);
+      setBacklogError(null);
+    }
+  }, [showEligibilityModal, eligibilityStudent?._id]);
+
+  /**
+   * Refetch backlogs when the status filter changes for the currently selected student.
+   */
+  useEffect(() => {
+    if (!showEligibilityModal || !eligibilityStudent?._id) return;
+    fetchBacklogs(eligibilityStudent._id, backlogStatusFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backlogStatusFilter]);
 
   const handleRetry = () => {
     fetchEligibleStudents();
@@ -478,10 +1151,12 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
          items={admissionOfficerMode
            ? [
                { label: "Dashboard", path: "/dashboard/admission" },
+               { label: "Students",},
                { label: "Student Promotion" },
              ]
            : [
                { label: "Dashboard", path: "/dashboard" },
+               { label: "Students",},
                { label: "Student Promotion" },
              ]
          }
@@ -1024,6 +1699,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                         <td>
                           <div className="d-flex" style={{ gap: "8px" }}>
                             <button
+                              onClick={() => checkEligibility(student)}
+                              className="btn btn-sm btn-info"
+                              disabled={eligibilityLoading}
+                              title="Check promotion eligibility and view decision details"
+                            >
+                              <FaClipboardCheck /> Eligibility
+                            </button>
+                            <button
                               onClick={() => openPromoteModal(student)}
                               className={`btn btn-sm ${
                                 student.isFinalYear
@@ -1360,11 +2043,952 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                 Cancel
               </button>
             </div>
+</div>
+        </div>
+      )}
+
+      {/* Eligibility Decision Modal */}
+      {showEligibilityModal && eligibilityStudent && (
+        <div className="modal-overlay" onClick={() => setShowEligibilityModal(false)}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "800px", width: "calc(100% - 2rem)", maxHeight: "90vh" }}
+          >
+            <div className="modal-header">
+              <h4 className="modal-title">
+                <FaClipboardCheck /> Promotion Eligibility Decision
+              </h4>
+              <button
+                onClick={() => {
+                  setShowEligibilityModal(false);
+                  setEligibilityStudent(null);
+                  setEligibilityData(null);
+                  setEligibilityError(null);
+                }}
+                className="modal-close"
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              {eligibilityLoading ? (
+                <div className="loading-container">
+                  <FaSpinner className="spinner-icon" />
+                  <p>Checking promotion eligibility...</p>
+                </div>
+              ) : eligibilityError ? (
+                <div className="alert alert-danger">
+                  <FaExclamationCircle />
+                  <div>
+                    <p className="alert-text"><strong>Error:</strong> {eligibilityError.message}</p>
+                    {eligibilityError.statusCode && (
+                      <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
+                        Status: {eligibilityError.statusCode}
+                        {eligibilityError.errorCode && ` | Code: ${eligibilityError.errorCode}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : eligibilityData ? (
+                <>
+                  {/* Student Header */}
+                  <div className="student-info-card">
+                    <div className="student-name">{eligibilityStudent.fullName}</div>
+                    <div className="student-email">{eligibilityStudent.email}</div>
+                    <div className="promotion-info">
+                      <span className="badge badge-info">
+                        {eligibilityStudent.academicYearLabel} (Sem {eligibilityStudent.currentSemester})
+                      </span>
+                      <span className="badge badge-secondary">
+                        Course: {eligibilityStudent.course_id?.name || "N/A"}
+                      </span>
+                    </div>
+                  </div>
+
+{/* Outcome Badge - Improved UX */}
+                   <div className="outcome-banner" style={getOutcomeBannerStyle(eligibilityData.promotion_outcome)}>
+                     <div className="outcome-banner-content">
+                       <div className="outcome-icon">
+                         {getOutcomeIcon(eligibilityData.promotion_outcome)}
+                       </div>
+                       <div className="outcome-text">
+<div className="outcome-label">
+                            {getOutcomeDisplayLabel(eligibilityData.promotion_outcome, eligibilityData.workflow_status)}
+                          </div>
+                         <div className="outcome-reason">
+                           {eligibilityData.decision_reason && (
+                             <>
+                               Reason: {formatDecisionReason(eligibilityData.decision_reason)}
+                               {eligibilityData.workflow_status && eligibilityData.workflow_status !== eligibilityData.promotion_outcome && (
+                                 <span className="workflow-badge">
+                                   Workflow: {formatWorkflowStatus(eligibilityData.workflow_status)}
+                                 </span>
+                               )}
+                             </>
+                           )}
+                         </div>
+                       </div>
+                       <div className="outcome-actions">
+                         {showRecommend && (
+                           <button onClick={openRecommendModal} className="btn btn-sm btn-outline-light" disabled={actionLoading}>
+                             <FaClipboardCheck className="mr-1" /> Recommend
+                           </button>
+                         )}
+                         {showApprove && (
+                           <button onClick={openApproveModal} className="btn btn-sm btn-light" disabled={actionLoading}>
+                             <FaCheckCircle className="mr-1" /> Approve
+                           </button>
+                         )}
+                         {showReject && (
+                           <button onClick={openRejectModal} className="btn btn-sm btn-outline-light" disabled={actionLoading}>
+                             <FaTimes className="mr-1" /> Reject
+                           </button>
+                         )}
+                         {showExecute && (
+                           <button onClick={openExecuteModal} className="btn btn-sm btn-light" disabled={actionLoading}>
+                             <FaArrowUp className="mr-1" /> Execute Promotion
+                           </button>
+                         )}
+                       </div>
+                     </div>
+                   </div>
+
+                  {/* Decision Details Grid */}
+                  <div className="decision-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginTop: "20px" }}>
+                    
+                    {/* ATKT Information */}
+                    {eligibilityData.promotion_outcome === "ATKT" && (
+                      <div className="decision-card atkt-card">
+                        <div className="decision-card-header">
+                          <FaExclamationTriangle style={{ color: "#f59e0b" }} />
+                          <h5 style={{ margin: 0, color: "#92400e" }}>ATKT Details</h5>
+                        </div>
+                        <div className="decision-card-body">
+                          <div className="detail-row">
+                            <span className="detail-label">KT Count:</span>
+                            <span className="detail-value fw-bold" style={{ fontSize: "18px", color: "#f59e0b" }}>
+                              {eligibilityData.kt_count ?? "N/A"}
+                            </span>
+                          </div>
+                          {eligibilityData.policy_snapshot?.maxAllowedKTs !== undefined && eligibilityData.policy_snapshot?.maxAllowedKTs !== null && (
+                            <div className="detail-row">
+                              <span className="detail-label">Max Allowed KTs:</span>
+                              <span className="detail-value">{eligibilityData.policy_snapshot?.maxAllowedKTs}</span>
+                            </div>
+                          )}
+                          {eligibilityData.failed_subject_ids && eligibilityData.failed_subject_ids.length > 0 && (
+                            <div className="detail-row">
+                              <span className="detail-label">Failed Subjects:</span>
+                              <div className="detail-value">
+                                <ul style={{ margin: "8px 0 0 0", paddingLeft: "20px" }}>
+                                  {eligibilityData.failed_subject_ids.map((subj, idx) => {
+                                    const displayName =
+                                      typeof subj === "string"
+                                        ? subj
+                                        : subj?.name
+                                          ? `${subj.name}${subj.code ? ` (${subj.code})` : ""}`
+                                          : subj?.code || subj?._id || String(subj);
+                                    return (
+                                      <li key={idx} style={{ fontSize: "13px" }}>
+                                        {displayName}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                          {eligibilityData.backlog_ids && eligibilityData.backlog_ids.length > 0 && (
+                            <div className="detail-row">
+                              <span className="detail-label">Backlog Records:</span>
+                              <span className="detail-value">
+                                {eligibilityData.backlog_ids.length} backlog record{eligibilityData.backlog_ids.length === 1 ? "" : "s"}
+                                <span
+                                  className="text-muted"
+                                  style={{ fontSize: "11px", display: "block", marginTop: "4px" }}
+                                >
+                                  See Backlog Details table below for subject-level information
+                                </span>
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Attendance Snapshot - Improved UX */}
+                    {eligibilityData.attendance_snapshot && (() => {
+                      const snap = eligibilityData.attendance_snapshot;
+                      const percentage = snap.percentage ?? 0;
+                      const required = snap.requiredPercentage ?? 75;
+                      const passed = snap.passed === true;
+                      const status = snap.status || (passed ? "ELIGIBLE" : "NOT_ELIGIBLE");
+                      const isOverride = snap.overridden === true;
+
+                      return (
+                        <div className="decision-card attendance-snapshot-card">
+                          <div className="decision-card-header">
+                            <FaInfoCircle style={{ color: "#3db5e6" }} />
+                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Attendance Snapshot</h5>
+                            <span className={`badge ${passed ? "badge-success" : "badge-danger"}`}>
+                              {formatStatus(status)}
+                            </span>
+                          </div>
+                          <div className="decision-card-body">
+                            {/* Progress Bar */}
+                            <div className="attendance-progress-section">
+                              <div className="progress-header">
+                                <span className="progress-label">Attendance Percentage</span>
+                                <span className="progress-value">{percentage}%</span>
+                              </div>
+                              <div className="progress-bar-container">
+                                <div 
+                                  className="progress-bar-fill"
+                                  style={{ 
+                                    width: `${Math.min(percentage, 100)}%`,
+                                    background: passed 
+                                      ? "linear-gradient(90deg, #059669 0%, #10b981 100%)"
+                                      : "linear-gradient(90deg, #ef4444 0%, #f87171 100%)"
+                                  }}
+                                ></div>
+                              </div>
+                              <div className="progress-markers">
+                                <span className="marker current">Current: {percentage}%</span>
+                                <span className="marker required">Required: {required}%</span>
+                              </div>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div className="attendance-details-grid">
+                              <div className="detail-item">
+                                <span className="detail-label">Total Sessions</span>
+                                <span className="detail-value">{snap.totalSessions ?? "-"}</span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">Override Applied</span>
+                                <span className={`detail-value ${isOverride ? "override-yes" : "override-no"}`}>
+                                  {isOverride ? "Yes" : "No"}
+                                </span>
+                              </div>
+                              {isOverride && snap.overrideReason && (
+                                <div className="detail-item override-reason" style={{ gridColumn: "1 / -1" }}>
+                                  <span className="detail-label">Override Reason</span>
+                                  <span className="detail-value">{snap.overrideReason}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Status Message */}
+                            <div className={`attendance-status-message ${passed ? "passed" : "failed"}`}>
+                              {passed ? (
+                                <>
+                                  <FaCheckCircle style={{ marginRight: "8px" }} />
+                                  Student meets the minimum attendance requirement ({required}%).
+                                </>
+                              ) : (
+                                <>
+                                  <FaExclamationTriangle style={{ marginRight: "8px" }} />
+                                  Student does NOT meet the minimum attendance requirement ({required}%). Shortfall: {required - percentage}%.
+                                </>
+                              )}
+                              {isOverride && (
+                                <div className="override-notice">
+                                  <FaInfoCircle style={{ marginRight: "6px", fontSize: "14px" }} />
+                                  Attendance check was overridden. {snap.overrideReason && `Reason: ${snap.overrideReason}`}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Fee Clearance Snapshot - Improved UX */}
+                    {eligibilityData.fee_clearance_snapshot && (() => {
+                      const snap = eligibilityData.fee_clearance_snapshot;
+                      const totalFee = snap.totalFee ?? 0;
+                      const paidAmount = snap.paidAmount ?? 0;
+                      const pendingAmount = snap.pendingAmount ?? 0;
+                      const requiredClearance = snap.requiredClearance !== false;
+                      const cleared = snap.cleared === true;
+                      const passed = snap.passed === true;
+                      const status = snap.status || (cleared ? "CLEARED" : "PARTIALLY_PAID");
+                      const isOverride = snap.overridden === true;
+                      const progressPercent = totalFee > 0 ? Math.round((paidAmount / totalFee) * 100) : 0;
+
+                      const formatCurrency = (amount) => {
+                        if (amount === null || amount === undefined) return "-";
+                        return new Intl.NumberFormat("en-IN", {
+                          style: "currency",
+                          currency: "INR",
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(amount);
+                      };
+
+                      return (
+                        <div className="decision-card fee-snapshot-card">
+                          <div className="decision-card-header">
+                            <FaDollarSign style={{ color: "#059669" }} />
+                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Fee Clearance Snapshot</h5>
+                            <span className={`badge ${passed ? "badge-success" : "badge-warning"}`}>
+                              {passed ? "Cleared" : status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <div className="decision-card-body">
+                            {/* Progress Bar */}
+                            <div className="fee-progress-section">
+                              <div className="progress-header">
+                                <span className="progress-label">Fee Payment Progress</span>
+                                <span className="progress-value">{progressPercent}%</span>
+                              </div>
+                              <div className="progress-bar-container">
+                                <div 
+                                  className="progress-bar-fill"
+                                  style={{ 
+                                    width: `${Math.min(progressPercent, 100)}%`,
+                                    background: passed 
+                                      ? "linear-gradient(90deg, #059669 0%, #10b981 100%)"
+                                      : "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)"
+                                  }}
+                                ></div>
+                              </div>
+                              <div className="progress-markers">
+                                <span className="marker paid">Paid: {formatCurrency(paidAmount)}</span>
+                                <span className="marker total">Total: {formatCurrency(totalFee)}</span>
+                              </div>
+                            </div>
+
+                            {/* Details Grid */}
+                            <div className="fee-details-grid">
+                              <div className="detail-item highlight">
+                                <span className="detail-label">Total Fee</span>
+                                <span className="detail-value">{formatCurrency(totalFee)}</span>
+                              </div>
+                              <div className="detail-item highlight">
+                                <span className="detail-label">Amount Paid</span>
+                                <span className="detail-value paid-amount">{formatCurrency(paidAmount)}</span>
+                              </div>
+                              <div className="detail-item highlight">
+                                <span className="detail-label">Pending Amount</span>
+                                <span className="detail-value pending-amount">{formatCurrency(pendingAmount)}</span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">Clearance Required</span>
+                                <span className={`detail-value ${requiredClearance ? "clearance-yes" : "clearance-no"}`}>
+                                  {requiredClearance ? "Yes" : "No"}
+                                </span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">Override Applied</span>
+                                <span className={`detail-value ${isOverride ? "override-yes" : "override-no"}`}>
+                                  {isOverride ? "Yes" : "No"}
+                                </span>
+                              </div>
+                              {isOverride && snap.overrideReason && (
+                                <div className="detail-item override-reason" style={{ gridColumn: "1 / -1" }}>
+                                  <span className="detail-label">Override Reason</span>
+                                  <span className="detail-value">{snap.overrideReason}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Status Message */}
+                            <div className={`fee-status-message ${passed ? "passed" : "failed"}`}>
+                              {passed ? (
+                                <>
+                                  <FaCheckCircle style={{ marginRight: "8px" }} />
+                                  All fees cleared. Student is eligible for promotion.
+                                </>
+                              ) : (
+                                <>
+                                  <FaExclamationTriangle style={{ marginRight: "8px" }} />
+                                  Pending fee payment of {formatCurrency(pendingAmount)}. 
+                                  {requiredClearance && " Fee clearance is required for promotion."}
+                                </>
+                              )}
+                              {isOverride && (
+                                <div className="override-notice">
+                                  <FaInfoCircle style={{ marginRight: "6px", fontSize: "14px" }} />
+                                  Fee check was overridden. {snap.overrideReason && `Reason: ${snap.overrideReason}`}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Policy Snapshot - Improved UX */}
+                    {eligibilityData.policy_snapshot && (
+                      <div className="decision-card policy-snapshot-card">
+                        <div className="decision-card-header">
+                          <FaFileAlt style={{ color: "#9C27B0" }} />
+                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Promotion Policy Applied</h5>
+                          <span className="badge badge-secondary" style={{ fontSize: "11px", fontWeight: "500" }}>
+                            Version: {formatDate(eligibilityData.policy_version)}
+                          </span>
+                        </div>
+                        <div className="decision-card-body">
+                          <div className="policy-snapshot-grid">
+                            {/* Min Attendance */}
+                            <div className="policy-snapshot-item">
+                              <div className="policy-icon attendance">
+                                <FaUsers style={{ fontSize: "18px" }} />
+                              </div>
+                              <div className="policy-content">
+                                <span className="policy-label">Minimum Attendance</span>
+                                <span className="policy-value">
+                                  {eligibilityData.policy_snapshot.minAttendancePercentage !== undefined && eligibilityData.policy_snapshot.minAttendancePercentage !== null
+                                    ? `${eligibilityData.policy_snapshot.minAttendancePercentage}%`
+                                    : <span className="text-muted">Not configured</span>}
+                                </span>
+                                <span className="policy-desc">Student must meet this attendance %</span>
+                              </div>
+                            </div>
+
+                            {/* Max Allowed KTs */}
+                            <div className="policy-snapshot-item">
+                              <div className="policy-icon kt">
+                                <FaExclamationTriangle style={{ fontSize: "18px" }} />
+                              </div>
+                              <div className="policy-content">
+                                <span className="policy-label">Max Allowed KTs (Backlogs)</span>
+                                <span className="policy-value">
+                                  {eligibilityData.policy_snapshot.maxAllowedKTs !== undefined && eligibilityData.policy_snapshot.maxAllowedKTs !== null
+                                    ? eligibilityData.policy_snapshot.maxAllowedKTs
+                                    : <span className="text-muted">Not configured</span>}
+                                </span>
+                                <span className="policy-desc">Maximum backlogs permitted for promotion</span>
+                              </div>
+                            </div>
+
+                            {/* Scoped Semesters */}
+                            <div className="policy-snapshot-item">
+                              <div className="policy-icon semester">
+                                <FaGraduationCap style={{ fontSize: "18px" }} />
+                              </div>
+                              <div className="policy-content">
+                                <span className="policy-label">Applicable Semesters</span>
+                                <span className="policy-value">
+                                  {eligibilityData.policy_snapshot.scopedSemesters && eligibilityData.policy_snapshot.scopedSemesters.length > 0
+                                    ? eligibilityData.policy_snapshot.scopedSemesters.map((s, i) => (
+                                        <span key={i} className="semester-chip">Sem {s}</span>
+                                      ))
+                                    : <span className="text-muted">All Semesters</span>}
+                                </span>
+                                <span className="policy-desc">Policy scope (empty = all semesters)</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+{/* Backlog Details (Step 5 - read-only backlog management) - Improved UX */}
+                    <div className="decision-card backlog-card" style={{ marginTop: "16px" }}>
+                      <div className="decision-card-header">
+                        <FaClipboardCheck style={{ color: "#3db5e6" }} />
+                        <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Backlog Details (ATKT)</h5>
+                        <div className="d-flex align-items-center gap-2">
+                          <span className={`badge ${backlogs.length > 0 ? "badge-info" : "badge-success"}`} style={{ fontSize: "12px" }}>
+                            {backlogs.length} record{backlogs.length === 1 ? "" : "s"}
+                          </span>
+                          {backlogs.length > 0 && (
+                            <span className="backlog-summary text-muted" style={{ fontSize: "11px" }}>
+                              {(() => {
+                                const open = backlogs.filter(b => b.status === "OPEN").length;
+                                const attempted = backlogs.filter(b => b.status === "ATTEMPTED").length;
+                                const cleared = backlogs.filter(b => b.status === "CLEARED").length;
+                                return `Open: ${open} | Attempted: ${attempted} | Cleared: ${cleared}`;
+                              })()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="decision-card-body">
+                        {/* Status filter */}
+                        <div className="backlog-filter" style={{ marginBottom: "16px" }}>
+                          <div className="filter-group" style={{ flexWrap: "wrap", gap: "8px" }}>
+                            {["ALL", "OPEN", "ATTEMPTED", "CLEARED"].map((status) => (
+                              <button
+                                key={status}
+                                onClick={() => setBacklogStatusFilter(status)}
+                                className={`btn btn-sm ${backlogStatusFilter === status ? "btn-primary" : "btn-outline-secondary"}`}
+                                disabled={backlogLoading}
+                              >
+                                {status === "ALL" ? "All" : status}
+                                {status !== "ALL" && (
+                                  <span className="filter-count ms-1">
+                                    {backlogs.filter(b => b.status === status).length}
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Loading state */}
+                        {backlogLoading ? (
+                          <div className="loading-container" style={{ padding: "30px 0", textAlign: "center" }}>
+                            <FaSpinner className="spinner-icon" style={{ fontSize: "32px", color: "#3db5e6" }} />
+                            <p style={{ marginTop: "12px", color: "#64748b" }}>Loading backlog records...</p>
+                          </div>
+                        ) : backlogError ? (
+                          <div className="alert alert-danger" style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                            <FaExclamationCircle style={{ fontSize: "20px", marginTop: "2px" }} />
+                            <div>
+                              <p className="alert-text" style={{ margin: 0 }}><strong>Error:</strong> {backlogError.message}</p>
+                              {backlogError.statusCode && (
+                                <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px", marginBottom: 0 }}>
+                                  Status: {backlogError.statusCode}
+                                  {backlogError.errorCode && ` | Code: ${backlogError.errorCode}`}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ) : backlogs.length === 0 ? (
+                          <div className="empty-state backlog-empty-state" style={{ padding: "48px 24px", textAlign: "center" }}>
+                            <div className="empty-icon-wrapper">
+                              <FaClipboardCheck className="empty-icon" style={{ fontSize: "56px", color: "#94a3b8" }} />
+                            </div>
+                            <p className="empty-title" style={{ marginTop: "16px", fontSize: "18px", fontWeight: 600, color: "#1e293b" }}>
+                              No Backlog Records
+                            </p>
+                            <p className="empty-text" style={{ marginTop: "8px", color: "#64748b", maxWidth: "400px", margin: "8px auto 0" }}>
+                              {backlogStatusFilter === "ALL"
+                                ? "This student has no ATKT/backlog records. They are clear to promote."
+                                : `No backlog records with status "${backlogStatusFilter}". Try "All" to see all records.`}
+                            </p>
+                            {backlogStatusFilter !== "ALL" && (
+                              <button
+                                onClick={() => setBacklogStatusFilter("ALL")}
+                                className="btn btn-outline-primary mt-3"
+                                style={{ fontSize: "13px" }}
+                              >
+                                <FaSyncAlt className="mr-1" /> Show All Statuses
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="table-responsive">
+                            <table className="data-table backlog-table">
+                              <thead>
+                                <tr>
+                                  <th style={{ minWidth: "240px" }}>Subject</th>
+                                  <th style={{ width: "90px" }}>Semester</th>
+                                  <th style={{ width: "140px" }}>Academic Year</th>
+                                  <th style={{ width: "110px" }}>Status</th>
+                                  <th style={{ width: "90px", textAlign: "center" }}>Attempts</th>
+                                  <th style={{ width: "120px" }}>Created</th>
+                                  <th style={{ width: "120px" }}>Cleared</th>
+                                  <th style={{ width: "130px" }}>Action</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {backlogs.map((backlog) => (
+                                  <tr key={backlog._id} className="backlog-row">
+                                    <td>
+                                      <div className="backlog-subject">
+                                        <div className="subject-name">{backlog.subject_name || "-"}</div>
+                                        {backlog.subject_code && (
+                                          <span className="subject-code">Code: {backlog.subject_code}</span>
+                                        )}
+                                        {backlog.subject_type && (
+                                          <span className="subject-type">{backlog.subject_type}</span>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <span className="badge badge-info badge-sm">
+                                        Sem {backlog.semester ?? "-"}
+                                      </span>
+                                    </td>
+                                    <td className="text-muted" style={{ fontSize: "13px" }}>
+                                      {backlog.academicYear || "-"}
+                                    </td>
+                                    <td>
+                                      <span className={getBacklogStatusBadge(backlog.status)}>
+                                        {backlog.status ? backlog.status.replace(/_/g, " ") : "-"}
+                                      </span>
+                                    </td>
+                                    <td style={{ textAlign: "center" }}>
+                                      <span className="attempt-count">{backlog.attempt_count ?? 0}</span>
+                                    </td>
+                                    <td className="text-muted" style={{ fontSize: "12px" }}>
+                                      {formatDate(backlog.created_at)}
+                                    </td>
+                                    <td className="text-muted" style={{ fontSize: "12px" }}>
+                                      {backlog.cleared_at ? formatDate(backlog.cleared_at) : <span className="text-muted">-</span>}
+                                    </td>
+                                    <td>
+                                      <button
+                                        onClick={() => openAttemptsModal(backlog)}
+                                        className="btn btn-sm btn-info view-attempts-btn"
+                                        title="View and manage backlog attempts"
+                                        disabled={backlogLoading}
+                                      >
+                                        <FaEye className="mr-1" /> View Attempts
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                   </div>
+
+                  {/* Raw Decision Data (for debugging) removed */}
+                </>
+              ) : (
+                <div className="empty-state">
+                  <FaClipboardCheck className="empty-icon" style={{ color: "#cbd5e1" }} />
+                  <p className="empty-title">No Decision Data</p>
+                  <p className="empty-text">Eligibility check returned no data.</p>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              {showRecommend && (
+                <button
+                  onClick={openRecommendModal}
+                  disabled={actionLoading}
+                  className="btn btn-outline-info"
+                  style={{ flex: 1 }}
+                >
+                  <FaClipboardCheck /> Recommend Promotion
+                </button>
+              )}
+              {showApprove && (
+                <button
+                  onClick={openApproveModal}
+                  disabled={actionLoading}
+                  className="btn btn-success"
+                  style={{ flex: 1 }}
+                >
+                  <FaCheckCircle /> Approve Promotion
+                </button>
+              )}
+              {showReject && (
+                <button
+                  onClick={openRejectModal}
+                  disabled={actionLoading}
+                  className="btn btn-danger"
+                  style={{ flex: 1 }}
+                >
+                  <FaTimes /> Reject Promotion
+                </button>
+              )}
+              {showExecute && (
+                <button
+                  onClick={openExecuteModal}
+                  disabled={actionLoading}
+                  className="btn btn-warning"
+                  style={{ flex: 1 }}
+                >
+                  <FaArrowUp /> Execute Promotion
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowEligibilityModal(false);
+                  setEligibilityStudent(null);
+                  setEligibilityData(null);
+                  setEligibilityError(null);
+                }}
+                className="btn btn-primary"
+              >
+                <FaTimes /> Close
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-{/* Confirm Modal */}
+      {/* Backlog Attempts Modal (Step 6 - attempt history / creation UI) */}
+      {showAttemptsModal && selectedBacklog && (
+        <div className="modal-overlay" onClick={closeAttemptsModal}>
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "720px", width: "calc(100% - 2rem)", maxHeight: "90vh" }}
+          >
+            <div className="modal-header">
+              <h4 className="modal-title">
+                <FaClipboardCheck /> Backlog Attempts
+              </h4>
+              <button
+                onClick={closeAttemptsModal}
+                className="modal-close"
+                aria-label="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              {/* Backlog summary */}
+              <div className="student-info-card" style={{ marginBottom: "16px" }}>
+                <div className="student-name" style={{ textTransform: "none" }}>
+                  {selectedBacklog.subject_name || "-"}
+                </div>
+                <div className="student-email">
+                  {selectedBacklog.subject_code && `Code: ${selectedBacklog.subject_code}`}
+                  {selectedBacklog.subject_type && ` | Type: ${selectedBacklog.subject_type}`}
+                  {selectedBacklog.semester && ` | Sem ${selectedBacklog.semester}`}
+                  {selectedBacklog.academicYear && ` | ${selectedBacklog.academicYear}`}
+                </div>
+                <div className="promotion-info" style={{ marginTop: "8px" }}>
+                  <span className={getBacklogStatusBadge(selectedBacklog.status)}>
+                    {selectedBacklog.status ? selectedBacklog.status.replace(/_/g, " ") : "-"}
+                  </span>
+                  <span className="badge badge-info ms-2">
+                    Attempts: {selectedBacklog.attempt_count ?? 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* Create attempt action */}
+              <div className="backlog-create-attempt" style={{ marginBottom: "16px" }}>
+                {selectedBacklog.status === "OPEN" ? (
+                  <button
+                    onClick={openCreateAttemptConfirm}
+                    disabled={attemptActionLoading}
+                    className="btn btn-success"
+                  >
+                    <FaCheckCircle /> Create Attempt
+                  </button>
+                ) : (
+                  <p className="alert-text text-muted" style={{ margin: 0 }}>
+                    {selectedBacklog.status === "CLEARED"
+                      ? "This backlog has been cleared. No further attempts can be created."
+                      : "Create Attempt is only available for backlogs with OPEN status."}
+                  </p>
+                )}
+                {attemptCreateError && (
+                  <div className="alert alert-danger" style={{ marginTop: "12px" }}>
+                    <FaExclamationCircle />
+                    <div>
+                      <p className="alert-text"><strong>Error:</strong> {attemptCreateError.message}</p>
+                      {attemptCreateError.statusCode && (
+                        <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
+                          Status: {attemptCreateError.statusCode}
+                          {attemptCreateError.errorCode && ` | Code: ${attemptCreateError.errorCode}`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Attempts list */}
+              {attemptsLoading ? (
+                <div className="loading-container" style={{ padding: "30px 0" }}>
+                  <FaSpinner className="spinner-icon" style={{ fontSize: "32px" }} />
+                  <p style={{ marginTop: "12px" }}>Loading attempts...</p>
+                </div>
+              ) : attemptsError ? (
+                <div className="alert alert-danger">
+                  <FaExclamationCircle />
+                  <div>
+                    <p className="alert-text"><strong>Error:</strong> {attemptsError.message}</p>
+                    {attemptsError.statusCode && (
+                      <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
+                        Status: {attemptsError.statusCode}
+                        {attemptsError.errorCode && ` | Code: ${attemptsError.errorCode}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : attempts.length === 0 ? (
+                <div className="empty-state" style={{ padding: "40px 20px" }}>
+                  <FaClipboardCheck className="empty-icon" style={{ fontSize: "64px", color: "#cbd5e1" }} />
+                  <p className="empty-title" style={{ marginTop: "12px" }}>No attempts found</p>
+                  <p className="empty-text">
+                    {selectedBacklog.status === "OPEN"
+                      ? "No attempts have been created for this backlog yet."
+                      : "No attempts exist for this backlog."}
+                  </p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="data-table attempt-table">
+                    <thead>
+                      <tr>
+                        <th>Attempt #</th>
+                        <th>Status</th>
+                        <th>Exam</th>
+                        <th>Attempted</th>
+                        <th>Evaluated</th>
+                        <th>Marks</th>
+                        <th>Result</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attempts.map((attempt) => (
+                        <tr key={attempt._id}>
+                          <td>
+                            <span className="badge badge-info">
+                              #{attempt.attempt_number ?? "-"}
+                            </span>
+                          </td>
+                          <td>
+                            <span className={getAttemptStatusBadge(attempt.result_status)}>
+                              {attempt.result_status
+                                ? attempt.result_status.replace(/_/g, " ")
+                                : "-"}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="student-name" style={{ textTransform: "none", fontSize: "13px" }}>
+                              {attempt.exam_name || "-"}
+                            </div>
+                            {attempt.exam_type && (
+                              <div className="student-email">
+                                Type: {attempt.exam_type}
+                              </div>
+                            )}
+                          </td>
+                          <td className="text-muted" style={{ fontSize: "12px" }}>
+                            {formatDateTime(attempt.attempted_at)}
+                          </td>
+                          <td className="text-muted" style={{ fontSize: "12px" }}>
+                            {formatDateTime(attempt.evaluated_at)}
+                          </td>
+                          <td>
+                            {attempt.total_marks !== undefined && attempt.total_marks !== null ? (
+                              <span className="fw-bold">
+                                {attempt.internal_marks ?? 0} + {attempt.external_marks ?? 0} = {attempt.total_marks}
+                              </span>
+                            ) : (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
+                          <td>
+                            {attempt.passed === true && (
+                              <span className="badge badge-success">Passed</span>
+                            )}
+                            {attempt.passed === false && (
+                              <span className="badge badge-danger">Failed</span>
+                            )}
+                            {attempt.passed !== true && attempt.passed !== false && (
+                              <span className="text-muted">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                onClick={closeAttemptsModal}
+                className="btn btn-secondary"
+              >
+                <FaTimes /> Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Execute Confirmation Modal */}
+      {showExecuteModal && eligibilityStudent && eligibilityData && (
+        <ConfirmModal
+          isOpen={showExecuteModal}
+          onClose={() => setShowExecuteModal(false)}
+          onConfirm={handleExecute}
+          title="Execute Promotion"
+          message={`Are you sure you want to execute this promotion?\n\n` +
+            `Student: ${eligibilityStudent.fullName}\n` +
+            `Current Semester: Sem ${eligibilityStudent.currentSemester}\n` +
+            `Target Semester: Sem ${eligibilityStudent.currentSemester + 1}\n` +
+            `Outcome: ${formatOutcome(eligibilityData.promotion_outcome)}\n` +
+            `Workflow Status: ${formatWorkflowStatus(eligibilityData.workflow_status)}\n` +
+            (eligibilityData.promotion_outcome === "ATKT"
+              ? `KT Count: ${eligibilityData.kt_count ?? "N/A"}\n`
+              : "") +
+            `\n⚠️ This is the final promotion execution action and will change the student's promotion state.`}
+          type="warning"
+          confirmText="Execute"
+          cancelText="Cancel"
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Recommend Confirmation Modal */}
+      {showRecommendModal && eligibilityStudent && (
+        <ConfirmModal
+          isOpen={showRecommendModal}
+          onClose={() => setShowRecommendModal(false)}
+          onConfirm={handleRecommend}
+          title="Recommend Promotion"
+          message="Are you sure you want to recommend this promotion decision? This will move the workflow from Draft to Recommended."
+          type="info"
+          confirmText="Recommend"
+          cancelText="Cancel"
+          isLoading={actionLoading}
+          inputValue={recommendComment}
+          onInputChange={setRecommendComment}
+          inputPlaceholder="Optional comment for the recommendation..."
+          inputRows={3}
+        />
+      )}
+
+      {/* Approve Confirmation Modal */}
+      {showApproveModal && eligibilityStudent && (
+        <ConfirmModal
+          isOpen={showApproveModal}
+          onClose={() => setShowApproveModal(false)}
+          onConfirm={handleApprove}
+          title="Approve Promotion"
+          message="Are you sure you want to approve this promotion decision? This will move the workflow to Approved."
+          type="success"
+          confirmText="Approve"
+          cancelText="Cancel"
+          isLoading={actionLoading}
+          inputValue={approveComment}
+          onInputChange={setApproveComment}
+          inputPlaceholder="Optional approval comment..."
+          inputRows={3}
+        />
+      )}
+
+      {/* Reject Confirmation Modal */}
+      {showRejectModal && eligibilityStudent && (
+        <ConfirmModal
+          isOpen={showRejectModal}
+          onClose={() => {
+            setShowRejectModal(false);
+            setRejectReason("");
+            setRejectReasonError("");
+          }}
+          onConfirm={handleReject}
+          title="Reject Promotion"
+          message="Are you sure you want to reject this promotion decision?"
+          type="danger"
+          confirmText="Reject"
+          cancelText="Cancel"
+          isLoading={actionLoading}
+          inputValue={rejectReason}
+          onInputChange={(val) => {
+            setRejectReason(val);
+            if (rejectReasonError) setRejectReasonError("");
+          }}
+          inputPlaceholder="Provide a reason for rejection (required)..."
+          inputRows={3}
+          inputError={rejectReasonError}
+          confirmDisabled={actionLoading || !rejectReason.trim()}
+        />
+      )}
+
+      {/* Confirm Modal */}
        {showConfirmModal && (
          <ConfirmModal
            isOpen={showConfirmModal}
@@ -1488,6 +3112,42 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           background: #f0f4f8;
           min-height: 100vh;
         }
+        //For academic year column(Sem1)
+        .data-table td:nth-child(3) {
+          vertical-align: middle;
+        }
+
+        .data-table td:nth-child(3) > div {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+        }
+        
+        /* Fix Eligible Students header overlap */
+          .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+          }
+
+          .card-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-shrink: 0;
+            white-space: nowrap;
+          }
+
+          .card-header-actions .text-muted {
+            display: inline-block;
+          }
+
+          .card-header-actions .badge {
+            margin-left: 0 !important;
+          }
+
 
         .page-header {
           display: flex;
@@ -2137,6 +3797,23 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           border-color: #cbd5e1;
         }
 
+        .btn-info {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: white;
+          box-shadow: 0 4px 12px rgba(15, 58, 74, 0.3);
+        }
+
+        .btn-info:hover:not(:disabled) {
+          background: linear-gradient(135deg, #1a5263 0%, #0f3a4a 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(15, 58, 74, 0.4);
+        }
+
+        .btn-info:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
         .btn-sm {
           padding: 8px 16px;
           font-size: 13px;
@@ -2358,6 +4035,229 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           font-weight: 700;
           color: #3db5e6;
           font-size: 14px;
+        }
+
+        /* Decision Card Styles */
+        .decision-grid {
+          margin-top: 20px;
+        }
+
+        .decision-card {
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(15, 58, 74, 0.06);
+        }
+
+        .decision-card.atkt-card {
+          border-left: 4px solid #f59e0b;
+        }
+
+        .decision-card-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 14px 16px;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .decision-card-header h5 {
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .decision-card-body {
+          padding: 16px;
+        }
+
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 8px 0;
+        }
+
+        .detail-label {
+          font-weight: 600;
+          color: #64748b;
+          font-size: 13px;
+          min-width: 140px;
+        }
+
+        .detail-value {
+          color: #0f3a4a;
+          font-size: 13px;
+          text-align: right;
+          word-break: break-word;
+        }
+
+        .detail-value.fw-bold {
+          font-weight: 700;
+        }
+
+        .snapshot-content .detail-row {
+          border-bottom: 1px solid #f1f5f9;
+        }
+
+        .snapshot-content .detail-row:last-child {
+          border-bottom: none;
+        }
+
+        .backlog-card {
+          border-left: 4px solid #3db5e6;
+        }
+
+        .backlog-table {
+          font-size: 13px;
+        }
+
+        .backlog-table thead th {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: white;
+          padding: 12px 14px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .backlog-table tbody td {
+          padding: 12px 14px;
+          border-bottom: 1px solid #e2e8f0;
+          vertical-align: middle;
+        }
+
+        .backlog-filter .btn {
+          padding: 6px 14px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .attempt-table {
+          font-size: 13px;
+        }
+
+        .attempt-table thead th {
+          background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
+          color: white;
+          padding: 12px 14px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .attempt-table tbody td {
+          padding: 12px 14px;
+          border-bottom: 1px solid #e2e8f0;
+          vertical-align: middle;
+        }
+
+        .backlog-create-attempt .btn {
+          padding: 8px 18px;
+          font-size: 14px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+          .decision-grid {
+            grid-template-columns: 1fr !important;
+          }
+          
+          .detail-row {
+            flex-direction: column;
+            gap: 4px;
+          }
+          
+          .detail-label {
+            min-width: auto;
+          }
+          
+          .detail-value {
+            text-align: left;
+          }
+
+          .backlog-table thead {
+            display: none;
+          }
+
+          .backlog-table,
+          .backlog-table tbody,
+          .backlog-table tr,
+          .backlog-table td {
+            display: block;
+            width: 100%;
+          }
+
+          .backlog-table tbody tr {
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f8fafc;
+          }
+
+          .backlog-table tbody td {
+            border-bottom: none;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .backlog-table tbody td:last-child {
+            border-bottom: none;
+          }
+
+          .backlog-filter {
+            width: 100%;
+          }
+
+          .backlog-filter .filter-group {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .backlog-filter .btn {
+            flex: 1 1 auto;
+          }
+
+          .attempt-table thead {
+            display: none;
+          }
+
+          .attempt-table,
+          .attempt-table tbody,
+          .attempt-table tr,
+          .attempt-table td {
+            display: block;
+            width: 100%;
+          }
+
+          .attempt-table tbody tr {
+            margin-bottom: 16px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            background: #f8fafc;
+          }
+
+          .attempt-table tbody td {
+            border-bottom: none;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+          }
+
+          .attempt-table tbody td:last-child {
+            border-bottom: none;
+          }
         }
 
         .form-group {
@@ -2746,6 +4646,596 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
             margin-bottom: 2px;
             font-size: 12px;
             line-height: 1.5;
+          }
+
+          /* Policy Snapshot Styles */
+          .policy-snapshot-card {
+            border-left: 4px solid #9C27B0;
+          }
+
+          .policy-snapshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+          }
+
+          .policy-snapshot-item {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+          }
+
+          .policy-snapshot-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          }
+
+          .policy-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+
+          .policy-icon.attendance {
+            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+            color: #1d4ed8;
+          }
+
+          .policy-icon.kt {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            color: #b45309;
+          }
+
+          .policy-icon.semester {
+            background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+            color: #be185d;
+          }
+
+          .policy-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 0;
+          }
+
+          .policy-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .policy-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #0f3a4a;
+          }
+
+          .policy-desc {
+            font-size: 11px;
+            color: #94a3b8;
+          }
+
+          .semester-chip {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 6px;
+            margin-bottom: 4px;
+          }
+
+          @media (max-width: 575.98px) {
+            .policy-snapshot-grid {
+              grid-template-columns: 1fr;
+            }
+            
+            .policy-snapshot-item {
+              padding: 12px;
+            }
+            
+            .policy-icon {
+              width: 38px;
+              height: 38px;
+            }
+          }
+
+          /* Attendance Snapshot Styles */
+          .attendance-snapshot-card {
+            border-left: 4px solid #3db5e6;
+          }
+
+          .attendance-progress-section {
+            margin-bottom: 20px;
+          }
+
+          .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+          }
+
+          .progress-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f3a4a;
+          }
+
+          .progress-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f3a4a;
+          }
+
+          .progress-bar-container {
+            height: 12px;
+            background: #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+          }
+
+          .progress-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.5s ease, background 0.3s ease;
+          }
+
+          .progress-markers {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #64748b;
+          }
+
+          .progress-markers .marker.required {
+            font-weight: 600;
+            color: #3db5e6;
+          }
+
+          .attendance-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+          }
+
+          .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .detail-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+
+          .detail-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #0f3a4a;
+          }
+
+          .detail-value.override-yes {
+            color: #f59e0b;
+            font-weight: 600;
+          }
+
+          .detail-value.override-no {
+            color: #94a3b8;
+          }
+
+          .detail-item.override-reason {
+            padding-top: 8px;
+            border-top: 1px solid #e2e8f0;
+          }
+
+          .attendance-status-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+          }
+
+          .attendance-status-message.passed {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+          }
+
+          .attendance-status-message.failed {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+          }
+
+          .override-notice {
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 6px;
+            color: #92400e;
+            font-size: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+          }
+
+          @media (max-width: 575.98px) {
+            .attendance-details-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          /* Fee Snapshot Styles */
+          .fee-snapshot-card {
+            border-left: 4px solid #059669;
+          }
+
+          .fee-progress-section {
+            margin-bottom: 20px;
+          }
+
+          .fee-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+          }
+
+          .fee-details-grid .detail-item.highlight {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            text-align: center;
+          }
+
+          .fee-details-grid .detail-item.highlight .detail-label {
+            font-size: 10px;
+            color: #94a3b8;
+          }
+
+          .fee-details-grid .detail-item.highlight .detail-value {
+            font-size: 16px;
+            font-weight: 700;
+          }
+
+          .detail-value.paid-amount {
+            color: #059669;
+          }
+
+          .detail-value.pending-amount {
+            color: #dc2626;
+          }
+
+          .detail-value.clearance-yes {
+            color: #f59e0b;
+            font-weight: 600;
+          }
+
+          .detail-value.clearance-no {
+            color: #059669;
+            font-weight: 600;
+          }
+
+          .fee-status-message {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 14px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+          }
+
+          .fee-status-message.passed {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+          }
+
+          .fee-status-message.failed {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+          }
+
+          @media (max-width: 575.98px) {
+            .fee-details-grid {
+              grid-template-columns: 1fr;
+            }
+            
+            .fee-details-grid .detail-item.highlight {
+              text-align: left;
+            }
+          }
+
+          /* Backlog Details Styles */
+          .backlog-card {
+            border-left: 4px solid #3db5e6;
+          }
+
+          .backlog-summary {
+            white-space: nowrap;
+          }
+
+          .filter-count {
+            background: rgba(255,255,255,0.3);
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-left: 6px;
+          }
+
+          .btn-primary .filter-count {
+            background: rgba(255,255,255,0.3);
+          }
+
+          .badge-sm {
+            font-size: 11px;
+            padding: 4px 8px;
+          }
+
+          .backlog-subject {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+
+          .subject-name {
+            font-weight: 600;
+            color: #0f3a4a;
+            font-size: 13px;
+          }
+
+          .subject-code {
+            font-size: 11px;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            width: fit-content;
+          }
+
+          .subject-type {
+            font-size: 11px;
+            color: #3db5e6;
+            background: #e0f2fe;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            width: fit-content;
+            font-weight: 500;
+            text-transform: uppercase;
+          }
+
+          .attempt-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            font-weight: 600;
+            font-size: 13px;
+            color: #0f3a4a;
+          }
+
+          .view-attempts-btn {
+            white-space: nowrap;
+          }
+
+          .backlog-row:hover {
+            background: #f8fafc;
+          }
+
+          .backlog-empty-state {
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 2px dashed #e2e8f0;
+          }
+
+          .empty-icon-wrapper {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          @media (max-width: 767.98px) {
+            .backlog-table th,
+            .backlog-table td {
+              padding: 8px 6px;
+              font-size: 12px;
+            }
+            
+            .subject-name {
+              font-size: 12px;
+            }
+            
+            .subject-code,
+            .subject-type {
+              font-size: 10px;
+              padding: 1px 6px;
+            }
+            
+            .attempt-count {
+              width: 24px;
+              height: 24px;
+              font-size: 12px;
+            }
+            
+            .view-attempts-btn {
+              padding: 4px 8px;
+              font-size: 11px;
+            }
+          }
+
+          /* Outcome Banner Styles - Improved */
+          .outcome-banner {
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            border: none;
+            overflow: hidden;
+          }
+
+          .outcome-banner-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 20px 24px;
+          }
+
+          .outcome-icon {
+            font-size: 40px;
+            flex-shrink: 0;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+          }
+
+          .outcome-text {
+            flex: 1;
+            min-width: 200px;
+          }
+
+          .outcome-label {
+            font-size: 22px;
+            font-weight: 700;
+            text-transform: none;
+            letter-spacing: -0.5px;
+            line-height: 1.3;
+          }
+
+          .outcome-reason {
+            margin-top: 8px;
+            font-size: 14px;
+            opacity: 0.95;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+
+          .workflow-badge {
+            background: rgba(255,255,255,0.25);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+          }
+
+          .outcome-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+          }
+
+          .outcome-actions .btn {
+            font-size: 12px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s ease;
+          }
+
+          .outcome-actions .btn-outline-light {
+            border: 2px solid rgba(255,255,255,0.5);
+            color: white;
+            background: rgba(255,255,255,0.1);
+          }
+
+          .outcome-actions .btn-outline-light:hover {
+            background: rgba(255,255,255,0.25);
+            border-color: rgba(255,255,255,0.8);
+          }
+
+          .outcome-actions .btn-light {
+            background: white;
+            color: inherit;
+            border: none;
+          }
+
+          .outcome-actions .btn-light:hover {
+            background: rgba(255,255,255,0.9);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          }
+
+          @media (max-width: 767.98px) {
+            .outcome-banner-content {
+              flex-direction: column;
+              align-items: flex-start;
+              padding: 16px 20px;
+              gap: 16px;
+            }
+            
+            .outcome-icon {
+              font-size: 32px;
+            }
+            
+            .outcome-label {
+              font-size: 18px;
+            }
+            
+            .outcome-reason {
+              font-size: 13px;
+              gap: 8px;
+            }
+            
+            .outcome-actions {
+              width: 100%;
+              justify-content: flex-start;
+            }
+            
+            .outcome-actions .btn {
+              flex: 1;
+              min-width: 120px;
+              justify-content: center;
+            }
           }
         `}</style>
     </div>
