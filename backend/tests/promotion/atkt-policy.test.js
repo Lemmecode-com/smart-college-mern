@@ -49,7 +49,11 @@ describe("Step 2 - promotion policy and maximum allowed KT", () => {
     it("does not count PASS subjects", () => {
       const result = calculateKTCount(semesterResult(["PASS", "PASS"]));
 
-      expect(result).toEqual({ ktCount: 0, failedSubjectIds: [] });
+      expect(result).toEqual({
+        ktCount: 0,
+        failedSubjectIds: [],
+        ktCountByType: { THEORY: 0, PRACTICAL: 0, COMPOSITE: 0 },
+      });
     });
 
     it("counts FAIL and excludes INCOMPLETE subjects", () => {
@@ -66,7 +70,11 @@ describe("Step 2 - promotion policy and maximum allowed KT", () => {
         subjects: [null, undefined, { status: "PASS" }],
       });
 
-      expect(result).toEqual({ ktCount: 0, failedSubjectIds: [] });
+      expect(result).toEqual({
+        ktCount: 0,
+        failedSubjectIds: [],
+        ktCountByType: { THEORY: 0, PRACTICAL: 0, COMPOSITE: 0 },
+      });
     });
   });
 
