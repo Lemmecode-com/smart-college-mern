@@ -338,7 +338,7 @@ export default function StudentDashboard() {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
-
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [hoveredStat, setHoveredStat] = useState(null);
   const [hoveredSubject, setHoveredSubject] = useState(null);
   const [hoveredSlot, setHoveredSlot] = useState(null);
@@ -416,12 +416,20 @@ export default function StudentDashboard() {
     };
 
     load();
-
+    
     return () => {
       isCancelled = true;
       toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
   }, [retryCount]);
+
+  useEffect(() => {
+  const timer = setInterval(() => {
+    setCurrentTime(new Date());
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, []);
 
   const handleRetry = async () => {
     if (retryCount >= 3) return;
@@ -591,8 +599,8 @@ export default function StudentDashboard() {
             justifyContent: "space-between",
             alignItems: "center",
             gap: "1rem",
-            background: T.surface,
-            border: `1px solid ${T.border}`,
+background: "#0d3f4c",
+border: "1px solid #0d3f4c",
             borderRadius: T.radiusLg,
             boxShadow: T.shadow,
             padding: "1.35rem 1.6rem",
@@ -606,8 +614,8 @@ export default function StudentDashboard() {
                 width: 54,
                 height: 54,
                 borderRadius: T.radiusMd,
-                background: T.navyTint,
-                color: T.navy,
+background: "rgba(255, 255, 255, 0.10)",
+color: "#ffffff",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -617,13 +625,80 @@ export default function StudentDashboard() {
             >
               <FaGraduationCap />
             </div>
-            <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: T.text }}>
+            <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: "#ffffff" }}>
               {getGreeting()}, {studentData.name}!
             </h1>
           </div>
-          <Btn onClick={handleRetry} color={T.navy}>
-            <FaSync size={13} /> Refresh
-          </Btn>
+<div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+  <div
+    style={{
+      minWidth: 105,
+      padding: "0.55rem 0.9rem",
+      borderRadius: T.radiusMd,
+      background: "rgba(255, 255, 255, 0.12)",
+      color: "#ffffff",
+      textAlign: "center",
+    }}
+  >
+    <div
+      style={{
+        fontSize: "0.7rem",
+        opacity: 0.75,
+        marginBottom: "0.2rem",
+      }}
+    >
+      Time
+    </div>
+
+    <div
+      style={{
+        fontSize: "1rem",
+        fontWeight: 700,
+      }}
+    >
+      {currentTime.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })}
+    </div>
+  </div>
+
+  <button
+    onClick={handleRetry}
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "0.5rem",
+      minWidth: "112px",
+      height: "42px",
+      padding: "0 1.15rem",
+      borderRadius: T.radiusMd,
+      border: "1px solid rgba(255, 255, 255, 0.7)",
+      background: "#ffffff",
+      color: "#163f4d",
+      fontSize: "0.85rem",
+      fontWeight: 700,
+      cursor: "pointer",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+      transition: "all 0.2s ease",
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = "translateY(-1px)";
+      e.currentTarget.style.boxShadow =
+        "0 6px 16px rgba(0, 0, 0, 0.14)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = "translateY(0)";
+      e.currentTarget.style.boxShadow =
+        "0 4px 12px rgba(0, 0, 0, 0.08)";
+    }}
+  >
+    <FaSync size={14} />
+    Refresh
+  </button>
+</div>
         </div>
 
         {/* ================= QUICK ACTIONS ================= */}

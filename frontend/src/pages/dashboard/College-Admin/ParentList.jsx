@@ -410,63 +410,77 @@ export default function ParentList() {
 
         
         {/* Header Section */}
-        <motion.div
-           className="parent-management-header"
-          variants={slideDownVariants}
-          initial="hidden"
-          animate="visible"
-          style={{
-            marginBottom: "32px",
-            padding: "24px",
-            backgroundColor: "#ffffff",
-            borderRadius: "16px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
-            borderLeft: `5px solid ${BRAND_COLORS.accent.main}`,
-          }}
-        >
-          <div
-            className="parent-management-header-content"
-            style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-            <motion.div
-              className="parent-management-header-icon"
-              variants={pulseVariants}
-              initial="initial"
-              animate="pulse"
-              style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "12px",
-                background: BRAND_COLORS.primary.gradient,
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "1.5rem",
-                boxShadow: `0 4px 12px ${BRAND_COLORS.primary.main}50`,
-              }}
-            >
-              <FaUserFriends />
-            </motion.div>
-            <div>
-              <h1 
-              className="parent-management-title"
-              style={{
-                margin: 0,
-                fontSize: "1.75rem",
-                fontWeight: "800",
-                color: BRAND_COLORS.text.primary,
-                letterSpacing: "-0.02em",
-              }}>
-                Parent / Guardian Management
-              </h1>
-              <p 
-              className="parent-management-subtitle"
-              style={{ margin: "4px 0 0 0", fontSize: "0.95rem", color: BRAND_COLORS.text.secondary }}>
-                Manage parent and guardian accounts linked to students
-              </p>
-            </div>
-          </div>
-        </motion.div>
+<motion.div
+  className="parent-management-header"
+  variants={slideDownVariants}
+  initial="hidden"
+  animate="visible"
+  style={{
+    marginBottom: "32px",
+    padding: "24px",
+    background: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+    borderRadius: "16px",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
+    borderLeft: "5px solid rgba(255, 255, 255, 0.18)",
+  }}
+>
+  <div
+    className="parent-management-header-content"
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "16px",
+      flexWrap: "wrap"
+    }}
+  >
+    <motion.div
+      className="parent-management-header-icon"
+      variants={pulseVariants}
+      initial="initial"
+      animate="pulse"
+      style={{
+        width: "56px",
+        height: "56px",
+        borderRadius: "12px",
+        background: "rgba(255, 255, 255, 0.15)",
+        color: "#ffffff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "1.5rem",
+        boxShadow: `0 4px 12px ${BRAND_COLORS.primary.main}50`,
+      }}
+    >
+      <FaUserFriends />
+    </motion.div>
+
+    <div>
+      <h1
+        className="parent-management-title"
+        style={{
+          margin: 0,
+          fontSize: "1.5rem",
+          fontWeight: "800",
+          color: "#ffffff",
+          letterSpacing: "-0.02em",
+        }}
+      >
+        Parent / Guardian Management
+      </h1>
+
+      <p
+        className="parent-management-subtitle"
+        style={{
+          margin: "4px 0 0 0",
+          fontSize: "0.85rem",
+          color: "rgba(255, 255, 255, 0.8)"
+        }}
+      >
+        Manage parent and guardian accounts linked to students
+      </p>
+    </div>
+  </div>
+</motion.div>
 
         {/* Filters Section */}
         <motion.div
