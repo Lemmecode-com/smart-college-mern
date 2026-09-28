@@ -2,6 +2,7 @@ const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
 const PromotionPolicy = require("../models/promotionPolicy.model");
 const PromotionDecision = require("../models/promotionDecision.model");
+const Backlog = require("../models/backlog.model");
 const AppError = require("../utils/AppError");
 const {
   resolveAuthoritativeResult,
@@ -12,6 +13,8 @@ const { getAttendanceDataForStudents } = require("./attendance.service");
 const {
   DEFAULT_MAX_ALLOWED_KTS,
   resolveMaxAllowedKTs,
+  resolveKTLimitForSemester,
+  requiresPreviousYearClearance,
 } = require("../utils/promotionPolicy.util");
 
 const DEFAULT_ATTENDANCE_THRESHOLD = 75;
@@ -21,8 +24,16 @@ const ATTENDANCE_STATUS = {
   ATTENDANCE_NOT_AVAILABLE: "ATTENDANCE_NOT_AVAILABLE",
 };
 
-const resolvePromotionPolicy = async (collegeId) => {
-  const policy = await PromotionPolicy.getActivePolicy(collegeId);
+const calculatePreviousAcademicYear = (academicYear) => {
+  if (!academicYear || typeof academicYear !== "string") return null;
+  const parts = academicYear.split("-").map(Number);
+  if (parts.length !== 2 || parts.some((p) => Number.isNaN(p))) return null;
+  const [start, end] = parts;
+  return `${start - 1}-${end - 1}`;
+};
+
+const resolvePromotionPolicy = async (collegeId, courseId) => {
+  const policy = await PromotionPolicy.getActivePolicy(collegeId, courseId);
   const minAttendancePercentage =
     policy?.minAttendancePercentage ?? DEFAULT_ATTENDANCE_THRESHOLD;
   const maxAllowedKTs = resolveMaxAllowedKTs(policy);
@@ -31,9 +42,13 @@ const resolvePromotionPolicy = async (collegeId) => {
     policyId: policy?._id || null,
     policyVersion: policy?.updatedAt?.toISOString() || "DEFAULT-v1",
     snapshot: {
+      // Always the student's course context, even when the resolved policy
+      // came from the college-level fallback.
+      course_id: courseId || null,
       minAttendancePercentage,
       maxAllowedKTs,
       scopedSemesters: policy?.scopedSemesters || [],
+      ktRules: policy?.ktRules || [],
     },
   };
 };
@@ -168,11 +183,15 @@ const emptyAttendanceSnapshot = (requiredPercentage) => ({
 
 const emptyFeeSnapshot = () => calculateFeeClearanceData(null);
 
-const calculatePromotionDecision = ({
+const calculatePromotionDecision = async ({
   authoritativeResult,
   policy,
   attendance,
   feeClearance,
+  currentSemester,
+  studentId,
+  collegeId,
+  academicYear,
 }) => {
   const authorityStatus = authoritativeResult?.status;
   const result = authoritativeResult?.result;
@@ -203,9 +222,13 @@ const calculatePromotionDecision = ({
     return base;
   }
 
-  const { ktCount, failedSubjectIds } = calculateKTCount(result);
+  const ktResult = calculateKTCount(result);
+  const { ktCount, failedSubjectIds, ktCountByType } = ktResult;
   const overallResult = result.overallResult;
-  const withinKTLimit = isWithinKTLimit(ktCount, policy?.snapshot);
+  const resolvedMaxAllowedKTs = currentSemester !== undefined
+    ? resolveKTLimitForSemester(policy?.snapshot, currentSemester)
+    : resolveMaxAllowedKTs(policy?.snapshot);
+  const withinKTLimit = isWithinKTLimit(ktResult, policy?.snapshot, currentSemester);
   const academicOutcome =
     overallResult === "PASS"
       ? "PASS"
@@ -219,20 +242,53 @@ const calculatePromotionDecision = ({
   if (overallResult === "FAIL" && !withinKTLimit) {
     promotionOutcome = "BLOCKED";
     decisionReason = "KT_LIMIT_EXCEEDED";
-  } else if (overallResult === "INCOMPLETE") {
-    promotionOutcome = "INCOMPLETE";
-    decisionReason = "RESULT_INCOMPLETE";
-  } else if (!attendanceSnapshot.passed) {
-    promotionOutcome = "BLOCKED";
-    decisionReason =
-      attendanceSnapshot.status === ATTENDANCE_STATUS.NOT_ELIGIBLE
-        ? "ATTENDANCE_INSUFFICIENT"
-        : "ATTENDANCE_NOT_AVAILABLE";
-  } else if (!feeSnapshot.passed) {
-    promotionOutcome = "BLOCKED";
-    decisionReason = "FEE_NOT_CLEARED";
-  } else {
-    decisionReason = "ELIGIBLE";
+  }
+
+  // Check previous-year clearance if required by policy
+  const previousYearClearanceRequired = currentSemester !== undefined
+    ? requiresPreviousYearClearance(policy?.snapshot, currentSemester)
+    : false;
+
+  let previousYearClearancePassed = true;
+  if (
+    previousYearClearanceRequired &&
+    promotionOutcome !== "BLOCKED" &&
+    studentId &&
+    collegeId
+  ) {
+    const previousAcademicYear = calculatePreviousAcademicYear(academicYear);
+    if (previousAcademicYear) {
+      const unclearedBacklogs = await Backlog.find({
+        student_id: studentId,
+        college_id: collegeId,
+        academicYear: previousAcademicYear,
+        status: { $ne: "CLEARED" },
+      }).lean();
+
+      if (unclearedBacklogs.length > 0) {
+        previousYearClearancePassed = false;
+        promotionOutcome = "BLOCKED";
+        decisionReason = "PREVIOUS_YEAR_BACKLOG_NOT_CLEARED";
+      }
+    }
+  }
+
+  if (promotionOutcome !== "BLOCKED") {
+    if (overallResult === "INCOMPLETE") {
+      promotionOutcome = "INCOMPLETE";
+      decisionReason = "RESULT_INCOMPLETE";
+    } else if (!attendanceSnapshot.passed) {
+      promotionOutcome = "BLOCKED";
+      decisionReason =
+        attendanceSnapshot.status === ATTENDANCE_STATUS.NOT_ELIGIBLE
+          ? "ATTENDANCE_INSUFFICIENT"
+          : "ATTENDANCE_NOT_AVAILABLE";
+    } else if (!feeSnapshot.passed) {
+      promotionOutcome = "BLOCKED";
+      decisionReason = "FEE_NOT_CLEARED";
+    } else {
+      decisionReason = "ELIGIBLE";
+    }
   }
 
   return {
@@ -242,6 +298,9 @@ const calculatePromotionDecision = ({
     ktCount,
     promotionOutcome,
     decisionReason,
+    resolvedMaxAllowedKTs,
+    previousYearClearanceRequired,
+    previousYearClearancePassed,
   };
 };
 
@@ -272,7 +331,7 @@ const createPromotionDecision = async ({
   overrideAttendanceReason,
 }) => {
   const student = await getStudentForDecision({ studentId, collegeId });
-  const policy = await resolvePromotionPolicy(collegeId);
+  const policy = await resolvePromotionPolicy(collegeId, student.course_id);
   const identity = {
     collegeId,
     studentId: student._id,
@@ -293,11 +352,15 @@ const createPromotionDecision = async ({
     collegeId,
     overrideFeeCheck,
   });
-  const calculated = calculatePromotionDecision({
+  const calculated = await calculatePromotionDecision({
     authoritativeResult,
     policy,
     attendance,
     feeClearance,
+    currentSemester: student.currentSemester,
+    studentId: student._id,
+    collegeId,
+    academicYear: student.currentAcademicYear,
   });
   const lookup = {
     college_id: collegeId,
@@ -306,6 +369,13 @@ const createPromotionDecision = async ({
     semester: student.currentSemester,
     academicYear: student.currentAcademicYear,
     source_result_id: calculated.sourceResultId,
+  };
+
+  const policySnapshotToStore = {
+    ...policy.snapshot,
+    resolvedMaxAllowedKTs: calculated.resolvedMaxAllowedKTs,
+    previousYearClearanceRequired: calculated.previousYearClearanceRequired,
+    previousYearClearancePassed: calculated.previousYearClearancePassed,
   };
 
   const freshFields = {
@@ -322,7 +392,7 @@ const createPromotionDecision = async ({
     fee_clearance_snapshot: calculated.feeClearanceSnapshot,
     policy_id: policy.policyId,
     policy_version: policy.policyVersion,
-    policy_snapshot: policy.snapshot,
+    policy_snapshot: policySnapshotToStore,
   };
 
   const existing = await PromotionDecision.findOne(lookup);
@@ -355,7 +425,7 @@ const createPromotionDecision = async ({
           fee_clearance_snapshot: calculated.feeClearanceSnapshot,
           policy_id: policy.policyId,
           policy_version: policy.policyVersion,
-          policy_snapshot: policy.snapshot,
+          policy_snapshot: policySnapshotToStore,
         }
       : freshFields;
 
@@ -383,4 +453,5 @@ module.exports = {
   calculateFeeClearanceData,
   calculatePromotionDecision,
   createPromotionDecision,
+  calculatePreviousAcademicYear,
 };

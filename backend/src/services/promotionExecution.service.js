@@ -13,7 +13,8 @@ const AppError = require("../utils/AppError");
 const { ROLE, RESULT_STATUS } = require("../utils/constants");
 const { PROMOTION_WORKFLOW_ROLES } = require("./promotionWorkflow.service");
 const { calculateKTCount, isWithinKTLimit } = require("./atkt.service");
-const { resolveMaxAllowedKTs } = require("../utils/promotionPolicy.util");
+const { resolveMaxAllowedKTs, resolveKTLimitForSemester, resolveSubjectTypeLimits, requiresPreviousYearClearance } = require("../utils/promotionPolicy.util");
+const { calculatePreviousAcademicYear } = require("./promotionDecision.service");
 const {
   calculateFeeClearanceData,
   evaluateAttendanceData,
@@ -68,16 +69,66 @@ const sameIds = (left = [], right = []) => {
   return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
 };
 
-const getCurrentPolicy = async (collegeId, session) => {
-  const policy = await PromotionPolicy.findOne({
-    collegeId,
-    isActive: true,
-  })
-    .session(session)
-    .exec();
+/**
+ * Reduce a KT rule to its semantic values.
+ * Mongoose serializes the policy's rule subdocuments (auto `_id`, declaration
+ * order) differently from the decision's `_id`-less snapshot, so raw
+ * `JSON.stringify` comparison always reports a change. Only the fields that
+ * actually affect the outcome are compared here.
+ */
+const normalizeKtRules = (rules = []) =>
+  rules
+    .map((rule) => ({
+      fromSemester: rule.fromSemester ?? null,
+      toSemester: rule.toSemester ?? null,
+      maxAllowedKTs: rule.maxAllowedKTs ?? null,
+      requirePreviousYearClearance: !!rule.requirePreviousYearClearance,
+      subjectTypeLimits: {
+        THEORY: rule.subjectTypeLimits?.THEORY ?? null,
+        PRACTICAL: rule.subjectTypeLimits?.PRACTICAL ?? null,
+        COMPOSITE: rule.subjectTypeLimits?.COMPOSITE ?? null,
+      },
+    }))
+    .sort((left, right) => left.fromSemester - right.fromSemester);
+
+// The decision's top-level course_id is the authoritative course context.
+// The snapshot course_id is used only as a fallback for records created
+// before the field existed.
+const resolveDecisionCourseId = (decision) =>
+  decision?.course_id || decision?.policy_snapshot?.course_id || null;
+
+/**
+ * Resolve the policy that currently applies to a decision's course.
+ * Order: course-specific -> college-level (course_id: null) -> global defaults.
+ * Never resolves a policy belonging to a different course.
+ */
+const getCurrentPolicy = async (collegeId, courseId, session) => {
+  let policy = null;
+
+  if (courseId) {
+    policy = await PromotionPolicy.findOne({
+      collegeId,
+      course_id: courseId,
+      isActive: true,
+    })
+      .session(session)
+      .exec();
+  }
+
+  if (!policy) {
+    policy = await PromotionPolicy.findOne({
+      collegeId,
+      course_id: null,
+      isActive: true,
+    })
+      .session(session)
+      .exec();
+  }
+
   return {
     minAttendancePercentage: policy?.minAttendancePercentage ?? 75,
     maxAllowedKTs: resolveMaxAllowedKTs(policy),
+    ktRules: policy?.ktRules || [],
   };
 };
 
@@ -117,11 +168,19 @@ const revalidateDecision = async ({ decision, student, session }) => {
   }
 
   const result = await loadAuthoritativeResult(decision, session);
-  const policy = await getCurrentPolicy(decision.college_id, session);
+  const policy = await getCurrentPolicy(
+    decision.college_id,
+    resolveDecisionCourseId(decision),
+    session,
+  );
+  const policySnapshot = decision.policy_snapshot;
+  const currentKtRules = policy.ktRules || [];
+  const snapshotKtRules = policySnapshot.ktRules || [];
   if (
-    policy.minAttendancePercentage !==
-      decision.policy_snapshot.minAttendancePercentage ||
-    policy.maxAllowedKTs !== decision.policy_snapshot.maxAllowedKTs
+    policy.minAttendancePercentage !== policySnapshot.minAttendancePercentage ||
+    policy.maxAllowedKTs !== policySnapshot.maxAllowedKTs ||
+    JSON.stringify(normalizeKtRules(currentKtRules)) !==
+      JSON.stringify(normalizeKtRules(snapshotKtRules))
   ) {
     throw new AppError(
       "The promotion policy changed after approval.",
@@ -145,7 +204,7 @@ const revalidateDecision = async ({ decision, student, session }) => {
   const expectedOutcome =
     result.overallResult === "PASS"
       ? "PASS"
-      : result.overallResult === "FAIL" && isWithinKTLimit(kt.ktCount, policy)
+      : result.overallResult === "FAIL" && isWithinKTLimit(kt.ktCount, policy, decision.semester)
         ? "ATKT"
         : result.overallResult;
   if (expectedOutcome !== decision.promotion_outcome) {
@@ -154,6 +213,52 @@ const revalidateDecision = async ({ decision, student, session }) => {
       409,
       "STALE_DECISION",
     );
+  }
+
+  // Revalidate semester-specific KT limit using current active policy
+  const resolvedMaxAllowedKTs = resolveKTLimitForSemester(policy, decision.semester);
+  if (kt.ktCount > resolvedMaxAllowedKTs) {
+    throw new AppError(
+      `KT count ${kt.ktCount} exceeds the current semester-specific limit of ${resolvedMaxAllowedKTs}.`,
+      409,
+      "KT_LIMIT_EXCEEDED",
+    );
+  }
+
+  // Revalidate subject-type KT limits using current active policy
+  const subjectTypeLimits = resolveSubjectTypeLimits(policy, decision.semester);
+  if (subjectTypeLimits && kt.ktCountByType) {
+    for (const [type, limit] of Object.entries(subjectTypeLimits)) {
+      if (typeof limit === "number" && kt.ktCountByType[type] > limit) {
+        throw new AppError(
+          `${type} KT count ${kt.ktCountByType[type]} exceeds the current subject-type limit of ${limit}.`,
+          409,
+          "SUBJECT_TYPE_KT_LIMIT_EXCEEDED",
+        );
+      }
+    }
+  }
+
+  // Revalidate previous-year clearance if required by current policy
+  const previousYearClearanceRequired = requiresPreviousYearClearance(policy, decision.semester);
+  if (previousYearClearanceRequired) {
+    const previousAcademicYear = calculatePreviousAcademicYear(student.currentAcademicYear);
+    if (previousAcademicYear) {
+      const unclearedBacklogs = await Backlog.find({
+        student_id: student._id,
+        college_id: decision.college_id,
+        academicYear: previousAcademicYear,
+        status: { $ne: "CLEARED" },
+      }).session(session).lean();
+
+      if (unclearedBacklogs.length > 0) {
+        throw new AppError(
+          "Previous-year backlogs are not fully cleared.",
+          409,
+          "PREVIOUS_YEAR_BACKLOG_NOT_CLEARED",
+        );
+      }
+    }
   }
 
   const attendanceData = (

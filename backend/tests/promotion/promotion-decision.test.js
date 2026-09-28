@@ -10,7 +10,7 @@ const AttendanceRecord = require("../../src/models/attendanceRecord.model");
 const Timetable = require("../../src/models/timetable.model");
 const TimetableSlot = require("../../src/models/timetableSlot.model");
 const SemesterResult = require("../../src/models/semesterResult.model");
-const { createStudent } = require("../helpers/factories");
+const { createStudent, createSubject } = require("../helpers/factories");
 const {
   calculatePromotionDecision,
   calculateFeeClearanceData,
@@ -76,7 +76,9 @@ describe("Step 3 - promotion decision eligibility engine", () => {
     result: semesterResult,
   });
 
-  const decide = (
+  // calculatePromotionDecision is async because previous-year clearance
+  // requires a Backlog lookup, so every caller must await it.
+  const decide = async (
     overallResult,
     statuses,
     attendanceData = attendance(),
@@ -90,8 +92,8 @@ describe("Step 3 - promotion decision eligibility engine", () => {
     });
 
   describe("result and KT outcomes", () => {
-    it("returns PASS when the published result, attendance, and fee are clear", () => {
-      const decision = decide("PASS", ["PASS"]);
+    it("returns PASS when the published result, attendance, and fee are clear", async () => {
+      const decision = await decide("PASS", ["PASS"]);
 
       expect(decision.promotionOutcome).toBe("PASS");
       expect(decision.decisionReason).toBe("ELIGIBLE");
@@ -102,8 +104,8 @@ describe("Step 3 - promotion decision eligibility engine", () => {
       [1, "ATKT"],
       [2, "ATKT"],
       [3, "ATKT"],
-    ])("returns ATKT for FAIL with %i KT", (ktCount, expectedOutcome) => {
-      const decision = decide("FAIL", Array(ktCount).fill("FAIL"));
+    ])("returns ATKT for FAIL with %i KT", async (ktCount, expectedOutcome) => {
+      const decision = await decide("FAIL", Array(ktCount).fill("FAIL"));
 
       expect(decision.promotionOutcome).toBe(expectedOutcome);
       expect(decision.ktCount).toBe(ktCount);
@@ -111,16 +113,16 @@ describe("Step 3 - promotion decision eligibility engine", () => {
       expect(decision.failedSubjectIds).toHaveLength(ktCount);
     });
 
-    it("blocks FAIL with 4 KT", () => {
-      const decision = decide("FAIL", ["FAIL", "FAIL", "FAIL", "FAIL"]);
+    it("blocks FAIL with 4 KT", async () => {
+      const decision = await decide("FAIL", ["FAIL", "FAIL", "FAIL", "FAIL"]);
 
       expect(decision.promotionOutcome).toBe("BLOCKED");
       expect(decision.decisionReason).toBe("KT_LIMIT_EXCEEDED");
       expect(decision.ktCount).toBe(4);
     });
 
-    it("returns INCOMPLETE and does not count INCOMPLETE as KT", () => {
-      const decision = decide("INCOMPLETE", ["FAIL", "INCOMPLETE"]);
+    it("returns INCOMPLETE and does not count INCOMPLETE as KT", async () => {
+      const decision = await decide("INCOMPLETE", ["FAIL", "INCOMPLETE"]);
 
       expect(decision.promotionOutcome).toBe("INCOMPLETE");
       expect(decision.decisionReason).toBe("RESULT_INCOMPLETE");
@@ -132,8 +134,8 @@ describe("Step 3 - promotion decision eligibility engine", () => {
       ["AMBIGUOUS_RESULT", "AMBIGUOUS_RESULT"],
     ])(
       "returns %s without making an academic decision",
-      (authorityStatus, outcome) => {
-        const decision = calculatePromotionDecision({
+      async (authorityStatus, outcome) => {
+        const decision = await calculatePromotionDecision({
           authoritativeResult: { status: authorityStatus },
           policy,
           attendance: attendance(),
@@ -184,15 +186,15 @@ describe("Step 3 - promotion decision eligibility engine", () => {
       });
     });
 
-    it("blocks ATKT when attendance fails", () => {
-      const decision = decide("FAIL", ["FAIL"], attendance(false), fee());
+    it("blocks ATKT when attendance fails", async () => {
+      const decision = await decide("FAIL", ["FAIL"], attendance(false), fee());
 
       expect(decision.promotionOutcome).toBe("BLOCKED");
       expect(decision.decisionReason).toBe("ATTENDANCE_INSUFFICIENT");
     });
 
-    it("blocks ATKT when fees are not cleared", () => {
-      const decision = decide("FAIL", ["FAIL"], attendance(), fee(false));
+    it("blocks ATKT when fees are not cleared", async () => {
+      const decision = await decide("FAIL", ["FAIL"], attendance(), fee(false));
 
       expect(decision.promotionOutcome).toBe("BLOCKED");
       expect(decision.decisionReason).toBe("FEE_NOT_CLEARED");
@@ -212,7 +214,17 @@ describe("Step 3 - promotion decision eligibility engine", () => {
         currentAcademicYear: "2026-27",
         email: `step3-${Date.now()}@example.com`,
       });
-      const subjectId = new mongoose.Types.ObjectId();
+      // A real Subject must exist because createPromotionDecision populates
+      // failed_subject_ids; populate drops references with no matching document.
+      const subject = await createSubject({
+        college_id: collegeId,
+        department_id: departmentId,
+        course_id: courseId,
+        name: "Step3 Subject",
+        code: `S3-${Date.now()}`,
+        semester: 3,
+      });
+      const subjectId = subject._id;
       const resultDocument = await SemesterResult.create({
         college_id: collegeId,
         student_id: student._id,
@@ -253,7 +265,10 @@ describe("Step 3 - promotion decision eligibility engine", () => {
       expect(String(first._id)).toBe(String(second._id));
       expect(String(first.source_result_id)).toBe(String(resultDocument._id));
       expect(first.promotion_outcome).toBe("BLOCKED");
-      expect(first.failed_subject_ids.map(String)).toEqual([String(subjectId)]);
+      // createPromotionDecision populates failed_subject_ids, so compare ids.
+      expect(first.failed_subject_ids.map((s) => String(s._id))).toEqual([
+        String(subjectId),
+      ]);
       expect(first.policy_snapshot.maxAllowedKTs).toBe(3);
       expect(String(first.policy_id)).toBe(String(policyDocument._id));
       expect((await Student.findById(student._id)).currentSemester).toBe(3);
