@@ -157,8 +157,11 @@ const getSupplementaryBacklogStudentIds = async (examId, collegeId) => {
 /**
  * Authorize teacher ownership for a subject.
  * Returns the Teacher document if found, null if not a teacher or coordinator.
+ *
+ * `exam` is optional and, when supplied, additionally enforces that the subject
+ * belongs to the exam's course and semester (Marks Entry ownership rule).
  */
-const authorizeTeacher = async (req, subjectId, collegeId) => {
+const authorizeTeacher = async (req, subjectId, collegeId, exam = null) => {
   if (req.user.role === ROLE.EXAM_COORDINATOR) {
     return null;
   }
@@ -229,8 +232,24 @@ const authorizeTeacher = async (req, subjectId, collegeId) => {
     throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
   }
 
+  // The subject must belong to the same course and semester as the exam being
+  // entered. Enforced only for TEACHER; HOD and EXAM_COORDINATOR are untouched.
   if (
-    subject.teacher_id &&
+    exam &&
+    (String(subject.course_id) !== String(exam.course_id) ||
+      Number(subject.semester) !== Number(exam.semester))
+  ) {
+    throw new AppError(
+      "You are not authorized for this subject",
+      403,
+      "SUBJECT_ACCESS_DENIED",
+    );
+  }
+
+  // Strict ownership: Subject.teacher_id is the source of truth. Subjects with
+  // no assigned teacher are NOT accessible by any teacher.
+  if (
+    !subject.teacher_id ||
     subject.teacher_id.toString() !== teacher._id.toString()
   ) {
     throw new AppError(
@@ -272,7 +291,7 @@ exports.getStudentRoster = async (req, res, next) => {
 
     const examSubject = getExamSubject(exam, subjectId);
 
-    await authorizeTeacher(req, subjectId, req.college_id);
+    await authorizeTeacher(req, subjectId, req.college_id, exam);
 
     let students;
     if (exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
@@ -378,7 +397,7 @@ exports.getMarks = async (req, res, next) => {
     }
 
     getExamSubject(exam, subjectId);
-    await authorizeTeacher(req, subjectId, req.college_id);
+    await authorizeTeacher(req, subjectId, req.college_id, exam);
 
     const marks = await StudentMarks.find({
       college_id: req.college_id,
@@ -438,7 +457,7 @@ exports.saveMarks = async (req, res, next) => {
     }
 
     const examSubject = getExamSubject(exam, subjectId);
-    await authorizeTeacher(req, subjectId, req.college_id);
+    await authorizeTeacher(req, subjectId, req.college_id, exam);
 
     const supplementaryBacklogStudentIds =
       exam.exam_type === EXAM_TYPE.SUPPLEMENTARY
