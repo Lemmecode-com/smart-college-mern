@@ -78,6 +78,15 @@ const SMTP_ERROR_RULES = [
     errorType: "HOST_NOT_FOUND",
   },
   {
+    match: (text, code) =>
+      code === "554" ||
+      /554\s*5\.7\.1/i.test(text) ||
+      /outbound\s*sending\s*is\s*disabled/i.test(text),
+    title: "Outbound Email Sending Disabled",
+    businessMessage: "Please contact your system administrator.",
+    errorType: "OUTBOUND_DISABLED",
+  },
+  {
     match: (text) =>
       /554|transaction\s*failed|transaction\s*rejected/i.test(text),
     title: "Transaction Rejected",
