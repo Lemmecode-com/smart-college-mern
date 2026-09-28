@@ -210,6 +210,7 @@ const createCourse = async (overrides = {}) => {
     credits: 120,
     maxStudents: 60,
     status: 'ACTIVE',
+    createdBy: new mongoose.Types.ObjectId(),
     ...overrides,
   };
   return Course.create(payload);
