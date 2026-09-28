@@ -37,9 +37,34 @@ const feeClearanceSnapshotSchema = new mongoose.Schema(
 
 const policySnapshotSchema = new mongoose.Schema(
   {
+    // Course context the snapshot was created for. This is the student's
+    // course, NOT an indicator of whether the resolved policy document was
+    // course-specific or a college-level fallback. Defaults to null so
+    // pre-course_id snapshots remain valid.
+    course_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+      default: null,
+    },
     minAttendancePercentage: { type: Number, required: true },
     maxAllowedKTs: { type: Number, required: true },
     scopedSemesters: { type: [Number], default: [] },
+    resolvedMaxAllowedKTs: { type: Number, min: 0 },
+    previousYearClearanceRequired: { type: Boolean, default: false },
+    previousYearClearancePassed: { type: Boolean },
+    ktRules: [
+      {
+        fromSemester: { type: Number, min: 1, max: 7 },
+        toSemester: { type: Number, min: 2, max: 8 },
+        maxAllowedKTs: { type: Number, min: 0 },
+        requirePreviousYearClearance: { type: Boolean, default: false },
+        subjectTypeLimits: {
+          THEORY: { type: Number, min: 0 },
+          PRACTICAL: { type: Number, min: 0 },
+          COMPOSITE: { type: Number, min: 0 },
+        },
+      },
+    ],
   },
   { _id: false },
 );

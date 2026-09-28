@@ -203,11 +203,24 @@ export const getCollegePromotionHistory = async (filters = {}) => {
   return response.data;
 };
 
-export const getPromotionPolicy = async () => {
-  const response = await api.get(`${PROMOTION_POLICY_BASE_URL}/`);
+/**
+ * Get the active promotion policy.
+ * @param {string} [courseId] - Course ID. When provided, the backend returns the
+ * course-specific policy and falls back to the college-level policy when none exists.
+ * @returns {Promise}
+ */
+export const getPromotionPolicy = async (courseId) => {
+  const params = courseId ? `?course_id=${courseId}` : "";
+  const response = await api.get(`${PROMOTION_POLICY_BASE_URL}/${params}`);
   return response.data;
 };
 
+/**
+ * Create/update the active promotion policy.
+ * @param {Object} data - Policy payload. Include `course_id` to write a
+ * course-specific policy; the backend validates that it belongs to req.college_id.
+ * @returns {Promise}
+ */
 export const updatePromotionPolicy = async (data) => {
   const response = await api.put(`${PROMOTION_POLICY_BASE_URL}/`, data);
   return response.data;
