@@ -13,6 +13,7 @@ const ApiResponse = require("../utils/ApiResponse");
 const {
   calculateFeeClearanceData,
   evaluateAttendanceData,
+  createPromotionDecision,
 } = require("../services/promotionDecision.service");
 
 const ATTENDANCE_THRESHOLD = 75;
@@ -300,6 +301,25 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
           totalSessions: 0,
         };
 
+        // Compute alumni eligibility for final-semester students
+        let isAlumniEligible = false;
+        if (isFinalYear) {
+          try {
+            const promotionDecision = await createPromotionDecision({
+              studentId: student._id,
+              collegeId: req.college_id,
+              userId: req.user.id,
+            });
+            // Eligible only if: result found, outcome PASS, all conditions satisfied
+            isAlumniEligible =
+              promotionDecision.result_status === "FOUND" &&
+              promotionDecision.promotion_outcome === "PASS";
+          } catch (err) {
+            // If eligibility check fails, student is not eligible
+            isAlumniEligible = false;
+          }
+        }
+
         return {
           ...student.toObject(),
           fee: fee || {
@@ -313,6 +333,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
           allInstallmentsPaid,
           academicYearLabel,
           isFinalYear,
+          isAlumniEligible,
           maxSemester,
           attendancePercentage: attendance.percentage,
           attendanceStatus: getAttendanceStatus(attendance, threshold),

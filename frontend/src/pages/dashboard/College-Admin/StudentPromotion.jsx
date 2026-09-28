@@ -1722,7 +1722,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                             >
                               <FaArrowUp /> Promote
                             </button>
-                            {student.isFinalYear && (
+                            {student.isFinalYear && student.isAlumniEligible && (
                               <button
                                 onClick={() => openAlumniModal(student)}
                                 className="btn btn-sm btn-outline-warning"
