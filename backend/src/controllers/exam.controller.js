@@ -189,6 +189,66 @@ exports.createExam = async (req, res, next) => {
 };
 
 /**
+ * TEACHER SCOPING — Marks Entry exam list.
+ *
+ * A TEACHER may only see an exam when ALL of the following hold:
+ *   - the exam belongs to the teacher's college/tenant (already applied by the
+ *     top-level Exam.find({ college_id })),
+ *   - the exam's course belongs to the teacher's department,
+ *   - the exam contains at least one subject whose Subject.teacher_id is the
+ *     authenticated teacher.
+ *
+ * The returned exams are rewritten so that `exam.subjects` contains ONLY the
+ * subjects assigned to this teacher. Exams shared by several teachers stay
+ * visible to each of them, but each teacher receives their own subjects only.
+ *
+ * Subject.teacher_id is the single source of truth for ownership. The
+ * Teacher.courses[] / Teacher.subjects[] arrays are NOT used because they are
+ * not maintained by any write path in the codebase.
+ */
+const filterExamsForTeacher = async (exams, req) => {
+  const teacher = await Teacher.findOne({
+    user_id: req.user.id,
+    college_id: req.college_id,
+  }).select("_id department_id");
+
+  if (!teacher) {
+    return [];
+  }
+
+  // Courses belonging to the teacher's department, within the same college.
+  const departmentCourses = await Course.find({
+    college_id: req.college_id,
+    department_id: teacher.department_id,
+  }).select("_id");
+
+  const allowedCourseIds = new Set(
+    departmentCourses.map((course) => String(course._id)),
+  );
+
+  const teacherId = String(teacher._id);
+
+  return exams
+    .map((exam) => {
+      const examCourseId = exam.course_id?._id || exam.course_id;
+      if (!allowedCourseIds.has(String(examCourseId))) return null;
+
+      const ownSubjects = (exam.subjects || []).filter(
+        (examSubject) =>
+          examSubject.subject?.teacher_id &&
+          String(examSubject.subject.teacher_id) === teacherId,
+      );
+
+      // Exams with no subject assigned to this teacher must not be returned.
+      if (ownSubjects.length === 0) return null;
+
+      exam.subjects = ownSubjects;
+      return exam;
+    })
+    .filter(Boolean);
+};
+
+/**
  * LIST EXAMS (college-scoped)
  */
 exports.getExams = async (req, res, next) => {
@@ -197,6 +257,10 @@ exports.getExams = async (req, res, next) => {
       .populate("course_id", "name code")
       .populate("subjects.subject", "name code teacher_id subjectType")
       .sort({ createdAt: -1 });
+
+    if (req.user.role === ROLE.TEACHER) {
+      return res.json(await filterExamsForTeacher(exams, req));
+    }
 
     if (req.user.role !== ROLE.HOD) {
       return res.json(exams);

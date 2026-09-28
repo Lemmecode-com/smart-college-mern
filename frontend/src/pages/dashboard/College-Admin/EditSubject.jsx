@@ -33,6 +33,7 @@ export default function EditSubject() {
   const [formData, setFormData] = useState(null);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [departmentId, setDepartmentId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -48,16 +49,26 @@ export default function EditSubject() {
         return;
       }
 
-      const departmentId = subject.department_id?._id || subject.department_id;
+      const departmentId =
+        subject.department_id?._id || subject.department_id;
+
+      setDepartmentId(departmentId || null);
 
       const [courseRes, teacherRes] = await Promise.all([
         departmentId
           ? api.get(`/courses/department/${departmentId}`)
           : Promise.resolve({ data: [] }),
-        api.get("/teachers"),
+        departmentId
+          ? api.get(`/teachers/department/${departmentId}`)
+          : Promise.resolve({ data: { teachers: [] } }),
       ]);
 
-      const teachersData = teacherRes.data.data || teacherRes.data || [];
+      const coursesData = Array.isArray(courseRes.data)
+        ? courseRes.data
+        : courseRes.data?.courses || [];
+
+      const teachersData =
+        teacherRes.data?.teachers || teacherRes.data || [];
 
       setFormData({
         course_id: subject.course_id?._id || subject.course_id,
@@ -74,7 +85,7 @@ export default function EditSubject() {
         passMarks: subject.passMarks ?? "",
       });
 
-      setCourses(courseRes.data || []);
+      setCourses(coursesData);
       setTeachers(teachersData);
     } catch (err) {
       const statusCode = err.response?.status;
@@ -263,10 +274,22 @@ export default function EditSubject() {
                 name="teacher_id"
                 value={formData.teacher_id}
                 onChange={handleChange}
-                options={teachers.map((t) => ({
-                  value: t._id,
-                  label: `${t.name} (${t.designation})`,
-                }))}
+                options={(() => {
+                  const list = Array.isArray(teachers) ? teachers : [];
+                  const assignedId = formData.teacher_id;
+                  const assignedTeacher = list.find((t) => t._id === assignedId);
+                  const missingAssigned =
+                    assignedId && !assignedTeacher
+                      ? { _id: assignedId, name: "Currently Assigned Teacher", designation: "" }
+                      : null;
+                  return [
+                    ...list,
+                    ...(missingAssigned ? [missingAssigned] : []),
+                  ].map((t) => ({
+                    value: t._id,
+                    label: `${t.name} (${t.designation})`,
+                  }));
+                })()}
               />
 
               {/* ============ EXAM / MARKS CONFIGURATION ============ */}
@@ -383,11 +406,19 @@ function Input({ label, ...props }) {
 
 /* SELECT */
 function Select({ label, options, ...props }) {
+  const isEmpty = options.length === 0;
   return (
     <div className="col-md-6">
       <label className="form-label fw-semibold">{label}</label>
-      <select className="form-control" {...props} required>
-        <option value="">Select {label}</option>
+      <select
+        className="form-control"
+        {...props}
+        disabled={isEmpty}
+        required
+      >
+        <option value="">
+          {isEmpty ? "No teachers available" : `Select ${label}`}
+        </option>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}

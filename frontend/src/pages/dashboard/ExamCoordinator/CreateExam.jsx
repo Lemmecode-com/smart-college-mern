@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import { createExam, publishExam } from "../../../api/exam";
@@ -295,6 +295,89 @@ export default function CreateExam() {
   const [rowValidationErrors, setRowValidationErrors] = useState(new Map());
   const [publishError, setPublishError] = useState(null);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
+
+  /* ================= UNSAVED CHANGES TRACKING ================= */
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const initialStateRef = useRef(null);
+
+  // Initialize the baseline state once formData and scheduleRows are ready
+  const captureInitialState = useCallback(() => {
+    // Only capture when we have actual data (not during initial empty load)
+    if (formData.name || formData.department_id || formData.course_id || 
+        formData.semester || formData.academicYear || formData.subjects.length > 0 ||
+        scheduleRows.length > 0) {
+      initialStateRef.current = {
+        formData: {
+          name: formData.name,
+          department_id: formData.department_id,
+          course_id: formData.course_id,
+          semester: formData.semester,
+          academicYear: formData.academicYear,
+          subjects: [...formData.subjects],
+        },
+        scheduleRows: scheduleRows.map((row) => ({
+          subject: row.subject,
+          subjectName: row.subjectName,
+          subjectCode: row.subjectCode,
+          subjectType: row.subjectType,
+          examDate: row.examDate,
+          startTime: row.startTime,
+          endTime: row.endTime,
+          session: row.session,
+          room: row.room,
+        })),
+      };
+      setUnsavedChanges(false);
+    }
+  }, [formData, scheduleRows]);
+
+  // Track changes to formData and scheduleRows
+  useEffect(() => {
+    // Skip if we haven't captured initial state yet (initial load)
+    if (initialStateRef.current === null) {
+      captureInitialState();
+      return;
+    }
+
+    const currentState = {
+      formData: {
+        name: formData.name,
+        department_id: formData.department_id,
+        course_id: formData.course_id,
+        semester: formData.semester,
+        academicYear: formData.academicYear,
+        subjects: [...formData.subjects],
+      },
+      scheduleRows: scheduleRows.map((row) => ({
+        subject: row.subject,
+        subjectName: row.subjectName,
+        subjectCode: row.subjectCode,
+        subjectType: row.subjectType,
+        examDate: row.examDate,
+        startTime: row.startTime,
+        endTime: row.endTime,
+        session: row.session,
+        room: row.room,
+      })),
+    };
+
+    const hasChanges = JSON.stringify(currentState) !== JSON.stringify(initialStateRef.current);
+    setUnsavedChanges(hasChanges);
+  }, [formData, scheduleRows, captureInitialState]);
+
+  // Browser refresh/close protection
+  useEffect(() => {
+    if (!unsavedChanges) return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [unsavedChanges]);
 
   /* ================= LOAD DEPARTMENTS ================= */
   useEffect(() => {
@@ -554,6 +637,30 @@ export default function CreateExam() {
         toast.success("Exam created and published successfully!");
       }
 
+      // Reset dirty state since data has been successfully persisted
+      initialStateRef.current = {
+        formData: {
+          name: formData.name,
+          department_id: formData.department_id,
+          course_id: formData.course_id,
+          semester: formData.semester,
+          academicYear: formData.academicYear,
+          subjects: [...formData.subjects],
+        },
+        scheduleRows: scheduleRows.map((row) => ({
+          subject: row.subject,
+          subjectName: row.subjectName,
+          subjectCode: row.subjectCode,
+          subjectType: row.subjectType,
+          examDate: row.examDate,
+          startTime: row.startTime,
+          endTime: row.endTime,
+          session: row.session,
+          room: row.room,
+        })),
+      };
+      setUnsavedChanges(false);
+
       setSuccess(true);
       setTimeout(() => {
         navigate("/dashboard/exam");
@@ -608,6 +715,25 @@ export default function CreateExam() {
   const confirmPublish = async () => {
     setShowPublishConfirm(false);
     await handleSubmit("PUBLISH");
+  };
+
+  /* ================= UNSAVED CHANGES HANDLERS ================= */
+  const handleCancelClick = () => {
+    if (unsavedChanges) {
+      setShowUnsavedConfirm(true);
+    } else {
+      navigate("/dashboard/exam");
+    }
+  };
+
+  const handleConfirmUnsaved = () => {
+    setShowUnsavedConfirm(false);
+    initialStateRef.current = null;
+    navigate("/dashboard/exam");
+  };
+
+  const handleCancelUnsaved = () => {
+    setShowUnsavedConfirm(false);
   };
 
   const selectedCourse = courses.find((c) => c._id === formData.course_id);
@@ -715,15 +841,27 @@ export default function CreateExam() {
                 onConfirm={confirmPublish}
                 title="Publish Exam"
                 message={
-                  "Are you sure you want to publish this exam and its timetable?\n\n" +
-                  `Subjects to schedule: ${totalSelectedSubjects}\n` +
-                  `Scheduled subjects: ${scheduledCount}\n` +
-                  "Once published, the timetable becomes read-only."
+                  `Are you sure you want to publish "${formData.name}"?\n\n` +
+                  `Total subjects: ${totalSelectedSubjects}\n` +
+                  `Fully scheduled: ${scheduledCount}\n\n` +
+                  "Publishing is permanent. The timetable will become read-only and cannot be reverted to draft."
                 }
-                type="warning"
+                type="success"
                 confirmText="Publish Exam"
                 cancelText="Cancel"
                 isLoading={loading}
+              />
+
+              <ConfirmModal
+                isOpen={showUnsavedConfirm}
+                onClose={handleCancelUnsaved}
+                onConfirm={handleConfirmUnsaved}
+                title="Unsaved Changes"
+                message="You have unsaved changes. Are you sure you want to leave without saving?"
+                type="warning"
+                confirmText="Discard Changes"
+                cancelText="Stay Here"
+                isLoading={false}
               />
 
               <form onSubmit={(e) => e.preventDefault()}>
@@ -1109,7 +1247,7 @@ export default function CreateExam() {
                     <button
                       type="button"
                       className="btn-edx-outline"
-                      onClick={() => navigate("/dashboard/exam")}
+                      onClick={handleCancelClick}
                       disabled={loading}
                     >
                       <FaArrowLeft />
