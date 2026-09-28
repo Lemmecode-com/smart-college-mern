@@ -294,7 +294,7 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
         // Get max semester from course duration
         const maxSemester = student.course_id?.durationSemesters || 8;
         const academicYearLabel = getAcademicYearLabel(student.currentSemester);
-        const isFinalYear = student.currentSemester >= maxSemester - 1;
+        const isFinalYear = student.currentSemester >= maxSemester;
         const attendance = attendanceMap.get(student._id.toString()) || {
           percentage: 0,
           totalSessions: 0,
