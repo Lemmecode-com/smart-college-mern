@@ -139,6 +139,7 @@ describe("EXAM LIST — HOD Marks Entry eligibility", () => {
       teacherUser,
       exam,
       assignedSubject,
+      teacherSubject,
     };
   };
 
@@ -166,15 +167,19 @@ describe("EXAM LIST — HOD Marks Entry eligibility", () => {
     expect(response.body).toHaveLength(0);
   });
 
-  it("preserves Teacher access to the existing exam list", async () => {
-    const { teacherUser, exam } = await setup();
+  it("scopes the Teacher exam list to their own assigned subjects", async () => {
+    const { teacherUser, exam, teacherSubject } = await setup();
     const agent = await login(teacherUser.email);
 
     const response = await agent.get("/api/exam").expect(200);
 
     expect(response.body).toHaveLength(1);
     expect(response.body[0]._id).toBe(String(exam._id));
-    expect(response.body[0].subjects).toHaveLength(3);
+    // The teacher only receives their own subject, not the HODs' subjects.
+    expect(response.body[0].subjects).toHaveLength(1);
+    expect(response.body[0].subjects[0].subject._id).toBe(
+      String(teacherSubject._id),
+    );
   });
 
   it("preserves college isolation for HOD exam loading", async () => {

@@ -29,7 +29,7 @@ const formatTime12Hour = (time24) => {
 
 const formatSession = (session) => {
   if (!session) return "N/A";
-  if (session === "FORENOON") return "Forenoon";
+  if (session === "FORENOON") return "Morning";
   if (session === "AFTERNOON") return "Afternoon";
   return session;
 };

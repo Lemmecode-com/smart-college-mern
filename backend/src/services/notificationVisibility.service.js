@@ -262,10 +262,23 @@ const getNotificationVisibilityQuery = async ({
   }
 
   if (normalizedRole === "COLLEGE_ADMIN" || normalizedRole === "PRINCIPAL") {
+    // An admin sees their own broadcasts, plus any INDIVIDUAL notification that
+    // explicitly addresses them. INDIVIDUAL notifications addressed to somebody
+    // else (e.g. a single student) are NOT echoed back to the sender — being the
+    // creator is not the same as being a recipient.
     return {
       ...baseQuery,
       $or: [
-        { createdByRole: "COLLEGE_ADMIN", createdBy: userObjectId },
+        {
+          createdByRole: "COLLEGE_ADMIN",
+          createdBy: userObjectId,
+          target: { $ne: "INDIVIDUAL" },
+        },
+        {
+          createdByRole: "COLLEGE_ADMIN",
+          target: "INDIVIDUAL",
+          target_users: userObjectId,
+        },
         { createdByRole: "TEACHER" },
       ],
     };

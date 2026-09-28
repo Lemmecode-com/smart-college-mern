@@ -627,7 +627,13 @@ describe("STEP 7 — Result Review + Lock / Unlock / Publish", () => {
   describe("MARKS PROTECTION — locked/published results block mark edits", () => {
     it("M1. teacher cannot modify marks after LOCKED", async () => {
       const { college, department, agent, exam, student, subject } = await baseSetup();
-      const teacherAgent = (await setupTeacher(college._id, department._id)).agent;
+      const { agent: teacherAgent, teacher } = await setupTeacher(
+        college._id,
+        department._id,
+      );
+      // The teacher must own the subject for the lock guard to be the thing
+      // under test (subjects with teacher_id = null are not teacher-accessible).
+      await Subject.findByIdAndUpdate(subject._id, { teacher_id: teacher._id });
       const resultId = await generateResult(agent, exam._id, student._id);
       await lockResult(agent, resultId).expect(200);
 

@@ -931,7 +931,42 @@ select.create-exam-field-input:disabled {
 .exam-schedule-pill.type.type-theory    { background: rgba(12, 43, 71, 0.08); color: var(--edx-navy-800); }
 .exam-schedule-pill.type.type-practical { background: var(--edx-cyan-50); color: var(--edx-cyan-600); }
 .exam-schedule-pill.type.type-composite { background: var(--edx-amber-50); color: var(--edx-amber-600); }
-.exam-schedule-pill.type.type-default   { background: var(--edx-slate-100); color: var(--edx-slate-600); }
+  .exam-schedule-pill.type.type-default   { background: var(--edx-slate-100); color: var(--edx-slate-600); }
+
+.exam-schedule-session-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--edx-slate-600);
+  background: var(--edx-slate-100);
+  white-space: nowrap;
+  cursor: default;
+}
+
+.exam-schedule-session-badge.is-placeholder {
+  color: var(--edx-slate-400);
+  font-style: italic;
+}
+
+.exam-schedule-mobile-session-value {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--edx-slate-200);
+  border-radius: 8px;
+  font-size: 0.86rem;
+  color: var(--edx-slate-600);
+  background: var(--edx-slate-100);
+  white-space: nowrap;
+}
+
+.exam-schedule-mobile-session-value.is-placeholder {
+  color: var(--edx-slate-400);
+}
 
 /* ---------- Desktop table ---------- */
 .exam-schedule-table-wrap {
@@ -953,6 +988,15 @@ select.create-exam-field-input:disabled {
 .exam-schedule-table th:last-child,
 .exam-schedule-table td:last-child {
   min-width: 125px;
+}
+
+/* Room column (8th) — needs enough width for "Room (optional)"
+   and long room names like "Seminar Hall" / "CR-204". The last-child
+   rule above targets the Status column, so Room is targeted here. */
+.exam-schedule-table th:nth-child(8),
+.exam-schedule-table td:nth-child(8) {
+  min-width: 150px;
+  width: 150px;
 }
 
 .exam-schedule-table thead th {
@@ -1314,6 +1358,15 @@ select.exam-schedule-field {
 .exam-timetable-page .exam-schedule-table th:last-child,
 .exam-timetable-page .exam-schedule-table td:last-child {
   min-width: 125px;
+}
+
+/* Room column (8th) — needs enough width for "Room (optional)"
+   and long room names like "Seminar Hall" / "CR-204". The last-child
+   rule above targets the Status column, so Room is targeted here. */
+.exam-timetable-page .exam-schedule-table th:nth-child(8),
+.exam-timetable-page .exam-schedule-table td:nth-child(8) {
+  min-width: 150px;
+  width: 150px;
 }
 .exam-timetable-page .exam-schedule-table th:nth-child(1),
 .exam-timetable-page .exam-schedule-table td:nth-child(1) {
