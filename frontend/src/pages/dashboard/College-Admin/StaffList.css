@@ -65,11 +65,14 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: var(--staff-card-bg);
+
+  background: #104b59;
   border-radius: var(--staff-radius);
   padding: 1.125rem 1.25rem;
-  box-shadow: var(--staff-shadow);
-  border: 1px solid var(--staff-border);
+
+  box-shadow: 0 8px 24px rgba(16, 75, 89, 0.18);
+  border: 1px solid rgba(16, 75, 89, 0.35);
+
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
@@ -95,7 +98,8 @@
   width: 48px;
   height: 48px;
   border-radius: 0.6rem;
-  background: linear-gradient(135deg, var(--staff-primary) 0%, var(--staff-dark) 100%);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: #fff;
   display: flex;
   align-items: center;
@@ -114,7 +118,7 @@
   margin: 0;
   font-size: 1.35rem;
   font-weight: 700;
-  color: var(--staff-primary);
+  color: #ffffff;
   line-height: 1.2;
 }
 
@@ -127,7 +131,7 @@
 .erp-staff-header__subtitle {
   margin: 0.25rem 0 0 0;
   font-size: 0.9rem;
-  color: var(--staff-text-muted);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 /* ================= SUMMARY STATS ================= */
@@ -648,11 +652,10 @@
 }
 
 .erp-staff-btn--primary {
-  background: linear-gradient(135deg, var(--staff-primary) 0%, var(--staff-dark) 100%);
+  background: #159bc5;
   color: #fff;
-  box-shadow: 0 4px 12px rgba(26, 75, 109, 0.25);
+  box-shadow: 0 4px 12px rgba(21, 155, 197, 0.25);
 }
-
 .erp-staff-btn--primary:hover {
   transform: translateY(-1.5px);
   box-shadow: 0 6px 16px rgba(26, 75, 109, 0.3);

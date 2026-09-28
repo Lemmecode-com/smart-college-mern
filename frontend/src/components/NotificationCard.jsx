@@ -193,6 +193,7 @@ export default function NotificationCard({
         style={{
           display: "flex",
           alignItems: "center",
+          
           gap: "0.6rem",
           flexShrink: 0,
           marginTop: "0.15rem",

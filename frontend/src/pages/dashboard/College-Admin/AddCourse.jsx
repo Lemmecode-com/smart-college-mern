@@ -263,14 +263,30 @@ export default function AddCourse() {
               Create and manage academic courses
             </p>
           </div>
-            <button
-              type="button"
-              className="btn btn-outline-light d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-              onClick={() => navigate("/courses")}
-            >
-              <FaArrowLeft className="me-1" />
-              Back to Courses
-            </button>
+<button
+  type="button"
+  className="btn d-flex align-items-center gap-2 px-3 py-2"
+  onClick={() => navigate("/courses")}
+  style={{
+    background: "rgba(255, 255, 255, 0.12)",
+    color: "#ffffff",
+    border: "1px solid rgba(255, 255, 255, 0.55)",
+    borderRadius: "10px",
+    fontWeight: "600",
+    transition: "all 0.25s ease",
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = "rgba(255, 255, 255, 0.22)";
+    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.8)";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
+    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.55)";
+  }}
+>
+  <FaArrowLeft className="me-1" />
+  Back to Courses
+</button>
         </div>
       </div>
 
@@ -561,12 +577,23 @@ export default function AddCourse() {
         }
 
         .header-icon {
-          animation: blink 2s infinite;
+          width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
         }
 
         .header-subtitle {
-          opacity: 0.85;
-          font-size: 1rem;
+          margin: 0;
+           color: rgba(255, 255, 255, 0.78);
+        font-size: 14px;
+         line-height: 1.0;
+         margin-left: 3rem;
         }
 
         .form-container {

@@ -464,13 +464,14 @@ export default function AddSubject() {
             <div
               style={{
                 padding: "2rem",
-                background: BRAND_COLORS.primary.gradient,
+                background: "linear-gradient(135deg, #164f63 0%, #0f3d4a 100%)",
                 color: "white",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 flexWrap: "wrap",
                 gap: "1.5rem",
+                marginBottom: "-1.5rem",
               }}
             >
               <div
@@ -481,16 +482,17 @@ export default function AddSubject() {
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: "80px",
-                    height: "80px",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
-                    borderRadius: "20px",
+                    width: "62px",
+                    height: "62px",
+                    backgroundColor: "rgba(255, 255, 255, 0.14)",
+                    border: "1px solid rgba(255, 255, 255, 0.16)",
+                    borderRadius: "18px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "2.5rem",
+                    fontSize: "2.35rem",
                     flexShrink: 0,
-                    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
+                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.22)",
                   }}
                 >
                   <FaBookOpen />
@@ -499,7 +501,7 @@ export default function AddSubject() {
                   <h1
                     style={{
                       margin: 0,
-                      fontSize: "2.25rem",
+                      fontSize: "1.8rem",
                       fontWeight: 700,
                       lineHeight: 1.1,
                     }}
@@ -510,7 +512,7 @@ export default function AddSubject() {
                     style={{
                       margin: "0.75rem 0 0 0",
                       opacity: 0.9,
-                      fontSize: "1.25rem",
+                      fontSize: "0.9rem",
                     }}
                   >
                     Create academic subject with department and course
