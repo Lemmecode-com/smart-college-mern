@@ -29,9 +29,9 @@ import {
   FaTrophy,
   FaStar,
   FaSync,
-   FaUniversity,
-   FaClipboardCheck,
-   FaFileAlt,
+  FaUniversity,
+  FaClipboardCheck,
+  FaFileAlt,
 } from "react-icons/fa";
 import {
   PieChart,
@@ -53,6 +53,13 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const PAGE_LOAD_TOAST_ID = "student-dashboard-load";
+
+/**
+ * Format a Date as YYYY-MM-DD using LOCAL date parts (not toISOString which uses UTC).
+ * This avoids off-by-one-day issues for timezones ahead of UTC (like IST).
+ */
+const toLocalDateStr = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 // Authentication / session error codes that must NOT surface a toast.
 // These are routed exclusively to ApiError for a friendly mapped screen.
@@ -372,7 +379,13 @@ export default function StudentDashboard() {
       try {
         setLoading(true);
         setError(null);
-        const response = await api.get("/dashboard/student");
+        
+        // Send student's local calendar date to avoid timezone mismatch with server
+        const todayStr = toLocalDateStr(new Date());
+        
+        const response = await api.get("/dashboard/student", {
+          params: { date: todayStr },
+        });
         if (!isCancelled) {
           setDashboardData(response.data);
         }
