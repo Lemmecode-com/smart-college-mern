@@ -877,8 +877,9 @@ export default function MakePayments() {
           <div className="text-muted small">
             Due on{" "}
             <strong>
-                ? formatDate(installmentDetails.dueDate)
-                : "N/A"}
+                {installmentDetails.dueDate
+                  ? formatDate(installmentDetails.dueDate)
+                  : "N/A"}
             </strong>
           </div>
         </div>
