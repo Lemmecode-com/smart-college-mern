@@ -13,6 +13,7 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
   );
 
   const [loadError, setLoadError] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!documentId);
 
   useEffect(() => {
     let isMounted = true;
@@ -21,6 +22,7 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
     if (!documentId) {
       setBlobUrl(null);
       setLoadError(true);
+      setIsLoading(false);
       return;
     }
 
@@ -28,12 +30,14 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
     if (logoCache.has(documentId)) {
       setBlobUrl(logoCache.get(documentId));
       setLoadError(false);
+      setIsLoading(false);
       return;
     }
 
     const fetchLogo = async () => {
       try {
         setLoadError(false);
+        setIsLoading(true);
 
         const url = getDocumentViewUrl(documentId);
 
@@ -92,10 +96,7 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
                 response.headers?.["Content-Type"] ||
                 blob.type;
 
-              if (
-                contentType &&
-                !contentType.startsWith("image/")
-              ) {
+              if (contentType && !contentType.startsWith("image/")) {
                 throw new Error(
                   `Invalid logo content type: ${contentType}`
                 );
@@ -122,6 +123,7 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
         if (isMounted) {
           setBlobUrl(newBlobUrl);
           setLoadError(false);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error("====================================");
@@ -141,6 +143,7 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
         if (isMounted) {
           setBlobUrl(null);
           setLoadError(true);
+          setIsLoading(false);
         }
       }
     };
@@ -155,7 +158,11 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
   const iconSize = Math.round(size * 0.45);
   const padding = Math.round(size * 0.12);
 
-  const showPlaceholder = loadError || !blobUrl;
+  /*
+   * Only show the placeholder when loading has finished
+   * and no logo is available, or when loading failed.
+   */
+  const showPlaceholder = loadError || (!blobUrl && !isLoading);
 
   return (
     <div
