@@ -13,6 +13,7 @@ const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { getNotificationVisibilityQuery } = require("../services/notificationVisibility.service");
+const { parseLocalDateSafe, getDayName } = require("../utils/date.utils");
 
 /**
  * 👨‍🎓 STUDENT DASHBOARD
@@ -41,7 +42,7 @@ exports.studentDashboard = async (req, res, next) => {
     })
       .populate("course_id", "name")
       .populate("department_id", "name")
-      .select("user_id college_id department_id course_id currentSemester approvedAt createdAt fullName enrollmentNumber division");
+      .select("user_id college_id department_id course_id currentSemester currentAcademicYear approvedAt createdAt fullName enrollmentNumber division");
 
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
@@ -115,8 +116,22 @@ exports.studentDashboard = async (req, res, next) => {
        — Mirrors GET /api/timetable/student/today logic
     ===================================================== */
 
-    const todayDate = new Date();
-    const dayName = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][todayDate.getDay()];
+    // Use client-provided date if available (timezone-safe), otherwise fall back to server date
+    let todayDate;
+    if (req.query.date) {
+      // Validate YYYY-MM-DD format
+      const dateStr = req.query.date;
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(dateStr)) {
+        // Parse using timezone-safe utility (treats YYYY-MM-DD as local date)
+        todayDate = parseLocalDateSafe(dateStr);
+      }
+    }
+    // Fallback to server date if no valid client date provided
+    if (!todayDate) {
+      todayDate = new Date();
+    }
+    const dayName = getDayName(todayDate);
 
     let todaysTimetable = [];
     try {
