@@ -242,7 +242,7 @@ class DocumentService {
       return ["TEACHER", "COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL", "HOD", "EXAM_COORDINATOR"].includes(user.role);
     }
     if (document.ownerType === "College") {
-      return ["COLLEGE_ADMIN", "SUPER_ADMIN"].includes(user.role);
+      return ["COLLEGE_ADMIN", "SUPER_ADMIN","PRINCIPAL"].includes(user.role);
     }
     if (document.ownerType === "StudentFee") {
       return ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "PRINCIPAL", "ACCOUNTANT"].includes(user.role);
