@@ -391,14 +391,16 @@ export default function PrincipalDashboard() {
         setLoading(true);
         setError(null);
 
-        const [dashboardRes, admissionRes, deptRes] = await Promise.all([
-          api.get("/dashboard/principal"),
-          api.get("/reports/admissions/college-admin-summary"),
-          api.get("/departments"),
-        ]);
+const [dashboardRes, admissionRes, deptRes, collegeRes] = await Promise.all([
+  api.get("/dashboard/principal"),
+  api.get("/reports/admissions/college-admin-summary"),
+  api.get("/departments"),
+  api.get("/college/my-college"),
+]);
 
         const dData = dashboardRes.data;
         const admData = admissionRes.data;
+        const collegeProfile = collegeRes.data;
         const deptData = Array.isArray(deptRes.data) ? deptRes.data :
                          Array.isArray(deptRes.data.departments) ? deptRes.data.departments :
                          Array.isArray(deptRes.data.data) ? deptRes.data.data : [];
@@ -416,7 +418,10 @@ export default function PrincipalDashboard() {
           pendingPercentage: admData?.pendingPercentage || 0,
           rejectedPercentage: admData?.rejectedPercentage || 0,
         });
-        setCollege(dData?.college || null);
+       setCollege({
+            ...(dData?.college || {}),
+            ...(collegeProfile || {}),
+          });
         setRecentStudents(dData?.recentStudents || []);
 
         const deptChart = deptData.slice(0, 6).map(dept => ({
@@ -527,7 +532,13 @@ export default function PrincipalDashboard() {
                         flexShrink: 0,
                       }}
                     >
-                      <LogoImage documentId={college?.logoDocumentId} size={88} />
+                      <LogoImage
+                        documentId={
+                          college?.documentRefs?.logo?.documentId ||
+                          college?.logoDocumentId
+                        }
+                        size={88}
+                      />
                     </motion.div>
                     <div className="header-title-section">
                       <h1 className="header-title">

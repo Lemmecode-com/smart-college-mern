@@ -455,7 +455,8 @@ export default function TimetableList() {
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.5rem'
+              // gap: '1.5rem',
+              // paddingBottom: '2rem',
             }}
           >
             <div className="erp-timetable-hero-inner" style={{
@@ -466,7 +467,7 @@ export default function TimetableList() {
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '1.5rem'
+              gap: '1.5rem',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div
@@ -492,7 +493,7 @@ export default function TimetableList() {
                 <div className="erp-timetable-hero-text">
                   <h1 className="erp-timetable-hero-title" style={{
                     margin: 0,
-                    fontSize: '2.25rem',
+                    fontSize: '2.0rem',
                     fontWeight: 700,
                     lineHeight: 1.1
                   }}>
@@ -501,7 +502,7 @@ export default function TimetableList() {
                   <p className="erp-timetable-hero-desc" style={{
                     margin: '0.75rem 0 0 0',
                     opacity: 0.9,
-                    fontSize: '1.25rem'
+                    fontSize: '0.9rem'
                   }}>
                     View, manage, and publish academic schedules
                   </p>
@@ -517,7 +518,7 @@ export default function TimetableList() {
                     backgroundColor: 'white',
                     color: BRAND_COLORS.primary.main,
                     border: '2px solid white',
-                    padding: '0.875rem 1.75rem',
+                    padding: '0.5rem 1.45rem',
                     borderRadius: '14px',
                     fontSize: '1.1rem',
                     fontWeight: 700,
