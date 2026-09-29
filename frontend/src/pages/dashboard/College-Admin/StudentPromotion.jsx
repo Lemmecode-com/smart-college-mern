@@ -1623,8 +1623,8 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                       <th>Total Fee</th>
                       <th>Paid Amount</th>
                       <th>Status</th>
-                      <th>Attendance %</th>
-                      <th>Attendance Status</th>
+                      {/* <th>Attendance %</th> */}
+                      {/* <th>Attendance Status</th> */}
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -1684,7 +1684,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                             {student.feeStatus.replace("_", " ")}
                           </span>
                         </td>
-                        <td>
+                        {/* <td>
                           <span className="fw-bold">
                             {student.attendancePercentage ?? 0}%
                           </span>
@@ -1695,7 +1695,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                           >
                             {formatStatus(student.attendanceStatus)}
                           </span>
-                        </td>
+                        </td> */}
                         <td>
                           <div className="d-flex" style={{ gap: "8px" }}>
                             <button
@@ -3058,7 +3058,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                       Not Promoted
                     </h5>
                     <div className="table-responsive">
-                      <table className="data-table">
+                      <table className="data-table promotion-students-table">
                         <thead>
                           <tr>
                             <th>Student Name</th>
@@ -3595,6 +3595,57 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         .data-table {
           width: 100%;
           border-collapse: collapse;
+        }
+
+                /* Student Promotion - keep the complete table visible */
+        .promotion-students-table {
+          width: 100%;
+          table-layout: fixed;
+        };
+        
+
+        .promotion-students-table th,
+        .promotion-students-table td {
+          white-space: nowrap;
+        }
+
+        .promotion-students-table th:nth-child(1),
+        .promotion-students-table td:nth-child(1) {
+          width: 55px;
+        }
+
+        .promotion-students-table th:nth-child(2),
+        .promotion-students-table td:nth-child(2) {
+          width: 22%;
+        }
+
+        .promotion-students-table th:nth-child(3),
+        .promotion-students-table td:nth-child(3) {
+          width: 15%;
+        }
+
+        .promotion-students-table th:nth-child(4),
+        .promotion-students-table td:nth-child(4) {
+          width: 12%;
+        }
+
+        .promotion-students-table th:nth-child(5),
+        .promotion-students-table td:nth-child(5) {
+          width: 13%;
+        }
+
+        .promotion-students-table th:nth-child(6),
+        .promotion-students-table td:nth-child(6) {
+          width: 14%;
+        }
+
+        .promotion-students-table th:nth-child(7),
+        .promotion-students-table td:nth-child(7) {
+          width: 24%;
+        }
+
+        .promotion-students-table td:last-child .d-flex {
+          flex-wrap: nowrap;
         }
 
         .data-table thead th {
