@@ -343,13 +343,13 @@ export const navigationConfig = {
           {
             path: "/notification/create",
             icon: FaPlus,
-            label: "Create Notification",
+            label: "Send Notification",
             exact: true,
           },
           {
             path: "/notification/list",
             icon: FaListOl,
-            label: "Notification List",
+            label: "Notifications List",
             exact: true,
           },
         ],
@@ -1350,7 +1350,7 @@ export const navigationConfig = {
           {
             path: "/hod/notifications/create",
             icon: FaPlus,
-            label: "Create Notification",
+            label: "Send Notification",
             exact: true,
           },
           {
