@@ -320,45 +320,45 @@ export default function CreateTimetable() {
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: '2rem',
+              marginBottom: '1.25rem',
               backgroundColor: 'white',
               borderRadius: '1.5rem',
               overflow: 'hidden',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '0rem'
+              gap: '0rem',
+              
             }}
           >
-            <div
-             className="create-timetable-header-content"
-             style={{
-              padding: '2rem',
-              background: BRAND_COLORS.primary.gradient,
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1.5rem'
-            }}>
+<div
+  className="create-timetable-header-content"
+  style={{
+    padding: '0.75rem 1.25rem',
+    background: BRAND_COLORS.primary.gradient,
+    color: 'white',
+    display: 'flex',
+    alignItems: 'flex-start',
+    position: 'relative',
+    minHeight: '120px'
+  }}>
               <div 
               className="create-timetable-header-inner"
-              style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <motion.div
                   className="create-timetable-icon"
                   variants={pulseVariants}
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: '80px',
-                    height: '80px',
+                    width: '60px',
+                    height: '60px',
                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
                     borderRadius: '20px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2.5rem',
+                    fontSize: '2rem',
                     flexShrink: 0,
                     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
                   }}
@@ -369,44 +369,56 @@ export default function CreateTimetable() {
                   <h1 
                   className="create-timetable-header-title"
                   style={{
-                    margin: 0,
-                    fontSize: '2.25rem',
+                    margin: '10px',
+                    height: '1.5rem',
+                    fontSize: '2rem',
                     fontWeight: 700,
-                    lineHeight: 1.1
+                    lineHeight: '1.1rem',
                   }}>
                     Create New Timetable
                   </h1>
                   <p 
                   className="create-timetable-description"
                   style={{
-                    margin: '0.75rem 0 0 0',
+                    margin: '0.25rem 0 0 0',
+                    fontSize: '1rem',
                     opacity: 0.9,
-                    fontSize: '1.25rem'
                   }}>
                     Set up academic schedule for your department courses
                   </p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+<div
+  style={{
+    position: 'absolute',
+    top: '1.45rem',
+    right: '1.45rem',
+    flexShrink: 0
+  }}
+>
                 <motion.button
                   className="create-timetable-button"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate('/timetable/list')}
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    border: '2px solid rgba(255, 255, 255, 0.4)',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '1rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease'
-                  }}
+style={{
+  backgroundColor: 'rgba(255, 255, 255, 0.14)',
+  color: 'white',
+  border: '1px solid rgba(255, 255, 255, 0.5)',
+padding: '0.6rem 1.1rem',
+borderRadius: '10px',
+fontSize: '0.9rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '0.6rem',
+  whiteSpace: 'nowrap',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
+  transition: 'all 0.25s ease',
+  marginLeft: 'auto',
+}}
                 >
                   <FaEye /> View Existing Timetables
                 </motion.button>
