@@ -135,6 +135,7 @@ export default function ReportDashboard() {
   const [currentPaymentPage, setCurrentPaymentPage] = useState(1);
   const [currentLowAttendancePage, setCurrentLowAttendancePage] = useState(1);
   const [itemsPerPage] = useState(CONFIG.ITEMS_PER_PAGE);
+  const [expandedStudentId, setExpandedStudentId] = useState(null);
 
   // ================= EXPORT HELPER FUNCTIONS =================
   const formatCurrency = (amount) => {
@@ -1020,30 +1021,228 @@ export default function ReportDashboard() {
                     <th>Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {paymentPagination.data.map((student) => (
-                    <tr key={student._id}>
-                      <td className="student-name">{student.name}</td>
-                      <td>{student.course}</td>
-                      <td>{formatCurrency(student.totalFee)}</td>
-                      <td className="text-success">
-                        {formatCurrency(student.paid)}
-                      </td>
-                      <td className="text-danger">
-                        {formatCurrency(student.pending)}
-                      </td>
-                      <td>
-                        <span
-                          className={`status-badge ${getStatusBadgeClass(
-                            student.calculatedStatus,
-                          )}`}
-                        >
-                          {student.calculatedStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                 <tbody>
+                   {paymentPagination.data.map((student) => (
+                     <>
+                       <tr key={student._id}>
+                         <td className="student-name">{student.name}</td>
+                         <td>{student.course}</td>
+                         <td>{formatCurrency(student.totalFee)}</td>
+                         <td className="text-success">
+                           {formatCurrency(student.paid)}
+                         </td>
+                         <td className="text-danger">
+                           {formatCurrency(student.pending)}
+                         </td>
+                         <td>
+                           <div
+                             style={{
+                               display: "flex",
+                               alignItems: "center",
+                               gap: "0.5rem",
+                             }}
+                           >
+                             <span
+                               className={`status-badge ${getStatusBadgeClass(
+                                 student.calculatedStatus,
+                               )}`}
+                             >
+                               {student.calculatedStatus}
+                             </span>
+                             {student.feeRecords &&
+                               student.feeRecords.length > 1 && (
+                                 <button
+                                   onClick={() =>
+                                     setExpandedStudentId(
+                                       expandedStudentId ===
+                                       student._id?.toString()
+                                         ? null
+                                         : student._id?.toString(),
+                                     )
+                                   }
+                                   style={{
+                                     background: "none",
+                                     border: "none",
+                                     cursor: "pointer",
+                                     padding: "2px 6px",
+                                     fontSize: "0.7rem",
+                                     color: "#6c757d",
+                                   }}
+                                   title="View fee records"
+                                   aria-label="Toggle fee records"
+                                 >
+                                   {expandedStudentId ===
+                                   student._id?.toString()
+                                     ? "▲"
+                                     : "▼"}
+                                 </button>
+                               )}
+                           </div>
+                         </td>
+                       </tr>
+                       {expandedStudentId === student._id?.toString() &&
+                         student.feeRecords && (
+                           <tr>
+                             <td
+                               colSpan="6"
+                               style={{
+                                 padding: "8px 12px",
+                                 backgroundColor: "#f8f9fa",
+                               }}
+                             >
+                               <div
+                                 style={{
+                                   fontSize: "0.8rem",
+                                   color: "#495057",
+                                 }}
+                               >
+                                 <div
+                                   style={{
+                                     fontWeight: 600,
+                                     marginBottom: "6px",
+                                   }}
+                                 >
+                                   Fee Records
+                                 </div>
+                                 <table
+                                   style={{
+                                     width: "100%",
+                                     borderCollapse: "collapse",
+                                   }}
+                                 >
+                                   <thead>
+                                     <tr>
+                                       <th
+                                         style={{
+                                           textAlign: "left",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Fee Record
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "right",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Total Fee
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "right",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Paid
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "right",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Pending
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "center",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Status
+                                       </th>
+                                     </tr>
+                                   </thead>
+                                   <tbody>
+                                     {student.feeRecords.map((record) => (
+                                       <tr
+                                         key={
+                                           record._id
+                                             ? record._id.toString()
+                                             : `fee-${record.feeType}`
+                                         }
+                                       >
+                                         <td
+                                           style={{
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {record.feeType === "enrollment"
+                                             ? "Enrollment Fee"
+                                             : `Semester ${record.semester}`}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "right",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {formatCurrency(record.totalFee)}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "right",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {formatCurrency(record.paidAmount)}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "right",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {formatCurrency(
+                                             record.pendingAmount,
+                                           )}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "center",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           <span
+                                             className={`status-badge ${getStatusBadgeClass(
+                                               record.status,
+                                             )}`}
+                                           >
+                                             {record.status}
+                                           </span>
+                                         </td>
+                                       </tr>
+                                     ))}
+                                   </tbody>
+                                 </table>
+                               </div>
+                             </td>
+                           </tr>
+                         )}
+                     </>
+                   ))}
+                 </tbody>
               </table>
             </div>
 
@@ -1228,7 +1427,7 @@ export default function ReportDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {lowAttendancePagination.data.map((student) => (
+                    {lowAttendancePagination.data.map((student, index) => (
                       <tr
                         key={student._id || student.name || `student-${index}`}
                         className={
