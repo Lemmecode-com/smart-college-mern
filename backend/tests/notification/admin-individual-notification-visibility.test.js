@@ -245,8 +245,13 @@ describe("NTF-ADM-IND — Admin visibility of INDIVIDUAL notifications", () => {
   });
 
   /* ------------------------------------------------------------------ */
-  /* Test 3 — Admin broadcasts keep working for every non-INDIVIDUAL target */
-  /* ------------------------------------------------------------------ */
+  /* Test 3 — Admin broadcasts keep working for every non-INDIVIDUAL target
+   *
+   * The admin OUTBOX (admin/read -> myNotifications) keeps every broadcast.
+   * The admin INBOX (unread bell + count/admin) only keeps target=ALL,
+   * because every other audience explicitly excludes the admin. See
+   * tests/notification/fee-deadline-notification-visibility.test.js.
+   * ------------------------------------------------------------------ */
   describe("Test 3: Admin-created broadcast notifications remain visible to the admin", () => {
     const cases = [
       { target: "ALL", extra: () => ({}) },
@@ -278,8 +283,16 @@ describe("NTF-ADM-IND — Admin visibility of INDIVIDUAL notifications", () => {
         const listRes = await adminAgent.get("/api/notifications/admin/read").expect(200);
         expect(collectAdminPayload(listRes.body).myNotifications.map((n) => n._id)).toContain(notificationId);
 
+        // Unread count is the admin INBOX. Only an ALL broadcast is also an
+        // incoming notification for the admin; STUDENTS/TEACHERS/DEPARTMENT/
+        // COURSE/SEMESTER audiences explicitly exclude the admin, so they must
+        // not raise an unread badge for the person who sent them.
         const countRes = await adminAgent.get("/api/notifications/count/admin").expect(200);
-        expect(countRes.body.data.myCount).toBeGreaterThanOrEqual(1);
+        if (target === "ALL") {
+          expect(countRes.body.data.myCount).toBeGreaterThanOrEqual(1);
+        } else {
+          expect(countRes.body.data.myCount).toBe(0);
+        }
       });
     });
   });

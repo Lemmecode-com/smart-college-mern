@@ -852,6 +852,10 @@ exports.getAdminNotificationCount = async (req, res, next) => {
       collegeId: req.college_id,
       role: req.user.role,
       userId,
+      // Unread badge = inbox. Admin-authored broadcasts aimed at STUDENTS,
+      // PARENTS, TEACHERS, HOD, DEPARTMENT, COURSE or SEMESTER must not be
+      // counted against the admin who sent them.
+      includeOwnBroadcasts: false,
     });
 
     const myCount = await Notification.countDocuments({
@@ -1020,6 +1024,9 @@ exports.getUnreadForBell = async (req, res, next) => {
       userId: req.user.id,
       studentProfile,
       teacherProfile,
+      // Bell = inbox. For COLLEGE_ADMIN/PRINCIPAL this stops the admin from
+      // seeing their own student/parent/teacher/HOD-only broadcasts here.
+      includeOwnBroadcasts: false,
     });
 
     const unread = await Notification.find({
