@@ -48,46 +48,60 @@ const pageStyles = `
 
   /* ================= HEADER ================= */
 
-  .exam-timetable-page .exam-timetable-header {
+.exam-timetable-page .exam-timetable-header {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    #eaf7ff 0%,
-    #dff2fb 50%,
-    #d4edf7 100%
-  );
-  border-radius: 16px;
-  padding: 1.5rem 1.6rem;
+  background: #0E3746;
+  border-radius: 18px;
+  padding: 1.2rem 1.5rem;
   margin-bottom: 1rem;
-  border: 1px solid #d5e8f2;
-  box-shadow: 0 6px 20px rgba(12, 43, 71, 0.05);
+  border: none;
+  box-shadow: 0 8px 24px rgba(12, 43, 71, 0.16);
+}
+.exam-timetable-page .exam-timetable-header .btn-edx-outline {
+  position: relative;
+  z-index: 2;
+  background: #ffffff;
+  color: #164b63;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 14px;
+  padding: 0.75rem 1.1rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-  .exam-timetable-page .exam-timetable-header::after {
-  content: "";
-  position: absolute;
-  width: 360px;
-  height: 360px;
-  right: -100px;
-  top: -220px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
-  pointer-events: none;
+.exam-timetable-page .exam-timetable-header .btn-edx-outline:hover {
+  background: #f3f8fb;
+  color: #103e50;
+  transform: translateY(-2px);
 }
+//   .exam-timetable-page .exam-timetable-header::after {
+//   content: "";
+//   position: absolute;
+//   width: 360px;
+//   height: 360px;
+//   right: -100px;
+//   top: -220px;
+//   border-radius: 50%;
+//   background: rgba(255, 255, 255, 0.4);
+//   pointer-events: none;
+// }
 
-  .exam-timetable-page .exam-timetable-header-row {
-    position: relative;
-    z-index: 1;
-    align-items: center;
-    gap: 1rem;
-  }
+.exam-timetable-page .exam-timetable-header-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
 
   .exam-timetable-page .exam-timetable-title {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  color: #12304a;
+  color: #ffffff;;
   margin: 0;
   font-size: 1.8rem;
   font-weight: 700;
@@ -98,18 +112,21 @@ const pageStyles = `
   color: #0e93ab;
   background: #ffffff;
   padding: 0.65rem;
-  width: 50px;
-  height: 50px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(14, 147, 171, 0.1);
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  transform: translateY(14px);
 }
+.exam-timetable-page .exam-timetable-subtitle {
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0.35rem 0 0 calc(50px + 0.8rem);
+  font-size: 0.9rem;
+  line-height: 1;
 
-  .exam-timetable-page .exam-timetable-subtitle {
-    color: #365a7c;
-    margin: 0.35rem 0 0 3.9rem;
-    font-size: 1rem;
-  }
-
+  
+}
   /* ================= META CARDS ================= */
 
   .exam-timetable-page .exam-timetable-meta {

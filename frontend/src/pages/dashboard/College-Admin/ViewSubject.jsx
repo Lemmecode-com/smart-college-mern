@@ -372,7 +372,7 @@ export default function ViewSubject() {
 
         /* ================= HEADER ================= */
         .view-subject-header {
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 50%, #3db5e6 100%);
+          background: #0E3746;
           padding: 1.75rem;
           border-radius: 16px;
           margin-bottom: 1.5rem;

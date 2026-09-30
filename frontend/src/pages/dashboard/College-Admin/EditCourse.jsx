@@ -172,7 +172,7 @@ export default function EditCourse() {
     </div>
 
       {/* HEADER */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow mb-4">
+      <div className="gradient-header p-4 rounded-4 text-white shadow mb-4" style={{ background: "#0E3746" }}>
         <h3 className="fw-bold">
           <FaBookOpen className="blink me-2" />
           Edit Course

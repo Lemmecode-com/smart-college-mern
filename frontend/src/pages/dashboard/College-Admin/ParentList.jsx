@@ -418,7 +418,7 @@ export default function ParentList() {
   style={{
     marginBottom: "32px",
     padding: "24px",
-    background: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+    background: "#0E3746",
     borderRadius: "16px",
     boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
     borderLeft: "5px solid rgba(255, 255, 255, 0.18)",

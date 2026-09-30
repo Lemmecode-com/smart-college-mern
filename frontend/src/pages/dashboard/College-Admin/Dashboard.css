@@ -58,11 +58,7 @@
 
 .dashboard-header-hero {
   padding: var(--spacing-xl);
-  background: linear-gradient(
-    135deg,
-    var(--brand-primary) 0%,
-    var(--brand-primary-dark) 100%
-  );
+  background: #0E3746;
   color: white;
 }
 
