@@ -1165,7 +1165,7 @@ export default function CourseList() {
 
         /* ================= PAGE HEADER ================= */
         .page-header {
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
+          background: #0E3746;;
           border-radius: var(--radius-xl);
           padding: var(--space-8) var(--space-6);
           margin-bottom: var(--space-6);

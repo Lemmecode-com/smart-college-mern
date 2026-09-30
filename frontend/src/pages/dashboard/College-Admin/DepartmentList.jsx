@@ -566,7 +566,7 @@ export default function DepartmentList() {
         {/* ================= TOP BAR ================= */}
         <div
           style={{
-            background: T.headerTeal,
+            background: "#0E3746",
             border: `1px solid rgba(255,255,255,0.08)`,
             boxShadow: "0 8px 24px rgba(15,69,83,0.18)",
             padding: "1.5rem 1.75rem",

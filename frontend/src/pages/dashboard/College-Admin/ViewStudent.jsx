@@ -1632,7 +1632,7 @@ export default function ViewStudent() {
         /* Page Header */
         .page-header-enterprise {
           position: relative;
-          background: linear-gradient(135deg, #0f3a4a 0%, #134952 50%, #1a5a6a 100%);
+          background: #0E3746;
           border-radius: 20px;
           padding: 1.85rem 2rem;
           margin-bottom: 1.5rem;
