@@ -154,27 +154,41 @@ export default function StudentReports() {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-        .reports-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 2rem;
-          border-radius: 16px;
-          margin-bottom: 2rem;
-          color: white;
-          text-align: center;
-        }
+.reports-header {
+  position: relative;
+  background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+  min-height: -10vh;
+  padding: 1.5rem 3rem;
+  border-radius: 20px;
+  margin-bottom: 2rem;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(15, 58, 74, 0.16);
+  overflow: hidden;
+}
 
-        .reports-header h1 {
-          margin: 0 0 0.5rem 0;
-          font-size: 2rem;
-          font-weight: 700;
-        }
+.reports-header h1 {
+  margin-right: 32rem;
+  // margin-bottom: 0.6rem;
+  font-size: 1.65rem;
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
 
-        .reports-header p {
-          margin: 0;
-          font-size: 1.1rem;
-          opacity: 0.9;
-        }
-
+.reports-header p {
+  margin-right: 25rem;
+  // margin: 0;
+  max-width: 760px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  font-weight: 400;
+  opacity: 0.88;
+}
         .search-section {
           background: white;
           border-radius: 16px;
@@ -364,26 +378,38 @@ export default function StudentReports() {
           opacity: 0.5;
         }
 
-        .back-btn {
-          background: rgba(255, 255, 255, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          color: white;
-          padding: 0.75rem 1.5rem;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          margin-bottom: 1rem;
-          align-self: flex-start;
-        }
+.back-btn {
+  position: absolute;
+  top: 2.15rem;
+  left: 1.75rem;
 
-        .back-btn:hover {
-          background: rgba(255, 255, 255, 0.3);
-          transform: translateY(-2px);
-        }
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: white;
+
+  padding: 0.56rem 1.05rem;
+  border-radius: 10px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+
+  font-size: 0.95rem;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  margin: 0;
+  z-index: 2;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.42);
+  transform: translateY(-1px);
+}
 
         @media (max-width: 768px) {
           .student-reports-page {
