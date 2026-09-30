@@ -169,6 +169,7 @@ export default function PaymentTrends() {
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
       <style>{`
+
         .trends-container {
           max-width: 1200px;
           margin: 0 auto;
@@ -176,7 +177,7 @@ export default function PaymentTrends() {
 
         .trends-header {
           background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 2rem;
+          padding: 1.25rem;
           border-radius: 16px;
           margin-bottom: 2rem;
           color: white;
@@ -187,14 +188,14 @@ export default function PaymentTrends() {
 
         .header-content h1 {
           margin: 0 0 0.5rem 0;
-          font-size: 2rem;
+          font-size: 1.5rem;
           font-weight: 700;
         }
 
         .header-content p {
           margin: 0;
           opacity: 0.9;
-          font-size: 1rem;
+          font-size: 0.85rem;
         }
 
         .year-selector {
@@ -422,8 +423,11 @@ export default function PaymentTrends() {
       />
 
       <div className="trends-container">
+        
         {/* HEADER */}
+        
         <div className="trends-header">
+          
           <div className="header-content">
             <h1>Payment Collection Trends</h1>
             <p>Analyze payment patterns and collection performance over time</p>

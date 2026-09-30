@@ -381,7 +381,8 @@ export default function FeeStructureList() {
                 title="Refresh data"
                 aria-label="Refresh fee structures"
               >
-                <FaSyncAlt className="refresh-icon spin" />
+                <FaSyncAlt className="refresh-icon spin " /> 
+                <span>Refresh</span>
               </button>
             </div>
           </div>
@@ -926,29 +927,39 @@ export default function FeeStructureList() {
           font-size: 1.1rem;
         }
         
-        .refresh-btn {
-          width: 44px;
-          height: 44px;
-          border-radius: 10px;
-          background: white;
-          border: 2px solid #1a4b6d;
-          color: #1a4b6d;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
+.refresh-btn {
+  width: 104px;
+  height: 40px;
+  padding: 0;
+  border-radius: 10px;
+  background: #1a4b6d;
+  border: 2px solid #1a4b6d;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(26, 75, 109, 0.2);
+}
+
+.refresh-btn:hover {
+  background: #123b56;
+  border-color: #123b56;
+  color: #ffffff;
+  // transform: rotate(90deg);
+}
+
+.refresh-icon {
+  width: 14px;
+  height: 14px;
+  font-size: 10px;
+  color: #ffffff;
+  fill: currentColor;
+  display: block;
+}
         
-        .refresh-btn:hover {
-          background: #1a4b6d;
-          color: white;
-          transform: rotate(90deg);
-        }
-        
-        .refresh-icon {
-          font-size: 1.4rem;
-        }
+
         
         /* TABLE */
         .table-container {
