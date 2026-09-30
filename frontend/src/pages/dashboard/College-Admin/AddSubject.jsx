@@ -464,7 +464,7 @@ export default function AddSubject() {
             <div
               style={{
                 padding: "2rem",
-                background: "linear-gradient(135deg, #164f63 0%, #0f3d4a 100%)",
+                background: "#0E3746",
                 color: "white",
                 display: "flex",
                 justifyContent: "space-between",
