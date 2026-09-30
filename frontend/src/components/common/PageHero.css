@@ -30,12 +30,7 @@
 .erp-page-hero__inner {
   position: relative;
   padding: 1.65rem 2rem;
-  background: linear-gradient(
-    135deg,
-    #124d5c 0%,
-    #0f4655 55%,
-    #0c3d4b 100%
-  );
+  background: #0E3746;
   color: #ffffff;
   display: flex;
   justify-content: space-between;

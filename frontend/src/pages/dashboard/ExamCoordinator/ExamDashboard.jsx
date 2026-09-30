@@ -70,45 +70,54 @@ const dashboardStyles = `
 /* ---------- Header ---------- */
 .exam-dashboard .edx-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+  min-height: 90px;
+  padding: 1.5rem 1.9rem;
+  margin-bottom: 1.5rem;
+  border-radius: 20px;
+  background: #0E3746;
+  box-shadow: 0 10px 25px rgba(12, 43, 71, 0.12);
 }
+
 .exam-dashboard .edx-header-left {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
+  gap: 1.25rem;
+  width: 100%;
 }
+
 .exam-dashboard .edx-header-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  background: rgba(255, 255, 255, 0.14);
   color: var(--edx-cyan-500);
-  font-size: 1.15rem;
+  font-size: 1.5rem;
   flex-shrink: 0;
 }
+
 .exam-dashboard .edx-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--edx-navy-950);
+  font-size: 1.8rem;
+  font-weight: 750;
+  color: #fff;
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.15;
 }
+
 .exam-dashboard .edx-subtitle {
-  color: var(--edx-slate-600);
-  margin: 0.15rem 0 0;
-  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0.45rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
+
 .exam-dashboard .edx-divider {
-  height: 3px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--edx-navy-900) 0%, var(--edx-cyan-500) 55%, transparent 100%);
-  margin: 1.1rem 0 1.5rem;
+  display: none;
 }
 
 .exam-dashboard .btn-edx-primary {

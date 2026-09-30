@@ -74,7 +74,7 @@ const s = {
     backdropFilter: "blur(4px)",
   }),
   header: {
-    background: `linear-gradient(135deg, ${T.primary} 0%, ${T.primaryDark} 100%)`,
+    background: `#0E3746`,
     border: `1px solid ${T.primary}30`,
     borderRadius: T.radiusLg,
     boxShadow: `0 4px 12px ${T.primary}25`,

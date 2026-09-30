@@ -17,6 +17,7 @@ import {
   FaKey,
   FaArrowLeft,
   FaCalendarAlt,
+  FaUsers,
 } from "react-icons/fa";
 import "./ViewStaffProfile.css";
 
@@ -118,71 +119,169 @@ export default function ViewParent() {
                   </div>
                 </div>
         
-        {/* Header Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }} 
-          animate={{ opacity: 1, y: 0 }} 
+        {/* ================= PROFILE HEADER ================= */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="mb-4"
+          
         >
-          <Card className="border-0 shadow-sm" style={{ borderRadius: "16px", overflow: "hidden" }}>
-            <div style={{ height: "8px", background: BRAND_COLORS.primary.gradient }} />
-            <Card.Body className="p-4">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1.5rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                  <motion.div 
+          <Card
+            className="border-0 shadow-sm"
+            style={{
+              borderRadius: "16px",
+              overflow: "hidden",
+              background: "#0E3746",
+            }}
+          >
+            <Card.Body
+              style={{
+                padding: "1.5rem 1.75rem",
+                color: "white",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "1.5rem",
+                  flexWrap: "wrap",
+                }}
+              >
+                {/* Left: Profile Information */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1.25rem",
+                    minWidth: 0,
+                  }}
+                >
+                  {/* Profile Icon */}
+                  <motion.div
                     whileHover={{ scale: 1.05 }}
                     style={{
-                      width: "80px",
-                      height: "80px",
+                      width: "78px",
+                      height: "78px",
+                      minWidth: "78px",
                       borderRadius: "50%",
-                      background: BRAND_COLORS.primary.gradient,
+                      background: "rgba(255,255,255,0.14)",
+                      border: "2px solid rgba(255,255,255,0.25)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       color: "white",
                       fontSize: "2rem",
-                      boxShadow: "0 8px 20px rgba(26, 75, 109, 0.25)",
+                      boxShadow: "0 6px 18px rgba(0,0,0,0.15)",
                     }}
                   >
-                    <FaUser />
+                    <FaUsers />
                   </motion.div>
-                  <div>
-                    <h2 style={{ color: BRAND_COLORS.primary.main, margin: 0, fontWeight: 800, fontSize: "1.75rem" }}>
+
+                  {/* Name + Details */}
+                  <div style={{ minWidth: 0 }}>
+                    <h2
+                      style={{
+                        color: "white",
+                        margin: 0,
+                        fontWeight: 800,
+                        fontSize: "1.9rem",
+                        lineHeight: 1.2,
+                      }}
+                    >
                       {profile.name || "Unnamed Parent"}
                     </h2>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
-                      <Badge bg="light" text="dark" style={{ fontWeight: 600, fontSize: "0.85rem", padding: "6px 12px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                        {profile.relation?.replace("_", " ") || "Guardian"}
-                      </Badge>
-                      <span className="text-muted" style={{ fontSize: "0.9rem", fontWeight: 500 }}>
-                        • ID: {profile.id}
+
+                    <div
+                      style={{
+                        marginTop: "0.35rem",
+                        fontSize: "1rem",
+                        color: "rgba(255,255,255,0.85)",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Parent / Guardian
+                      {profile.relation
+                        ? ` • ${profile.relation.replace("_", " ")}`
+                        : ""}
+                      {profile.id ? ` • ID: ${profile.id}` : ""}
+                    </div>
+
+                    {/* Active Status */}
+                    <div style={{ marginTop: "0.65rem" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.4rem",
+                          background: profile.isActive
+                            ? "#28a745"
+                            : "#dc3545",
+                          color: "white",
+                          padding: "6px 14px",
+                          borderRadius: "8px",
+                          fontSize: "0.85rem",
+                          fontWeight: 700,
+                        }}
+                      >
+                        <FaCheckCircle />
+                        {profile.isActive ? "Active" : "Inactive"}
                       </span>
                     </div>
                   </div>
                 </div>
 
+                {/* Right: Actions */}
                 {canEdit && (
-                  <div className="d-flex gap-2">
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <Button
-                        variant="outline-secondary"
                         onClick={() => navigate("/college/parents")}
-                        style={{ borderRadius: "10px", padding: "0.6rem 1.2rem", display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600, borderWidth: "2px" }}
+                        style={{
+                          background: "rgba(255,255,255,0.18)",
+                          border: "1px solid rgba(255,255,255,0.35)",
+                          color: "white",
+                          borderRadius: "10px",
+                          padding: "0.7rem 1.25rem",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          fontWeight: 600,
+                        }}
                       >
-                        <FaArrowLeft /> Back
+                        <FaArrowLeft />
+                        Back
                       </Button>
                     </motion.div>
-                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <Button
-                        onClick={() => navigate(`/college/parents/edit/${profile.id}`)}
+                        onClick={() =>
+                          navigate(`/college/parents/edit/${profile.id}`)
+                        }
                         style={{
-                          background: BRAND_COLORS.primary.gradient,
+                          background: "white",
+                          color: BRAND_COLORS.primary.main,
                           border: "none",
                           borderRadius: "10px",
-                          padding: "0.6rem 1.5rem",
-                          fontWeight: 600,
-                          boxShadow: "0 4px 12px rgba(26, 75, 109, 0.3)",
+                          padding: "0.7rem 1.4rem",
+                          fontWeight: 700,
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
                         }}
                       >
                         Edit Profile

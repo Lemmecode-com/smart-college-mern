@@ -560,7 +560,7 @@ export default function AddCourse() {
       {/* STYLES */}
       <style>{`
         .header-section {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: #0E3746;
           padding: 2rem;
           border-radius: 16px;
           box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
@@ -571,29 +571,28 @@ export default function AddCourse() {
         .header-title {
           font-weight: 700;
           font-size: 1.8rem;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0;
           display: flex;
           align-items: center;
         }
 
         .header-icon {
           width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.12);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  flex-shrink: 0;
-        }
+          height: 42px;
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.12);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #ffffff;
+          flex-shrink: 0;
+                }
 
         .header-subtitle {
-          margin: 0;
-           color: rgba(255, 255, 255, 0.78);
-        font-size: 14px;
-         line-height: 1.0;
-         margin-left: 3rem;
+          margin: 4px 0 0 3rem;
+          color: rgba(255, 255, 255, 0.78);
+          font-size: 14px;
+          line-height: 1.3;
         }
 
         .form-container {
@@ -608,7 +607,7 @@ export default function AddCourse() {
         }
 
         .form-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: #0E3746;
           padding: 1.5rem 2rem;
           color: white;
           border-bottom: 3px solid rgba(255, 255, 255, 0.2);
@@ -807,10 +806,13 @@ export default function AddCourse() {
     gap: 1rem;
   }
 
-  .header-content {
-    min-width: 0;
-    flex: 1;
-  }
+.header-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
 
   .header-title {
     font-size: 1.5rem !important;
