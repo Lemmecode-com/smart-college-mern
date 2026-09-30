@@ -709,7 +709,8 @@ const EmailConfigurations = () => {
         .header-subtitle {
           font-size: 0.9375rem;
           color: rgba(255, 255, 255, 0.85);
-          margin-top: 1.0rem;
+          margin-top: 0.2rem;
+          // line-height: 1.4;
         }
 
         .header-badge {
@@ -724,7 +725,7 @@ const EmailConfigurations = () => {
           color: #ffffff;
           position: absolute;
           top: 1.5rem;
-          right: calc(35% + 1.8rem);
+          right: calc(35% + 6.2rem);
         }
 
         .info-card {
@@ -967,7 +968,7 @@ const EmailConfigurations = () => {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          margin-right: 0.2rem;
+          margin-right: 0.3rem;
 
         }
 
