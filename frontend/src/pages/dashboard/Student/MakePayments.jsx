@@ -1100,7 +1100,6 @@ export default function MakePayments() {
                   <p className="mb-3">
                     <strong>Paid At:</strong>{" "}
                     {formatDateTime(result.installment.paidAt)}
-                    )}
                   </p>
                 </div>
 
