@@ -295,10 +295,54 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
       {/* STYLES */}
       <style>{`
         .erp-container { padding: 1.5rem; background: #f5f7fa; min-height: 100vh; }
-        .erp-page-header { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); padding: 1.75rem; border-radius: 16px; margin-bottom: 1.5rem; color: white; display: flex; align-items: center; gap: 1.25rem; }
-        .erp-header-icon { width: 56px; height: 56px; background: rgba(255,255,255,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; }
-        .erp-page-title { margin: 0; font-size: 1.75rem; font-weight: 700; }
-        .erp-page-subtitle { margin: 0.375rem 0 0 0; opacity: 0.85; }
+        .erp-page-header {
+  background: #0E3746;
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 0.9rem 2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 24px rgba(14, 55, 70, 0.22);
+}
+  .erp-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.erp-header-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.erp-header-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+.erp-page-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  padding-top: 0.5rem;
+}
+
+.erp-page-subtitle {
+  opacity: 1;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.72);
+}
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
         .stat-card { background: white; padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 1.25rem; }
         .stat-card-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; }

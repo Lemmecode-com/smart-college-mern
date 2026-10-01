@@ -58,21 +58,29 @@ const getInitials = (name = "") =>
 
 const s = {
   page: { background: T.bg, minHeight: "100vh", color: T.text, fontFamily: T.font },
-  backBtn: (hover) => ({
-    border: `1px solid ${hover ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.25)"}`,
-    background: hover ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.08)",
-    color: "#fff",
-    borderRadius: T.radiusSm,
-    padding: "0.5rem 1rem",
-    fontWeight: 500,
-    fontSize: "0.875rem",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-    backdropFilter: "blur(4px)",
-  }),
+backBtn: (hover) => ({
+  height: "42px",
+  padding: "0 1.1rem",
+  borderRadius: "10px",
+  border: "1px solid rgba(255,255,255,0.22)",
+  background: hover
+    ? "rgba(255,255,255,0.18)"
+    : "rgba(255,255,255,0.12)",
+  color: "#ffffff",
+  fontSize: "0.85rem",
+  fontWeight: 600,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "0.5rem",
+  cursor: "pointer",
+  transition: "all 0.2s ease",
+  transform: hover ? "translateY(-2px)" : "translateY(0)",
+  boxShadow: hover
+    ? "0 4px 10px rgba(0, 0, 0, 0.15)"
+    : "none",
+  flexShrink: 0,
+}),
   header: {
     background: `#0E3746`,
     border: `1px solid ${T.primary}30`,
