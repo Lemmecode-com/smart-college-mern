@@ -562,7 +562,7 @@ export default function CreateFeeStructure() {
         }
 
         .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: #0E3746;
           padding: 1.75rem;
           border-radius: 16px;
           margin-bottom: 1.5rem;
