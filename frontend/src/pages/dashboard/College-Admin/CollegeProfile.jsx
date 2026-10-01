@@ -382,6 +382,12 @@ export default function CollegeProfile() {
               justifyContent: "space-between",
               flexWrap: "wrap",
               gap: "1.5rem",
+
+              background: "#0E3746",
+              padding: "1.25rem 1.5rem",
+              borderRadius: "1.25rem",
+              boxShadow: "0 8px 24px rgba(14, 55, 70, 0.18)",
+              color: "#ffffff",
             }}
           >
             <div
@@ -414,7 +420,7 @@ export default function CollegeProfile() {
                     marginBottom: "0.25rem",
                     fontSize: "2rem",
                     fontWeight: 700,
-                    color: "#0f172a",
+                    color: "#ffffff",
                     lineHeight: 1.2,
                   }}
                 >
@@ -430,8 +436,9 @@ export default function CollegeProfile() {
                 >
                   <span
                     style={{
-                      backgroundColor: "#e2e8f0",
-                      color: "#4a5568",
+                      backgroundColor: "rgba(255, 255, 255, 0.14)",
+                      color: "#ffffff",
+                      border: "1px solid rgba(255, 255, 255, 0.18)",
                       padding: "0.5rem 1rem",
                       borderRadius: "9999px",
                       fontSize: "0.875rem",
@@ -475,8 +482,8 @@ export default function CollegeProfile() {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/college/edit-profile")}
                 style={{
-                  backgroundColor: BRAND_COLORS.primary.main,
-                  color: "white",
+                  backgroundColor: "#ffffff",
+                  color: "#0E3746",
                   border: "none",
                   padding: "0.875rem 1.75rem",
                   borderRadius: "0.75rem",
@@ -520,7 +527,7 @@ export default function CollegeProfile() {
                     <div
                       style={{
                         padding: "1.5rem",
-                        background: BRAND_COLORS.primary.gradient,
+                        background: "#0E3746",
                         color: "white",
                       }}
                     >

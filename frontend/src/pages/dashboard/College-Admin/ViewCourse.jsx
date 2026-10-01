@@ -423,12 +423,16 @@ export default function ViewCourse() {
 
         /* ================= PAGE HEADER ================= */
         .page-header {
-          background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-dark) 100%);
+          
+          margin-right: 2rem;
+          margin-left: 2rem;
+          background: #0E3746;
           color: var(--text-inverse);
           padding: 20px 28px;
           margin-bottom: var(--spacing-2xl);
           box-shadow: var(--shadow-lg);
           border-radius: 18px;
+          align-items: center;
         }
 
         .page-header__content {

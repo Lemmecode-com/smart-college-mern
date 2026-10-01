@@ -3154,7 +3154,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           justify-content: space-between;
           align-items: center;
           margin-bottom: 24px;
-          background: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
+          background: #0E3746;
           padding: 28px 32px;
           border-radius: 16px;
           box-shadow: 0 8px 24px rgba(15, 58, 74, 0.3);
@@ -3191,7 +3191,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           gap: 20px;
           flex-wrap: wrap;
           margin-bottom: 24px;
-          background: linear-gradient(135deg, #0f3a4a 0%, #3db5e6 100%);
+          background: #0E3746;
           padding: 28px 32px;
           border-radius: 16px;
           box-shadow: 0 8px 24px rgba(15, 58, 74, 0.3);
@@ -3222,11 +3222,11 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         }
 
         .history-back-btn:hover {
-          background: rgba(255, 255, 255, 0.25);
+          background: #ffffff;
           border-color: rgba(255, 255, 255, 0.6);
-          transform: translateY(-2px);
+          transform: translateY(2px);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-          color: #ffffff;
+          color: #0E3746;
         }
 
         .erp-header-content {
