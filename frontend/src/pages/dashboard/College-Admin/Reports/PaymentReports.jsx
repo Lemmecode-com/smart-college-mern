@@ -961,46 +961,53 @@ export default function PaymentReports() {
 }
         
 .erp-page-header {
-  background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+  background: #0E3746;
+  border-radius: 15px;
   padding: 1.5rem 1.75rem;
-  border-radius: 16px;
   margin-bottom: 1.25rem;
-  box-shadow: 0 8px 28px rgba(26, 75, 109, 0.18);
-  color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  animation: slideDown 0.6s ease;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+  color: white;
+}
+
+.erp-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 0;
 }
         
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-        
-        .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.75rem;
-        }
+.erp-header-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+}
         
         .erp-page-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-        }
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+                }
         
         .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
+          margin: 0;
+          opacity: 0.8;
+          font-size: 0.9rem;
+          font-weight: 400;
+          line-height: 1.5;
+                }
         
         .erp-header-actions {
           display: flex;

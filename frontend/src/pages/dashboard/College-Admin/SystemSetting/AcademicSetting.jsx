@@ -147,9 +147,9 @@ const AcademicSetting = () => {
         }
 
         .header-icon-wrapper {
-          width: 56px;
-          height: 56px;
-          border-radius: var(--as-radius-lg);
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
           background: linear-gradient(135deg, var(--as-cyan-primary), var(--as-cyan-light));
           display: flex;
           align-items: center;
