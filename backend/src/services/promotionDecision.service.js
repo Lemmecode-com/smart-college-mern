@@ -12,7 +12,9 @@ const { calculateKTCount, isWithinKTLimit } = require("./atkt.service");
 const { getAttendanceDataForStudents } = require("./attendance.service");
 const {
   DEFAULT_MAX_ALLOWED_KTS,
+  DEFAULT_MIN_FEE_PAID_PERCENTAGE,
   resolveMaxAllowedKTs,
+  resolveMinimumFeePaidPercentage,
   resolveKTLimitForSemester,
   requiresPreviousYearClearance,
 } = require("../utils/promotionPolicy.util");
@@ -37,6 +39,7 @@ const resolvePromotionPolicy = async (collegeId, courseId) => {
   const minAttendancePercentage =
     policy?.minAttendancePercentage ?? DEFAULT_ATTENDANCE_THRESHOLD;
   const maxAllowedKTs = resolveMaxAllowedKTs(policy);
+  const minimumFeePaidPercentage = resolveMinimumFeePaidPercentage(policy);
 
   return {
     policyId: policy?._id || null,
@@ -47,6 +50,7 @@ const resolvePromotionPolicy = async (collegeId, courseId) => {
       course_id: courseId || null,
       minAttendancePercentage,
       maxAllowedKTs,
+      minimumFeePaidPercentage,
       scopedSemesters: policy?.scopedSemesters || [],
       ktRules: policy?.ktRules || [],
     },
@@ -123,14 +127,36 @@ const evaluateAttendance = async ({
   });
 };
 
-const calculateFeeClearanceData = (fee, overrideFeeCheck = false) => {
+/**
+ * Derives the fee eligibility for a promotion decision from the authoritative
+ * StudentFee record. Nothing is summed here — `paidAmount` and `totalFee` are
+ * read straight from StudentFee, and the existing installment-derived clearance
+ * is preserved as-is.
+ *
+ * `minimumFeePaidPercentage` is the policy-configurable minimum share of the
+ * total fee that must be paid. It defaults to 100 so a caller that does not
+ * pass a policy keeps the previous full-clearance requirement.
+ */
+const calculateFeeClearanceData = (
+  fee,
+  overrideFeeCheck = false,
+  minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE,
+) => {
   const totalFee = Number(fee?.totalFee || 0);
   const paidAmount = Number(fee?.paidAmount || 0);
   const pendingAmount = totalFee - paidAmount;
+  const requiredPaidPercentage = resolveMinimumFeePaidPercentage(
+    minimumFeePaidPercentage,
+  );
   let status = "PENDING";
   let cleared = false;
+  let paidPercentage = 0;
+  // Distinguishes "no fee is applicable" from "0 % of the fee was paid".
+  let hasFeeData = false;
 
   if (fee) {
+    hasFeeData = true;
+
     if (paidAmount >= totalFee) {
       status = "FULLY_PAID";
     } else if (paidAmount > 0) {
@@ -144,17 +170,32 @@ const calculateFeeClearanceData = (fee, overrideFeeCheck = false) => {
     } else {
       cleared = paidAmount >= totalFee;
     }
+
+    // totalFee <= 0 means nothing is outstanding, matching the previous
+    // behaviour where `paidAmount >= totalFee` cleared the check.
+    paidPercentage =
+      totalFee > 0
+        ? Math.min(100, Math.max(0, (paidAmount / totalFee) * 100))
+        : 100;
   }
+
+  const meetsPaidPercentage =
+    hasFeeData && paidPercentage + 1e-9 >= requiredPaidPercentage;
 
   return {
     status,
     totalFee,
     paidAmount,
     pendingAmount,
+    paidPercentage,
+    requiredPaidPercentage,
     requiredClearance: true,
     cleared,
-    passed: cleared || Boolean(overrideFeeCheck),
-    overridden: Boolean(overrideFeeCheck && !cleared),
+    meetsPaidPercentage,
+    passed: meetsPaidPercentage || cleared || Boolean(overrideFeeCheck),
+    overridden: Boolean(
+      overrideFeeCheck && !meetsPaidPercentage && !cleared,
+    ),
   };
 };
 
@@ -162,13 +203,18 @@ const evaluateFeeClearance = async ({
   studentId,
   collegeId,
   overrideFeeCheck = false,
+  minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE,
 }) => {
   const fee = await StudentFee.findOne({
     student_id: studentId,
     college_id: collegeId,
   }).select("totalFee paidAmount installments");
 
-  return calculateFeeClearanceData(fee, overrideFeeCheck);
+  return calculateFeeClearanceData(
+    fee,
+    overrideFeeCheck,
+    minimumFeePaidPercentage,
+  );
 };
 
 const emptyAttendanceSnapshot = (requiredPercentage) => ({
@@ -181,7 +227,9 @@ const emptyAttendanceSnapshot = (requiredPercentage) => ({
   overrideReason: null,
 });
 
-const emptyFeeSnapshot = () => calculateFeeClearanceData(null);
+const emptyFeeSnapshot = (
+  minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE,
+) => calculateFeeClearanceData(null, false, minimumFeePaidPercentage);
 
 const calculatePromotionDecision = async ({
   authoritativeResult,
@@ -204,7 +252,11 @@ const calculatePromotionDecision = async ({
     emptyAttendanceSnapshot(
       policy?.snapshot?.minAttendancePercentage ?? DEFAULT_ATTENDANCE_THRESHOLD,
     );
-  const feeSnapshot = feeClearance || emptyFeeSnapshot();
+  const feeSnapshot =
+    feeClearance ||
+    emptyFeeSnapshot(
+      resolveMinimumFeePaidPercentage(policy?.snapshot),
+    );
   const base = {
     sourceResultId: result?._id || null,
     sourceExamId: result?.exam_id || null,
@@ -351,6 +403,7 @@ const createPromotionDecision = async ({
     studentId: student._id,
     collegeId,
     overrideFeeCheck,
+    minimumFeePaidPercentage: policy.snapshot.minimumFeePaidPercentage,
   });
   const calculated = await calculatePromotionDecision({
     authoritativeResult,

@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
-const { DEFAULT_MAX_ALLOWED_KTS } = require("../utils/promotionPolicy.util");
+const {
+  DEFAULT_MAX_ALLOWED_KTS,
+  DEFAULT_MIN_FEE_PAID_PERCENTAGE,
+} = require("../utils/promotionPolicy.util");
 
 const promotionPolicySchema = new mongoose.Schema(
   {
@@ -20,6 +23,18 @@ const promotionPolicySchema = new mongoose.Schema(
       min: 0,
       max: 100,
       default: 75,
+    },
+    /**
+     * Minimum percentage of the student's total applicable fee that must be paid
+     * before the fee eligibility check passes. The default of 100 preserves the
+     * previous behaviour, which required the fee to be fully cleared.
+     */
+    minimumFeePaidPercentage: {
+      type: Number,
+      required: false,
+      min: 0,
+      max: 100,
+      default: DEFAULT_MIN_FEE_PAID_PERCENTAGE,
     },
     maxAllowedKTs: {
       type: Number,
@@ -128,6 +143,10 @@ promotionPolicySchema.statics.getActivePolicy = async function (collegeId, cours
       if (coursePolicy.maxAllowedKTs === undefined) {
         coursePolicy.maxAllowedKTs = DEFAULT_MAX_ALLOWED_KTS;
       }
+      if (coursePolicy.minimumFeePaidPercentage === undefined) {
+        coursePolicy.minimumFeePaidPercentage =
+          DEFAULT_MIN_FEE_PAID_PERCENTAGE;
+      }
       return coursePolicy;
     }
   }
@@ -139,6 +158,9 @@ promotionPolicySchema.statics.getActivePolicy = async function (collegeId, cours
   });
   if (collegePolicy && collegePolicy.maxAllowedKTs === undefined) {
     collegePolicy.maxAllowedKTs = DEFAULT_MAX_ALLOWED_KTS;
+  }
+  if (collegePolicy && collegePolicy.minimumFeePaidPercentage === undefined) {
+    collegePolicy.minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE;
   }
   return collegePolicy;
 };
