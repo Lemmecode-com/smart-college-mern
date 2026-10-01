@@ -478,7 +478,9 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
           title="Refresh list"
           aria-label="Refresh list"
         >
+        
           <FaSyncAlt />
+          <span>Refresh</span>
         </button>
       </div>
 
@@ -1096,7 +1098,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
 
         /* ---------- HEADER ---------- */
         .erp-page-header {
-          background: linear-gradient(135deg, var(--erp-navy) 0%, var(--erp-navy-deep) 100%);
+          background: #0E3746;
           padding: 1.75rem 2rem;
           border-radius: 16px;
           margin: 1rem 0 1.5rem;
@@ -1114,7 +1116,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
           content: '';
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 88% -20%, rgba(61, 181, 230, 0.35), transparent 55%);
+          background: #0E3746;
           pointer-events: none;
         }
 
@@ -1158,12 +1160,16 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
           position: relative;
           z-index: 1;
           flex-shrink: 0;
-          width: 42px;
+          background: #0E3746;
+          color: white;
+          width: 122px;
           height: 42px;
           border-radius: 10px;
           border: 1px solid rgba(255, 255, 255, 0.25);
           background: rgba(255, 255, 255, 0.12);
           color: white;
+          gap: 0.5rem;
+          font-weight: 600;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1173,7 +1179,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
 
         .btn-refresh:hover {
           background: rgba(255, 255, 255, 0.22);
-          transform: rotate(50deg);
+         
         }
 
         /* ---------- STATS ---------- */

@@ -67,9 +67,14 @@ const listStyles = `
 .exam-list-page .edx-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
+  padding: 1.56rem 1.75rem;
+  
+  background: #0E3746;
+  border-radius: 24px;
+  box-shadow: 0 10px 25px rgba(12, 43, 71, 0.16);
+  margin-bottom: 1.5rem;
 }
 .exam-list-page .edx-header-left {
   display: flex;
@@ -79,40 +84,37 @@ const listStyles = `
 .exam-list-page .edx-header-icon {
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  background: rgba(255, 255, 255, 0.14);
   color: var(--edx-cyan-500);
-  font-size: 1.15rem;
+  font-size: 1.45rem;
   flex-shrink: 0;
 }
 .exam-list-page .edx-title {
   font-size: 1.6rem;
   font-weight: 700;
-  color: var(--edx-navy-950);
+  color: #ffffff;
   margin: 0;
   line-height: 1.2;
 }
 .exam-list-page .edx-subtitle {
-  color: var(--edx-slate-600);
+  color: rgba(255, 255, 255, 0.78);
   margin: 0.15rem 0 0;
   font-size: 0.92rem;
 }
 .exam-list-page .edx-divider {
-  height: 3px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--edx-navy-900) 0%, var(--edx-cyan-500) 55%, transparent 100%);
-  margin: 1.1rem 0 1.5rem;
+  display: none;
 }
 
 .exam-list-page .btn-edx-primary {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
-  color: #fff;
+  background: #ffffff;
+  color: #0E3746;
   border: none;
   border-radius: 10px;
   padding: 0.65rem 1.3rem;
@@ -123,9 +125,8 @@ const listStyles = `
   box-shadow: 0 2px 6px rgba(12, 43, 71, 0.18);
 }
 .exam-list-page .btn-edx-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(23, 174, 203, 0.28);
-  background: linear-gradient(135deg, var(--edx-navy-800), var(--edx-cyan-600));
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 .exam-list-page .btn-edx-primary:focus-visible {
   outline: 3px solid var(--edx-cyan-50);

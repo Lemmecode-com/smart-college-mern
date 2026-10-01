@@ -311,56 +311,62 @@ export default function EditDepartment() {
         </div>
       </div>
       {/* ================= TOP NAVIGATION ================= */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-        <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
-          <button 
-            onClick={() => navigate("/departments")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Back to Departments"
-          >
-            <FaArrowLeft size={16} /> Back
-          </button>
-          
-          <div className="d-flex align-items-center gap-3">
-            <div className="form-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
-              <FaBuilding size={28} />
-            </div>
-            <div>
-              <h1 className="h4 h3-md fw-bold mb-1 text-dark">Edit Department</h1>
-              <p className="text-muted mb-0 small">
-                <FaGraduationCap className="me-1" />
-                Update department configuration and details
-              </p>
-            </div>
-          </div>
-        </div>
+  {/* ================= PAGE HEADER ================= */}
+<div className="edit-department-header animate-slide-down">
 
-        <div className="d-flex align-items-center gap-2 flex-wrap">
-          <button 
-            onClick={() => setShowHelp(!showHelp)}
-            className="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Department Edit Help"
-          >
-            <FaInfoCircle size={16} /> Help
-          </button>
-          
-          <button 
-            onClick={resetForm}
-            className="btn btn-outline-warning d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Reset to Original Values"
-          >
-            <FaUndo size={16} /> Reset
-          </button>
-          
-          <button 
-            onClick={() => navigate("/departments")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-          >
-            <FaTimes size={16} /> Cancel
-          </button>
-        </div>
+  {/* LEFT SIDE */}
+  <div className="edit-header-left">
+
+   
+
+    <div className="edit-header-content">
+      <div className="edit-header-icon">
+        <FaBuilding size={30} />
       </div>
 
+      <div className="edit-header-text">
+        <h1>Edit Department</h1>
+        <p>
+          <FaGraduationCap />
+          Update department configuration and details
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  {/* RIGHT SIDE */}
+  <div className="edit-header-actions">
+
+    <button
+      onClick={() => setShowHelp(!showHelp)}
+      className="edit-header-action edit-header-help"
+      title="Department Edit Help"
+    >
+      <FaInfoCircle size={17} />
+      <span>Help</span>
+    </button>
+
+    <button
+      onClick={resetForm}
+      className="edit-header-action edit-header-reset"
+      title="Reset to Original Values"
+    >
+      <FaUndo size={17} />
+      <span>Reset</span>
+    </button>
+
+    <button
+      onClick={() => navigate("/departments")}
+      className="edit-header-action edit-header-cancel"
+    >
+      <FaTimes size={17} />
+      <span>Cancel</span>
+    </button>
+
+  </div>
+
+</div>
       {/* ================= HELP SECTION ================= */}
       {showHelp && (
         <div className="alert alert-info border-0 bg-info bg-opacity-10 rounded-4 mb-3 mb-md-4 animate-fade-in">
@@ -411,7 +417,7 @@ export default function EditDepartment() {
 
       {/* ================= FORM CARD ================= */}
       <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up">
-        <div className="card-header bg-gradient-primary text-white py-3 py-md-4">
+        <div className="card-header bg-gradient-primary text-white py-3 py-md-4" style={{ background: "#0E3746" }}>
           <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
             <FaBuilding /> Department Configuration
           </h2>
@@ -795,6 +801,115 @@ export default function EditDepartment() {
 
       {/* ================= STYLES ================= */}
       <style>{`
+      /* ================= EDIT DEPARTMENT HEADER ================= */
+
+.edit-department-header {
+  width: 100%;
+  min-height: 120px;
+  padding: 24px 28px;
+  background: #0E3746;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  color: #ffffff;
+  box-shadow: 0 10px 30px rgba(14, 55, 70, 0.18);
+  margin-bottom: 24px;
+}
+
+.edit-header-left {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  min-width: 0;
+}
+
+
+
+
+.edit-header-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+
+}
+
+.edit-header-icon {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.edit-header-text {
+  min-width: 0;
+}
+
+.edit-header-text h1 {
+  margin: 0 0 5px;
+  color: #ffffff;
+  font-size: 1.8rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.edit-header-text p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.edit-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.edit-header-action {
+  min-height: 48px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  background: #ffffff;
+  transition: all 0.25s ease;
+}
+
+.edit-header-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.edit-header-help {
+  color: #0ea5c6;
+  border: 1px solid #0ea5c6;
+}
+
+.edit-header-reset {
+  color: #f2a900;
+  border: 1px solid #f2a900;
+}
+
+.edit-header-cancel {
+  color: #66727a;
+  border: 1px solid #9aa4aa;
+}
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
@@ -981,7 +1096,26 @@ export default function EditDepartment() {
             justify-content: flex-end;
             margin-top: 0.5rem;
           }
+          .edit-department-header {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 20px;
+          }
+
+          .edit-header-left {
+            flex-wrap: wrap;
+          }
+
+          .edit-header-actions {
+            width: 100%;
+            justify-content: flex-end;
+          }
+
+          .edit-header-text h1 {
+            font-size: 1.6rem;
+          }
         }
+
 
         @media (max-width: 576px) {
           .programs-grid {
@@ -994,6 +1128,40 @@ export default function EditDepartment() {
           .input-group .form-control {
             font-size: 0.9rem;
           }
+            .edit-department-header {
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.edit-header-left {
+  gap: 16px;
+}
+
+.edit-header-content {
+  gap: 12px;
+}
+
+.edit-header-icon {
+  width: 60px;
+  height: 60px;
+}
+
+.edit-header-text h1 {
+  font-size: 1.35rem;
+}
+
+.edit-header-text p {
+  font-size: 0.85rem;
+}
+
+.edit-header-actions {
+  justify-content: stretch;
+}
+
+.edit-header-action {
+  flex: 1;
+  padding: 10px 12px;
+}
         }
       `}</style>
     </div>

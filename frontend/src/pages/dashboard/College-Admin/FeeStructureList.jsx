@@ -660,7 +660,7 @@ export default function FeeStructureList() {
       {/* STYLES */}
       <style>{`
         .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: #0E3746;
           padding: 1.75rem;
           border-radius: 16px;
           margin-bottom: 1.5rem;
@@ -941,6 +941,7 @@ export default function FeeStructureList() {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 10px rgba(26, 75, 109, 0.2);
+  gap: 0.5rem;
 }
 
 .refresh-btn:hover {
