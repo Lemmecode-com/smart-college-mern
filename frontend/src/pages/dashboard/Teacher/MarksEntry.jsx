@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -266,6 +266,10 @@ export default function MarksEntry() {
 
   const [marksMap, setMarksMap] = useState({});
 
+  // Monotonic token so a late/in-flight roster response cannot overwrite a
+  // newer selection. Incremented on every new loadRoster call and on resets.
+  const rosterRequestRef = useRef(0);
+
   useEffect(() => {
     const fetchExams = async () => {
       try {
@@ -297,12 +301,60 @@ export default function MarksEntry() {
 
   const handleExamChange = (e) => {
     const examId = e.target.value;
+    rosterRequestRef.current += 1;
     setSelectedExamId(examId);
     setSelectedSubjectId("");
     setRoster(null);
+    setLoadingRoster(false);
     setMarksMap({});
     setError(null);
     setSaveError(null);
+  };
+
+  const loadRoster = async (examId, subjectId, options = {}) => {
+    const { showSpinner = true, surfaceError = true } = options;
+
+    if (!examId || !subjectId) {
+      setRoster(null);
+      return;
+    }
+
+    const requestId = ++rosterRequestRef.current;
+
+    try {
+      if (showSpinner) setLoadingRoster(true);
+      if (surfaceError) setError(null);
+
+      const data = await getStudentRoster({ examId, subjectId });
+      if (requestId !== rosterRequestRef.current) return;
+
+      const rosterData = data?.data || data;
+      setRoster(rosterData);
+
+      const initialMarks = {};
+      for (const entry of rosterData?.roster || []) {
+        initialMarks[String(entry.studentId)] = {
+          internalMarks: entry.marks?.internalMarks ?? "",
+          externalMarks: entry.marks?.externalMarks ?? "",
+        };
+      }
+      setMarksMap(initialMarks);
+    } catch (err) {
+      if (requestId !== rosterRequestRef.current) return;
+
+      const message = err.response?.data?.message || "Failed to load student roster.";
+      if (surfaceError) {
+        setError(message);
+        setRoster(null);
+      } else {
+        setSaveError(message);
+      }
+      logger.error("Error fetching roster:", err);
+    } finally {
+      if (showSpinner && requestId === rosterRequestRef.current) {
+        setLoadingRoster(false);
+      }
+    }
   };
 
   const handleSubjectChange = async (e) => {
@@ -312,44 +364,13 @@ export default function MarksEntry() {
     setSaveError(null);
 
     if (!subjectId || !selectedExamId) {
+      rosterRequestRef.current += 1;
       setRoster(null);
+      setLoadingRoster(false);
       return;
     }
 
-    try {
-      setLoadingRoster(true);
-      setError(null);
-      const data = await getStudentRoster({
-        examId: selectedExamId,
-        subjectId,
-      });
-
-      const rosterData = data?.data || data;
-      setRoster(rosterData);
-
-      const initialMarks = {};
-      for (const entry of (rosterData?.roster || [])) {
-        if (entry.marks) {
-          initialMarks[String(entry.studentId)] = {
-            internalMarks: entry.marks.internalMarks ?? "",
-            externalMarks: entry.marks.externalMarks ?? "",
-          };
-        } else {
-          initialMarks[String(entry.studentId)] = {
-            internalMarks: "",
-            externalMarks: "",
-          };
-        }
-      }
-      setMarksMap(initialMarks);
-    } catch (err) {
-      const message = err.response?.data?.message || "Failed to load student roster.";
-      setError(message);
-      setRoster(null);
-      logger.error("Error fetching roster:", err);
-    } finally {
-      setLoadingRoster(false);
-    }
+    await loadRoster(selectedExamId, subjectId);
   };
 
   const handleMarksChange = (studentId, field, value) => {
@@ -388,6 +409,14 @@ export default function MarksEntry() {
         subjectId: selectedSubjectId,
         marks: marksPayload,
       });
+
+      // Re-fetch so server-derived values (Total, Status, markedCount) are
+      // refreshed immediately. The table stays visible while this runs.
+      await loadRoster(selectedExamId, selectedSubjectId, {
+        showSpinner: false,
+        surfaceError: false,
+      });
+
       toast.success("Marks saved successfully");
     } catch (err) {
       const message = err.response?.data?.message || "Failed to save marks.";
