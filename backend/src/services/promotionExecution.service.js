@@ -13,7 +13,7 @@ const AppError = require("../utils/AppError");
 const { ROLE, RESULT_STATUS } = require("../utils/constants");
 const { PROMOTION_WORKFLOW_ROLES } = require("./promotionWorkflow.service");
 const { calculateKTCount, isWithinKTLimit } = require("./atkt.service");
-const { resolveMaxAllowedKTs, resolveKTLimitForSemester, resolveSubjectTypeLimits, requiresPreviousYearClearance } = require("../utils/promotionPolicy.util");
+const { resolveMaxAllowedKTs, resolveKTLimitForSemester, resolveSubjectTypeLimits, requiresPreviousYearClearance, resolveMinimumFeePaidPercentage, DEFAULT_MIN_FEE_PAID_PERCENTAGE } = require("../utils/promotionPolicy.util");
 const { calculatePreviousAcademicYear } = require("./promotionDecision.service");
 const {
   calculateFeeClearanceData,
@@ -128,6 +128,7 @@ const getCurrentPolicy = async (collegeId, courseId, session) => {
   return {
     minAttendancePercentage: policy?.minAttendancePercentage ?? 75,
     maxAllowedKTs: resolveMaxAllowedKTs(policy),
+    minimumFeePaidPercentage: resolveMinimumFeePaidPercentage(policy),
     ktRules: policy?.ktRules || [],
   };
 };
@@ -179,6 +180,11 @@ const revalidateDecision = async ({ decision, student, session }) => {
   if (
     policy.minAttendancePercentage !== policySnapshot.minAttendancePercentage ||
     policy.maxAllowedKTs !== policySnapshot.maxAllowedKTs ||
+    // Resolved on both sides so a snapshot stored before this field existed
+    // compares against the previous full-clearance requirement instead of
+    // being treated as stale.
+    policy.minimumFeePaidPercentage !==
+      resolveMinimumFeePaidPercentage(policySnapshot) ||
     JSON.stringify(normalizeKtRules(currentKtRules)) !==
       JSON.stringify(normalizeKtRules(snapshotKtRules))
   ) {
@@ -275,7 +281,11 @@ const revalidateDecision = async ({ decision, student, session }) => {
     .select("totalFee paidAmount installments")
     .session(session)
     .exec();
-  const feeClearance = calculateFeeClearanceData(fee);
+  const feeClearance = calculateFeeClearanceData(
+    fee,
+    false,
+    policy.minimumFeePaidPercentage ?? DEFAULT_MIN_FEE_PAID_PERCENTAGE,
+  );
   if (
     attendance.status !== decision.attendance_snapshot.status ||
     attendance.passed !== decision.attendance_snapshot.passed ||

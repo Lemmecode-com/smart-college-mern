@@ -25,15 +25,81 @@ import "./PromotionSetting.css";
 
 const DEFAULT_MIN_ATTENDANCE_PERCENTAGE = 75;
 const DEFAULT_MAX_ALLOWED_KTS = 3;
+const DEFAULT_MIN_FEE_PAID_PERCENTAGE = 100;
 
 const createEmptyForm = () => ({
   minAttendancePercentage: String(DEFAULT_MIN_ATTENDANCE_PERCENTAGE),
   maxAllowedKTs: String(DEFAULT_MAX_ALLOWED_KTS),
+  minimumFeePaidPercentage: String(DEFAULT_MIN_FEE_PAID_PERCENTAGE),
   scopedSemesters: [],
   effectiveFrom: "",
   isActive: true,
   ktRules: [],
 });
+
+/**
+ * Defaults applied ONLY when a transition rule is created for the first time.
+ * Editing an existing rule must never re-apply these.
+ */
+const createDefaultKTRule = (fromSemester) => ({
+  fromSemester,
+  toSemester: fromSemester + 1,
+  maxAllowedKTs: DEFAULT_MAX_ALLOWED_KTS,
+  requirePreviousYearClearance: false,
+  subjectTypeLimits: {
+    THEORY: DEFAULT_MAX_ALLOWED_KTS,
+    PRACTICAL: DEFAULT_MAX_ALLOWED_KTS,
+    COMPOSITE: DEFAULT_MAX_ALLOWED_KTS,
+  },
+});
+
+/**
+ * Immutably applies `updates` onto `existingRule`.
+ * Fields absent from `updates` are preserved, and `subjectTypeLimits` is merged
+ * per subject type so editing THEORY never resets PRACTICAL/COMPOSITE.
+ */
+const mergeKTRule = (existingRule, updates = {}) => {
+  const { subjectTypeLimits, ...rest } = updates;
+  const merged = { ...existingRule, ...rest };
+
+  if (subjectTypeLimits) {
+    merged.subjectTypeLimits = {
+      ...(existingRule.subjectTypeLimits || {}),
+      ...subjectTypeLimits,
+    };
+  }
+
+  return merged;
+};
+
+/** Maps a policy returned by the API onto the form shape. */
+const policyToFormData = (policy) => ({
+  minAttendancePercentage: String(
+    policy.minAttendancePercentage ?? DEFAULT_MIN_ATTENDANCE_PERCENTAGE
+  ),
+  maxAllowedKTs: String(policy.maxAllowedKTs ?? DEFAULT_MAX_ALLOWED_KTS),
+  minimumFeePaidPercentage: String(
+    policy.minimumFeePaidPercentage ?? DEFAULT_MIN_FEE_PAID_PERCENTAGE
+  ),
+  scopedSemesters: policy.scopedSemesters || [],
+  effectiveFrom: policy.effectiveFrom
+    ? new Date(policy.effectiveFrom).toISOString().split("T")[0]
+    : "",
+  isActive: policy.isActive ?? true,
+  ktRules: policy.ktRules || [],
+});
+
+/** A policy without a matching course_id is the college-level fallback. */
+const isFallbackPolicy = (policy, courseId) =>
+  !policy.course_id || String(policy.course_id) !== String(courseId);
+
+/** Guards against applying a response body that is not a policy document. */
+const isPolicyPayload = (payload) =>
+  !!payload &&
+  typeof payload === "object" &&
+  (payload.minAttendancePercentage !== undefined ||
+    payload.maxAllowedKTs !== undefined ||
+    Array.isArray(payload.ktRules));
 
 const PromotionSetting = () => {
   const navigate = useNavigate();
@@ -175,23 +241,8 @@ const PromotionSetting = () => {
         return;
       }
 
-      setFormData({
-        minAttendancePercentage: String(
-          policy.minAttendancePercentage ?? DEFAULT_MIN_ATTENDANCE_PERCENTAGE
-        ),
-        maxAllowedKTs: String(policy.maxAllowedKTs ?? DEFAULT_MAX_ALLOWED_KTS),
-        scopedSemesters: policy.scopedSemesters || [],
-        effectiveFrom: policy.effectiveFrom
-          ? new Date(policy.effectiveFrom).toISOString().split("T")[0]
-          : "",
-        isActive: policy.isActive ?? true,
-        ktRules: policy.ktRules || [],
-      });
-
-      // A policy without a matching course_id is the college-level fallback.
-      setIsUsingFallbackPolicy(
-        !policy.course_id || String(policy.course_id) !== String(courseId)
-      );
+      setFormData(policyToFormData(policy));
+      setIsUsingFallbackPolicy(isFallbackPolicy(policy, courseId));
     } catch (err) {
       if (policyRequestRef.current !== requestId) return;
 
@@ -243,19 +294,22 @@ const PromotionSetting = () => {
     setFormData((prev) => {
       const rules = [...(prev.ktRules || [])];
       const existingIndex = rules.findIndex((rule) => rule.fromSemester === fromSemester);
-      const newRule = {
-        fromSemester,
-        toSemester: fromSemester + 1,
-        maxAllowedKTs: 3,
-        requirePreviousYearClearance: false,
-        subjectTypeLimits: { THEORY: 3, PRACTICAL: 3, COMPOSITE: 3 },
-        ...updates,
-      };
+
+      // Existing rule: preserve every field that is not part of `updates`.
+      // New rule: seed with the documented defaults first.
+      const base =
+        existingIndex >= 0
+          ? rules[existingIndex]
+          : createDefaultKTRule(fromSemester);
+
+      const updatedRule = mergeKTRule(base, updates);
+
       if (existingIndex >= 0) {
-        rules[existingIndex] = { ...rules[existingIndex], ...newRule };
+        rules[existingIndex] = updatedRule;
       } else {
-        rules.push(newRule);
+        rules.push(updatedRule);
       }
+
       // Sort by fromSemester
       rules.sort((a, b) => a.fromSemester - b.fromSemester);
       return { ...prev, ktRules: rules };
@@ -281,9 +335,9 @@ const PromotionSetting = () => {
   const handleSubjectTypeLimitChange = (fromSemester, type, value) => {
     const num = parseInt(value, 10);
     if (!Number.isNaN(num) && num >= 0) {
-      updateKTRule(fromSemester, {
-        subjectTypeLimits: { ...getRuleForTransition(fromSemester)?.subjectTypeLimits, [type]: num },
-      });
+      // mergeKTRule merges subjectTypeLimits per type against the latest rule
+      // state held in the functional update, so sibling types are preserved.
+      updateKTRule(fromSemester, { subjectTypeLimits: { [type]: num } });
     }
   };
 
@@ -348,12 +402,24 @@ const PromotionSetting = () => {
       return;
     }
 
+    const minimumFeePaidPercentage = Number(formData.minimumFeePaidPercentage);
+    if (
+      formData.minimumFeePaidPercentage === "" ||
+      !Number.isFinite(minimumFeePaidPercentage) ||
+      minimumFeePaidPercentage < 0 ||
+      minimumFeePaidPercentage > 100
+    ) {
+      toast.error("Minimum fee paid for promotion must be between 0 and 100");
+      return;
+    }
+
     setIsSaving(true);
     try {
       const payload = {
         course_id: selectedCourseId,
         minAttendancePercentage: percentage,
         maxAllowedKTs,
+        minimumFeePaidPercentage,
         scopedSemesters: formData.scopedSemesters,
         isActive: formData.isActive,
         ktRules: formData.ktRules,
@@ -363,14 +429,24 @@ const PromotionSetting = () => {
         payload.effectiveFrom = formData.effectiveFrom;
       }
 
-      await updatePromotionPolicy(payload);
+      const savedPolicy = await updatePromotionPolicy(payload);
+
+      // Synchronize the form with the server-confirmed state so it can never
+      // display values the database did not accept. Fall back to a refetch only
+      // if the response body is not the saved policy document.
+      if (isPolicyPayload(savedPolicy)) {
+        setFormData(policyToFormData(savedPolicy));
+        setIsUsingFallbackPolicy(isFallbackPolicy(savedPolicy, selectedCourseId));
+      } else {
+        await fetchPolicy(selectedCourseId);
+      }
+
       toast.success(
         `Promotion policy updated successfully for ${
           selectedCourse?.name || "the selected course"
         }`
       );
       setIsModified(false);
-      setIsUsingFallbackPolicy(false);
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -527,7 +603,7 @@ const PromotionSetting = () => {
             <div className="header-text">
               <h1 className="settings-title">Promotion Settings</h1>
               <p className="settings-subtitle">
-                Configure attendance and ATKT rules for student promotion eligibility
+                Configure attendance, fee, and ATKT rules for student promotion eligibility
               </p>
             </div>
           </div>
@@ -665,6 +741,42 @@ const PromotionSetting = () => {
                   <label htmlFor="isActive" className="form-label" style={{ margin: 0 }}>
                     Policy is active
                   </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-card">
+              <div className="card-header">
+                <div className="card-icon">
+                  <FaClipboardCheck />
+                </div>
+                <h3 className="card-title">Fee Promotion Requirement</h3>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="minimumFeePaidPercentage">
+                  Minimum Fee Paid for Promotion (%)
+                </label>
+                <input
+                  id="minimumFeePaidPercentage"
+                  type="number"
+                  name="minimumFeePaidPercentage"
+                  value={formData.minimumFeePaidPercentage}
+                  onChange={handleChange}
+                  className="form-input"
+                  min="0"
+                  max="100"
+                  placeholder="100"
+                />
+                <div className="info-box">
+                  <FaInfoCircle style={{ marginTop: 2 }} />
+                  <span>
+                    Minimum percentage of the student's total fee that must be paid
+                    before promotion. Student must have paid at least{" "}
+                    <strong>{formData.minimumFeePaidPercentage}%</strong> of the
+                    applicable fee to be eligible for promotion (unless an override is
+                    applied).
+                  </span>
                 </div>
               </div>
             </div>
