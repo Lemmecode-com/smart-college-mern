@@ -143,19 +143,149 @@ function isStudentPromotable(student) {
 }
 
 /**
+ * Centralized, College Admin-friendly label maps.
+ * Backend enum/code values are never rendered directly - everything goes
+ * through these maps so the wording stays consistent across the modal.
+ */
+const DECISION_REASON_LABELS = {
+  ELIGIBLE: "Eligible under the promotion policy",
+  PASS: "All subjects passed and promotion criteria met",
+  ATKT: "Eligible for promotion with failed subjects within the allowed limit",
+  INCOMPLETE: "Result is Incomplete",
+  NO_RESULT: "Result Not Available",
+  AMBIGUOUS_RESULT: "Multiple Published Results Found",
+  RESULT_INCOMPLETE: "Result is Incomplete",
+  FAIL: "Student has failed and is not eligible for promotion",
+  BLOCKED: "Promotion Blocked",
+  KT_LIMIT_EXCEEDED: "Maximum Allowed Failed Subjects Exceeded",
+  ATTENDANCE_INSUFFICIENT: "Attendance Requirement Not Met",
+  ATTENDANCE_NOT_AVAILABLE: "Attendance Data Not Available",
+  FEE_NOT_CLEARED: "Minimum Fee Payment Requirement Not Met",
+  PREVIOUS_YEAR_BACKLOG_NOT_CLEARED: "Previous Year Backlog Requirement Not Met",
+};
+
+const ATTENDANCE_STATUS_LABELS = {
+  ELIGIBLE: "Requirement Met",
+  NOT_ELIGIBLE: "Requirement Not Met",
+  ATTENDANCE_NOT_AVAILABLE: "Attendance Data Not Available",
+};
+
+const FEE_STATUS_LABELS = {
+  FULLY_PAID: "Requirement Met",
+  PARTIALLY_PAID: "Requirement Not Met",
+  PENDING: "Requirement Not Met",
+};
+
+const ERROR_CODE_LABELS = {
+  NO_RESULT: "Result Not Available",
+  AMBIGUOUS_RESULT: "Multiple Published Results Found",
+  INCOMPLETE: "Result is Incomplete",
+  RESULT_INCOMPLETE: "Result is Incomplete",
+  KT_LIMIT_EXCEEDED: "Maximum Allowed Failed Subjects Exceeded",
+  ATTENDANCE_INSUFFICIENT: "Attendance Requirement Not Met",
+  ATTENDANCE_NOT_AVAILABLE: "Attendance Data Not Available",
+  FEE_NOT_CLEARED: "Minimum Fee Payment Requirement Not Met",
+  STUDENT_NOT_FOUND: "Student Not Found",
+};
+
+/**
+ * Format an API error code for display without leaking backend codes
+ */
+function formatErrorCode(code) {
+  if (!code) return "";
+  return ERROR_CODE_LABELS[code] || String(code).replace(/_/g, " ");
+}
+
+/**
+ * Format a boolean for display so values are never left blank
+ */
+function formatBooleanLabel(value, { applied = false, notApplied = null } = {}) {
+  if (value === true) return applied;
+  if (value === false) return notApplied ?? "Not Applied";
+  return notApplied ?? "Not Applied";
+}
+
+/**
+ * Round a percentage to a whole number so values like 90.90909... display as 91%
+ */
+function roundPercent(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 0;
+  return Math.round(num);
+}
+
+/**
+ * Format a percentage for display (whole number only)
+ */
+function formatPercent(value) {
+  return `${roundPercent(value)}%`;
+}
+
+/**
  * Format promotion decision reason for display
  */
 function formatDecisionReason(reason) {
   if (!reason) return "-";
-  const reasonMap = {
-    FEE_NOT_CLEARED: "Fee Not Cleared",
-    ATTENDANCE_INSUFFICIENT: "Attendance Insufficient",
-    ATTENDANCE_NOT_AVAILABLE: "Attendance Not Available",
-    KT_LIMIT_EXCEEDED: "KT Limit Exceeded",
-    RESULT_INCOMPLETE: "Result Incomplete",
-    ELIGIBLE: "Eligible",
-  };
-  return reasonMap[reason] || reason.replace(/_/g, " ");
+  return (
+    DECISION_REASON_LABELS[reason] ||
+    String(reason)
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/^\w/, (c) => c.toUpperCase())
+  );
+}
+
+/**
+ * Build a full, meaningful decision reason for the College Admin.
+ * Where the underlying snapshots carry real numbers, the message includes them
+ * so the admin sees exactly why the decision was made.
+ */
+function getDecisionReasonMessage(data) {
+  if (!data) return "-";
+  const reason = data.decision_reason;
+  const outcome = data.promotion_outcome;
+
+  if (!reason) {
+    if (outcome === "ATKT") return DECISION_REASON_LABELS.ATKT;
+    if (outcome === "PASS") return DECISION_REASON_LABELS.PASS;
+    return "-";
+  }
+
+  const attendance = data.attendance_snapshot;
+  const fee = data.fee_clearance_snapshot;
+
+  if (reason === "ELIGIBLE") {
+    if (outcome === "ATKT") {
+      const kt = data.kt_count ?? 0;
+      const maxKt = data.policy_snapshot?.maxAllowedKTs;
+      return maxKt !== undefined && maxKt !== null
+        ? `Eligible under the ATKT policy. The student has ${kt} failed subject${kt === 1 ? "" : "s"}, which is within the limit of ${maxKt}.`
+        : `Eligible under the ATKT policy. The student has ${kt} failed subject${kt === 1 ? "" : "s"}.`;
+    }
+    return `${DECISION_REASON_LABELS.ELIGIBLE}. All attendance, fee and subject requirements have been met.`;
+  }
+
+  if (reason === "ATTENDANCE_INSUFFICIENT" && attendance) {
+    const percentage = roundPercent(attendance.percentage);
+    const required = roundPercent(attendance.requiredPercentage);
+    return `${DECISION_REASON_LABELS.ATTENDANCE_INSUFFICIENT}. The student has ${percentage}% attendance, but ${required}% is required for promotion.`;
+  }
+
+  if (reason === "FEE_NOT_CLEARED" && fee) {
+    const paidPercent = roundPercent(fee.paidPercentage);
+    const requiredPercent = roundPercent(fee.requiredPaidPercentage ?? 100);
+    return `${DECISION_REASON_LABELS.FEE_NOT_CLEARED}. The student has paid ${paidPercent}%, but ${requiredPercent}% is required for promotion.`;
+  }
+
+  if (reason === "KT_LIMIT_EXCEEDED") {
+    const kt = data.kt_count ?? 0;
+    const maxKt = data.policy_snapshot?.maxAllowedKTs;
+    return maxKt !== undefined && maxKt !== null
+      ? `${DECISION_REASON_LABELS.KT_LIMIT_EXCEEDED}. The student has ${kt} failed subjects, but only ${maxKt} are allowed.`
+      : DECISION_REASON_LABELS.KT_LIMIT_EXCEEDED;
+  }
+
+  return formatDecisionReason(reason);
 }
 
 /**
@@ -165,12 +295,12 @@ function formatOutcome(outcome) {
   if (!outcome) return "Unknown";
   const outcomeMap = {
     PASS: "Pass",
-    ATKT: "ATKT (Allowed to Keep Term)",
-    FAIL: "Fail",
-    INCOMPLETE: "Incomplete",
-    NO_RESULT: "No Result",
-    AMBIGUOUS_RESULT: "Ambiguous Result",
-    BLOCKED: "Blocked",
+    ATKT: "Eligible for Promotion with ATKT",
+    FAIL: "Not Eligible for Promotion",
+    INCOMPLETE: "Result is Incomplete",
+    NO_RESULT: "Result Not Available",
+    AMBIGUOUS_RESULT: "Multiple Published Results Found",
+    BLOCKED: "Promotion Blocked",
   };
   return outcomeMap[outcome] || outcome;
 }
@@ -216,14 +346,14 @@ function getOutcomeDisplayLabel(outcome, workflowStatus) {
   }
   
   const labelMap = {
-    ATKT: "Allowed to Keep Term (ATKT)",
-    FAIL: "Promotion Failed",
-    INCOMPLETE: "Result Incomplete",
-    NO_RESULT: "No Result Available",
-    AMBIGUOUS_RESULT: "Ambiguous Result",
+    ATKT: "Eligible for Promotion with ATKT",
+    FAIL: "Not Eligible for Promotion",
+    INCOMPLETE: "Result is Incomplete",
+    NO_RESULT: "Result Not Available",
+    AMBIGUOUS_RESULT: "Multiple Published Results Found",
     BLOCKED: "Promotion Blocked",
   };
-  return labelMap[outcome] || outcome;
+  return labelMap[outcome] || DECISION_REASON_LABELS[outcome] || outcome;
 }
 
 /**
@@ -254,10 +384,10 @@ function getOutcomeBannerStyle(outcome) {
 function formatWorkflowStatus(status) {
   if (!status) return "Unknown";
   const statusMap = {
-    DRAFT: "Draft",
-    RECOMMENDED: "Recommended",
+    DRAFT: "Awaiting Recommendation",
+    RECOMMENDED: "Recommended for Promotion",
     UNDER_REVIEW: "Under Review",
-    APPROVED: "Approved",
+    APPROVED: "Approved - Ready to Promote",
     REJECTED: "Rejected",
     PROMOTED: "Promoted",
     BLOCKED: "Blocked",
@@ -2057,7 +2187,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           >
             <div className="modal-header">
               <h4 className="modal-title">
-                <FaClipboardCheck /> Promotion Eligibility Decision
+                <FaClipboardCheck /> Student Promotion Eligibility
               </h4>
               <button
                 onClick={() => {
@@ -2082,11 +2212,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                 <div className="alert alert-danger">
                   <FaExclamationCircle />
                   <div>
-                    <p className="alert-text"><strong>Error:</strong> {eligibilityError.message}</p>
-                    {eligibilityError.statusCode && (
+                    <p className="alert-text">
+                      <strong>Unable to check promotion eligibility:</strong>{" "}
+                      {formatErrorCode(eligibilityError.errorCode) || eligibilityError.message}
+                    </p>
+                    {eligibilityError.message && eligibilityError.errorCode && (
                       <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
-                        Status: {eligibilityError.statusCode}
-                        {eligibilityError.errorCode && ` | Code: ${eligibilityError.errorCode}`}
+                        Details: {eligibilityError.message}
                       </p>
                     )}
                   </div>
@@ -2117,25 +2249,28 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 <div className="outcome-label">
                             {getOutcomeDisplayLabel(eligibilityData.promotion_outcome, eligibilityData.workflow_status)}
                           </div>
-                         <div className="outcome-reason">
-                           {eligibilityData.decision_reason && (
-                             <>
-                               Reason: {formatDecisionReason(eligibilityData.decision_reason)}
-                               {eligibilityData.workflow_status && eligibilityData.workflow_status !== eligibilityData.promotion_outcome && (
-                                 <span className="workflow-badge">
-                                   Workflow: {formatWorkflowStatus(eligibilityData.workflow_status)}
-                                 </span>
-                               )}
-                             </>
-                           )}
-                         </div>
+                          <div className="outcome-reason">
+                            <div>
+                              <strong>Reason:</strong> {getDecisionReasonMessage(eligibilityData)}
+                            </div>
+                            {eligibilityData.workflow_status && eligibilityData.workflow_status !== eligibilityData.promotion_outcome && (
+                              <span className="workflow-badge">
+                                Current Step: {formatWorkflowStatus(eligibilityData.workflow_status)}
+                              </span>
+                            )}
+                          </div>
                        </div>
-                       <div className="outcome-actions">
-                         {showRecommend && (
-                           <button onClick={openRecommendModal} className="btn btn-sm btn-outline-light" disabled={actionLoading}>
-                             <FaClipboardCheck className="mr-1" /> Recommend
-                           </button>
-                         )}
+<div className="outcome-actions">
+                          {showRecommend && (
+                            <button
+                              onClick={openRecommendModal}
+                              className="btn btn-sm btn-outline-light"
+                              disabled={actionLoading}
+                              title="Sends this eligibility decision to the College Admin for approval. It does not promote the student yet."
+                            >
+                              <FaClipboardCheck className="mr-1" /> Recommend for Promotion
+                            </button>
+                          )}
                          {showApprove && (
                            <button onClick={openApproveModal} className="btn btn-sm btn-light" disabled={actionLoading}>
                              <FaCheckCircle className="mr-1" /> Approve
@@ -2163,18 +2298,18 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                       <div className="decision-card atkt-card">
                         <div className="decision-card-header">
                           <FaExclamationTriangle style={{ color: "#f59e0b" }} />
-                          <h5 style={{ margin: 0, color: "#92400e" }}>ATKT Details</h5>
+                          <h5 style={{ margin: 0, color: "#92400e" }}>ATKT / Backlog Details</h5>
                         </div>
                         <div className="decision-card-body">
                           <div className="detail-row">
-                            <span className="detail-label">KT Count:</span>
+                            <span className="detail-label">Failed Subjects (KT):</span>
                             <span className="detail-value fw-bold" style={{ fontSize: "18px", color: "#f59e0b" }}>
-                              {eligibilityData.kt_count ?? "N/A"}
+                              {eligibilityData.kt_count ?? "Not Available"}
                             </span>
                           </div>
                           {eligibilityData.policy_snapshot?.maxAllowedKTs !== undefined && eligibilityData.policy_snapshot?.maxAllowedKTs !== null && (
                             <div className="detail-row">
-                              <span className="detail-label">Max Allowed KTs:</span>
+                              <span className="detail-label">Maximum Failed Subjects Allowed:</span>
                               <span className="detail-value">{eligibilityData.policy_snapshot?.maxAllowedKTs}</span>
                             </div>
                           )}
@@ -2184,15 +2319,25 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                               <div className="detail-value">
                                 <ul style={{ margin: "8px 0 0 0", paddingLeft: "20px" }}>
                                   {eligibilityData.failed_subject_ids.map((subj, idx) => {
-                                    const displayName =
-                                      typeof subj === "string"
-                                        ? subj
-                                        : subj?.name
-                                          ? `${subj.name}${subj.code ? ` (${subj.code})` : ""}`
-                                          : subj?.code || subj?._id || String(subj);
+                                    const subjectName =
+                                      typeof subj === "string" ? subj : subj?.name || "";
+                                    const subjectCode =
+                                      typeof subj === "string" ? "" : subj?.code || "";
+                                    if (!subjectName && !subjectCode) {
+                                      return (
+                                        <li key={idx} style={{ fontSize: "13px" }}>
+                                          {String(subj)}
+                                        </li>
+                                      );
+                                    }
                                     return (
                                       <li key={idx} style={{ fontSize: "13px" }}>
-                                        {displayName}
+                                        {subjectCode && (
+                                          <span className="subject-code" style={{ marginRight: "6px" }}>
+                                            {subjectCode}
+                                          </span>
+                                        )}
+                                        <span>{subjectName || subjectCode}</span>
                                       </li>
                                     );
                                   })}
@@ -2218,11 +2363,11 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                       </div>
                     )}
 
-                    {/* Attendance Snapshot - Improved UX */}
+                    {/* Attendance Eligibility - Improved UX */}
                     {eligibilityData.attendance_snapshot && (() => {
                       const snap = eligibilityData.attendance_snapshot;
-                      const percentage = snap.percentage ?? 0;
-                      const required = snap.requiredPercentage ?? 75;
+                      const percentage = roundPercent(snap.percentage);
+                      const required = roundPercent(snap.requiredPercentage ?? 75);
                       const passed = snap.passed === true;
                       const status = snap.status || (passed ? "ELIGIBLE" : "NOT_ELIGIBLE");
                       const isOverride = snap.overridden === true;
@@ -2231,16 +2376,16 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                         <div className="decision-card attendance-snapshot-card">
                           <div className="decision-card-header">
                             <FaInfoCircle style={{ color: "#3db5e6" }} />
-                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Attendance Snapshot</h5>
+                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Attendance Eligibility</h5>
                             <span className={`badge ${passed ? "badge-success" : "badge-danger"}`}>
-                              {formatStatus(status)}
+                              {ATTENDANCE_STATUS_LABELS[status] || "Requirement Not Met"}
                             </span>
                           </div>
                           <div className="decision-card-body">
                             {/* Progress Bar */}
                             <div className="attendance-progress-section">
                               <div className="progress-header">
-                                <span className="progress-label">Attendance Percentage</span>
+                                <span className="progress-label">Student Attendance</span>
                                 <span className="progress-value">{percentage}%</span>
                               </div>
                               <div className="progress-bar-container">
@@ -2255,21 +2400,21 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                                 ></div>
                               </div>
                               <div className="progress-markers">
-                                <span className="marker current">Current: {percentage}%</span>
-                                <span className="marker required">Required: {required}%</span>
+                                <span className="marker current">Student Attendance: {percentage}%</span>
+                                <span className="marker required">Minimum Required: {required}%</span>
                               </div>
                             </div>
 
                             {/* Details Grid */}
                             <div className="attendance-details-grid">
                               <div className="detail-item">
-                                <span className="detail-label">Total Sessions</span>
-                                <span className="detail-value">{snap.totalSessions ?? "-"}</span>
+                                <span className="detail-label">Sessions Considered</span>
+                                <span className="detail-value">{snap.totalSessions ?? "Not Available"}</span>
                               </div>
                               <div className="detail-item">
-                                <span className="detail-label">Override Applied</span>
+                                <span className="detail-label">Attendance Override</span>
                                 <span className={`detail-value ${isOverride ? "override-yes" : "override-no"}`}>
-                                  {isOverride ? "Yes" : "No"}
+                                  {formatBooleanLabel(snap.overridden, { applied: "Applied", notApplied: "Not Applied" })}
                                 </span>
                               </div>
                               {isOverride && snap.overrideReason && (
@@ -2282,15 +2427,20 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
                             {/* Status Message */}
                             <div className={`attendance-status-message ${passed ? "passed" : "failed"}`}>
-                              {passed ? (
+                              {status === "ATTENDANCE_NOT_AVAILABLE" ? (
+                                <>
+                                  <FaExclamationTriangle style={{ marginRight: "8px" }} />
+                                  Attendance data is not available for this student. A minimum of {required}% attendance is required for promotion.
+                                </>
+                              ) : passed ? (
                                 <>
                                   <FaCheckCircle style={{ marginRight: "8px" }} />
-                                  Student meets the minimum attendance requirement ({required}%).
+                                  Attendance requirement met. The student has {percentage}% attendance against the required {required}%.
                                 </>
                               ) : (
                                 <>
                                   <FaExclamationTriangle style={{ marginRight: "8px" }} />
-                                  Student does NOT meet the minimum attendance requirement ({required}%). Shortfall: {required - percentage}%.
+                                  Attendance requirement not met. The student has {percentage}% attendance, but {required}% is required. Shortfall of {Math.max(required - percentage, 0)}%.
                                 </>
                               )}
                               {isOverride && (
@@ -2305,7 +2455,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                       );
                     })()}
 
-                    {/* Fee Clearance Snapshot - Improved UX */}
+                    {/* Fee Eligibility - Improved UX */}
                     {eligibilityData.fee_clearance_snapshot && (() => {
                       const snap = eligibilityData.fee_clearance_snapshot;
                       const totalFee = snap.totalFee ?? 0;
@@ -2314,10 +2464,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                       const requiredClearance = snap.requiredClearance !== false;
                       const cleared = snap.cleared === true;
                       const passed = snap.passed === true;
-                      const status = snap.status || (cleared ? "CLEARED" : "PARTIALLY_PAID");
+                      const status = snap.status || (cleared ? "FULLY_PAID" : "PARTIALLY_PAID");
                       const isOverride = snap.overridden === true;
-                      const progressPercent = totalFee > 0 ? Math.round((paidAmount / totalFee) * 100) : 0;
-
+                      const paidPercentage = roundPercent(
+                        snap.paidPercentage ??
+                          (totalFee > 0 ? Math.round((paidAmount / totalFee) * 100) : 0),
+                      );
+                      const requiredPercentage = roundPercent(snap.requiredPaidPercentage ?? 100);
                       const formatCurrency = (amount) => {
                         if (amount === null || amount === undefined) return "-";
                         return new Intl.NumberFormat("en-IN", {
@@ -2332,23 +2485,23 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                         <div className="decision-card fee-snapshot-card">
                           <div className="decision-card-header">
                             <FaDollarSign style={{ color: "#059669" }} />
-                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Fee Clearance Snapshot</h5>
+                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Fee Eligibility</h5>
                             <span className={`badge ${passed ? "badge-success" : "badge-warning"}`}>
-                              {passed ? "Cleared" : status.replace("_", " ")}
+                              {FEE_STATUS_LABELS[status] || "Requirement Not Met"}
                             </span>
                           </div>
                           <div className="decision-card-body">
                             {/* Progress Bar */}
                             <div className="fee-progress-section">
                               <div className="progress-header">
-                                <span className="progress-label">Fee Payment Progress</span>
-                                <span className="progress-value">{progressPercent}%</span>
+                                <span className="progress-label">Paid Percentage</span>
+                                <span className="progress-value">{paidPercentage}%</span>
                               </div>
                               <div className="progress-bar-container">
                                 <div 
                                   className="progress-bar-fill"
                                   style={{ 
-                                    width: `${Math.min(progressPercent, 100)}%`,
+                                    width: `${Math.min(paidPercentage, 100)}%`,
                                     background: passed 
                                       ? "linear-gradient(90deg, #059669 0%, #10b981 100%)"
                                       : "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)"
@@ -2356,8 +2509,8 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                                 ></div>
                               </div>
                               <div className="progress-markers">
-                                <span className="marker paid">Paid: {formatCurrency(paidAmount)}</span>
-                                <span className="marker total">Total: {formatCurrency(totalFee)}</span>
+                                <span className="marker paid">Amount Paid: {formatCurrency(paidAmount)}</span>
+                                <span className="marker total">Total Fee: {formatCurrency(totalFee)}</span>
                               </div>
                             </div>
 
@@ -2372,19 +2525,23 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                                 <span className="detail-value paid-amount">{formatCurrency(paidAmount)}</span>
                               </div>
                               <div className="detail-item highlight">
-                                <span className="detail-label">Pending Amount</span>
+                                <span className="detail-label">Amount Pending</span>
                                 <span className="detail-value pending-amount">{formatCurrency(pendingAmount)}</span>
                               </div>
                               <div className="detail-item">
-                                <span className="detail-label">Clearance Required</span>
-                                <span className={`detail-value ${requiredClearance ? "clearance-yes" : "clearance-no"}`}>
-                                  {requiredClearance ? "Yes" : "No"}
+                                <span className="detail-label">Minimum Required</span>
+                                <span className="detail-value">{requiredPercentage}%</span>
+                              </div>
+                              <div className="detail-item">
+                                <span className="detail-label">Fee Requirement</span>
+                                <span className={`detail-value ${passed ? "clearance-yes" : "clearance-no"}`}>
+                                  {passed ? "Requirement Met" : "Requirement Not Met"}
                                 </span>
                               </div>
                               <div className="detail-item">
-                                <span className="detail-label">Override Applied</span>
+                                <span className="detail-label">Fee Override</span>
                                 <span className={`detail-value ${isOverride ? "override-yes" : "override-no"}`}>
-                                  {isOverride ? "Yes" : "No"}
+                                  {formatBooleanLabel(snap.overridden, { applied: "Applied", notApplied: "Not Applied" })}
                                 </span>
                               </div>
                               {isOverride && snap.overrideReason && (
@@ -2400,13 +2557,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                               {passed ? (
                                 <>
                                   <FaCheckCircle style={{ marginRight: "8px" }} />
-                                  All fees cleared. Student is eligible for promotion.
+                                  Requirement Met. The student has paid {paidPercentage}% of the total fee, meeting the {requiredPercentage}% required for promotion.
                                 </>
                               ) : (
                                 <>
                                   <FaExclamationTriangle style={{ marginRight: "8px" }} />
-                                  Pending fee payment of {formatCurrency(pendingAmount)}. 
-                                  {requiredClearance && " Fee clearance is required for promotion."}
+                                  Minimum Fee Payment Requirement Not Met. The student has paid {paidPercentage}%, but {requiredPercentage}% is required for promotion. Pending amount is {formatCurrency(pendingAmount)}.
+                                  {!requiredClearance && " Note: fee clearance is not mandatory for this promotion."}
                                 </>
                               )}
                               {isOverride && (
@@ -2421,14 +2578,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                       );
                     })()}
 
-                    {/* Policy Snapshot - Improved UX */}
+                    {/* Promotion Rules Applied - Improved UX */}
                     {eligibilityData.policy_snapshot && (
                       <div className="decision-card policy-snapshot-card">
                         <div className="decision-card-header">
                           <FaFileAlt style={{ color: "#9C27B0" }} />
-                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Promotion Policy Applied</h5>
+                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Promotion Rules Applied</h5>
                           <span className="badge badge-secondary" style={{ fontSize: "11px", fontWeight: "500" }}>
-                            Version: {formatDate(eligibilityData.policy_version)}
+                            Rule Set Version: {formatDate(eligibilityData.policy_version)}
                           </span>
                         </div>
                         <div className="decision-card-body">
@@ -2442,7 +2599,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                                 <span className="policy-label">Minimum Attendance</span>
                                 <span className="policy-value">
                                   {eligibilityData.policy_snapshot.minAttendancePercentage !== undefined && eligibilityData.policy_snapshot.minAttendancePercentage !== null
-                                    ? `${eligibilityData.policy_snapshot.minAttendancePercentage}%`
+                                    ? formatPercent(eligibilityData.policy_snapshot.minAttendancePercentage)
                                     : <span className="text-muted">Not configured</span>}
                                 </span>
                                 <span className="policy-desc">Student must meet this attendance %</span>
@@ -2455,7 +2612,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                                 <FaExclamationTriangle style={{ fontSize: "18px" }} />
                               </div>
                               <div className="policy-content">
-                                <span className="policy-label">Max Allowed KTs (Backlogs)</span>
+                                <span className="policy-label">Maximum Failed Subjects</span>
                                 <span className="policy-value">
                                   {eligibilityData.policy_snapshot.maxAllowedKTs !== undefined && eligibilityData.policy_snapshot.maxAllowedKTs !== null
                                     ? eligibilityData.policy_snapshot.maxAllowedKTs
@@ -2465,13 +2622,54 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                               </div>
                             </div>
 
+                            {/* Minimum Fee Paid */}
+                            <div className="policy-snapshot-item">
+                              <div className="policy-icon fee">
+                                <FaRupeeSign style={{ fontSize: "18px" }} />
+                              </div>
+                              <div className="policy-content">
+                                <span className="policy-label">Minimum Fee Paid</span>
+                                <span className="policy-value">
+                                  {eligibilityData.policy_snapshot.minimumFeePaidPercentage !== undefined && eligibilityData.policy_snapshot.minimumFeePaidPercentage !== null
+                                    ? formatPercent(eligibilityData.policy_snapshot.minimumFeePaidPercentage)
+                                    : <span className="text-muted">Not configured</span>}
+                                </span>
+                                <span className="policy-desc">Share of the total fee that must be paid</span>
+                              </div>
+                            </div>
+
+                            {/* Previous Year Backlog Requirement */}
+                            <div className="policy-snapshot-item">
+                              <div className="policy-icon backlog">
+                                <FaClipboardCheck style={{ fontSize: "18px" }} />
+                              </div>
+                              <div className="policy-content">
+                                <span className="policy-label">Previous Year Backlog Requirement</span>
+                                <span className="policy-value">
+                                  {formatBooleanLabel(eligibilityData.policy_snapshot.previousYearClearanceRequired, {
+                                    applied: "Required - all previous year backlogs must be cleared",
+                                    notApplied: "Not Applicable",
+                                  })}
+                                </span>
+                                {eligibilityData.policy_snapshot.previousYearClearancePassed !== undefined && eligibilityData.policy_snapshot.previousYearClearancePassed !== null && (
+                                  <span className="policy-desc">
+                                    Previous year backlogs:{" "}
+                                    {formatBooleanLabel(eligibilityData.policy_snapshot.previousYearClearancePassed, {
+                                      applied: "Cleared",
+                                      notApplied: "Not Cleared",
+                                    })}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
                             {/* Scoped Semesters */}
                             <div className="policy-snapshot-item">
                               <div className="policy-icon semester">
                                 <FaGraduationCap style={{ fontSize: "18px" }} />
                               </div>
                               <div className="policy-content">
-                                <span className="policy-label">Applicable Semesters</span>
+                                <span className="policy-label">Applicable Semester</span>
                                 <span className="policy-value">
                                   {eligibilityData.policy_snapshot.scopedSemesters && eligibilityData.policy_snapshot.scopedSemesters.length > 0
                                     ? eligibilityData.policy_snapshot.scopedSemesters.map((s, i) => (
@@ -2479,7 +2677,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                                       ))
                                     : <span className="text-muted">All Semesters</span>}
                                 </span>
-                                <span className="policy-desc">Policy scope (empty = all semesters)</span>
+                                <span className="policy-desc">This rule set applies to all semesters unless specific semesters are listed</span>
                               </div>
                             </div>
                           </div>
@@ -2661,8 +2859,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                   className="btn btn-outline-info"
                   style={{ flex: 1 }}
                 >
-                  <FaClipboardCheck /> Recommend Promotion
+                  <FaClipboardCheck /> Recommend for Promotion
                 </button>
+              )}
+              {showRecommend && (
+                <p className="text-muted" style={{ width: "100%", margin: "8px 0 0", fontSize: "12px", textAlign: "center" }}>
+                  &ldquo;Recommend for Promotion&rdquo; sends this decision for approval. The student is promoted only after approval and execution.
+                </p>
               )}
               {showApprove && (
                 <button
@@ -4745,6 +4948,16 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           .policy-icon.kt {
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
             color: #b45309;
+          }
+
+          .policy-icon.fee {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            color: #047857;
+          }
+
+          .policy-icon.backlog {
+            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+            color: #6d28d9;
           }
 
           .policy-icon.semester {
