@@ -27,8 +27,15 @@ const feeClearanceSnapshotSchema = new mongoose.Schema(
     totalFee: { type: Number, required: true, default: 0 },
     paidAmount: { type: Number, required: true, default: 0 },
     pendingAmount: { type: Number, required: true, default: 0 },
+    // Share of the total fee that was paid, derived from the authoritative
+    // StudentFee values. 100 when no fee is applicable.
+    paidPercentage: { type: Number, required: true, default: 0 },
+    // Policy-configured minimum paid share this decision was evaluated against.
+    requiredPaidPercentage: { type: Number, required: true, default: 100 },
     requiredClearance: { type: Boolean, required: true, default: true },
     cleared: { type: Boolean, required: true },
+    // True when paidPercentage alone satisfied the configured minimum.
+    meetsPaidPercentage: { type: Boolean, required: true, default: false },
     passed: { type: Boolean, required: true },
     overridden: { type: Boolean, required: true, default: false },
   },
@@ -48,6 +55,8 @@ const policySnapshotSchema = new mongoose.Schema(
     },
     minAttendancePercentage: { type: Number, required: true },
     maxAllowedKTs: { type: Number, required: true },
+    // Optional so snapshots created before this field existed stay valid.
+    minimumFeePaidPercentage: { type: Number, min: 0, max: 100 },
     scopedSemesters: { type: [Number], default: [] },
     resolvedMaxAllowedKTs: { type: Number, min: 0 },
     previousYearClearanceRequired: { type: Boolean, default: false },
