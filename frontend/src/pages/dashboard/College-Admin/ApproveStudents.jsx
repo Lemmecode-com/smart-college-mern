@@ -684,7 +684,7 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
         /* ================= PAGE HEADER ================= */
         .erp-page-header {
-          background: linear-gradient(135deg, #0f3a4a 0%, #1c6f86 100%);
+          background: #0E3746;
           padding: 2rem;
           border-radius: 16px;
           margin-bottom: 1.5rem;
