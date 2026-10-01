@@ -1099,7 +1099,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
         /* ---------- HEADER ---------- */
         .erp-page-header {
           background: #0E3746;
-          padding: 1.75rem 2rem;
+          padding: 1.5rem 1.75rem;
           border-radius: 16px;
           margin: 1rem 0 1.5rem;
           box-shadow: 0 10px 28px rgba(15, 58, 74, 0.28);
@@ -1130,11 +1130,11 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
 
         .erp-header-icon {
           flex-shrink: 0;
-          width: 58px;
-          height: 58px;
+          width: 52px;
+          height: 52px;
           background: rgba(255, 255, 255, 0.16);
           border: 1px solid rgba(255, 255, 255, 0.22);
-          border-radius: 14px;
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1143,7 +1143,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
 
         .erp-page-title {
           margin: 0;
-          font-size: 1.6rem;
+          font-size: 1.4rem;
           line-height: 1.2;
           font-weight: 700;
           font-family: 'Poppins', sans-serif;
@@ -1151,9 +1151,12 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
         }
 
         .erp-page-subtitle {
-          margin: 0.35rem 0 0 0;
-          opacity: 0.85;
-          font-size: 0.95rem;
+  margin: 0.3rem 0 0;
+  opacity: 1;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.72);
         }
 
         .btn-refresh {

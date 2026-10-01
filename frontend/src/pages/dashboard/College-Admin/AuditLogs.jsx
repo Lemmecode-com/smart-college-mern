@@ -747,7 +747,7 @@ export default function AuditLogs() {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
-          background: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+          background: "#0E3746",
           padding: "2rem",
           borderRadius: "20px",
           marginBottom: "1.5rem",
@@ -787,8 +787,11 @@ export default function AuditLogs() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            flexWrap: "wrap",
+            flexWrap: "nowrap",
             gap: "1rem",
+            // padding: "18px 1px",
+            height: "35px",
+            borderRadius: "15px",
           }}
         >
           <div 
@@ -798,9 +801,9 @@ export default function AuditLogs() {
             <div
               className="audit-header-icon"
               style={{
-                width: "60px",
-                height: "60px",
-                borderRadius: "16px",
+                width: "52px",
+                height: "52px",
+                borderRadius: "50%",
                 background: "rgba(255,255,255,0.15)",
                 backdropFilter: "blur(10px)",
                 display: "flex",
@@ -816,8 +819,10 @@ export default function AuditLogs() {
                 className="audit-title"
                 style={{
                   margin: 0,
-                  fontSize: "1.75rem",
-                  fontWeight: "bold",
+                  fontSize: "1.625rem",
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.25,
                   color: "white",
                 }}
               >
@@ -826,10 +831,12 @@ export default function AuditLogs() {
               <p
                 className="audit-subtitle"
                 style={{
-                  margin: "0.25rem 0 0",
-                  fontSize: "0.9375rem",
-                  color: "rgba(255,255,255,0.8)",
-                  fontWeight: "500",
+                  margin: 0,
+                  opacity: 0.8,
+                  fontSize: "0.9rem",
+                  fontWeight: 400,
+                  lineHeight: 1.5,
+                  color: "white",
                 }}
               >
                 Track all admin actions on student data • DPDPA 2026 Compliant
@@ -843,7 +850,8 @@ export default function AuditLogs() {
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowFilters(!showFilters)}
             style={{
-              padding: "0.75rem 1.5rem",
+              padding: "0 1.5rem",
+              height: "40px",
               background: showFilters
                 ? "rgba(255,255,255,0.2)"
                 : "rgba(255,255,255,0.1)",

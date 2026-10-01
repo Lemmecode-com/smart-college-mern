@@ -252,43 +252,36 @@ export default function AddCourse() {
       </div>
 
       {/* HEADER */}
-      <div className="header-section mb-4">
-        <div className="d-flex align-items-center justify-content-between">
-          <div className="header-content">
-            <h2 className="header-title">
-              <FaBookOpen className="header-icon me-2" />
-              Add New Course
-            </h2>
-            <p className="header-subtitle mb-0">
-              Create and manage academic courses
-            </p>
-          </div>
-<button
-  type="button"
-  className="btn d-flex align-items-center gap-2 px-3 py-2"
-  onClick={() => navigate("/courses")}
-  style={{
-    background: "rgba(255, 255, 255, 0.12)",
-    color: "#ffffff",
-    border: "1px solid rgba(255, 255, 255, 0.55)",
-    borderRadius: "10px",
-    fontWeight: "600",
-    transition: "all 0.25s ease",
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.background = "rgba(255, 255, 255, 0.22)";
-    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.8)";
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
-    e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.55)";
-  }}
->
-  <FaArrowLeft className="me-1" />
-  Back to Courses
-</button>
-        </div>
-      </div>
+{/* HEADER */}
+<div className="page-header">
+  <div className="page-header-content">
+    <div className="header-icon-bg">
+      <FaBookOpen size={26} />
+    </div>
+
+    <div className="header-text-content">
+      <h1 className="page-title">
+        Add New Course
+      </h1>
+
+      <p className="page-subtitle">
+        Create and manage academic courses
+      </p>
+    </div>
+  </div>
+
+  <div className="header-actions">
+    <button
+      type="button"
+      className="btn btn-ghost-inverse"
+      onClick={() => navigate("/courses")}
+      aria-label="Back to Courses"
+    >
+      <FaArrowLeft className="btn-icon" />
+      <span>Back to Courses</span>
+    </button>
+  </div>
+</div>
 
       {/* ALERTS */}
       {error && typeof error === 'string' && (
@@ -559,41 +552,100 @@ export default function AddCourse() {
 
       {/* STYLES */}
       <style>{`
-        .header-section {
-          background: #0E3746;
-          padding: 2rem;
-          border-radius: 16px;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          animation: slideDown 0.6s ease;
-        }
+ .page-header {
+  background: #0E3746;
+  border-radius: 15px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+  color: white;
+}
 
-        .header-title {
-          font-weight: 700;
-          font-size: 1.8rem;
-          margin-bottom: 0;
-          display: flex;
-          align-items: center;
-        }
+.page-header-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
 
-        .header-icon {
-          width: 42px;
-          height: 42px;
-          border-radius: 12px;
-          background: rgba(255, 255, 255, 0.12);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #ffffff;
-          flex-shrink: 0;
-                }
+.header-icon-bg {
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
 
-        .header-subtitle {
-          margin: 4px 0 0 3rem;
-          color: rgba(255, 255, 255, 0.78);
-          font-size: 14px;
-          line-height: 1.3;
-        }
+.header-text-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.page-subtitle {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: 1.5px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-ghost-inverse {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.btn-ghost-inverse:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon {
+  font-size: 0.95rem;
+}
 
         .form-container {
           animation: fadeIn 0.8s ease;

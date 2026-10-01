@@ -430,7 +430,11 @@ export default function ParentList() {
       display: "flex",
       alignItems: "center",
       gap: "16px",
-      flexWrap: "wrap"
+      flexWrap: "wrap",
+      background: "#0E3746",
+      borderRadius: "15px",
+      boxShadow: "0 8px 24px rgba(15, 69, 83, 0.18)",
+      color: "white",
     }}
   >
     <motion.div
@@ -439,9 +443,9 @@ export default function ParentList() {
       initial="initial"
       animate="pulse"
       style={{
-        width: "56px",
-        height: "56px",
-        borderRadius: "12px",
+        width: "52px",
+        height: "52px",
+        borderRadius: "50%",
         background: "rgba(255, 255, 255, 0.15)",
         color: "#ffffff",
         display: "flex",
@@ -458,11 +462,11 @@ export default function ParentList() {
       <h1
         className="parent-management-title"
         style={{
-          margin: 0,
-          fontSize: "1.5rem",
-          fontWeight: "800",
-          color: "#ffffff",
-          letterSpacing: "-0.02em",
+            margin: 0,
+            fontSize: "1.625rem",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.25,
         }}
       >
         Parent / Guardian Management
@@ -471,9 +475,11 @@ export default function ParentList() {
       <p
         className="parent-management-subtitle"
         style={{
-          margin: "4px 0 0 0",
-          fontSize: "0.85rem",
-          color: "rgba(255, 255, 255, 0.8)"
+          margin: 0,
+          opacity: 0.8,
+          fontSize: "0.9rem",
+          fontWeight: 400,
+          lineHeight: 1.5,
         }}
       >
         Manage parent and guardian accounts linked to students
