@@ -2,7 +2,7 @@ const PromotionPolicy = require("../models/promotionPolicy.model");
 const Course = require("../models/course.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
-const { DEFAULT_MAX_ALLOWED_KTS } = require("../utils/promotionPolicy.util");
+const { DEFAULT_MAX_ALLOWED_KTS, DEFAULT_MIN_FEE_PAID_PERCENTAGE } = require("../utils/promotionPolicy.util");
 
 const validateCourseOwnership = async (courseId, collegeId) => {
   const course = await Course.findOne({ _id: courseId, college_id: collegeId }).select("_id");
@@ -27,6 +27,7 @@ exports.getPromotionPolicy = async (req, res, next) => {
         {
           minAttendancePercentage: 75,
           maxAllowedKTs: DEFAULT_MAX_ALLOWED_KTS,
+          minimumFeePaidPercentage: DEFAULT_MIN_FEE_PAID_PERCENTAGE,
           scopedSemesters: [],
           effectiveFrom: new Date(),
           isActive: true,
@@ -44,12 +45,44 @@ exports.updatePromotionPolicy = async (req, res, next) => {
   try {
     const {
       minAttendancePercentage,
+      maxAllowedKTs,
+      minimumFeePaidPercentage,
       scopedSemesters,
       effectiveFrom,
       isActive,
       ktRules,
       course_id,
     } = req.body;
+
+    // Same contract as the schema: non-negative integer.
+    if (maxAllowedKTs !== undefined) {
+      if (!Number.isInteger(maxAllowedKTs) || maxAllowedKTs < 0) {
+        throw new AppError(
+          "maxAllowedKTs must be a non-negative integer",
+          400,
+          "INVALID_MAX_ALLOWED_KTS",
+        );
+      }
+    }
+
+    // Same contract as the schema: a finite number between 0 and 100.
+    let resolvedMinimumFeePaidPercentage;
+    if (minimumFeePaidPercentage !== undefined && minimumFeePaidPercentage !== null) {
+      const numericValue = Number(minimumFeePaidPercentage);
+      if (
+        minimumFeePaidPercentage === "" ||
+        !Number.isFinite(numericValue) ||
+        numericValue < 0 ||
+        numericValue > 100
+      ) {
+        throw new AppError(
+          "minimumFeePaidPercentage must be a number between 0 and 100",
+          400,
+          "INVALID_MINIMUM_FEE_PAID_PERCENTAGE",
+        );
+      }
+      resolvedMinimumFeePaidPercentage = numericValue;
+    }
 
     const isCourseSpecific = Boolean(course_id);
 
@@ -71,8 +104,15 @@ exports.updatePromotionPolicy = async (req, res, next) => {
     if (policy) {
       policy.minAttendancePercentage =
         minAttendancePercentage ?? policy.minAttendancePercentage;
-      if (policy.maxAllowedKTs === undefined) {
+      if (maxAllowedKTs !== undefined) {
+        policy.maxAllowedKTs = maxAllowedKTs;
+      } else if (policy.maxAllowedKTs === undefined) {
         policy.maxAllowedKTs = DEFAULT_MAX_ALLOWED_KTS;
+      }
+      if (resolvedMinimumFeePaidPercentage !== undefined) {
+        policy.minimumFeePaidPercentage = resolvedMinimumFeePaidPercentage;
+      } else if (policy.minimumFeePaidPercentage === undefined) {
+        policy.minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE;
       }
       if (scopedSemesters !== undefined)
         policy.scopedSemesters = scopedSemesters;
@@ -85,7 +125,9 @@ exports.updatePromotionPolicy = async (req, res, next) => {
       const createData = {
         collegeId: req.college_id,
         minAttendancePercentage: minAttendancePercentage ?? 75,
-        maxAllowedKTs: DEFAULT_MAX_ALLOWED_KTS,
+        maxAllowedKTs: maxAllowedKTs ?? DEFAULT_MAX_ALLOWED_KTS,
+        minimumFeePaidPercentage:
+          resolvedMinimumFeePaidPercentage ?? DEFAULT_MIN_FEE_PAID_PERCENTAGE,
         scopedSemesters: scopedSemesters || [],
         effectiveFrom: effectiveFrom || new Date(),
         isActive: isActive ?? true,

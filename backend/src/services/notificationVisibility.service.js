@@ -107,12 +107,30 @@ const getHodScopedTeacherCondition = ({ teacherProfile, userId }) => {
   };
 };
 
+/**
+ * Audiences that genuinely include a COLLEGE_ADMIN / PRINCIPAL recipient.
+ *
+ * Only `ALL` is a college-wide announcement the admin is a member of, and
+ * `INDIVIDUAL` counts only when the admin's own user id is in `target_users`
+ * (handled separately, because it matches on `target_users`, not on `target`).
+ *
+ * Every other audience (STUDENTS, PARENTS, TEACHERS, HOD, DEPARTMENT, COURSE,
+ * SEMESTER) explicitly excludes the admin. This is why a student-targeted fee
+ * deadline notice such as "Fee Payment Deadline Extended" must not surface in
+ * the admin's inbox / unread bell.
+ */
+const ADMIN_INBOX_TARGETS = ["ALL"];
+
 const getNotificationVisibilityQuery = async ({
   collegeId,
   role,
   userId,
   studentProfile = null,
   teacherProfile = null,
+  // Admin only. `true` (default) = management/outbox semantics, the admin sees
+  // every notification they authored. `false` = inbox/bell semantics, the admin
+  // only sees notifications whose audience actually includes them.
+  includeOwnBroadcasts = true,
 }) => {
   const userObjectId = toObjectId(userId, "User ID");
   const normalizedRole = String(role || "").toUpperCase();
@@ -262,17 +280,27 @@ const getNotificationVisibilityQuery = async ({
   }
 
   if (normalizedRole === "COLLEGE_ADMIN" || normalizedRole === "PRINCIPAL") {
-    // An admin sees their own broadcasts, plus any INDIVIDUAL notification that
-    // explicitly addresses them. INDIVIDUAL notifications addressed to somebody
-    // else (e.g. a single student) are NOT echoed back to the sender — being the
-    // creator is not the same as being a recipient.
-    return {
-      ...baseQuery,
+    // An admin sees their own broadcasts in the management/outbox view, plus any
+    // INDIVIDUAL notification that explicitly addresses them. INDIVIDUAL
+    // notifications addressed to somebody else (e.g. a single student) are NOT
+    // echoed back to the sender — being the creator is not the same as being
+    // a recipient.
+    //
+    // Inbox/bell mode (includeOwnBroadcasts: false) additionally drops the
+    // author's own non-ALL broadcasts, because audiences such as STUDENTS,
+    // PARENTS, TEACHERS, HOD, DEPARTMENT, COURSE and SEMESTER do not contain
+    // the admin. Without this, an admin-authored student-only fee deadline
+    // notice was returned by the bell and the unread count.
+    const ownBroadcastTargetCondition = includeOwnBroadcasts
+      ? { $ne: "INDIVIDUAL" }
+      : { $in: ADMIN_INBOX_TARGETS };
+
+    const adminVisibility = {
       $or: [
         {
           createdByRole: "COLLEGE_ADMIN",
           createdBy: userObjectId,
-          target: { $ne: "INDIVIDUAL" },
+          target: ownBroadcastTargetCondition,
         },
         {
           createdByRole: "COLLEGE_ADMIN",
@@ -281,6 +309,15 @@ const getNotificationVisibilityQuery = async ({
         },
         { createdByRole: "TEACHER" },
       ],
+    };
+
+    // Expired notifications must never linger in the admin inbox / unread count.
+    // The management/outbox view intentionally keeps its existing behaviour.
+    return {
+      ...baseQuery,
+      ...(includeOwnBroadcasts
+        ? { $or: adminVisibility.$or }
+        : { $and: [getExpiryCondition(), adminVisibility] }),
     };
   }
 
