@@ -459,10 +459,16 @@ const createPromotionDecision = async ({
     // so no duplicate PromotionDecision is created.
     //
     // Workflow states set by human actions (RECOMMENDED, UNDER_REVIEW,
-    // APPROVED, REJECTED, PROMOTED, REVERSED) are preserved: only the pure
-    // data snapshots (attendance, fee, policy) are refreshed for those.
-    // DRAFT and BLOCKED are calculation-only states, so the full decision
-    // is recomputed.
+    // APPROVED, REJECTED, PROMOTED, REVERSED) are preserved when the academic
+    // outcome remains unchanged: only the pure data snapshots (attendance,
+    // fee, policy) are refreshed for those.
+    //
+    // However, if the underlying academic outcome has changed (e.g. policy
+    // limits modified, KT count or marks changed), a reviewable decision
+    // (RECOMMENDED, UNDER_REVIEW, APPROVED) must be updated to reflect the
+    // current calculation so that stale outcomes do not cause execution 409s.
+    // If the new outcome is BLOCKED, workflow_status becomes BLOCKED.
+    // Otherwise it resets to DRAFT so it can follow the updated workflow cleanly.
     const PROCEEDED_STATUSES = [
       "RECOMMENDED",
       "UNDER_REVIEW",
@@ -472,15 +478,31 @@ const createPromotionDecision = async ({
       "REVERSED",
     ];
 
-    const update = PROCEEDED_STATUSES.includes(existing.workflow_status)
-      ? {
-          attendance_snapshot: calculated.attendanceSnapshot,
-          fee_clearance_snapshot: calculated.feeClearanceSnapshot,
-          policy_id: policy.policyId,
-          policy_version: policy.policyVersion,
-          policy_snapshot: policySnapshotToStore,
-        }
-      : freshFields;
+    const REVIEWABLE_STATUSES = ["RECOMMENDED", "UNDER_REVIEW", "APPROVED"];
+    const outcomeDiffers =
+      REVIEWABLE_STATUSES.includes(existing.workflow_status) &&
+      calculated.promotionOutcome !== existing.promotion_outcome;
+
+    let update;
+    if (outcomeDiffers) {
+      update = {
+        ...freshFields,
+        workflow_status:
+          calculated.promotionOutcome === "BLOCKED" ? "BLOCKED" : "DRAFT",
+        recommendation: null,
+        approval: null,
+      };
+    } else if (PROCEEDED_STATUSES.includes(existing.workflow_status)) {
+      update = {
+        attendance_snapshot: calculated.attendanceSnapshot,
+        fee_clearance_snapshot: calculated.feeClearanceSnapshot,
+        policy_id: policy.policyId,
+        policy_version: policy.policyVersion,
+        policy_snapshot: policySnapshotToStore,
+      };
+    } else {
+      update = freshFields;
+    }
 
     return PromotionDecision.findByIdAndUpdate(
       existing._id,

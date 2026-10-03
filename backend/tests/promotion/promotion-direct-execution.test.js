@@ -63,6 +63,9 @@ describe("Phase 2 — Direct Confirm Promotion & auto-approve execution", () => 
     outcome = "PASS",
     workflowStatus = "DRAFT",
     category = "GEN",
+    studentAy = "2026-27",
+    resultAy = "2026-27",
+    decisionAy = studentAy,
   } = {}) => {
     const collegeId = new mongoose.Types.ObjectId();
     const courseId = new mongoose.Types.ObjectId();
@@ -85,7 +88,7 @@ describe("Phase 2 — Direct Confirm Promotion & auto-approve execution", () => 
       pincode: "411001",
       admissionYear: 2024,
       currentSemester: 3,
-      currentAcademicYear: "2026-27",
+      currentAcademicYear: studentAy,
       category,
       status: "APPROVED",
     });
@@ -98,7 +101,7 @@ describe("Phase 2 — Direct Confirm Promotion & auto-approve execution", () => 
       exam_id: new mongoose.Types.ObjectId(),
       course_id: courseId,
       semester: 3,
-      academicYear: "2026-27",
+      academicYear: resultAy,
       subjects: [
         {
           subject: subjectId,
@@ -153,7 +156,7 @@ describe("Phase 2 — Direct Confirm Promotion & auto-approve execution", () => 
       college_id: collegeId,
       course_id: courseId,
       semester: 3,
-      academicYear: "2026-27",
+      academicYear: decisionAy,
       source_result_id: result._id,
       source_exam_id: result.exam_id,
       result_status: "PUBLISHED",
@@ -399,5 +402,95 @@ describe("Phase 2 — Direct Confirm Promotion & auto-approve execution", () => 
     const error = next.mock.calls[0][0];
     expect(error.statusCode).toBe(404);
     expect(error.code).toBe("NO_DECISION");
+  });
+
+  describe("Academic Year normalization and stale-decision protections during direct execution", () => {
+    it("executes promotion successfully when student/decision use full AY (2026-2027) and result uses short AY (2026-27)", async () => {
+      const { decision, collegeId, student, adminId } =
+        await createDecisionCase({
+          outcome: "PASS",
+          workflowStatus: "DRAFT",
+          studentAy: "2026-2027",
+          resultAy: "2026-27",
+          decisionAy: "2026-2027",
+        });
+
+      const req = makeReq({
+        decisionId: decision._id,
+        collegeId,
+        userId: adminId,
+      });
+      const res = mockResponse();
+      const next = jest.fn();
+
+      await executePromotionDecision(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+
+      const promotedStudent = await Student.findById(student._id);
+      expect(promotedStudent.currentSemester).toBe(4);
+      const updatedDecision = await PromotionDecision.findById(decision._id);
+      expect(updatedDecision.workflow_status).toBe("PROMOTED");
+    });
+
+    it("returns 409 STALE_PROMOTION_DECISION when result is unpublished (DRAFT)", async () => {
+      const { decision, collegeId, adminId, result } =
+        await createDecisionCase({
+          outcome: "PASS",
+          workflowStatus: "DRAFT",
+          studentAy: "2026-2027",
+          resultAy: "2026-27",
+          decisionAy: "2026-2027",
+        });
+
+      await SemesterResult.updateOne(
+        { _id: result._id },
+        { $set: { status: "DRAFT" } },
+      );
+
+      const req = makeReq({
+        decisionId: decision._id,
+        collegeId,
+        userId: adminId,
+      });
+      const res = mockResponse();
+      const next = jest.fn();
+
+      await executePromotionDecision(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      const error = next.mock.calls[0][0];
+      expect(error.statusCode).toBe(409);
+      expect(error.code).toBe("STALE_PROMOTION_DECISION");
+    });
+
+    it("returns 409 STALE_PROMOTION_DECISION when result is deleted", async () => {
+      const { decision, collegeId, adminId, result } =
+        await createDecisionCase({
+          outcome: "PASS",
+          workflowStatus: "DRAFT",
+          studentAy: "2026-2027",
+          resultAy: "2026-27",
+          decisionAy: "2026-2027",
+        });
+
+      await SemesterResult.findByIdAndDelete(result._id);
+
+      const req = makeReq({
+        decisionId: decision._id,
+        collegeId,
+        userId: adminId,
+      });
+      const res = mockResponse();
+      const next = jest.fn();
+
+      await executePromotionDecision(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      const error = next.mock.calls[0][0];
+      expect(error.statusCode).toBe(409);
+      expect(error.code).toBe("STALE_PROMOTION_DECISION");
+    });
   });
 });
