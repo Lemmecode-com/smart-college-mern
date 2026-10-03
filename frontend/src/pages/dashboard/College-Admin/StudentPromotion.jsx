@@ -5,16 +5,12 @@ import { AuthContext } from "../../../auth/AuthContext";
 import Breadcrumb from "../../../components/Breadcrumb";
 import {
   getPromotionEligibleStudents,
-  promoteStudent,
   bulkPromoteStudents,
   getCollegePromotionHistory,
   getPromotionEligibility,
   getStudentBacklogs,
   getBacklogAttempts,
   createBacklogAttempt,
-  recommendPromotionDecision,
-  approvePromotionDecision,
-  rejectPromotionDecision,
   executePromotionDecision,
 } from "../../../api/promotion";
 import { moveToAlumni } from "../../../api/alumni";
@@ -29,22 +25,20 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaSearch,
-  FaArrowUp,
   FaTimes,
-  FaRupeeSign,
   FaSyncAlt,
   FaSpinner,
   FaHistory,
   FaDollarSign,
   FaUsers,
   FaFilter,
-  FaSortAmountDown,
-  FaSortAmountUp,
   FaClipboardCheck,
   FaEye,
   FaFileAlt,
   FaInfoCircle,
   FaExclamationCircle,
+  FaArrowRight,
+  FaRupeeSign,
 } from "react-icons/fa";
 
 const PAGE_SIZE = 10;
@@ -135,13 +129,6 @@ function formatDate(value) {
   return date.toLocaleDateString();
 }
 
-function isStudentPromotable(student) {
-  if (!student) return false;
-  const feeOk = student.allInstallmentsPaid;
-  const attendanceOk = student.attendanceStatus === ATTENDANCE_STATUS.ELIGIBLE;
-  return feeOk && attendanceOk;
-}
-
 /**
  * Centralized, College Admin-friendly label maps.
  * Backend enum/code values are never rendered directly - everything goes
@@ -222,6 +209,255 @@ function formatPercent(value) {
 }
 
 /**
+ * Compact status row component for eligibility checks
+ * Shows: ✓ Specific message  |  ✗ Short reason with key value
+ */
+function renderCompactStatus({ label, passed, value, reason, message, icon }) {
+  return (
+    <div className="compact-status-row" style={{ 
+      display: "flex", 
+      alignItems: "center", 
+      gap: "10px", 
+      padding: "10px 12px",
+      background: passed ? "#f0fdf4" : "#fef2f2",
+      border: passed ? "1px solid #bbf7d0" : "1px solid #fecaca",
+      borderRadius: "8px",
+      marginBottom: "8px",
+    }}>
+      <span style={{ 
+        fontSize: "18px", 
+        color: passed ? "#059669" : "#dc2626",
+        flexShrink: 0,
+      }}>
+        {passed ? "✓" : "✗"}
+      </span>
+      <span style={{ 
+        fontWeight: 600, 
+        color: "#374151",
+        minWidth: "140px",
+        fontSize: "13px",
+      }}>
+        {label}
+      </span>
+      <span style={{ 
+        color: passed ? "#166534" : "#991b1b",
+        fontSize: "13px",
+        flex: 1,
+      }}>
+        {passed 
+          ? (message || "Requirement met")
+          : (reason || "Requirement not met")
+        }
+        {value && !passed && (
+          <span style={{ 
+            marginLeft: "8px", 
+            fontWeight: 500,
+            background: "rgba(0,0,0,0.05)",
+            padding: "2px 6px",
+            borderRadius: "4px",
+            fontSize: "12px",
+          }}>
+            {value}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Get compact status for Result/KT check
+ */
+function getResultStatus(data) {
+  if (!data) return null;
+  const outcome = data.promotion_outcome;
+  const ktCount = data.kt_count ?? 0;
+  const maxKt = data.policy_snapshot?.maxAllowedKTs;
+  const reason = data.decision_reason;
+  
+  // NO_RESULT, INCOMPLETE, AMBIGUOUS_RESULT
+  if (outcome === "NO_RESULT") {
+    return { label: "Result", passed: false, reason: "No published semester result available" };
+  }
+  if (outcome === "INCOMPLETE" || outcome === "RESULT_INCOMPLETE") {
+    return { label: "Result", passed: false, reason: "Semester result contains incomplete marks" };
+  }
+  if (outcome === "AMBIGUOUS_RESULT") {
+    return { label: "Result", passed: false, reason: "Multiple published results found" };
+  }
+  
+  // PASS - all subjects passed
+  if (outcome === "PASS") {
+    return { label: "Result", passed: true, message: "Result is clear" };
+  }
+  
+  // ATKT - failed subjects within limit
+  if (outcome === "ATKT") {
+    const value = maxKt !== undefined && maxKt !== null 
+      ? `${ktCount} KT — Allowed: ${maxKt}`
+      : `${ktCount} KT found`;
+    return { label: "KT", passed: true, message: value };
+  }
+  
+  // FAIL / BLOCKED with KT limit exceeded
+  if (reason === "KT_LIMIT_EXCEEDED" || outcome === "FAIL") {
+    const value = maxKt !== undefined && maxKt !== null
+      ? `${ktCount} KT — Allowed: ${maxKt}`
+      : `${ktCount} KT found`;
+    return { label: "KT", passed: false, value, reason: "KT limit exceeded" };
+  }
+  
+  return { label: "Result", passed: false, reason: "Result not evaluable" };
+}
+
+/**
+ * Get compact status for Attendance check
+ */
+function getAttendanceStatus(data) {
+  if (!data || !data.attendance_snapshot) return null;
+  const snap = data.attendance_snapshot;
+  const percentage = roundPercent(snap.percentage);
+  const required = roundPercent(snap.requiredPercentage ?? 75);
+  const passed = snap.passed === true;
+  const status = snap.status || (passed ? "ELIGIBLE" : "NOT_ELIGIBLE");
+  
+  if (status === "ATTENDANCE_NOT_AVAILABLE") {
+    return { 
+      label: "Attendance", 
+      passed: false, 
+      value: "Data not available",
+      reason: `Attendance data not available — ${required}% required` 
+    };
+  }
+  
+  const value = `${percentage}% — Required: ${required}%`;
+  
+  if (passed) {
+    return { label: "Attendance", passed: true, message: value };
+  }
+  
+  return { 
+    label: "Attendance", 
+    passed: false, 
+    value, 
+    reason: `Attendance below ${required}%` 
+  };
+}
+
+/**
+ * Get compact status for Fee check
+ */
+function getFeeStatus(data) {
+  if (!data || !data.fee_clearance_snapshot) return null;
+  const snap = data.fee_clearance_snapshot;
+  const totalFee = snap.totalFee ?? 0;
+  const paidAmount = snap.paidAmount ?? 0;
+  const paidPercentage = roundPercent(
+    snap.paidPercentage ?? (totalFee > 0 ? Math.round((paidAmount / totalFee) * 100) : 0)
+  );
+  const requiredPercentage = roundPercent(snap.requiredPaidPercentage ?? 100);
+  const passed = snap.passed === true;
+  
+  const value = `Paid ${paidPercentage}% — Required: ${requiredPercentage}%`;
+  
+  if (passed) {
+    return { label: "Fee", passed: true, message: value };
+  }
+  
+  return { 
+    label: "Fee", 
+    passed: false, 
+    value, 
+    reason: `Fee payment below ${requiredPercentage}%` 
+  };
+}
+
+/**
+ * Get compact status for Previous Year Backlog check
+ */
+function getBacklogStatus(data) {
+  if (!data || !data.policy_snapshot) return null;
+  const policy = data.policy_snapshot;
+  const required = policy.previousYearClearanceRequired === true;
+  const passed = policy.previousYearClearancePassed === true;
+  
+  if (!required) {
+    return { label: "Previous Backlog", passed: true, message: "Not required" };
+  }
+  
+  if (passed) {
+    return { label: "Previous Backlog", passed: true, message: "No pending backlog" };
+  }
+  
+  return { 
+    label: "Previous Backlog", 
+    passed: false, 
+    value: "Not cleared", 
+    reason: "Previous backlog not cleared" 
+  };
+}
+
+/**
+ * Get compact status for Promotion Rules
+ */
+function getPolicyStatus(data) {
+  if (!data || !data.policy_snapshot) return null;
+  const policy = data.policy_snapshot;
+  const parts = [];
+  
+  if (policy.minAttendancePercentage !== undefined && policy.minAttendancePercentage !== null) {
+    parts.push(`Attendance: ${formatPercent(policy.minAttendancePercentage)}`);
+  }
+  if (policy.maxAllowedKTs !== undefined && policy.maxAllowedKTs !== null) {
+    parts.push(`Max KT: ${policy.maxAllowedKTs}`);
+  }
+  if (policy.minimumFeePaidPercentage !== undefined && policy.minimumFeePaidPercentage !== null) {
+    parts.push(`Min Fee: ${formatPercent(policy.minimumFeePaidPercentage)}`);
+  }
+  if (policy.previousYearClearanceRequired === true) {
+    parts.push("Prev. Backlog: Required");
+  }
+  
+  const value = parts.length > 0 ? parts.join(" | ") : "Default rules";
+  
+  return { label: "Rules", passed: true, message: "Promotion rules satisfied" };
+}
+
+/**
+ * Backlog history empty-state copy.
+ *
+ * Having zero backlog records only means the BACKLOG requirement is
+ * satisfied - it never means the student is eligible for promotion.
+ * Overall promotion status comes from the eligibility decision shown above.
+ *
+ * @param {string} outcome - promotion_outcome from the eligibility decision
+ * @param {number} [currentSemester] - student's current semester (1-based)
+ * @returns {{title: string, message: string}}
+ */
+function getBacklogEmptyState(outcome, currentSemester) {
+  const isSemesterOne = currentSemester === 1;
+
+  if (isSemesterOne) {
+    return {
+      title: "No Previous Backlogs",
+      message: "This is Semester 1, so there are no previous-semester backlog records.",
+    };
+  }
+
+  if (outcome === "BLOCKED") {
+    return {
+      title: "No Previous Backlogs",
+      message: "However, promotion may still be blocked by another eligibility requirement. Please refer to the promotion decision above.",
+    };
+  }
+
+  return {
+    title: "No Previous Backlogs",
+    message: "The student has no pending backlogs from previous semesters.",
+  };
+}
+
+/**
  * Format promotion decision reason for display
  */
 function formatDecisionReason(reason) {
@@ -289,6 +525,61 @@ function getDecisionReasonMessage(data) {
 }
 
 /**
+ * Get compact reason for outcome banner
+ * Short, scannable reason for the promotion decision
+ */
+function getCompactReasonMessage(data) {
+  if (!data) return "";
+  const outcome = data.promotion_outcome;
+  const reason = data.decision_reason;
+  const kt = data.kt_count ?? 0;
+  const maxKt = data.policy_snapshot?.maxAllowedKTs;
+  const attendance = data.attendance_snapshot;
+  const fee = data.fee_clearance_snapshot;
+
+  // ATKT - short reason
+  if (outcome === "ATKT") {
+    return maxKt !== undefined && maxKt !== null
+      ? `${kt} failed subject${kt === 1 ? "" : "s"} — allowed limit: ${maxKt}.`
+      : `${kt} failed subject${kt === 1 ? "" : "s"}.`;
+  }
+
+  // PASS - short reason
+  if (outcome === "PASS") {
+    return "All requirements satisfied.";
+  }
+
+  // Blocked states - short reasons
+  if (reason === "KT_LIMIT_EXCEEDED") {
+    return maxKt !== undefined && maxKt !== null
+      ? `${kt} failed subject${kt === 1 ? "" : "s"} — allowed limit: ${maxKt}.`
+      : "KT limit exceeded.";
+  }
+
+  if (reason === "ATTENDANCE_INSUFFICIENT" && attendance) {
+    const percentage = roundPercent(attendance.percentage);
+    const required = roundPercent(attendance.requiredPercentage);
+    return `Attendance ${percentage}% — required ${required}%.`;
+  }
+
+  if (reason === "FEE_NOT_CLEARED" && fee) {
+    const paidPercent = roundPercent(fee.paidPercentage);
+    const requiredPercent = roundPercent(fee.requiredPaidPercentage ?? 100);
+    return `Fee paid ${paidPercent}% — required ${requiredPercent}%.`;
+  }
+
+  if (reason === "PREVIOUS_YEAR_BACKLOG_NOT_CLEARED") {
+    return "Previous backlog not cleared.";
+  }
+
+  if (outcome === "NO_RESULT") return "No published semester result available.";
+  if (outcome === "INCOMPLETE" || outcome === "RESULT_INCOMPLETE") return "Semester result contains incomplete marks.";
+  if (outcome === "AMBIGUOUS_RESULT") return "Multiple published results found.";
+
+  return formatDecisionReason(reason);
+}
+
+/**
  * Format promotion outcome for display
  */
 function formatOutcome(outcome) {
@@ -311,7 +602,7 @@ function formatOutcome(outcome) {
 function getOutcomeIcon(outcome) {
   const iconMap = {
     PASS: "✅",
-    ATKT: "⚠️",
+    ATKT: "✅",
     FAIL: "❌",
     INCOMPLETE: "⏳",
     NO_RESULT: "❓",
@@ -351,7 +642,7 @@ function getOutcomeDisplayLabel(outcome, workflowStatus) {
     INCOMPLETE: "Result is Incomplete",
     NO_RESULT: "Result Not Available",
     AMBIGUOUS_RESULT: "Multiple Published Results Found",
-    BLOCKED: "Promotion Blocked",
+    BLOCKED: "Promotion Currently Blocked",
   };
   return labelMap[outcome] || DECISION_REASON_LABELS[outcome] || outcome;
 }
@@ -362,7 +653,7 @@ function getOutcomeDisplayLabel(outcome, workflowStatus) {
 function getOutcomeBannerStyle(outcome) {
   const styleMap = {
     PASS: { background: "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "white" },
-    ATKT: { background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "white" },
+    ATKT: { background: "linear-gradient(135deg, #059669 0%, #047857 100%)", color: "white" },
     FAIL: { background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)", color: "white" },
     INCOMPLETE: { background: "linear-gradient(135deg, #3db5e6 0%, #1c7ed6 100%)", color: "white" },
     NO_RESULT: { background: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)", color: "white" },
@@ -468,12 +759,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [selectedStudents, setSelectedStudents] = useState([]);
-  const [showPromoteModal, setShowPromoteModal] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [promotionRemarks, setPromotionRemarks] = useState("");
-  const [overrideFeeCheck, setOverrideFeeCheck] = useState(false);
-  const [overrideAttendanceCheck, setOverrideAttendanceCheck] = useState(false);
-  const [overrideAttendanceReason, setOverrideAttendanceReason] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [promotionHistory, setPromotionHistory] = useState([]);
   const [promotedByName, setPromotedByName] = useState(user?.name || "Admin");
@@ -506,14 +791,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
   // Workflow action state
   const [actionLoading, setActionLoading] = useState(false);
-  const [showRecommendModal, setShowRecommendModal] = useState(false);
-  const [showApproveModal, setShowApproveModal] = useState(false);
-  const [showRejectModal, setShowRejectModal] = useState(false);
   const [showExecuteModal, setShowExecuteModal] = useState(false);
-  const [recommendComment, setRecommendComment] = useState("");
-  const [approveComment, setApproveComment] = useState("");
-  const [rejectReason, setRejectReason] = useState("");
-  const [rejectReasonError, setRejectReasonError] = useState("");
 
   // Bulk Result Modal State
   const [showBulkResultModal, setShowBulkResultModal] = useState(false);
@@ -809,129 +1087,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     );
   };
 
-  const handleRecommend = async () => {
-    const decisionId = eligibilityData?._id;
-    if (!decisionId) {
-      toast.error("Promotion decision not available.");
-      return;
-    }
-    setActionLoading(true);
-    try {
-      await recommendPromotionDecision(decisionId, recommendComment.trim());
-      toast.success("Promotion recommendation submitted successfully.");
-      setShowRecommendModal(false);
-      setRecommendComment("");
-      await refreshEligibility();
-    } catch (err) {
-      const statusCode = err.response?.status;
-      const errorCode = err.response?.data?.code;
-      const backendMessage = err.response?.data?.message;
-      const errorMessage = backendMessage || "Failed to submit recommendation.";
-
-      logger.error("Error recommending promotion:", statusCode, errorCode);
-      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
-        toast.error(errorMessage);
-      }
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleApprove = async () => {
-    const decisionId = eligibilityData?._id;
-    if (!decisionId) {
-      toast.error("Promotion decision not available.");
-      return;
-    }
-    setActionLoading(true);
-    try {
-      await approvePromotionDecision(decisionId, approveComment.trim());
-      toast.success("Promotion decision approved successfully.");
-      setShowApproveModal(false);
-      setApproveComment("");
-      await refreshEligibility();
-    } catch (err) {
-      const statusCode = err.response?.status;
-      const errorCode = err.response?.data?.code;
-      const backendMessage = err.response?.data?.message;
-      const errorMessage = backendMessage || "Failed to approve promotion decision.";
-
-      logger.error("Error approving promotion:", statusCode, errorCode);
-      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
-        toast.error(errorMessage);
-      }
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleReject = async () => {
-    const decisionId = eligibilityData?._id;
-    if (!decisionId) {
-      toast.error("Promotion decision not available.");
-      return;
-    }
-    const trimmedReason = rejectReason.trim();
-    if (!trimmedReason) {
-      setRejectReasonError("A rejection reason is required.");
-      return;
-    }
-    setActionLoading(true);
-    try {
-      await rejectPromotionDecision(decisionId, trimmedReason);
-      toast.success("Promotion decision rejected successfully.");
-      setShowRejectModal(false);
-      setRejectReason("");
-      setRejectReasonError("");
-      await refreshEligibility();
-    } catch (err) {
-      const statusCode = err.response?.status;
-      const errorCode = err.response?.data?.code;
-      const backendMessage = err.response?.data?.message;
-      const errorMessage = backendMessage || "Failed to reject promotion decision.";
-
-      logger.error("Error rejecting promotion:", statusCode, errorCode);
-      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
-        toast.error(errorMessage);
-      }
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const openRecommendModal = () => {
-    setRecommendComment("");
-    setShowRecommendModal(true);
-  };
-
-  const openApproveModal = () => {
-    setApproveComment("");
-    setShowApproveModal(true);
-  };
-
-  const openRejectModal = () => {
-    setRejectReason("");
-    setRejectReasonError("");
-    setShowRejectModal(true);
-  };
-
-  const isReviewableOutcome = (outcome) =>
-    outcome === "PASS" || outcome === "ATKT";
-
-  const canShowWorkflowActions = () => {
-    if (!eligibilityData) return false;
-    if (!isReviewableOutcome(eligibilityData.promotion_outcome)) return false;
-    return true;
-  };
-
-  const workflowStatus = eligibilityData?.workflow_status;
-  const showRecommend = canShowWorkflowActions() && workflowStatus === "DRAFT";
-  const showApprove = canShowWorkflowActions() &&
-    (workflowStatus === "RECOMMENDED" || workflowStatus === "UNDER_REVIEW");
-  const showReject = canShowWorkflowActions() &&
-    (workflowStatus === "RECOMMENDED" || workflowStatus === "UNDER_REVIEW");
-  const showExecute = canShowWorkflowActions() && workflowStatus === "APPROVED";
-
   const openExecuteModal = () => {
     setShowExecuteModal(true);
   };
@@ -972,6 +1127,19 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       setActionLoading(false);
     }
   };
+
+  /**
+   * Whether the current decision can be directly confirmed and promoted.
+   * True when outcome is PASS or ATKT AND the decision has not yet been promoted.
+   */
+  const isReviewableOutcome = (outcome) =>
+    outcome === "PASS" || outcome === "ATKT";
+
+  const workflowStatus = eligibilityData?.workflow_status;
+  const showConfirmPromotion =
+    eligibilityData &&
+    isReviewableOutcome(eligibilityData.promotion_outcome) &&
+    workflowStatus !== "PROMOTED";
 
   useEffect(() => {
     fetchEligibleStudents();
@@ -1045,69 +1213,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     }
   };
 
-  const openPromoteModal = (student) => {
-    setSelectedStudent(student);
-    setPromotionRemarks("");
-    setOverrideFeeCheck(false);
-    setOverrideAttendanceCheck(false);
-    setOverrideAttendanceReason("");
-    setShowPromoteModal(true);
-  };
-
-  const handlePromoteStudent = async () => {
-    try {
-      setLoading(true);
-
-      if (
-        selectedStudent.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
-        overrideAttendanceCheck &&
-        overrideAttendanceReason.trim().length < 10
-      ) {
-        toast.error("Attendance override reason must be at least 10 characters.", {
-          position: "top-right",
-          autoClose: 5000,
-        });
-        return;
-      }
-
-      const response = await promoteStudent(selectedStudent._id, {
-        remarks: promotionRemarks,
-        overrideFeeCheck,
-        overrideAttendanceCheck,
-        overrideAttendanceReason: overrideAttendanceCheck ? overrideAttendanceReason.trim() : "",
-      });
-
-      // ✅ Updated success message with year-wise info from API
-      setSuccessMessage(
-        `${selectedStudent.fullName} promoted successfully from ${selectedStudent.academicYearLabel} (Sem ${selectedStudent.currentSemester}) to Sem ${selectedStudent.currentSemester + 1}`,
-      );
-      setShowPromoteModal(false);
-      fetchEligibleStudents();
-      setTimeout(() => setSuccessMessage(""), 5000);
-      toast.success("Student promoted successfully!", {
-        position: "top-right",
-        autoClose: 4000,
-      });
-      // Warn admin if fee structure was not found for new semester
-      if (response?.promotion?.feeAssignmentWarning) {
-        toast.warn(response.promotion.feeAssignmentWarning, {
-          position: "top-right",
-          autoClose: 8000,
-        });
-      }
-    } catch (err) {
-      // Show specific error message
-      const errorMessage = err.response?.data?.message || err.message || "Failed to promote student.";
-      setError(errorMessage);
-      toast.error(errorMessage, {
-        position: "top-right",
-        autoClose: 5000,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleMoveToAlumni = async () => {
     try {
       setLoading(true);
@@ -1144,51 +1249,10 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
   const handleBulkPromote = async () => {
     try {
-      // Check if any selected students are ineligible before proceeding
-      const ineligibleStudents = selectedStudents.filter((id) => {
-        const student = students.find((s) => s._id === id);
-        if (!student) return false;
-        // Check fee eligibility
-        const feeIneligible = !student.allInstallmentsPaid && !overrideFeeCheck;
-        // Check attendance eligibility
-        const attendanceIneligible = 
-          student.attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE ||
-          (student.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE && !overrideAttendanceCheck);
-        return feeIneligible || attendanceIneligible;
-      });
-
-      if (ineligibleStudents.length > 0) {
-        const ineligibleCount = ineligibleStudents.length;
-        const totalSelected = selectedStudents.length;
-        
-        toast.error(
-          `${ineligibleCount} of ${totalSelected} selected student(s) are not eligible for promotion. ` +
-          `Please deselect students with pending fees or insufficient attendance, or use override options.`,
-          {
-            position: "top-right",
-            autoClose: 8000,
-          }
-        );
-        return;
-      }
-
       setLoading(true);
-      if (
-        overrideAttendanceCheck &&
-        overrideAttendanceReason.trim().length < 10
-      ) {
-        toast.error("Attendance override reason must be at least 10 characters.", {
-          position: "top-right",
-          autoClose: 5000,
-        });
-        return;
-      }
 
       const res = await bulkPromoteStudents({
         studentIds: selectedStudents,
-        overrideFeeCheck,
-        overrideAttendanceCheck,
-        overrideAttendanceReason: overrideAttendanceCheck ? overrideAttendanceReason.trim() : "",
       });
       const successCount = res.results.success.length;
       const failCount = res.results.failed ? res.results.failed.length : 0;
@@ -1245,9 +1309,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   ).length;
   const pendingCount = students.filter(
     (s) => s.feeStatus !== "FULLY_PAID",
-  ).length;
-  const selectedAttendanceNotAvailableCount = selectedStudents.filter((id) =>
-    students.find((student) => student._id === id)?.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
   ).length;
 
   const getFeeStatusBadge = (status) => {
@@ -1371,43 +1432,8 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
             disabled={loading}
             className="btn btn-primary"
           >
-            <FaArrowUp /> {loading ? "Processing..." : "Promote All Selected"}
+            <FaGraduationCap /> {loading ? "Processing..." : "Promote All Selected"}
           </button>
-          {!admissionOfficerMode && (
-            <label className="custom-checkbox-label">
-              <input
-                type="checkbox"
-                checked={overrideFeeCheck}
-                onChange={(e) => setOverrideFeeCheck(e.target.checked)}
-                className="custom-checkbox"
-              />
-              <span>Override fee check</span>
-            </label>
-          )}
-          {selectedAttendanceNotAvailableCount > 0 && (
-            <div className="bulk-action-overrides">
-              <label className="custom-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={overrideAttendanceCheck}
-                  onChange={(e) => setOverrideAttendanceCheck(e.target.checked)}
-                  className="custom-checkbox"
-                />
-                <span>Override attendance check for {selectedAttendanceNotAvailableCount} student(s) with no attendance records</span>
-              </label>
-              {overrideAttendanceCheck && (
-                <input
-                  type="text"
-                  value={overrideAttendanceReason}
-                  onChange={(e) => setOverrideAttendanceReason(e.target.value)}
-                  className="form-control"
-                  placeholder="Attendance override reason (minimum 10 characters)"
-                  minLength={10}
-                  required
-                />
-              )}
-            </div>
-          )}
         </div>
       )}
 
@@ -1830,27 +1856,15 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                           <div className="d-flex" style={{ gap: "8px" }}>
                             <button
                               onClick={() => checkEligibility(student)}
-                              className="btn btn-sm btn-info"
-                              disabled={eligibilityLoading}
-                              title="Check promotion eligibility and view decision details"
-                            >
-                              <FaClipboardCheck /> Eligibility
-                            </button>
-                            <button
-                              onClick={() => openPromoteModal(student)}
-                              className={`btn btn-sm ${
-                                student.isFinalYear
-                                  ? "btn-secondary disabled"
-                                  : "btn-primary"
-                              }`}
-                              disabled={student.isFinalYear}
+                              className="btn btn-sm btn-primary"
+                              disabled={eligibilityLoading || student.isFinalYear}
                               title={
                                 student.isFinalYear
                                   ? "Student in final year - use Move to Alumni"
-                                  : "Click to promote"
+                                  : "Check promotion eligibility and promote student"
                               }
                             >
-                              <FaArrowUp /> Promote
+                              <FaClipboardCheck /> Promotion
                             </button>
                             {student.isFinalYear && student.isAlumniEligible && (
                               <button
@@ -1890,207 +1904,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       )}
 
       {/* Promote Modal */}
-      {showPromoteModal && selectedStudent && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h4 className="modal-title">
-                <FaGraduationCap /> Promote Student
-              </h4>
-              <button
-                onClick={() => setShowPromoteModal(false)}
-                className="modal-close"
-              >
-                <FaTimes />
-              </button>
-            </div>
-            <div className="modal-body">
-              {/* Student Info */}
-              <div className="student-info-card">
-                <div className="student-name">{selectedStudent.fullName}</div>
-                <div className="student-email">{selectedStudent.email}</div>
-                <div className="promotion-info">
-                  <span className="badge badge-info">
-                    {selectedStudent.academicYearLabel}
-                    (Sem {selectedStudent.currentSemester}) →
-                    {selectedStudent.nextAcademicYearLabel || `Sem ${selectedStudent.currentSemester + 1}`}
-                  </span>
-                  <span
-                    className={`badge ${getFeeStatusBadge(selectedStudent.feeStatus)}`}
-                  >
-                    {selectedStudent.feeStatus.replace("_", " ")}
-                  </span>
-                </div>
-              </div>
-
-              {/* Fee Details */}
-              <div className="fee-details">
-                <div className="fee-row">
-                  <span className="fee-label">Total Fee:</span>
-                  <span className="fee-value">
-                    ₹
-                    {selectedStudent.fee?.totalFee ||
-                      selectedStudent.totalFee ||
-                      0}
-                  </span>
-                </div>
-                <div className="fee-row">
-                  <span className="fee-label">Paid Amount:</span>
-                  <span
-                    className={`fee-value ${
-                      (selectedStudent.fee?.paidAmount || 0) >=
-                      (selectedStudent.fee?.totalFee ||
-                        selectedStudent.totalFee ||
-                        0)
-                        ? "text-success"
-                        : ""
-                    }`}
-                  >
-                    ₹
-                    {selectedStudent.fee?.paidAmount ||
-                      selectedStudent.paidAmount ||
-                      0}
-                  </span>
-                </div>
-                {selectedStudent.pendingAmount > 0 && (
-                  <div className="fee-row">
-                    <span className="fee-label">Pending:</span>
-                    <span className="fee-value text-danger">
-                      ₹{selectedStudent.pendingAmount}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="attendance-details">
-                <div className="attendance-row">
-                  <span className="attendance-label">Attendance Percentage:</span>
-                  <span className="attendance-value fw-bold">
-                    {selectedStudent.attendancePercentage ?? 0}%
-                  </span>
-                </div>
-                <div className="attendance-row">
-                  <span className="attendance-label">Attendance Status:</span>
-                  <span
-                    className={`badge ${getAttendanceStatusBadge(selectedStudent.attendanceStatus)}`}
-                  >
-                    {formatStatus(selectedStudent.attendanceStatus)}
-                  </span>
-                </div>
-                {selectedStudent.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE && (
-                  <div className="attendance-override">
-                    <label className="custom-checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={overrideAttendanceCheck}
-                        onChange={(e) => setOverrideAttendanceCheck(e.target.checked)}
-                        className="custom-checkbox"
-                      />
-                      <span>Override Attendance Check</span>
-                    </label>
-                    <p className="alert-text" style={{ marginTop: "8px" }}>
-                      Attendance Override Reason is required. Minimum 10 characters.
-                    </p>
-                    {overrideAttendanceCheck && (
-                      <input
-                        type="text"
-                        value={overrideAttendanceReason}
-                        onChange={(e) => setOverrideAttendanceReason(e.target.value)}
-                        className="form-control"
-                        placeholder="Reason (minimum 10 characters)"
-                        minLength={10}
-                        required
-                        aria-label="Attendance override reason"
-                      />
-                    )}
-                    {overrideAttendanceCheck && overrideAttendanceReason.trim().length > 0 && overrideAttendanceReason.trim().length < 10 && (
-                      <p className="alert-text text-danger" style={{ marginTop: "8px" }}>
-                        Attendance override reason must be at least 10 characters.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Promoted By */}
-              <div className="promoted-by-info">
-                <div className="info-row">
-                  <span className="info-label">Promoted By:</span>
-                  <span className="info-value">{promotedByName}</span>
-                </div>
-                <div className="info-row">
-                  <span className="info-label">Promotion Date:</span>
-                  <span className="info-value">
-                    {new Date().toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-
-              {/* Remarks */}
-              <div className="form-group">
-                <label className="form-label">Remarks (Optional)</label>
-                <textarea
-                  value={promotionRemarks}
-                  onChange={(e) => setPromotionRemarks(e.target.value)}
-                  rows={2}
-                  className="form-control"
-                  placeholder="Add any notes..."
-                />
-              </div>
-
-              {/* Override Checkbox - College Admin only */}
-              {!admissionOfficerMode && !selectedStudent.allInstallmentsPaid && (
-                <div className="alert alert-warning">
-                  <label className="custom-checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={overrideFeeCheck}
-                      onChange={(e) => setOverrideFeeCheck(e.target.checked)}
-                      className="custom-checkbox"
-                    />
-                    <span>Override fee check</span>
-                  </label>
-                  <p className="alert-text">
-                    ⚠️ Promote student despite pending fees of ₹
-                    {selectedStudent.pendingAmount}
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button
-                onClick={handlePromoteStudent}
-                disabled={
-                  loading ||
-                  !selectedStudent ||
-                  (!selectedStudent.allInstallmentsPaid && !overrideFeeCheck) ||
-                  selectedStudent.attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE ||
-                  (selectedStudent.attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
-                    (!overrideAttendanceCheck || overrideAttendanceReason.trim().length < 10))
-                }
-                className="btn btn-primary"
-              >
-                {loading ? (
-                  <>
-                    <FaSpinner className="spinner-icon" /> Processing...
-                  </>
-                ) : (
-                  <>
-                    <FaCheckCircle /> Confirm Promotion
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setShowPromoteModal(false)}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Move to Alumni Modal */}
       {showAlumniModal && alumniStudent && (
         <div className="modal-overlay">
@@ -2177,7 +1990,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         </div>
       )}
 
-      {/* Eligibility Decision Modal */}
+      {/* Unified Promotion Modal */}
       {showEligibilityModal && eligibilityStudent && (
         <div className="modal-overlay" onClick={() => setShowEligibilityModal(false)}>
           <div
@@ -2187,7 +2000,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           >
             <div className="modal-header">
               <h4 className="modal-title">
-                <FaClipboardCheck /> Student Promotion Eligibility
+                <FaClipboardCheck /> Student Promotion
               </h4>
               <button
                 onClick={() => {
@@ -2206,14 +2019,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
               {eligibilityLoading ? (
                 <div className="loading-container">
                   <FaSpinner className="spinner-icon" />
-                  <p>Checking promotion eligibility...</p>
+                  <p>Loading promotion details...</p>
                 </div>
               ) : eligibilityError ? (
                 <div className="alert alert-danger">
                   <FaExclamationCircle />
                   <div>
                     <p className="alert-text">
-                      <strong>Unable to check promotion eligibility:</strong>{" "}
+                      <strong>Unable to load promotion details:</strong>{" "}
                       {formatErrorCode(eligibilityError.errorCode) || eligibilityError.message}
                     </p>
                     {eligibilityError.message && eligibilityError.errorCode && (
@@ -2237,6 +2050,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                         Course: {eligibilityStudent.course_id?.name || "N/A"}
                       </span>
                     </div>
+                    {eligibilityStudent.nextAcademicYearLabel && (
+                      <div className="promotion-info" style={{ marginTop: "8px" }}>
+                        <span className="badge badge-success">
+                          Next: {eligibilityStudent.nextAcademicYearLabel} (Sem {eligibilityStudent.currentSemester + 1})
+                        </span>
+                      </div>
+                    )}
                   </div>
 
 {/* Outcome Badge - Improved UX */}
@@ -2251,7 +2071,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                           </div>
                           <div className="outcome-reason">
                             <div>
-                              <strong>Reason:</strong> {getDecisionReasonMessage(eligibilityData)}
+                              <strong>Reason:</strong> {getCompactReasonMessage(eligibilityData)}
                             </div>
                             {eligibilityData.workflow_status && eligibilityData.workflow_status !== eligibilityData.promotion_outcome && (
                               <span className="workflow-badge">
@@ -2261,438 +2081,92 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                           </div>
                        </div>
 <div className="outcome-actions">
-                          {showRecommend && (
+                          {showConfirmPromotion && (
                             <button
-                              onClick={openRecommendModal}
-                              className="btn btn-sm btn-outline-light"
+                              onClick={openExecuteModal}
+                              className="btn btn-sm btn-confirm-promotion"
                               disabled={actionLoading}
-                              title="Sends this eligibility decision to the College Admin for approval. It does not promote the student yet."
+                              id="confirm-promotion-btn"
+                              title={`Promote ${eligibilityStudent?.fullName} from Sem ${eligibilityStudent?.currentSemester} to Sem ${(eligibilityStudent?.currentSemester || 0) + 1}`}
                             >
-                              <FaClipboardCheck className="mr-1" /> Recommend for Promotion
+                              <FaArrowRight className="mr-1" /> Confirm Promotion
                             </button>
                           )}
-                         {showApprove && (
-                           <button onClick={openApproveModal} className="btn btn-sm btn-light" disabled={actionLoading}>
-                             <FaCheckCircle className="mr-1" /> Approve
-                           </button>
-                         )}
-                         {showReject && (
-                           <button onClick={openRejectModal} className="btn btn-sm btn-outline-light" disabled={actionLoading}>
-                             <FaTimes className="mr-1" /> Reject
-                           </button>
-                         )}
-                         {showExecute && (
-                           <button onClick={openExecuteModal} className="btn btn-sm btn-light" disabled={actionLoading}>
-                             <FaArrowUp className="mr-1" /> Execute Promotion
-                           </button>
-                         )}
                        </div>
                      </div>
                    </div>
 
-                  {/* Decision Details Grid */}
-                  <div className="decision-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginTop: "20px" }}>
-                    
-                    {/* ATKT Information */}
-                    {eligibilityData.promotion_outcome === "ATKT" && (
-                      <div className="decision-card atkt-card">
-                        <div className="decision-card-header">
-                          <FaExclamationTriangle style={{ color: "#f59e0b" }} />
-                          <h5 style={{ margin: 0, color: "#92400e" }}>ATKT / Backlog Details</h5>
-                        </div>
-                        <div className="decision-card-body">
-                          <div className="detail-row">
-                            <span className="detail-label">Failed Subjects (KT):</span>
-                            <span className="detail-value fw-bold" style={{ fontSize: "18px", color: "#f59e0b" }}>
-                              {eligibilityData.kt_count ?? "Not Available"}
-                            </span>
-                          </div>
-                          {eligibilityData.policy_snapshot?.maxAllowedKTs !== undefined && eligibilityData.policy_snapshot?.maxAllowedKTs !== null && (
-                            <div className="detail-row">
-                              <span className="detail-label">Maximum Failed Subjects Allowed:</span>
-                              <span className="detail-value">{eligibilityData.policy_snapshot?.maxAllowedKTs}</span>
-                            </div>
-                          )}
-                          {eligibilityData.failed_subject_ids && eligibilityData.failed_subject_ids.length > 0 && (
-                            <div className="detail-row">
-                              <span className="detail-label">Failed Subjects:</span>
-                              <div className="detail-value">
-                                <ul style={{ margin: "8px 0 0 0", paddingLeft: "20px" }}>
-                                  {eligibilityData.failed_subject_ids.map((subj, idx) => {
-                                    const subjectName =
-                                      typeof subj === "string" ? subj : subj?.name || "";
-                                    const subjectCode =
-                                      typeof subj === "string" ? "" : subj?.code || "";
-                                    if (!subjectName && !subjectCode) {
-                                      return (
-                                        <li key={idx} style={{ fontSize: "13px" }}>
-                                          {String(subj)}
-                                        </li>
-                                      );
-                                    }
-                                    return (
-                                      <li key={idx} style={{ fontSize: "13px" }}>
-                                        {subjectCode && (
-                                          <span className="subject-code" style={{ marginRight: "6px" }}>
-                                            {subjectCode}
-                                          </span>
-                                        )}
-                                        <span>{subjectName || subjectCode}</span>
-                                      </li>
-                                    );
-                                  })}
-                                </ul>
-                              </div>
-                            </div>
-                          )}
-                          {eligibilityData.backlog_ids && eligibilityData.backlog_ids.length > 0 && (
-                            <div className="detail-row">
-                              <span className="detail-label">Backlog Records:</span>
-                              <span className="detail-value">
-                                {eligibilityData.backlog_ids.length} backlog record{eligibilityData.backlog_ids.length === 1 ? "" : "s"}
-                                <span
-                                  className="text-muted"
-                                  style={{ fontSize: "11px", display: "block", marginTop: "4px" }}
-                                >
-                                  See Backlog Details table below for subject-level information
-                                </span>
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
+{/* Compact Eligibility Status */}
+                    <div style={{ marginTop: "16px" }}>
+                      <h5 style={{ margin: "0 0 12px 0", color: "#0f3a4a", fontSize: "14px", fontWeight: 600 }}>
+                        Eligibility Checks
+                      </h5>
+                      {(() => {
+                        const rows = [];
+                        const resultStatus = getResultStatus(eligibilityData);
+                        if (resultStatus) rows.push(renderCompactStatus(resultStatus));
+                        
+                        const attendanceStatus = getAttendanceStatus(eligibilityData);
+                        if (attendanceStatus) rows.push(renderCompactStatus(attendanceStatus));
+                        
+                        const feeStatus = getFeeStatus(eligibilityData);
+                        if (feeStatus) rows.push(renderCompactStatus(feeStatus));
+                        
+                        const backlogStatus = getBacklogStatus(eligibilityData);
+                        if (backlogStatus) rows.push(renderCompactStatus(backlogStatus));
+                        
+                        const policyStatus = getPolicyStatus(eligibilityData);
+                        if (policyStatus) rows.push(renderCompactStatus(policyStatus));
+                        
+                        return rows;
+                      })()}
+                    </div>
 
-                    {/* Attendance Eligibility - Improved UX */}
-                    {eligibilityData.attendance_snapshot && (() => {
-                      const snap = eligibilityData.attendance_snapshot;
-                      const percentage = roundPercent(snap.percentage);
-                      const required = roundPercent(snap.requiredPercentage ?? 75);
-                      const passed = snap.passed === true;
-                      const status = snap.status || (passed ? "ELIGIBLE" : "NOT_ELIGIBLE");
-                      const isOverride = snap.overridden === true;
-
-                      return (
-                        <div className="decision-card attendance-snapshot-card">
-                          <div className="decision-card-header">
-                            <FaInfoCircle style={{ color: "#3db5e6" }} />
-                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Attendance Eligibility</h5>
-                            <span className={`badge ${passed ? "badge-success" : "badge-danger"}`}>
-                              {ATTENDANCE_STATUS_LABELS[status] || "Requirement Not Met"}
-                            </span>
-                          </div>
-                          <div className="decision-card-body">
-                            {/* Progress Bar */}
-                            <div className="attendance-progress-section">
-                              <div className="progress-header">
-                                <span className="progress-label">Student Attendance</span>
-                                <span className="progress-value">{percentage}%</span>
-                              </div>
-                              <div className="progress-bar-container">
-                                <div 
-                                  className="progress-bar-fill"
-                                  style={{ 
-                                    width: `${Math.min(percentage, 100)}%`,
-                                    background: passed 
-                                      ? "linear-gradient(90deg, #059669 0%, #10b981 100%)"
-                                      : "linear-gradient(90deg, #ef4444 0%, #f87171 100%)"
-                                  }}
-                                ></div>
-                              </div>
-                              <div className="progress-markers">
-                                <span className="marker current">Student Attendance: {percentage}%</span>
-                                <span className="marker required">Minimum Required: {required}%</span>
-                              </div>
-                            </div>
-
-                            {/* Details Grid */}
-                            <div className="attendance-details-grid">
-                              <div className="detail-item">
-                                <span className="detail-label">Sessions Considered</span>
-                                <span className="detail-value">{snap.totalSessions ?? "Not Available"}</span>
-                              </div>
-                              <div className="detail-item">
-                                <span className="detail-label">Attendance Override</span>
-                                <span className={`detail-value ${isOverride ? "override-yes" : "override-no"}`}>
-                                  {formatBooleanLabel(snap.overridden, { applied: "Applied", notApplied: "Not Applied" })}
-                                </span>
-                              </div>
-                              {isOverride && snap.overrideReason && (
-                                <div className="detail-item override-reason" style={{ gridColumn: "1 / -1" }}>
-                                  <span className="detail-label">Override Reason</span>
-                                  <span className="detail-value">{snap.overrideReason}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Status Message */}
-                            <div className={`attendance-status-message ${passed ? "passed" : "failed"}`}>
-                              {status === "ATTENDANCE_NOT_AVAILABLE" ? (
-                                <>
-                                  <FaExclamationTriangle style={{ marginRight: "8px" }} />
-                                  Attendance data is not available for this student. A minimum of {required}% attendance is required for promotion.
-                                </>
-                              ) : passed ? (
-                                <>
-                                  <FaCheckCircle style={{ marginRight: "8px" }} />
-                                  Attendance requirement met. The student has {percentage}% attendance against the required {required}%.
-                                </>
-                              ) : (
-                                <>
-                                  <FaExclamationTriangle style={{ marginRight: "8px" }} />
-                                  Attendance requirement not met. The student has {percentage}% attendance, but {required}% is required. Shortfall of {Math.max(required - percentage, 0)}%.
-                                </>
-                              )}
-                              {isOverride && (
-                                <div className="override-notice">
-                                  <FaInfoCircle style={{ marginRight: "6px", fontSize: "14px" }} />
-                                  Attendance check was overridden. {snap.overrideReason && `Reason: ${snap.overrideReason}`}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Fee Eligibility - Improved UX */}
-                    {eligibilityData.fee_clearance_snapshot && (() => {
-                      const snap = eligibilityData.fee_clearance_snapshot;
-                      const totalFee = snap.totalFee ?? 0;
-                      const paidAmount = snap.paidAmount ?? 0;
-                      const pendingAmount = snap.pendingAmount ?? 0;
-                      const requiredClearance = snap.requiredClearance !== false;
-                      const cleared = snap.cleared === true;
-                      const passed = snap.passed === true;
-                      const status = snap.status || (cleared ? "FULLY_PAID" : "PARTIALLY_PAID");
-                      const isOverride = snap.overridden === true;
-                      const paidPercentage = roundPercent(
-                        snap.paidPercentage ??
-                          (totalFee > 0 ? Math.round((paidAmount / totalFee) * 100) : 0),
-                      );
-                      const requiredPercentage = roundPercent(snap.requiredPaidPercentage ?? 100);
-                      const formatCurrency = (amount) => {
-                        if (amount === null || amount === undefined) return "-";
-                        return new Intl.NumberFormat("en-IN", {
-                          style: "currency",
-                          currency: "INR",
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        }).format(amount);
-                      };
-
-                      return (
-                        <div className="decision-card fee-snapshot-card">
-                          <div className="decision-card-header">
-                            <FaDollarSign style={{ color: "#059669" }} />
-                            <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Fee Eligibility</h5>
-                            <span className={`badge ${passed ? "badge-success" : "badge-warning"}`}>
-                              {FEE_STATUS_LABELS[status] || "Requirement Not Met"}
-                            </span>
-                          </div>
-                          <div className="decision-card-body">
-                            {/* Progress Bar */}
-                            <div className="fee-progress-section">
-                              <div className="progress-header">
-                                <span className="progress-label">Paid Percentage</span>
-                                <span className="progress-value">{paidPercentage}%</span>
-                              </div>
-                              <div className="progress-bar-container">
-                                <div 
-                                  className="progress-bar-fill"
-                                  style={{ 
-                                    width: `${Math.min(paidPercentage, 100)}%`,
-                                    background: passed 
-                                      ? "linear-gradient(90deg, #059669 0%, #10b981 100%)"
-                                      : "linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%)"
-                                  }}
-                                ></div>
-                              </div>
-                              <div className="progress-markers">
-                                <span className="marker paid">Amount Paid: {formatCurrency(paidAmount)}</span>
-                                <span className="marker total">Total Fee: {formatCurrency(totalFee)}</span>
-                              </div>
-                            </div>
-
-                            {/* Details Grid */}
-                            <div className="fee-details-grid">
-                              <div className="detail-item highlight">
-                                <span className="detail-label">Total Fee</span>
-                                <span className="detail-value">{formatCurrency(totalFee)}</span>
-                              </div>
-                              <div className="detail-item highlight">
-                                <span className="detail-label">Amount Paid</span>
-                                <span className="detail-value paid-amount">{formatCurrency(paidAmount)}</span>
-                              </div>
-                              <div className="detail-item highlight">
-                                <span className="detail-label">Amount Pending</span>
-                                <span className="detail-value pending-amount">{formatCurrency(pendingAmount)}</span>
-                              </div>
-                              <div className="detail-item">
-                                <span className="detail-label">Minimum Required</span>
-                                <span className="detail-value">{requiredPercentage}%</span>
-                              </div>
-                              <div className="detail-item">
-                                <span className="detail-label">Fee Requirement</span>
-                                <span className={`detail-value ${passed ? "clearance-yes" : "clearance-no"}`}>
-                                  {passed ? "Requirement Met" : "Requirement Not Met"}
-                                </span>
-                              </div>
-                              <div className="detail-item">
-                                <span className="detail-label">Fee Override</span>
-                                <span className={`detail-value ${isOverride ? "override-yes" : "override-no"}`}>
-                                  {formatBooleanLabel(snap.overridden, { applied: "Applied", notApplied: "Not Applied" })}
-                                </span>
-                              </div>
-                              {isOverride && snap.overrideReason && (
-                                <div className="detail-item override-reason" style={{ gridColumn: "1 / -1" }}>
-                                  <span className="detail-label">Override Reason</span>
-                                  <span className="detail-value">{snap.overrideReason}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Status Message */}
-                            <div className={`fee-status-message ${passed ? "passed" : "failed"}`}>
-                              {passed ? (
-                                <>
-                                  <FaCheckCircle style={{ marginRight: "8px" }} />
-                                  Requirement Met. The student has paid {paidPercentage}% of the total fee, meeting the {requiredPercentage}% required for promotion.
-                                </>
-                              ) : (
-                                <>
-                                  <FaExclamationTriangle style={{ marginRight: "8px" }} />
-                                  Minimum Fee Payment Requirement Not Met. The student has paid {paidPercentage}%, but {requiredPercentage}% is required for promotion. Pending amount is {formatCurrency(pendingAmount)}.
-                                  {!requiredClearance && " Note: fee clearance is not mandatory for this promotion."}
-                                </>
-                              )}
-                              {isOverride && (
-                                <div className="override-notice">
-                                  <FaInfoCircle style={{ marginRight: "6px", fontSize: "14px" }} />
-                                  Fee check was overridden. {snap.overrideReason && `Reason: ${snap.overrideReason}`}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Promotion Rules Applied - Improved UX */}
-                    {eligibilityData.policy_snapshot && (
-                      <div className="decision-card policy-snapshot-card">
-                        <div className="decision-card-header">
-                          <FaFileAlt style={{ color: "#9C27B0" }} />
-                          <h5 style={{ margin: 0, color: "#0f3a4a" }}>Promotion Rules Applied</h5>
-                          <span className="badge badge-secondary" style={{ fontSize: "11px", fontWeight: "500" }}>
-                            Rule Set Version: {formatDate(eligibilityData.policy_version)}
-                          </span>
-                        </div>
-                        <div className="decision-card-body">
-                          <div className="policy-snapshot-grid">
-                            {/* Min Attendance */}
-                            <div className="policy-snapshot-item">
-                              <div className="policy-icon attendance">
-                                <FaUsers style={{ fontSize: "18px" }} />
-                              </div>
-                              <div className="policy-content">
-                                <span className="policy-label">Minimum Attendance</span>
-                                <span className="policy-value">
-                                  {eligibilityData.policy_snapshot.minAttendancePercentage !== undefined && eligibilityData.policy_snapshot.minAttendancePercentage !== null
-                                    ? formatPercent(eligibilityData.policy_snapshot.minAttendancePercentage)
-                                    : <span className="text-muted">Not configured</span>}
-                                </span>
-                                <span className="policy-desc">Student must meet this attendance %</span>
-                              </div>
-                            </div>
-
-                            {/* Max Allowed KTs */}
-                            <div className="policy-snapshot-item">
-                              <div className="policy-icon kt">
-                                <FaExclamationTriangle style={{ fontSize: "18px" }} />
-                              </div>
-                              <div className="policy-content">
-                                <span className="policy-label">Maximum Failed Subjects</span>
-                                <span className="policy-value">
-                                  {eligibilityData.policy_snapshot.maxAllowedKTs !== undefined && eligibilityData.policy_snapshot.maxAllowedKTs !== null
-                                    ? eligibilityData.policy_snapshot.maxAllowedKTs
-                                    : <span className="text-muted">Not configured</span>}
-                                </span>
-                                <span className="policy-desc">Maximum backlogs permitted for promotion</span>
-                              </div>
-                            </div>
-
-                            {/* Minimum Fee Paid */}
-                            <div className="policy-snapshot-item">
-                              <div className="policy-icon fee">
-                                <FaRupeeSign style={{ fontSize: "18px" }} />
-                              </div>
-                              <div className="policy-content">
-                                <span className="policy-label">Minimum Fee Paid</span>
-                                <span className="policy-value">
-                                  {eligibilityData.policy_snapshot.minimumFeePaidPercentage !== undefined && eligibilityData.policy_snapshot.minimumFeePaidPercentage !== null
-                                    ? formatPercent(eligibilityData.policy_snapshot.minimumFeePaidPercentage)
-                                    : <span className="text-muted">Not configured</span>}
-                                </span>
-                                <span className="policy-desc">Share of the total fee that must be paid</span>
-                              </div>
-                            </div>
-
-                            {/* Previous Year Backlog Requirement */}
-                            <div className="policy-snapshot-item">
-                              <div className="policy-icon backlog">
-                                <FaClipboardCheck style={{ fontSize: "18px" }} />
-                              </div>
-                              <div className="policy-content">
-                                <span className="policy-label">Previous Year Backlog Requirement</span>
-                                <span className="policy-value">
-                                  {formatBooleanLabel(eligibilityData.policy_snapshot.previousYearClearanceRequired, {
-                                    applied: "Required - all previous year backlogs must be cleared",
-                                    notApplied: "Not Applicable",
-                                  })}
-                                </span>
-                                {eligibilityData.policy_snapshot.previousYearClearancePassed !== undefined && eligibilityData.policy_snapshot.previousYearClearancePassed !== null && (
-                                  <span className="policy-desc">
-                                    Previous year backlogs:{" "}
-                                    {formatBooleanLabel(eligibilityData.policy_snapshot.previousYearClearancePassed, {
-                                      applied: "Cleared",
-                                      notApplied: "Not Cleared",
-                                    })}
+                    {/* Failed Subjects List (only when ATKT or blocked) */}
+                    {eligibilityData.failed_subject_ids && eligibilityData.failed_subject_ids.length > 0 && (
+                      <div style={{ marginTop: "16px" }}>
+                        <h5 style={{ margin: "0 0 8px 0", color: "#0f3a4a", fontSize: "14px", fontWeight: 600 }}>
+                          Failed Subjects
+                        </h5>
+                        <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "13px", color: "#374151" }}>
+                          {eligibilityData.failed_subject_ids.map((subj, idx) => {
+                            const subjectName =
+                              typeof subj === "string" ? subj : subj?.name || "";
+                            const subjectCode =
+                              typeof subj === "string" ? "" : subj?.code || "";
+                            if (!subjectName && !subjectCode) {
+                              return (
+                                <li key={idx}>{String(subj)}</li>
+                              );
+                            }
+                            return (
+                              <li key={idx}>
+                                {subjectCode && (
+                                  <span style={{ marginRight: "6px", color: "#6b7280", fontSize: "12px" }}>
+                                    {subjectCode}
                                   </span>
                                 )}
-                              </div>
-                            </div>
-
-                            {/* Scoped Semesters */}
-                            <div className="policy-snapshot-item">
-                              <div className="policy-icon semester">
-                                <FaGraduationCap style={{ fontSize: "18px" }} />
-                              </div>
-                              <div className="policy-content">
-                                <span className="policy-label">Applicable Semester</span>
-                                <span className="policy-value">
-                                  {eligibilityData.policy_snapshot.scopedSemesters && eligibilityData.policy_snapshot.scopedSemesters.length > 0
-                                    ? eligibilityData.policy_snapshot.scopedSemesters.map((s, i) => (
-                                        <span key={i} className="semester-chip">Sem {s}</span>
-                                      ))
-                                    : <span className="text-muted">All Semesters</span>}
-                                </span>
-                                <span className="policy-desc">This rule set applies to all semesters unless specific semesters are listed</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                                <span>{subjectName || subjectCode}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </div>
                     )}
 
-{/* Backlog Details (Step 5 - read-only backlog management) - Improved UX */}
+                    {/* Backlog Details (Step 5 - read-only backlog management) - Improved UX */}
                     <div className="decision-card backlog-card" style={{ marginTop: "16px" }}>
                       <div className="decision-card-header">
                         <FaClipboardCheck style={{ color: "#3db5e6" }} />
-                        <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Backlog Details (ATKT)</h5>
+                        <h5 style={{ margin: 0, color: "#0f3a4a", flex: 1 }}>Backlog History</h5>
+                        <span className="text-muted" style={{ fontSize: "11px", fontStyle: "italic" }}>
+                          Previously carried-forward subjects
+                        </span>
                         <div className="d-flex align-items-center gap-2">
                           <span className={`badge ${backlogs.length > 0 ? "badge-info" : "badge-success"}`} style={{ fontSize: "12px" }}>
-                            {backlogs.length} record{backlogs.length === 1 ? "" : "s"}
+                            {backlogs.length === 0
+                              ? "NO BACKLOGS"
+                              : `${backlogs.length} BACKLOG${backlogs.length === 1 ? "" : "S"}`}
                           </span>
                           {backlogs.length > 0 && (
                             <span className="backlog-summary text-muted" style={{ fontSize: "11px" }}>
@@ -2700,33 +2174,41 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                                 const open = backlogs.filter(b => b.status === "OPEN").length;
                                 const attempted = backlogs.filter(b => b.status === "ATTEMPTED").length;
                                 const cleared = backlogs.filter(b => b.status === "CLEARED").length;
-                                return `Open: ${open} | Attempted: ${attempted} | Cleared: ${cleared}`;
+                                const cancelled = backlogs.filter(b => b.status === "CANCELLED").length;
+                                const parts = [];
+                                if (open > 0) parts.push(`Open: ${open}`);
+                                if (attempted > 0) parts.push(`Attempted: ${attempted}`);
+                                if (cleared > 0) parts.push(`Cleared: ${cleared}`);
+                                if (cancelled > 0) parts.push(`Cancelled: ${cancelled}`);
+                                return parts.join(" | ");
                               })()}
                             </span>
                           )}
                         </div>
                       </div>
                       <div className="decision-card-body">
-                        {/* Status filter */}
-                        <div className="backlog-filter" style={{ marginBottom: "16px" }}>
-                          <div className="filter-group" style={{ flexWrap: "wrap", gap: "8px" }}>
-                            {["ALL", "OPEN", "ATTEMPTED", "CLEARED"].map((status) => (
-                              <button
-                                key={status}
-                                onClick={() => setBacklogStatusFilter(status)}
-                                className={`btn btn-sm ${backlogStatusFilter === status ? "btn-primary" : "btn-outline-secondary"}`}
-                                disabled={backlogLoading}
-                              >
-                                {status === "ALL" ? "All" : status}
-                                {status !== "ALL" && (
-                                  <span className="filter-count ms-1">
-                                    {backlogs.filter(b => b.status === status).length}
-                                  </span>
-                                )}
-                              </button>
-                            ))}
+                        {/* Status filter - hidden when there are no records */}
+                        {backlogs.length > 0 && (
+                          <div className="backlog-filter" style={{ marginBottom: "16px" }}>
+                            <div className="filter-group" style={{ flexWrap: "wrap", gap: "8px" }}>
+                              {["ALL", "OPEN", "ATTEMPTED", "CLEARED", "CANCELLED"].map((status) => (
+                                <button
+                                  key={status}
+                                  onClick={() => setBacklogStatusFilter(status)}
+                                  className={`btn btn-sm ${backlogStatusFilter === status ? "btn-primary" : "btn-outline-secondary"}`}
+                                  disabled={backlogLoading}
+                                >
+                                  {status === "ALL" ? "All" : status.charAt(0) + status.slice(1).toLowerCase()}
+                                  {status !== "ALL" && (
+                                    <span className="filter-count ms-1">
+                                      {backlogs.filter(b => b.status === status).length}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
                         {/* Loading state */}
                         {backlogLoading ? (
@@ -2747,30 +2229,36 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                               )}
                             </div>
                           </div>
-                        ) : backlogs.length === 0 ? (
-                          <div className="empty-state backlog-empty-state" style={{ padding: "48px 24px", textAlign: "center" }}>
-                            <div className="empty-icon-wrapper">
-                              <FaClipboardCheck className="empty-icon" style={{ fontSize: "56px", color: "#94a3b8" }} />
-                            </div>
-                            <p className="empty-title" style={{ marginTop: "16px", fontSize: "18px", fontWeight: 600, color: "#1e293b" }}>
-                              No Backlog Records
-                            </p>
-                            <p className="empty-text" style={{ marginTop: "8px", color: "#64748b", maxWidth: "400px", margin: "8px auto 0" }}>
-                              {backlogStatusFilter === "ALL"
-                                ? "This student has no ATKT/backlog records. They are clear to promote."
-                                : `No backlog records with status "${backlogStatusFilter}". Try "All" to see all records.`}
-                            </p>
-                            {backlogStatusFilter !== "ALL" && (
-                              <button
-                                onClick={() => setBacklogStatusFilter("ALL")}
-                                className="btn btn-outline-primary mt-3"
-                                style={{ fontSize: "13px" }}
-                              >
-                                <FaSyncAlt className="mr-1" /> Show All Statuses
-                              </button>
-                            )}
-                          </div>
-                        ) : (
+) : backlogs.length === 0 ? (
+                           <div className="empty-state backlog-empty-state" style={{ padding: "48px 24px", textAlign: "center" }}>
+                             <div className="empty-icon-wrapper">
+                               <FaClipboardCheck className="empty-icon" style={{ fontSize: "56px", color: "#94a3b8" }} />
+                             </div>
+                             <p className="empty-title" style={{ marginTop: "16px", fontSize: "18px", fontWeight: 600, color: "#1e293b" }}>
+                               {getBacklogEmptyState(
+                                 eligibilityData?.promotion_outcome,
+                                 eligibilityStudent?.currentSemester,
+                               ).title}
+                             </p>
+                             <p className="empty-text" style={{ marginTop: "8px", color: "#64748b", maxWidth: "400px", margin: "8px auto 0" }}>
+                               {backlogStatusFilter === "ALL"
+                                 ? getBacklogEmptyState(
+                                     eligibilityData?.promotion_outcome,
+                                     eligibilityStudent?.currentSemester,
+                                   ).message
+                                 : `No backlog records with status "${backlogStatusFilter}". Try "All" to see all records.`}
+                             </p>
+                             {backlogStatusFilter !== "ALL" && (
+                               <button
+                                 onClick={() => setBacklogStatusFilter("ALL")}
+                                 className="btn btn-outline-primary mt-3"
+                                 style={{ fontSize: "13px" }}
+                               >
+                                 <FaSyncAlt className="mr-1" /> Show All Statuses
+                               </button>
+                             )}
+                           </div>
+                         ) : (
                           <div className="table-responsive">
                             <table className="data-table backlog-table">
                               <thead>
@@ -2833,15 +2321,14 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                                     </td>
                                   </tr>
                                 ))}
-                              </tbody>
+</tbody>
                             </table>
                           </div>
                         )}
                       </div>
                     </div>
-                   </div>
 
-                  {/* Raw Decision Data (for debugging) removed */}
+                   {/* Raw Decision Data (for debugging) removed */}
                 </>
               ) : (
                 <div className="empty-state">
@@ -2852,49 +2339,15 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
               )}
             </div>
             <div className="modal-footer">
-              {showRecommend && (
-                <button
-                  onClick={openRecommendModal}
-                  disabled={actionLoading}
-                  className="btn btn-outline-info"
-                  style={{ flex: 1 }}
-                >
-                  <FaClipboardCheck /> Recommend for Promotion
-                </button>
-              )}
-              {showRecommend && (
-                <p className="text-muted" style={{ width: "100%", margin: "8px 0 0", fontSize: "12px", textAlign: "center" }}>
-                  &ldquo;Recommend for Promotion&rdquo; sends this decision for approval. The student is promoted only after approval and execution.
-                </p>
-              )}
-              {showApprove && (
-                <button
-                  onClick={openApproveModal}
-                  disabled={actionLoading}
-                  className="btn btn-success"
-                  style={{ flex: 1 }}
-                >
-                  <FaCheckCircle /> Approve Promotion
-                </button>
-              )}
-              {showReject && (
-                <button
-                  onClick={openRejectModal}
-                  disabled={actionLoading}
-                  className="btn btn-danger"
-                  style={{ flex: 1 }}
-                >
-                  <FaTimes /> Reject Promotion
-                </button>
-              )}
-              {showExecute && (
+              {showConfirmPromotion && (
                 <button
                   onClick={openExecuteModal}
                   disabled={actionLoading}
-                  className="btn btn-warning"
+                  className="btn btn-success"
                   style={{ flex: 1 }}
+                  id="confirm-promotion-footer-btn"
                 >
-                  <FaArrowUp /> Execute Promotion
+                  <FaArrowRight /> Confirm Promotion
                 </button>
               )}
               <button
@@ -3101,95 +2554,31 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         </div>
       )}
 
-      {/* Execute Confirmation Modal */}
+      {/* Confirm Promotion Modal */}
       {showExecuteModal && eligibilityStudent && eligibilityData && (
         <ConfirmModal
           isOpen={showExecuteModal}
           onClose={() => setShowExecuteModal(false)}
           onConfirm={handleExecute}
-          title="Execute Promotion"
-          message={`Are you sure you want to execute this promotion?\n\n` +
-            `Student: ${eligibilityStudent.fullName}\n` +
-            `Current Semester: Sem ${eligibilityStudent.currentSemester}\n` +
-            `Target Semester: Sem ${eligibilityStudent.currentSemester + 1}\n` +
-            `Outcome: ${formatOutcome(eligibilityData.promotion_outcome)}\n` +
-            `Workflow Status: ${formatWorkflowStatus(eligibilityData.workflow_status)}\n` +
-            (eligibilityData.promotion_outcome === "ATKT"
-              ? `KT Count: ${eligibilityData.kt_count ?? "N/A"}\n`
+          title="Confirm Promotion"
+          message={
+            `Promote ${eligibilityStudent.fullName} from ` +
+            `Semester ${eligibilityStudent.currentSemester} → Semester ${eligibilityStudent.currentSemester + 1}` +
+            (eligibilityStudent.nextAcademicYearLabel
+              ? ` (${eligibilityStudent.nextAcademicYearLabel})`
               : "") +
-            `\n⚠️ This is the final promotion execution action and will change the student's promotion state.`}
+            (eligibilityData.promotion_outcome === "ATKT"
+              ? `\n\n⚠️ ATKT: Student has ${eligibilityData.kt_count ?? 0} failed subject${eligibilityData.kt_count === 1 ? "" : "s"} that will carry forward as backlogs.`
+              : "") +
+            `\n\nThis action will update the student's semester and assign fees for the new semester. It cannot be undone.`
+          }
           type="warning"
-          confirmText="Execute"
+          confirmText="Confirm Promotion"
           cancelText="Cancel"
           isLoading={actionLoading}
         />
       )}
 
-      {/* Recommend Confirmation Modal */}
-      {showRecommendModal && eligibilityStudent && (
-        <ConfirmModal
-          isOpen={showRecommendModal}
-          onClose={() => setShowRecommendModal(false)}
-          onConfirm={handleRecommend}
-          title="Recommend Promotion"
-          message="Are you sure you want to recommend this promotion decision? This will move the workflow from Draft to Recommended."
-          type="info"
-          confirmText="Recommend"
-          cancelText="Cancel"
-          isLoading={actionLoading}
-          inputValue={recommendComment}
-          onInputChange={setRecommendComment}
-          inputPlaceholder="Optional comment for the recommendation..."
-          inputRows={3}
-        />
-      )}
-
-      {/* Approve Confirmation Modal */}
-      {showApproveModal && eligibilityStudent && (
-        <ConfirmModal
-          isOpen={showApproveModal}
-          onClose={() => setShowApproveModal(false)}
-          onConfirm={handleApprove}
-          title="Approve Promotion"
-          message="Are you sure you want to approve this promotion decision? This will move the workflow to Approved."
-          type="success"
-          confirmText="Approve"
-          cancelText="Cancel"
-          isLoading={actionLoading}
-          inputValue={approveComment}
-          onInputChange={setApproveComment}
-          inputPlaceholder="Optional approval comment..."
-          inputRows={3}
-        />
-      )}
-
-      {/* Reject Confirmation Modal */}
-      {showRejectModal && eligibilityStudent && (
-        <ConfirmModal
-          isOpen={showRejectModal}
-          onClose={() => {
-            setShowRejectModal(false);
-            setRejectReason("");
-            setRejectReasonError("");
-          }}
-          onConfirm={handleReject}
-          title="Reject Promotion"
-          message="Are you sure you want to reject this promotion decision?"
-          type="danger"
-          confirmText="Reject"
-          cancelText="Cancel"
-          isLoading={actionLoading}
-          inputValue={rejectReason}
-          onInputChange={(val) => {
-            setRejectReason(val);
-            if (rejectReasonError) setRejectReasonError("");
-          }}
-          inputPlaceholder="Provide a reason for rejection (required)..."
-          inputRows={3}
-          inputError={rejectReasonError}
-          confirmDisabled={actionLoading || !rejectReason.trim()}
-        />
-      )}
 
       {/* Confirm Modal */}
        {showConfirmModal && (
@@ -5458,15 +4847,86 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           }
 
           .outcome-actions .btn-light {
-            background: white;
-            color: inherit;
+            background: #ffffff;
+            color: #065f46;
             border: none;
+            font-weight: 600;
           }
 
           .outcome-actions .btn-light:hover {
-            background: rgba(255,255,255,0.9);
+            background: rgba(255, 255, 255, 0.95);
+            color: #047857;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+
+          .outcome-actions .btn-confirm-promotion,
+          #confirm-promotion-btn {
+            background: #ffffff !important;
+            color: #065f46 !important;
+            border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            padding: 8px 16px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 6px !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease-in-out !important;
+          }
+
+          .outcome-actions .btn-confirm-promotion:hover,
+          #confirm-promotion-btn:hover {
+            background: #f0fdf4 !important;
+            color: #047857 !important;
+            border-color: #ffffff !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25) !important;
+          }
+
+          .outcome-actions .btn-confirm-promotion:active,
+          #confirm-promotion-btn:active {
+            transform: translateY(0) !important;
+          }
+
+          .outcome-actions .btn-confirm-promotion svg,
+          #confirm-promotion-btn svg {
+            color: #059669 !important;
+            font-size: 12px !important;
+            transition: transform 0.2s ease !important;
+          }
+
+          .outcome-actions .btn-confirm-promotion:hover svg,
+          #confirm-promotion-btn:hover svg {
+            transform: translateX(2px) !important;
+          }
+
+          #confirm-promotion-footer-btn {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            padding: 10px 20px !important;
+            border-radius: 10px !important;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3) !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            transition: all 0.2s ease !important;
+          }
+
+          #confirm-promotion-footer-btn:hover {
+            background: linear-gradient(135deg, #047857 0%, #065f46 100%) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4) !important;
+          }
+
+          #confirm-promotion-footer-btn svg {
+            color: #ffffff !important;
           }
 
           @media (max-width: 767.98px) {
