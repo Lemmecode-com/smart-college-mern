@@ -5,6 +5,9 @@ const Student = require("../models/student.model");
 const Backlog = require("../models/backlog.model");
 const AppError = require("../utils/AppError");
 const { ROLE } = require("../utils/constants");
+const {
+  academicYearRepresentations,
+} = require("../utils/academicYear.util");
 const auditLogService = require("./auditLog.service");
 
 // Existing promotion routes use these roles. The academic hierarchy remains a
@@ -177,13 +180,16 @@ const revalidateDecision = async (decision) => {
     );
   }
 
+  const academicYearReps = academicYearRepresentations(decision.academicYear);
   const result = await SemesterResult.findOne({
     _id: decision.source_result_id,
     college_id: decision.college_id,
     student_id: decision.student_id,
     course_id: decision.course_id,
     semester: decision.semester,
-    academicYear: decision.academicYear,
+    academicYear: academicYearReps
+      ? { $in: academicYearReps }
+      : decision.academicYear,
     status: "PUBLISHED",
   }).select("_id");
   if (!result) {
