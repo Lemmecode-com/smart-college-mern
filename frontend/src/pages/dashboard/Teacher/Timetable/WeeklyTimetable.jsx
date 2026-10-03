@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../../../api/axios";
 import { AuthContext } from "../../../../auth/AuthContext";
 import Loading from "../../../../components/Loading";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import ApiError from "../../../../components/ApiError";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -688,39 +689,89 @@ export default function WeeklyTimetable() {
             }}
           >
         <div style={{ maxWidth: "100%", margin: "0 auto" }}>
-
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: "1.5rem", backgroundColor: "white", borderRadius: "1.5rem", overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)", display: "flex", flexDirection: "column", gap: "1.5rem",
-            }}
-          >
             <div
               style={{
-                padding: "1.75rem 2rem", background: BRAND_COLORS.primary.gradient, color: "white",
-                display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1.5rem",
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+                height: "60px",
               }}
             >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "View Timetable" },
+                  ]}
+                />
+              </div>
+            </div>
+          {/* ================= HEADER ================= */}
+<motion.div
+  variants={slideDownVariants}
+  initial="hidden"
+  animate="visible"
+  style={{
+    marginBottom: "1.5rem",
+    backgroundColor: "#0E3746",
+    borderRadius: "15px",
+    overflow: "hidden",
+    boxShadow: "0 10px 30px rgba(14, 55, 70, 0.18)",
+  }}
+>
+          
+            <div
+  style={{
+    minHeight: "104px",
+    padding: "1.5rem 2rem",
+    background: "#0E3746",
+    color: "white",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "1.5rem",
+  }}
+>
               <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                <motion.div
-                  variants={pulseVariants} initial="initial" animate="pulse"
-                  style={{
-                    width: "72px", height: "72px", backgroundColor: "rgba(255, 255, 255, 0.15)", borderRadius: "50%",
-                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem", flexShrink: 0,
-                    boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
-                  }}
-                >
+<motion.div
+  variants={pulseVariants}
+  initial="initial"
+  animate="pulse"
+  style={{
+    width: "62px",
+    height: "62px",
+    minWidth: "52px",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "1.45rem",
+    flexShrink: 0,
+    border: "1px solid rgba(255, 255, 255, 0.18)",
+    boxShadow: "none",
+  }}
+>
                   <FaCalendarAlt />
                 </motion.div>
                 <div>
-                  <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700, lineHeight: 1.2 }}>
+                  <h1 style={{
+                    margin: 0,
+                    fontSize: "1.65rem",
+                    fontWeight: 700,
+                    lineHeight: 1.25,
+                    letterSpacing: "-0.02em",
+                  }}>
                     {timetable?.name || "Weekly Timetable"}
                   </h1>
-                  <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    flexWrap: "wrap",
+                    marginTop: "0.35rem",
+                    fontSize: "0.9rem",
+                  }}>
                     {timetable?.yearLabel && (
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <FaBook />
@@ -1130,19 +1181,36 @@ export default function WeeklyTimetable() {
                 </div>
               </div>
               {canManageTimetable && (
-                <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: "0 8px 20px rgba(26, 75, 109, 0.4)" }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate(`/timetable/create-timetable`)}
-                  style={{
-                    backgroundColor: "white", color: BRAND_COLORS.primary.main, border: "2px solid white",
-                    padding: "0.75rem 1.5rem", borderRadius: "12px", fontSize: "0.95rem", fontWeight: 600,
-                    cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem",
-                    transition: "all 0.3s ease", boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
-                  }}
-                >
-                  <FaPlus /> Create New Timetable
-                </motion.button>
+              <motion.button
+                whileHover={{
+                  y: -2,
+                  boxShadow: "0 6px 16px rgba(0, 0, 0, 0.18)"
+                }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate(`/timetable/create-timetable`)}
+                style={{
+                  backgroundColor: "white",
+                  color: "#0E3746",
+                  border: "1px solid rgba(255, 255, 255, 0.8)",
+                  padding: "0 1rem",
+                  height: "42px",
+                  borderRadius: "12px",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.3rem",
+                  transition: "all 0.25s ease",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.12)",
+                }}
+              >
+                <FaPlus />
+                Create New Timetable
+              </motion.button>
               )}
             </div>
 
@@ -1174,10 +1242,10 @@ export default function WeeklyTimetable() {
                   <FaInfoCircle
                     style={{
                       color: timetable?.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
-                      fontSize: "1.25rem",
+                      fontSize: "1.2rem",
                     }}
                   />
-                  <span style={{ color: "#1e293b", fontWeight: 500 }}>
+                  <span style={{ color: "#1e293b", fontWeight: 500, fontSize: "0.9rem" }}>
                     {timetable?.status === "PUBLISHED"
                       ? "This timetable is published and visible to students. Only HOD can modify it."
                       : "This timetable is in draft mode. Complete it and publish when ready."}
