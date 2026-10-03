@@ -131,9 +131,9 @@ const FeeSetting = () => {
         }
 
         .header-icon-wrapper {
-          width: 56px;
-          height: 56px;
-          border-radius: var(--fs-radius-lg);
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
           background: linear-gradient(135deg, var(--fs-cyan-primary), var(--fs-cyan-light));
           display: flex;
           align-items: center;
