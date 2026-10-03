@@ -4,6 +4,7 @@ const PromotionHistory = require("../models/promotionHistory.model");
 const SemesterResult = require("../models/semesterResult.model");
 const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
+const FeeStructure = require("../models/feeStructure.model");
 const Course = require("../models/course.model");
 const PromotionPolicy = require("../models/promotionPolicy.model");
 const Backlog = require("../models/backlog.model");
@@ -315,6 +316,86 @@ const calculateNextAcademicYear = (semester, academicYear) => {
   return `${nextYearStart}-${nextYearStart + 1}`;
 };
 
+/**
+ * Attempt to find a matching FeeStructure and create a new StudentFee record
+ * for the student's new semester/academic year, inside the promotion transaction.
+ *
+ * Lookup order (mirrors the legacy assignFeeAfterPromotion helper):
+ *   1. college + course + category + academicYear  (year-specific, preferred)
+ *   2. college + course + category                 (generic fallback)
+ *
+ * Returns:
+ *   { newFeeAssigned, newFeeStructureId, newStudentFeeId, feeAssignmentWarning }
+ *
+ * The operation is intentionally non-fatal: when no FeeStructure is found the
+ * promotion still succeeds and a warning is stored in PromotionHistory so
+ * administrators can assign fees manually.  Any unexpected DB error IS re-thrown
+ * so the outer transaction can roll back cleanly.
+ */
+const assignNewSemesterFee = async ({
+  student,
+  decision,
+  newAcademicYear,
+  session,
+}) => {
+  const courseId = decision.course_id || student.course_id;
+  const collegeId = decision.college_id;
+  const category = student.category;
+
+  const baseQuery = {
+    college_id: collegeId,
+    course_id: courseId,
+    category,
+  };
+
+  // Prefer academic-year-specific structure; fall back to the generic one.
+  const feeStructure =
+    (await FeeStructure.findOne({ ...baseQuery, academicYear: newAcademicYear })
+      .session(session)
+      .exec()) ||
+    (await FeeStructure.findOne(baseQuery).session(session).exec());
+
+  if (!feeStructure) {
+    return {
+      newFeeAssigned: false,
+      newFeeStructureId: null,
+      newStudentFeeId: null,
+      feeAssignmentWarning:
+        `No fee structure found for course and category "${category}" for ` +
+        `academic year ${newAcademicYear}. Please assign fees manually.`,
+    };
+  }
+
+  // Create the new StudentFee record with all installments in PENDING state.
+  // StudentFee.create() inside a session requires the array form.
+  const [newStudentFee] = await StudentFee.create(
+    [
+      {
+        student_id: student._id,
+        college_id: collegeId,
+        course_id: courseId,
+        totalFee: feeStructure.totalFee,
+        paidAmount: 0,
+        installments: feeStructure.installments.map((inst) => ({
+          name: inst.name,
+          amount: inst.amount,
+          order: inst.order,
+          dueDate: inst.dueDate,
+          status: "PENDING",
+        })),
+      },
+    ],
+    { session },
+  );
+
+  return {
+    newFeeAssigned: true,
+    newFeeStructureId: feeStructure._id,
+    newStudentFeeId: newStudentFee._id,
+    feeAssignmentWarning: null,
+  };
+};
+
 const createExecutionAudit = async ({
   decision,
   actorId,
@@ -500,6 +581,15 @@ const executePromotion = async ({
         );
       }
 
+      // Assign new-semester fee structure inside the transaction so that any
+      // DB error rolls back the full promotion atomically.
+      const feeAssignment = await assignNewSemesterFee({
+        student,
+        decision,
+        newAcademicYear,
+        session,
+      });
+
       const history = await PromotionHistory.create(
         [
           {
@@ -529,6 +619,11 @@ const executePromotion = async ({
             kt_count: decision.kt_count,
             failed_subject_ids: decision.failed_subject_ids,
             backlog_ids: backlogs.map((backlog) => backlog._id),
+            // Fee assignment for the next semester
+            newFeeAssigned: feeAssignment.newFeeAssigned,
+            newFeeStructureId: feeAssignment.newFeeStructureId,
+            newStudentFeeId: feeAssignment.newStudentFeeId,
+            feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
           },
         ],
         { session },
@@ -597,6 +692,10 @@ const executePromotion = async ({
         ktCount: decision.kt_count,
         executionStatus: "PROMOTED",
         idempotent: false,
+        newFeeAssigned: feeAssignment.newFeeAssigned,
+        newFeeStructureId: feeAssignment.newFeeStructureId,
+        newStudentFeeId: feeAssignment.newStudentFeeId,
+        feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
       };
       shouldNotify = true;
     });
@@ -621,4 +720,5 @@ module.exports = {
   executePromotion,
   revalidateDecision,
   calculateNextAcademicYear,
+  assignNewSemesterFee,
 };
