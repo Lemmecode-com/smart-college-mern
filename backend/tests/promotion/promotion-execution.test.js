@@ -11,6 +11,7 @@ const {
 const AuditLog = require("../../src/models/auditLog.model");
 const Backlog = require("../../src/models/backlog.model");
 const Notification = require("../../src/models/notification.model");
+const PromotionPolicy = require("../../src/models/promotionPolicy.model");
 const PromotionDecision = require("../../src/models/promotionDecision.model");
 const PromotionHistory = require("../../src/models/promotionHistory.model");
 const SemesterResult = require("../../src/models/semesterResult.model");
@@ -40,6 +41,9 @@ describe("Step 6 - transactional promotion execution", () => {
   const createCase = async ({
     outcome = "PASS",
     workflowStatus = "APPROVED",
+    studentAy = "2026-27",
+    resultAy = "2026-27",
+    decisionAy = studentAy,
   } = {}) => {
     const collegeId = new mongoose.Types.ObjectId();
     const courseId = new mongoose.Types.ObjectId();
@@ -58,7 +62,7 @@ describe("Step 6 - transactional promotion execution", () => {
       pincode: "411001",
       admissionYear: 2024,
       currentSemester: 3,
-      currentAcademicYear: "2026-27",
+      currentAcademicYear: studentAy,
       category: "GEN",
       status: "APPROVED",
     });
@@ -82,7 +86,7 @@ describe("Step 6 - transactional promotion execution", () => {
         exam_id: new mongoose.Types.ObjectId(),
         course_id: courseId,
         semester: 3,
-        academicYear: "2026-27",
+        academicYear: resultAy,
         subjects: [
           {
             subject: subjectId,
@@ -112,7 +116,7 @@ describe("Step 6 - transactional promotion execution", () => {
       college_id: collegeId,
       course_id: courseId,
       semester: 3,
-      academicYear: "2026-27",
+      academicYear: decisionAy,
       source_result_id: result ? result._id : null,
       source_exam_id: result ? result.exam_id : null,
       result_status: noResultOutcome ? outcome : "PUBLISHED",
@@ -407,5 +411,90 @@ describe("Step 6 - transactional promotion execution", () => {
         promotionDecisionId: testCase.decision._id,
       }),
     ).toBe(1);
+  });
+
+  describe("Academic Year normalization and stale-decision protections in execution service", () => {
+    it("executes promotion successfully when student/decision use full AY (2026-2027) and result uses short AY (2026-27)", async () => {
+      const testCase = await createCase({
+        studentAy: "2026-2027",
+        resultAy: "2026-27",
+        decisionAy: "2026-2027",
+      });
+
+      const outcome = await executePromotion(executionInput(testCase));
+
+      expect(outcome.executionStatus).toBe("PROMOTED");
+      const promoted = await Student.findById(testCase.student._id);
+      expect(promoted.currentSemester).toBe(4);
+    });
+
+    it("throws STALE_DECISION when result is deleted prior to execution", async () => {
+      const testCase = await createCase();
+      await SemesterResult.findByIdAndDelete(testCase.result._id);
+
+      await expect(
+        executePromotion(executionInput(testCase)),
+      ).rejects.toMatchObject({
+        code: "STALE_DECISION",
+      });
+    });
+
+    it("throws STALE_DECISION when result is changed to DRAFT prior to execution", async () => {
+      const testCase = await createCase();
+      await SemesterResult.updateOne(
+        { _id: testCase.result._id },
+        { $set: { status: "DRAFT" } },
+      );
+
+      await expect(
+        executePromotion(executionInput(testCase)),
+      ).rejects.toMatchObject({
+        code: "STALE_DECISION",
+      });
+    });
+
+    it("current valid ATKT policy → ATKT remains eligible and promotion executes successfully", async () => {
+      const atktCase = await createCase({ outcome: "ATKT" });
+      const outcome = await executePromotion(executionInput(atktCase));
+
+      expect(outcome.executionStatus).toBe("PROMOTED");
+      const promoted = await Student.findById(atktCase.student._id);
+      expect(promoted.currentSemester).toBe(4);
+
+      const backlogs = await Backlog.find({ student_id: atktCase.student._id });
+      expect(backlogs).toHaveLength(1);
+      expect(backlogs[0].status).toBe("OPEN");
+    });
+
+    it("existing STALE_DECISION protection remains intact when underlying outcome differs", async () => {
+      const atktCase = await createCase({ outcome: "ATKT" });
+
+      // Decision is APPROVED with ATKT (1 KT)
+      expect(atktCase.decision.promotion_outcome).toBe("ATKT");
+
+      // Active policy changes in the DB to max KT 0
+      await PromotionPolicy.create({
+        collegeId: atktCase.collegeId,
+        courseId: atktCase.courseId,
+        minAttendancePercentage: 75,
+        maxAllowedKTs: 0,
+        ktRules: [
+          {
+            fromSemester: 3,
+            toSemester: 4,
+            maxAllowedKTs: 0,
+          },
+        ],
+        isActive: true,
+      });
+
+      // Calling executePromotion directly without re-evaluating eligibility
+      // must trigger revalidation and throw 409 STALE_DECISION
+      await expect(
+        executePromotion(executionInput(atktCase)),
+      ).rejects.toMatchObject({
+        code: "STALE_DECISION",
+      });
+    });
   });
 });

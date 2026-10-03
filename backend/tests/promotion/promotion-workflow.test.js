@@ -26,7 +26,10 @@ describe("Step 5 - promotion recommendation and approval workflow", () => {
     await clearTestDb();
   });
 
-  const createCase = async (outcome = "PASS") => {
+  const createCase = async (outcome = "PASS", options = {}) => {
+    const studentAy = options.studentAy || "2026-27";
+    const resultAy = options.resultAy || "2026-27";
+    const decisionAy = options.decisionAy || studentAy;
     const collegeId = new mongoose.Types.ObjectId();
     const courseId = new mongoose.Types.ObjectId();
     const student = await createStudent({
@@ -34,7 +37,7 @@ describe("Step 5 - promotion recommendation and approval workflow", () => {
       course_id: courseId,
       department_id: new mongoose.Types.ObjectId(),
       currentSemester: 3,
-      currentAcademicYear: "2026-27",
+      currentAcademicYear: studentAy,
       email: `workflow-${Date.now()}-${Math.random()}@example.com`,
     });
     const subjectId = new mongoose.Types.ObjectId();
@@ -44,7 +47,7 @@ describe("Step 5 - promotion recommendation and approval workflow", () => {
       exam_id: new mongoose.Types.ObjectId(),
       course_id: courseId,
       semester: 3,
-      academicYear: "2026-27",
+      academicYear: resultAy,
       subjects: [
         {
           subject: subjectId,
@@ -68,7 +71,7 @@ describe("Step 5 - promotion recommendation and approval workflow", () => {
       college_id: collegeId,
       course_id: courseId,
       semester: 3,
-      academicYear: "2026-27",
+      academicYear: decisionAy,
       source_result_id: result._id,
       source_exam_id: result.exam_id,
       result_status: "PUBLISHED",
@@ -313,5 +316,73 @@ describe("Step 5 - promotion recommendation and approval workflow", () => {
         actorRole: role,
       }),
     ).rejects.toMatchObject({ code: "INVALID_PROMOTION_WORKFLOW_TRANSITION" });
+  });
+
+  describe("Academic Year normalization and stale-decision protections", () => {
+    it("approves decision when student and decision use full AY (2026-2027) and result uses short AY (2026-27)", async () => {
+      const { decision, collegeId } = await createCase("PASS", {
+        studentAy: "2026-2027",
+        resultAy: "2026-27",
+        decisionAy: "2026-2027",
+      });
+      await submitPromotionRecommendation({
+        decisionId: decision._id,
+        collegeId,
+        actorId: actor(),
+        actorRole: role,
+      });
+
+      const approved = await approvePromotionDecision({
+        decisionId: decision._id,
+        collegeId,
+        actorId: actor(),
+        actorRole: role,
+      });
+
+      expect(approved.workflow_status).toBe("APPROVED");
+    });
+
+    it("rejects with STALE_PROMOTION_DECISION when result is deleted", async () => {
+      const { decision, collegeId, result } = await createCase("PASS");
+      await submitPromotionRecommendation({
+        decisionId: decision._id,
+        collegeId,
+        actorId: actor(),
+        actorRole: role,
+      });
+      await SemesterResult.findByIdAndDelete(result._id);
+
+      await expect(
+        approvePromotionDecision({
+          decisionId: decision._id,
+          collegeId,
+          actorId: actor(),
+          actorRole: role,
+        }),
+      ).rejects.toMatchObject({ code: "STALE_PROMOTION_DECISION" });
+    });
+
+    it("rejects with STALE_PROMOTION_DECISION when result is changed to DRAFT", async () => {
+      const { decision, collegeId, result } = await createCase("PASS");
+      await submitPromotionRecommendation({
+        decisionId: decision._id,
+        collegeId,
+        actorId: actor(),
+        actorRole: role,
+      });
+      await SemesterResult.updateOne(
+        { _id: result._id },
+        { $set: { status: "DRAFT" } },
+      );
+
+      await expect(
+        approvePromotionDecision({
+          decisionId: decision._id,
+          collegeId,
+          actorId: actor(),
+          actorRole: role,
+        }),
+      ).rejects.toMatchObject({ code: "STALE_PROMOTION_DECISION" });
+    });
   });
 });
