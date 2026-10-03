@@ -421,9 +421,9 @@ const HodDashboard = () => {
                 >
                   <div
                     style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 14,
+                      width: 54,
+                      height: 54,
+                      borderRadius: "50%",
                       background: "rgba(255,255,255,0.15)",
                       backdropFilter: "blur(10px)",
                       display: "flex",
