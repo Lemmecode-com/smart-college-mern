@@ -1,5 +1,5 @@
 import { createContext, useEffect, useState, useRef, useCallback } from "react";
-import api from "../api/axios";
+import api, { resetAuthInvalidationGuard } from "../api/axios";
 import { logger } from "../utils/logger";
 import { listenForAuthInvalidation, broadcastAuthInvalidation } from "../utils/authSync";
 
@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [sessionInvalidReason, setSessionInvalidReason] = useState(null);
   const [authError, setAuthError] = useState(null);
+  const [sessionExpiryRedirectInProgress, setSessionExpiryRedirectInProgress] = useState(false);
   const userRef = useRef(user);
   userRef.current = user;
 
@@ -31,44 +32,50 @@ export const AuthProvider = ({ children }) => {
      }
    }, []);
 
-   const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED", currentPathname = null) => {
-       if (isInvalidatingRef.current) {
-         console.log(
-           `[performSessionInvalidation] BLOCKED by guard | CallCount=${performSessionInvalidationCallCount}`
-         );
-         return;
-       }
-       isInvalidatingRef.current = true;
-       performSessionInvalidationCallCount++;
+const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED", currentPathname = null) => {
+        if (isInvalidatingRef.current) {
+          console.log(
+            `[performSessionInvalidation] BLOCKED by guard | CallCount=${performSessionInvalidationCallCount}`
+          );
+          return;
+        }
+        isInvalidatingRef.current = true;
+        performSessionInvalidationCallCount++;
 
-       const now = new Date().toISOString();
-       console.log(
-         `[performSessionInvalidation] Time=${now} | URL=/auth/logout | CallCount=${performSessionInvalidationCallCount} | Guard=${isInvalidatingRef.current} | Reason=${reason}`
-       );
+        // Mark that a session-expiry hard navigation is about to happen.
+        // ProtectedRoute uses this state to suppress its own <Navigate>
+        // while the hard redirect is in flight, preventing double navigation.
+        setSessionExpiryRedirectInProgress(true);
 
-       clearTokenExpiryTimer();
-       setSessionInvalidReason(reason);
+        const now = new Date().toISOString();
+        console.log(
+          `[performSessionInvalidation] Time=${now} | URL=/auth/logout | CallCount=${performSessionInvalidationCallCount} | Guard=${isInvalidatingRef.current} | Reason=${reason}`
+        );
 
-       try {
-         await api.post("/auth/logout");
-       } catch (error) {
-         const errorCode = error?.response?.data?.code || error?.response?.status || "UNKNOWN";
-         console.log(
-           `[performSessionInvalidation] Time=${now} | URL=/auth/logout | ErrorCode=${errorCode} | CallCount=${performSessionInvalidationCallCount} | Reason=${reason}`
-         );
-         logger.error("Logout error:", error);
+        clearTokenExpiryTimer();
+        setSessionInvalidReason(reason);
+
+        try {
+          await api.post("/auth/logout");
+        } catch (error) {
+          const errorCode = error?.response?.data?.code || error?.response?.status || "UNKNOWN";
+          console.log(
+            `[performSessionInvalidation] Time=${now} | URL=/auth/logout | ErrorCode=${errorCode} | CallCount=${performSessionInvalidationCallCount} | Reason=${reason}`
+          );
+          logger.error("Logout error:", error);
        } finally {
-         setUser(null);
-         sessionStorage.clear();
-         const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
-         const onPublicRoute = currentPathname && publicRoutes.some(route =>
-           currentPathname === route || currentPathname.startsWith("/register/")
-         );
-         if (!onPublicRoute) {
-           window.location.href = `/login?session=expired&reason=${encodeURIComponent(reason)}`;
-         }
-       }
-     }, [clearTokenExpiryTimer]);
+            resetAuthInvalidationGuard();
+            setUser(null);
+           sessionStorage.clear();
+           const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
+          const onPublicRoute = currentPathname && publicRoutes.some(route =>
+            currentPathname === route || currentPathname.startsWith("/register/")
+          );
+          if (!onPublicRoute) {
+            window.location.href = `/login?session=expired&reason=${encodeURIComponent(reason)}`;
+          }
+        }
+      }, [clearTokenExpiryTimer]);
 
    const scheduleTokenExpiryCheck = useCallback(() => {
      clearTokenExpiryTimer();
@@ -100,6 +107,9 @@ export const AuthProvider = ({ children }) => {
 
   /* ========== LOGIN ========== */
   const login = async (credentials) => {
+      // Clear any stale session-expiry guard so a fresh login session
+      // can handle subsequent authentication failures normally.
+      resetAuthInvalidationGuard();
       try {
         // Note: With httpOnly cookies, the token will be stored in the cookie automatically
         const res = await api.post("/auth/login", credentials);
@@ -140,6 +150,7 @@ export const AuthProvider = ({ children }) => {
         // Return success and user data for first-login handling
         setSessionInvalidReason(null);
         setAuthError(null);
+        setSessionExpiryRedirectInProgress(false);
         scheduleTokenExpiryCheck();
         return {
           success: true,
@@ -180,31 +191,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logoutDueToSessionInvalidation = async () => {
+const logoutDueToSessionInvalidation = async () => {
+    // Consolidated into performSessionInvalidation().
+    // This function is retained only for backward compatibility with
+    // any external callers. It delegates to the single session-expiry
+    // handler to avoid duplicate navigation logic.
     if (isInvalidatingRef.current) return;
-    isInvalidatingRef.current = true;
-
-    clearTokenExpiryTimer();
-    setSessionInvalidReason("SESSION_INVALIDATED");
-    setAuthError(null);
-
-    try {
-      await api.post("/auth/logout");
-    } catch (error) {
-      logger.error("Logout error:", error);
-    } finally {
-      setUser(null);
-      sessionStorage.clear();
-      broadcastAuthInvalidation("SESSION_INVALIDATED");
-      const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
-      const currentPath = window.location.pathname;
-      const onPublicRoute = publicRoutes.some(route =>
-        currentPath === route || currentPath.startsWith("/register/")
-      );
-      if (!onPublicRoute) {
-        window.location.href = "/login?session=expired&reason=SESSION_INVALIDATED";
-      }
-    }
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : null;
+    await performSessionInvalidation("SESSION_INVALIDATED", currentPath);
    };
 
     const checkAuthStatus = useCallback(async (isCancelled) => {
@@ -221,6 +215,7 @@ export const AuthProvider = ({ children }) => {
             name: res.data.name || null,
           });
           setAuthError(null);
+          setSessionExpiryRedirectInProgress(false);
           scheduleTokenExpiryCheck();
         }
       } catch (error) {
@@ -268,7 +263,20 @@ export const AuthProvider = ({ children }) => {
                 currentPath === "/login" &&
                 window.location.search.includes("session=expired");
               if (!alreadyOnLoginExpired) {
-                performSessionInvalidation(errorCode, currentPath);
+                // The Axios response interceptor already broadcasts auth
+                // invalidation for this same 401. When userRef.current is
+                // truthy (user already authenticated), the AuthContext
+                // listener will call performSessionInvalidation(). Calling
+                // it again from here would create a second independent
+                // session-expiry entry point for the same event.
+                //
+                // When userRef.current is null (initial auth restore on
+                // app mount), the listener skips the call because no user
+                // is loaded yet. In that case we must trigger the
+                // session-expiry workflow ourselves.
+                if (!userRef.current) {
+                  performSessionInvalidation(errorCode, currentPath);
+                }
               }
             }
           }
@@ -324,6 +332,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         sessionInvalidReason,
         authError,
+        sessionExpiryRedirectInProgress,
         clearSessionInvalidReason,
         retryAuthCheck,
         login,

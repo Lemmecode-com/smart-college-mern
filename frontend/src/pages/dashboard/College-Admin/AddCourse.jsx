@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
 import { logger } from "../../../utils/logger";
 
 import {
@@ -230,28 +231,57 @@ export default function AddCourse() {
           onGoBack={() => navigate(-1)}
         />
       )}
-      {/* HEADER */}
-      <div className="header-section mb-4">
-        <div className="d-flex align-items-center justify-content-between">
-          <div className="header-content">
-            <h2 className="header-title">
-              <FaBookOpen className="header-icon me-2" />
-              Add New Course
-            </h2>
-            <p className="header-subtitle mb-0">
-              Create and manage academic courses
-            </p>
-          </div>
-            <button
-              type="button"
-              className="btn btn-outline-light d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-              onClick={() => navigate("/courses")}
-            >
-              <FaArrowLeft className="me-1" />
-              Back to Courses
-            </button>
+      {/* ================= BREADCRUMB ================= */}
+      <div
+        style={{
+          width: "100%",
+          margin: "10px auto",
+          paddingTop: "2px",
+          height: "60px",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Courses", path: "/courses" },
+              { label: "Add New Course" },
+            ]}
+          />
         </div>
       </div>
+
+      {/* HEADER */}
+{/* HEADER */}
+<div className="page-header">
+  <div className="page-header-content">
+    <div className="header-icon-bg">
+      <FaBookOpen size={26} />
+    </div>
+
+    <div className="header-text-content">
+      <h1 className="page-title">
+        Add New Course
+      </h1>
+
+      <p className="page-subtitle">
+        Create and manage academic courses
+      </p>
+    </div>
+  </div>
+
+  <div className="header-actions">
+    <button
+      type="button"
+      className="btn btn-ghost-inverse"
+      onClick={() => navigate("/courses")}
+      aria-label="Back to Courses"
+    >
+      <FaArrowLeft className="btn-icon" />
+      <span>Back to Courses</span>
+    </button>
+  </div>
+</div>
 
       {/* ALERTS */}
       {error && typeof error === 'string' && (
@@ -522,31 +552,100 @@ export default function AddCourse() {
 
       {/* STYLES */}
       <style>{`
-        .header-section {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 2rem;
-          border-radius: 16px;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          animation: slideDown 0.6s ease;
-        }
+ .page-header {
+  background: #0E3746;
+  border-radius: 15px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+  color: white;
+}
 
-        .header-title {
-          font-weight: 700;
-          font-size: 1.8rem;
-          margin-bottom: 0.5rem;
-          display: flex;
-          align-items: center;
-        }
+.page-header-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
 
-        .header-icon {
-          animation: blink 2s infinite;
-        }
+.header-icon-bg {
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
 
-        .header-subtitle {
-          opacity: 0.85;
-          font-size: 1rem;
-        }
+.header-text-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.page-subtitle {
+  margin: 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  border: 1.5px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-ghost-inverse {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.btn-ghost-inverse:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.btn-icon {
+  font-size: 0.95rem;
+}
 
         .form-container {
           animation: fadeIn 0.8s ease;
@@ -560,7 +659,7 @@ export default function AddCourse() {
         }
 
         .form-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+          background: #0E3746;
           padding: 1.5rem 2rem;
           color: white;
           border-bottom: 3px solid rgba(255, 255, 255, 0.2);
@@ -729,30 +828,248 @@ export default function AddCourse() {
           to { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15); }
         }
 
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-          .header-section {
-            padding: 1.5rem;
-          }
+ /* =====================================================
+   RESPONSIVE - TABLET & MOBILE
+   Desktop remains unchanged
+   ===================================================== */
 
-          .header-title {
-            font-size: 1.5rem;
-          }
+@media (max-width: 992px) {
 
-          .form-body {
-            padding: 1.5rem;
-          }
+  /* PAGE CONTAINER */
+  .container-fluid {
+    padding: 1.25rem !important;
+  }
 
-          .form-footer {
-            padding: 1rem 1.5rem;
-            flex-direction: column;
-            gap: 1rem;
-          }
+  /* BREADCRUMB */
+  .container-fluid > div:first-of-type {
+    height: auto !important;
+    margin: 0 0 1rem !important;
+    padding-top: 0 !important;
+  }
 
-          .form-footer .btn {
-            width: 100%;
-          }
-        }
+  /* HEADER / BANNER */
+  .header-section {
+    padding: 1.25rem 1.5rem !important;
+    margin-bottom: 1.25rem !important;
+    border-radius: 14px !important;
+  }
+
+  .header-section > .d-flex {
+    gap: 1rem;
+  }
+
+.header-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+  .header-title {
+    font-size: 1.5rem !important;
+    line-height: 1.2;
+    margin-bottom: 0.4rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  /* BACK BUTTON */
+  .header-section .btn-outline-light {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0.55rem 0.85rem !important;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  /* FORM CARD */
+  .form-wrapper {
+    border-radius: 14px;
+  }
+
+  .form-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .form-header h5 {
+    font-size: 1.15rem;
+  }
+
+  .form-body {
+    padding: 1.5rem !important;
+  }
+
+  .form-group {
+    margin-bottom: 1.15rem;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .form-control,
+  .form-select {
+    min-height: 46px;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .form-body .row {
+    --bs-gutter-y: 1.25rem;
+  }
+
+  /* FOOTER */
+  .form-footer {
+    padding: 1rem 1.5rem !important;
+  }
+
+  .form-footer > .d-flex {
+    gap: 0.75rem;
+  }
+
+  .form-footer .btn {
+    min-height: 46px;
+    padding: 0.65rem 1rem !important;
+    font-size: 0.9rem;
+  }
+
+  .form-footer .btn-primary {
+    min-width: 150px;
+  }
+}
+
+
+/* =====================================================
+   MOBILE
+   ===================================================== */
+
+@media (max-width: 576px) {
+
+  .container-fluid {
+    padding: 0.75rem !important;
+  }
+
+  /* BREADCRUMB */
+  .container-fluid > div:first-of-type {
+    margin-bottom: 0.75rem !important;
+  }
+
+  /* HEADER / BANNER */
+  .header-section {
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+    border-radius: 12px !important;
+  }
+
+  .header-section > .d-flex {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 0.75rem;
+  }
+
+  .header-content {
+    width: 100%;
+  }
+
+  .header-title {
+    font-size: 1.3rem !important;
+    line-height: 1.2;
+  }
+
+  .header-icon {
+    font-size: 1.1rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  /* COMPACT BACK BUTTON */
+  .header-section .btn-outline-light {
+    width: fit-content !important;
+    min-height: 40px;
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    align-self: flex-start;
+  }
+
+  /* FORM */
+  .form-wrapper {
+    border-radius: 12px;
+  }
+
+  .form-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .form-header h5 {
+    font-size: 1rem;
+  }
+
+  .form-body {
+    padding: 1rem !important;
+  }
+
+  .form-body .row {
+    --bs-gutter-y: 0.9rem;
+  }
+
+  .form-group {
+    margin-bottom: 0.85rem;
+  }
+
+  .form-label {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .label-icon {
+    margin-right: 0.35rem !important;
+  }
+
+  .form-control,
+  .form-select {
+    min-height: 44px;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.85rem;
+    border-radius: 9px;
+  }
+
+  .form-control::placeholder {
+    font-size: 0.82rem;
+  }
+
+  /* FOOTER BUTTONS */
+  .form-footer {
+    padding: 0.85rem 1rem !important;
+  }
+
+  .form-footer > .d-flex {
+    flex-direction: row !important;
+    align-items: stretch !important;
+    gap: 0.6rem;
+  }
+
+  .form-footer .btn {
+    width: auto !important;
+    min-height: 44px;
+    flex: 1;
+    padding: 0.6rem 0.75rem !important;
+    font-size: 0.85rem;
+  }
+
+  .form-footer .btn-primary {
+    min-width: 0;
+  }
+}
       `}</style>
     </div>
   );

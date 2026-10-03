@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import { getDocumentViewUrl } from "../../../utils/documentUrl";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
@@ -241,7 +242,7 @@ export default function StudentProfile() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = async () => {
@@ -381,6 +382,26 @@ export default function StudentProfile() {
   return (
     <div className="erp-page erp-viewport-min-100 py-3 py-md-4 animate-fade-in" role="main">
       <ToastContainer position="top-right" />
+
+      {/* ================= BREADCRUMB ================= */}
+             <div
+              style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/student/dashboard" },
+                    { label: "My Profile" },
+                  ]}
+                />
+              </div>
+            </div>
+
+
 
       {/* Skip Link for Screen Readers */}
       <a href="#profile-content" className="sr-only sr-only-focusable">
@@ -1431,6 +1452,115 @@ export default function StudentProfile() {
         }
         
         @media (max-width: 576px) {
+          .card-header.bg-gradient-primary {
+            padding: 1.25rem !important;
+          }
+
+          .card-header.bg-gradient-primary .position-relative > .d-flex {
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+
+          .card-header.bg-gradient-primary .position-relative > .d-flex > div:last-child {
+            min-width: 0;
+          }
+
+          .card-header.bg-gradient-primary h2 {
+            font-size: 1.35rem;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+          }
+
+          .card-header.bg-gradient-primary .profile-header-btn {
+            position: static !important;
+            width: 100%;
+            justify-content: center;
+            margin: 1rem 0 0 !important;
+          }
+
+          .card-header.bg-gradient-primary .d-flex.flex-wrap {
+            gap: 0.5rem !important;
+          }
+
+          .card-body.bg-light > .d-flex {
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+
+          .card-body.bg-light > .d-flex > div {
+            gap: 0.65rem !important;
+          }
+
+          .card-body.bg-light small {
+            display: block;
+            text-align: left;
+            white-space: normal;
+            overflow-wrap: anywhere;
+          }
+
+          .tabs-navigation {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            border-right: 0 !important;
+            border-bottom: 1px solid #e9ecef !important;
+            scrollbar-width: thin;
+          }
+
+          .tabs-navigation .tab-item {
+            flex: 0 0 142px;
+            min-width: 142px;
+            min-height: 112px;
+            padding: 0.75rem 0.5rem;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            transform: none !important;
+            border-left: 0;
+            border-bottom: 3px solid transparent;
+          }
+
+          .tabs-navigation .tab-item.active {
+            border-left: 0;
+            border-bottom-color: #1a4b6d;
+          }
+
+          .tabs-navigation .tab-item > span {
+            font-size: 1.35rem !important;
+          }
+
+          .tabs-content {
+            width: 100% !important;
+            min-width: 0 !important;
+            padding: 1rem !important;
+          }
+
+          .section-content {
+            width: 100%;
+            padding: 1rem;
+            box-sizing: border-box;
+          }
+
+          .section-title {
+            font-size: 1.15rem;
+            line-height: 1.25;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+          }
+
+          .info-item {
+            min-width: 0;
+            overflow-wrap: anywhere;
+          }
+
+          .info-value {
+            overflow-wrap: anywhere;
+          }
+
           .profile-logo-container {
             width: 50px;
             height: 50px;

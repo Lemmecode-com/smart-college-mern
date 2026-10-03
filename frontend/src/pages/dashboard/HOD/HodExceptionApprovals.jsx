@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import CustomSelect from "../../../components/CustomSelect";
 import { toast } from "react-toastify";
@@ -758,16 +759,37 @@ export default function HodExceptionApprovals() {
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
+       {/* Breadcrumb - ABOVE Exception Approvals Banner */}
+            <div
+              style={{
+                width: "96%",
+                margin: "10px auto",
+                paddingTop: "20px",
+                height: "80px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Exception Approvals" },
+                  ]}
+                />
+              </div>
+            </div>
+
       <MotionDiv
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="position-relative overflow-hidden"
         style={{
-          background:
-            "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-        }}
+                background:
+                  "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+                borderRadius: "24px",
+                margin: "0 24px",
+              }}
       >
         <div className="p-4 text-white position-relative">
           <div className="d-flex align-items-center gap-3">

@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -210,6 +211,24 @@ export default function EditFeeStructure() {
 
   return (
     <div className="container-fluid py-4">
+      {/* ================= BREADCRUMB ================= */}
+    <div
+      style={{
+        width: "100%",
+        margin: "10px auto",
+        paddingTop: "5px",
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard/college-admin" },
+            { label: "Fee Management", path: "/fee-structures" },
+            { label: "Edit Fee Structure" },
+          ]}
+        />
+      </div>
+    </div>
       {/* ================= HEADER BAR ================= */}
       <div className="d-flex align-items-center justify-content-between mb-4 animate-fade-in">
         <div className="d-flex align-items-center gap-3">
@@ -604,12 +623,316 @@ export default function EditFeeStructure() {
           opacity: 0.65;
         }
         
-        @media (max-width: 992px) {
-          .sticky-top {
-            position: static !important;
-          }
-        }
-      `}</style>
+ /* =========================================================
+   RESPONSIVE - EDIT FEE STRUCTURE
+   Desktop remains unchanged
+   ========================================================= */
+
+@media (max-width: 1199px) {
+
+  /* Prevent horizontal overflow */
+  .container-fluid.py-4 {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    overflow-x: hidden;
+  }
+
+
+  /* =====================================================
+     HEADER
+     ===================================================== */
+
+  .animate-fade-in {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 1rem !important;
+  }
+
+  /* Back + icon + title */
+  .animate-fade-in > .d-flex:first-child {
+    width: 100%;
+    min-width: 0;
+
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+
+    gap: 0.65rem !important;
+  }
+
+  /* -----------------------------------------------------
+     BACK BUTTON
+     Mobile/tablet: icon only, circular
+     ----------------------------------------------------- */
+
+  .animate-fade-in > .d-flex:first-child > button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    flex: 0 0 44px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    border-radius: 50% !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    font-size: 0 !important;
+    line-height: 1 !important;
+  }
+
+  .animate-fade-in > .d-flex:first-child > button svg {
+    margin: 0 !important;
+    font-size: 17px !important;
+    display: block;
+  }
+
+  /* If Back to List is wrapped in a span */
+  .animate-fade-in > .d-flex:first-child > button span {
+    display: none !important;
+  }
+
+
+  /* -----------------------------------------------------
+     FEE ICON + TITLE
+     ----------------------------------------------------- */
+
+  .animate-fade-in > .d-flex:first-child > .d-flex:last-child {
+    min-width: 0;
+    flex: 1;
+
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+
+    gap: 0.65rem !important;
+  }
+
+  .icon-container {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    flex: 0 0 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .animate-fade-in h1 {
+    margin: 0 !important;
+    font-size: clamp(1.05rem, 2.5vw, 1.5rem) !important;
+    line-height: 1.25;
+  }
+
+  .animate-fade-in p {
+    margin: 0 !important;
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
+
+  /* -----------------------------------------------------
+     HEADER ACTIONS
+     ----------------------------------------------------- */
+
+  .animate-fade-in > .d-flex:last-child {
+    width: 100%;
+
+    display: flex !important;
+    gap: 0.75rem !important;
+  }
+
+  .animate-fade-in > .d-flex:last-child .btn {
+    flex: 1;
+    min-height: 44px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+
+  /* =====================================================
+     MAIN CONTENT
+     ===================================================== */
+
+  .row.g-4 {
+    --bs-gutter-y: 1.25rem;
+  }
+
+  .sticky-top {
+    position: static !important;
+  }
+
+
+  /* =====================================================
+     FORM CARD
+     ===================================================== */
+
+  .card {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .card-body.p-4 {
+    padding: 1.5rem !important;
+  }
+
+  .form-control,
+  .form-select {
+    min-height: 44px;
+  }
+
+
+  /* =====================================================
+     INSTALLMENT TABLE
+     ===================================================== */
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-responsive table {
+    min-width: 680px;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 767px) {
+
+  .container-fluid.py-4 {
+    padding: 0.75rem !important;
+  }
+
+
+  /* Header */
+  .animate-fade-in {
+    gap: 0.75rem !important;
+  }
+
+  .animate-fade-in > .d-flex:first-child {
+    gap: 0.5rem !important;
+  }
+
+
+  /* Circular back button */
+  .animate-fade-in > .d-flex:first-child > button {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    flex-basis: 40px !important;
+
+    border-radius: 50% !important;
+  }
+
+  .animate-fade-in > .d-flex:first-child > button svg {
+    font-size: 15px !important;
+  }
+
+
+  /* Fee icon */
+  .icon-container {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    flex-basis: 42px;
+  }
+
+
+  /* Title */
+  .animate-fade-in h1 {
+    font-size: 1.05rem !important;
+  }
+
+  .animate-fade-in p {
+    font-size: 0.73rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+
+  /* Cancel + Update */
+  .animate-fade-in > .d-flex:last-child {
+    flex-direction: column !important;
+    gap: 0.6rem !important;
+  }
+
+  .animate-fade-in > .d-flex:last-child .btn {
+    width: 100%;
+    flex: none;
+  }
+
+
+  /* Form */
+  .card-body.p-4 {
+    padding: 1rem !important;
+  }
+
+  .card-header.bg-gradient-primary {
+    padding: 1rem !important;
+  }
+
+  .card-header h2 {
+    font-size: 1rem !important;
+  }
+
+  .card-body .col-md-6 {
+    width: 100%;
+  }
+
+  .form-label {
+    font-size: 0.85rem;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 0.9rem;
+  }
+
+
+  /* Payment schedule */
+  .card-body > div > .d-flex.justify-content-between {
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  .card-body > div > .d-flex.justify-content-between .btn {
+    width: auto;
+    flex: none;
+  }
+
+
+  /* Table */
+  .table-responsive table {
+    min-width: 680px;
+  }
+
+
+  /* Summary */
+  .col-lg-4 .card-body {
+    padding: 1rem !important;
+  }
+
+  .col-lg-4 .btn {
+    width: 100%;
+  }
+}
+        
+        `}</style>
     </div>
   );
 }

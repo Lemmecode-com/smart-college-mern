@@ -877,8 +877,9 @@ export default function MakePayments() {
           <div className="text-muted small">
             Due on{" "}
             <strong>
-                ? formatDate(installmentDetails.dueDate)
-                : "N/A"}
+                {installmentDetails.dueDate
+                  ? formatDate(installmentDetails.dueDate)
+                  : "N/A"}
             </strong>
           </div>
         </div>
@@ -1099,7 +1100,6 @@ export default function MakePayments() {
                   <p className="mb-3">
                     <strong>Paid At:</strong>{" "}
                     {formatDateTime(result.installment.paidAt)}
-                    )}
                   </p>
                 </div>
 

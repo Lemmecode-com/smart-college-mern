@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import ExportButtons from "../../../../components/ExportButtons";
 import Pagination from "../../../../components/Pagination";
 import { showSuccess, showError } from "../../../../utils/toast";
@@ -134,6 +135,7 @@ export default function ReportDashboard() {
   const [currentPaymentPage, setCurrentPaymentPage] = useState(1);
   const [currentLowAttendancePage, setCurrentLowAttendancePage] = useState(1);
   const [itemsPerPage] = useState(CONFIG.ITEMS_PER_PAGE);
+  const [expandedStudentId, setExpandedStudentId] = useState(null);
 
   // ================= EXPORT HELPER FUNCTIONS =================
   const formatCurrency = (amount) => {
@@ -558,6 +560,26 @@ export default function ReportDashboard() {
 
   return (
     <div className="report-dashboard-container">
+      {/* ================= BREADCRUMB ================= */}
+      <div
+        style={{
+          width: "100%",
+          margin: "10px auto",
+          paddingTop: "0px",
+          height: "60px",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Reports & Analytics", },
+              { label: "Reports Dashboard" },
+            ]}
+          />
+        </div>
+      </div>
+
       {/* ================= HEADER ================= */}
       <div className="dashboard-header">
         <div className="header-content">
@@ -999,30 +1021,228 @@ export default function ReportDashboard() {
                     <th>Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {paymentPagination.data.map((student) => (
-                    <tr key={student._id}>
-                      <td className="student-name">{student.name}</td>
-                      <td>{student.course}</td>
-                      <td>{formatCurrency(student.totalFee)}</td>
-                      <td className="text-success">
-                        {formatCurrency(student.paid)}
-                      </td>
-                      <td className="text-danger">
-                        {formatCurrency(student.pending)}
-                      </td>
-                      <td>
-                        <span
-                          className={`status-badge ${getStatusBadgeClass(
-                            student.calculatedStatus,
-                          )}`}
-                        >
-                          {student.calculatedStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                 <tbody>
+                   {paymentPagination.data.map((student) => (
+                     <>
+                       <tr key={student._id}>
+                         <td className="student-name">{student.name}</td>
+                         <td>{student.course}</td>
+                         <td>{formatCurrency(student.totalFee)}</td>
+                         <td className="text-success">
+                           {formatCurrency(student.paid)}
+                         </td>
+                         <td className="text-danger">
+                           {formatCurrency(student.pending)}
+                         </td>
+                         <td>
+                           <div
+                             style={{
+                               display: "flex",
+                               alignItems: "center",
+                               gap: "0.5rem",
+                             }}
+                           >
+                             <span
+                               className={`status-badge ${getStatusBadgeClass(
+                                 student.calculatedStatus,
+                               )}`}
+                             >
+                               {student.calculatedStatus}
+                             </span>
+                             {student.feeRecords &&
+                               student.feeRecords.length > 1 && (
+                                 <button
+                                   onClick={() =>
+                                     setExpandedStudentId(
+                                       expandedStudentId ===
+                                       student._id?.toString()
+                                         ? null
+                                         : student._id?.toString(),
+                                     )
+                                   }
+                                   style={{
+                                     background: "none",
+                                     border: "none",
+                                     cursor: "pointer",
+                                     padding: "2px 6px",
+                                     fontSize: "0.7rem",
+                                     color: "#6c757d",
+                                   }}
+                                   title="View fee records"
+                                   aria-label="Toggle fee records"
+                                 >
+                                   {expandedStudentId ===
+                                   student._id?.toString()
+                                     ? "▲"
+                                     : "▼"}
+                                 </button>
+                               )}
+                           </div>
+                         </td>
+                       </tr>
+                       {expandedStudentId === student._id?.toString() &&
+                         student.feeRecords && (
+                           <tr>
+                             <td
+                               colSpan="6"
+                               style={{
+                                 padding: "8px 12px",
+                                 backgroundColor: "#f8f9fa",
+                               }}
+                             >
+                               <div
+                                 style={{
+                                   fontSize: "0.8rem",
+                                   color: "#495057",
+                                 }}
+                               >
+                                 <div
+                                   style={{
+                                     fontWeight: 600,
+                                     marginBottom: "6px",
+                                   }}
+                                 >
+                                   Fee Records
+                                 </div>
+                                 <table
+                                   style={{
+                                     width: "100%",
+                                     borderCollapse: "collapse",
+                                   }}
+                                 >
+                                   <thead>
+                                     <tr>
+                                       <th
+                                         style={{
+                                           textAlign: "left",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Fee Record
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "right",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Total Fee
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "right",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Paid
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "right",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Pending
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "center",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Status
+                                       </th>
+                                     </tr>
+                                   </thead>
+                                   <tbody>
+                                     {student.feeRecords.map((record) => (
+                                       <tr
+                                         key={
+                                           record._id
+                                             ? record._id.toString()
+                                             : `fee-${record.feeType}`
+                                         }
+                                       >
+                                         <td
+                                           style={{
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {record.feeType === "enrollment"
+                                             ? "Enrollment Fee"
+                                             : `Semester ${record.semester}`}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "right",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {formatCurrency(record.totalFee)}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "right",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {formatCurrency(record.paidAmount)}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "right",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {formatCurrency(
+                                             record.pendingAmount,
+                                           )}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "center",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           <span
+                                             className={`status-badge ${getStatusBadgeClass(
+                                               record.status,
+                                             )}`}
+                                           >
+                                             {record.status}
+                                           </span>
+                                         </td>
+                                       </tr>
+                                     ))}
+                                   </tbody>
+                                 </table>
+                               </div>
+                             </td>
+                           </tr>
+                         )}
+                     </>
+                   ))}
+                 </tbody>
               </table>
             </div>
 
@@ -1207,7 +1427,7 @@ export default function ReportDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {lowAttendancePagination.data.map((student) => (
+                    {lowAttendancePagination.data.map((student, index) => (
                       <tr
                         key={student._id || student.name || `student-${index}`}
                         className={
@@ -1352,49 +1572,52 @@ export default function ReportDashboard() {
 
         /* ================= HEADER - ENTERPRISE LAYOUT ================= */
         .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-          padding: 1.75rem;
-          background: var(--primary);
-          border-radius: var(--radius-lg);
-          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.3);
-          color: white;
+  background: #0E3746;
+  border-radius: 15px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+  color: white;
         }
 
         .header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 0;
         }
 
         .header-icon-wrapper {
-          width: 64px;
-          height: 64px;
-          background: rgba(61, 181, 230, 0.2);
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          color: var(--accent-light);
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
         }
 
         .dashboard-title {
-          margin: 0;
-          font-size: var(--font-size-2xl);
-          font-weight: var(--font-weight-bold);
-          color: white;
-          font-family: var(--font-family-base);
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
         }
 
         .dashboard-subtitle {
-          margin: 0.375rem 0 0;
-          color: rgba(255, 255, 255, 0.9);
-          font-size: var(--font-size-base);
-          font-weight: var(--font-weight-medium);
-          font-family: var(--font-family-base);
+          margin: 0;
+          opacity: 0.8;
+          font-size: 0.9rem;
+          font-weight: 400;
+          line-height: 1.5;
         }
 
         .header-actions {
@@ -1404,8 +1627,9 @@ export default function ReportDashboard() {
 
         .btn-refresh,
         .btn-export {
-          padding: 0.75rem 1.5rem;
-          border-radius: var(--radius-lg);
+          padding: 0 22px;
+          height: 42px;
+          border-radius: 12px;
           font-weight: var(--font-weight-semibold);
           display: flex;
           align-items: center;
@@ -2151,75 +2375,485 @@ export default function ReportDashboard() {
           }
         }
 
-        /* ================= RESPONSIVE ================= */
-        @media (max-width: 768px) {
-          .report-dashboard-container {
-            padding: 1rem;
-          }
+ /* ================= RESPONSIVE ================= */
 
-          .dashboard-header {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-          }
+/* ================= TABLET ================= */
+@media (min-width: 769px) and (max-width: 1024px) {
 
-          .header-content {
-            flex-direction: column;
-          }
+  .report-dashboard-container {
+    padding: 1.25rem;
+  }
 
-          .header-actions {
-            width: 100%;
-            justify-content: center;
-          }
+  /* Header */
+  .dashboard-header {
+    padding: 1.5rem;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
 
-          .summary-cards-grid {
-            grid-template-columns: 1fr;
-          }
+  .header-content {
+    gap: 1rem;
+    min-width: 0;
+  }
 
-          .reports-grid {
-            grid-template-columns: 1fr;
-          }
+  .header-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
 
-          .stats-grid,
-          .payment-overview,
-          .attendance-stats {
-            grid-template-columns: 1fr;
-          }
+  .dashboard-title {
+    font-size: 1.65rem;
+    line-height: 1.25;
+  }
 
-          .filters-row {
-            flex-direction: column;
-          }
+  .dashboard-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
 
-          .filter-group {
-            min-width: 100%;
-          }
+  .header-actions {
+    flex-shrink: 0;
+  }
 
-          .data-table th,
-          .data-table td {
-            padding: 0.75rem 0.5rem;
-            font-size: 0.85rem;
-          }
-        }
+  .btn-refresh {
+    padding: 0.7rem 1rem;
+    white-space: nowrap;
+  }
 
-        @media (max-width: 480px) {
-          .dashboard-title {
-            font-size: 1.5rem;
-          }
 
-          .header-icon {
-            font-size: 2.5rem;
-          }
+  /* Summary Cards */
+  .summary-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
 
-          .card-header {
-            flex-direction: column;
-            gap: 0.75rem;
-            text-align: center;
-          }
+  .summary-card {
+    padding: 1.15rem;
+    gap: 1rem;
+  }
 
-          .chart-container {
-            height: 200px;
-          }
-        }
+  .card-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
+  }
+
+  .card-content h3 {
+    font-size: 1.35rem;
+  }
+
+  .card-content p {
+    font-size: 0.85rem;
+  }
+
+
+  /* Tabs */
+  .report-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.4rem;
+    padding: 0.6rem;
+    margin-bottom: 1.25rem;
+    scrollbar-width: thin;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.82rem;
+  }
+
+
+  /* Report Cards */
+  .card-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+
+  .card-header h3 {
+    font-size: 1rem;
+  }
+
+  .card-icon {
+    font-size: 1.2rem;
+  }
+
+
+  /* Charts */
+  .chart-container {
+    min-height: 260px;
+    aspect-ratio: 16 / 10;
+  }
+
+
+  /* Filters */
+  .filters-row {
+    gap: 0.75rem;
+  }
+
+  .filter-group {
+    min-width: 220px;
+  }
+}
+
+
+/* ================= MOBILE ================= */
+@media (max-width: 768px) {
+
+  .report-dashboard-container {
+    padding: 0.75rem;
+  }
+
+
+  /* ================= DASHBOARD HEADER ================= */
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-radius: 14px;
+    text-align: left;
+  }
+
+  .header-content {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.85rem;
+    width: 100%;
+  }
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    font-size: 1.35rem;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .dashboard-title {
+    font-size: 1.35rem;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    margin-top: 0.4rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .btn-refresh {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.7rem 1rem;
+    font-size: 0.88rem;
+  }
+
+
+  /* ================= SUMMARY CARDS ================= */
+
+  .summary-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .summary-card {
+    min-height: 96px;
+    padding: 1rem;
+    gap: 1rem;
+    border-radius: 14px;
+  }
+
+  .card-icon-wrapper {
+    width: 58px;
+    height: 58px;
+    min-width: 58px;
+    font-size: 1.45rem;
+    border-radius: 11px;
+  }
+
+  .card-content {
+    min-width: 0;
+  }
+
+  .card-content h3 {
+    font-size: 1.3rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .card-content p {
+    font-size: 0.82rem;
+    margin-top: 0.3rem;
+  }
+
+
+  /* ================= TABS ================= */
+
+  .report-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.45rem;
+    padding: 0.55rem;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .report-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    border-width: 1px;
+  }
+
+
+  /* ================= REPORT CARD ================= */
+
+  .report-card {
+    border-radius: 14px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .card-title-wrapper {
+    width: 100%;
+    gap: 0.65rem;
+  }
+
+  .card-header h3 {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .card-icon {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  .card-header > div:last-child {
+    width: 100%;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+
+  /* ================= STATISTICS ================= */
+
+  .stats-grid,
+  .payment-overview,
+  .attendance-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .stat-box {
+    padding: 0.9rem;
+  }
+
+  .stat-item {
+    padding: 0.85rem;
+  }
+
+  .stat-item .stat-value.large {
+    font-size: 1.7rem;
+  }
+
+
+  /* ================= FILTERS ================= */
+
+  .filters-row {
+    flex-direction: column;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+  }
+
+  .filter-group {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .search-input,
+  .filter-select,
+  .filter-select-small {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+
+  /* ================= TABLE ================= */
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 650px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.7rem 0.65rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+
+  /* ================= CHARTS ================= */
+
+  .chart-container {
+    width: 100%;
+    height: 260px;
+    min-height: 260px;
+    aspect-ratio: auto;
+    margin-top: 1rem;
+  }
+}
+
+
+/* ================= SMALL MOBILE ================= */
+@media (max-width: 480px) {
+
+  .report-dashboard-container {
+    padding: 0.6rem;
+  }
+
+
+  /* Header */
+  .dashboard-header {
+    padding: 1rem;
+    border-radius: 13px;
+    gap: 0.85rem;
+  }
+
+  .header-content {
+    gap: 0.7rem;
+  }
+
+  .header-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 1.2rem;
+  }
+
+  .dashboard-title {
+    font-size: 1.2rem;
+    line-height: 1.25;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.76rem;
+    line-height: 1.45;
+  }
+
+
+  /* Summary */
+  .summary-cards-grid {
+    gap: 0.7rem;
+  }
+
+  .summary-card {
+    min-height: 82px;
+    padding: 0.85rem;
+    gap: 0.8rem;
+  }
+
+  .card-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    font-size: 1.25rem;
+  }
+
+  .card-content h3 {
+    font-size: 1.15rem;
+  }
+
+  .card-content p {
+    font-size: 0.76rem;
+  }
+
+
+  /* Tabs */
+  .report-tabs {
+    padding: 0.45rem;
+    gap: 0.35rem;
+  }
+
+  .tab-btn {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.72rem;
+  }
+
+
+  /* Cards */
+  .card-header {
+    padding: 0.85rem;
+  }
+
+  .card-body {
+    padding: 0.85rem;
+  }
+
+  .card-header h3 {
+    font-size: 0.92rem;
+  }
+
+
+  /* Charts */
+  .chart-container {
+    height: 220px;
+    min-height: 220px;
+  }
+
+
+  /* Tables */
+  .data-table th,
+  .data-table td {
+    padding: 0.65rem 0.55rem;
+    font-size: 0.76rem;
+  }
+}
       `}</style>
     </div>
   );

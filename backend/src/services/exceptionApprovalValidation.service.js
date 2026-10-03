@@ -97,6 +97,8 @@ async function validateExceptionForApproval(exceptionId, collegeId) {
       slot.startTime,
       slot.endTime,
       collegeId,
+      timetable.academicYear,
+      timetable.semester,
     );
     if (hasConflict)
       throw new AppError(

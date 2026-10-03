@@ -50,6 +50,49 @@ const subjectSchema = new mongoose.Schema(
       required: false,
     },
 
+    // ================= EXAM / MARKS CONFIGURATION =================
+    // Configuration only (no student marks stored here).
+    // subjectType drives which marks fields are applicable.
+    // Representation: null/undefined = not configured (legacy subjects).
+    // Marks are stored as-provided; null is NOT coerced to 0 and 0 is NOT
+    // coerced to null, matching existing NOVAA schema conventions.
+    subjectType: {
+      type: String,
+      enum: ["THEORY", "PRACTICAL", "COMPOSITE"],
+      required: false,
+    },
+
+    internalMaxMarks: {
+      type: Number,
+      min: [0, "Marks cannot be negative"],
+      required: false,
+    },
+
+    externalMaxMarks: {
+      type: Number,
+      min: [0, "Marks cannot be negative"],
+      required: false,
+    },
+
+    internalPassMarks: {
+      type: Number,
+      min: [0, "Marks cannot be negative"],
+      required: false,
+    },
+
+    externalPassMarks: {
+      type: Number,
+      min: [0, "Marks cannot be negative"],
+      required: false,
+    },
+
+    passMarks: {
+      type: Number,
+      min: [0, "Marks cannot be negative"],
+      required: false,
+    },
+    // ==============================================================
+
     status: {
       type: String,
       enum: ["ACTIVE", "INACTIVE"],

@@ -10,7 +10,12 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { STORAGE_KEYS, SIDEBAR_WIDTH, ANIMATION_TIMING, getDefaultOpenSections } from '../config/sidebar.constants';
+import {
+  STORAGE_KEYS,
+  SIDEBAR_WIDTH,
+  ANIMATION_TIMING,
+  getDefaultOpenSections
+} from '../config/sidebar.constants';
 
 /**
  * @typedef {Object} UseSidebarReturn
@@ -38,29 +43,36 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.COLLAPSED_STATE);
+
       if (saved !== null) {
         return JSON.parse(saved);
       }
     } catch (error) {
       // Failed to parse sidebar collapsed state from localStorage
     }
+
     return initialState.isCollapsed ?? false;
   });
 
-  const [isMobileOpen, setIsMobileOpen] = useState(initialState.isMobileOpen ?? false);
+  const [isMobileOpen, setIsMobileOpen] = useState(
+    initialState.isMobileOpen ?? false
+  );
+
   const [isMobileDevice, setIsMobileDevice] = useState(false);
 
-  // Initialize open sections from localStorage or role defaults
+  // Initialize open sections with all sections collapsed
   const [openSections, setOpenSections] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEYS.OPEN_SECTIONS);
-      if (saved !== null) {
-        return JSON.parse(saved);
-      }
-    } catch (error) {
-      // Failed to parse open sections from localStorage
-    }
-    return initialState.openSections ?? getDefaultOpenSections(role);
+    const defaultSections = getDefaultOpenSections(role);
+
+    const collapsedSections = Object.keys(defaultSections).reduce(
+      (sections, sectionId) => {
+        sections[sectionId] = false;
+        return sections;
+      },
+      {}
+    );
+
+    return initialState.openSections ?? collapsedSections;
   });
 
   // Detect mobile device and handle resize with debounce
@@ -68,10 +80,12 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
     if (typeof window === 'undefined') return;
 
     let resizeTimer;
-    
+
     const checkMobile = () => {
       const mobile = window.innerWidth < SIDEBAR_WIDTH.MOBILE_BREAKPOINT;
+
       setIsMobileDevice(mobile);
+
       if (!mobile && isMobileOpen) {
         setIsMobileOpen(false);
       }
@@ -79,11 +93,13 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
 
     const handleResize = () => {
       clearTimeout(resizeTimer);
+
       resizeTimer = setTimeout(() => {
         checkMobile();
-        
+
         // Add resizing class for smooth animation
         document.body.classList.add('sidebar-resizing');
+
         setTimeout(() => {
           document.body.classList.remove('sidebar-resizing');
         }, ANIMATION_TIMING.SLOW);
@@ -94,6 +110,7 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
     checkMobile();
 
     window.addEventListener('resize', handleResize);
+
     return () => {
       window.removeEventListener('resize', handleResize);
       clearTimeout(resizeTimer);
@@ -103,7 +120,10 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
   // Persist collapsed state to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.COLLAPSED_STATE, JSON.stringify(isCollapsed));
+      localStorage.setItem(
+        STORAGE_KEYS.COLLAPSED_STATE,
+        JSON.stringify(isCollapsed)
+      );
     } catch (error) {
       // Failed to save sidebar collapsed state to localStorage
     }
@@ -112,7 +132,10 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
   // Persist open sections to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.OPEN_SECTIONS, JSON.stringify(openSections));
+      localStorage.setItem(
+        STORAGE_KEYS.OPEN_SECTIONS,
+        JSON.stringify(openSections)
+      );
     } catch (error) {
       // Failed to save open sections to localStorage
     }
@@ -121,7 +144,17 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
   // Update open sections when role changes
   useEffect(() => {
     if (role) {
-      setOpenSections(getDefaultOpenSections(role));
+      const defaultSections = getDefaultOpenSections(role);
+
+      const collapsedSections = Object.keys(defaultSections).reduce(
+        (sections, sectionId) => {
+          sections[sectionId] = false;
+          return sections;
+        },
+        {}
+      );
+
+      setOpenSections(collapsedSections);
     }
   }, [role]);
 
@@ -149,7 +182,11 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
   const expandAllSections = useCallback(() => {
     setOpenSections(prev => {
       const allExpanded = {};
-      Object.keys(prev).forEach(key => allExpanded[key] = true);
+
+      Object.keys(prev).forEach(key => {
+        allExpanded[key] = true;
+      });
+
       return allExpanded;
     });
   }, []);
@@ -160,7 +197,11 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
   const collapseAllSections = useCallback(() => {
     setOpenSections(prev => {
       const allCollapsed = {};
-      Object.keys(prev).forEach(key => allCollapsed[key] = false);
+
+      Object.keys(prev).forEach(key => {
+        allCollapsed[key] = false;
+      });
+
       return allCollapsed;
     });
   }, []);

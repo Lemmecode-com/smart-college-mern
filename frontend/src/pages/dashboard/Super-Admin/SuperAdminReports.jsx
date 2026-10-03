@@ -1159,83 +1159,627 @@ export default function SuperAdminReports() {
           animation: fadeIn 0.6s ease;
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          }
-          
-          .erp-header-actions {
-            flex-direction: column;
-            width: 100%;
-          }
-          
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .info-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-          
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .erp-header-actions {
-            width: 100%;
-            flex-direction: row;
-          }
-          
-          .erp-header-actions .erp-btn {
-            flex: 1;
-            justify-content: center;
-          }
-          
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .footer-note {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
-          
-          .refresh-btn {
-            align-self: center;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .stat-value {
-            font-size: 1.75rem;
-          }
-          
-          .erp-card-header h3 {
-            font-size: 1.25rem;
-          }
-          
-          .metric-value {
-            font-size: 1.25rem;
-          }
-          
-          .erp-page-title {
-            font-size: 1.5rem;
-          }
-        }
+/* =========================================================
+   RESPONSIVE DESIGN
+   Desktop layout remains unchanged
+   Tablet + Mobile only
+   ========================================================= */
+
+/* =========================
+   TABLET
+   769px - 991px
+   ========================= */
+@media (min-width: 769px) and (max-width: 991.98px) {
+
+  .erp-container {
+    padding: 1.25rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Header */
+  .erp-page-header {
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    gap: 1.25rem;
+  }
+
+  .erp-header-content {
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .erp-header-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    font-size: 1.5rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.65rem;
+    line-height: 1.2;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.95rem;
+    line-height: 1.45;
+  }
+
+  .erp-header-actions {
+    flex-shrink: 0;
+  }
+
+  .erp-header-actions .erp-btn {
+    padding: 0.7rem 1rem;
+    white-space: nowrap;
+  }
+
+  /* Info banner */
+  .info-banner {
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    gap: 0.9rem;
+  }
+
+  .info-content {
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+
+  /* Stats - 2 columns */
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-card {
+    min-width: 0;
+  }
+
+  .stat-card-header {
+    padding: 1rem 1.15rem;
+    gap: 0.8rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 1.25rem;
+  }
+
+  .stat-title {
+    font-size: 0.98rem;
+    line-height: 1.3;
+  }
+
+  .stat-card-body {
+    padding: 1rem 1.15rem;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+  }
+
+  .stat-trend {
+    font-size: 0.85rem;
+    line-height: 1.35;
+  }
+
+  .stat-card-footer {
+    padding: 0.7rem 1.15rem;
+  }
+
+  .stat-footer-item {
+    gap: 0.5rem;
+  }
+
+  .footer-label {
+    font-size: 0.8rem;
+  }
+
+  .footer-value {
+    font-size: 0.82rem;
+  }
+
+  .month-selector {
+    max-width: 80px;
+  }
+
+  /* Detailed metrics */
+  .erp-card {
+    margin-bottom: 1.25rem;
+  }
+
+  .erp-card-header {
+    padding: 1.2rem 1.4rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.25rem;
+  }
+
+  .erp-card-body {
+    padding: 1.25rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .metric-item {
+    padding: 1rem;
+    gap: 0.8rem;
+  }
+
+  .metric-description {
+    font-size: 0.82rem;
+  }
+
+  /* Footer note */
+  .footer-note {
+    padding: 0.9rem 1.1rem;
+    gap: 0.75rem;
+  }
+}
+
+
+/* =========================
+   MOBILE
+   0px - 768px
+   ========================= */
+@media (max-width: 768px) {
+
+  .erp-container {
+    padding: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* =========================
+     PAGE HEADER
+     ========================= */
+
+  .erp-page-header {
+    padding: 1.15rem;
+    margin-bottom: 1rem;
+    border-radius: 14px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .erp-header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .erp-header-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 11px;
+    font-size: 1.35rem;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .erp-page-title {
+    font-size: 1.4rem;
+    line-height: 1.2;
+    margin: 0;
+    word-break: normal;
+  }
+
+  .erp-page-subtitle {
+    margin-top: 0.35rem;
+    font-size: 0.88rem;
+    line-height: 1.4;
+  }
+
+  .erp-header-actions {
+    width: 100%;
+    display: flex;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.65rem 1rem;
+    justify-content: center;
+    font-size: 0.95rem;
+  }
+
+  /* =========================
+     INFO BANNER
+     ========================= */
+
+  .info-banner {
+    padding: 1rem;
+    margin-bottom: 1rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    text-align: center;
+    gap: 0.65rem;
+
+    border-radius: 12px;
+  }
+
+  .info-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    font-size: 0.9rem;
+  }
+
+  .info-content {
+    width: 100%;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  /* =========================
+     STATS
+     ========================= */
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    width: 100%;
+    min-width: 0;
+    border-radius: 14px;
+  }
+
+  .stat-card-header {
+    padding: 0.95rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 12px;
+    font-size: 1.2rem;
+  }
+
+  .stat-title {
+    font-size: 0.98rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .stat-card-body {
+    padding: 0.95rem 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.9rem;
+    line-height: 1.1;
+    margin-bottom: 0.4rem;
+  }
+
+  .stat-trend {
+    font-size: 0.82rem;
+    line-height: 1.35;
+    flex-wrap: wrap;
+  }
+
+  .trend-icon {
+    font-size: 0.85rem;
+  }
+
+  .stat-card-footer {
+    padding: 0.7rem 1rem;
+  }
+
+  .stat-footer-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .footer-label {
+    font-size: 0.78rem;
+  }
+
+  .footer-value {
+    font-size: 0.8rem;
+  }
+
+  .monthly-footer-value {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .month-selector {
+    font-size: 0.76rem;
+    padding: 0.2rem 0.35rem;
+    margin-left: 0.2rem;
+    max-width: 75px;
+  }
+
+  /* =========================
+     DETAILED METRICS
+     ========================= */
+
+  .erp-card {
+    border-radius: 14px;
+    margin-bottom: 1rem;
+  }
+
+  .erp-card-header {
+    padding: 1rem 1.1rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+
+  .erp-card-icon {
+    font-size: 1.05rem;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .metric-item {
+    padding: 0.9rem;
+    gap: 0.75rem;
+    border-radius: 10px;
+  }
+
+  .metric-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    font-size: 1.1rem;
+  }
+
+  .metric-label {
+    font-size: 0.82rem;
+  }
+
+  .metric-value {
+    font-size: 1.25rem;
+  }
+
+  .metric-description {
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  /* =========================
+     FOOTER NOTE
+     ========================= */
+
+  .footer-note {
+    padding: 0.9rem 1rem;
+    margin-top: 0.75rem;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    text-align: center;
+    gap: 0.65rem;
+
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .note-icon {
+    font-size: 1.05rem;
+  }
+
+  .refresh-btn {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+
+  /* Loading */
+  .erp-loading-container {
+    padding: 1rem;
+    gap: 1.25rem;
+  }
+
+  .erp-loading-text {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+
+  .loading-progress {
+    width: 200px;
+  }
+
+  .skeleton-container {
+    padding: 0.75rem;
+  }
+
+  .skeleton-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .skeleton-stat-card {
+    padding: 1rem;
+  }
+}
+
+
+/* =========================
+   SMALL MOBILE
+   0px - 480px
+   ========================= */
+@media (max-width: 480px) {
+
+  .erp-container {
+    padding: 0.6rem;
+  }
+
+  /* Header */
+  .erp-page-header {
+    padding: 1rem;
+    border-radius: 12px;
+    gap: 0.85rem;
+  }
+
+  .erp-header-content {
+    gap: 0.7rem;
+  }
+
+  .erp-header-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 1.2rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .erp-header-actions .erp-btn {
+    min-height: 42px;
+    font-size: 0.9rem;
+  }
+
+  /* Info */
+  .info-banner {
+    padding: 0.85rem;
+    gap: 0.55rem;
+  }
+
+  .info-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+
+  .info-content {
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  /* Stats */
+  .stats-grid {
+    gap: 0.7rem;
+  }
+
+  .stat-card {
+    border-radius: 12px;
+  }
+
+  .stat-card-header {
+    padding: 0.85rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 10px;
+    font-size: 1.05rem;
+  }
+
+  .stat-title {
+    font-size: 0.92rem;
+  }
+
+  .stat-card-body {
+    padding: 0.85rem;
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+  }
+
+  .stat-trend {
+    font-size: 0.78rem;
+  }
+
+  .stat-card-footer {
+    padding: 0.65rem 0.85rem;
+  }
+
+  .footer-label,
+  .footer-value {
+    font-size: 0.75rem;
+  }
+
+  /* Detailed metrics */
+  .erp-card-header {
+    padding: 0.9rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.05rem;
+  }
+
+  .erp-card-body {
+    padding: 0.85rem;
+  }
+
+  .metric-item {
+    padding: 0.8rem;
+  }
+
+  .metric-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+
+  .metric-value {
+    font-size: 1.15rem;
+  }
+
+  .metric-description {
+    font-size: 0.75rem;
+  }
+
+  /* Footer */
+  .footer-note {
+    padding: 0.8rem;
+    font-size: 0.76rem;
+  }
+}
       `}</style>
     </div>
   );

@@ -4,6 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
 import { logger } from "../../../../utils/logger";
@@ -423,46 +424,23 @@ export default function TimetableList() {
       >
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(-1)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>
-              Timetable Management
-            </span>
-          </motion.div>
+              <div
+                style={{
+                  width: "100%",
+                  margin: "10px auto",
+                  paddingBottom: "70px",
+                  height: "40px",
+                }}
+              >
+                <div style={{ width: "100%" }}>
+                  <Breadcrumb
+                    items={[
+                      { label: "Dashboard", path: "/hod/dashboard" },
+                      { label: "Timetable Management" },
+                    ]}
+                  />
+                </div>
+              </div>
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -477,7 +455,8 @@ export default function TimetableList() {
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.5rem'
+              // gap: '1.5rem',
+              // paddingBottom: '2rem',
             }}
           >
             <div className="erp-timetable-hero-inner" style={{
@@ -488,7 +467,7 @@ export default function TimetableList() {
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '1.5rem'
+              gap: '1.5rem',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div
@@ -514,7 +493,7 @@ export default function TimetableList() {
                 <div className="erp-timetable-hero-text">
                   <h1 className="erp-timetable-hero-title" style={{
                     margin: 0,
-                    fontSize: '2.25rem',
+                    fontSize: '2.0rem',
                     fontWeight: 700,
                     lineHeight: 1.1
                   }}>
@@ -523,7 +502,7 @@ export default function TimetableList() {
                   <p className="erp-timetable-hero-desc" style={{
                     margin: '0.75rem 0 0 0',
                     opacity: 0.9,
-                    fontSize: '1.25rem'
+                    fontSize: '0.9rem'
                   }}>
                     View, manage, and publish academic schedules
                   </p>
@@ -539,7 +518,7 @@ export default function TimetableList() {
                     backgroundColor: 'white',
                     color: BRAND_COLORS.primary.main,
                     border: '2px solid white',
-                    padding: '0.875rem 1.75rem',
+                    padding: '0.5rem 1.45rem',
                     borderRadius: '14px',
                     fontSize: '1.1rem',
                     fontWeight: 700,

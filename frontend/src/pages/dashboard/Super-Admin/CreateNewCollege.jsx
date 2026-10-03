@@ -1708,104 +1708,857 @@ export default function CreateNewCollege() {
           animation: slideIn 0.5s ease;
         }
 
-        /* ================= RESPONSIVE DESIGN ================= */
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
+ /* =========================================================
+   RESPONSIVE DESIGN
+   TABLET + MOBILE
+   DESKTOP STYLES REMAIN UNCHANGED
+   ========================================================= */
 
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
 
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
+/* =========================================================
+   TABLET
+   769px - 991px
+   ========================================================= */
 
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
+@media (min-width: 769px) and (max-width: 991.98px) {
 
-          .erp-form-header,
-          .erp-form {
-            padding: 1.5rem;
-          }
+  .erp-container {
+    padding: 1.25rem;
+  }
 
-          .erp-form-footer {
-            flex-direction: column;
-            gap: 1rem;
-            padding: 1.5rem;
-          }
 
-          .erp-footer-left,
-          .erp-footer-right {
-            width: 100%;
-            justify-content: center;
-          }
+  /* ================= BREADCRUMB ================= */
 
-          .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
+  .erp-container .breadcrumb,
+  .erp-container nav[aria-label="breadcrumb"] {
+    width: 100%;
+    overflow: hidden;
+  }
 
-          .info-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
+  .erp-container .breadcrumb ol {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    padding: 0.75rem 1rem;
+  }
 
-          .success-actions {
-            flex-direction: column;
-          }
+  .erp-container .breadcrumb ol::-webkit-scrollbar {
+    display: none;
+  }
 
-          .success-detail-row {
-            flex-direction: column;
-            align-items: flex-start;
-          }
 
-          .copy-btn {
-            align-self: flex-end;
-          }
-        }
+  /* ================= PAGE HEADER ================= */
+
+  .erp-page-header {
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    border-radius: 14px;
+
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+
+  .erp-header-content {
+    gap: 1rem;
+  }
+
+  .erp-header-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    font-size: 1.5rem;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .erp-page-title {
+    font-size: 1.6rem;
+    line-height: 1.25;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    margin-top: 0.4rem;
+  }
+
+  .erp-header-actions {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+  }
+
+
+  /* ================= INFO BANNER ================= */
+
+  .info-banner {
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    gap: 0.9rem;
+    align-items: flex-start;
+  }
+
+  .info-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+
+  .info-content {
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+
+  /* ================= FORM CARD ================= */
+
+  .erp-form-card {
+    border-radius: 14px;
+  }
+
+  .erp-form-header {
+    padding: 1.5rem;
+  }
+
+  .erp-form-title {
+    gap: 0.8rem;
+  }
+
+  .erp-form-icon {
+    font-size: 1.35rem;
+  }
+
+  .erp-form-title h3 {
+    font-size: 1.35rem;
+    line-height: 1.3;
+  }
+
+  .erp-form-subtitle {
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  .erp-form {
+    padding: 0 1.5rem 1.5rem;
+  }
+
+
+  /* ================= FORM SECTIONS ================= */
+
+  .form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+  }
+
+  .erp-section-title {
+    font-size: 1.15rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .section-description {
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .erp-row {
+    gap: 1rem;
+  }
+
+  .erp-form-group {
+    margin-bottom: 1.25rem;
+  }
+
+
+  /* ================= INPUTS ================= */
+
+  .erp-label {
+    font-size: 0.9rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .erp-input,
+  .erp-textarea {
+    font-size: 0.92rem;
+    padding: 0.8rem 1rem;
+    box-sizing: border-box;
+  }
+
+  .erp-textarea {
+    min-height: 100px;
+  }
+
+  .erp-hint-text {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .erp-error-text {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+
+  /* ================= LOGO ================= */
+
+  .logo-upload-area {
+    padding: 1.15rem;
+  }
+
+  .logo-upload-placeholder {
+    padding: 0.75rem;
+  }
+
+  .logo-upload-placeholder span {
+    font-size: 0.82rem;
+    text-align: center;
+  }
+
+
+  /* ================= PASSWORD ================= */
+
+  .password-strength-meter {
+    padding: 0.9rem;
+  }
+
+  .requirements-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.4rem;
+  }
+
+  .requirements-list li {
+    font-size: 0.75rem;
+  }
+
+
+  /* ================= FOOTER ================= */
+
+  .erp-form-footer {
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    gap: 1rem;
+  }
+
+  .erp-footer-left,
+  .erp-footer-right {
+    gap: 0.75rem;
+  }
+
+  .erp-btn-lg {
+    padding: 0.85rem 1.5rem;
+    font-size: 0.95rem;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .erp-container {
+    padding: 0.75rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+
+  /* ================= BREADCRUMB ================= */
+
+  .erp-container .breadcrumb,
+  .erp-container nav[aria-label="breadcrumb"] {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    margin-bottom: 0.85rem;
+  }
+
+  .erp-container .breadcrumb ol {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+
+    width: 100%;
+    max-width: 100%;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    white-space: nowrap;
+    scrollbar-width: none;
+
+    padding: 0.7rem 0.85rem;
+    box-sizing: border-box;
+  }
+
+  .erp-container .breadcrumb ol::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ================= PAGE HEADER ================= */
+
+  .erp-page-header {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 14px;
+
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+  }
+
+  .erp-header-content {
+    width: 100%;
+    gap: 0.7rem;
+    align-items: flex-start;
+  }
+
+  .erp-header-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .erp-page-title {
+    font-size: 1.25rem;
+    line-height: 1.25;
+    word-break: normal;
+  }
+
+  .erp-page-subtitle {
+    margin-top: 0.3rem;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    opacity: 0.9;
+  }
+
+  .erp-header-actions {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.65rem 0.85rem;
+    justify-content: center;
+    font-size: 0.82rem;
+    border-radius: 9px;
+  }
+
+  .erp-btn-icon {
+    font-size: 0.95rem;
+  }
+
+
+  /* ================= INFO BANNER ================= */
+
+  .info-banner {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 0.85rem;
+    margin-bottom: 1rem;
+
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+
+    gap: 0.65rem;
+    text-align: left;
+  }
+
+  .info-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    font-size: 0.8rem;
+  }
+
+  .info-content {
+    min-width: 0;
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+
+  /* ================= FORM CARD ================= */
+
+  .erp-form-card {
+    width: 100%;
+    border-radius: 14px;
+    box-sizing: border-box;
+  }
+
+  .erp-form-header {
+    padding: 1rem;
+  }
+
+  .erp-form-title {
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .erp-form-icon {
+    margin-top: 0.15rem;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  .erp-form-title h3 {
+    font-size: 1.15rem;
+    line-height: 1.3;
+  }
+
+  .erp-form-subtitle {
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .erp-form {
+    padding: 0 1rem 1rem;
+  }
+
+
+  /* ================= FORM SECTIONS ================= */
+
+  .form-section {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+  }
+
+  .erp-section-title {
+    gap: 0.55rem;
+    font-size: 1rem;
+    line-height: 1.35;
+    margin-bottom: 0.9rem;
+    padding-bottom: 0.6rem;
+  }
+
+  .erp-section-icon {
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+
+  .section-description {
+    margin-bottom: 1rem;
+    font-size: 0.76rem;
+    line-height: 1.5;
+  }
+
+  .erp-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .erp-col-6,
+  .erp-col-12 {
+    grid-column: span 12;
+  }
+
+  .erp-form-group {
+    margin-bottom: 1rem;
+  }
+
+
+  /* ================= LABELS ================= */
+
+  .erp-label {
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .erp-label-icon {
+    font-size: 0.82rem;
+  }
+
+
+  /* ================= INPUTS ================= */
+
+  .erp-input,
+  .erp-textarea {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+
+    padding: 0.72rem 0.85rem;
+    font-size: 0.82rem;
+
+    border-radius: 9px;
+  }
+
+  .erp-input {
+    min-height: 44px;
+  }
+
+  .erp-textarea {
+    min-height: 90px;
+  }
+
+  .erp-input:focus,
+  .erp-textarea:focus {
+    transform: none;
+  }
+
+
+  /* ================= HINT / ERROR ================= */
+
+  .erp-hint-text {
+    gap: 0.4rem;
+    padding: 0.45rem 0.6rem;
+    margin-top: 0.4rem;
+
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+
+  .erp-hint-icon {
+    font-size: 0.7rem;
+  }
+
+  .erp-error-text {
+    gap: 0.4rem;
+    padding: 0.45rem 0.6rem;
+    margin-top: 0.4rem;
+
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+
+  .erp-error-icon {
+    font-size: 0.7rem;
+    flex-shrink: 0;
+  }
+
+
+  /* ================= PASSWORD ================= */
+
+  .password-wrapper .erp-input {
+    padding-right: 2.8rem;
+  }
+
+  .toggle-password {
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+  }
+
+  .password-strength-meter {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .strength-info {
+    margin-bottom: 0.7rem;
+  }
+
+  .strength-label,
+  .strength-text {
+    font-size: 0.75rem;
+  }
+
+  .requirements-list {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .requirements-list li {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.4rem;
+  }
+
+
+  /* ================= LOGO UPLOAD ================= */
+
+  .logo-upload-area {
+    padding: 0.8rem;
+    border-radius: 10px;
+  }
+
+  .logo-upload-placeholder {
+    padding: 0.65rem 0.4rem;
+    text-align: center;
+  }
+
+  .logo-upload-icon {
+    font-size: 1.6rem;
+  }
+
+  .logo-upload-placeholder span {
+    font-size: 0.72rem;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  .logo-upload-hint {
+    font-size: 0.65rem !important;
+  }
+
+  .logo-preview-img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .logo-remove-btn {
+    width: 30px;
+    height: 30px;
+  }
+
+
+  /* ================= FORM FOOTER ================= */
+
+  .erp-form-footer {
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0.65rem;
+
+    padding: 1rem;
+    margin-top: 1.25rem;
+
+    border-radius: 0 0 14px 14px;
+  }
+
+  .erp-footer-left,
+  .erp-footer-right {
+    width: 100%;
+    display: flex;
+  }
+
+  .erp-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+
+    padding: 0.7rem 1rem;
+    font-size: 0.82rem;
+  }
+
+  .erp-btn-lg {
+    padding: 0.75rem 1rem;
+    font-size: 0.84rem;
+  }
+
+
+  /* ================= ALERTS ================= */
+
+  .erp-alert {
+    padding: 0.85rem;
+    gap: 0.65rem;
+    align-items: flex-start;
+  }
+
+  .erp-alert-icon {
+    font-size: 1.1rem;
+  }
+
+  .erp-alert-content {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    min-width: 0;
+  }
+
+  .erp-alert-close {
+    right: 0.6rem;
+    font-size: 1.5rem;
+  }
+
+  .success-details {
+    font-size: 0.75rem;
+  }
+
+  .success-actions {
+    gap: 0.6rem;
+  }
+
+  .success-detail-row {
+    gap: 0.6rem;
+  }
+
+  .copy-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 480px
+   ========================================================= */
 
 @media (max-width: 480px) {
-           .erp-page-title {
-             font-size: 1.5rem;
-           }
- 
-           .erp-section-title {
-             font-size: 1.15rem;
-           }
- 
-           .erp-label {
-             font-size: 0.9rem;
-           }
- 
-           .erp-input,
-           .erp-textarea {
-             padding: 0.75rem 1rem;
-             font-size: 0.95rem;
-           }
- 
-           .erp-btn-lg {
-             padding: 0.875rem 1.5rem;
-             font-size: 1rem;
-           }
- 
-           .erp-form-title h3 {
-             font-size: 1.35rem;
-           }
- 
-           .requirements-list {
-             grid-template-columns: 1fr;
-           }
-         }
- 
+
+  .erp-container {
+    padding: 0.55rem;
+  }
+
+
+  /* Breadcrumb */
+  .erp-container .breadcrumb ol {
+    padding: 0.6rem 0.7rem;
+  }
+
+
+  /* Header */
+  .erp-page-header {
+    padding: 0.85rem;
+    border-radius: 12px;
+  }
+
+  .erp-header-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    font-size: 1rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.1rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.68rem;
+    line-height: 1.4;
+  }
+
+  .erp-header-actions .erp-btn {
+    min-height: 42px;
+    font-size: 0.76rem;
+  }
+
+
+  /* Info */
+  .info-banner {
+    padding: 0.7rem;
+    gap: 0.55rem;
+  }
+
+  .info-icon {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+  }
+
+  .info-content {
+    font-size: 0.68rem;
+    line-height: 1.45;
+  }
+
+
+  /* Form */
+  .erp-form-header {
+    padding: 0.85rem;
+  }
+
+  .erp-form {
+    padding: 0 0.85rem 0.85rem;
+  }
+
+  .erp-form-title h3 {
+    font-size: 1.02rem;
+  }
+
+  .erp-form-subtitle {
+    font-size: 0.68rem;
+  }
+
+  .erp-section-title {
+    font-size: 0.92rem;
+  }
+
+  .section-description {
+    font-size: 0.7rem;
+  }
+
+
+  /* Fields */
+  .erp-label {
+    font-size: 0.76rem;
+  }
+
+  .erp-input,
+  .erp-textarea {
+    font-size: 0.78rem;
+    padding: 0.68rem 0.75rem;
+  }
+
+  .erp-input {
+    min-height: 42px;
+  }
+
+  .erp-textarea {
+    min-height: 85px;
+  }
+
+  .erp-hint-text,
+  .erp-error-text {
+    font-size: 0.64rem;
+  }
+
+
+  /* Logo */
+  .logo-upload-area {
+    padding: 0.65rem;
+  }
+
+  .logo-upload-icon {
+    font-size: 1.4rem;
+  }
+
+  .logo-upload-placeholder span {
+    font-size: 0.66rem;
+  }
+
+
+  /* Footer */
+  .erp-form-footer {
+    padding: 0.85rem;
+  }
+
+  .erp-btn,
+  .erp-btn-lg {
+    min-height: 42px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.76rem;
+  }
+
+
+  /* Password */
+  .password-strength-meter {
+    padding: 0.65rem;
+  }
+
+  .requirements-list li {
+    font-size: 0.66rem;
+  }
+}
          /* ================= LOGO UPLOAD ================= */
          .logo-upload-area {
            position: relative;

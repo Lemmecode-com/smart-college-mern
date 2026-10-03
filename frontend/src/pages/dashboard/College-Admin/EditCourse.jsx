@@ -3,6 +3,7 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -150,16 +151,60 @@ export default function EditCourse() {
 
   return (
     <div className="container-fluid">
-      {/* HEADER */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow mb-4">
-        <h3 className="fw-bold">
-          <FaBookOpen className="blink me-2" />
+      {/* ================= BREADCRUMB ================= */}
+    <div
+      className="edit-course-breadcrumb"
+      style={{
+        width: "100%",
+        margin: "10px auto",
+        paddingTop: "5px",
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard/college-admin" },
+            { label: "Courses", path: "/courses" },
+            { label: "Edit Course" },
+          ]}
+        />
+      </div>
+    </div>
+
+ <div className="page-header">
+  <div className="page-header__content">
+
+    <div className="page-header__left">
+
+      <div className="page-header__icon-wrapper">
+        <FaBookOpen />
+      </div>
+
+      <div className="page-header__info">
+        <h1 className="page-header__title">
           Edit Course
-        </h3>
-        <p className="opacity-75 mb-0">
+        </h1>
+
+        <p className="page-header__subtitle">
           Update course details
         </p>
       </div>
+
+    </div>
+
+    <div className="page-header__right">
+      <button
+        type="button"
+        className="btn btn--secondary"
+        onClick={() => navigate("/courses")}
+      >
+        <FaArrowLeft size={15} />
+        <span>Back</span>
+      </button>
+    </div>
+
+  </div>
+</div>
 
       {/* ERROR */}
       {error && typeof error === 'string' && (
@@ -193,14 +238,14 @@ export default function EditCourse() {
 
           {/* FOOTER */}
           <div className="card-footer bg-white border-0 d-flex justify-content-between p-3">
-            <button
+            {/* <button
               type="button"
               className="btn btn-outline-secondary"
               onClick={() => navigate("/courses")}
             >
               <FaArrowLeft className="me-1" />
               Back
-            </button>
+            </button> */}
 
             <button
               className="btn btn-success px-4"
@@ -228,6 +273,139 @@ export default function EditCourse() {
           50% {opacity:0.4}
           100% {opacity:1}
         }
+          .page-header {
+  width: 100%;
+  margin-bottom: 1.25rem;
+  padding: 1.25rem 1.5rem;
+
+  background: #0E3746;
+  border-radius: 15px;
+
+  color: #ffffff;
+
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+}
+
+.page-header__content {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 1.5rem;
+}
+
+.page-header__left {
+  display: flex;
+  align-items: center;
+
+  gap: 1rem;
+  min-width: 0;
+}
+
+.page-header__icon-wrapper {
+  width: 52px;
+  height: 52px;
+  
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  border-radius: 50%;
+
+  color: #ffffff;
+  font-size: 1.45rem;
+}
+
+.page-header__info {
+  min-width: 0;
+}
+
+.page-header__title {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.2;
+
+  letter-spacing: -0.02em;
+}
+
+.page-header__subtitle {
+  margin: 0.35rem 0 0;
+
+  color: rgba(255, 255, 255, 0.75);
+
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.page-header__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+
+  flex-shrink: 0;
+}
+  .btn {
+  height: 42px;
+  min-height: 42px;
+
+  padding: 0 1.1rem;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 0.5rem;
+
+  border-radius: 10px;
+
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  cursor: pointer;
+  white-space: nowrap;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.btn--secondary {
+  background: rgba(255, 255, 255, 0.12);
+
+  border: 1px solid rgba(255, 255, 255, 0.22);
+
+  color: #ffffff;
+}
+
+.btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.18);
+
+  border-color: rgba(255, 255, 255, 0.28);
+
+  color: #ffffff;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.btn--secondary:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
       `}</style>
     </div>
   );

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaCalendarAlt,
@@ -1357,23 +1358,22 @@ export default function MySchedule() {
           style={{ maxWidth: styles.container.maxWidth }}
         >
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="breadcrumb"
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/teacher/dashboard")}
-              className="btn-breadcrumb"
+            <div
+              style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+              }}
             >
-              <FaArrowLeft /> Back to Dashboard
-            </motion.button>
-            <span className="breadcrumb-separator">›</span>
-            <span className="breadcrumb-current">Today's Schedule</span>
-          </motion.div>
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Today's Schedule" },
+                  ]}
+                />
+              </div>
+            </div>
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}

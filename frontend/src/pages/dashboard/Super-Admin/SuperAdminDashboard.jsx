@@ -1777,75 +1777,58 @@ export default function SuperAdminDashboard() {
           animation: fadeIn 0.6s ease;
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .erp-header-actions {
-            flex-direction: column;
-            width: 100%;
+        /* =========================================================
+          SUPER ADMIN DASHBOARD
+          MOBILE + TABLET RESPONSIVE
+          DESKTOP REMAINS UNCHANGED
+          ========================================================= */
+
+        /* ================= TABLET ================= */
+        @media (min-width: 768px) and (max-width: 991.98px) {
+
+          .erp-page {
+            padding: 1rem !important;
           }
 
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
+          /* Breadcrumb */
+          .erp-page > :first-child {
+            margin-bottom: 1rem;
           }
 
-          .info-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
-
-          .filter-bar {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .search-box {
-            min-width: 100%;
-          }
-
-          .filter-group {
-            width: 100%;
-            justify-content: space-between;
-          }
-
-          .filter-wrapper {
-            flex: 1;
-          }
-
-          .filter-select {
-            width: 100%;
-          }
-
-          .filter-results {
-            width: 100%;
-            text-align: center;
-          }
-
-          .stats-grid {
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          }
-
-          .colleges-grid,
-          .quick-actions-grid {
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          }
-
-          .view-more-btn {
-            width: 100%;
-            justify-content: center;
-          }
-        }
-
-        @media (max-width: 768px) {
+          /* Header */
           .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
+            padding: 1.5rem !important;
+            margin-bottom: 1.25rem !important;
+            border-radius: 1rem !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1.25rem !important;
+          }
+
+          .erp-header-content {
+            width: 100%;
+            gap: 1rem !important;
+          }
+
+          .erp-header-icon {
+            width: 52px !important;
+            height: 52px !important;
+            font-size: 1.5rem !important;
+            flex-shrink: 0;
+          }
+
+          .erp-page-title {
+            font-size: 1.55rem !important;
+            line-height: 1.25 !important;
+          }
+
+          .erp-page-subtitle {
+            font-size: 0.9rem !important;
+            line-height: 1.45 !important;
           }
 
           .erp-page-meta {
+            font-size: 0.78rem !important;
             flex-wrap: wrap;
           }
 
@@ -1855,161 +1838,553 @@ export default function SuperAdminDashboard() {
 
           .erp-header-actions {
             width: 100%;
-            flex-direction: row;
-            flex-wrap: wrap;
-            gap: 0.75rem;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem !important;
           }
 
           .erp-header-actions .erp-btn {
-            flex: 1;
-            min-width: 120px;
+            width: 100%;
             justify-content: center;
+            min-height: 48px;
           }
 
-          .stats-grid {
-            grid-template-columns: 1fr;
+
+          /* Info banner */
+          .info-banner {
+            padding: 1rem !important;
+            margin-bottom: 1.25rem !important;
+            align-items: flex-start !important;
           }
 
+          .info-content {
+            font-size: 0.85rem !important;
+            line-height: 1.5 !important;
+          }
+
+
+          /* Search / filter */
           .filter-bar {
-            padding: 1rem;
+            padding: 1rem !important;
+            gap: 0.75rem !important;
+            margin-bottom: 1.25rem !important;
           }
 
-          .quick-actions-section {
-            padding: 1.25rem;
-          }
-
-          .quick-actions-grid {
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-          }
-
-          .quick-action-card {
-            padding: 1rem;
-          }
-
-          .quick-action-icon {
-            width: 48px;
-            height: 48px;
-            font-size: 1.25rem;
-          }
-
-          .filter-group {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .filter-reset {
+          .search-box {
+            min-width: 0 !important;
             width: 100%;
           }
 
-          .footer-note {
-            flex-direction: column;
+          .filter-results {
+            width: 100%;
             text-align: center;
-            gap: 0.75rem;
           }
 
-          .footer-note-content {
-            flex-direction: column;
-            align-items: center;
-          }
 
-          .refresh-btn {
-            align-self: center;
-          }
-
-          .colleges-grid,
-          .quick-actions-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .college-name {
-            font-size: 1.1rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .stat-value {
-            font-size: 1.5rem;
-          }
-
-          .stat-icon-wrapper {
-            width: 36px;
-            height: 36px;
-            font-size: 1rem;
-          }
-
-          .stat-icon {
-            font-size: 1rem;
-          }
-
-          .stat-title {
-            font-size: 0.75rem;
-          }
-
-          .stat-trend {
-            font-size: 0.72rem;
-          }
-
-          .trend-icon {
-            font-size: 0.7rem;
+          /* Stats */
+          .stats-grid {
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 0.75rem !important;
           }
 
           .stat-card-header {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            gap: var(--spacing-xs);
+            padding: 0.8rem !important;
+          }
+
+          .stat-icon-wrapper {
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 1rem !important;
+          }
+
+          .stat-title {
+            font-size: 0.72rem !important;
           }
 
           .stat-card-body {
-            padding: 0 var(--spacing-sm);
+            padding: 0 0.8rem !important;
+          }
+
+          .stat-value {
+            font-size: 1.45rem !important;
           }
 
           .stat-card-footer {
-            padding: var(--spacing-xs) var(--spacing-sm) 0.5rem;
+            padding: 0.5rem 0.8rem !important;
           }
 
-          .erp-card-header h3 {
-            font-size: 1.25rem;
+          .stat-trend {
+            font-size: 0.68rem !important;
           }
 
-          .erp-page-title {
-            font-size: 1.5rem;
+
+          /* Quick actions */
+          .quick-actions-section {
+            padding: 1rem !important;
+            margin-bottom: 1.25rem !important;
           }
 
-          .college-card {
-            padding: 1.25rem;
-          }
-
-          .college-name {
-            font-size: 1rem;
-          }
-
-          .view-details-btn {
-            font-size: 0.85rem;
-            padding: 0.5rem;
+          .quick-actions-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
           }
 
           .quick-action-card {
-            flex-direction: column;
-            text-align: center;
-            padding: 1.25rem;
+            padding: 1rem !important;
           }
 
           .quick-action-icon {
-            width: 48px;
-            height: 48px;
-            font-size: 1.5rem;
+            width: 46px !important;
+            height: 46px !important;
+            font-size: 1.2rem !important;
           }
 
           .quick-action-title {
-            font-size: 1rem;
+            font-size: 0.9rem !important;
+          }
+
+          .quick-action-description {
+            font-size: 0.75rem !important;
+          }
+
+
+          /* Registered colleges */
+          .erp-card {
+            margin-bottom: 1.25rem !important;
+          }
+
+          .erp-card-header {
+            padding: 1rem 1.25rem !important;
+          }
+
+          .erp-card-header h3 {
+            font-size: 1.05rem !important;
+          }
+
+          .erp-card-body {
+            padding: 1rem !important;
+          }
+
+          .college-card {
+            padding: 0.75rem !important;
+          }
+
+          .college-card-header,
+          .college-card-body {
+            padding: 0.75rem !important;
+          }
+
+          .college-name {
+            font-size: 1rem !important;
+          }
+
+          .meta-item {
+            font-size: 0.78rem !important;
+          }
+
+
+          /* Footer */
+          .footer-note {
+            padding: 0.85rem 1rem !important;
+            font-size: 0.78rem !important;
+          }
+        }
+
+
+        /* ================= MOBILE ================= */
+        @media (max-width: 767.98px) {
+
+          .erp-page {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0.65rem !important;
+            overflow-x: hidden !important;
+          }
+
+
+          /* Breadcrumb */
+          .erp-page > :first-child {
+            margin-bottom: 0.75rem;
+          }
+
+
+          /* ================= HEADER ================= */
+
+          .erp-page-header {
+            padding: 1rem !important;
+            margin-bottom: 1rem !important;
+            border-radius: 14px !important;
+
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
+          }
+
+          .erp-header-content {
+            width: 100% !important;
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+
+          .erp-header-icon {
+            width: 44px !important;
+            height: 44px !important;
+            min-width: 44px !important;
+            font-size: 1.15rem !important;
+            border-radius: 10px !important;
+          }
+
+          .erp-header-text {
+            min-width: 0 !important;
+            flex: 1;
+          }
+
+          .erp-page-title {
+            font-size: 1.25rem !important;
+            line-height: 1.25 !important;
+            letter-spacing: -0.2px !important;
+          }
+
+          .erp-page-subtitle {
+            font-size: 0.78rem !important;
+            line-height: 1.45 !important;
+            margin-top: 0.3rem !important;
+          }
+
+          .erp-page-meta {
+            margin-top: 0.4rem !important;
+            font-size: 0.7rem !important;
+            line-height: 1.4 !important;
+            flex-wrap: wrap !important;
+          }
+
+          .keyboard-hint {
+            display: none !important;
+          }
+
+
+          /* Header buttons */
+          .erp-header-actions {
+            width: 100% !important;
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 0.6rem !important;
+          }
+
+          .erp-header-actions .erp-btn {
+            width: 100% !important;
+            min-height: 46px !important;
+            padding: 0.65rem 0.5rem !important;
+            justify-content: center !important;
+            font-size: 0.8rem !important;
+            gap: 0.35rem !important;
+          }
+
+          .erp-btn-icon {
+            font-size: 0.9rem !important;
+          }
+
+
+          /* ================= INFO BANNER ================= */
+
+          .info-banner {
+            padding: 0.9rem !important;
+            margin-bottom: 1rem !important;
+            gap: 0.7rem !important;
+            align-items: flex-start !important;
+          }
+
+          .info-icon {
+            width: 34px !important;
+            height: 34px !important;
+            min-width: 34px !important;
+            font-size: 0.9rem !important;
+          }
+
+          .info-content {
+            font-size: 0.76rem !important;
+            line-height: 1.5 !important;
+          }
+
+
+          /* ================= SEARCH ================= */
+
+          .filter-bar {
+            padding: 0.8rem !important;
+            margin-bottom: 1rem !important;
+            gap: 0.65rem !important;
+            border-radius: 12px !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+          }
+
+          .search-box {
+            width: 100% !important;
+            min-width: 0 !important;
           }
 
           .search-input {
-            font-size: 0.9rem;
+            width: 100% !important;
+            min-height: 46px !important;
+            padding: 0.65rem 2.3rem !important;
+            font-size: 0.82rem !important;
+            box-sizing: border-box !important;
           }
 
-          .filter-select {
-            font-size: 0.9rem;
+          .search-icon {
+            left: 0.85rem !important;
+            font-size: 0.85rem !important;
+          }
+
+          .filter-results {
+            width: 100% !important;
+            padding: 0.6rem !important;
+            text-align: center !important;
+            font-size: 0.72rem !important;
+          }
+
+
+          /* ================= STATS ================= */
+
+          .stats-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.65rem !important;
+            margin-bottom: 1rem !important;
+          }
+
+          .stat-card {
+            min-height: auto !important;
+          }
+
+          .stat-card-header {
+            padding: 0.75rem 0.85rem !important;
+            gap: 0.65rem !important;
+          }
+
+          .stat-icon-wrapper {
+            width: 38px !important;
+            height: 38px !important;
+            font-size: 1rem !important;
+          }
+
+          .stat-title {
+            font-size: 0.75rem !important;
+          }
+
+          .stat-card-body {
+            padding: 0 0.85rem !important;
+          }
+
+          .stat-value {
+            font-size: 1.45rem !important;
+          }
+
+          .stat-card-footer {
+            padding: 0.45rem 0.85rem 0.65rem !important;
+          }
+
+          .stat-trend {
+            font-size: 0.7rem !important;
+          }
+
+
+          /* ================= QUICK ACTIONS ================= */
+
+          .quick-actions-section {
+            padding: 0.9rem !important;
+            margin-bottom: 1rem !important;
+            border-radius: 12px !important;
+          }
+
+          .quick-actions-header {
+            margin-bottom: 0.85rem !important;
+            padding-bottom: 0.7rem !important;
+          }
+
+          .quick-actions-header h3 {
+            font-size: 1rem !important;
+          }
+
+          .quick-actions-subtitle {
+            font-size: 0.72rem !important;
+            margin-top: 0.35rem !important;
+          }
+
+          .quick-actions-grid {
+            grid-template-columns: 1fr !important;
+            gap: 0.6rem !important;
+          }
+
+          .quick-action-card {
+            min-height: 64px !important;
+            padding: 0.75rem !important;
+            gap: 0.7rem !important;
+          }
+
+          .quick-action-icon {
+            width: 42px !important;
+            height: 42px !important;
+            min-width: 42px !important;
+            font-size: 1rem !important;
+          }
+
+          .quick-action-title {
+            font-size: 0.82rem !important;
+          }
+
+          .quick-action-description {
+            font-size: 0.7rem !important;
+          }
+
+
+          /* ================= REGISTERED COLLEGES ================= */
+
+          .erp-card {
+            margin-bottom: 1rem !important;
+            border-radius: 12px !important;
+          }
+
+          .erp-card-header {
+            padding: 0.85rem !important;
+            flex-wrap: wrap !important;
+            gap: 0.65rem !important;
+          }
+
+          .erp-card-header h3 {
+            font-size: 0.95rem !important;
+            line-height: 1.3 !important;
+          }
+
+          .view-more-btn {
+            padding: 0.45rem 0.7rem !important;
+            font-size: 0.72rem !important;
+          }
+
+          .erp-card-body {
+            padding: 0.75rem !important;
+          }
+
+          .erp-card-body .row {
+            margin-left: -0.3rem !important;
+            margin-right: -0.3rem !important;
+          }
+
+          .erp-card-body .row > [class*="col-"] {
+            padding-left: 0.3rem !important;
+            padding-right: 0.3rem !important;
+          }
+
+          .college-card {
+            padding: 0.7rem !important;
+            border-radius: 10px !important;
+          }
+
+          .college-card-header,
+          .college-card-body {
+            padding: 0.65rem !important;
+          }
+
+          .college-card-header {
+            margin-bottom: 0.5rem !important;
+          }
+
+          .college-badge {
+            width: 28px !important;
+            height: 28px !important;
+            font-size: 0.75rem !important;
+          }
+
+          .college-status {
+            padding: 0.2rem 0.55rem !important;
+            font-size: 0.7rem !important;
+          }
+
+          .college-name {
+            font-size: 0.9rem !important;
+            line-height: 1.3 !important;
+          }
+
+          .college-meta {
+            gap: 0.45rem !important;
+          }
+
+          .meta-item {
+            font-size: 0.72rem !important;
+            line-height: 1.35 !important;
+            min-width: 0 !important;
+          }
+
+          .meta-item span {
+            overflow-wrap: anywhere !important;
+          }
+
+
+          /* ================= FOOTER ================= */
+
+          .footer-note {
+            padding: 0.75rem !important;
+            margin-top: 0.75rem !important;
+            font-size: 0.7rem !important;
+            line-height: 1.4 !important;
+            text-align: center !important;
+          }
+
+          .footer-note-content {
+            gap: 0.5rem !important;
+          }
+
+          .note-icon {
+            font-size: 1rem !important;
+          }
+
+          .refresh-btn {
+            width: 34px !important;
+            height: 34px !important;
+          }
+        }
+
+
+        /* ================= SMALL MOBILE ================= */
+        @media (max-width: 400px) {
+
+          .erp-page {
+            padding: 0.5rem !important;
+          }
+
+          .erp-page-header {
+            padding: 0.85rem !important;
+          }
+
+          .erp-page-title {
+            font-size: 1.15rem !important;
+          }
+
+          .erp-page-subtitle {
+            font-size: 0.73rem !important;
+          }
+
+          .erp-header-actions {
+            grid-template-columns: 1fr !important;
+          }
+
+          .erp-header-actions .erp-btn {
+            min-height: 44px !important;
+          }
+
+          .info-content {
+            font-size: 0.72rem !important;
+          }
+
+          .search-input {
+            font-size: 0.78rem !important;
+          }
+
+          .quick-actions-section,
+          .erp-card {
+            border-radius: 10px !important;
           }
         }
       `}</style>

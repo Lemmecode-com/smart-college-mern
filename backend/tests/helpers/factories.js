@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const College = require('../../src/models/college.model');
 const User = require('../../src/models/user.model');
 const Teacher = require('../../src/models/teacher.model');
@@ -209,6 +210,7 @@ const createCourse = async (overrides = {}) => {
     credits: 120,
     maxStudents: 60,
     status: 'ACTIVE',
+    createdBy: new mongoose.Types.ObjectId(),
     ...overrides,
   };
   return Course.create(payload);
@@ -221,6 +223,7 @@ const createSubject = async (overrides = {}) => {
     semester: 1,
     credits: 3,
     status: 'ACTIVE',
+    createdBy: new mongoose.Types.ObjectId(),
     ...overrides,
   };
   return Subject.create(payload);

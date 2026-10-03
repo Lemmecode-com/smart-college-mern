@@ -19,6 +19,7 @@ const collegeService = require("../services/college.service");
 const logger = require("../utils/logger");
 const auditLogService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
+const { createPromotionDecision } = require("../services/promotionDecision.service");
 
 const {
   processUploadsWithStorage,
@@ -706,8 +707,9 @@ exports.getMyFullProfile = async (req, res, next) => {
 
       const timetableFilters = {
         college_id: student.college_id,
-        status: { $in: ["PUBLISHED", "DRAFT"] },
+        status: "PUBLISHED",
         semester,
+        academicYear: student.currentAcademicYear,
       };
 
       if (student.course_id) {
@@ -808,6 +810,7 @@ hscPassingYear: student.hscPassingYear,
         department,
         course,
         attendance: attendanceSummary,
+        todaysTimetable,
         documentConfig: (docConfig?.documents || []).map((doc) => {
           const docObj = doc.toObject ? doc.toObject() : doc;
           return {
@@ -1483,6 +1486,32 @@ exports.moveToAlumni = async (req, res, next) => {
     if (student.currentSemester < maxSemester) {
       throw new AppError(
         "Student has not completed the course yet. Cannot move to Alumni.",
+        400,
+        "NOT_ELIGIBLE_FOR_ALUMNI",
+      );
+    }
+
+    // Evaluate full promotion eligibility using existing service
+    // This checks: fee clearance, attendance, result completion, KT/backlog limits
+    const promotionDecision = await createPromotionDecision({
+      studentId: student._id,
+      collegeId: req.college_id,
+      userId: req.user.id,
+    });
+
+    // Require final semester result to be available and complete
+    if (promotionDecision.result_status !== "FOUND") {
+      throw new AppError(
+        "Final semester results not available or incomplete. Cannot move to Alumni.",
+        400,
+        "RESULT_INCOMPLETE",
+      );
+    }
+
+    // Require promotion outcome to be PASS (all conditions satisfied)
+    if (promotionDecision.promotion_outcome !== "PASS") {
+      throw new AppError(
+        `Student not eligible for Alumni: ${promotionDecision.decision_reason}`,
         400,
         "NOT_ELIGIBLE_FOR_ALUMNI",
       );

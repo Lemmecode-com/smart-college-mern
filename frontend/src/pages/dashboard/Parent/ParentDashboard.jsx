@@ -221,6 +221,7 @@ export default function ParentDashboard() {
           <Breadcrumb
             items={[
               { label: "Dashboard", path: "/dashboard/parent" },
+              { label: "Parent Overview" }
             ]}
           />
 

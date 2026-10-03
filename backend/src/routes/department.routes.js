@@ -14,6 +14,7 @@ const {
   deleteDepartment,
   assignHOD,
   removeHOD,
+  reassignHODSubjects,
 } = require("../controllers/department.controller");
 
 // Apply middlewares to ALL department routes — TEACHER & HOD read-only, PRINCIPAL/EXAM_COORDINATOR/ACCOUNTANT read-only, COLLEGE_ADMIN full access
@@ -39,5 +40,8 @@ router.put("/:id/assign-hod", role(ROLE.COLLEGE_ADMIN), assignHOD);
 
 // Remove HOD — COLLEGE_ADMIN only
 router.delete("/:id/hod", role(ROLE.COLLEGE_ADMIN), removeHOD);
+
+// Reassign HOD Subjects (before removal) — COLLEGE_ADMIN only
+router.put("/:id/hod/reassign-subjects", role(ROLE.COLLEGE_ADMIN), reassignHODSubjects);
 
 module.exports = router;

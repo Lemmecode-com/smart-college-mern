@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import Pagination from "../../../components/Pagination";
 import useRole from "../../../hooks/useRole";
 
@@ -30,6 +31,7 @@ import {
 } from "react-icons/fa";
 
 import ConfirmModal from "../../../components/ConfirmModal";
+import HodSubjectReassign from "../../../components/HodSubjectReassign";
 import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
@@ -68,6 +70,7 @@ const T = {
   successBg: "#e3f6ec",
   inactive: "#6b7280",
   inactiveBg: "#eef0f2",
+  headerTeal: "#0f4653",
   radiusLg: 14,
   radiusMd: 10,
   radiusSm: 7,
@@ -97,11 +100,11 @@ function Btn({ children, onClick, variant = "outline", color = T.navy, tint, dis
     border: `1px solid ${hover ? T.navyDark : color}`,
     boxShadow: hover ? "0 4px 10px rgba(20,27,41,0.18)" : "none",
   };
-  const outline = {
-    background: hover ? (tint || T.navyTint) : T.surface,
-    color,
-    border: `1px solid ${hover ? color : T.border}`,
-  };
+const outline = {
+  background: hover ? (tint || T.navyTint) : (tint || T.surface),
+  color,
+  border: `1px solid ${hover ? color : T.border}`,
+};
   return (
     <button
       type={type}
@@ -278,6 +281,8 @@ export default function DepartmentList() {
   const [showRemoveHodModal, setShowRemoveHodModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [removingHod, setRemovingHod] = useState(false);
+  const [hodSubjectCount, setHodSubjectCount] = useState(null);
+  const [showReassignSubjectsModal, setShowReassignSubjectsModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState(null);
   const [deletingDepartment, setDeletingDepartment] = useState(false);
@@ -366,6 +371,30 @@ export default function DepartmentList() {
   };
 
   /* ================= REMOVE HOD ================= */
+  const fetchHodSubjectCount = async (hodTeacherId) => {
+    try {
+      const res = await api.get(
+        `/teachers/${hodTeacherId}/reassignment-data`,
+      );
+      const payload = res.data?.data || res.data;
+      const subjects = payload?.subjects || [];
+      return subjects.length;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleRemoveHodClick = async (department) => {
+    const hodId = department.hod_id?._id || department.hod_id;
+    if (!hodId) return;
+
+    setSelectedDepartment(department);
+    setHodSubjectCount(null);
+    const count = await fetchHodSubjectCount(hodId);
+    setHodSubjectCount(count);
+    setShowRemoveHodModal(true);
+  };
+
   const handleRemoveHod = async () => {
     if (!selectedDepartment) return;
 
@@ -374,12 +403,47 @@ export default function DepartmentList() {
       await api.delete(`/departments/${selectedDepartment._id}/hod`);
       setShowRemoveHodModal(false);
       setSelectedDepartment(null);
+      setHodSubjectCount(null);
       fetchDepartments();
-    } catch {
-      alert("Failed to remove HOD. Please try again.");
+    } catch (err) {
+      const backendMessage =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        "Failed to remove HOD. Please try again.";
+      toast.error(backendMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setRemovingHod(false);
     }
+  };
+
+  /* ================= REASSIGN HOD SUBJECTS =================
+     Triggered from the blocked state of the Remove HOD confirmation
+     (see the ConfirmModal below). This never removes or replaces the
+     HOD — it only moves subjects/slots/sessions to another teacher so
+     the admin can, in a separate explicit step, remove the HOD once
+     the active subject count reaches zero. */
+  const handleOpenReassignModal = () => {
+    // Keep selectedDepartment set — the reassignment modal needs the
+    // same department/HOD context. Just swap which dialog is visible.
+    setShowRemoveHodModal(false);
+    setShowReassignSubjectsModal(true);
+  };
+
+  const handleReassignModalClose = () => {
+    setShowReassignSubjectsModal(false);
+  };
+
+  const handleReassignSuccess = () => {
+    // Do NOT call handleRemoveHod here — removal must remain an explicit,
+    // separate admin action. We just clear stale state so the next
+    // "Remove HOD" click re-fetches a fresh (now lower/zero) count.
+    setShowReassignSubjectsModal(false);
+    setSelectedDepartment(null);
+    setHodSubjectCount(null);
+    fetchDepartments();
   };
 
   /* ================= FILTER LOGIC ================= */
@@ -480,13 +544,31 @@ export default function DepartmentList() {
       }}
     >
       <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
+
+        {/* ================= BREADCRUMB ================= */}
+          <div
+            style={{
+              width: "100%",
+              margin: "10px auto",
+              paddingTop: "5px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/dashboard" },
+                  { label: "Department Management" },
+                ]}
+              />
+            </div>
+          </div>
+
         {/* ================= TOP BAR ================= */}
         <div
           style={{
-            background: T.surface,
-            border: `1px solid ${T.border}`,
-            borderRadius: T.radiusLg,
-            boxShadow: T.shadow,
+            background: "#0E3746",
+            border: `1px solid rgba(255,255,255,0.08)`,
+            boxShadow: "0 8px 24px rgba(15,69,83,0.18)",
             padding: "1.5rem 1.75rem",
             marginBottom: "1.25rem",
             position: "relative",
@@ -496,46 +578,103 @@ export default function DepartmentList() {
             alignItems: "center",
             flexWrap: "wrap",
             gap: "1rem",
+             borderRadius: "15px",
           }}
         >
-          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: T.navy }} />
-          <div style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: T.radiusMd,
-                background: T.navyTint,
-                color: T.navy,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "1.35rem",
-                flexShrink: 0,
-              }}
-            >
-              <FaBuilding />
-            </div>
-            <div>
-              <h1 style={{ fontSize: "1.4rem", fontWeight: 700, margin: 0, color: T.text }}>
-                Department Management
-              </h1>
-              <p style={{ margin: "0.3rem 0 0", fontSize: "0.85rem", color: T.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
-                <FaGraduationCap size={13} />
-                Manage academic departments and faculty assignments
-              </p>
-            </div>
-          </div>
+        {/* <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: "#38bdf8",
+          }}
+        /> */}
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,0.12)",
+            color: "#ffffff",
+            border: "1px solid rgba(255,255,255,0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "1.35rem",
+            flexShrink: 0,
+          }}
+        >
+                      <FaBuilding />
+                    </div>
+                    <div>
+        <h1
+          style={{
+            fontSize: "1.4rem",
+            fontWeight: 700,
+            margin: 0,
+            color: "#ffffff",
+          }}
+        >
+          Department Management
+        </h1>
+        <p
+          style={{
+            margin: "0.3rem 0 0",
+            fontSize: "0.85rem",
+            color: "rgba(255,255,255,0.72)",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <FaGraduationCap size={13} />
+          Manage academic departments and faculty assignments
+        </p>
+                    </div>
+                  </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
-            <Btn onClick={() => setShowHelp(!showHelp)} color={T.teal} tint={T.tealTint} title="Department Management Help">
-              <FaInfoCircle size={15} /> Help
-            </Btn>
-            {canCreate('departments') && (
-              <Btn onClick={() => navigate("/departments/add")} variant="solid" color={T.navy}>
-                <FaPlus size={14} /> Add Department
-              </Btn>
-            )}
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+<Btn
+  onClick={() => setShowHelp(!showHelp)}
+  color="#ffffff"
+  tint="rgba(255,255,255,0.16)"
+  title="Department Management Help"
+>
+  <FaInfoCircle size={15} /> Help
+</Btn>
+        {canCreate("departments") && (
+<button
+  onClick={() => navigate("/departments/add")}
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    padding: "0.6rem 1.1rem",
+    borderRadius: T.radiusSm,
+    border: "1px solid #159bc5",
+    background: "White",
+    color: "#0E3746",
+    fontSize: "0.85rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.transform = "translateY(-1px)";
+    e.currentTarget.style.boxShadow =
+      "0 4px 10px rgba(20, 27, 41, 0.18)";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.transform = "translateY(0)";
+    e.currentTarget.style.boxShadow = "none";
+  }}
+>
+  <FaPlus size={14} /> Add Department
+</button>
+        )}
           </div>
         </div>
 
@@ -853,10 +992,7 @@ export default function DepartmentList() {
                                 title="Remove HOD"
                                 color={T.textMuted}
                                 tint={T.inactiveBg}
-                                onClick={() => {
-                                  setSelectedDepartment(d);
-                                  setShowRemoveHodModal(true);
-                                }}
+                                onClick={() => handleRemoveHodClick(d)}
                               />
                             )}
                             {canDelete('departments') && (
@@ -881,23 +1017,42 @@ export default function DepartmentList() {
           {/* ================= TABLE FOOTER ================= */}
           {filteredDepartments.length > 0 && (
             <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              position: "relative",
+              minHeight: "90px",
+              padding: "1rem 1.35rem",
+            }}
+          >
+            <div className="department-list-showing">
+              Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
+              {filteredDepartments.length} departments
+            </div>
+            <style>
+              {`
+                @media (max-width: 991px) {
+                  .department-list-showing {
+                    display: none !important;
+                  }
+                }
+              `}
+            </style>
+
+            <div
               style={{
-                background: "#fafbfc",
-                borderTop: `1px solid ${T.border}`,
-                padding: "1rem 1.35rem",
-                display: "flex",
-                flexWrap: "wrap",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "0.75rem",
+                position: "absolute",
+                left: "50%",
+                transform: "translateX(-50%) scale(0.95)",
               }}
             >
-              <div style={{ fontSize: "0.8rem", color: T.textMuted }}>
-                Showing <strong style={{ color: T.text }}>{Math.min(indexOfLastItem, filteredDepartments.length)}</strong> of{" "}
-                <strong style={{ color: T.text }}>{filteredDepartments.length}</strong> departments
-              </div>
-              <Pagination page={currentPage} totalPages={totalPages} setPage={setCurrentPage} />
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
             </div>
+          </div>
           )}
         </div>
 
@@ -915,6 +1070,7 @@ export default function DepartmentList() {
             justifyContent: "space-between",
             alignItems: "center",
             gap: "0.75rem",
+            
           }}
         >
           <p style={{ margin: 0, fontSize: "0.8rem", color: T.textMuted, display: "flex", alignItems: "center", gap: 6 }}>
@@ -932,18 +1088,45 @@ export default function DepartmentList() {
         onClose={() => {
           setShowRemoveHodModal(false);
           setSelectedDepartment(null);
+          setHodSubjectCount(null);
         }}
-        onConfirm={handleRemoveHod}
-        title="Remove HOD"
+        onConfirm={
+          hodSubjectCount && hodSubjectCount > 0
+            ? handleOpenReassignModal
+            : handleRemoveHod
+        }
+        title={
+          hodSubjectCount && hodSubjectCount > 0
+            ? "Subjects Still Assigned"
+            : "Remove HOD"
+        }
         message={
           selectedDepartment
-            ? `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
+            ? hodSubjectCount === null
+              ? "Checking assigned subjects..."
+              : hodSubjectCount > 0
+                ? `This HOD has ${hodSubjectCount} active subject(s) assigned. Reassign these subjects to another teacher before removing the HOD.`
+                : `Are you sure you want to remove the HOD from "${selectedDepartment.name}"? The teacher will retain their TEACHER role and all assignments will remain intact.`
             : ""
         }
         type="warning"
-        confirmText="Remove HOD"
+        confirmText={
+          hodSubjectCount && hodSubjectCount > 0 ? "Reassign Subjects" : "Remove HOD"
+        }
         cancelText="Cancel"
+        confirmDisabled={hodSubjectCount === null}
         isLoading={removingHod}
+      />
+
+      <HodSubjectReassign
+        isOpen={showReassignSubjectsModal}
+        onClose={handleReassignModalClose}
+        departmentId={selectedDepartment?._id}
+        hodTeacherId={
+          selectedDepartment?.hod_id?._id || selectedDepartment?.hod_id
+        }
+        hodName={selectedDepartment?.hod_id?.name}
+        onSuccess={handleReassignSuccess}
       />
 
       <ConfirmModal

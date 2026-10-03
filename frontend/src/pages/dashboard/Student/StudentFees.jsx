@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -71,7 +72,7 @@ export default function StudentFees() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
 
   /* ================= DATA VALIDATION HELPER ================= */
   const validateFeeDashboard = (data) => {
@@ -383,6 +384,25 @@ export default function StudentFees() {
         theme="colored"
       />
 
+    {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "17px",
+            height: "75px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/student/dashboard" },
+                { label: "My Fees" },
+              ]}
+            />
+          </div>
+        </div>
+
       {/* Skip Link for Screen Readers */}
       <a href="#fee-content" className="sr-only sr-only-focusable">
         Skip to fee content
@@ -397,6 +417,7 @@ export default function StudentFees() {
             aria-label="Back to Dashboard"
           >
             <FaArrowLeft aria-hidden="true" />
+            <span className="btn-back-label">Back</span>
           </button>
           <div className="header-info">
             <div className="header-icon-wrapper">
@@ -689,11 +710,11 @@ export default function StudentFees() {
                         }`}
                         style={{ animationDelay: `${idx * 0.05}s` }}
                       >
-                        <td className="cell-installment">{installment.name}</td>
-                        <td className="cell-amount">
+                        <td className="cell-installment" data-label="Installment">{installment.name}</td>
+                        <td className="cell-amount" data-label="Amount">
                           ₹{formatNumberIN(installment.amount)}
                         </td>
-                        <td className="cell-due">
+                        <td className="cell-due" data-label="Due date">
                           <div className="due-date">
                             {formatDate(installment.dueDate)}
                           </div>
@@ -725,7 +746,7 @@ export default function StudentFees() {
                               </small>
                             )}
                         </td>
-                        <td className="cell-status">
+                        <td className="cell-status" data-label="Status">
                           <span
                             className={`status-badge bg-${getInstallmentStatusColor(
                               installment.status,
@@ -742,7 +763,7 @@ export default function StudentFees() {
                             {installment.status}
                           </span>
                         </td>
-                        <td className="cell-payment">
+                        <td className="cell-payment" data-label="Payment">
                           {installment.status === "PAID" ? (
                             <div className="payment-info">
                               <div className="payment-date">
@@ -814,7 +835,7 @@ export default function StudentFees() {
                             <span className="not-paid">Not paid yet</span>
                           )}
                         </td>
-<td className="cell-action">
+<td className="cell-action" data-label="Action">
                            {installment.status === "PAID" ? (
                              <button
                                className="btn-receipt"
@@ -1098,6 +1119,10 @@ export default function StudentFees() {
         .btn-back:hover {
           background: rgba(255, 255, 255, 0.3);
           transform: translateX(-3px);
+        }
+
+        .btn-back-label {
+          display: none;
         }
 
         .header-info {
@@ -1752,6 +1777,68 @@ export default function StudentFees() {
           color: white;
         }
 
+        @media (max-width: 1024px) {
+          .fees-footer {
+            margin-top: 1.25rem;
+            padding: 1.25rem;
+            border-radius: 16px;
+          }
+
+          .footer-content {
+            align-items: stretch;
+            gap: 1rem;
+          }
+
+          .footer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+          }
+
+          .footer-info p {
+            padding: 0.65rem 0.75rem;
+            margin: 0;
+            border-radius: 10px;
+            background: #f5f7fa;
+            line-height: 1.45;
+          }
+
+          .footer-info p:last-child {
+            background: #eef7fb;
+            color: #1a4b6d;
+          }
+
+          .footer-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.65rem;
+            width: 100%;
+          }
+
+          .btn-footer {
+            width: 100%;
+            min-height: 44px;
+            justify-content: center;
+            padding: 0.65rem 0.75rem;
+            font-size: 0.8rem;
+            white-space: nowrap;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .fees-footer {
+            padding: 1rem;
+          }
+
+          .footer-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .footer-info p {
+            font-size: 0.82rem;
+          }
+        }
+
         /* ================= ANIMATIONS ================= */
         .fade-in {
           animation: fadeIn 0.6s ease forwards;
@@ -1860,6 +1947,144 @@ export default function StudentFees() {
 
         /* ================= RESPONSIVE ================= */
         @media (max-width: 1024px) {
+          .installments-card {
+            border-radius: 14px;
+          }
+
+          .installments-header {
+            padding: 1rem 1.25rem;
+          }
+
+          .table-responsive {
+            overflow: visible;
+          }
+
+          .fees-table,
+          .fees-table tbody {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          .fees-table thead {
+            display: none;
+          }
+
+          .fees-table tbody tr.installment-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.9fr);
+            gap: 0;
+            margin: 0.75rem;
+            padding: 1rem;
+            border: 1px solid #dce5ec;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 3px 14px rgba(15, 58, 74, 0.08);
+          }
+
+          .fees-table tbody tr.installment-row.paid-row {
+            border-left: 4px solid #28a745;
+          }
+
+          .fees-table tbody tr.installment-row:not(.paid-row) {
+            border-left: 4px solid #f0ad00;
+          }
+
+          .fees-table td {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.25rem;
+            min-width: 0;
+            padding: 0.65rem;
+            border: 0;
+            overflow-wrap: anywhere;
+          }
+
+          .fees-table td::before {
+            content: attr(data-label);
+            color: #8492a1;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+
+          .fees-table .cell-installment,
+          .fees-table .cell-amount {
+            padding-top: 0.25rem;
+            padding-bottom: 0.9rem;
+            border-bottom: 1px solid #edf1f4;
+            color: #1a4b6d;
+            font-weight: 700;
+            font-size: 1rem;
+          }
+
+          .fees-table .cell-amount {
+            align-items: flex-end;
+            text-align: right;
+          }
+
+          .fees-table .cell-amount::before {
+            align-self: flex-end;
+          }
+
+          .fees-table .cell-due,
+          .fees-table .cell-status {
+            padding-top: 0.85rem;
+          }
+
+          .fees-table .cell-due .due-date {
+            white-space: nowrap;
+            font-weight: 600;
+          }
+
+          .fees-table .cell-status {
+            align-items: flex-end;
+          }
+
+          .fees-table .cell-status::before {
+            align-self: flex-end;
+          }
+
+          .fees-table .cell-payment,
+          .fees-table .cell-action {
+            grid-column: 1 / -1;
+            border-top: 1px solid #edf1f4;
+            margin-top: 0.35rem;
+            padding-top: 0.8rem;
+          }
+
+          .fees-table .cell-action {
+            align-items: stretch;
+            padding-bottom: 0.15rem;
+          }
+
+          .fees-table .cell-action .btn-pay,
+          .fees-table .cell-action .btn-receipt {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .fees-table tbody tr.installment-row {
+            margin: 0.6rem;
+            padding: 0.75rem;
+          }
+
+          .fees-table td {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+          }
+
+          .fees-table .cell-installment,
+          .fees-table .cell-amount {
+            font-size: 0.92rem;
+          }
+        }
+
+        @media (max-width: 1024px) {
           .fees-header {
             padding: 1.25rem;
             flex-direction: column;
@@ -1896,6 +2121,88 @@ export default function StudentFees() {
         }
 
         @media (max-width: 768px) {
+          .fees-header {
+            position: relative;
+            margin: 0 0 1.25rem;
+            padding: 1rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-align: center;
+          }
+
+          .header-left {
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+          }
+
+          .fees-header .btn-back {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            width: auto;
+            height: 40px;
+            padding: 0 0.75rem;
+            border-radius: 10px;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            z-index: 1;
+          }
+
+          .fees-header .btn-back-label {
+            display: inline;
+          }
+
+          .header-info {
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .header-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            font-size: 1.35rem;
+          }
+
+          .header-title {
+            font-size: 1.35rem;
+            line-height: 1.2;
+          }
+
+          .header-subtitle {
+            font-size: 0.85rem;
+            line-height: 1.4;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+          }
+
+          .header-actions {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: auto;
+            z-index: 1;
+          }
+
+          .btn-action {
+            min-width: 40px;
+            width: 40px;
+            min-height: 40px;
+            height: 40px;
+            justify-content: center;
+            padding: 0;
+            border-radius: 50%;
+          }
+
+          .btn-action .btn-text {
+            display: none;
+          }
+
           .fees-table th,
           .fees-table td {
             padding: 0.75rem 0.5rem;
@@ -1929,19 +2236,153 @@ export default function StudentFees() {
           }
         }
 
-        @media (max-width: 480px) {
+        @media (min-width: 768px) and (max-width: 1024px) {
+          .fees-header {
+            position: relative;
+            margin: 0 0 1.5rem;
+            padding: 1.25rem 1.5rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-align: center;
+          }
+
+          .header-left {
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+          }
+
+          .fees-header .btn-back {
+            position: absolute;
+            top: 1.25rem;
+            left: 1.5rem;
+            width: auto;
+            height: 40px;
+            padding: 0 0.75rem;
+            border-radius: 10px;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            z-index: 1;
+          }
+
+          .fees-header .btn-back-label {
+            display: inline;
+          }
+
+          .header-info {
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .header-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            font-size: 1.35rem;
+          }
+
           .header-title {
-            font-size: 1.25rem;
+            font-size: 1.4rem;
+            line-height: 1.2;
           }
 
           .header-subtitle {
             font-size: 0.85rem;
+            line-height: 1.4;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+          }
+
+          .header-actions {
+            position: absolute;
+            top: 1.25rem;
+            right: 1.5rem;
+            width: auto;
+            z-index: 1;
+          }
+
+          .btn-action {
+            min-width: 40px;
+            width: 40px;
+            min-height: 40px;
+            height: 40px;
+            justify-content: center;
+            padding: 0;
+            border-radius: 50%;
+          }
+
+          .btn-action .btn-text {
+            display: none;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .fees-header {
+            margin: 0 0 1.25rem;
+            padding: 1rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            text-align: center;
+          }
+
+          .header-left {
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+          }
+
+          .header-info {
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
           }
 
           .header-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            font-size: 1.35rem;
+          }
+
+          .header-title {
+            font-size: 1.35rem;
+            line-height: 1.2;
+          }
+
+          .header-subtitle {
+            font-size: 0.85rem;
+            line-height: 1.4;
+            max-width: 100%;
+            overflow-wrap: anywhere;
+          }
+
+          .header-actions {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: auto;
+            z-index: 1;
+          }
+
+          .btn-action {
+            min-width: 40px;
             width: 40px;
+            min-height: 40px;
             height: 40px;
-            font-size: 1.25rem;
+            justify-content: center;
+            padding: 0;
+            border-radius: 50%;
+          }
+
+          .btn-action .btn-text {
+            display: none;
           }
 
           .profile-avatar {
@@ -1959,7 +2400,12 @@ export default function StudentFees() {
           }
 
           .fees-table {
-            min-width: 600px;
+            min-width: 0 !important;
+            width: 100% !important;
+          }
+
+          .table-responsive {
+            overflow-x: visible !important;
           }
 
           .col-installment,

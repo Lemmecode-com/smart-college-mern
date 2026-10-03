@@ -19,7 +19,11 @@ import {
   FaCalendarAlt,
   FaCheckCircle,
   FaInfoCircle,
-  FaLayerGroup
+  FaLayerGroup,
+  FaClipboardList,
+  FaUniversity,
+  FaCreditCard,
+  FaBookOpen,
 } from "react-icons/fa";
 
 export default function ViewSubject() {
@@ -224,6 +228,89 @@ export default function ViewSubject() {
           </div>
         </div>
 
+        {/* EXAM / MARKS CONFIGURATION CARD */}
+        <div className="info-card exam-config-card">
+          <div className="card-header">
+            <FaClipboardList className="card-header-icon" />
+            <h3>Exam / Marks Configuration</h3>
+          </div>
+          <div className="card-body">
+            {subject.subjectType ? (
+              <div className="info-grid">
+                <InfoItem
+                  icon={<FaLayerGroup />}
+                  label="Subject Type"
+                  value={subject.subjectType}
+                />
+
+                {subject.subjectType === "THEORY" && (
+                  <>
+                    <InfoItem
+                      icon={<FaBookOpen />}
+                      label="Internal Max Marks"
+                      value={subject.internalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaUniversity />}
+                      label="External Max Marks"
+                      value={subject.externalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="Internal Pass Marks"
+                      value={subject.internalPassMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="External Pass Marks"
+                      value={subject.externalPassMarks}
+                    />
+                  </>
+                )}
+
+                {subject.subjectType === "PRACTICAL" && (
+                  <>
+                    <InfoItem
+                      icon={<FaBookOpen />}
+                      label="Applicable Maximum Marks"
+                      value={subject.internalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="Pass Marks"
+                      value={subject.passMarks}
+                    />
+                  </>
+                )}
+
+                {subject.subjectType === "COMPOSITE" && (
+                  <>
+                    <InfoItem
+                      icon={<FaBookOpen />}
+                      label="Internal Max Marks"
+                      value={subject.internalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaUniversity />}
+                      label="External Max Marks"
+                      value={subject.externalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="Pass Marks"
+                      value={subject.passMarks}
+                    />
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted mb-0">
+                No exam / marks configuration set for this subject.
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* TIMELINE CARD */}
         <div className="info-card timeline-card">
           <div className="card-header">
@@ -285,18 +372,16 @@ export default function ViewSubject() {
 
         /* ================= HEADER ================= */
         .view-subject-header {
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 50%, #3db5e6 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.4);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-          position: relative;
-          overflow: hidden;
+  background: #0E3746;
+  border-radius: 15px;
+  padding: 1rem 1.75rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+  color: white;
         }
 
         .view-subject-header::before {
@@ -330,16 +415,16 @@ export default function ViewSubject() {
         }
 
         .header-icon-wrapper {
-          width: 64px;
-          height: 64px;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.25) 0%, rgba(79, 195, 247, 0.15) 100%);
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
         }
 
         .header-icon {
@@ -348,7 +433,7 @@ export default function ViewSubject() {
 
         .subject-title {
           margin: 0;
-          font-size: 1.75rem;
+          font-size: 1.4rem;
           font-weight: 700;
           text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
           color: white;
@@ -406,27 +491,34 @@ export default function ViewSubject() {
         }
 
         .erp-btn {
-          padding: 0.75rem 1.25rem;
-          border-radius: 10px;
-          border: none;
-          cursor: pointer;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          font-size: 0.9375rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  padding: 0 18px;
+  height: 42px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: none;
         }
+  .erp-btn:hover {
+    transform: translateY(-2px);
+  }
 
         .erp-btn-primary {
-          background: linear-gradient(135deg, #3db5e6 0%, #4fc3f7 100%);
-          color: white;
+          background: white;
+          color: #0E3746;
           box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
         }
 
         .erp-btn-primary:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(61, 181, 230, 0.5);
+          // box-shadow: 0 8px 25px rgba(61, 181, 230, 0.5);
         }
 
         .erp-btn-secondary {
@@ -467,8 +559,14 @@ export default function ViewSubject() {
           grid-column: 1 / 3;
         }
 
+        .exam-config-card {
+          grid-column: 1 / 3;
+          grid-row: 2;
+        }
+
         .timeline-card {
-          grid-column: 3 / 4;
+          grid-column: 3;
+          grid-row: 2;
         }
 
         .card-header {

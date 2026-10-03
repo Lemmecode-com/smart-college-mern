@@ -380,18 +380,18 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
           items={principalMode
             ? [
                 { label: "Dashboard", path: "/dashboard/principal" },
-                { label: "Students", path: "/principal/students" },
+                { label: "Students",},
                 { label: "All Students" },
               ]
             : admissionOfficerMode
             ? [
                 { label: "Dashboard", path: "/dashboard/admission" },
-                { label: "Admissions", path: "/admission/applications" },
+                { label: "Admissions",},
                 { label: "Approved Students" },
               ]
             : [
                 { label: "Dashboard", path: "/dashboard" },
-                { label: "Students", path: "/students" },
+                { label: "Students", },
                 { label: "Approved Students" },
               ]
           }
@@ -684,16 +684,18 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
         /* ================= PAGE HEADER ================= */
         .erp-page-header {
-          background: linear-gradient(135deg, #0f3a4a 0%, #1c6f86 100%);
-          padding: 2rem;
+          background: #0E3746;
+          padding: 1.5rem 1.75rem;
           border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 24px rgba(15, 58, 74, 0.3);
+          margin: 1rem 0 1.5rem;
+          box-shadow: 0 10px 28px rgba(15, 58, 74, 0.28);
           color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          animation: slideDown 0.6s ease;
+          gap: 1rem;
+          position: relative;
+          overflow: hidden;
         }
 
         .erp-header-content {
@@ -703,32 +705,33 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         }
 
         .erp-header-icon {
-          width: 64px;
-          height: 64px;
-          background: rgba(61, 181, 230, 0.15);
-          border-radius: 14px;
+          flex-shrink: 0;
+          width: 52px;
+          height: 52px;
+          background: rgba(255, 255, 255, 0.16);
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 2rem;
-          color: #3db5e6;
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(61, 181, 230, 0.3);
+          font-size: 1.6rem;
         }
 
         .erp-page-title {
           margin: 0;
-          font-size: 1.875rem;
+          font-size: 1.4rem;
           font-weight: 700;
           font-family: 'Poppins', sans-serif;
           letter-spacing: -0.5px;
         }
 
         .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.9;
-          font-size: 1rem;
-          font-weight: 400;
+  margin: 0.3rem 0 0;
+  opacity: 1;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.72);
         }
 
         /* ================= STATS GRID ================= */

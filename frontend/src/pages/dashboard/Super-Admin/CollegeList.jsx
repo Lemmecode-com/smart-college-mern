@@ -608,6 +608,9 @@ export default function CollegeList() {
           padding: 1.5rem;
           background: #f5f7fa;
           min-height: 100vh;
+          width: 100%;
+          box-sizing: border-box;
+          overflow-x: hidden;
         }
 
         /* ================= PAGE HEADER ================= */
@@ -1536,106 +1539,843 @@ export default function CollegeList() {
           to { left: 100%; }
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .controls-container {
-            flex-direction: column;
-            align-items: stretch;
-          }
-          
-          .search-group {
-            width: 100%;
-          }
-          
-          .erp-table {
-            min-width: 650px;
-          }
-        }
-        
-        @media (max-width: 768px) {
+        /* =========================================================
+          RESPONSIVE DESIGN
+          TABLET + MOBILE ONLY
+          DESKTOP REMAINS UNCHANGED
+          ========================================================= */
+
+
+        /* =========================
+          TABLET
+          769px - 991px
+          ========================= */
+        @media (min-width: 769px) and (max-width: 991.98px) {
+
           .erp-container {
-            padding: 1rem;
+            padding: 1.25rem;
           }
-          
+
+          /* ================= HEADER ================= */
+
           .erp-page-header {
             padding: 1.5rem;
             flex-direction: column;
-            align-items: flex-start;
+            align-items: stretch;
+            gap: 1.25rem;
+          }
+
+          .erp-header-content {
             gap: 1rem;
           }
-          
+
+          .erp-header-icon {
+            width: 52px;
+            height: 52px;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+          }
+
+          .erp-page-title {
+            font-size: 1.55rem;
+            line-height: 1.25;
+          }
+
+          .erp-page-subtitle {
+            font-size: 0.92rem;
+            line-height: 1.45;
+          }
+
           .erp-header-actions {
             width: 100%;
-            margin-top: 0.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
           }
-          
+
           .erp-header-actions .erp-btn {
             width: 100%;
             justify-content: center;
+            min-height: 48px;
+            padding: 0.7rem 1rem;
           }
-          
+
+
+          /* ================= INFO BANNER ================= */
+
           .info-banner {
-            flex-direction: column;
-            text-align: center;
+            padding: 1rem 1.15rem;
+            gap: 0.8rem;
+          }
+
+          .info-content {
+            font-size: 0.88rem;
+          }
+
+
+          /* ================= SEARCH / CONTROLS ================= */
+
+          .controls-container {
+            padding: 1rem 1.15rem;
             gap: 0.75rem;
           }
-          
+
+          .search-group {
+            width: 100%;
+            min-width: 0;
+            display: flex;
+            gap: 0.75rem;
+          }
+
+          .search-box {
+            min-width: 0;
+            width: 100%;
+          }
+
+          .search-box input {
+            min-height: 46px;
+            box-sizing: border-box;
+          }
+
+          .actions-group {
+            flex-shrink: 0;
+          }
+
+          .refresh-btn {
+            width: 46px;
+            height: 46px;
+          }
+
+
+          /* ================= COLLEGES LIST ================= */
+
           .erp-card-header {
+            padding: 1.15rem 1.25rem;
+          }
+
+          .erp-card-header h3 {
+            font-size: 1.15rem;
+          }
+
+          .record-count {
+            font-size: 0.8rem;
+          }
+
+          /*
+            Turn the table into cards on tablet.
+            This prevents horizontal scrolling.
+          */
+
+          .table-container {
+            overflow-x: visible;
+            padding: 0 1rem 1rem;
+          }
+
+          .erp-table {
+            width: 100%;
+            min-width: 0;
+            border-collapse: separate;
+            border-spacing: 0 0.75rem;
+          }
+
+          .erp-table thead {
+            display: none;
+          }
+
+          .erp-table tbody {
+            display: block;
+            width: 100%;
+          }
+
+          .erp-table tbody tr {
+            display: block;
+            width: 100%;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(15, 58, 74, 0.08);
+            padding: 0.75rem;
+            box-sizing: border-box;
+          }
+
+          .erp-table tbody tr:hover {
+            background: white;
+          }
+
+          .erp-table td {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.65rem 0.25rem;
+            border: none;
+            gap: 0.75rem;
+          }
+
+          .erp-table td::before {
+            width: 85px;
+            min-width: 85px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+          }
+
+          .erp-table td:nth-child(1)::before {
+            content: "College";
+          }
+
+          .erp-table td:nth-child(2)::before {
+            content: "Email";
+          }
+
+          .erp-table td:nth-child(3)::before {
+            content: "Contact";
+          }
+
+          .erp-table td:nth-child(4)::before {
+            content: "Status";
+          }
+
+          .erp-table td:nth-child(5)::before {
+            content: "Actions";
+          }
+
+          .college-name {
+            flex: 1;
+            min-width: 0;
+            gap: 0.75rem;
+          }
+
+          .college-avatar {
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            font-size: 0.9rem;
+          }
+
+          .college-details {
+            min-width: 0;
+          }
+
+          .college-title {
+            font-size: 0.9rem;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+          }
+
+          .contact-info {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.8rem;
+          }
+
+          .contact-info span {
+            overflow-wrap: anywhere;
+          }
+
+          .status-badge {
+            font-size: 0.78rem;
+            padding: 0.35rem 0.7rem;
+          }
+
+          .action-cell {
+            min-width: 0;
+          }
+
+          .action-buttons {
+            justify-content: flex-start;
+            gap: 0.5rem;
+          }
+
+          .action-btn {
+            width: 40px;
+            height: 40px;
+          }
+
+
+          /* ================= PAGINATION ================= */
+
+          .erp-pagination {
+            padding: 1rem;
+            gap: 0.4rem;
+          }
+
+          .page-btn {
+            width: 38px;
+            height: 38px;
+          }
+
+          .page-numbers {
+            flex-wrap: wrap;
+            justify-content: center;
+          }
+        }
+
+
+        /* =========================
+          MOBILE
+          0px - 768px
+          ========================= */
+        @media (max-width: 768px) {
+
+          .erp-container {
+            padding: 0.75rem;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+          }
+
+
+          /* ================= HEADER ================= */
+
+          .erp-page-header {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 14px;
+
+            display: flex;
             flex-direction: column;
+            align-items: stretch;
+            gap: 1rem;
+          }
+
+          .erp-header-content {
+            width: 100%;
+            display: flex;
             align-items: flex-start;
             gap: 0.75rem;
           }
-          
-          .record-count {
-            align-self: flex-end;
+
+          .erp-header-icon {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            font-size: 1.15rem;
+            border-radius: 10px;
           }
-          
-          .erp-table {
-            min-width: 600px;
+
+          .erp-header-text {
+            min-width: 0;
+            flex: 1;
           }
-          
-          .action-buttons {
-            flex-direction: column;
-            align-items: center;
+
+          .erp-page-title {
+            font-size: 1.25rem;
+            line-height: 1.25;
+            word-break: normal;
           }
-          
-          .action-btn {
+
+          .erp-page-subtitle {
+            margin-top: 0.3rem;
+            font-size: 0.78rem;
+            line-height: 1.45;
+          }
+
+          .erp-header-actions {
             width: 100%;
-            margin-bottom: 0.5rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
           }
-          
-          .page-numbers {
+
+          .erp-header-actions .erp-btn {
+            width: 100%;
+            min-width: 0;
+            min-height: 46px;
+            padding: 0.65rem 0.45rem;
+            justify-content: center;
+            font-size: 0.8rem;
+            white-space: normal;
+            gap: 0.35rem;
+          }
+
+          .erp-btn-icon {
+            font-size: 0.9rem;
+          }
+
+
+          /* ================= EXPORT DROPDOWN ================= */
+
+          .export-dropdown {
+            width: 100%;
+          }
+
+          .export-dropdown > .erp-btn {
+            width: 100%;
+          }
+
+          .export-menu {
+            left: 0;
+            right: auto;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+          }
+
+
+          /* ================= INFO BANNER ================= */
+
+          .info-banner {
+            padding: 0.9rem;
+            margin-bottom: 1rem;
+            gap: 0.7rem;
+            align-items: flex-start;
+          }
+
+          .info-icon {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            font-size: 0.85rem;
+          }
+
+          .info-content {
+            font-size: 0.76rem;
+            line-height: 1.5;
+          }
+
+
+          /* ================= CONTROLS ================= */
+
+          .erp-card {
+            border-radius: 14px;
+            margin-bottom: 1rem;
+          }
+
+          .controls-container {
+            width: 100%;
+            padding: 0.8rem;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.6rem;
+            box-sizing: border-box;
+          }
+
+          .search-group {
+            min-width: 0;
+            width: 100%;
+            flex: 1;
+            display: flex;
+          }
+
+          .search-box {
+            min-width: 0;
+            width: 100%;
+          }
+
+          .search-box input {
+            width: 100%;
+            min-height: 46px;
+            box-sizing: border-box;
+            padding: 0.7rem 2.5rem;
+            font-size: 0.8rem;
+            border-radius: 10px;
+          }
+
+          .search-icon {
+            left: 0.85rem;
+            font-size: 0.9rem;
+          }
+
+          .search-clear {
+            right: 0.75rem;
+          }
+
+          .actions-group {
+            flex-shrink: 0;
+          }
+
+          .refresh-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 10px;
+          }
+
+          .refresh-icon {
+            font-size: 1.15rem;
+          }
+
+
+          /* ================= COLLEGES CARD HEADER ================= */
+
+          .erp-card-header {
+            padding: 0.9rem;
+            gap: 0.6rem;
+          }
+
+          .erp-card-header h3 {
+            font-size: 1rem;
+            gap: 0.5rem;
+          }
+
+          .erp-card-icon {
+            font-size: 1rem;
+          }
+
+          .record-count {
+            padding: 0.3rem 0.65rem;
+            font-size: 0.72rem;
+          }
+
+
+          /* ================= MOBILE COLLEGE CARDS ================= */
+
+          .table-container {
+            overflow-x: visible;
+            padding: 0 0.75rem 0.75rem;
+          }
+
+          .erp-table {
+            width: 100%;
+            min-width: 0;
+            border-collapse: separate;
+            border-spacing: 0 0.65rem;
+          }
+
+          .erp-table thead {
+            display: none;
+          }
+
+          .erp-table tbody {
+            display: block;
+            width: 100%;
+          }
+
+          .erp-table tbody tr {
+            display: block;
+            width: 100%;
+            padding: 0.7rem;
+            box-sizing: border-box;
+
+            background: #ffffff;
+            border: 1px solid #e9eef2;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(15, 58, 74, 0.07);
+          }
+
+          .erp-table tbody tr:hover {
+            background: #ffffff;
+          }
+
+          .erp-table td {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0.55rem 0.15rem;
+            border: none;
+            gap: 0.55rem;
+          }
+
+          .erp-table td::before {
+            width: 66px;
+            min-width: 66px;
+
+            font-size: 0.62rem;
+            font-weight: 700;
+            color: #7a8791;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+          }
+
+          .erp-table td:nth-child(1)::before {
+            content: "College";
+          }
+
+          .erp-table td:nth-child(2)::before {
+            content: "Email";
+          }
+
+          .erp-table td:nth-child(3)::before {
+            content: "Contact";
+          }
+
+          .erp-table td:nth-child(4)::before {
+            content: "Status";
+          }
+
+          .erp-table td:nth-child(5)::before {
+            content: "Actions";
+          }
+
+
+          /* College */
+          .college-name {
+            flex: 1;
+            min-width: 0;
+
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.6rem;
+          }
+
+          .college-avatar {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            font-size: 0.85rem;
+          }
+
+          .college-details {
+            flex: 1;
+            min-width: 0;
+          }
+
+          .college-title {
+            font-size: 0.82rem;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+          }
+
+
+          /* Contact information */
+          .contact-info {
+            flex: 1;
+            min-width: 0;
+            gap: 0.4rem;
+            font-size: 0.73rem;
+          }
+
+          .contact-info span {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+          }
+
+          .contact-icon {
+            flex-shrink: 0;
+            font-size: 0.72rem;
+          }
+
+
+          /* Status */
+          .status-badge {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+            gap: 0.3rem;
+          }
+
+          .status-icon {
+            font-size: 0.65rem;
+          }
+
+
+          /* Actions */
+          .action-cell {
+            min-width: 0;
+          }
+
+          .action-buttons {
+            justify-content: flex-start;
+            gap: 0.45rem;
+          }
+
+          .action-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 0.85rem;
+          }
+
+
+          /* ================= PAGINATION ================= */
+
+          .erp-pagination {
+            padding: 0.85rem 0.6rem;
+            gap: 0.35rem;
             flex-wrap: wrap;
           }
-          
+
           .page-btn {
             width: 36px;
             height: 36px;
+            font-size: 0.78rem;
+          }
+
+          .page-numbers {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.2rem;
+          }
+
+
+          /* ================= EMPTY STATE ================= */
+
+          .empty-state {
+            padding: 2rem 1rem;
+          }
+
+          .empty-icon {
+            width: 64px;
+            height: 64px;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+          }
+
+          .empty-state h3 {
+            font-size: 1.3rem;
+          }
+
+          .empty-description {
             font-size: 0.85rem;
+            line-height: 1.5;
           }
-          
+
+          .empty-action {
+            width: 100%;
+            max-width: 280px;
+          }
+
+
+          /* ================= MODAL ================= */
+
           .modal-content {
-            width: 95%;
-            max-width: 100%;
+            width: calc(100% - 1.5rem);
+            max-width: none;
+            max-height: 92vh;
+            border-radius: 14px;
           }
-          
-          .modal-grid {
-            grid-template-columns: 1fr;
+
+          .modal-header {
+            padding: 1rem;
           }
-        }
-        
-        @media (max-width: 480px) {
-          .erp-table {
-            min-width: 500px;
+
+          .modal-title {
+            gap: 0.65rem;
           }
-          
-          .erp-card-header h3 {
+
+          .modal-title h3 {
+            font-size: 1.1rem;
+          }
+
+          .modal-icon {
             font-size: 1.25rem;
           }
-          
-          .college-name {
-            flex-direction: column;
-            align-items: flex-start;
+
+          .modal-body {
+            padding: 1rem;
+          }
+
+          .modal-footer {
+            padding: 1rem;
+            gap: 0.6rem;
+          }
+        }
+
+
+        /* =========================
+          SMALL MOBILE
+          ========================= */
+        @media (max-width: 480px) {
+
+          .erp-container {
+            padding: 0.55rem;
+          }
+
+          .erp-page-header {
+            padding: 0.85rem;
+            border-radius: 12px;
+          }
+
+          .erp-header-icon {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            font-size: 1rem;
+          }
+
+          .erp-page-title {
+            font-size: 1.12rem;
+          }
+
+          .erp-page-subtitle {
+            font-size: 0.72rem;
+          }
+
+          .erp-header-actions {
+            gap: 0.5rem;
+          }
+
+          .erp-header-actions .erp-btn {
+            min-height: 44px;
+            font-size: 0.74rem;
+          }
+
+          .info-banner {
+            padding: 0.75rem;
+          }
+
+          .info-content {
+            font-size: 0.7rem;
+          }
+
+          .controls-container {
+            padding: 0.7rem;
+          }
+
+          .search-box input {
+            font-size: 0.75rem;
+            min-height: 44px;
+          }
+
+          .refresh-btn {
+            width: 44px;
+            height: 44px;
+          }
+
+          .erp-card-header {
+            padding: 0.8rem;
+          }
+
+          .erp-card-header h3 {
+            font-size: 0.92rem;
+          }
+
+          .record-count {
+            font-size: 0.68rem;
+          }
+
+          .table-container {
+            padding-left: 0.6rem;
+            padding-right: 0.6rem;
+          }
+
+          .erp-table tbody tr {
+            padding: 0.6rem;
+          }
+
+          .erp-table td {
+            padding: 0.5rem 0.1rem;
+          }
+
+          .erp-table td::before {
+            width: 60px;
+            min-width: 60px;
+            font-size: 0.58rem;
+          }
+
+          .college-avatar {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+          }
+
+          .college-title {
+            font-size: 0.76rem;
+          }
+
+          .contact-info {
+            font-size: 0.68rem;
+          }
+
+          .action-btn {
+            width: 38px;
+            height: 38px;
           }
         }
       `}</style>

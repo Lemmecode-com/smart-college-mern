@@ -339,7 +339,7 @@ const HodDashboard = () => {
       icon: FaCalendarAlt,
       color: BRAND.accent,
       items: [
-        { label: "Create Timetable", icon: FaPlus, route: "/timetable/create" },
+        { label: "Create Timetable", icon: FaPlus, route: "/timetable/create-timetable" },
         { label: "View All", icon: FaEye, route: "/timetable/list" },
       ],
     },
@@ -1183,7 +1183,7 @@ const HodDashboard = () => {
                   <motion.button
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
-                    onClick={() => navigate("/timetable/create")}
+                    onClick={() => navigate("/timetable/create-timetable")}
                     style={{
                       background: BRAND.accent,
                       color: "#fff",

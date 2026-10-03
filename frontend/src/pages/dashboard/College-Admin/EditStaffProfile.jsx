@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import ChangeEmailModal from "../../../components/ChangeEmailModal";
 import { logger } from "../../../utils/logger";
@@ -111,6 +112,7 @@ const STAFF_ROLE_OPTIONS = [
   { value: "HOD", label: "Head of Department" },
   { value: "EXAM_COORDINATOR", label: "Exam Coordinator" },
   { value: "PLATFORM_SUPPORT", label: "Platform Support" },
+  { value: "TEACHER", label: "Teacher" },
 ];
 
 export default function EditStaffProfile() {
@@ -174,6 +176,7 @@ export default function EditStaffProfile() {
   const [selectedSubject, setSelectedSubject] = useState("");
   const [previousSubjectId, setPreviousSubjectId] = useState("");
   const [hodTeacherId, setHodTeacherId] = useState("");
+  const [isCurrentlyHOD, setIsCurrentlyHOD] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -196,11 +199,14 @@ export default function EditStaffProfile() {
       //  - flat:          { name, email, role, ... }
       //  - populated:     { user_id: { name, email, role }, ... }  (Issue #312-class compatibility)
       const u = p.user_id || {};
+      const currentRole = p.role || u.role || "";
+      const isCurrentlyHOD = currentRole === "HOD";
+
       if (raw) {
         setFormData({
           name: p.name || u.name || "",
           email: p.email || u.email || "",
-          role: p.role || u.role || "",
+          role: currentRole,
           mobileNumber: p.mobileNumber || "",
           designation: p.designation || "",
           employmentType: p.employmentType || "FULL_TIME",
@@ -220,7 +226,7 @@ export default function EditStaffProfile() {
         });
 
         // Load HOD teaching data if applicable
-        if (p.role === "HOD" && p.teacher && !isSelfEdit) {
+        if (isCurrentlyHOD && p.teacher && !isSelfEdit) {
           const teacher = p.teacher;
           setHodTeacherId(teacher.id || "");
           setSelectedCourse(teacher.courses?.[0]?._id || teacher.courses?.[0] || "");
@@ -240,6 +246,7 @@ export default function EditStaffProfile() {
           }
         }
       }
+      setIsCurrentlyHOD(isCurrentlyHOD);
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -374,9 +381,20 @@ export default function EditStaffProfile() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="dashboard-wrapper"
+        className="dashboard-wrapper edit-profile-page"
       >
         <div className="dashboard-container-inner">
+    {/* ================= BREADCRUMB ================= */}
+       <div className="edit-profile-breadcrumb">
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard" },
+            { label: "Staff Management", path: "/college/staff" },
+            { label: "Edit Profile" },
+          ]}
+        />
+      </div>
+
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
@@ -473,7 +491,7 @@ export default function EditStaffProfile() {
                           required
                           icon={<FaUserPlus />}
                         >
-                          <div className="d-flex gap-2">
+                          <div className="edit-profile-email-row">
                             <input
                               type="email"
                               name="email"
@@ -532,11 +550,18 @@ export default function EditStaffProfile() {
                             required
                           >
                           <option value="">Select Role</option>
-                          {STAFF_ROLE_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
+                          {STAFF_ROLE_OPTIONS
+                            .filter((opt) => isCurrentlyHOD || opt.value !== "HOD")
+                            .map((opt) => (
+                              <option key={opt.value} value={opt.value}>
+                                {opt.label}
+                              </option>
+                            ))}
+                          {!isCurrentlyHOD && formData.role === "HOD" && (
+                            <option value="HOD" disabled>
+                              Head of Department (not allowed — use Create Staff)
                             </option>
-                          ))}
+                          )}
                           {/* Preserve a persisted role that is not in the standard list (avoids blank selection) */}
                           {formData.role &&
                             !STAFF_ROLE_OPTIONS.some((o) => o.value === formData.role) && (
@@ -545,6 +570,11 @@ export default function EditStaffProfile() {
                               </option>
                             )}
                         </select>
+                        {!isCurrentlyHOD && (
+                          <small className="text-muted mt-1 d-block">
+                            HOD role can only be assigned during Staff Creation.
+                          </small>
+                        )}
                         </FormField>
                       </div>
                       <div className="col-12 col-md-4">
@@ -1053,6 +1083,266 @@ export default function EditStaffProfile() {
           )}
         </div>
       </motion.div>
+
+      <style>{`
+  /* =========================================
+     EDIT PROFILE PAGE
+  ========================================= */
+
+  .edit-profile-page {
+    width: 100%;
+  }
+
+  .edit-profile-page .dashboard-container-inner {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 20px 40px;
+  }
+
+  /* Breadcrumb */
+  .edit-profile-page .edit-profile-breadcrumb {
+    width: 100%;
+    margin: 8px 0 22px;
+  }
+
+  /* Header */
+  .edit-profile-page .dashboard-header {
+    margin-bottom: 24px;
+  }
+
+  .edit-profile-page .dashboard-header-hero {
+    padding: 28px 32px;
+    border-radius: 18px;
+  }
+
+  .edit-profile-page .header-title {
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+
+  .edit-profile-page .header-subtitle {
+    margin-bottom: 0;
+    line-height: 1.5;
+  }
+
+  /* Form spacing */
+  .edit-profile-page form > .row {
+    --bs-gutter-x: 20px;
+    --bs-gutter-y: 20px;
+  }
+
+  /* Section Cards */
+  .edit-profile-page .section-card {
+    height: 100%;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #e3ebf0;
+    box-shadow: 0 6px 20px rgba(15, 58, 74, 0.07);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .edit-profile-page .section-card:hover {
+    border-color: #d2e2ea;
+    box-shadow: 0 8px 24px rgba(15, 58, 74, 0.09);
+  }
+
+  /* Section Header */
+  .edit-profile-page .section-card-header {
+    min-height: 88px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(
+      180deg,
+      #f8fafc 0%,
+      #f3f7f9 100%
+    );
+    border-bottom: 1px solid #e2edf2;
+  }
+
+  .edit-profile-page .section-card-heading {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .edit-profile-page .section-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: #123f56;
+    font-size: 1.18rem;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .edit-profile-page .section-card-icon {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: rgba(23, 162, 184, 0.10);
+  }
+
+  .edit-profile-page .section-card-subtitle {
+    display: block;
+    margin-left: 44px;
+    color: #718096;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  /* Card Body */
+  .edit-profile-page .section-card-body {
+    padding: 24px;
+  }
+
+  .edit-profile-page .section-card-body > .row {
+    --bs-gutter-x: 18px;
+    --bs-gutter-y: 18px;
+  }
+
+  /* Form Fields */
+  .edit-profile-page .form-group {
+    width: 100%;
+  }
+
+  .edit-profile-page .form-label {
+    margin-bottom: 7px;
+    color: #263746;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .edit-profile-page .form-control,
+  .edit-profile-page .form-select {
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 12px;
+    border: 1px solid #d8e2e8;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #263746;
+    font-size: 0.9rem;
+    box-shadow: none;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .edit-profile-page .form-control:hover,
+  .edit-profile-page .form-select:hover {
+    border-color: #b9ccd7;
+  }
+
+  .edit-profile-page .form-control:focus,
+  .edit-profile-page .form-select:focus {
+    border-color: #2a9dcc;
+    box-shadow: 0 0 0 3px rgba(42, 157, 204, 0.12);
+  }
+
+  .edit-profile-page textarea.form-control {
+    min-height: 92px;
+    resize: vertical;
+  }
+
+  /* Email */
+  .edit-profile-page .edit-profile-email-row {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .edit-profile-page .edit-profile-email-row .form-control {
+    min-width: 0;
+  }
+
+  .edit-profile-page .edit-profile-email-row .btn {
+    min-width: 124px;
+    white-space: nowrap;
+    border-radius: 8px;
+    font-size: 0.8rem;
+  }
+
+  /* Buttons */
+  .edit-profile-page .dashboard-btn {
+    min-height: 44px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+  }
+
+  .edit-profile-page .btn-profile {
+    min-width: 160px;
+  }
+
+  /* Submit area */
+  .edit-profile-page form > .row > .col-12:last-child {
+    margin-top: 2px;
+    padding-top: 4px;
+  }
+
+  /* Help text */
+  .edit-profile-page .text-muted {
+    color: #7b8794 !important;
+    font-size: 0.77rem;
+    line-height: 1.4;
+  }
+
+  /* Responsive */
+  @media (max-width: 991px) {
+    .edit-profile-page .dashboard-container-inner {
+      padding: 0 16px 32px;
+    }
+
+    .edit-profile-page .dashboard-header-hero {
+      padding: 24px;
+    }
+
+    .edit-profile-page .section-card-body {
+      padding: 20px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .edit-profile-page .dashboard-container-inner {
+      padding: 0 12px 28px;
+    }
+
+    .edit-profile-page .edit-profile-breadcrumb {
+      margin-bottom: 16px;
+    }
+
+    .edit-profile-page .dashboard-header-hero {
+      padding: 20px;
+    }
+
+    .edit-profile-page .section-card-header {
+      padding: 18px 20px;
+    }
+
+    .edit-profile-page .section-card-body {
+      padding: 18px;
+    }
+
+    .edit-profile-page .edit-profile-email-row {
+      grid-template-columns: 1fr;
+    }
+
+    .edit-profile-page .edit-profile-email-row .btn {
+      width: 100%;
+    }
+  }
+`}</style>
     </AnimatePresence>
   );
 }
