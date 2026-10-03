@@ -707,51 +707,51 @@ export default function WeeklyTimetable() {
               </div>
             </div>
           {/* ================= HEADER ================= */}
-<motion.div
-  variants={slideDownVariants}
-  initial="hidden"
-  animate="visible"
-  style={{
-    marginBottom: "1.5rem",
-    backgroundColor: "#0E3746",
-    borderRadius: "15px",
-    overflow: "hidden",
-    boxShadow: "0 10px 30px rgba(14, 55, 70, 0.18)",
-  }}
->
-          
-            <div
-  style={{
-    minHeight: "104px",
-    padding: "1.5rem 2rem",
-    background: "#0E3746",
-    color: "white",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "1.5rem",
-  }}
->
+              <motion.div
+                variants={slideDownVariants}
+                initial="hidden"
+                animate="visible"
+                style={{
+                  marginBottom: "1.5rem",
+                  backgroundColor: "#0E3746",
+                  borderRadius: "15px",
+                  overflow: "hidden",
+                  boxShadow: "0 10px 30px rgba(14, 55, 70, 0.18)",
+                }}
+              >
+                        
+                          <div
+                style={{
+                  minHeight: "104px",
+                  padding: "1.5rem 2rem",
+                  background: "#0E3746",
+                  color: "white",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "1.5rem",
+                }}
+              >
               <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-<motion.div
-  variants={pulseVariants}
-  initial="initial"
-  animate="pulse"
-  style={{
-    width: "62px",
-    height: "62px",
-    minWidth: "52px",
-    backgroundColor: "rgba(255, 255, 255, 0.12)",
-    borderRadius: "50%",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "1.45rem",
-    flexShrink: 0,
-    border: "1px solid rgba(255, 255, 255, 0.18)",
-    boxShadow: "none",
-  }}
->
+              <motion.div
+                variants={pulseVariants}
+                initial="initial"
+                animate="pulse"
+                style={{
+                  width: "62px",
+                  height: "62px",
+                  minWidth: "52px",
+                  backgroundColor: "rgba(255, 255, 255, 0.12)",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.45rem",
+                  flexShrink: 0,
+                  border: "1px solid rgba(255, 255, 255, 0.18)",
+                  boxShadow: "none",
+                }}
+              >
                   <FaCalendarAlt />
                 </motion.div>
                 <div>

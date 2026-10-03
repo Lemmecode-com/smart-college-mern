@@ -462,25 +462,29 @@ export default function SessionDetails() {
             animate="visible"
             style={{
               marginBottom: "1.5rem",
-              backgroundColor: "white",
+              backgroundColor: "#0E3746",
               borderRadius: "1.5rem",
               overflow: "hidden",
               boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
               display: "flex",
               flexDirection: "column",
               gap: "1.5rem",
+              
             }}
           >
             <div
               style={{
-                padding: "1.75rem 2rem",
-                background: BRAND_COLORS.primary.gradient,
-                color: "white",
+                background: "#0E3746",
+                borderRadius: "15px",
+                padding: "1.5rem 1.75rem",
+                marginBottom: "1.25rem",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1.5rem",
+                gap: "1rem",
+                boxShadow: "0 8px 24px rgba(15, 69, 83, 0.18)",
+                color: "white",
+                height: "70px",
               }}
             >
               <div
@@ -491,16 +495,16 @@ export default function SessionDetails() {
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: "72px",
-                    height: "72px",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    width: "52px",
+                    height: "52px",
+                    minWidth: "52px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    border: "1px solid rgba(255, 255, 255, 0.18)",
                     borderRadius: "50%",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "2rem",
-                    flexShrink: 0,
-                    boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
+                    fontSize: "1.7rem",
                   }}
                 >
                   <FaUserGraduate />
@@ -509,18 +513,21 @@ export default function SessionDetails() {
                   <h1
                     style={{
                       margin: 0,
-                      fontSize: "2rem",
+                      fontSize: "1.625rem",
                       fontWeight: 700,
-                      lineHeight: 1.2,
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.25,
                     }}
                   >
                     Attendance Session Details
                   </h1>
                   <p
                     style={{
-                      margin: "0.5rem 0 0 0",
-                      opacity: 0.9,
-                      fontSize: "1.1rem",
+                      margin: 0,
+                      opacity: 0.8,
+                      fontSize: "0.9rem",
+                      fontWeight: 400,
+                      lineHeight: 1.5,
                     }}
                   >
                     {session.subject_id?.name} • Lecture #

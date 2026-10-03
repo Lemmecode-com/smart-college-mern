@@ -453,112 +453,125 @@ export default function MyProfile() {
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              backgroundColor: 'white',
-              borderRadius: '1.5rem',
-              overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)'
-            }}
+          style={{
+  marginBottom: '1.5rem',
+  backgroundColor: '#0E3746',
+  borderRadius: '15px',
+  overflow: 'hidden',
+  boxShadow: '0 8px 24px rgba(15, 55, 70, 0.18)'
+}}
           >
-            <div className="teacher-profile-banner" style={{
-              padding: '2rem',
-              background: BRAND_COLORS.primary.gradient,
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2rem',
-              flexWrap: 'wrap'
-            }}>
+<div className="teacher-profile-banner" style={{
+  padding: '1.5rem 2rem',
+  background: '#0E3746',
+  color: 'white',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '1.25rem',
+  flexWrap: 'wrap'
+}}>
               <motion.div 
                 className="teacher-profile-icon"
                 variants={pulseVariants}
                 initial="initial"
                 animate="pulse"
                 style={{
-                  width: '120px',
-                  height: '120px',
+                  width: '72px',
+                  height: '72px',
                   borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '4rem',
+                  fontSize: '2.2rem',
                   flexShrink: 0,
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-                  border: '4px solid rgba(255, 255, 255, 0.3)'
+                  border: '2px solid rgba(255, 255, 255, 0.25)',
+                  boxShadow: 'none'
                 }}
+             
               >
                 <FaUserTie />
               </motion.div>
               
-              <div style={{ flex: 1 }}>
-                <h1 style={{
-                  margin: 0,
-                  fontSize: '2.5rem',
-                  fontWeight: 700,
-                  marginBottom: '0.5rem',
-                  textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
-                }}>
+<div style={{ flex: 1, minWidth: 0 }}>
+  <h1 style={{
+            margin: 0,
+            fontSize: '1.625rem',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.25,
+  }}>
                   {profile.name}
                 </h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1.5rem',
+                    flexWrap: 'wrap'
+                  }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FaChalkboardTeacher />
-                    <span style={{ fontSize: '1.2rem', opacity: 0.9 }}>{profile.designation || 'Faculty Member'}</span>
+                    <span style={{ fontSize: '1rem', opacity: 0.65 }}>{profile.designation || 'Faculty Member'}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FaGraduationCap />
-                    <span style={{ fontSize: '1.2rem', opacity: 0.9 }}>{profile.qualification || 'N/A'}</span>
+                    <span style={{ fontSize: '1rem', opacity: 0.65 }}>{profile.qualification || 'N/A'}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FaBriefcase />
-                    <span style={{ fontSize: '1.2rem', opacity: 0.9 }}>{profile.experienceYears || 0} years experience</span>
+                    <span style={{ fontSize: '1rem', opacity: 0.65 }}>{profile.experienceYears || 0} years experience</span>
                   </div>
                 </div>
               </div>
               
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{
+                    y: -2,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                  }}
+                  whileTap={{ y: 0 }}
                   onClick={() => navigate('/teacher/dashboard')}
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
                     color: 'white',
-                    border: '2px solid rgba(255, 255, 255, 0.4)',
-                    padding: '0.75rem 1.5rem',
+                    border: '2px solid rgba(255, 255, 255, 0.35)',
+                    padding: '0.65rem 1.2rem',
                     borderRadius: '12px',
-                    fontSize: '0.95rem',
+                    fontSize: '0.9rem',
                     fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    transition: 'all 0.3s ease'
+                    // transition: 'all 0.25s ease'
                   }}
                 >
                   <FaArrowLeft /> Back to Dashboard
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(255, 255, 255, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
+whileHover={{
+  y: -2,
+  boxShadow: '0 5px 14px rgba(0, 0, 0, 0.18)'
+}}
+whileTap={{ y: 0 }}
                   onClick={() => navigate('/profile/edit-profile')}
-                  style={{
-                    backgroundColor: 'white',
-                    color: BRAND_COLORS.primary.main,
-                    border: '2px solid white',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
-                  }}
+                  
+style={{
+  backgroundColor: 'white',
+  color: '#0E3746',
+  border: '2px solid white',
+  padding: '0.65rem 1.2rem',
+  borderRadius: '12px',
+  fontSize: '0.95rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  // transition: 'all 0.25s ease'
+}}
+            
                 >
                   <FaEdit /> Edit Profile
                 </motion.button>

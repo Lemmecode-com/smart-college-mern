@@ -291,93 +291,132 @@ export default function EditTeacherProfile() {
           </div>
         </div>
         {/* Header */}
-        <motion.div
-          initial={{ y: -20 }}
-          animate={{ y: 0 }}
+ {/* ================= STANDARD HEADER ================= */}
+<motion.div
+  initial={{ y: -20 }}
+  animate={{ y: 0 }}
+  style={{
+    marginBottom: "1.5rem",
+    backgroundColor: "#0E3746",
+    borderRadius: "15px",
+    padding: "1.5rem 2rem",
+    minHeight: "104px",
+    boxShadow: "0 8px 24px rgba(14, 55, 70, 0.18)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "1.5rem",
+    flexWrap: "wrap",
+  }}
+>
+  {/* Left side */}
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "1rem",
+      minWidth: 0,
+    }}
+  >
+    {/* Header Icon */}
+    <div
+      style={{
+        width: "52px",
+        height: "52px",
+        minWidth: "52px",
+        borderRadius: "50%",
+        backgroundColor: "rgba(255, 255, 255, 0.12)",
+        border: "1px solid rgba(255, 255, 255, 0.18)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <FaUserTie
+        style={{
+          color: "#ffffff",
+          fontSize: "1.4rem",
+        }}
+      />
+    </div>
+
+    {/* Title + Subtitle */}
+    <div>
+      <h2
+        style={{
+          margin: 0,
+          color: "#ffffff",
+          fontSize: "1.8rem",
+          fontWeight: 700,
+          lineHeight: 1.2,
+        }}
+      >
+        Edit My Profile
+      </h2>
+
+      <p
+        style={{
+          margin: "0.35rem 0 0",
+          color: "rgba(255, 255, 255, 0.75)",
+          fontSize: "0.95rem",
+          fontWeight: 500,
+        }}
+      >
+        Update your personal and professional details
+      </p>
+    </div>
+  </div>
+
+  {/* Right side */}
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.75rem",
+      marginLeft: "auto",
+    }}
+  >
+    {/* Unsaved Changes */}
+    {unsavedChanges && (
+      <div
+        style={{
+          padding: "0.7rem 1rem",
+          backgroundColor: "rgba(255, 193, 7, 0.12)",
+          color: "#ffc107",
+          border: "1px solid rgba(255, 193, 7, 0.25)",
+          borderRadius: "10px",
+          fontSize: "0.85rem",
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          whiteSpace: "nowrap",
+        }}
+      >
+        <span
           style={{
-            marginBottom: "1.5rem",
-            backgroundColor: "white",
-            borderRadius: "12px",
-            padding: "1rem 1.5rem",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "1rem",
+            width: "8px",
+            height: "8px",
+            borderRadius: "50%",
+            backgroundColor: "currentColor",
           }}
-        >
-          <div
-            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
-          >
-            <button
-              onClick={handleBack}
-              disabled={saving}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: "1.25rem",
-                color: BRAND_COLORS.primary.main,
-                cursor: saving ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <FaArrowLeft />
-            </button>
-            <div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.5rem",
-                  fontWeight: 700,
-                  color: "#1e293b",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <FaUserTie style={{ color: BRAND_COLORS.primary.main }} />
-                Edit My Profile
-              </h2>
-              <p
-                style={{
-                  margin: "0.25rem 0 0 0",
-                  color: "#64748b",
-                  fontSize: "0.9rem",
-                }}
-              >
-                Update your personal and professional details
-              </p>
-            </div>
-          </div>
-          {unsavedChanges && (
-            <div
-              style={{
-                padding: "0.5rem 1rem",
-                backgroundColor: `${BRAND_COLORS.warning.main}15`,
-                color: BRAND_COLORS.warning.main,
-                borderRadius: "20px",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-              }}
-            >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  backgroundColor: "currentColor",
-                  display: "inline-block",
-                }}
-              />
-              Unsaved Changes
-            </div>
-          )}
-        </motion.div>
+        />
+        Unsaved Changes
+      </div>
+    )}
+
+    {/* Back Button */}
+    <button
+      type="button"
+      onClick={handleBack}
+      disabled={saving}
+      className="erp-standard-back-btn"
+    >
+      <FaArrowLeft style={{marginRight: "0.55rem",  marginBottom: "3px"}}/>
+      Back
+    </button>
+  </div>
+</motion.div>
 
         {/* Form */}
         <motion.div
@@ -1036,6 +1075,38 @@ export default function EditTeacherProfile() {
       />
 
       <style>{`
+      .erp-standard-back-btn {
+      
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  padding: 0.7rem 1rem;
+  height: 44px;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: none;
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+  
+}
+
+.erp-standard-back-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+}
+
+.erp-standard-back-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 767.98px) {
+  .erp-standard-back-btn {
+    min-width: 105px;
+    height: 48px;
+    padding: 0 1rem;
+  }
+}
         .spin {
           animation: spin 1s linear infinite;
         }
