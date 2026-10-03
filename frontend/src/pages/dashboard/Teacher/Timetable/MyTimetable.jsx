@@ -670,65 +670,29 @@ export default function MyTimetable() {
             </div>
           </div>
       {/* ================= HEADER ================= */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-4 shadow-lg mb-4 overflow-hidden"
+      <div
+        className="my-timetable-header mb-4"
         style={{
-          background: BRAND_COLORS.primary.gradient,
+          background: "#0E3746",
         }}
       >
-        <div className="p-4 text-white">
-          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div className="d-flex align-items-center gap-3">
-              <motion.div
-                animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 5, -5, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="d-flex align-items-center justify-content-center"
-                style={{
-                  width: "64px",
-                  height: "64px",
-                  backgroundColor: "rgba(255, 255, 255, 0.15)",
-                  borderRadius: "50%",
-                  fontSize: "1.75rem",
-                  boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
-                }}
-              >
-                <FaCalendarAlt />
-              </motion.div>
-              <div>
-                <h3 className="fw-bold mb-1">My Timetable</h3>
-                <p className="mb-0 opacity-75">
-                  Weekly lecture schedule assigned to you
-                </p>
-              </div>
-            </div>
-            <div className="d-flex align-items-center gap-2">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="px-3 py-2 rounded-3"
-                style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.15)",
-                  backdropFilter: "blur(10px)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                }}
-              >
-                <div className="d-flex align-items-center gap-2 text-white">
-                  <FaCheckCircle size={16} />
-                  <span className="fw-semibold">{totalSlots} Total Slots</span>
-                </div>
-              </motion.div>
-            </div>
+              <div className="my-timetable-header-content text-white">
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="my-timetable-header-icon">
+        <FaCalendarAlt />
+      </div>
+        <div>
+        <h3 className="my-timetable-title">My Timetable</h3>
+        <p className="my-timetable-subtitle">
+          Weekly lecture schedule assigned to you
+        </p>
+      </div>
+                  </div>
+                  <div className="my-timetable-slot-badge">
+        <FaCheckCircle size={16} />
+        <span>{totalSlots} Total Slots</span>
+      </div>
           </div>
         </div>
 
@@ -775,7 +739,7 @@ export default function MyTimetable() {
                 })}
               </span>
             </div>
-            <div className="d-flex align-items-center gap-2 timetable-slot-summary">
+            <div className="d-flex align-items-center gap-2 timetable-slot-summary ms-auto">
               <FaCheckCircle className="text-success" size={14} />
               <span className="text-muted small fw-medium">
                 {totalSlots} Total Slots
@@ -803,7 +767,97 @@ export default function MyTimetable() {
             </span>
           </div>
         </div>
-      </motion.div>
+        <style>{`
+  .my-timetable-header {
+    min-height: 104px;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  }
+
+  .my-timetable-header-content {
+    min-height: 104px;
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .my-timetable-header-icon {
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #ffffff;
+  }
+
+  .my-timetable-title {
+    margin: 0 0 4px;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .my-timetable-subtitle {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .my-timetable-slot-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: 35rem;
+  }
+
+  .my-timetable-navigation {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  .my-timetable-info {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  @media (max-width: 768px) {
+    .my-timetable-header-content {
+      padding: 18px 20px;
+      flex-wrap: wrap;
+    }
+
+    .my-timetable-title {
+      font-size: 24px;
+    }
+
+    .my-timetable-slot-badge {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+`}</style>
+      </div>
 
       {/* ================= EMPTY STATE ================= */}
       {totalSlots === 0 && (
