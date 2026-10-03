@@ -450,24 +450,28 @@ export default function TimetableList() {
             style={{
               marginBottom: '2rem',
               backgroundColor: 'white',
-              borderRadius: '1.5rem',
+              borderRadius: '14px',
               overflow: 'hidden',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
+              // padding: '1.5rem 2rem',
               // gap: '1.5rem',
               // paddingBottom: '2rem',
+              height: '165px',
+   
             }}
           >
             <div className="erp-timetable-hero-inner" style={{
-              padding: '2rem',
-              background: BRAND_COLORS.primary.gradient,
+              padding: '1.5rem 2rem',
+              background: '#0E3746',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '1.5rem',
+              height: '92px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div
@@ -476,14 +480,14 @@ export default function TimetableList() {
                   animate="pulse"
                   className="erp-timetable-hero-icon"
                   style={{
-                    width: '80px',
-                    height: '80px',
+                    width: '52px',
+                    height: '52px',
                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '20px',
+                    borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2.5rem',
+                    fontSize: '1.6rem',
                     flexShrink: 0,
                     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
                   }}
@@ -493,16 +497,19 @@ export default function TimetableList() {
                 <div className="erp-timetable-hero-text">
                   <h1 className="erp-timetable-hero-title" style={{
                     margin: 0,
-                    fontSize: '2.0rem',
+                    fontSize: '1.625rem',
                     fontWeight: 700,
-                    lineHeight: 1.1
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.25,
                   }}>
                     Timetable Management
                   </h1>
                   <p className="erp-timetable-hero-desc" style={{
-                    margin: '0.75rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '0.9rem'
+                    margin: 0,
+                    opacity: 0.8,
+                    fontSize: '0.9rem',
+                    fontWeight: 400,
+                    lineHeight: 1.5,
                   }}>
                     View, manage, and publish academic schedules
                   </p>
@@ -518,16 +525,18 @@ export default function TimetableList() {
                     backgroundColor: 'white',
                     color: BRAND_COLORS.primary.main,
                     border: '2px solid white',
-                    padding: '0.5rem 1.45rem',
-                    borderRadius: '14px',
-                    fontSize: '1.1rem',
+                    padding: '0 0.3rem',
+                    height: '42px',
+                    borderRadius: '12px',
+                    fontSize: '1.0rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.75rem',
+                    gap: '0.45rem',
                     transition: 'all 0.3s ease',
-                    boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
+                    boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)',
+                    marginRight: '1rem',
                   }}
                 >
                   <FaPlus /> Create Timetable

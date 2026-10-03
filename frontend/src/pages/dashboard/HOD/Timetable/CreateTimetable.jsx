@@ -322,12 +322,13 @@ export default function CreateTimetable() {
             style={{
               marginBottom: '1.25rem',
               backgroundColor: 'white',
-              borderRadius: '1.5rem',
+              borderRadius: '14px',
               overflow: 'hidden',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
               gap: '0rem',
+              
               
             }}
           >
@@ -335,12 +336,13 @@ export default function CreateTimetable() {
   className="create-timetable-header-content"
   style={{
     padding: '0.75rem 1.25rem',
-    background: BRAND_COLORS.primary.gradient,
+    background: '#0E3746',
     color: 'white',
     display: 'flex',
     alignItems: 'flex-start',
     position: 'relative',
-    minHeight: '120px'
+    minHeight: '90px',
+    height: '90px',
   }}>
               <div 
               className="create-timetable-header-inner"
@@ -351,10 +353,10 @@ export default function CreateTimetable() {
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: '60px',
-                    height: '60px',
+                    width: '52px',
+                    height: '52px',
                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '20px',
+                    borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -369,20 +371,22 @@ export default function CreateTimetable() {
                   <h1 
                   className="create-timetable-header-title"
                   style={{
-                    margin: '10px',
-                    height: '1.5rem',
-                    fontSize: '2rem',
+                    margin: 0,
+                    fontSize: '1.625rem',
                     fontWeight: 700,
-                    lineHeight: '1.1rem',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.7,
                   }}>
                     Create New Timetable
                   </h1>
                   <p 
                   className="create-timetable-description"
                   style={{
-                    margin: '0.25rem 0 0 0',
-                    fontSize: '1rem',
-                    opacity: 0.9,
+                    margin: 0,
+                    opacity: 0.8,
+                    fontSize: '0.9rem',
+                    fontWeight: 400,
+                    lineHeight: 1.5,
                   }}>
                     Set up academic schedule for your department courses
                   </p>
@@ -434,11 +438,11 @@ fontSize: '0.9rem',
               borderTop: '1px solid #bfdbfe',
               display: 'flex',
               alignItems: 'center',
-              gap: '1rem',
+              gap: '0.5rem',
               flexWrap: 'wrap'
             }}>
-              <FaInfoCircle style={{ color: BRAND_COLORS.primary.main, fontSize: '1.5rem', flexShrink: 0 }} />
-              <div style={{ color: '#1e293b', fontWeight: 500, lineHeight: 1.5 }}>
+              <FaInfoCircle style={{ color: BRAND_COLORS.primary.main, fontSize: '1.2rem', flexShrink: 0 }} />
+              <div style={{ color: '#1e293b', fontWeight: 500, lineHeight: 1.5, fontSize: '0.9rem'}}>
                 Timetables can only be created for courses in your department. After creation, you can add time slots and assign subjects.
               </div>
             </div>
