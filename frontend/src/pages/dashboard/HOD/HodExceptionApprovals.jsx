@@ -783,12 +783,14 @@ export default function HodExceptionApprovals() {
         animate={{ opacity: 1, y: 0 }}
         className="position-relative overflow-hidden"
         style={{
-                background:
-                  "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
+                background: '#0E3746',
                 borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
                 boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-                borderRadius: "24px",
+                borderRadius: "14px",
                 margin: "0 24px",
+                height: "100px",
+                overflow: "hidden",
+                paddingBottom: "30px",
               }}
       >
         <div className="p-4 text-white position-relative">
@@ -798,22 +800,37 @@ export default function HodExceptionApprovals() {
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
               className="d-flex align-items-center justify-content-center"
               style={{
-                width: "56px",
-                height: "56px",
-                background:
-                  "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                borderRadius: "12px",
-                fontSize: "1.5rem",
-                boxShadow: "0 4px 12px rgba(61, 181, 230, 0.3)",
+                width: "52px",
+                height: "52px",
+                minWidth: "52px",
+                background: "rgba(255, 255, 255, 0.12)",
+                border: "1px solid rgba(255, 255, 255, 0.18)",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "1.7rem",
               }}
             >
               <FaExclamationTriangle />
             </MotionDiv>
             <div>
-              <h3 className="fw-bold mb-1" style={{ letterSpacing: "0.5px" }}>
+              <h3 className="fw-bold mb-1" style={{ 
+                margin: 0,
+                fontSize: "1.625rem",
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+                lineHeight: 1.25,
+              }}>
                 Exception Approvals
               </h3>
-              <p className="mb-0 opacity-75" style={{ fontSize: "0.875rem" }}>
+              <p className="mb-0 opacity-75" style={{           
+                margin: 0,
+                opacity: 0.8,
+                fontSize: "0.9rem",
+                fontWeight: 400,
+                lineHeight: 1.5,
+              }}>
                 Review and manage teacher exception requests
               </p>
             </div>

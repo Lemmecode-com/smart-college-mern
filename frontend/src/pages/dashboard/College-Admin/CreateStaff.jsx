@@ -646,58 +646,191 @@ export default function CreateStaff() {
             </div>
           </div>
 
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="dashboard-header"
-          >
-            <div className="dashboard-header-hero">
-              <div className="row g-3 g-sm-4 align-items-center">
-                <div className="col-12 col-md-7 col-lg-8">
-                  <div className="d-flex align-items-center gap-3">
-                    <motion.div
-                      variants={pulseVariants}
-                      initial="initial"
-                      animate="pulse"
-                      className="header-icon-wrapper"
-                    >
-                      <FaUserPlus />
-                    </motion.div>
-                    <div className="header-title-section">
-                      <h1 className="header-title">Create Staff Account</h1>
-                      <p className="header-subtitle">
-                        Add new staff members to the college system with
-                        complete profile information
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-12 col-md-5 col-lg-4">
-                  <div className="d-flex align-items-center justify-content-center justify-content-md-end">
-                    <motion.button
+{/* ================= STANDARD HEADER ================= */}
+<div className="create-staff-header">
+  <div className="create-staff-header-content">
 
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => navigate("/college/staff")}
-                      className="dashboard-btn btn-profile"
-                      onFocus={(e) => {
-                        e.target.style.outline = "2px solid #1a4b6d";
-                        e.target.style.outlineOffset = "2px";
-                      }}
-                      onBlur={(e) => {
-                        e.target.style.outline = "none";
-                      }}
-                    >
-                      <FaArrowRight className="me-1" />
-                      <span className="btn-text">Staff List</span>
-                    </motion.button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+    {/* Left: Icon + Title */}
+    <div className="create-staff-header-left">
+      <div className="create-staff-header-icon">
+        <FaUserPlus />
+      </div>
 
+      <div className="create-staff-header-text">
+        <h1>Create Staff Account</h1>
+        <p>
+          Add new staff members to the college system with complete profile
+          information
+        </p>
+      </div>
+    </div>
+
+    {/* Right: Existing header action */}
+    <button
+      type="button"
+      className="create-staff-header-btn"
+      onClick={() => navigate("/college/staff")}
+    >
+      <FaArrowLeft />
+      <span>Back to Staff List</span>
+    </button>
+
+  </div>
+</div>
+<style>{`
+  /* ================= STANDARD HEADER ================= */
+
+  .create-staff-header {
+    width: 100%;
+    height: 104px;
+    background: #0E3746;
+    border-radius: 15px;
+    padding: 18px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 24px rgba(14, 55, 70, 0.14);
+    color: #ffffff;
+  }
+
+  .create-staff-header-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  /* Left section */
+
+  .create-staff-header-left {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+  }
+
+  /* Standard 52px icon */
+
+  .create-staff-header-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 22px;
+  }
+
+  /* Title */
+
+  .create-staff-header-text h1 {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.15;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.4px;
+  }
+
+  /* Subtitle */
+
+  .create-staff-header-text p {
+    margin: 5px 0 0;
+    font-size: 15px;
+    line-height: 1.3;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  /* Standard header action */
+
+  .create-staff-header-btn {
+    height: 48px;
+    min-width: 190px;
+    padding: 0 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.08);
+
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .create-staff-header-btn svg {
+    font-size: 16px;
+  }
+
+  .create-staff-header-btn:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+    color: #ffffff;
+  }
+
+  .create-staff-header-btn:active {
+    transform: translateY(0);
+  }
+
+  .create-staff-header-btn:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.7);
+    outline-offset: 2px;
+  }
+
+  /* Responsive */
+
+  @media (max-width: 768px) {
+    .create-staff-header {
+      height: auto;
+      min-height: 104px;
+      padding: 18px 20px;
+    }
+
+    .create-staff-header-content {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .create-staff-header-btn {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .create-staff-header-left {
+      gap: 12px;
+    }
+
+    .create-staff-header-icon {
+      width: 48px;
+      height: 48px;
+      min-width: 48px;
+    }
+
+    .create-staff-header-text h1 {
+      font-size: 23px;
+    }
+
+    .create-staff-header-text p {
+      font-size: 13px;
+    }
+  }
+`}</style>
           <motion.div
             variants={fadeInVariants}
             custom={0}

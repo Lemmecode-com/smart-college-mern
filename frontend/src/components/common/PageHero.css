@@ -19,17 +19,19 @@
   margin-bottom: 2rem;
   width: 100%;
   box-sizing: border-box;
-  border-radius: 1.35rem;
+  border-radius: 14px;
   overflow: hidden;
-  background: #0f4655;
+  background: #0E3746;
   border: 1px solid rgba(21, 155, 197, 0.22);
   box-shadow:
     0 12px 30px rgba(15, 70, 85, 0.14),
     0 3px 8px rgba(15, 70, 85, 0.08);
+    /* padding: rem 0.25rem; */
+    /* height: 98px; */
 }
 .erp-page-hero__inner {
   position: relative;
-  padding: 1.65rem 2rem;
+  padding: 1.2rem 1.75rem;
   background: #0E3746;
   color: #ffffff;
   display: flex;
@@ -51,11 +53,11 @@
 }
 
 .erp-page-hero__icon {
-  width: 58px;
-  height: 58px;
+  width: 52px;
+  height: 52px;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,27 +76,19 @@
 }
 
 .erp-page-hero__title {
-  margin: 0;
-  font-size: 1.8rem;
-  font-weight: 700;
-  line-height: 1.15;
-  word-break: keep-all;
-  hyphens: none;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
 }
 
 .erp-page-hero__description {
-margin: 0.5rem 0 0 0;
-  opacity: 0.82;
-  font-size: 0.85rem;
-  line-height: 1.45;
-  word-break: keep-all;
-  hyphens: none;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+          margin: 0;
+          opacity: 0.8;
+          font-size: 0.9rem;
+          font-weight: 400;
+          line-height: 1.5;
 }
 
 .erp-page-hero__actions {
@@ -109,7 +103,8 @@ margin: 0.5rem 0 0 0;
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  padding: 0.6rem 1.2rem;
+  padding: 0 18px;
+  height: 42px;
   border-radius: 10px;
   font-size: 0.95rem;
   font-weight: 600;
@@ -128,6 +123,7 @@ margin: 0.5rem 0 0 0;
 .erp-page-hero__back-btn:hover {
   background: rgba(255, 255, 255, 0.18);
   border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
 }
 
 .erp-page-hero__back-icon {
@@ -139,7 +135,8 @@ margin: 0.5rem 0 0 0;
   background: rgba(255, 255, 255, 0.12);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  padding: 0.6rem 1.2rem;
+  padding: 0 18px;
+  height: 42px;
   border-radius: 10px;
   font-size: 0.95rem;
   font-weight: 600;
@@ -157,6 +154,7 @@ margin: 0.5rem 0 0 0;
 .erp-page-hero__primary-btn:hover {
   background: rgba(255, 255, 255, 0.18);
   border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
 }
 
 /* ================= TABLET RESPONSIVE =================

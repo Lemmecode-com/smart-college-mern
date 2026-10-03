@@ -346,9 +346,9 @@ const HodReports = () => {
             initial="hidden"
             animate="visible"
             style={{
-              background: `linear-gradient(120deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #0a2a38 100%)`,
-              borderRadius: 20,
-              padding: "1.75rem 2rem",
+              background: `#0E3746`,
+              borderRadius: 14,
+              padding: "1.25rem 1.75rem",
               color: "#fff",
               boxShadow: "0 20px 50px -20px rgba(15, 58, 74, 0.5)",
               marginBottom: "1.5rem",
@@ -357,9 +357,9 @@ const HodReports = () => {
             <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
               <div
                 style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 14,
+                  width: 52,
+                  height: 52,
+                  borderRadius: "50%",
                   background: "rgba(255,255,255,0.15)",
                   backdropFilter: "blur(10px)",
                   display: "flex",
@@ -375,18 +375,21 @@ const HodReports = () => {
                 <h2
                   style={{
                     margin: 0,
-                    fontSize: "clamp(1.2rem, 2.5vw, 1.6rem)",
+                    fontSize: "1.625rem",
                     fontWeight: 700,
-                    lineHeight: 1.2,
+                    letterSpacing: "-0.02em",
+                    lineHeight: 1.25,
                   }}
                 >
                   Department Reports
                 </h2>
                 <p
                   style={{
-                    margin: "0.25rem 0 0",
-                    opacity: 0.85,
+                    margin: 0,
+                    opacity: 0.8,
                     fontSize: "0.9rem",
+                    fontWeight: 400,
+                    lineHeight: 1.5,
                   }}
                 >
                   {department.name || "Department"} ({department.code || "—"})

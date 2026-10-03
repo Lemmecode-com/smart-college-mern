@@ -201,47 +201,61 @@ const componentStyles = `
 .schedule-header {
   margin-bottom: 1.5rem;
   background: white;
-  border-radius: 1.5rem;
+  border-radius: 15px;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(26, 75, 109, 0.15);
+  box-shadow: 0 4px 16px rgba(26, 75, 109, 0.12);
+  height: 170px;
 }
+
 .header-top {
-  padding: 1.75rem 2rem;
-  background: linear-gradient(180deg, #0f3a4a, #134952);
+  min-height: 100px;
+  padding: 0.8rem 1.5rem;
+  background: #0E3746;
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
+  flex-wrap: nowrap;
+  gap: 1.5rem;
+  height: 95px;
 }
 .header-left {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
+  gap: 1rem;
+  min-width: 0;
 }
 .header-icon-wrapper {
-  background: rgba(255, 255, 255, 0.15);
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.6rem;
   flex-shrink: 0;
-  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
 }
 .header-title {
-  margin: 0;
-  font-weight: 700;
-  line-height: 1.2;
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
 }
 .header-subtitle {
-  margin: 0.5rem 0 0 0;
-  opacity: 0.9;
+.header-subtitle {
+  margin: 0.25rem 0 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.3;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  gap: 0.4rem;
+}
 }
 .header-right {
   display: flex;
@@ -250,11 +264,11 @@ const componentStyles = `
   flex-wrap: wrap;
 }
 .current-time-badge {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 0.6rem 1rem;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.55rem 1rem;
   border-radius: 12px;
   text-align: center;
-  min-width: 100px;
+  min-width: 120px;
 }
 .time-label {
   font-size: 0.75rem;
@@ -266,19 +280,21 @@ const componentStyles = `
   font-weight: 700;
 }
 .btn-refresh {
-  background: white;
-  color: #1a4b6d;
-  border: 2px solid white;
-  padding: 0.6rem 1rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
+  background: #ffffff;
+  color: #0E3746;
+  border: 1px solid #ffffff;
+  min-height: 44px;
+  padding: 0.65rem 1.15rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
   white-space: nowrap;
 }
 .btn-refresh:hover {
@@ -1292,17 +1308,17 @@ export default function MySchedule() {
         maxWidth: isMobile ? "100%" : isTablet ? "95%" : "1200px",
         padding: isMobile ? "0.75rem" : "1.5rem",
       },
-      headerTitle: {
-        fontSize: isMobile ? "1.5rem" : "2rem",
-      },
-      headerSubtitle: {
-        fontSize: isMobile ? "0.9rem" : "1.1rem",
-      },
-      headerIcon: {
-        width: isMobile ? "50px" : "72px",
-        height: isMobile ? "50px" : "72px",
-        fontSize: isMobile ? "1.5rem" : "2rem",
-      },
+headerTitle: {
+  fontSize: isMobile ? "1.2rem" : "1.5rem",
+},
+headerSubtitle: {
+  fontSize: isMobile ? "0.85rem" : "0.9rem",
+},
+headerIcon: {
+  width: isMobile ? "44px" : "52px",
+  height: isMobile ? "44px" : "52px",
+  fontSize: isMobile ? "1.3rem" : "1.6rem",
+},
       statsLabel: {
         fontSize: isMobile ? "0.75rem" : "0.85rem",
       },
@@ -1429,10 +1445,9 @@ export default function MySchedule() {
                 </div>
                 <motion.button
                   whileHover={{
-                    scale: 1.05,
-                    boxShadow: "0 8px 20px rgba(26, 75, 109, 0.4)",
+                    y: -2,
                   }}
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={async () => {
                     setLoading(true);
                     await loadActiveSessions();
