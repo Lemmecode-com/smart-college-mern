@@ -4,10 +4,12 @@ const Exam = require("../models/exam.model");
 const Student = require("../models/student.model");
 const Subject = require("../models/subject.model");
 const StudentMarks = require("../models/studentMarks.model");
+const Notification = require("../models/notification.model");
 const AppError = require("../utils/AppError");
 const { RESULT_STATUS } = require("../utils/constants");
 const { validateUnlockReason } = require("../utils/resultLifecycle.util");
 const { calculateSubjectResult } = require("./examCalculation.service");
+const logger = require("../utils/logger");
 
 /**
  * Centralized SemesterResult generation service.
@@ -377,6 +379,38 @@ exports.publishResult = async ({ resultId, collegeId, userId }) => {
     );
   }
 
+  // Fire-and-forget student notification
+  (async () => {
+    try {
+      const student = await Student.findById(existing.student_id).select("user_id").lean();
+      if (student?.user_id) {
+        const exam = await Exam.findById(existing.exam_id).select("name").lean();
+        await Notification.create({
+          college_id: collegeId,
+          createdBy: userId,
+          createdByRole: "EXAM_COORDINATOR",
+          target: "INDIVIDUAL",
+          target_users: [student.user_id],
+          title: "📊 Exam Result Published",
+          message: `Your result for ${exam?.name || "the exam"} has been published.`,
+          type: "EXAM",
+          priority: "HIGH",
+          actionUrl: "/student/results",
+        });
+        logger.logInfo("Exam result notification sent", {
+          collegeId,
+          resultId: existing._id,
+          studentId: existing.student_id,
+        });
+      }
+    } catch (notifErr) {
+      logger.logError("Failed to send exam result notification", {
+        error: notifErr.message,
+        resultId: existing._id,
+      });
+    }
+  })();
+
   return updated;
 };
 
@@ -733,6 +767,51 @@ exports.publishResultsForExam = async ({ collegeId, examId, userId }) => {
       },
     },
   );
+
+  // Fire-and-forget student notifications for newly published results
+  (async () => {
+    try {
+      // Find only the results that were just published by this operation
+      const newlyPublishedResults = await SemesterResult.find({
+        college_id: collegeId,
+        exam_id: examId,
+        status: RESULT_STATUS.PUBLISHED,
+        publishedAt: { $gte: now },
+      }).populate("student_id", "user_id").lean();
+
+      const userIds = newlyPublishedResults
+        .map((r) => r.student_id?.user_id)
+        .filter(Boolean);
+
+      if (userIds.length > 0) {
+        // Deduplicate user IDs
+        const uniqueUserIds = [...new Set(userIds.map(String))];
+
+        await Notification.create({
+          college_id: collegeId,
+          createdBy: userId,
+          createdByRole: "EXAM_COORDINATOR",
+          target: "INDIVIDUAL",
+          target_users: uniqueUserIds,
+          title: "📊 Exam Results Published",
+          message: `Results for ${exam.name} have been published.`,
+          type: "EXAM",
+          priority: "HIGH",
+          actionUrl: "/student/results",
+        });
+        logger.logInfo("Bulk exam results notification sent", {
+          collegeId,
+          examId,
+          recipientCount: uniqueUserIds.length,
+        });
+      }
+    } catch (notifErr) {
+      logger.logError("Failed to send bulk exam results notification", {
+        error: notifErr.message,
+        examId,
+      });
+    }
+  })();
 
   return {
     examId,
