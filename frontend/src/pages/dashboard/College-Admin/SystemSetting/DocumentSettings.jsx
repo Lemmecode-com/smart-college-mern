@@ -394,9 +394,9 @@ export default function DocumentSettings() {
         }
 
         .header-icon-wrapper {
-          width: 56px;
-          height: 56px;
-          border-radius: var(--ds-radius-lg);
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
           background: linear-gradient(135deg, var(--ds-cyan-primary), var(--ds-cyan-light));
           display: flex;
           align-items: center;
