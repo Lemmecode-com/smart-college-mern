@@ -60,10 +60,10 @@ import LogoImage from "../../../components/common/LogoImage";
 // Brand Color Palette
 const BRAND_COLORS = {
   primary: {
-    main: "#1a4b6d",
-    dark: "#0f3a4a",
-    light: "#2a6b8d",
-    gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+    main: "#0E3746",
+    dark: "#0E3746",
+    light: "#0E3746",
+    gradient: "none",
   },
   success: {
     main: "#1e6f5c",
@@ -384,10 +384,11 @@ export default function CollegeProfile() {
               gap: "1.5rem",
 
               background: "#0E3746",
-              padding: "1.25rem 1.5rem",
+              padding: "1.25rem 1.75rem",
               borderRadius: "1.25rem",
               boxShadow: "0 8px 24px rgba(14, 55, 70, 0.18)",
               color: "#ffffff",
+              minHeight: "140px",
             }}
           >
             <div
@@ -417,11 +418,13 @@ export default function CollegeProfile() {
                 <h1
                   style={{
                     margin: 0,
-                    marginBottom: "0.25rem",
-                    fontSize: "2rem",
+                    marginTop: "0.9rem",
+                    fontSize: "1.8rem",
                     fontWeight: 700,
+                    letterSpacing: "-0.02em",
                     color: "#ffffff",
                     lineHeight: 1.2,
+                    fontWeight: 600,
                   }}
                 >
                   {college.name}
@@ -443,6 +446,7 @@ export default function CollegeProfile() {
                       borderRadius: "9999px",
                       fontSize: "0.875rem",
                       fontWeight: 600,
+                      marginTop: "0.55rem",
                     }}
                   >
                     {college.code}
@@ -458,15 +462,17 @@ export default function CollegeProfile() {
                       display: "flex",
                       alignItems: "center",
                       gap: "0.25rem",
+                      marginTop: "0.55rem",
+                    
                     }}
                   >
                     {college.isActive ? (
                       <>
-                        <FaCheckCircle /> Active
+                        <FaCheckCircle size={16} /> Active
                       </>
                     ) : (
                       <>
-                        <FaTimesCircle /> Inactive
+                        <FaTimesCircle size={16} /> Inactive
                       </>
                     )}
                   </span>
@@ -497,7 +503,7 @@ export default function CollegeProfile() {
                   transition: "all 0.3s ease",
                 }}
               >
-                <FaEdit /> Edit Profile
+                <FaEdit size={20} /> Edit Profile
               </motion.button>
             )}
           </motion.div>
