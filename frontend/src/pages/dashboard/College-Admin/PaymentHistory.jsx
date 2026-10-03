@@ -326,32 +326,77 @@ export default function PaymentHistory() {
         }
 
         /* ================= HEADER ================= */
-        .payment-history-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
+ 
+/* ================= STANDARD HEADER ================= */
 
-        .payment-history-header h1 {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
+.payment-history-header {
+  background: #0E3746;
+  border-radius: 15px;
+  padding: 1.35rem 1.75rem;
+  margin-bottom: 1.25rem;
 
-        .payment-history-header p {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+  color: white;
+}
+
+/* Left side */
+.payment-history-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+/* Standard icon container */
+.payment-history-header-icon {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+
+  color: #ffffff;
+  font-size: 1.7rem;
+}
+
+/* Title + subtitle */
+.payment-history-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.payment-history-header h1 {
+  margin: 0;
+
+  font-size: 1.625rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+
+  color: #ffffff;
+}
+
+.payment-history-header p {
+  margin: 0;
+
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.45;
+
+  color: rgba(255, 255, 255, 0.8);
+}
 
         /* ================= SUMMARY CARDS ================= */
         .summary-grid {
@@ -2004,13 +2049,16 @@ export default function PaymentHistory() {
 
       {/* ================= HEADER ================= */}
       <div className="payment-history-header">
-        <div>
-          <h1>
-            <FaFileInvoiceDollar />
-            Payment History
-          </h1>
-          <p>View and manage all student fee payment records</p>
-        </div>
+<div className="payment-history-header-content">
+  <div className="payment-history-header-icon">
+    <FaFileInvoiceDollar />
+  </div>
+
+  <div className="payment-history-header-text">
+    <h1>Payment History</h1>
+    <p>View and manage all student fee payment records</p>
+  </div>
+</div>
         <div style={{ display: "flex", gap: "0.75rem" }}>
           <button
             className="payment-action-btn"

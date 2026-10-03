@@ -1354,22 +1354,27 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
        />
 
       {/* Page Header */}
-      <div className="page-header">
-        <div className="header-content">
-          <h1 className="page-title">
-            <FaGraduationCap className="header-icon" />
-            Student Promotion
-          </h1>
-          <p className="page-subtitle">
-            Promote students to next academic year based on fee payment status
-          </p>
-        </div>
-        <div className="header-actions">
-          <button onClick={viewHistory} className="btn btn-outline-secondary">
-            <FaHistory /> View History
-          </button>
-        </div>
-      </div>
+<div className="page-header">
+  <div className="header-content">
+    <div className="header-icon-box">
+      <FaGraduationCap className="header-icon" />
+    </div>
+
+    <div className="header-text">
+      <h1 className="page-title">Student Promotion</h1>
+
+      <p className="page-subtitle">
+        Promote students to next academic year based on fee payment status
+      </p>
+    </div>
+  </div>
+
+  <div className="header-actions">
+    <button onClick={viewHistory} className="btn btn-outline-secondary">
+      <FaHistory /> View History
+    </button>
+  </div>
+</div>
 
       {/* Success Message */}
       {successMessage && (
@@ -2768,7 +2773,65 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           font-size: 32px;
           filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
         }
+.page-header {
+  background: #0E3746;
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 0.9rem 2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 24px rgba(14, 55, 70, 0.22);
+}
 
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.header-icon-box {
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-icon {
+  color: white;
+  font-size: 38px;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  opacity: 1;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.72);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
         .page-subtitle {
           color: rgba(255, 255, 255, 0.95);
           font-size: 15px;
@@ -2816,7 +2879,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         .history-back-btn:hover {
           background: #ffffff;
           border-color: rgba(255, 255, 255, 0.6);
-          transform: translateY(2px);
+          transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
           color: #0E3746;
         }

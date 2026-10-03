@@ -452,13 +452,12 @@ export default function AddSubject() {
             className="add-subject-hero"
             style={{
               marginBottom: "2rem",
-              backgroundColor: "white",
+              backgroundColor: "#0E3746",
               borderRadius: "1.5rem",
               overflow: "hidden",
               boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
               display: "flex",
               flexDirection: "column",
-              gap: "1.5rem",
             }}
           >
             <div
@@ -482,17 +481,16 @@ export default function AddSubject() {
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: "62px",
-                    height: "62px",
-                    backgroundColor: "rgba(255, 255, 255, 0.14)",
-                    border: "1px solid rgba(255, 255, 255, 0.16)",
-                    borderRadius: "18px",
+                    width: "52px",
+                    height: "52px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "50%",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "2.35rem",
+                    fontSize: "1.35rem",
                     flexShrink: 0,
-                    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.22)",
                   }}
                 >
                   <FaBookOpen />

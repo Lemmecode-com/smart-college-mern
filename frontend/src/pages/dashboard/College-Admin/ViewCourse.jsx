@@ -168,14 +168,6 @@ export default function ViewCourse() {
         <div className="page-header__content">
           {/* LEFT SECTION - Back Button + Icon + Title + Badges */}
           <div className="page-header__left">
-            <button
-              className="btn btn--icon"
-              onClick={() => navigate('/courses')}
-              aria-label="Back to courses"
-              title="Back to courses"
-            >
-              <FaArrowLeft />
-            </button>
             <div className="page-header__icon-wrapper">
               <FaBookOpen className="page-header__icon" />
             </div>
@@ -204,16 +196,31 @@ export default function ViewCourse() {
           </div>
 
           {/* RIGHT SECTION - Edit Course Button */}
-          {canEdit('courses') && (
-            <div className="page-header__right">
-              <button
-                className="btn btn--primary"
-                onClick={() => navigate(`/courses/edit/${course._id}`)}
-              >
-                <FaEdit /> Edit Course
-              </button>
-            </div>
-          )}
+          
+  <div className="page-header__right">
+
+  <button
+    className="btn btn--secondary"
+    onClick={() => navigate('/courses')}
+    aria-label="Back to courses"
+    title="Back to courses"
+  >
+    <FaArrowLeft size={15} />
+    <span>Back</span>
+  </button>
+
+  {canEdit('courses') && (
+    <button
+      className="btn btn--primary"
+      onClick={() => navigate(`/courses/edit/${course._id}`)}
+    >
+      <FaEdit size={15} />
+      <span>Edit Course</span>
+    </button>
+  )}
+
+</div>
+          
         </div>
       </header>
 
@@ -422,116 +429,97 @@ export default function ViewCourse() {
         }
 
         /* ================= PAGE HEADER ================= */
-        .page-header {
-          
-          margin-right: 2rem;
-          margin-left: 2rem;
-          background: #0E3746;
-          color: var(--text-inverse);
-          padding: 20px 28px;
-          margin-bottom: var(--spacing-2xl);
-          box-shadow: var(--shadow-lg);
-          border-radius: 18px;
-          align-items: center;
-        }
+.page-header {
+  margin: 0 2rem 1.25rem;
+  padding: 1.25rem 1.5rem;
+  background: #0E3746;
+  border-radius: 15px;
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+}
 
-        .page-header__content {
-          width: 1460px;
-          margin: 0 auto;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: var(--spacing-lg);
-        }
+.page-header__content {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
 
         /* ================= LEFT SECTION - Back Button + Icon + Title + Badges ================= */
-        .page-header__left {
-          display: flex;
-          align-items: left;
-          gap: 12px;
-          flex: 1;
-          min-width: 0;
-        }
+.page-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
 
         /* ================= RIGHT SECTION - Edit Button ================= */
-        .page-header__right {
-          display: flex;
-          justify-content: flex-end;
-          align-items: end;
-          flex-shrink: 0;
-        }
+.page-header__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
 
-        /* Back Button */
-        .btn--icon {
-          width: 44px;
-          height: 44px;
-          border-radius: var(--radius-md);
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: var(--text-inverse);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all var(--transition-fast);
-          flex-shrink: 0;
-        }
 
-        .btn--icon:hover {
-          background: rgba(255, 255, 255, 0.2);
-          transform: translateX(-2px);
-        }
 
         /* Course Icon Wrapper */
-        .page-header__icon-wrapper {
-          width: 50px;
-          height: 50px;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.375rem;
-          flex-shrink: 0;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-          transition: all var(--transition-base);
-        }
 
-        .page-header__icon-wrapper:hover {
-          background: rgba(255, 255, 255, 0.2);
-          transform: scale(1.05);
-        }
+.page-header__icon-wrapper {
+  width: 52px;
+  height: 52px;
+  
 
-        .page-header__icon {
-          color: var(--text-inverse);
-        }
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+
+  color: #ffffff;
+  font-size: 1.45rem;
+}
+
+.page-header__icon-wrapper:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: none;
+}
+
+.page-header__icon {
+  color: #ffffff;
+}
+
 
         /* Course Info Section */
-        .page-header__info {
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
+.page-header__info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
 
-        .page-header__title {
-          margin: 0;
-          font-size: 1.625rem;
-          font-weight: 700;
-          line-height: 1.2;
-          color: var(--text-inverse);
-          letter-spacing: -0.02em;
-        }
+.page-header__title {
+    margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: #ffffff;
+
+}
 
         /* Badges Row */
-        .page-header__badges {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
+        
+.page-header__badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
         .course-code {
           display: inline-flex;
           align-items: center;
@@ -630,34 +618,62 @@ export default function ViewCourse() {
         }
 
         /* ================= BUTTONS ================= */
-        .btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: var(--spacing-sm);
-          padding: 10px 18px;
-          border-radius: 10px;
-          font-size: 0.875rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all var(--transition-fast);
-          border: none;
-          min-height: 44px;
-          white-space: nowrap;
-        }
+.btn {
+  height: 42px;
+  padding: 0 1.1rem;
 
-        .btn--primary {
-          background: var(--brand-success);
-          color: var(--text-inverse);
-          box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 
-        .btn--primary:hover {
-          background: #218838;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-        }
+  border-radius: 10px;
+
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+.btn--secondary {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: none;
+}
+
+.btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.btn--secondary:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+.btn--primary {
+  background: #ffffff;
+  border: 1px solid #ffffff;
+  color: #0E3746;
+}
+
+.btn--primary:hover {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #0E3746;
+
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
 
         .btn--primary:active {
           transform: translateY(0);

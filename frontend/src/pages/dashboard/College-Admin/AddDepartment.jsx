@@ -243,40 +243,154 @@ export default function AddDepartment() {
           onGoBack={() => navigate(-1)}
         />
       )}
-      {/* ================= TOP NAVIGATION ================= */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-        <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
-          <div className="d-flex align-items-center gap-3">
-            <div className="form-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
-              <FaBuilding size={28} />
-            </div>
-            <div>
-              <h1 className="h4 h3-md fw-bold mb-1 text-dark">Add New Department</h1>
-              <p className="text-muted mb-0 small">
-                <FaGraduationCap className="me-1" />
-                Create and configure a new academic department
-              </p>
-            </div>
-          </div>
-        </div>
+{/* ================= PAGE HEADER ================= */}
+{/* ================= PAGE HEADER ================= */}
+<div
+  className="d-flex flex-column flex-lg-row align-items-center justify-content-between"
+  style={{
+    background: "#0E3746",
+    border: "1px solid rgba(255,255,255,0.08)",
+    boxShadow: "0 8px 24px rgba(15,69,83,0.18)",
+    padding: "1.5rem 1.75rem",
+    marginBottom: "1.25rem",
+    position: "relative",
+    overflow: "hidden",
+    gap: "1rem",
+    borderRadius: "15px",
+  }}
+>
+  {/* Left side: Icon + Title */}
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.9rem",
+      minWidth: 0,
+    }}
+  >
+    <div
+      style={{
+        width: "52px",
+        height: "52px",
+        borderRadius: "50%",
+        background: "rgba(255,255,255,0.12)",
+        color: "#ffffff",
+        border: "1px solid rgba(255,255,255,0.08)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "1.35rem",
+        flexShrink: 0,
+      }}
+    >
+      <FaBuilding />
+    </div>
 
-        <div className="d-flex align-items-center gap-2 flex-wrap">
-          <button 
-            onClick={() => setShowHelp(!showHelp)}
-            className="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Department Creation Help"
-          >
-            <FaInfoCircle size={16} /> Help
-          </button>
-          
-          <button 
-            onClick={() => navigate("/departments")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-          >
-            <FaTimes size={16} /> Cancel
-          </button>
-        </div>
-      </div>
+    <div style={{ minWidth: 0 }}>
+      <h1
+        style={{
+          fontSize: "1.4rem",
+          fontWeight: 700,
+          margin: 0,
+          color: "#ffffff",
+          lineHeight: 1.2,
+        }}
+      >
+        Add New Department
+      </h1>
+
+      <p
+        style={{
+          margin: "0.3rem 0 0",
+          fontSize: "0.85rem",
+          color: "rgba(255,255,255,0.72)",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+        }}
+      >
+        <FaGraduationCap size={13} />
+        Create and configure a new academic department
+      </p>
+    </div>
+  </div>
+
+  {/* Right side: Actions */}
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.6rem",
+      flexWrap: "wrap",
+      flexShrink: 0,
+    }}
+  >
+    <button
+      onClick={() => setShowHelp(!showHelp)}
+      title="Department Creation Help"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "0.5rem",
+        padding: "0.6rem 1.1rem",
+        borderRadius: "10px",
+        border: "1px solid rgba(255,255,255,0.22)",
+        background: "rgba(255,255,255,0.12)",
+        color: "#ffffff",
+        fontSize: "0.85rem",
+        fontWeight: 600,
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        
+      }}
+        onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.15)";
+      }}
+
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+    >
+      
+      <FaInfoCircle size={15} />
+      Help
+    </button>
+
+    <button
+      onClick={() => navigate("/departments")}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "0.5rem",
+        padding: "0.6rem 1.1rem",
+        borderRadius: "10px",
+        border: "1px solid rgba(255,255,255,0.22)",
+        background: "rgba(255,255,255,0.12)",
+        color: "#ffffff",
+        fontSize: "0.85rem",
+        fontWeight: 600,
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.15)";
+      }}
+
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+      }}
+    >
+      <FaTimes size={15} />
+      Cancel
+    </button>
+  </div>
+</div>
 
       {/* ================= HELP SECTION ================= */}
       {showHelp && (
@@ -328,7 +442,7 @@ export default function AddDepartment() {
 
       {/* ================= FORM CARD ================= */}
       <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up">
-        <div className="card-header bg-gradient-primary text-white py-3 py-md-4">
+        <div className="card-header bg-gradient-primary text-white py-3 py-md-4" style={{ background: '#0E3746' }}>
           <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
             <FaBuilding /> Department Details
           </h2>

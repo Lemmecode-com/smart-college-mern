@@ -1164,38 +1164,38 @@ export default function CourseList() {
         }
 
         /* ================= PAGE HEADER ================= */
-        .page-header {
-          background: #0E3746;;
-          border-radius: var(--radius-xl);
-          padding: var(--space-8) var(--space-6);
-          margin-bottom: var(--space-6);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: var(--space-5);
-          box-shadow: 0 10px 40px rgba(15, 58, 74, 0.35);
-          color: white;
-        }
+.page-header {
+  background: #0E3746;
+  border-radius: 15px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+  color: white;
+}
 
-        .page-header-content {
-          display: flex;
-          align-items: center;
-          gap: var(--space-5);
-          min-width: 0;
-        }
+.page-header-content {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
 
-        .header-icon-bg {
-          width: 60px;
-          height: 60px;
-          background: rgba(255, 255, 255, 0.12);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          border-radius: var(--radius-lg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          backdrop-filter: blur(10px);
-          flex-shrink: 0;
-        }
+.header-icon-bg {
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+}
 
         .header-text-content {
           display: flex;
@@ -1204,60 +1204,67 @@ export default function CourseList() {
           min-width: 0;
         }
 
-        .page-title {
-          margin: 0;
-          font-size: 1.625rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          line-height: 1.25;
-        }
+.page-title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
 
-        .page-subtitle {
-          margin: 0;
-          opacity: 0.8;
-          font-size: 0.9rem;
-          font-weight: 400;
-          line-height: 1.5;
-        }
+.page-subtitle {
+  margin: 0.3rem 0 0;
+  opacity: 1;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.72);
+}
 
-        .header-actions {
-          display: flex;
-          gap: var(--space-3);
-          flex-shrink: 0;
-        }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
 
         /* ================= BUTTONS ================= */
-        .btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: var(--space-2);
-          height: 42px;
-          padding: 0 1.125rem;
-          border-radius: var(--radius-md);
-          font-size: 0.875rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.18s var(--ease);
-          border: 1.5px solid transparent;
-          text-decoration: none;
-          white-space: nowrap;
-        }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 42px;
+  padding: 0 1.1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+  white-space: nowrap;
+}
 
         .btn:disabled {
           opacity: 0.55;
           cursor: not-allowed;
         }
 
-        .btn-primary {
-          background: white;
-          color: var(--primary);
-        }
+.btn-primary {
+  background: white;
+  color: #0E3746;
+  border-color: white;
+}
 
-        .btn-primary:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: var(--shadow-md);
-        }
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+  color: #0E3746;
+  border-color: #ffffff;
+}
 
         .btn-secondary {
           background: var(--bg-tertiary);
@@ -1291,15 +1298,17 @@ export default function CourseList() {
           background: rgba(79, 70, 229, 0.05);
         }
 
-        .btn-ghost-inverse {
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          border-color: rgba(255, 255, 255, 0.16);
-        }
+.btn-ghost-inverse {
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.22);
+}
 
-        .btn-ghost-inverse:hover:not(:disabled) {
-          background: rgba(255, 255, 255, 0.18);
-        }
+.btn-ghost-inverse:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
 
         .btn-lg {
           height: 46px;
@@ -1307,7 +1316,9 @@ export default function CourseList() {
           font-size: 0.95rem;
         }
 
-        .btn-icon { font-size: 0.95rem; }
+        .btn-icon {
+          font-size: 15px;
+        }
 
         .spinning { animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }

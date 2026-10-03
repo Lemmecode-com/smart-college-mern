@@ -53,7 +53,11 @@
   border-radius: var(--border-radius-lg);
   overflow: hidden;
   box-shadow: var(--card-shadow);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 1.5rem;
+
+  justify-content: center;
+  align-items: center;
+  width: 100%;
 }
 
 .dashboard-header-hero {
@@ -63,15 +67,16 @@
 }
 
 .header-icon-wrapper {
-  width: 64px;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: var(--border-radius-md);
+   width: 52px;
+  height: 52px;
+  min-width: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.75rem;
-  flex-shrink: 0;
+  font-size: 1.7rem;
 }
 
 .header-title-section {
@@ -79,16 +84,19 @@
 }
 
 .header-title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  line-height: 1.2;
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
 }
 
 .header-subtitle {
-  margin: var(--spacing-xs) 0 0 0;
-  font-size: 0.9rem;
-  opacity: 0.9;
+          margin: 0;
+          opacity: 0.8;
+          font-size: 0.9rem;
+          font-weight: 400;
+          line-height: 1.5;
 }
 
 .header-time-display {

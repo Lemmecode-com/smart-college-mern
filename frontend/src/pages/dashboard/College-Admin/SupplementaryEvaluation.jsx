@@ -997,18 +997,24 @@ export default function SupplementaryEvaluation() {
       />
 
       {/* Page Header */}
-      <div className="page-header">
-        <div className="header-content">
-          <h1 className="page-title">
-            <FaGraduationCap className="header-icon" />
-            Supplementary Evaluation
-          </h1>
-          <p className="page-subtitle">
-            Select a supplementary exam and subject to begin backlog marks entry and evaluation.
-          </p>
-        </div>
-      </div>
+{/* Page Header */}
+<div className="page-header">
+  <div className="header-main">
+    <div className="header-icon">
+      <FaGraduationCap />
+    </div>
 
+    <div className="header-content">
+      <h1 className="page-title">
+        Supplementary Evaluation
+      </h1>
+
+      <p className="page-subtitle">
+        Select a supplementary exam and subject to begin backlog marks entry and evaluation.
+      </p>
+    </div>
+  </div>
+</div>
       {/* Progress alerts */}
       {selectedExamId && selectedExamItem && (
         <div className="alert alert-info">
@@ -1709,35 +1715,55 @@ const pageStyles = `
    PAGE HEADER
    ========================================================= */
 
-.supplementary-evaluation .page-header {
-  margin-bottom: 1.25rem;
+/* =========================================================
+   PAGE HEADER
+   Standardized ERP Header
+   ========================================================= */
 
-  min-height: 92px;
-  padding: 1.35rem 1.6rem;
+.supplementary-evaluation .page-header {
+  background: #0E3746;
+  border-radius: 15px;
+  padding: 1.2rem 1.75rem;
+  margin-bottom: 1.25rem;
 
   display: flex;
   align-items: center;
 
-  border-radius: 16px;
+  color: white;
 
-  background: linear-gradient(
-    135deg,
-    #123f56 0%,
-    #0e3447 100%
-  );
-
-  box-shadow:
-    0 8px 24px rgba(18, 63, 86, 0.12);
-
+  box-shadow: 0 8px 24px rgba(18, 63, 86, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-
-/* Header content must stack title + subtitle */
-
-.supplementary-evaluation .header-content {
+/* Icon + text wrapper */
+.supplementary-evaluation .header-main {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
   width: 100%;
+}
 
+/* Header icon */
+.supplementary-evaluation .header-icon {
+  width: 52px;
+  height: 52px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+
+  font-size: 1.35rem;
+  color: #ffffff;
+}
+
+/* Title + subtitle */
+.supplementary-evaluation .header-content {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1745,49 +1771,28 @@ const pageStyles = `
   gap: 0.3rem;
 }
 
-
 /* Title */
-
 .supplementary-evaluation .page-title {
   margin: 0;
 
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 
   color: #ffffff;
-
-  font-size: 1.55rem;
-  font-weight: 700;
-
-  line-height: 1.2;
 }
-
-
-/* Title icon */
-
-.supplementary-evaluation .header-icon {
-  margin: 0;
-
-  color: #42b9df;
-
-  font-size: 1.05rem;
-}
-
 
 /* Subtitle */
-
 .supplementary-evaluation .page-subtitle {
   margin: 0;
 
-  color: rgba(255, 255, 255, 0.78);
-
-  font-size: 0.84rem;
+  font-size: 0.85rem;
   font-weight: 400;
+  line-height: 1.5;
 
-  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.72);
 }
-
 
 /* =========================================================
    ALERT / PROGRESS BANNERS

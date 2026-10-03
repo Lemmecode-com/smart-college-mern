@@ -1572,49 +1572,52 @@ export default function ReportDashboard() {
 
         /* ================= HEADER - ENTERPRISE LAYOUT ================= */
         .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-          padding: 1.75rem;
-          background: var(--primary);
-          border-radius: var(--radius-lg);
-          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.3);
-          color: white;
+  background: #0E3746;
+  border-radius: 15px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+  color: white;
         }
 
         .header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 0;
         }
 
         .header-icon-wrapper {
-          width: 64px;
-          height: 64px;
-          background: rgba(61, 181, 230, 0.2);
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          color: var(--accent-light);
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
         }
 
         .dashboard-title {
-          margin: 0;
-          font-size: var(--font-size-2xl);
-          font-weight: var(--font-weight-bold);
-          color: white;
-          font-family: var(--font-family-base);
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
         }
 
         .dashboard-subtitle {
-          margin: 0.375rem 0 0;
-          color: rgba(255, 255, 255, 0.9);
-          font-size: var(--font-size-base);
-          font-weight: var(--font-weight-medium);
-          font-family: var(--font-family-base);
+          margin: 0;
+          opacity: 0.8;
+          font-size: 0.9rem;
+          font-weight: 400;
+          line-height: 1.5;
         }
 
         .header-actions {
@@ -1624,8 +1627,9 @@ export default function ReportDashboard() {
 
         .btn-refresh,
         .btn-export {
-          padding: 0.75rem 1.5rem;
-          border-radius: var(--radius-lg);
+          padding: 0 22px;
+          height: 42px;
+          border-radius: 12px;
           font-weight: var(--font-weight-semibold);
           display: flex;
           align-items: center;

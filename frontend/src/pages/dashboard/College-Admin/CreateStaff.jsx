@@ -676,6 +676,7 @@ export default function CreateStaff() {
                 <div className="col-12 col-md-5 col-lg-4">
                   <div className="d-flex align-items-center justify-content-center justify-content-md-end">
                     <motion.button
+
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => navigate("/college/staff")}
