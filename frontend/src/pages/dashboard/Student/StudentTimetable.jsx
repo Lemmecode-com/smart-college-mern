@@ -6,6 +6,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import {
   FaCalendarAlt,
   FaClock,
@@ -742,62 +743,81 @@ export default function StudentTimetable() {
         ]}
       />
 
-      {/* Header */}
-      <motion.div
-        variants={slideDownVariants}
-        initial="hidden"
-        animate="visible"
-        className="st-header"
+{/* Page Header */}
+<PageHeader
+  icon={FaGraduationCap}
+  title="My Class Timetable"
+  subtitle={
+    <>
+      {courseName && (
+        <>
+          <FaBook className="st-subtitle-icon" /> {courseName}
+          {yearLabel && <span className="st-sep">•</span>}
+          {yearLabel && <span>{yearLabel}</span>}
+          {semester && <span className="st-sep">•</span>}
+          {semester && <span>Sem {semester}</span>}
+          {division && <span className="st-sep">•</span>}
+          {division && <span>Div {division}</span>}
+          {academicYear && <span className="st-sep">•</span>}
+          {academicYear && <span>{academicYear}</span>}
+        </>
+      )}
+    </>
+  }
+  actions={
+    <>
+      <div className="st-time-badge">
+        <FaClock className="st-badge-icon" />
+        <div className="st-badge-text">
+          <span className="st-badge-label">Current Time</span>
+          <span className="st-badge-value">
+            {currentTime.toLocaleTimeString("en-US", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })}
+          </span>
+        </div>
+      </div>
+
+      <button
+        onClick={() => {
+          setToastShown({ success: false, error: false });
+          loadTimetable(true);
+        }}
+        style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+
       >
-        <div className="st-header-left">
-          <div className="st-header-icon">
-            <FaGraduationCap />
-          </div>
-          <div className="st-header-info">
-            <h1 className="st-header-title">My Class Timetable</h1>
-            <p className="st-header-subtitle">
-              {courseName && (
-                <>
-                  <FaBook className="st-subtitle-icon" /> {courseName}
-                  {yearLabel && <span className="st-sep">•</span>}
-                  {yearLabel && <span>{yearLabel}</span>}
-                  {semester && <span className="st-sep">•</span>}
-                  {semester && <span>Sem {semester}</span>}
-                  {division && <span className="st-sep">•</span>}
-                  {division && <span>Div {division}</span>}
-                  {academicYear && <span className="st-sep">•</span>}
-                  {academicYear && <span>{academicYear}</span>}
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="st-header-right">
-          <div className="st-time-badge">
-            <FaClock className="st-badge-icon" />
-            <div className="st-badge-text">
-              <span className="st-badge-label">Current Time</span>
-              <span className="st-badge-value">
-                {currentTime.toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              setToastShown({ success: false, error: false });
-              loadTimetable(true);
-            }}
-            className="st-refresh-btn"
-          >
-            <FaSyncAlt className={loading ? "st-spin" : ""} />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </motion.div>
+        <FaSyncAlt className={loading ? "st-spin" : ""} />
+        <span>Refresh</span>
+      </button>
+    </>
+  }
+/>
 
       {/* Phase 2: Date Navigation Bar */}
       <div className="st-date-nav">

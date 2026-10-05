@@ -9,7 +9,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 
 import Breadcrumb from "../../../components/Breadcrumb";
-
+import PageHeader from "../../../components/PageHeader";
 import useRole from "../../../hooks/useRole";
 
 import ApiError from "../../../components/ApiError";
@@ -654,51 +654,53 @@ export default function SubjectList() {
 
 
 
-      {/* HEADER */}
+{/* PAGE HEADER */}
 
-      <div className="erp-page-header">
-
-        <div className="erp-header-content">
-
-          <div className="erp-header-icon">
-
-            <FaBook />
-
-          </div>
-
-          <div className="erp-header-text">
-
-            <h1 className="erp-page-title">Subject Management</h1>
-
-            <p className="erp-page-subtitle">
-
-              Manage academic subjects by department and course
-
-            </p>
-
-          </div>
-
-        </div>
-
-        <div className="erp-header-actions">
-
-          <button
-
-            className="erp-btn erp-btn-secondary"
-
-            onClick={() => navigate("/dashboard")}
-
-          >
-
-            <FaArrowLeft className="erp-btn-icon" />
-
-            <span>Back to Dashboard</span>
-
-          </button>
-
-        </div>
-
-      </div>
+<PageHeader
+  icon={FaBook}
+  title="Subject Management"
+  subtitle="Manage academic subjects by department and course"
+  actions={
+    <button
+      type="button"
+      onClick={() => navigate("/dashboard")}
+      aria-label="Back to Dashboard"
+      title="Back to Dashboard"
+      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow =
+          "0 4px 10px rgba(0, 0, 0, 0.15)";
+        e.currentTarget.style.background =
+          "rgba(255, 255, 255, 0.18)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.background =
+          "rgba(255, 255, 255, 0.12)";
+      }}
+    >
+      <FaArrowLeft size={15} />
+      <span>Back to Dashboard</span>
+    </button>
+  }
+/>
 
 
 
@@ -1454,97 +1456,6 @@ export default function SubjectList() {
           padding-top: 25px;
         }
 
-        .erp-page-header {
-  background: #0E3746;
-  border-radius: 15px;
-  padding: 1.5rem 1.75rem;
-  margin-bottom: 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
-  color: white;
-        }
-
-        .erp-page-header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(45deg, rgba(61, 181, 230, 0.1) 0%, transparent 50%);
-          pointer-events: none;
-        }
-        
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .erp-header-icon {
-  width: 52px;
-  height: 52px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
-  flex-shrink: 0;
-        }
-
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.9;
-          font-size: 1rem;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-        }
-
-.erp-header-actions .erp-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-radius: 10px;
-  padding: 0 18px;
-  height: 42px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  box-shadow: none;
-}
-
-.erp-header-actions .erp-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-
-
-
-        .erp-header-actions .erp-btn:active {
-          transform: translateY(-1px);
-        }
-        
         .erp-card {
         background: white;
         border-radius: 16px;

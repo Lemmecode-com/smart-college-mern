@@ -403,11 +403,11 @@ export default function ExceptionManagement() {
                 }}
                 className="d-flex align-items-center justify-content-center"
                 style={{
-                  width: "56px",
-                  height: "56px",
+                  width: "52px",
+                  height: "52px",
                   background:
                     "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                  borderRadius: "12px",
+                  borderRadius: "50%",
                   fontSize: "1.5rem",
                   boxShadow: "0 4px 12px rgba(61, 181, 230, 0.3)",
                 }}

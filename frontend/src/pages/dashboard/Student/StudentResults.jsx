@@ -5,6 +5,7 @@ import { getMyResults } from "../../../api/results";
 import { formatDate } from "../../../utils/format";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
@@ -380,7 +381,52 @@ export default function StudentResults() {
             ]}
           />
 
-          <PageHeader resultCount={results.length} onRefresh={handleRetry} />
+          <PageHeader
+  icon={FaFileAlt}
+  title="My Results"
+  subtitle={
+    results.length > 0
+      ? `${results.length} published semester result${
+          results.length === 1 ? "" : "s"
+        }`
+      : "Your published semester results"
+  }
+  actions={
+    <button
+      type="button"
+      onClick={handleRetry}
+     style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+
+    >
+      <FaSync />
+      Refresh
+    </button>
+  }
+/>
 
           {results.length === 0 ? (
             <EmptyState onGoBack={handleGoBack} />
@@ -403,79 +449,7 @@ export default function StudentResults() {
   );
 }
 
-function PageHeader({ resultCount, onRefresh }) {
-  return (
-    <motion.div
-      variants={fadeInVariants}
-      custom={0}
-      initial="hidden"
-      animate="visible"
-      style={{
-        marginBottom: SPACE.xl,
-        background: "linear-gradient(180deg, #0f3a4a, #134952)",
-        borderRadius: RADIUS.xl,
-        boxShadow: SHADOW.banner,
-        padding: `${SPACE.xl}px ${SPACE.xxl}px`,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexWrap: "wrap",
-        gap: SPACE.lg,
-        color: "white",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: SPACE.lg }}>
-        <div
-          style={{
-            width: "56px",
-            height: "56px",
-            flexShrink: 0,
-            backgroundColor: "rgba(255, 255, 255, 0.15)",
-            borderRadius: RADIUS.lg,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "1.75rem",
-            color: "#4fc3f7",
-          }}
-        >
-          <FaFileAlt />
-        </div>
-        <div>
-          <h1 style={{ margin: 0, fontSize: "1.75rem", fontWeight: 700, lineHeight: 1.2 }}>
-            My Results
-          </h1>
-          <p style={{ margin: "0.35rem 0 0", opacity: 0.8, fontSize: "0.95rem" }}>
-            {resultCount > 0
-              ? `${resultCount} published semester result${resultCount === 1 ? "" : "s"}`
-              : "Your published semester results"}
-          </p>
-        </div>
-      </div>
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onRefresh}
-        style={{
-          padding: "0.6rem 1.25rem",
-          borderRadius: RADIUS.md,
-          border: "1px solid rgba(255, 255, 255, 0.3)",
-          backgroundColor: "rgba(255, 255, 255, 0.1)",
-          color: "white",
-          fontSize: "0.9rem",
-          fontWeight: 600,
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          gap: SPACE.sm,
-        }}
-        aria-label="Refresh results"
-      >
-        <FaSync /> Refresh
-      </motion.button>
-    </motion.div>
-  );
-}
+
 
 function EmptyState({ onGoBack }) {
   return (

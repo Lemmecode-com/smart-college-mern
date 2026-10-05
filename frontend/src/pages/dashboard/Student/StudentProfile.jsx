@@ -1133,9 +1133,9 @@ export default function StudentProfile() {
         }
 
         .bg-gradient-primary {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          background-size: 200% 200%;
-          animation: gradientShift 8s ease infinite;
+          background: #0E3746;
+          // background-size: 200% 200%;
+          // animation: gradientShift 8s ease infinite;
         }
 
         .profile-logo-container {
@@ -1159,9 +1159,28 @@ export default function StudentProfile() {
          }
 
          .profile-header-btn {
-           top: 1rem;
-           right: 1rem;
+         margin-top: 2rem;
+         margin-right: 2rem;
+           minHeight: 48px;
+                    padding: 0 20px;
+                    border: 1px solid rgba(255, 255, 255, 0.35);
+                    border-radius: 12px;
+                    background: rgba(255, 255, 255, 0.88);
+                    color: #0E3746;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 9px;
+                    font-size: 15px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;  
+
          }
+          .profile-header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(20, 27, 41, 0.18);
+          }
 
          @media (max-width: 991.98px) {
            .profile-header-btn {

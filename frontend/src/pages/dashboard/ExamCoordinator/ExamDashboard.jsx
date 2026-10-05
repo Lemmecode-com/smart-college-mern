@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { getExamResultSummaries } from "../../../api/results";
 import { logger } from "../../../utils/logger";
@@ -67,83 +68,6 @@ const dashboardStyles = `
 /* ---------- Breadcrumb spacing ---------- */
 .exam-dashboard nav.erp-breadcrumb { margin-bottom: 1.1rem; }
 
-/* ---------- Header ---------- */
-.exam-dashboard .edx-header {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: 90px;
-  padding: 1.5rem 1.9rem;
-  margin-bottom: 1.5rem;
-  border-radius: 20px;
-  background: #0E3746;
-  box-shadow: 0 10px 25px rgba(12, 43, 71, 0.12);
-}
-
-.exam-dashboard .edx-header-left {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  width: 100%;
-}
-
-.exam-dashboard .edx-header-icon {
-  width: 54px;
-  height: 54px;
-  min-width: 54px;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--edx-cyan-500);
-  font-size: 1.5rem;
-  flex-shrink: 0;
-}
-
-.exam-dashboard .edx-title {
-  font-size: 1.8rem;
-  font-weight: 750;
-  color: #fff;
-  margin: 0;
-  line-height: 1.15;
-}
-
-.exam-dashboard .edx-subtitle {
-  color: rgba(255, 255, 255, 0.78);
-  margin: 0.45rem 0 0;
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.exam-dashboard .edx-divider {
-  display: none;
-}
-
-.exam-dashboard .btn-edx-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.65rem 1.3rem;
-  font-weight: 600;
-  font-size: 0.92rem;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-  box-shadow: 0 2px 6px rgba(12, 43, 71, 0.18);
-}
-.exam-dashboard .btn-edx-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 18px rgba(23, 174, 203, 0.28);
-  background: linear-gradient(135deg, var(--edx-navy-800), var(--edx-cyan-600));
-}
-.exam-dashboard .btn-edx-primary:focus-visible {
-  outline: 3px solid var(--edx-cyan-50);
-  outline-offset: 2px;
-}
 
 /* ---------- Stat cards ---------- */
 .exam-dashboard .stat-card {
@@ -1317,24 +1241,13 @@ export default function ExamDashboard() {
         ]}
       />
 
-      {/* Header */}
-      <motion.div
-        initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        className="edx-header"
-      >
-        <div className="edx-header-left">
-          <div className="edx-header-icon">
-            <FaClock />
-          </div>
-          <div>
-            <h2 className="edx-title">Exam Coordinator Overview</h2>
-            <p className="edx-subtitle">Monitor examinations, marks and result processing</p>
-          </div>
-        </div>
-      </motion.div>
-      <div className="edx-divider" />
+     
+      {/* ================= PAGE HEADER ================= */}
+          <PageHeader
+            icon={FaClock}
+            title="Exam Coordinator Overview"
+            subtitle="Monitor examinations, marks and result processing"
+          />
 
       {/* Stats */}
       <motion.div

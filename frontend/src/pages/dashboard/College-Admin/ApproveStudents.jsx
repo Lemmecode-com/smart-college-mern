@@ -5,7 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
-
+import PageHeader from "../../../components/PageHeader";
 import { FaSearch, FaEye, FaCheckCircle, FaGraduationCap, FaBuilding, FaBookOpen, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSyncAlt, FaUserCheck, FaUserTimes, FaEnvelope, FaUsers, FaCheckDouble, FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
@@ -398,23 +398,15 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         />
 
         {/* HEADER */}
-        <div className="erp-page-header">
-          <div className="erp-header-content">
-            <div className="erp-header-icon">
-              {principalMode ? <FaUsers /> : <FaCheckCircle />}
-            </div>
-            <div className="erp-header-text">
-              <h1 className="erp-page-title">
-                {principalMode ? "All Students" : "Approved Students"}
-              </h1>
-              <p className="erp-page-subtitle">
-                {principalMode
-                  ? "View all students across the college"
-                  : "View and manage students approved for admission"}
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={principalMode ? FaUsers : FaCheckCircle}
+          title={principalMode ? "All Students" : "Approved Students"}
+          subtitle={
+            principalMode
+              ? "View all students across the college"
+              : "View and manage students approved for admission"
+          }
+        />
 
         {/* STATS CARDS */}
         <div className="stats-grid animate-fade-in">
@@ -682,57 +674,6 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
           animation: fadeIn 0.6s ease;
         }
 
-        /* ================= PAGE HEADER ================= */
-        .erp-page-header {
-          background: #0E3746;
-          padding: 1.5rem 1.75rem;
-          border-radius: 16px;
-          margin: 1rem 0 1.5rem;
-          box-shadow: 0 10px 28px rgba(15, 58, 74, 0.28);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 1rem;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-        }
-
-        .erp-header-icon {
-          flex-shrink: 0;
-          width: 52px;
-          height: 52px;
-          background: rgba(255, 255, 255, 0.16);
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.6rem;
-        }
-
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.4rem;
-          font-weight: 700;
-          font-family: 'Poppins', sans-serif;
-          letter-spacing: -0.5px;
-        }
-
-        .erp-page-subtitle {
-  margin: 0.3rem 0 0;
-  opacity: 1;
-  font-size: 0.85rem;
-  font-weight: 400;
-  line-height: 1.5;
-  color: rgba(255,255,255,0.72);
-        }
 
         /* ================= STATS GRID ================= */
         .stats-grid {

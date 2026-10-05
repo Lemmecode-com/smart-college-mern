@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ChangeEmailModal from "../../../components/ChangeEmailModal";
 import {
@@ -290,133 +291,55 @@ export default function EditTeacherProfile() {
             />
           </div>
         </div>
-        {/* Header */}
- {/* ================= STANDARD HEADER ================= */}
-<motion.div
-  initial={{ y: -20 }}
-  animate={{ y: 0 }}
-  style={{
-    marginBottom: "1.5rem",
-    backgroundColor: "#0E3746",
-    borderRadius: "15px",
-    padding: "1.5rem 2rem",
-    minHeight: "104px",
-    boxShadow: "0 8px 24px rgba(14, 55, 70, 0.18)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "1.5rem",
-    flexWrap: "wrap",
-  }}
->
-  {/* Left side */}
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "1rem",
-      minWidth: 0,
-    }}
-  >
-    {/* Header Icon */}
-    <div
-      style={{
-        width: "52px",
-        height: "52px",
-        minWidth: "52px",
-        borderRadius: "50%",
-        backgroundColor: "rgba(255, 255, 255, 0.12)",
-        border: "1px solid rgba(255, 255, 255, 0.18)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <FaUserTie
-        style={{
-          color: "#ffffff",
-          fontSize: "1.4rem",
-        }}
-      />
-    </div>
+     
+{/* ================= PAGE HEADER ================= */}
 
-    {/* Title + Subtitle */}
-    <div>
-      <h2
-        style={{
-          margin: 0,
-          color: "#ffffff",
-          fontSize: "1.8rem",
-          fontWeight: 700,
-          lineHeight: 1.2,
-        }}
-      >
-        Edit My Profile
-      </h2>
-
-      <p
-        style={{
-          margin: "0.35rem 0 0",
-          color: "rgba(255, 255, 255, 0.75)",
-          fontSize: "0.95rem",
-          fontWeight: 500,
-        }}
-      >
-        Update your personal and professional details
-      </p>
-    </div>
-  </div>
-
-  {/* Right side */}
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "0.75rem",
-      marginLeft: "auto",
-    }}
-  >
-    {/* Unsaved Changes */}
-    {unsavedChanges && (
-      <div
-        style={{
-          padding: "0.7rem 1rem",
-          backgroundColor: "rgba(255, 193, 7, 0.12)",
-          color: "#ffc107",
-          border: "1px solid rgba(255, 193, 7, 0.25)",
-          borderRadius: "10px",
-          fontSize: "0.85rem",
-          fontWeight: 600,
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          whiteSpace: "nowrap",
-        }}
-      >
-        <span
+<PageHeader
+  icon={FaUserTie}
+  title="Edit My Profile"
+  subtitle="Update your personal and professional details"
+  actions={
+    <>
+      {unsavedChanges && (
+        <div
           style={{
-            width: "8px",
-            height: "8px",
-            borderRadius: "50%",
-            backgroundColor: "currentColor",
+            padding: "0.7rem 1rem",
+            backgroundColor: "rgba(255, 193, 7, 0.12)",
+            color: "#ffc107",
+            border: "1px solid rgba(255, 193, 7, 0.25)",
+            borderRadius: "10px",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            whiteSpace: "nowrap",
           }}
-        />
-        Unsaved Changes
-      </div>
-    )}
+        >
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: "currentColor",
+            }}
+          />
+          Unsaved Changes
+        </div>
+      )}
 
-    {/* Back Button */}
-    <button
-      type="button"
-      onClick={handleBack}
-      disabled={saving}
-      className="erp-standard-back-btn"
-    >
-      <FaArrowLeft style={{marginRight: "0.55rem",  marginBottom: "3px"}}/>
-      Back
-    </button>
-  </div>
-</motion.div>
+      <button
+        type="button"
+        onClick={handleBack}
+        disabled={saving}
+        className="erp-standard-back-btn"
+      >
+        <FaArrowLeft style={{ marginRight: "0.55rem", marginBottom: "3px" }} />
+        Back
+      </button>
+    </>
+  }
+/>
 
         {/* Form */}
         <motion.div

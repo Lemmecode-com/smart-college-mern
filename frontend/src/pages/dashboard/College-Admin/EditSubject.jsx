@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -213,21 +214,19 @@ export default function EditSubject() {
         />
       </div>
     </div>
-      {/* HEADER */}
-{/* HEADER */}
-<div className="standard-header">
-  <div className="standard-header-content">
-    <div className="standard-header-icon">
-      <FaBookOpen />
-    </div>
 
-    <div className="standard-header-text">
-      <h2>Edit Subject</h2>
-      <p>Update subject details</p>
-    </div>
-  </div>
-</div>
-      {error && typeof error === 'string' && <div className="alert alert-danger">{error}</div>}
+
+{/* HEADER */}
+
+
+<PageHeader
+  icon={FaBookOpen}
+  title="Edit Subject"
+  subtitle="Update subject details"
+/>
+
+      {error && typeof error === 'string' && 
+      <div className="alert alert-danger">{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="card shadow-lg border-0 rounded-4">
@@ -394,57 +393,7 @@ export default function EditSubject() {
         .gradient-header {
           background: linear-gradient(180deg, #0f3a4a, #134952);
         }
-          /* ================= STANDARD HEADER ================= */
 
-.standard-header {
-  background: #0E3746;
-  color: #ffffff;
-  border-radius: 16px;
-  padding: 1.5rem 2rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 8px 24px rgba(14, 55, 70, 0.22);
-}
-
-.standard-header-content {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-.standard-header-icon {
-  width: 52px;
-  height: 52px;
-  flex-shrink: 0;
-  
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 50%;
-
-  font-size: 2rem;
-  color: #ffffff;
-}
-
-.standard-header-text h2 {
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.standard-header-text p {
-  margin: 0.3rem 0 0;
-  opacity: 1;
-  font-size: 0.85rem;
-  font-weight: 400;
-  line-height: 1.5;
-  color: rgba(255,255,255,0.72);
-}
       `}</style>
     </div>
   );
