@@ -562,9 +562,9 @@ addToast("Filters reset successfully!", "info");
             animate="visible"
             className="student-attendance-report-hero"
             style={{
-              marginBottom: '2rem',
-              backgroundColor: 'white',
-              borderRadius: '1.5rem',
+              marginBottom: '1.5rem',
+              backgroundColor: '#0E3746',
+              borderRadius: '12px',
               overflow: 'hidden',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
@@ -573,14 +573,15 @@ addToast("Filters reset successfully!", "info");
             }}
           >
             <div className="student-attendance-report-hero-content" style={{
-              padding: '2rem',
-              background: BRAND_COLORS.primary.gradient,
+              padding: '1.2rem 1.75rem',
+              background: '#0E3746',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '1.5rem'
+              gap: '1.5rem',
+              height: '80px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div
@@ -588,16 +589,16 @@ addToast("Filters reset successfully!", "info");
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: '80px',
-                    height: '80px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '20px',
+                    width: '52px',
+                    height: '52px',
+                    minWidth: '52px',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                    borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2.5rem',
-                    flexShrink: 0,
-                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+                    fontSize: '1.7rem',
                   }}
                 >
                   <FaClipboardList />
@@ -605,16 +606,19 @@ addToast("Filters reset successfully!", "info");
                 <div className="student-attendance-report-hero-copy">
                   <h1 style={{
                     margin: 0,
-                    fontSize: '2.25rem',
+                    fontSize: '1.625rem',
                     fontWeight: 700,
-                    lineHeight: 1.1
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.25,
                   }}>
                     My Attendance Report
                   </h1>
                   <p style={{
-                    margin: '0.75rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '1.25rem'
+                    margin: 0,
+                    opacity: 0.8,
+                    fontSize: '0.9rem',
+                    fontWeight: 400,
+                    lineHeight: 1.5,
                   }}>
                     Track your attendance across all subjects and sessions
                   </p>
@@ -625,20 +629,32 @@ addToast("Filters reset successfully!", "info");
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowFilters(!showFilters)}
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    border: '2px solid rgba(255, 255, 255, 0.4)',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '1rem',
+style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease'
-                  }}
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+
                   aria-expanded={showFilters}
                   aria-label={showFilters ? "Hide filters" : "Apply filters"}
                 >
@@ -648,20 +664,32 @@ addToast("Filters reset successfully!", "info");
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={refreshData}
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    border: '2px solid rgba(255, 255, 255, 0.4)',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '1rem',
+style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
                     fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease'
-                  }}
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+
                   aria-label="Refresh attendance data"
                 >
                   <FaSyncAlt aria-hidden="true" /> Refresh

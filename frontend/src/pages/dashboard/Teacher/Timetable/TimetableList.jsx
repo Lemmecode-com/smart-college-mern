@@ -521,23 +521,31 @@ export default function TimetableList() {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate('/timetable/create-timetable')}
                   className="erp-timetable-hero-cta"
-                  style={{
-                    backgroundColor: 'white',
-                    color: BRAND_COLORS.primary.main,
-                    border: '2px solid white',
-                    padding: '0 0.3rem',
-                    height: '42px',
-                    borderRadius: '12px',
-                    fontSize: '1.0rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.45rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)',
-                    marginRight: '1rem',
-                  }}
+                      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgb(255, 255, 255)",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
                 >
                   <FaPlus /> Create Timetable
                 </motion.button>

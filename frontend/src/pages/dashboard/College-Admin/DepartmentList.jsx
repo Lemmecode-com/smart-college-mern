@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import Pagination from "../../../components/Pagination";
 import useRole from "../../../hooks/useRole";
 
@@ -564,119 +565,82 @@ export default function DepartmentList() {
           </div>
 
         {/* ================= TOP BAR ================= */}
-        <div
-          style={{
-            background: "#0E3746",
-            border: `1px solid rgba(255,255,255,0.08)`,
-            boxShadow: "0 8px 24px rgba(15,69,83,0.18)",
-            padding: "1.5rem 1.75rem",
-            marginBottom: "1.25rem",
-            position: "relative",
-            overflow: "hidden",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: "1rem",
-             borderRadius: "15px",
-          }}
-        >
-        {/* <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 3,
-            background: "#38bdf8",
-          }}
-        /> */}
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.12)",
-            color: "#ffffff",
-            border: "1px solid rgba(255,255,255,0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "1.35rem",
-            flexShrink: 0,
-          }}
-        >
-                      <FaBuilding />
-                    </div>
-                    <div>
-        <h1
-          style={{
-            fontSize: "1.4rem",
-            fontWeight: 700,
-            margin: 0,
-            color: "#ffffff",
-          }}
-        >
-          Department Management
-        </h1>
-        <p
-          style={{
-            margin: "0.3rem 0 0",
-            fontSize: "0.85rem",
-            color: "rgba(255,255,255,0.72)",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-          }}
-        >
-          <FaGraduationCap size={13} />
-          Manage academic departments and faculty assignments
-        </p>
-                    </div>
-                  </div>
+        <PageHeader
+          title="Department Management"
+          subtitle="Manage academic departments and faculty assignments"
+          icon={FaBuilding}
+          actions={
+            <>
+              <button
+                type="button"
+                onClick={() => setShowHelp(!showHelp)}
+                style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                >
+                <FaInfoCircle size={15} />
+                Help
+              </button>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
-<Btn
-  onClick={() => setShowHelp(!showHelp)}
-  color="#ffffff"
-  tint="rgba(255,255,255,0.16)"
-  title="Department Management Help"
->
-  <FaInfoCircle size={15} /> Help
-</Btn>
-        {canCreate("departments") && (
-<button
-  onClick={() => navigate("/departments/add")}
-  style={{
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "0.5rem",
-    padding: "0.6rem 1.1rem",
-    borderRadius: T.radiusSm,
-    border: "1px solid #159bc5",
-    background: "White",
-    color: "#0E3746",
-    fontSize: "0.85rem",
-    fontWeight: 600,
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.transform = "translateY(-1px)";
-    e.currentTarget.style.boxShadow =
-      "0 4px 10px rgba(20, 27, 41, 0.18)";
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.transform = "translateY(0)";
-    e.currentTarget.style.boxShadow = "none";
-  }}
->
-  <FaPlus size={14} /> Add Department
-</button>
-        )}
-          </div>
-        </div>
+              {canCreate("departments") && (
+                <button
+                  type="button"
+                  style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "white",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onClick={() => navigate("/departments/add")}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                >
+                  <FaPlus size={14} />
+                  Add Department
+                </button>
+              )}
+            </>
+          }
+        />
 
         {/* ================= HELP TOOLTIP ================= */}
         {showHelp && (

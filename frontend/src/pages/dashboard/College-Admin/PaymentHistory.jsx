@@ -6,6 +6,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { showSuccess, showError } from "../../../utils/toast";
 import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
@@ -325,78 +326,8 @@ export default function PaymentHistory() {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-        /* ================= HEADER ================= */
+
  
-/* ================= STANDARD HEADER ================= */
-
-.payment-history-header {
-  background: #0E3746;
-  border-radius: 15px;
-  padding: 1.35rem 1.75rem;
-  margin-bottom: 1.25rem;
-
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1.5rem;
-
-  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
-  color: white;
-}
-
-/* Left side */
-.payment-history-header-content {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  min-width: 0;
-}
-
-/* Standard icon container */
-.payment-history-header-icon {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 50%;
-
-  color: #ffffff;
-  font-size: 1.7rem;
-}
-
-/* Title + subtitle */
-.payment-history-header-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.payment-history-header h1 {
-  margin: 0;
-
-  font-size: 1.625rem;
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-
-  color: #ffffff;
-}
-
-.payment-history-header p {
-  margin: 0;
-
-  font-size: 0.9rem;
-  font-weight: 400;
-  line-height: 1.45;
-
-  color: rgba(255, 255, 255, 0.8);
-}
 
         /* ================= SUMMARY CARDS ================= */
         .summary-grid {
@@ -2047,40 +1978,61 @@ export default function PaymentHistory() {
         ]}
       />
 
-      {/* ================= HEADER ================= */}
-      <div className="payment-history-header">
-<div className="payment-history-header-content">
-  <div className="payment-history-header-icon">
-    <FaFileInvoiceDollar />
-  </div>
+      {/* ================= PAGE HEADER ================= */}
+      <PageHeader
+        icon={FaFileInvoiceDollar}
+        title="Payment History"
+        subtitle="View and manage all student fee payment records"
+        actions={
+          <>
+            <button
+             
+              onClick={() => setShouldFetch(true)}
+              title="Refresh payment history"
+                 style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+            >
+              <FaSyncAlt />
+              Refresh
+            </button>
 
-  <div className="payment-history-header-text">
-    <h1>Payment History</h1>
-    <p>View and manage all student fee payment records</p>
-  </div>
-</div>
-        <div style={{ display: "flex", gap: "0.75rem" }}>
-          <button
-            className="payment-action-btn"
-            onClick={() => setShouldFetch(true)}
-            style={{
-              background: "rgba(255, 255, 255, 0.2)",
-              backdropFilter: "blur(10px)",
-            }}
-          >
-            <FaSyncAlt /> Refresh
-          </button>
-          <ExportButtons
-            title="Payment History Report"
-            columns={exportColumns}
-            data={getExportData()}
-            filename={`payment_history_${new Date().toISOString().split("T")[0]}`}
-            showCSV
-            showPDF={false}
-            showExcel
-          />
-        </div>
-      </div>
+            <ExportButtons
+              title="Payment History Report"
+              columns={exportColumns}
+              data={getExportData()}
+              filename={`payment_history_${new Date().toISOString().split("T")[0]}`}
+              showCSV
+              showPDF={false}
+              showExcel
+              
+            />
+          </>
+        }
+      />
+
 
       {/* ================= SUMMARY CARDS ================= */}
       <div className="summary-grid">

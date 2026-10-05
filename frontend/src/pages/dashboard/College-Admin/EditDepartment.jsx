@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -30,6 +31,7 @@ import {
   FaCheck,
   FaUndo
 } from "react-icons/fa";
+import { px } from "framer-motion";
 
 export default function EditDepartment() {
   const { user } = useContext(AuthContext);
@@ -310,63 +312,52 @@ export default function EditDepartment() {
           />
         </div>
       </div>
-      {/* ================= TOP NAVIGATION ================= */}
-  {/* ================= PAGE HEADER ================= */}
-<div className="edit-department-header animate-slide-down">
 
-  {/* LEFT SIDE */}
-  <div className="edit-header-left">
+        {/* ================= PAGE HEADER ================= */}
 
-   
+        <PageHeader
+          icon={FaBuilding}
+          title="Edit Department"
+          subtitle={
+            <>
+              <FaGraduationCap style={{ gap: "8px", marginRight: "4px" }} />
+              Update department configuration and details
+            </>
+          }
+          actions={
+            <>
+              <button
+                type="button"
+                className="edit-page-header-btn edit-page-header-help"
+                onClick={() => setShowHelp(!showHelp)}
+                title="Department Edit Help"
+              >
+                <FaInfoCircle size={17} />
+                <span>Help</span>
+              </button>
 
-    <div className="edit-header-content">
-      <div className="edit-header-icon">
-        <FaBuilding size={30} />
-      </div>
+              <button
+                type="button"
+                className="edit-page-header-btn edit-page-header-reset"
+                onClick={resetForm}
+                title="Reset to Original Values"
+              >
+                <FaUndo size={17} />
+                <span>Reset</span>
+              </button>
 
-      <div className="edit-header-text">
-        <h1>Edit Department</h1>
-        <p>
-          <FaGraduationCap />
-          Update department configuration and details
-        </p>
-      </div>
-    </div>
-
-  </div>
-
-  {/* RIGHT SIDE */}
-  <div className="edit-header-actions">
-
-    <button
-      onClick={() => setShowHelp(!showHelp)}
-      className="edit-header-action edit-header-help"
-      title="Department Edit Help"
-    >
-      <FaInfoCircle size={17} />
-      <span>Help</span>
-    </button>
-
-    <button
-      onClick={resetForm}
-      className="edit-header-action edit-header-reset"
-      title="Reset to Original Values"
-    >
-      <FaUndo size={17} />
-      <span>Reset</span>
-    </button>
-
-    <button
-      onClick={() => navigate("/departments")}
-      className="edit-header-action edit-header-cancel"
-    >
-      <FaTimes size={17} />
-      <span>Cancel</span>
-    </button>
-
-  </div>
-
-</div>
+              <button
+                type="button"
+                className="edit-page-header-btn edit-page-header-cancel"
+                onClick={() => navigate("/departments")}
+                title="Cancel and go back to the department list"
+              >
+                <FaTimes size={17} />
+                <span>Cancel</span>
+              </button>
+            </>
+          }
+        />
       {/* ================= HELP SECTION ================= */}
       {showHelp && (
         <div className="alert alert-info border-0 bg-info bg-opacity-10 rounded-4 mb-3 mb-md-4 animate-fade-in">
@@ -801,112 +792,38 @@ export default function EditDepartment() {
 
       {/* ================= STYLES ================= */}
       <style>{`
-      /* ================= EDIT DEPARTMENT HEADER ================= */
-
-.edit-department-header {
-  width: 100%;
-  min-height: 120px;
-  padding: 24px 28px;
-  background: #0E3746;
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  color: #ffffff;
-  box-shadow: 0 10px 30px rgba(14, 55, 70, 0.18);
-  margin-bottom: 24px;
-}
-
-.edit-header-left {
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  min-width: 0;
-}
-
-
-
-
-.edit-header-content {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  min-width: 0;
-
-}
-
-.edit-header-icon {
-  width: 52px;
-  height: 52px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  display: flex;
+.edit-page-header-btn {
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: 12px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
-}
-
-.edit-header-text {
-  min-width: 0;
-}
-
-.edit-header-text h1 {
-  margin: 0 0 5px;
-  color: #ffffff;
-  font-size: 1.8rem;
-  line-height: 1.2;
-  font-weight: 700;
-}
-
-.edit-header-text p {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.edit-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.edit-header-action {
-  min-height: 48px;
-  padding: 11px 18px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  gap: 9px;
   font-size: 15px;
   font-weight: 600;
   background: #ffffff;
-  transition: all 0.25s ease;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.edit-header-action:hover {
+.edit-page-header-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.12);
 }
 
-.edit-header-help {
+.edit-page-header-help {
   color: #0ea5c6;
   border: 1px solid #0ea5c6;
+
 }
 
-.edit-header-reset {
+.edit-page-header-reset {
   color: #f2a900;
   border: 1px solid #f2a900;
 }
 
-.edit-header-cancel {
+.edit-page-header-cancel {
   color: #66727a;
   border: 1px solid #9aa4aa;
 }

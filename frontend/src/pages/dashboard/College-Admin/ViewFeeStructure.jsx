@@ -6,6 +6,7 @@ import { exportToPDF, exportToExcel } from "../../../utils/exportHelpers";
 import { toast } from "react-toastify";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import PageHeader from "../../../components/PageHeader";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -612,79 +613,70 @@ export default function ViewFeeStructure() {
 
   return (
     <div className="fee-structure-page">
-      {/* ================= PAGE HEADER ================= */}
-      <div className="page-header-enterprise">
-        <div className="header-content">
-          <div className="header-branding">
-            <div className="header-icon-wrapper">
-              <FaMoneyBillWave className="header-icon" />
-            </div>
-            <div className="header-text">
-              <h1 className="page-title">
-                Fee Structure Details
-              </h1>
-              <p className="page-subtitle">
-                Course-wise & category-based fee payment plan
-              </p>
-            </div>
-          </div>
-          
-          <div className="header-actions">
-            {fee.status && <StatusBadge status={fee.status} />}
-            
-            <div className="action-buttons">
-              <div className="dropdown">
-                <button
-                  className="btn-export-enterprise dropdown-toggle"
-                  type="button"
-                  id="exportDropdown"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
-                  aria-label="Export fee structure"
-                  disabled={exporting}
-                >
-                  <FaDownload className="btn-icon" />
-                  {exporting ? 'Exporting...' : 'Export'}
-                </button>
-                <ul className="dropdown-menu dropdown-menu-enterprise" aria-labelledby="exportDropdown">
-                  <li>
-                    <button 
-                      className="dropdown-item dropdown-item-enterprise" 
-                      onClick={() => handleExport(EXPORT_FORMATS.PDF)}
-                      disabled={exporting}
-                    >
-                      <FaFilePdf className="dropdown-icon pdf" />
-                      <span>Export as PDF</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button 
-                      className="dropdown-item dropdown-item-enterprise" 
-                      onClick={() => handleExport(EXPORT_FORMATS.EXCEL)}
-                      disabled={exporting}
-                    >
-                      <FaFileExcel className="dropdown-icon excel" />
-                      <span>Export as Excel</span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
+ {/* ================= PAGE HEADER ================= */}
+<PageHeader
+  icon={FaMoneyBillWave}
+  title="Fee Structure Details"
+  subtitle="Course-wise & category-based fee payment plan"
+  actions={
+    <div className="header-actions">
+      {fee.status && <StatusBadge status={fee.status} />}
 
+      <div className="action-buttons">
+        <div className="dropdown">
+          <button
+            className="btn-export-enterprise dropdown-toggle"
+            type="button"
+            id="exportDropdown"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            aria-label="Export fee structure"
+            disabled={exporting}
+          >
+            <FaDownload className="btn-icon" />
+            {exporting ? "Exporting..." : "Export"}
+          </button>
+
+          <ul
+            className="dropdown-menu dropdown-menu-enterprise"
+            aria-labelledby="exportDropdown"
+          >
+            <li>
               <button
-                className="btn-back-enterprise"
-                onClick={() => navigate(-1)}
-                aria-label="Go back to previous page"
+                className="dropdown-item dropdown-item-enterprise"
+                onClick={() => handleExport(EXPORT_FORMATS.PDF)}
+                disabled={exporting}
               >
-                <FaArrowLeft className="btn-icon" />
-                <span>Back</span>
+                <FaFilePdf className="dropdown-icon pdf" />
+                <span>Export as PDF</span>
               </button>
-            </div>
-          </div>
+            </li>
+
+            <li>
+              <button
+                className="dropdown-item dropdown-item-enterprise"
+                onClick={() => handleExport(EXPORT_FORMATS.EXCEL)}
+                disabled={exporting}
+              >
+                <FaFileExcel className="dropdown-icon excel" />
+                <span>Export as Excel</span>
+              </button>
+            </li>
+          </ul>
         </div>
-        
-        {/* Decorative gradient overlay */}
-        <div className="header-gradient-overlay"></div>
+
+        <button
+          className="btn-back-enterprise"
+          onClick={() => navigate(-1)}
+          aria-label="Go back to previous page"
+        >
+          <FaArrowLeft className="btn-icon" />
+          <span>Back</span>
+        </button>
       </div>
+    </div>
+  }
+/>
 
       {/* ================= VALIDATION ALERT ================= */}
       {validationWarning && (

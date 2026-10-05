@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import useRole from "../../../hooks/useRole";
@@ -122,43 +123,141 @@ export default function ViewSubject() {
         ]}
       />
 
-      {/* HEADER */}
-      <div className="view-subject-header">
-        <div className="header-content">
-          <div className="header-icon-wrapper">
-            <FaBook className="header-icon" />
-          </div>
-          <div className="header-text">
-            <h1 className="subject-title">{subject.name}</h1>
-            <div className="subject-meta">
-              <span className="subject-code">{subject.code}</span>
-              <span className={`status-badge status-${subject.status?.toLowerCase()}`}>
-                <FaCheckCircle className="status-icon" />
-                {subject.status}
-              </span>
-            </div>
-          </div>
-        </div>
+ {/* HEADER */}
+<PageHeader
+  icon={FaBook}
+  title={subject.name}
+  subtitle={
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.75rem",
+        flexWrap: "wrap",
+      }}
+    >
+      <span
+        style={{
+          background: "rgba(255, 255, 255, 0.15)",
+          padding: "0.3rem 0.75rem",
+          borderRadius: "8px",
+          fontSize: "0.8rem",
+          fontWeight: 600,
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+        }}
+      >
+        {subject.code}
+      </span>
 
-        <div className="header-actions">
-          <button
-            className="erp-btn erp-btn-outline"
-            onClick={() => navigate("/subjects")}
-          >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.35rem",
+          padding: "0.3rem 0.75rem",
+          borderRadius: "20px",
+          fontSize: "0.75rem",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          background:
+            subject.status?.toLowerCase() === "active"
+              ? "rgba(76, 175, 80, 0.2)"
+              : "rgba(158, 158, 158, 0.2)",
+          color:
+            subject.status?.toLowerCase() === "active"
+              ? "#81c784"
+              : "#bdbdbd",
+          border:
+            subject.status?.toLowerCase() === "active"
+              ? "1px solid rgba(76, 175, 80, 0.3)"
+              : "1px solid rgba(158, 158, 158, 0.3)",
+        }}
+      >
+        <FaCheckCircle size={11} />
+        {subject.status}
+      </span>
+    </div>
+  }
+  actions={
+    <>
+      <button
+        type="button"
+        onClick={() => navigate("/subjects")}
+        aria-label="Back to Subjects"
+        title="Back to Subjects"
+        style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",   
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.boxShadow =
+            "0 4px 10px rgba(0, 0, 0, 0.15)";
+          e.currentTarget.style.background =
+            "rgba(255, 255, 255, 0.18)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "none";
+          e.currentTarget.style.background =
+            "rgba(255, 255, 255, 0.12)";
+        }}
+      >
+        <FaArrowLeft size={15} />
+        <span>Back to Subjects</span>
+      </button>
 
-            <FaArrowLeft /> <span>Back to Subjects</span>
-          </button>
-
-          {canEdit('subjects') && (
-            <button
-              className="erp-btn erp-btn-primary"
-              onClick={() => navigate(`/subjects/edit/${subject._id}`)}
-            >
-              <FaEdit /> <span>Edit Subject</span>
-            </button>
-          )}
-        </div>
-      </div>
+      {canEdit("subjects") && (
+        <button
+          type="button"
+          onClick={() => navigate(`/subjects/edit/${subject._id}`)}
+          aria-label="Edit Subject"
+          title="Edit Subject"
+          style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "white",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 10px rgba(0, 0, 0, 0.15)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+          }}
+        >
+          <FaEdit size={15} />
+          <span>Edit Subject</span>
+        </button>
+      )}
+    </>
+  }
+/>
 
       {/* MAIN CONTENT GRID */}
       <div className="view-subject-grid">
@@ -369,170 +468,6 @@ export default function ViewSubject() {
             transform: translateY(0);
           }
         }
-
-        /* ================= HEADER ================= */
-        .view-subject-header {
-  background: #0E3746;
-  border-radius: 15px;
-  padding: 1rem 1.75rem;
-  margin-bottom: 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
-  color: white;
-        }
-
-        .view-subject-header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(45deg, rgba(61, 181, 230, 0.1) 0%, transparent 50%);
-          pointer-events: none;
-        }
-
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .header-icon-wrapper {
-  width: 52px;
-  height: 52px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
-  flex-shrink: 0;
-        }
-
-        .header-icon {
-          color: white;
-        }
-
-        .subject-title {
-          margin: 0;
-          font-size: 1.4rem;
-          font-weight: 700;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-          color: white;
-        }
-
-        .subject-meta {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-top: 0.5rem;
-        }
-
-        .subject-code {
-          background: rgba(255, 255, 255, 0.15);
-          padding: 0.375rem 0.875rem;
-          border-radius: 8px;
-          font-size: 0.875rem;
-          font-weight: 600;
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.375rem;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          font-weight: 700;
-          text-transform: uppercase;
-        }
-
-        .status-active {
-          background: rgba(76, 175, 80, 0.2);
-          color: #81c784;
-          border: 1px solid rgba(76, 175, 80, 0.3);
-        }
-
-        .status-inactive {
-          background: rgba(158, 158, 158, 0.2);
-          color: #bdbdbd;
-          border: 1px solid rgba(158, 158, 158, 0.3);
-        }
-
-        .status-icon {
-          font-size: 0.75rem;
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 0.75rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .erp-btn {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-radius: 10px;
-  padding: 0 18px;
-  height: 42px;
-  font-weight: 600;
-  font-size: 0.875rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  box-shadow: none;
-        }
-  .erp-btn:hover {
-    transform: translateY(-2px);
-  }
-
-        .erp-btn-primary {
-          background: white;
-          color: #0E3746;
-          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
-        }
-
-        .erp-btn-primary:hover {
-          transform: translateY(-2px);
-          // box-shadow: 0 8px 25px rgba(61, 181, 230, 0.5);
-        }
-
-        .erp-btn-secondary {
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          backdrop-filter: blur(10px);
-        }
-
-        .erp-btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.25);
-          transform: translateY(-2px);
-        }
-
         /* ================= MAIN GRID ================= */
         .view-subject-grid {
           display: grid;

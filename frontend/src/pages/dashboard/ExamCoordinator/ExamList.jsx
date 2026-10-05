@@ -4,6 +4,7 @@ import api from "../../../api/axios";
 import { publishExam } from "../../../api/exam";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
@@ -63,75 +64,7 @@ const listStyles = `
 /* ---------- Breadcrumb spacing ---------- */
 .exam-list-page nav.erp-breadcrumb { margin-bottom: 1.1rem; }
 
-/* ---------- Header ---------- */
-.exam-list-page .edx-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.56rem 1.75rem;
-  
-  background: #0E3746;
-  border-radius: 24px;
-  box-shadow: 0 10px 25px rgba(12, 43, 71, 0.16);
-  margin-bottom: 1.5rem;
-}
-.exam-list-page .edx-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-.exam-list-page .edx-header-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.14);
-  color: var(--edx-cyan-500);
-  font-size: 1.45rem;
-  flex-shrink: 0;
-}
-.exam-list-page .edx-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0;
-  line-height: 1.2;
-}
-.exam-list-page .edx-subtitle {
-  color: rgba(255, 255, 255, 0.78);
-  margin: 0.15rem 0 0;
-  font-size: 0.92rem;
-}
-.exam-list-page .edx-divider {
-  display: none;
-}
 
-.exam-list-page .btn-edx-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: #ffffff;
-  color: #0E3746;
-  border: none;
-  border-radius: 10px;
-  padding: 0.65rem 1.3rem;
-  font-weight: 600;
-  font-size: 0.92rem;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-  box-shadow: 0 2px 6px rgba(12, 43, 71, 0.18);
-}
-.exam-list-page .btn-edx-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-}
-.exam-list-page .btn-edx-primary:focus-visible {
-  outline: 3px solid var(--edx-cyan-50);
-  outline-offset: 2px;
-}
 
 /* ---------- Filter card ---------- */
 .exam-list-page .filter-card {
@@ -566,28 +499,47 @@ export default function ExamList() {
         </div>
       )}
 
-      {/* Header */}
-      <motion.div
-        initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        className="edx-header"
-      >
-        <div className="edx-header-left">
-          <div className="edx-header-icon">
-            <FaClock />
-          </div>
-          <div>
-            <h2 className="edx-title">Exam Management</h2>
-            <p className="edx-subtitle">Create, view and manage examinations for your college</p>
-          </div>
-        </div>
-        <button className="btn-edx-primary" onClick={handleCreateExam}>
-          <FaPlus />
-          Create Exam
-        </button>
-      </motion.div>
-      <div className="edx-divider" />
+      
+      {/* ================= PAGE HEADER ================= */}
+        <PageHeader
+          icon={FaClock}
+          title="Exam Management"
+          subtitle="Create, view and manage examinations for your college"
+          actions={
+            <button
+              className="btn-edx-primary"
+              onClick={handleCreateExam}
+                 style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "white",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+            >
+              <FaPlus />
+              Create Exam
+            </button>
+          }
+        />
 
       {/* Filters */}
       <div className="filter-card mb-4">

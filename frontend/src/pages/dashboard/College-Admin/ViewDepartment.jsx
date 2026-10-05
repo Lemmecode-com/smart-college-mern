@@ -20,6 +20,7 @@ import {
   FaTimesCircle,
 } from "react-icons/fa";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 
 /* ==========================================================================
    Design tokens — aligned with NOVAA ERP sidebar/app palette.
@@ -381,58 +382,31 @@ export default function ViewDepartment() {
           ]}
         />
 
-        {/* Page header */}
-        <div
-          style={{
-            ...s.header,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            flexWrap: "wrap",
-            gap: "0.75rem",
-            marginBottom: "1.5rem",
-            marginTop: "0.5rem",
-          }}
-        >
-          <div style={s.headerAccentBar} />
-          <div style={{ display: "flex", alignItems: "center", gap: "0.9rem" }}>
-            <div style={s.headerIcon}>
-              <FaBuilding />
-            </div>
-            <div>
-              <h2 style={s.title}>{name}</h2>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  flexWrap: "wrap",
-                  marginTop: "0.5rem",
-                }}
-              >
-                <span style={s.codeBadge}>{code}</span>
-                <span style={s.chip("rgba(255,255,255,0.18)", "#fff")}>{type}</span>
-                <span
-                  style={s.chip(
-                    isActive ? "rgba(39,174,96,0.25)" : "rgba(255,255,255,0.12)",
-                    isActive ? "#4ade80" : "rgba(255,255,255,0.7)"
-                  )}
-                >
-                  <span style={s.chipDot(isActive ? "#4ade80" : "rgba(255,255,255,0.5)")} />
-                  {status}
-                </span>
-              </div>
-            </div>
-          </div>
-          <button
-            style={s.backBtn(backHover)}
-            onMouseEnter={() => setBackHover(true)}
-            onMouseLeave={() => setBackHover(false)}
-            onClick={() => navigate(-1)}
+          <PageHeader
+            title={name}
+            icon={FaBuilding}
+            onBack={() => navigate(-1)}
           >
-            <FaArrowLeft size={13} /> Back
-          </button>
-        </div>
+            <span className="department-header-code">
+              {code}
+            </span>
+
+            <span className="department-header-type">
+              {type}
+            </span>
+
+            <span
+              className={`department-header-status ${
+                isActive ? "active" : ""
+              }`}
+            >
+              <span className="department-header-status-dot" />
+              {status}
+            </span>
+
+          </PageHeader>
+
+
 
         {/* KPI strip */}
         <Row xs={2} md={4} className="g-3 mb-4">
@@ -526,6 +500,60 @@ export default function ViewDepartment() {
           </Col>
         </Row>
       </Container>
+
+      <style>{`
+        .department-header-code {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 30px;
+          padding: 5px 12px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.15);
+          // border: 1px solid rgba(255, 255, 255, 0.22);
+          color: #ffffff;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .department-header-type {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 30px;
+          padding: 5px 12px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.18);
+          color: #ffffff;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .department-header-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          min-height: 30px;
+          padding: 5px 12px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.75);
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .department-header-status.active {
+          background: rgba(39, 174, 96, 0.22);
+          color: #4ade80;
+        }
+
+        .department-header-status-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+      `}</style>
     </div>
   );
 }
