@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { Badge } from "react-bootstrap";
@@ -163,66 +164,128 @@ export default function ViewCourse() {
         />
       </div>
     </div>
+      
       {/* PAGE HEADER */}
-      <header className="page-header">
-        <div className="page-header__content">
-          {/* LEFT SECTION - Back Button + Icon + Title + Badges */}
-          <div className="page-header__left">
-            <div className="page-header__icon-wrapper">
-              <FaBookOpen className="page-header__icon" />
-            </div>
-            <div className="page-header__info">
-              <h1 className="page-header__title">{course.name}</h1>
-              <div className="page-header__badges">
-                <span
-                  className="course-code"
-                  onClick={() => handleCopyToClipboard(course.code, 'code')}
-                  title="Click to copy course code"
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCopyToClipboard(course.code, 'code')}
-                >
-                  <FaTag className="course-code__icon" />
-                  {course.code}
-                  {copiedField === 'code' && (
-                    <span className="copy-tooltip">Copied!</span>
-                  )}
-                </span>
-                <span className={`status-badge status-badge--${course.status?.toLowerCase()}`}>
-                  <FaCheckCircle /> {course.status || 'Active'}
-                </span>
-              </div>
-            </div>
+      <PageHeader
+        icon={FaBookOpen}
+        title={course.name}
+        subtitle={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "0.5rem",
+              marginTop: "0.35rem",
+            }}
+          >
+            <span
+              className="course-code"
+              onClick={() => handleCopyToClipboard(course.code, "code")}
+              title="Click to copy course code"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) =>
+                e.key === "Enter" &&
+                handleCopyToClipboard(course.code, "code")
+              }
+            >
+              <FaTag className="course-code__icon" />
+              {course.code}
+
+              {copiedField === "code" && (
+                <span className="copy-tooltip">Copied!</span>
+              )}
+            </span>
+
+            <span
+              className={`status-badge status-badge--${course.status?.toLowerCase()}`}
+            >
+              <FaCheckCircle />
+              {course.status || "Active"}
+            </span>
           </div>
+        }
+        actions={
+          <>
+            {/* Back Button */}
+            <button
+              type="button"
+              onClick={() => navigate("/courses")}
+              aria-label="Back to courses"
+              title="Back to courses"
+              style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",    
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow =
+                  "0 4px 10px rgba(0, 0, 0, 0.15)";
+                e.currentTarget.style.background =
+                  "rgba(255, 255, 255, 0.18)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+                e.currentTarget.style.background =
+                  "rgba(255, 255, 255, 0.12)";
+              }}
+            >
+              <FaArrowLeft size={15} />
+              <span>Back</span>
+            </button>
 
-          {/* RIGHT SECTION - Edit Course Button */}
-          
-  <div className="page-header__right">
-
-  <button
-    className="btn btn--secondary"
-    onClick={() => navigate('/courses')}
-    aria-label="Back to courses"
-    title="Back to courses"
-  >
-    <FaArrowLeft size={15} />
-    <span>Back</span>
-  </button>
-
-  {canEdit('courses') && (
-    <button
-      className="btn btn--primary"
-      onClick={() => navigate(`/courses/edit/${course._id}`)}
-    >
-      <FaEdit size={15} />
-      <span>Edit Course</span>
-    </button>
-  )}
-
-</div>
-          
-        </div>
-      </header>
+            {/* Edit Course Button */}
+            {canEdit("courses") && (
+              <button
+                type="button"
+                onClick={() => navigate(`/courses/edit/${course._id}`)}
+                style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "white",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",    
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(0, 0, 0, 0.15)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <FaEdit size={15} />
+                <span>Edit Course</span>
+              </button>
+            )}
+          </>
+        }
+      />
 
       {/* MAIN CONTENT */}
       <main className="page-content">

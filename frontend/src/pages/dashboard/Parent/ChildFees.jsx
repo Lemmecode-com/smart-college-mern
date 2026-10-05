@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import {
   FaArrowLeft,
   FaMoneyBillWave,
@@ -245,37 +246,11 @@ export default function ChildFees() {
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            {/* Hero Section */}
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaMoneyBillWave />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    Fee Details & Payments
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    Track your child's fee payments and outstanding amounts
-                  </p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-              </div>
-            </div>
-          </motion.div>
+            <PageHeader
+  icon={FaMoneyBillWave}
+  title="Fee Details & Payments"
+  subtitle="Track your child's fee payments and outstanding amounts"
+/>
 
           {/* ================= FEE SUMMARY CARDS ================= */}
           <motion.div

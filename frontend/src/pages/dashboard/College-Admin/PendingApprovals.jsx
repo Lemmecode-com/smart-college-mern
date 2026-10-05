@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
 import useRole from "../../../hooks/useRole";
@@ -458,31 +459,52 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
         }
       />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaClock />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Pending Student Approvals</h1>
-            <p className="erp-page-subtitle">
-              Review and approve or reject student admission applications
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="btn-refresh"
-          onClick={fetchPendingStudents}
-          title="Refresh list"
-          aria-label="Refresh list"
-        >
-        
-          <FaSyncAlt />
-          <span>Refresh</span>
-        </button>
-      </div>
+{/* HEADER */}
+<PageHeader
+  icon={FaClock}
+  title="Pending Student Approvals"
+  subtitle="Review and approve or reject student admission applications"
+  actions={
+    <button
+      type="button"
+      onClick={fetchPendingStudents}
+      aria-label="Refresh list"
+      title="Refresh list"
+      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow =
+          "0 4px 10px rgba(0, 0, 0, 0.15)";
+        e.currentTarget.style.background =
+          "rgba(255, 255, 255, 0.18)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.background =
+          "rgba(255, 255, 255, 0.12)";
+      }}
+    >
+      <FaSyncAlt size={15} />
+      <span>Refresh</span>
+    </button>
+  }
+/>
 
       {/* STATS CARDS */}
       <div className="stats-grid">
@@ -1096,94 +1118,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
           -webkit-font-smoothing: antialiased;
         }
 
-        /* ---------- HEADER ---------- */
-        .erp-page-header {
-          background: #0E3746;
-          padding: 1.5rem 1.75rem;
-          border-radius: 16px;
-          margin: 1rem 0 1.5rem;
-          box-shadow: 0 10px 28px rgba(15, 58, 74, 0.28);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 1rem;
-          position: relative;
-          overflow: hidden;
-        }
 
-        .erp-page-header::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: #0E3746;
-          pointer-events: none;
-        }
-
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .erp-header-icon {
-          flex-shrink: 0;
-          width: 52px;
-          height: 52px;
-          background: rgba(255, 255, 255, 0.16);
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.6rem;
-        }
-
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.4rem;
-          line-height: 1.2;
-          font-weight: 700;
-          font-family: 'Poppins', sans-serif;
-          letter-spacing: -0.01em;
-        }
-
-        .erp-page-subtitle {
-  margin: 0.3rem 0 0;
-  opacity: 1;
-  font-size: 0.85rem;
-  font-weight: 400;
-  line-height: 1.5;
-  color: rgba(255,255,255,0.72);
-        }
-
-        .btn-refresh {
-          position: relative;
-          z-index: 1;
-          flex-shrink: 0;
-          background: #0E3746;
-          color: white;
-          width: 122px;
-          height: 42px;
-          border-radius: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.25);
-          background: rgba(255, 255, 255, 0.12);
-          color: white;
-          gap: 0.5rem;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: transform 0.2s ease, background 0.2s ease;
-        }
-
-        .btn-refresh:hover {
-          background: rgba(255, 255, 255, 0.22);
-         
-        }
 
         /* ---------- STATS ---------- */
         .stats-grid {

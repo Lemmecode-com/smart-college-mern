@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ChangeEmailModal from "../../../components/ChangeEmailModal";
 import {
   FaArrowLeft,
@@ -175,19 +176,11 @@ export default function ParentProfile() {
         <div className="parent-portal-container">
         
 
-          <div className="parent-dashboard-header">
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <div className="parent-header-icon-wrapper">
-                  <FaUserTie size={28} color="white" />
-                </div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">My Profile</h1>
-                  <p className="parent-header-subtitle">Loading your profile details...</p>
-                </div>
-              </div>
-            </div>
-          </div>
+<PageHeader
+  icon={FaUserTie}
+  title="My Profile"
+  subtitle="Loading your profile details..."
+/>
 
           <div className="parent-loading-state">
             <div className="parent-loading-spinner" />
@@ -203,19 +196,11 @@ export default function ParentProfile() {
     return (
       <div className="parent-portal-wrapper">
         <div className="parent-portal-container">
-          <div className="parent-dashboard-header">
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <div className="parent-header-icon-wrapper">
-                  <FaUserTie size={28} color="white" />
-                </div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">My Profile</h1>
-                  <p className="parent-header-subtitle">Something went wrong loading your profile.</p>
-                </div>
-              </div>
-            </div>
-          </div>
+<PageHeader
+  icon={FaUserTie}
+  title="My Profile"
+  subtitle="Something went wrong loading your profile."
+/>
 
           <div className="parent-error-state">
             <div className="parent-error-icon">
@@ -288,37 +273,12 @@ export default function ParentProfile() {
             </div>
 
           {/* ================= HEADER HERO ================= */}
-          <motion.div
-            className="parent-dashboard-header"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <div className="parent-header-icon-wrapper">
-                  <span style={{ fontWeight: 700, fontSize: "1.5rem", letterSpacing: "0.5px" }}>
-                    {getUserInitials()}
-                  </span>
-                </div>
-                <div className="parent-header-title-section">
-                  <motion.h1
-                    className="parent-header-title"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    {user?.name || "Parent"}
-                  </motion.h1>
-                  <p className="parent-header-subtitle">
-                    Manage your account details and linked children.
-                  </p>
-                </div>
-              </div>
-              <LiveTimeDisplay />
-            </div>
-          </motion.div>
-
+ <PageHeader
+  icon={FaUserTie}
+  title={user?.name || "Parent"}
+  subtitle="Manage your account details and linked children."
+  actions={<LiveTimeDisplay />}
+/>
           {/* ================= MAIN CONTENT ================= */}
           <div className="parent-content-grid">
             {/* ================= ACCOUNT DETAILS ================= */}

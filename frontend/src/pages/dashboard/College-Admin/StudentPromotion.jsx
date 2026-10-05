@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../../auth/AuthContext";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import {
   getPromotionEligibleStudents,
   bulkPromoteStudents,
@@ -1415,27 +1416,19 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
        />
 
       {/* Page Header */}
-<div className="page-header">
-  <div className="header-content">
-    <div className="header-icon-box">
-      <FaGraduationCap className="header-icon" />
-    </div>
-
-    <div className="header-text">
-      <h1 className="page-title">Student Promotion</h1>
-
-      <p className="page-subtitle">
-        Promote students to next academic year based on fee payment status
-      </p>
-    </div>
-  </div>
-
-  <div className="header-actions">
-    <button onClick={viewHistory} className="btn btn-outline-secondary">
+<PageHeader
+  icon={FaGraduationCap}
+  title="Student Promotion"
+  subtitle="Promote students to next academic year based on fee payment status"
+  actions={
+    <button
+      onClick={viewHistory}
+      className="btn btn-outline-secondary"
+    >
       <FaHistory /> View History
     </button>
-  </div>
-</div>
+  }
+/>
 
       {/* Success Message */}
       {successMessage && (
@@ -1552,27 +1545,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       {showHistory ? (
         <>
           {/* History Page Header */}
-          <div className="erp-page-header">
-            <div className="erp-header-content">
-              <div className="erp-header-icon">
-                <FaHistory />
-              </div>
-              <div className="erp-header-text">
-                <h1 className="erp-page-title">Promotion History</h1>
-                <p className="erp-page-subtitle">
-                  View all student promotion records across the college
-                </p>
-              </div>
-            </div>
-            <div className="header-actions">
-              <button
-                onClick={() => setShowHistory(false)}
-                className="history-back-btn"
-              >
-                ← Back to Students
-              </button>
-            </div>
-          </div>
 
           {/* History Stats */}
           <div className="stats-grid animate-fade-in">

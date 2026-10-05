@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -809,40 +810,90 @@ export default function CourseList() {
         />
       </div>
 
-      {/* PAGE HEADER */}
-      <div className="page-header">
-        <div className="page-header-content">
-          <div className="header-icon-bg">
-            <FaBookOpen size={26} />
-          </div>
-          <div className="header-text-content">
-            <h1 className="page-title">Course Management</h1>
-            <p className="page-subtitle">
-              Manage academic courses, curriculum, and course offerings
-            </p>
-          </div>
-        </div>
-        <div className="header-actions">
-          <button
-            className="btn btn-ghost-inverse"
-            onClick={() => navigate("/dashboard")}
-            aria-label="Back to Dashboard"
-          >
-            <FaArrowLeft className="btn-icon" />
-            <span>Back</span>
-          </button>
-          {canCreate("courses") && (
-            <button
-              className="btn btn-primary"
-              onClick={handleAddCourse}
-              aria-label="Add New Course"
-            >
-              <FaPlus className="btn-icon" />
-              <span>Add Course</span>
-            </button>
-          )}
-        </div>
-      </div>
+        {/* PAGE HEADER */}
+{/* PAGE HEADER */}
+<PageHeader
+  icon={FaBookOpen}
+  title="Course Management"
+  subtitle="Manage academic courses, curriculum, and course offerings"
+  actions={
+    <>
+      <button
+        type="button"
+        onClick={() => navigate("/dashboard")}
+        aria-label="Back to Dashboard"
+        style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.boxShadow =
+            "0 4px 10px rgba(0, 0, 0, 0.15)";
+          e.currentTarget.style.background =
+            "rgba(255, 255, 255, 0.18)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "none";
+          e.currentTarget.style.background =
+            "rgba(255, 255, 255, 0.12)";
+        }}
+      >
+        <FaArrowLeft size={16} />
+        <span>Back</span>
+      </button>
+
+      {canCreate("courses") && (
+        <button
+          type="button"
+          onClick={handleAddCourse}
+          aria-label="Add New Course"
+          style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "white",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 10px rgba(0, 0, 0, 0.15)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+          }}
+        >
+          <FaPlus size={16} />
+          <span>Add Course</span>
+        </button>
+      )}
+    </>
+  }
+/>
 
       {/* DEPARTMENT SELECTOR CARD */}
       <div className="card department-card">
@@ -1162,72 +1213,6 @@ export default function CourseList() {
           width: 100%;
           padding-top: 25px;
         }
-
-        /* ================= PAGE HEADER ================= */
-.page-header {
-  background: #0E3746;
-  border-radius: 15px;
-  padding: 1.5rem 1.75rem;
-  margin-bottom: 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
-  color: white;
-}
-
-.page-header-content {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  min-width: 0;
-}
-
-.header-icon-bg {
-  width: 52px;
-  height: 52px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.35rem;
-  flex-shrink: 0;
-}
-
-        .header-text-content {
-          display: flex;
-          flex-direction: column;
-          gap: var(--space-1);
-          min-width: 0;
-        }
-
-.page-title {
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.page-subtitle {
-  margin: 0.3rem 0 0;
-  opacity: 1;
-  font-size: 0.85rem;
-  font-weight: 400;
-  line-height: 1.5;
-  color: rgba(255,255,255,0.72);
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
 
         /* ================= BUTTONS ================= */
 .btn {

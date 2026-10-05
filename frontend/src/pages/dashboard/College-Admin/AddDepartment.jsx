@@ -21,7 +21,6 @@ import {
   FaToggleOff,
   FaBookOpen,
   FaSync,
- 
   FaExclamationTriangle,
   FaSpinner,
   FaMagic,

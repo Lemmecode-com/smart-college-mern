@@ -4,6 +4,7 @@ import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import ExportButtons from "../../../../components/ExportButtons";
 import Pagination from "../../../../components/Pagination";
 import { showSuccess, showError } from "../../../../utils/toast";
@@ -580,30 +581,48 @@ export default function ReportDashboard() {
         </div>
       </div>
 
-      {/* ================= HEADER ================= */}
-      <div className="dashboard-header">
-        <div className="header-content">
-          <div className="header-icon-wrapper">
-            <FaChartBar />
-          </div>
-          <div className="header-text">
-            <h1 className="dashboard-title">Reports & Analytics Dashboard</h1>
-            <p className="dashboard-subtitle">
-              Comprehensive overview of college performance metrics
-            </p>
-          </div>
-        </div>
-        <div className="header-actions">
+     
+      {/* ================= PAGE HEADER ================= */}
+      <PageHeader
+        icon={FaChartBar}
+        title="Reports & Analytics Dashboard"
+        subtitle="Comprehensive overview of college performance metrics"
+        actions={
           <button
             className="btn-refresh"
             onClick={fetchAllReports}
             aria-label="Refresh report data"
+             style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
           >
-            <FaSyncAlt className="spin-icon" /> Refresh Data
+            <FaSyncAlt className="spin-icon" />
+            Refresh Data
           </button>
-        </div>
-      </div>
-
+        }
+      />
       {/* ================= DYNAMIC SUMMARY CARDS ================= */}
       <div className="summary-cards-grid">
         {/* Total Applications Card */}
@@ -1570,89 +1589,8 @@ export default function ReportDashboard() {
           box-shadow: var(--shadow-md);
         }
 
-        /* ================= HEADER - ENTERPRISE LAYOUT ================= */
-        .dashboard-header {
-  background: #0E3746;
-  border-radius: 15px;
-  padding: 1.5rem 1.75rem;
-  margin-bottom: 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
-  color: white;
-        }
 
-        .header-content {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  min-width: 0;
-        }
 
-        .header-icon-wrapper {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.7rem;
-        }
-
-        .dashboard-title {
-            margin: 0;
-            font-size: 1.625rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            line-height: 1.25;
-        }
-
-        .dashboard-subtitle {
-          margin: 0;
-          opacity: 0.8;
-          font-size: 0.9rem;
-          font-weight: 400;
-          line-height: 1.5;
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 0.75rem;
-        }
-
-        .btn-refresh,
-        .btn-export {
-          padding: 0 22px;
-          height: 42px;
-          border-radius: 12px;
-          font-weight: var(--font-weight-semibold);
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          cursor: pointer;
-          border: none;
-          transition: all var(--transition-base);
-          font-size: var(--font-size-sm);
-          font-family: var(--font-family-base);
-        }
-
-        .btn-refresh {
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-refresh:hover {
-          background: rgba(61, 181, 230, 0.25);
-          border-color: var(--accent);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(61, 181, 230, 0.3);
-        }
 
         .btn-export {
           background: white;

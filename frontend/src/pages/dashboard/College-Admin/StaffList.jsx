@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import Pagination from "../../../components/Pagination";
 import { logger } from "../../../utils/logger";
 import "./StaffList.css";
@@ -323,44 +324,24 @@ export default function StaffList() {
           </div>
         </div>
 
-        {/* ================= HEADER ================= */}
-        <motion.header
-          variants={fadeInUp}
-          initial="hidden"
-          animate="visible"
-          className="erp-staff-header"
-        >
-          <div className="erp-staff-header__inner">
-            <div className="erp-staff-header__start">
-              <motion.div
-                className="erp-staff-header__icon"
-                aria-hidden="true"
-                initial={{ rotate: -5 }}
-                animate={{ rotate: 0 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              >
-                <FaUser />
-              </motion.div>
-              <div className="erp-staff-header__text">
-                <h1 className="erp-staff-header__title">Staff Accounts</h1>
-                <p className="erp-staff-header__subtitle">
-                  Manage staff members and their account information
-                </p>
-              </div>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => navigate("/college/staff/create")}
-              className="erp-staff-btn erp-staff-btn--primary"
-              aria-label="Add new staff member"
-            >
-              <FaUserPlus />
-              <span>Add New Staff</span>
-            </motion.button>
-          </div>
-        </motion.header>
-
+      {/* ================= PAGE HEADER ================= */}
+      <PageHeader
+        icon={FaUser}
+        title="Staff Accounts"
+        subtitle="Manage staff members and their account information"
+        actions={
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => navigate("/college/staff/create")}
+            className="erp-staff-btn erp-staff-btn--primary"
+            aria-label="Add new staff member"
+          >
+            <FaUserPlus />
+            <span>Add New Staff</span>
+          </motion.button>
+        }
+      />
         {/* ================= SUMMARY STATS ================= */}
         <motion.div
           variants={fadeInUp}
