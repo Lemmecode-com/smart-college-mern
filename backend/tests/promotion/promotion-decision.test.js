@@ -729,7 +729,7 @@ describe("Step 3 - promotion decision eligibility engine", () => {
       expect(await PromotionDecision.countDocuments({})).toBe(2);
     });
 
-    it("preserves workflow state while refreshing snapshots on proceeded decisions", async () => {
+    it("preserves workflow state while refreshing snapshots on proceeded decisions when academic outcome does not change", async () => {
       const ctx = await buildBaseContext();
 
       await addSession(ctx, 1, true);
@@ -770,8 +770,8 @@ describe("Step 3 - promotion decision eligibility engine", () => {
         },
       );
 
-      // Add a new ABSENT session — attendance drops to 50 %
-      await addSession(ctx, 2, false);
+      // Add a second PRESENT session — attendance data changes but outcome remains PASS
+      await addSession(ctx, 2, true);
 
       const refreshed = await createPromotionDecision({
         studentId: ctx.student._id,
@@ -781,12 +781,233 @@ describe("Step 3 - promotion decision eligibility engine", () => {
 
       // Snapshot is refreshed …
       expect(refreshed.attendance_snapshot.totalSessions).toBe(2);
-      expect(refreshed.attendance_snapshot.percentage).toBe(50);
-      // … but workflow-managed state is preserved
+      expect(refreshed.attendance_snapshot.percentage).toBe(100);
+      // … and workflow-managed state is preserved because outcome did not change
       expect(refreshed.workflow_status).toBe("APPROVED");
       expect(refreshed.approval).toBeTruthy();
       expect(refreshed.promotion_outcome).toBe("PASS");
       expect(refreshed.decision_reason).toBe("ELIGIBLE");
+    });
+
+    describe("Stale decision outcome refresh upon policy change", () => {
+      it("existing RECOMMENDED ATKT + policy changed to max KT 0 → eligibility returns BLOCKED", async () => {
+        const ctx = await buildBaseContext();
+
+        // Give student 1 failed subject (eligible for ATKT under default maxAllowedKTs=3)
+        const failedSubject = await createSubject({
+          college_id: ctx.collegeId,
+          course_id: ctx.courseId,
+          department_id: ctx.departmentId,
+          semester: 3,
+        });
+
+        await SemesterResult.updateOne(
+          { student_id: ctx.student._id, semester: 3 },
+          {
+            $set: {
+              overallResult: "FAIL",
+              failedSubjects: 1,
+              passedSubjects: 0,
+              subjects: [
+                {
+                  subject: failedSubject._id,
+                  passed: false,
+                  status: "FAIL",
+                  marksRecorded: true,
+                },
+              ],
+            },
+          },
+        );
+
+        await addSession(ctx, 1, true);
+
+        // Initial decision evaluates to ATKT / DRAFT
+        const initial = await createPromotionDecision({
+          studentId: ctx.student._id,
+          collegeId: ctx.collegeId,
+          userId: ctx.userId,
+        });
+        expect(initial.promotion_outcome).toBe("ATKT");
+        expect(initial.workflow_status).toBe("DRAFT");
+        expect(initial.kt_count).toBe(1);
+
+        // Simulate recommendation
+        await PromotionDecision.updateOne(
+          { _id: initial._id },
+          {
+            $set: {
+              workflow_status: "RECOMMENDED",
+              recommendation: {
+                user_id: ctx.userId,
+                at: new Date(),
+                comment: "recommended for ATKT",
+              },
+            },
+          },
+        );
+
+        // Policy changes: maxAllowedKTs = 0 (transition 3 -> 4 allows 0 KTs)
+        await PromotionPolicy.updateOne(
+          { collegeId: ctx.collegeId, isActive: true },
+          {
+            $set: {
+              maxAllowedKTs: 0,
+              ktRules: [
+                {
+                  fromSemester: 3,
+                  toSemester: 4,
+                  maxAllowedKTs: 0,
+                },
+              ],
+            },
+          },
+        );
+
+        // Re-evaluating eligibility must refresh the stale ATKT to BLOCKED
+        const refreshed = await createPromotionDecision({
+          studentId: ctx.student._id,
+          collegeId: ctx.collegeId,
+          userId: ctx.userId,
+        });
+
+        expect(refreshed.promotion_outcome).toBe("BLOCKED");
+        expect(refreshed.workflow_status).toBe("BLOCKED");
+        expect(refreshed.decision_reason).toBe("KT_LIMIT_EXCEEDED");
+        expect(refreshed.recommendation).toBeNull();
+        expect(refreshed.approval).toBeNull();
+        expect(refreshed.policy_snapshot.resolvedMaxAllowedKTs).toBe(0);
+      });
+
+      it("existing UNDER_REVIEW/APPROVED decision with changed policy → stale outcome is refreshed correctly", async () => {
+        const ctx = await buildBaseContext();
+
+        const failedSubject = await createSubject({
+          college_id: ctx.collegeId,
+          course_id: ctx.courseId,
+          department_id: ctx.departmentId,
+          semester: 3,
+        });
+
+        await SemesterResult.updateOne(
+          { student_id: ctx.student._id, semester: 3 },
+          {
+            $set: {
+              overallResult: "FAIL",
+              failedSubjects: 1,
+              passedSubjects: 0,
+              subjects: [
+                {
+                  subject: failedSubject._id,
+                  passed: false,
+                  status: "FAIL",
+                  marksRecorded: true,
+                },
+              ],
+            },
+          },
+        );
+
+        await addSession(ctx, 1, true);
+
+        // --- Case A: UNDER_REVIEW decision refreshed to BLOCKED ---
+        const decisionA = await createPromotionDecision({
+          studentId: ctx.student._id,
+          collegeId: ctx.collegeId,
+          userId: ctx.userId,
+        });
+        expect(decisionA.promotion_outcome).toBe("ATKT");
+
+        await PromotionDecision.updateOne(
+          { _id: decisionA._id },
+          {
+            $set: {
+              workflow_status: "UNDER_REVIEW",
+              recommendation: {
+                user_id: ctx.userId,
+                at: new Date(),
+                comment: "under review",
+              },
+            },
+          },
+        );
+
+        // Policy change: maxAllowedKTs = 0
+        await PromotionPolicy.updateOne(
+          { collegeId: ctx.collegeId, isActive: true },
+          {
+            $set: {
+              maxAllowedKTs: 0,
+              ktRules: [{ fromSemester: 3, toSemester: 4, maxAllowedKTs: 0 }],
+            },
+          },
+        );
+
+        const refreshedUnderReview = await createPromotionDecision({
+          studentId: ctx.student._id,
+          collegeId: ctx.collegeId,
+          userId: ctx.userId,
+        });
+
+        expect(refreshedUnderReview.promotion_outcome).toBe("BLOCKED");
+        expect(refreshedUnderReview.workflow_status).toBe("BLOCKED");
+        expect(refreshedUnderReview.recommendation).toBeNull();
+
+        // --- Case B: APPROVED decision refreshed to BLOCKED ---
+        // Restore policy to allow KT for setup
+        await PromotionPolicy.updateOne(
+          { collegeId: ctx.collegeId, isActive: true },
+          {
+            $set: {
+              maxAllowedKTs: 2,
+              ktRules: [{ fromSemester: 3, toSemester: 4, maxAllowedKTs: 2 }],
+            },
+          },
+        );
+
+        const decisionB = await createPromotionDecision({
+          studentId: ctx.student._id,
+          collegeId: ctx.collegeId,
+          userId: ctx.userId,
+        });
+        expect(decisionB.promotion_outcome).toBe("ATKT");
+
+        await PromotionDecision.updateOne(
+          { _id: decisionB._id },
+          {
+            $set: {
+              workflow_status: "APPROVED",
+              approval: {
+                user_id: ctx.userId,
+                at: new Date(),
+                comment: "approved ATKT",
+              },
+            },
+          },
+        );
+
+        // Policy change back to 0 KT
+        await PromotionPolicy.updateOne(
+          { collegeId: ctx.collegeId, isActive: true },
+          {
+            $set: {
+              maxAllowedKTs: 0,
+              ktRules: [{ fromSemester: 3, toSemester: 4, maxAllowedKTs: 0 }],
+            },
+          },
+        );
+
+        const refreshedApproved = await createPromotionDecision({
+          studentId: ctx.student._id,
+          collegeId: ctx.collegeId,
+          userId: ctx.userId,
+        });
+
+        expect(refreshedApproved.promotion_outcome).toBe("BLOCKED");
+        expect(refreshedApproved.workflow_status).toBe("BLOCKED");
+        expect(refreshedApproved.approval).toBeNull();
+        expect(refreshedApproved.decision_reason).toBe("KT_LIMIT_EXCEEDED");
+      });
     });
   });
 });

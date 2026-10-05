@@ -12,6 +12,9 @@ const Notification = require("../models/notification.model");
 const AuditLog = require("../models/auditLog.model");
 const AppError = require("../utils/AppError");
 const { ROLE, RESULT_STATUS } = require("../utils/constants");
+const {
+  academicYearRepresentations,
+} = require("../utils/academicYear.util");
 const { PROMOTION_WORKFLOW_ROLES } = require("./promotionWorkflow.service");
 const { calculateKTCount, isWithinKTLimit } = require("./atkt.service");
 const { resolveMaxAllowedKTs, resolveKTLimitForSemester, resolveSubjectTypeLimits, requiresPreviousYearClearance, resolveMinimumFeePaidPercentage, DEFAULT_MIN_FEE_PAID_PERCENTAGE } = require("../utils/promotionPolicy.util");
@@ -135,13 +138,16 @@ const getCurrentPolicy = async (collegeId, courseId, session) => {
 };
 
 const loadAuthoritativeResult = async (decision, session) => {
+  const academicYearReps = academicYearRepresentations(decision.academicYear);
   const results = await SemesterResult.find({
     _id: decision.source_result_id,
     college_id: decision.college_id,
     student_id: decision.student_id,
     course_id: decision.course_id,
     semester: decision.semester,
-    academicYear: decision.academicYear,
+    academicYear: academicYearReps
+      ? { $in: academicYearReps }
+      : decision.academicYear,
     status: RESULT_STATUS.PUBLISHED,
   })
     .limit(2)
