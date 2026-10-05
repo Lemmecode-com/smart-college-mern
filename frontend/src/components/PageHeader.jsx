@@ -65,10 +65,7 @@ export default function PageHeader({
         )}
 
       </div>
-    </div>
-  );
-
-  <style>{`
+       <style>{`
   .standard-page-header {
     width: 100%;
     min-height: 104px;
@@ -77,6 +74,7 @@ export default function PageHeader({
     overflow: hidden;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
     color: #ffffff;
+    margin-bottom: 20px;
   }
 
   .standard-page-header-content {
@@ -197,4 +195,8 @@ export default function PageHeader({
     }
   }
 `}</style>
+    </div>
+  );
+
+ 
 }
