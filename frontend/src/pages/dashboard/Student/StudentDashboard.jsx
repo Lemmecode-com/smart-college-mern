@@ -5,6 +5,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { AuthContext } from "../../../auth/AuthContext";
 import { logger } from "../../../utils/logger";
+import PageHeader from "../../../components/PageHeader";
 import {
   FaUserGraduate,
   FaBook,
@@ -604,115 +605,85 @@ export default function StudentDashboard() {
       />
 
       <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
-        {/* ================= HEADER ================= */}
+        {/* ================= PAGE HEADER ================= */}
+{/* ================= PAGE HEADER ================= */}
+<PageHeader
+  icon={FaGraduationCap}
+  title={`${getGreeting()}, ${studentData.name}!`}
+  subtitle="Student Dashboard"
+  actions={
+    <>
+      <div
+        style={{
+          minWidth: 105,
+          padding: "0.55rem 0.9rem",
+          borderRadius: T.radiusMd,
+          background: "rgba(255, 255, 255, 0.12)",
+          color: "#ffffff",
+          textAlign: "center",
+        }}
+      >
         <div
           style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "1rem",
-background: "#0d3f4c",
-border: "1px solid #0d3f4c",
-            borderRadius: T.radiusLg,
-            boxShadow: T.shadow,
-            padding: "1.35rem 1.6rem",
-            marginBottom: "1.25rem",
-            ...fadeStyle(mounted, 0),
+            fontSize: "0.7rem",
+            opacity: 0.75,
+            marginBottom: "0.2rem",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <div
-              style={{
-                width: 54,
-                height: 54,
-                borderRadius: T.radiusMd,
-background: "rgba(255, 255, 255, 0.10)",
-color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "1.6rem",
-                flexShrink: 0,
-              }}
-            >
-              <FaGraduationCap />
-            </div>
-            <h1 style={{ margin: 0, fontSize: "1.3rem", fontWeight: 700, color: "#ffffff" }}>
-              {getGreeting()}, {studentData.name}!
-            </h1>
-          </div>
-<div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-  <div
-    style={{
-      minWidth: 105,
-      padding: "0.55rem 0.9rem",
-      borderRadius: T.radiusMd,
-      background: "rgba(255, 255, 255, 0.12)",
-      color: "#ffffff",
-      textAlign: "center",
-    }}
-  >
-    <div
-      style={{
-        fontSize: "0.7rem",
-        opacity: 0.75,
-        marginBottom: "0.2rem",
-      }}
-    >
-      Time
-    </div>
-
-    <div
-      style={{
-        fontSize: "1rem",
-        fontWeight: 700,
-      }}
-    >
-      {currentTime.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      })}
-    </div>
-  </div>
-
-  <button
-    onClick={handleRetry}
-    style={{
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "0.5rem",
-      minWidth: "112px",
-      height: "42px",
-      padding: "0 1.15rem",
-      borderRadius: T.radiusMd,
-      border: "1px solid rgba(255, 255, 255, 0.7)",
-      background: "#ffffff",
-      color: "#163f4d",
-      fontSize: "0.85rem",
-      fontWeight: 700,
-      cursor: "pointer",
-      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
-      transition: "all 0.2s ease",
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = "translateY(-1px)";
-      e.currentTarget.style.boxShadow =
-        "0 6px 16px rgba(0, 0, 0, 0.14)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = "translateY(0)";
-      e.currentTarget.style.boxShadow =
-        "0 4px 12px rgba(0, 0, 0, 0.08)";
-    }}
-  >
-    <FaSync size={14} />
-    Refresh
-  </button>
-</div>
+          Time
         </div>
+
+        <div
+          style={{
+            fontSize: "1rem",
+            fontWeight: 700,
+          }}
+        >
+          {currentTime.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          })}
+        </div>
+      </div>
+
+      <button
+        onClick={handleRetry}
+   style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+      >
+        <FaSync size={14} />
+        Refresh
+      </button>
+    </>
+  }
+/>
+  
+
+ 
 
         {/* ================= QUICK ACTIONS ================= */}
         <div style={{ marginBottom: "1.25rem" }}>

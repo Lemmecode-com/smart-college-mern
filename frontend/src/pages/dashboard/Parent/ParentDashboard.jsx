@@ -6,6 +6,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import { toast } from "react-toastify";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 
@@ -225,68 +226,84 @@ export default function ParentDashboard() {
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaChild />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    Parent Dashboard
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    Welcome back! Here's an overview of your children's academic progress.
-                  </p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-                <div className="parent-time-display">
-                  <div className="parent-time-label">
-                    <FaClock style={{ marginRight: "0.25rem" }} />
-                    Time
-                  </div>
-                  <div className="parent-time-value">
-                    {currentTime.toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: true
-                    })}
-                  </div>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(37, 99, 235, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setRefreshKey(prev => prev + 1)}
-                  className="parent-btn-primary"
-                  onFocus={(e) => {
-                    e.target.style.outline = '2px solid #1a4b6d';
-                    e.target.style.outlineOffset = '2px';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.outline = 'none';
-                  }}
-                >
-                  <motion.div variants={spinVariants} animate="animate">
-                    <FaSyncAlt />
-                  </motion.div>
-                  <span>Refresh</span>
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
+  <PageHeader
+  icon={FaChild}
+  title="Parent Dashboard"
+  subtitle="Welcome back! Here's an overview of your children's academic progress."
+  actions={
+    <>
+      <div
+        style={{
+          minWidth: 105,
+          padding: "0.55rem 0.9rem",
+          borderRadius: "10px",
+          background: "rgba(255, 255, 255, 0.12)",
+          color: "#ffffff",
+          textAlign: "center",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.7rem",
+            opacity: 0.75,
+            marginBottom: "0.2rem",
+          }}
+        >
+          <FaClock style={{ marginRight: "0.25rem" }} />
+          Time
+        </div>
+
+        <div
+          style={{
+            fontSize: "0.95rem",
+            fontWeight: 700,
+          }}
+        >
+          {currentTime.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          })}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setRefreshKey((prev) => prev + 1)}
+        style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+
+      >
+        <FaSyncAlt />
+        <span>Refresh</span>
+      </button>
+    </>
+  }
+/>
 
           {/* ================= STATISTICS GRID ================= */}
           <motion.div

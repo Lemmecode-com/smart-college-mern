@@ -13,7 +13,7 @@ export default function StudentDashboard() {
         </p>
         <hr />
         <p>
-          You can view your attendance records using the Attendance section.
+          You can view your attendance records using the Attendance sectionn.
         </p>
       </div>
     </div>

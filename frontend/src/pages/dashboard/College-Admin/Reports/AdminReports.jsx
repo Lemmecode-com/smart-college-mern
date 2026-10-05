@@ -9,6 +9,7 @@ import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import {
   FaUsers,
   FaCheckCircle,
@@ -278,35 +279,25 @@ export default function AdminReports() {
         ]}
       />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="header-icon-wrapper">
-            <FaChartPie />
-          </div>
-          <div className="header-text">
-            <h1 className="dashboard-title">College Admission Analytics</h1>
-            <p className="dashboard-subtitle">
-              Real-time admission status and analytics for your institution
-            </p>
-          </div>
-        </div>
-        <div className="header-actions">
-          <div className="export-actions-group">
-            <ExportButtons
-              title="College Admission Analytics Report"
-              columns={[
-                { header: 'Metric', key: 'metric' },
-                { header: 'Value', key: 'value' }
-              ]}
-              data={getExportData()}
-              filename="admission_report"
-              showPDF={true}
-              showExcel={true}
-            />
-          </div>
-        </div>
-      </div>
+{/* ================= PAGE HEADER ================= */}
+<PageHeader
+  icon={FaChartPie}
+  title="College Admission Analytics"
+  subtitle="Real-time admission status and analytics for your institution"
+  actions={
+    <ExportButtons
+      title="College Admission Analytics Report"
+      columns={[
+        { header: "Metric", key: "metric" },
+        { header: "Value", key: "value" }
+      ]}
+      data={getExportData()}
+      filename="admission_report"
+      showPDF={true}
+      showExcel={true}
+    />
+  }
+/>
 
       {/* INFO BANNER */}
       <div className="info-banner animate-fade-in">

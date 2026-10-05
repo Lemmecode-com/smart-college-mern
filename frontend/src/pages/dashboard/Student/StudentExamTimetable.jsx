@@ -7,6 +7,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import PublishedExamTimetable from "../../../components/PublishedExamTimetable";
 import {
   FaCalendarAlt,
@@ -187,14 +188,11 @@ export default function StudentExamTimetable() {
       >
         {!selectedExam ? (
           <>
-            <div className="student-exam-timetable-title-row">
-              <div>
-                <h2 className="student-exam-timetable-title">Published Exam Timetable</h2>
-                <p className="student-exam-timetable-subtitle">
-                  View your published exam schedules below.
-                </p>
-              </div>
-            </div>
+    <PageHeader
+  icon={FaCalendarAlt}
+  title="Published Exam Timetable"
+  subtitle="View your published exam schedules below."
+/>
 
             <PublishedExamTimetable exams={exams} onExamClick={handleViewTimetable} />
           </>

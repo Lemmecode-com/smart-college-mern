@@ -44,6 +44,8 @@ export default function PageHeader({
 
         </div>
 
+        
+
         {/* RIGHT */}
         {(onBack || actions) && (
           <div className="standard-page-header-actions">
@@ -113,7 +115,7 @@ export default function PageHeader({
   .standard-page-header-title {
     margin: 0;
     color: #ffffff;
-    font-size: 28px;
+    font-size: 24px;
     line-height: 1.2;
     font-weight: 700;
   }
@@ -121,9 +123,9 @@ export default function PageHeader({
   .standard-page-header-subtitle {
     margin: 5px 0 0;
     color: rgba(255, 255, 255, 0.75);
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.4;
-    font-weight: 500;
+    font-weight: 400;
   }
 
   .standard-page-header-meta {

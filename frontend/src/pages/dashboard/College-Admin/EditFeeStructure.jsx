@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -229,58 +230,98 @@ export default function EditFeeStructure() {
         />
       </div>
     </div>
-      {/* ================= HEADER BAR ================= */}
-      <div className="d-flex align-items-center justify-content-between mb-4 animate-fade-in">
-        <div className="d-flex align-items-center gap-3">
-          <button 
-            onClick={() => navigate("/fees/list")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 shadow-sm hover-lift"
-          >
-            <FaArrowLeft /> Back to List
-          </button>
-          <div className="d-flex align-items-center gap-3">
-            <div className="icon-container bg-primary text-white rounded-circle d-flex align-items-center justify-content-center">
-              <FaMoneyBillWave className="pulse-icon" size={28} />
-            </div>
-            <div>
-              <h1 className="h3 fw-bold mb-0 text-dark">Edit Fee Structure</h1>
-              <p className="text-muted mb-0">Update course fee details and payment schedule</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="d-flex gap-2">
-          <button 
-            onClick={() => navigate("/fees/list")}
-            className="btn btn-light border px-4 py-2 d-flex align-items-center gap-2 hover-lift"
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={handleSubmit}
-            disabled={saving || installmentSum !== Number(totalFee)}
-            className={`btn px-4 py-2 d-flex align-items-center gap-2 transition-all ${
-              saving 
-                ? "btn-secondary" 
-                : installmentSum === Number(totalFee) 
-                  ? "btn-success hover-lift" 
-                  : "btn-outline-success disabled"
-            }`}
-          >
-            {saving ? (
-              <>
-                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                Updating...
-              </>
-            ) : (
-              <>
-                <FaSave size={18} /> Update Fee Structure
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+{/* ================= PAGE HEADER ================= */}
+<PageHeader
+  icon={FaMoneyBillWave}
+  title="Edit Fee Structure"
+  subtitle="Update course fee details and payment schedule"
+  actions={
+    <>
+      <button
+        onClick={() => navigate("/fees/list")}
+         style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+      >
+        Cancel
+      </button>
 
+      <button
+        onClick={handleSubmit}
+        disabled={saving || installmentSum !== Number(totalFee)}
+         style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgb(252, 254, 252)",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+        className={`btn px-4 py-2 d-flex align-items-center gap-2 transition-all ${
+          saving
+            ? "btn-secondary"
+            : installmentSum === Number(totalFee)
+              ? "btn-success hover-lift"
+              : "btn-outline-success disabled"
+        }`}
+      >
+        {saving ? (
+          <>
+            <span
+              className="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            Updating...
+          </>
+        ) : (
+          <>
+            <FaSave size={18} /> Update Fee Structure
+          </>
+        )}
+      </button>
+    </>
+  }
+/>
       {/* ================= ALERTS ================= */}
       {error && typeof error === 'string' && (
         <div className="alert alert-danger d-flex align-items-center alert-dismissible fade show animate-slide-down" role="alert">
@@ -301,9 +342,9 @@ export default function EditFeeStructure() {
       {/* ================= MAIN CONTENT GRID ================= */}
       <div className="row g-4">
         {/* LEFT COLUMN - FORM */}
-        <div className="col-lg-8">
+        <div className="col-lg-8 ">
           <div className="card border-0 shadow-sm rounded-4 overflow-hidden animate-fade-in-up">
-            <div className="card-header bg-gradient-primary text-white py-4">
+            <div className="card-header text-white py-4" style={{ background: "#0E3746"}}>
               <h2 className="h5 fw-bold mb-0 d-flex align-items-center gap-2">
                 <FaLayerGroup /> Fee Structure Details
               </h2>

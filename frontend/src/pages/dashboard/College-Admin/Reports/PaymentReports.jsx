@@ -10,6 +10,7 @@ import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaMoneyBillWave,
@@ -342,22 +343,13 @@ export default function PaymentReports() {
         ]}
       />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse">
-            <FaMoneyBillWave />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Payment Summary Report</h1>
-            <p className="erp-page-subtitle">
-              Comprehensive overview of fee collection status across all
-              students
-            </p>
-          </div>
-        </div>
-        <div className="erp-header-actions">
-          <div className="export-actions-group">
+      {/* ================= PAGE HEADER ================= */}
+      <PageHeader
+        icon={FaMoneyBillWave}
+        title="Payment Summary Report"
+        subtitle="Comprehensive overview of fee collection status across all students"
+        actions={
+          <>
             <ExportButtons
               title="Payment Summary Report"
               columns={[
@@ -369,18 +361,43 @@ export default function PaymentReports() {
               showPDF={true}
               showExcel={true}
             />
-          </div>
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => setShouldFetchSummary(true)}
-            title="Refresh report data"
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
 
+            <button
+              className="erp-btn erp-btn-secondary"
+              onClick={() => setShouldFetchSummary(true)}
+              title="Refresh report data"
+              style={{ 
+                    minHeight: "38px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "8px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",      
+               }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+            >
+              <FaSyncAlt className="erp-btn-icon spin" />
+              <span>Refresh</span>
+            </button>
+          </>
+        }
+      />
       {/* INFO BANNER */}
       <div className="info-banner animate-fade-in">
         <div className="info-icon">

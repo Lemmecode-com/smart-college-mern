@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -408,45 +409,94 @@ export default function StudentFees() {
         Skip to fee content
       </a>
 
-      {/* ================= TOP NAVIGATION BAR ================= */}
-      <header className="fees-header fade-in" role="banner">
-        <div className="header-left">
-          <button
-            onClick={() => navigate("/student/dashboard")}
-            className="btn-back"
-            aria-label="Back to Dashboard"
-          >
-            <FaArrowLeft aria-hidden="true" />
-            <span className="btn-back-label">Back</span>
-          </button>
-          <div className="header-info">
-            <div className="header-icon-wrapper">
-              <FaMoneyCheckAlt aria-hidden="true" />
-            </div>
-            <div>
-              <h1 className="header-title">Fee Management</h1>
-              <p className="header-subtitle">
-                <FaGraduationCap className="me-1" aria-hidden="true" />
-                {studentProfile?.fullName || user.name || "Student"} |{" "}
-                {dashboard.course?.name || "Course"}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="header-actions">
-          <button
-            onClick={() => setShowHelp(!showHelp)}
-            className="btn-action"
-            aria-label={
-              showHelp ? "Close fee dashboard help" : "Show fee dashboard help"
-            }
-            aria-expanded={showHelp}
-          >
-            <FaInfoCircle aria-hidden="true" />
-            <span className="btn-text">Help</span>
-          </button>
-        </div>
-      </header>
+        {/* ================= PAGE HEADER ================= */}
+        <PageHeader
+          icon={FaMoneyCheckAlt}
+          title="Fee Management"
+          subtitle={
+            <>
+              <FaGraduationCap className="me-1" aria-hidden="true" />
+              {studentProfile?.fullName || user.name || "Student"} |{" "}
+              {dashboard.course?.name || "Course"}
+            </>
+          }
+          actions={
+            <>
+              <button
+                onClick={() => navigate("/student/dashboard")}
+                // className="btn-back"
+                style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+
+                aria-label="Back to Dashboard"
+              >
+                <FaArrowLeft aria-hidden="true" />
+                <span >Back</span>
+              </button>
+
+              <button
+                onClick={() => setShowHelp(!showHelp)}
+                
+                aria-label={
+                  showHelp ? "Close fee dashboard help" : "Show fee dashboard help"
+                }
+                style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+
+                aria-expanded={showHelp}
+              >
+                <FaInfoCircle aria-hidden="true" />
+                <span>Help</span>
+              </button>
+            </>
+          }
+        />
 
       {/* ================= HELP SECTION ================= */}
       {showHelp && (

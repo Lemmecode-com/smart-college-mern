@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -206,30 +207,46 @@ export default function CreateFeeStructure() {
         ]}
       />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse">
-            <FaMoneyBillWave />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Create Fee Structure</h1>
-            <p className="erp-page-subtitle">
-              Configure course-wise & category-based fee system with flexible installments
-            </p>
-          </div>
-        </div>
-        <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => window.history.back()}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            <span>Back to Fees</span>
-          </button>
-        </div>
-      </div>
-
+        {/* HEADER */}
+        <PageHeader
+          icon={FaMoneyBillWave}
+          title="Create Fee Structure"
+          subtitle="Configure course-wise & category-based fee system with flexible installments"
+          actions={
+            <button
+              
+              onClick={() => window.history.back()}
+                  style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+            >
+              <FaArrowLeft className="erp-btn-icon" />
+              <span>Back to Fees</span>
+            </button>
+          }
+        />
       {/* ALERTS */}
       {error && typeof error === 'string' && (
         <div className="erp-alert erp-alert-danger animate-slide-in">
@@ -561,75 +578,7 @@ export default function CreateFeeStructure() {
           animation: fadeIn 0.6s ease;
         }
 
-.erp-page-header {
-  background: #0E3746;
-  border-radius: 15px;
-  padding: 1.5rem 1.75rem;
-  margin-bottom: 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
-  color: white;
-}
 
-.erp-header-content {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  min-width: 0;
-}
-        
-.erp-header-icon {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.7rem;
-}
-        .erp-page-title {
-            margin: 0;
-            font-size: 1.625rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            line-height: 1.25;
-                }
-        
-        .erp-page-subtitle {
-          margin: 0;
-          opacity: 0.8;
-          font-size: 0.9rem;
-          font-weight: 400;
-          line-height: 1.5;
-                }
-        
-
-.erp-header-actions .erp-btn {
-  background: rgba(255, 255, 255, 0.10);
-  color: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  padding: 0 18px;
-  height: 42px;
-  font-weight: 600;
-  border-radius: 10px;
-  box-shadow: none;
-  transition: all 0.3s ease;
-  font-size: 0.875rem;
-  
-}
-
-.erp-header-actions .erp-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.5);
-  color: #ffffff;
-  transform: translateY(-2px);
-}
         .erp-alert {
           padding: 1rem 1.5rem;
           border-radius: 12px;

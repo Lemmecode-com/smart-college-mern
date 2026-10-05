@@ -18,7 +18,8 @@ import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
-import PageHero from "../../../components/common/PageHero";
+import PageHeader from "../../../components/PageHeader";
+// import PageHero from "../../../components/common/PageHero";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -152,13 +153,46 @@ export default function HodDepartment() {
                 />
               </div>
             </div>
-          <PageHero
-            icon={<FaLayerGroup />}
-            title="Department Information"
-            description={`${department.name} (${department.code})`}
-            onBack={() => navigate(-1)}
-            backLabel="Back"
-          />
+          {/* ================= PAGE HEADER ================= */}
+<PageHeader
+  icon={FaLayerGroup}
+  title="Department Information"
+  subtitle={`${department.name} (${department.code})`}
+  actions={
+    <button
+      type="button"
+      onClick={() => navigate(-1)}
+         style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+    >
+      <FaArrowLeft/>
+      Back
+    </button>
+  }
+/>
 
           {/* ================= HOD DETAILS ================= */}
           <motion.div

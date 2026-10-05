@@ -8,7 +8,8 @@ import {
   FaPhone,
   FaGraduationCap,
   FaBriefcase,
-  FaSearch
+  FaSearch,
+  FaArrowLeft,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
@@ -17,6 +18,7 @@ import { logger } from "../../../utils/logger";
 import Loading from "../../../components/Loading";
 import PageHero from "../../../components/common/PageHero";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -147,13 +149,49 @@ if (error) {
               </div>
             </div>
 
-          <PageHero
-            icon={<FaUsers />}
-            title="Department Teachers"
-            description={`${filtered.length} teacher${filtered.length !== 1 ? "s" : ""} found`}
-            onBack={() => navigate(-1)}
-            backLabel="Back"
-          />
+{/* ================= PAGE HEADER ================= */}
+<PageHeader
+  icon={FaUsers}
+  title="Department Teachers"
+  subtitle={`${filtered.length} teacher${
+    filtered.length !== 1 ? "s" : ""
+  } found`}
+  actions={
+    <button
+      type="button"
+      onClick={() => navigate(-1)}
+      // className="btn btn-light border px-4 py-2 d-flex align-items-center gap-2 hover-lift"
+         style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+    >
+      <FaArrowLeft />
+      <span>Back</span>
+    </button>
+  }
+/>
 
           {/* ================= SEARCH ================= */}
           <motion.div

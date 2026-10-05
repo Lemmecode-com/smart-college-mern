@@ -5,6 +5,7 @@ import { getAlumni } from "../../../api/alumni";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { TableSkeleton } from "../../../components/Skeleton";
 import { showSuccess, showError } from "../../../utils/toast";
@@ -696,19 +697,11 @@ export default function AlumniList({ admissionOfficerMode = false }) {
 
 
       {/* Page Header */}
-      <div className="page-header">
-        <div className="header-content">
-          <div className="header-icon-wrapper">
-            <FaGraduationCap className="header-icon" />
-          </div>
-          <div className="header-text">
-            <h2 className="page-title">Alumni Records</h2>
-            <p className="page-subtitle">
-              Manage and generate certificates for alumni members
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={FaGraduationCap}
+        title="Alumni Records"
+        subtitle="Manage and generate certificates for alumni members"
+      />
 
       {/* Stats Cards */}
       <div className="stats-grid">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import Pagination from "../../../components/Pagination";
 import {
   FaUser,
@@ -409,84 +410,13 @@ export default function ParentList() {
         </div>
 
         
-        {/* Header Section */}
-<motion.div
-  className="parent-management-header"
-  variants={slideDownVariants}
-  initial="hidden"
-  animate="visible"
-  style={{
-    marginBottom: "32px",
-    padding: "24px",
-    background: "#0E3746",
-    borderRadius: "16px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
-    borderLeft: "5px solid rgba(255, 255, 255, 0.18)",
-  }}
->
-  <div
-    className="parent-management-header-content"
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "16px",
-      flexWrap: "wrap",
-      background: "#0E3746",
-      borderRadius: "15px",
-      boxShadow: "0 8px 24px rgba(15, 69, 83, 0.18)",
-      color: "white",
-    }}
-  >
-    <motion.div
-      className="parent-management-header-icon"
-      variants={pulseVariants}
-      initial="initial"
-      animate="pulse"
-      style={{
-        width: "52px",
-        height: "52px",
-        borderRadius: "50%",
-        background: "rgba(255, 255, 255, 0.15)",
-        color: "#ffffff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "1.5rem",
-        boxShadow: `0 4px 12px ${BRAND_COLORS.primary.main}50`,
-      }}
-    >
-      <FaUserFriends />
-    </motion.div>
-
-    <div>
-      <h1
-        className="parent-management-title"
-        style={{
-            margin: 0,
-            fontSize: "1.625rem",
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
-            lineHeight: 1.25,
-        }}
-      >
-        Parent / Guardian Management
-      </h1>
-
-      <p
-        className="parent-management-subtitle"
-        style={{
-          margin: 0,
-          opacity: 0.8,
-          fontSize: "0.9rem",
-          fontWeight: 400,
-          lineHeight: 1.5,
-        }}
-      >
-        Manage parent and guardian accounts linked to students
-      </p>
-    </div>
-  </div>
-</motion.div>
+  
+        {/* ================= PAGE HEADER ================= */}
+        <PageHeader
+          icon={FaUserFriends}
+          title="Parent / Guardian Management"
+          subtitle="Manage parent and guardian accounts linked to students"
+        />
 
         {/* Filters Section */}
         <motion.div

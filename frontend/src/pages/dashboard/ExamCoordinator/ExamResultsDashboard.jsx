@@ -4,6 +4,7 @@ import api from "../../../api/axios";
 import { getResultsByExam, getExamResultSummaries, lockResultsForExam, unlockResult, publishResultsForExam } from "../../../api/results";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
@@ -424,24 +425,22 @@ export default function ExamResultsDashboard() {
         ]}
       />
 
-      <motion.div
-        initial={prefersReducedMotion ? false : { opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        className="edx-header"
-      >
-        <div className="d-flex align-items-center gap-3">
-          <div className="erd-icon"><FaChartBar /></div>
-          <div>
-            <h2 className="edx-title">Exam Results Dashboard</h2>
-            <p className="edx-subtitle">Manage result generation, review, lock and publish</p>
-          </div>
-        </div>
-        <button className="btn-edx-primary" onClick={() => navigate("/dashboard/exam/results/generate")}>
-          <FaPlus /> Generate Result
-        </button>
-      </motion.div>
-      <div className="edx-divider" />
+      
+     {/* ================= PAGE HEADER ================= */}
+<PageHeader
+  icon={FaChartBar}
+  title="Exam Results Dashboard"
+  subtitle="Manage result generation, review, lock and publish"
+  actions={
+    <button
+      className="btn-edx-primary"
+      onClick={() => navigate("/dashboard/exam/results/generate")}
+    >
+      <FaPlus />
+      Generate Result
+    </button>
+  }
+/>
 
       <motion.div
         initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}

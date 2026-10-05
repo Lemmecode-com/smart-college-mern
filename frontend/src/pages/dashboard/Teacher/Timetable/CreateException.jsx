@@ -12,6 +12,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import ApiError from "../../../../components/ApiError";
 import { logger } from "../../../../utils/logger";
 import SearchableSelect from "../../../../components/SearchableSelect";
@@ -351,15 +352,19 @@ const fetchTeachersForSearch = async (query) => {
       style={{
         minHeight: "100vh",
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
+        maxWidth: "100%",
       }}
     >
 
             {/* ================= BREADCRUMB ================= */}   
                       <div
                   style={{
-                    width: "100%",
+                    // width: "100%",
                     margin: "10px auto",
+                    marginBottom: "-0.5rem",
                     paddingTop: "30px",
+                    transform: "scale(0.95)",
+                    transformOrigin: "top center",
                   }}
                 >
                   <div style={{ width: "100%" }}>
@@ -373,43 +378,104 @@ const fetchTeachersForSearch = async (query) => {
                   </div>
                 </div>
 
-       <PageHero
-         icon={<FaCalendarAlt />}
-         title="Create Exception"
-         description="Add a holiday, cancellation, or special event"
-         onBack={handleCancel}
-         backLabel="Back"
-         primaryAction={
-           <MotionButton
-             whileHover={{ scale: 1.02 }}
-             whileTap={{ scale: 0.98 }}
-             onClick={() =>
-               navigate("/timetable/exceptions", {
-                 state: { showBulkModal: true },
-               })
-             }
-             className="btn d-flex align-items-center gap-2 fw-medium border-0"
-             style={{
-               background: "rgba(255, 255, 255, 0.1)",
-               border: "1px solid rgba(255, 255, 255, 0.2) !important",
-               color: "white",
-               borderRadius: "10px",
-               padding: "0.6rem 1.2rem",
-               backdropFilter: "blur(10px)",
-               transition: "all 0.2s ease",
-               whiteSpace: "nowrap",
-             }}
-           >
-             <FaUpload />
-             <span>Bulk Upload</span>
-           </MotionButton>
-         }
-       />
+ {/* ================= PAGE HEADER ================= */}
+ <div className="create-exception-page-header">
+<PageHeader
+
+  icon={FaCalendarAlt}
+  title="Create Exception"
+  subtitle="Add a holiday, cancellation, or special event"
+  
+  actions={
+    <>
+      <button
+        type="button"
+        onClick={handleCancel}
+        className="btn btn-light border px-4 py-2 d-flex align-items-center gap-2 hover-lift"
+           style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+      >
+        <FaArrowLeft />
+        <span>Back</span>
+      </button>
+
+      <MotionButton
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={() =>
+          navigate("/timetable/exceptions", {
+            state: { showBulkModal: true },
+          })
+        }
+        className="btn d-flex align-items-center gap-2 fw-medium border-0"
+   style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+      >
+        <FaUpload />
+        <span>Bulk Upload</span>
+      </MotionButton>
+    </>
+  }
+/>
+<style>{`
+.create-exception-page-header {
+  transform: scale(0.95);
+  transform-origin: top center;
+  margin-bottom: -1.5rem;
+}
+`}</style>
+</div>
 
       {/* Form */}
       <div className="p-4">
         <div className="row justify-content-center">
-          <div className="col-lg-8 col-xl-7">
+          <div className="col-lg-9 col-xl-9">
             <MotionDiv
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -420,6 +486,8 @@ const fetchTeachersForSearch = async (query) => {
                 background: "white",
                 border: "none",
                 overflow: "hidden",
+                
+                
               }}
             >
               <div className="card-body p-4">
@@ -434,6 +502,7 @@ const fetchTeachersForSearch = async (query) => {
                       border: "1px solid #fecaca",
                       borderRadius: "10px",
                       color: "#991b1b",
+                      
                     }}
                   >
                     <FaInfoCircle className="me-2" />

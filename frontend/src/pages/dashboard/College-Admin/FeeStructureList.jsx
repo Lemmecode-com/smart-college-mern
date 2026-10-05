@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import Pagination from "../../../components/Pagination";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
@@ -293,31 +294,49 @@ export default function FeeStructureList() {
       />
       </div>
 
+     
       {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse">
-            <FaMoneyBillWave />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Fee Structures Management</h1>
-            <p className="erp-page-subtitle">
-              Manage course-wise & category-based fee structures with flexible installments
-            </p>
-          </div>
-        </div>
-        <div className="erp-header-actions">
-          {canCreate('fee-structure') && (
+      <PageHeader
+        icon={FaMoneyBillWave}
+        title="Fee Structures Management"
+        subtitle="Manage course-wise & category-based fee structures with flexible installments"
+        actions={
+          canCreate("fee-structure") && (
             <button
               className="erp-btn erp-btn-primary"
               onClick={() => navigate("/fees/create")}
+               style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "white",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
             >
               <FaPlus className="erp-btn-icon pulse" />
               <span>Create New Structure</span>
             </button>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
 
       {/* STATS CARDS */}
       <div className="stats-grid animate-fade-in">
@@ -659,38 +678,7 @@ export default function FeeStructureList() {
 
       {/* STYLES */}
       <style>{`
-        .erp-page-header {
-  background: #0E3746;
-  border-radius: 15px;
-  padding: 1.5rem 1.75rem;
-  margin-bottom: 1.25rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
-  color: white;
-        }
-        
-        .erp-header-content {
- display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  min-width: 0;
-        }
-        
-        .erp-header-icon {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.7rem;
-        }
+ 
 
         /* BREADCRUMBS */
         .course-breadcrumb-wrapper {
@@ -699,47 +687,9 @@ export default function FeeStructureList() {
           padding-top: 25px;
         }
         
-        .erp-page-title {
-            margin: 0;
-            font-size: 1.625rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            line-height: 1.25;
-        }
+
         
-        .erp-page-subtitle {
-          margin: 0;
-          opacity: 0.8;
-          font-size: 0.9rem;
-          font-weight: 400;
-          line-height: 1.5;
-        }
-        
-        .erp-header-actions {
-          flex-shrink: 0;
-        }
-        
-        .erp-header-actions .erp-btn {
-          background: white;
-          color: #1a4b6d;
-          border: none;
-          padding: 0 22px;
-          height: 42px;
-          font-weight: 600;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          transition: all 0.3s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          width: max-content;
-          white-space: nowrap;
-        }
-        
-        .erp-header-actions .erp-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-        }
+     
         
          /* STATS GRID */
           .stats-grid {

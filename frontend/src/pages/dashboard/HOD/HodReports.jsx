@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { logger } from "../../../utils/logger";
 import Loading from "../../../components/Loading";
 
@@ -340,63 +341,12 @@ const HodReports = () => {
                 />
               </div>
             </div>
-          {/* Header */}
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            style={{
-              background: `#0E3746`,
-              borderRadius: 14,
-              padding: "1.25rem 1.75rem",
-              color: "#fff",
-              boxShadow: "0 20px 50px -20px rgba(15, 58, 74, 0.5)",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: "50%",
-                  background: "rgba(255,255,255,0.15)",
-                  backdropFilter: "blur(10px)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.4rem",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                }}
-              >
-                <FaClipboardList />
-              </div>
-              <div>
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: "1.625rem",
-                    fontWeight: 700,
-                    letterSpacing: "-0.02em",
-                    lineHeight: 1.25,
-                  }}
-                >
-                  Department Reports
-                </h2>
-                <p
-                  style={{
-                    margin: 0,
-                    opacity: 0.8,
-                    fontSize: "0.9rem",
-                    fontWeight: 400,
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {department.name || "Department"} ({department.code || "—"})
-                </p>
-              </div>
-            </div>
-          </motion.div>
+          {/* ================= PAGE HEADER ================= */}
+          <PageHeader
+            icon={FaClipboardList}
+            title="Department Reports"
+            subtitle={`${department.name || "Department"} (${department.code || "—"})`}
+          />
 
           {/* KPI Cards */}
           <div className="row g-3 mb-4">
