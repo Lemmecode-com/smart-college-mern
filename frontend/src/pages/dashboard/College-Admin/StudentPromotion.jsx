@@ -589,6 +589,86 @@ function getCompactReasonMessage(data) {
 }
 
 /**
+ * Evaluate Alumni Eligibility & collect exact blockers from eligibility decision data.
+ * Used for students in their final semester.
+ */
+function getAlumniEligibilityInfo(data) {
+  if (!data) return { isEligible: false, blockers: [] };
+
+  const blockers = [];
+  const resultStatus = data.result_status;
+  const outcome = data.promotion_outcome;
+  const decisionReason = data.decision_reason;
+  const attendanceSnap = data.attendance_snapshot;
+  const feeSnap = data.fee_clearance_snapshot;
+  const policySnap = data.policy_snapshot;
+
+  // PromotionDecision.result_status API contract uses "PUBLISHED", "NO_RESULT", or "AMBIGUOUS_RESULT".
+  // "FOUND" is accepted for backward/internal compatibility with resultAuthority service.
+  const isResultPublished = resultStatus === "PUBLISHED" || resultStatus === "FOUND";
+
+  // 1. Result Check
+  if (resultStatus === "AMBIGUOUS_RESULT" || outcome === "AMBIGUOUS_RESULT") {
+    blockers.push("Multiple published results found; resolution required.");
+  } else if (!isResultPublished || outcome === "NO_RESULT") {
+    blockers.push("Final semester exam result has not been published.");
+  } else if (outcome === "INCOMPLETE" || outcome === "RESULT_INCOMPLETE") {
+    blockers.push("Final semester result contains incomplete marks.");
+  } else if (
+    outcome === "FAIL" ||
+    decisionReason === "KT_LIMIT_EXCEEDED" ||
+    (data.kt_count && data.kt_count > 0) ||
+    outcome === "ATKT"
+  ) {
+    const kt = data.kt_count || (data.failed_subject_ids ? data.failed_subject_ids.length : 1);
+    blockers.push(
+      `All subjects must be cleared to graduate. Student has ${kt} uncleared subject${kt === 1 ? "" : "s"}.`
+    );
+  }
+
+  // 2. Attendance Check
+  if (attendanceSnap) {
+    if (attendanceSnap.status === "ATTENDANCE_NOT_AVAILABLE") {
+      blockers.push("Attendance data is not available for this semester.");
+    } else if (attendanceSnap.passed === false) {
+      const pct = roundPercent(attendanceSnap.percentage);
+      const req = roundPercent(attendanceSnap.requiredPercentage ?? 75);
+      blockers.push(`Attendance requirement not met (${pct}% / Required: ${req}%).`);
+    }
+  }
+
+  // 3. Fee Clearance Check
+  if (feeSnap) {
+    if (feeSnap.passed === false) {
+      const pending = Number(feeSnap.pendingAmount || 0);
+      const paidPct = roundPercent(feeSnap.paidPercentage);
+      const reqPct = roundPercent(feeSnap.requiredPaidPercentage ?? 100);
+      blockers.push(
+        pending > 0
+          ? `Pending fee of ₹${pending.toLocaleString()} must be cleared.`
+          : `Fee payment requirement not met (${paidPct}% paid / Required: ${reqPct}%).`
+      );
+    }
+  }
+
+  // 4. Backlog / Previous Year Check
+  if (
+    policySnap?.previousYearClearancePassed === false ||
+    decisionReason === "PREVIOUS_YEAR_BACKLOG_NOT_CLEARED"
+  ) {
+    blockers.push("Previous-year backlogs must be cleared before graduation.");
+  }
+
+  if (blockers.length === 0 && outcome !== "PASS") {
+    blockers.push(formatDecisionReason(decisionReason) || "Academic requirements for graduation not met.");
+  }
+
+  const isEligible = isResultPublished && outcome === "PASS" && blockers.length === 0;
+
+  return { isEligible, blockers };
+}
+
+/**
  * Format promotion outcome for display
  */
 function formatOutcome(outcome) {
@@ -1196,11 +1276,25 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const isReviewableOutcome = (outcome) =>
     outcome === "PASS" || outcome === "ATKT";
 
+  const isFinalSemester = Boolean(
+    eligibilityStudent?.isFinalYear ||
+      (eligibilityStudent?.currentSemester &&
+        eligibilityStudent?.course_id?.durationSemesters &&
+        eligibilityStudent.currentSemester >=
+          eligibilityStudent.course_id.durationSemesters)
+  );
+
   const workflowStatus = eligibilityData?.workflow_status;
   const showConfirmPromotion =
+    !isFinalSemester &&
     eligibilityData &&
     isReviewableOutcome(eligibilityData.promotion_outcome) &&
     workflowStatus !== "PROMOTED";
+
+  const alumniInfo =
+    isFinalSemester && eligibilityData
+      ? getAlumniEligibilityInfo(eligibilityData)
+      : { isEligible: false, blockers: [] };
 
   useEffect(() => {
     fetchEligibleStudents();
@@ -1923,10 +2017,10 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                             <button
                               onClick={() => checkEligibility(student)}
                               className="btn btn-sm btn-primary"
-                              disabled={eligibilityLoading || student.isFinalYear}
+                              disabled={eligibilityLoading}
                               title={
                                 student.isFinalYear
-                                  ? "Student in final year - use Move to Alumni"
+                                  ? "Check final-semester eligibility and Move to Alumni status"
                                   : "Check promotion eligibility and promote student"
                               }
                             >
@@ -2120,8 +2214,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                       <span className="badge badge-secondary">
                         Course: {eligibilityStudent.course_id?.name || "N/A"}
                       </span>
+                      {isFinalSemester && (
+                        <span className="badge badge-warning" style={{ fontWeight: 600 }}>
+                          <FaGraduationCap className="mr-1" /> Final Semester: YES
+                        </span>
+                      )}
                     </div>
-                    {eligibilityStudent.nextAcademicYearLabel && (
+                    {!isFinalSemester && eligibilityStudent.nextAcademicYearLabel && (
                       <div className="promotion-info" style={{ marginTop: "8px" }}>
                         <span className="badge badge-success">
                           Next: {eligibilityStudent.nextAcademicYearLabel} (Sem {eligibilityStudent.currentSemester + 1})
@@ -2130,42 +2229,110 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                     )}
                   </div>
 
-{/* Outcome Badge - Improved UX */}
-                   <div className="outcome-banner" style={getOutcomeBannerStyle(eligibilityData.promotion_outcome)}>
-                     <div className="outcome-banner-content">
-                       <div className="outcome-icon">
-                         {getOutcomeIcon(eligibilityData.promotion_outcome)}
-                       </div>
-                       <div className="outcome-text">
-<div className="outcome-label">
-                            {getOutcomeDisplayLabel(eligibilityData.promotion_outcome, eligibilityData.workflow_status)}
-                          </div>
-                          <div className="outcome-reason">
-                            <div>
-                              <strong>Reason:</strong> {getCompactReasonMessage(eligibilityData)}
-                            </div>
-                            {eligibilityData.workflow_status && eligibilityData.workflow_status !== eligibilityData.promotion_outcome && (
-                              <span className="workflow-badge">
-                                Current Step: {formatWorkflowStatus(eligibilityData.workflow_status)}
-                              </span>
-                            )}
-                          </div>
-                       </div>
-<div className="outcome-actions">
-                          {showConfirmPromotion && (
-                            <button
-                              onClick={openExecuteModal}
-                              className="btn btn-sm btn-confirm-promotion"
-                              disabled={actionLoading}
-                              id="confirm-promotion-btn"
-                              title={`Promote ${eligibilityStudent?.fullName} from Sem ${eligibilityStudent?.currentSemester} to Sem ${(eligibilityStudent?.currentSemester || 0) + 1}`}
-                            >
-                              <FaArrowRight className="mr-1" /> Confirm Promotion
-                            </button>
-                          )}
+{/* Outcome Badge - Dynamically presents Alumni Eligibility for Final Semester, Promotion for Non-Final */}
+                   {isFinalSemester ? (
+                     <div
+                       className="outcome-banner"
+                       style={{
+                         background: alumniInfo.isEligible
+                           ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
+                           : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
+                         color: "white",
+                       }}
+                     >
+                       <div className="outcome-banner-content">
+                         <div className="outcome-icon">
+                           {alumniInfo.isEligible ? "🎓" : "🔴"}
+                         </div>
+                         <div className="outcome-text">
+                           <div className="outcome-label">
+                             {alumniInfo.isEligible
+                               ? "Eligible for Move to Alumni"
+                               : "Not Eligible for Move to Alumni"}
+                           </div>
+                           <div className="outcome-reason" style={{ flexDirection: "column", alignItems: "flex-start", gap: "6px" }}>
+                             <div>
+                               <strong>Reason:</strong>{" "}
+                               {alumniInfo.isEligible
+                                 ? "All graduation requirements satisfied."
+                                 : "Requirements for graduation have not been satisfied."}
+                             </div>
+                             {!alumniInfo.isEligible && alumniInfo.blockers.length > 0 && (
+                               <div style={{ marginTop: "6px", width: "100%", background: "rgba(0,0,0,0.2)", borderRadius: "8px", padding: "10px 14px" }}>
+                                 <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", opacity: 0.95 }}>
+                                   Blockers:
+                                 </div>
+                                 <ul style={{ margin: "4px 0 0 0", paddingLeft: "18px", fontSize: "13px" }}>
+                                   {alumniInfo.blockers.map((blocker, index) => (
+                                     <li key={index} style={{ marginTop: "3px" }}>{blocker}</li>
+                                   ))}
+                                 </ul>
+                               </div>
+                             )}
+                           </div>
+                         </div>
+                         <div className="outcome-actions">
+                           {alumniInfo.isEligible && (
+                             <button
+                               onClick={() => {
+                                 setShowEligibilityModal(false);
+                                 openAlumniModal(eligibilityStudent);
+                               }}
+                               className="btn btn-warning"
+                               style={{
+                                 fontWeight: 700,
+                                 padding: "10px 18px",
+                                 whiteSpace: "nowrap",
+                                 boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                                 display: "inline-flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                               }}
+                               id="move-to-alumni-banner-btn"
+                             >
+                               <FaGraduationCap /> Move to Alumni
+                             </button>
+                           )}
+                         </div>
                        </div>
                      </div>
-                   </div>
+                   ) : (
+                     <div className="outcome-banner" style={getOutcomeBannerStyle(eligibilityData.promotion_outcome)}>
+                       <div className="outcome-banner-content">
+                         <div className="outcome-icon">
+                           {getOutcomeIcon(eligibilityData.promotion_outcome)}
+                         </div>
+                         <div className="outcome-text">
+                           <div className="outcome-label">
+                             {getOutcomeDisplayLabel(eligibilityData.promotion_outcome, eligibilityData.workflow_status)}
+                           </div>
+                           <div className="outcome-reason">
+                             <div>
+                               <strong>Reason:</strong> {getCompactReasonMessage(eligibilityData)}
+                             </div>
+                             {eligibilityData.workflow_status && eligibilityData.workflow_status !== eligibilityData.promotion_outcome && (
+                               <span className="workflow-badge">
+                                 Current Step: {formatWorkflowStatus(eligibilityData.workflow_status)}
+                               </span>
+                             )}
+                           </div>
+                         </div>
+                         <div className="outcome-actions">
+                           {showConfirmPromotion && (
+                             <button
+                               onClick={openExecuteModal}
+                               className="btn btn-sm btn-confirm-promotion"
+                               disabled={actionLoading}
+                               id="confirm-promotion-btn"
+                               title={`Promote ${eligibilityStudent?.fullName} from Sem ${eligibilityStudent?.currentSemester} to Sem ${(eligibilityStudent?.currentSemester || 0) + 1}`}
+                             >
+                               <FaArrowRight className="mr-1" /> Confirm Promotion
+                             </button>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   )}
 
 {/* Compact Eligibility Status */}
                     <div style={{ marginTop: "16px" }}>
@@ -2419,6 +2586,19 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                   id="confirm-promotion-footer-btn"
                 >
                   <FaArrowRight /> Confirm Promotion
+                </button>
+              )}
+              {isFinalSemester && alumniInfo.isEligible && (
+                <button
+                  onClick={() => {
+                    setShowEligibilityModal(false);
+                    openAlumniModal(eligibilityStudent);
+                  }}
+                  className="btn btn-warning"
+                  style={{ flex: 1, fontWeight: 700 }}
+                  id="move-to-alumni-footer-btn"
+                >
+                  <FaGraduationCap /> Move to Alumni
                 </button>
               )}
               <button
