@@ -201,6 +201,103 @@ class NotificationService {
       actionUrl: "/hod/exception-approvals",
     });
   }
+
+  /**
+   * Notify HOD that a timetable is required after student promotion (Issue #533).
+   *
+   * Deduplicates by (college, HOD, semester, academicYear) using the contextual
+   * title and target_users. Ensures duplicate promotions into the same semester
+   * do not spam the HOD.
+   *
+   * @param {Object} params
+   * @param {string} params.collegeId
+   * @param {string} params.actorId       — user who executed the promotion
+   * @param {string} params.actorRole     — role of the actor
+   * @param {ObjectId} params.hodUserId   — HOD's user_id
+   * @param {ObjectId} [params.departmentId]
+   * @param {ObjectId} [params.courseId]
+   * @param {number} params.semester      — target semester
+   * @param {string} params.academicYear  — target academic year
+   * @returns {Promise<Object|null>}       — notification doc or null
+   */
+  async notifyHodTimetableRequiredAfterPromotion({
+    collegeId,
+    actorId,
+    actorRole,
+    hodUserId,
+    departmentId,
+    courseId,
+    semester,
+    academicYear,
+  }) {
+    try {
+      const title = `📅 Timetable Needed: Semester ${semester} (${academicYear})`;
+
+      // Deduplication check: do not create another notification if one already exists for this HOD and semester context
+      const existing = await Notification.findOne({
+        college_id: collegeId,
+        target: "INDIVIDUAL",
+        target_users: hodUserId,
+        title,
+        isActive: true,
+      }).select("_id").lean();
+
+      if (existing) {
+        logger.logInfo("Skipping duplicate HOD timetable notification after promotion", {
+          collegeId,
+          hodUserId: String(hodUserId),
+          semester,
+          academicYear,
+          existingId: existing._id,
+        });
+        return existing;
+      }
+
+      const validRoles = ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "TEACHER", "HOD"];
+      const createdByRole = validRoles.includes(actorRole) ? actorRole : "COLLEGE_ADMIN";
+
+      const notification = await this.createNotification({
+        college_id: collegeId,
+        createdBy: actorId,
+        createdByRole,
+        target: "INDIVIDUAL",
+        target_users: [hodUserId],
+        target_department: departmentId || null,
+        target_course: courseId || null,
+        target_semester: semester,
+        title,
+        message: `Students have been promoted to Semester ${semester} (${academicYear}), but no published timetable exists yet. Please create and publish the timetable.`,
+        type: "ACADEMIC",
+        priority: "HIGH",
+        actionUrl: "/hod/timetable",
+      });
+
+      if (notification) {
+        logger.logInfo("HOD timetable notification sent after promotion", {
+          collegeId,
+          hodUserId: String(hodUserId),
+          semester,
+          academicYear,
+          notificationId: notification._id,
+        });
+      }
+
+      return notification;
+    } catch (error) {
+      // Non-fatal — promotion must never fail because of notification issues.
+      logger.logError(
+        "Failed to send HOD timetable notification after promotion",
+        {
+          error: error.message,
+          collegeId,
+          hodUserId: String(hodUserId),
+          semester,
+          academicYear,
+        },
+      );
+      return null;
+    }
+  }
 }
 
 module.exports = new NotificationService();
