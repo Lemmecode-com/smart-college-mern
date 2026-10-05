@@ -20,6 +20,7 @@ const logger = require("../utils/logger");
 const auditLogService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
 const { createPromotionDecision } = require("../services/promotionDecision.service");
+const { checkAlumniEligibility } = require("../services/alumniEligibility.service");
 
 const {
   processUploadsWithStorage,
@@ -1491,29 +1492,17 @@ exports.moveToAlumni = async (req, res, next) => {
       );
     }
 
-    // Evaluate full promotion eligibility using existing service
-    // This checks: fee clearance, attendance, result completion, KT/backlog limits
-    const promotionDecision = await createPromotionDecision({
-      studentId: student._id,
-      collegeId: req.college_id,
-      userId: req.user.id,
-    });
-
-    // Require final semester result to be available and complete
-    if (promotionDecision.result_status !== "FOUND") {
+    // Revalidate authoritative Alumni Eligibility using dedicated service
+    const eligibility = await checkAlumniEligibility(student._id, req.college_id);
+    if (!eligibility.eligible) {
+      const reasonMsg =
+        eligibility.blockers?.map((b) => b.message).join("; ") ||
+        eligibility.message ||
+        "Student is not eligible for Alumni status.";
       throw new AppError(
-        "Final semester results not available or incomplete. Cannot move to Alumni.",
-        400,
-        "RESULT_INCOMPLETE",
-      );
-    }
-
-    // Require promotion outcome to be PASS (all conditions satisfied)
-    if (promotionDecision.promotion_outcome !== "PASS") {
-      throw new AppError(
-        `Student not eligible for Alumni: ${promotionDecision.decision_reason}`,
-        400,
-        "NOT_ELIGIBLE_FOR_ALUMNI",
+        `Student not eligible for Alumni: ${reasonMsg}`,
+        409,
+        "ALUMNI_ELIGIBILITY_FAILED",
       );
     }
 
