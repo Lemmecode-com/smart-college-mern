@@ -1471,7 +1471,7 @@ exports.moveToAlumni = async (req, res, next) => {
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).populate("course_id", "name code durationSemesters");
 
     if (!student) {
