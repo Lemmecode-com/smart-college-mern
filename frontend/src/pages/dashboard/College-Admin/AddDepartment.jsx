@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -20,7 +21,7 @@ import {
   FaToggleOff,
   FaBookOpen,
   FaSync,
-  FaTimes,
+ 
   FaExclamationTriangle,
   FaSpinner,
   FaMagic,
@@ -243,154 +244,27 @@ export default function AddDepartment() {
           onGoBack={() => navigate(-1)}
         />
       )}
-{/* ================= PAGE HEADER ================= */}
-{/* ================= PAGE HEADER ================= */}
-<div
-  className="d-flex flex-column flex-lg-row align-items-center justify-content-between"
-  style={{
-    background: "#0E3746",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 8px 24px rgba(15,69,83,0.18)",
-    padding: "1.5rem 1.75rem",
-    marginBottom: "1.25rem",
-    position: "relative",
-    overflow: "hidden",
-    gap: "1rem",
-    borderRadius: "15px",
-  }}
->
-  {/* Left side: Icon + Title */}
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "0.9rem",
-      minWidth: 0,
-    }}
-  >
-    <div
-      style={{
-        width: "52px",
-        height: "52px",
-        borderRadius: "50%",
-        background: "rgba(255,255,255,0.12)",
-        color: "#ffffff",
-        border: "1px solid rgba(255,255,255,0.08)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "1.35rem",
-        flexShrink: 0,
-      }}
-    >
-      <FaBuilding />
-    </div>
 
-    <div style={{ minWidth: 0 }}>
-      <h1
-        style={{
-          fontSize: "1.4rem",
-          fontWeight: 700,
-          margin: 0,
-          color: "#ffffff",
-          lineHeight: 1.2,
-        }}
-      >
-        Add New Department
-      </h1>
+      {/* ================= PAGE HEADER ================= */}
 
-      <p
-        style={{
-          margin: "0.3rem 0 0",
-          fontSize: "0.85rem",
-          color: "rgba(255,255,255,0.72)",
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-        }}
-      >
-        <FaGraduationCap size={13} />
-        Create and configure a new academic department
-      </p>
-    </div>
-  </div>
-
-  {/* Right side: Actions */}
-  <div
-    style={{
-      display: "flex",
-      alignItems: "center",
-      gap: "0.6rem",
-      flexWrap: "wrap",
-      flexShrink: 0,
-    }}
-  >
-    <button
-      onClick={() => setShowHelp(!showHelp)}
-      title="Department Creation Help"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "0.5rem",
-        padding: "0.6rem 1.1rem",
-        borderRadius: "10px",
-        border: "1px solid rgba(255,255,255,0.22)",
-        background: "rgba(255,255,255,0.12)",
-        color: "#ffffff",
-        fontSize: "0.85rem",
-        fontWeight: 600,
-        cursor: "pointer",
-        transition: "all 0.2s ease",
-        
-      }}
-        onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.15)";
-      }}
-
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "none";
-      }}
-    >
-      
-      <FaInfoCircle size={15} />
-      Help
-    </button>
-
-    <button
-      onClick={() => navigate("/departments")}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "0.5rem",
-        padding: "0.6rem 1.1rem",
-        borderRadius: "10px",
-        border: "1px solid rgba(255,255,255,0.22)",
-        background: "rgba(255,255,255,0.12)",
-        color: "#ffffff",
-        fontSize: "0.85rem",
-        fontWeight: 600,
-        cursor: "pointer",
-        transition: "all 0.2s ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 4px 10px rgba(0, 0, 0, 0.15)";
-      }}
-
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "none";
-      }}
-    >
-      <FaTimes size={15} />
-      Cancel
-    </button>
-  </div>
-</div>
+        <PageHeader
+          icon={FaBuilding}
+          title="Add New Department"
+          subtitle="Create and configure a new academic department"
+          onBack={() => navigate("/departments")}
+          backLabel="Back to Departments"
+          actions={
+            <button
+              type="button"
+              onClick={() => setShowHelp(!showHelp)}
+              title="Department Creation Help"
+              className="department-header-help"
+            >
+              <FaInfoCircle />
+              <span>Help</span>
+            </button>
+          }
+        />
 
       {/* ================= HELP SECTION ================= */}
       {showHelp && (
@@ -998,7 +872,28 @@ export default function AddDepartment() {
         .cursor-help {
           cursor: help;
         }
+        .department-header-help {
+  min-height: 48px;
+  padding: 0 20px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
 
+.department-header-help:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.12);
+}
         @media (max-width: 768px) {
           .programs-grid {
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
