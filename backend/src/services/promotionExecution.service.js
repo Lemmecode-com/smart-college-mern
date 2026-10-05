@@ -25,6 +25,10 @@ const {
 } = require("./promotionDecision.service");
 const { getAttendanceDataForStudents } = require("./attendance.service");
 const { createBacklogsForPromotionDecision } = require("./backlog.service");
+const {
+  checkTimetableAvailabilityAfterPromotion,
+} = require("./promotionTimetable.service");
+const logger = require("../utils/logger");
 
 const assertExecutionRole = (actorRole) => {
   const normalizedRole = String(actorRole || "").toUpperCase();
@@ -714,6 +718,21 @@ const executePromotion = async ({
         actorRole,
         toSemester: result.newSemester,
         newAcademicYear: result.student.currentAcademicYear,
+      });
+
+      // Issue #533: Non-blocking timetable availability check & HOD notification
+      checkTimetableAvailabilityAfterPromotion({
+        student: result.student,
+        actorId,
+        actorRole,
+        collegeId: result.decision.college_id,
+        toSemester: result.newSemester,
+        newAcademicYear: result.student.currentAcademicYear,
+      }).catch((err) => {
+        logger.logError(
+          "[EXECUTE_PROMOTION] Timetable availability check failed",
+          { error: err.message },
+        );
       });
     }
     return result;
