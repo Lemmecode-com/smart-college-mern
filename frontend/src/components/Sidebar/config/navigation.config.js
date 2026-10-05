@@ -413,6 +413,12 @@ export const navigationConfig = {
             exact: true,
           },
           {
+            path: "/system-settings/alumni",
+            icon: FaGraduationCap,
+            label: "Alumni Settings",
+            exact: true,
+          },
+          {
             path: "/system-settings/fees",
             icon: FaMoneyBill,
             label: "Fee Settings",

@@ -4,7 +4,7 @@ import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
 import { AuthContext } from "../../../../auth/AuthContext";
 import { logger } from "../../../../utils/logger";
-import { showError } from "../../../../utils/toast";
+import { showError, showSuccess } from "../../../../utils/toast";
 import Breadcrumb from "../../../../components/Breadcrumb";
 import {
   FaCalendarAlt,
@@ -241,7 +241,7 @@ export default function CreateTimetable() {
          division: form.division,
        });
 
-       setSuccess("✅ Timetable created successfully! Redirecting to timetable management...");
+       showSuccess("Timetable created successfully!");
 
         const timetableId = response.data.timetable?._id;
 

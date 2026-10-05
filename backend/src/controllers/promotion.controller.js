@@ -1,9 +1,6 @@
 const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
-const FeeStructure = require("../models/feeStructure.model");
 const PromotionHistory = require("../models/promotionHistory.model");
-const Notification = require("../models/notification.model");
-const Course = require("../models/course.model");
 const {
   getAttendanceDataForStudents,
 } = require("../services/attendance.service");
@@ -15,6 +12,15 @@ const {
   evaluateAttendanceData,
   createPromotionDecision,
 } = require("../services/promotionDecision.service");
+const {
+  submitPromotionRecommendation,
+  approvePromotionDecision,
+} = require("../services/promotionWorkflow.service");
+const {
+  executePromotion,
+} = require("../services/promotionExecution.service");
+const { ROLE } = require("../utils/constants");
+const logger = require("../utils/logger");
 
 const ATTENDANCE_THRESHOLD = 75;
 const ATTENDANCE_STATUS = {
@@ -42,108 +48,7 @@ function getAcademicYearLabel(semester) {
   return `${year}${suffix} Year`;
 }
 
-/**
- * Helper: attempt to assign a new fee structure to student after promotion
- * Returns: { newFeeAssigned, newFeeStructureId, newStudentFeeId, feeAssignmentWarning }
- */
-async function assignFeeAfterPromotion(
-  student,
-  toSemester,
-  newAcademicYear,
-  college_id,
-) {
-  try {
-    // Look for fee structure matching course + category (+ optional academicYear)
-    const feeStructureQuery = {
-      college_id,
-      course_id: student.course_id._id || student.course_id,
-      category: student.category,
-    };
 
-    // Prefer year-specific fee structure if available
-    const yearSpecific = await FeeStructure.findOne({
-      ...feeStructureQuery,
-      academicYear: newAcademicYear,
-    });
-
-    const feeStructure =
-      yearSpecific || (await FeeStructure.findOne(feeStructureQuery));
-
-    if (!feeStructure) {
-      return {
-        newFeeAssigned: false,
-        newFeeStructureId: null,
-        newStudentFeeId: null,
-        feeAssignmentWarning: `No fee structure found for course "${student.course_id?.name || student.course_id}" and category "${student.category}" for academic year ${newAcademicYear}. Please set up fee structure manually.`,
-      };
-    }
-
-    // Create new StudentFee record for the new academic year
-    const newStudentFee = await StudentFee.create({
-      student_id: student._id,
-      college_id,
-      course_id: student.course_id._id || student.course_id,
-      totalFee: feeStructure.totalFee,
-      paidAmount: 0,
-      installments: feeStructure.installments.map((inst) => ({
-        name: inst.name,
-        amount: inst.amount,
-        order: inst.order,
-        dueDate: inst.dueDate,
-        status: "PENDING",
-      })),
-    });
-
-    return {
-      newFeeAssigned: true,
-      newFeeStructureId: feeStructure._id,
-      newStudentFeeId: newStudentFee._id,
-      feeAssignmentWarning: null,
-    };
-  } catch (err) {
-    return {
-      newFeeAssigned: false,
-      newFeeStructureId: null,
-      newStudentFeeId: null,
-      feeAssignmentWarning: `Fee assignment failed: ${err.message}`,
-    };
-  }
-}
-
-/**
- * Helper: send promotion notification to a student (fire-and-forget)
- */
-async function sendPromotionNotification(
-  student,
-  toSemester,
-  toYearLabel,
-  newAcademicYear,
-  adminId,
-  adminName,
-  college_id,
-) {
-  try {
-    if (!student.user_id) return; // student has no linked user account yet
-    await Notification.create({
-      college_id,
-      createdBy: adminId,
-      createdByRole: "COLLEGE_ADMIN",
-      target: "INDIVIDUAL",
-      target_users: [student.user_id],
-      title: "🎓 Promotion Confirmed",
-      message: `Congratulations ${student.fullName}! You have been promoted to ${toYearLabel} (Semester ${toSemester}, ${newAcademicYear}) by ${adminName}.`,
-      type: "ACADEMIC",
-      priority: "HIGH",
-      actionUrl: "/student/dashboard",
-    });
-  } catch (err) {
-    // Notification failure must never break promotion — log only
-    console.error(
-      `[PROMOTION] Notification failed for student ${student._id}:`,
-      err.message,
-    );
-  }
-}
 
 /**
  * Helper function to get ordinal suffix (st, nd, rd, th)
@@ -465,17 +370,8 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
 };
 
 /**
- * PROMOTE STUDENT to next semester
- * Only accessible by COLLEGE_ADMIN
- *
- * Logic:
- * 1. Check if student exists and is approved
- * 2. Get max semester from course
- * 3. Check if student is in final semester - if yes, move to Alumni
- * 4. Check fee payment status
- * 5. If all installments are paid OR admin overrides, allow promotion
- * 6. Update student's semester and academic year
- * 7. Create promotion history record
+ * PROMOTE STUDENT to next semester (authoritatively delegates to decision engine)
+ * Only accessible by COLLEGE_ADMIN and ADMISSION_OFFICER
  */
 exports.promoteStudent = async (req, res, next) => {
   try {
@@ -487,13 +383,13 @@ exports.promoteStudent = async (req, res, next) => {
       overrideAttendanceReason,
     } = req.body;
 
-    // 1. Find student
+    // 1. Find and validate student under current college tenant
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
       status: { $in: ["APPROVED", "ENROLLED"] },
     })
-      .populate("course_id", "name code semester")
+      .populate("course_id", "name code semester durationSemesters")
       .populate("department_id", "name code");
 
     if (!student) {
@@ -504,10 +400,8 @@ exports.promoteStudent = async (req, res, next) => {
       );
     }
 
-    // 2. Get max semester from course duration (dynamic based on course)
+    // 2. Check if already at max semester - move to Alumni
     const maxSemester = student.course_id?.durationSemesters || 8;
-
-    // 3. Check if already at max semester - move to Alumni
     if (student.currentSemester >= maxSemester) {
       throw new AppError(
         "Student has completed the course. Moving to alumni status requires separate process.",
@@ -516,142 +410,147 @@ exports.promoteStudent = async (req, res, next) => {
       );
     }
 
-    // 3b. Check if this is the last semester promotion (moving to final sem)
-    const isMovingToFinalSemester = student.currentSemester + 1 === maxSemester;
+    const actorId = req.user?.id || req.user?._id;
+    const actorRole = req.user?.role || ROLE.COLLEGE_ADMIN;
+    const actorName = req.user?.name || req.user?.email || "Admin";
 
-    // 4. Get fee details
-    const fee = await StudentFee.findOne({
-      student_id: studentId,
-      college_id: req.college_id,
+    // 3. Create or refresh authoritative PromotionDecision
+    const decision = await createPromotionDecision({
+      studentId: student._id,
+      collegeId: req.college_id,
+      userId: actorId,
+      overrideFeeCheck: Boolean(overrideFeeCheck),
+      overrideAttendanceCheck: Boolean(overrideAttendanceCheck),
+      overrideAttendanceReason,
     });
 
-    const feeClearance = calculateFeeClearanceData(fee);
-    const feeStatus = feeClearance.status;
-    const allInstallmentsPaid = feeClearance.cleared;
-    const pendingAmount = feeClearance.pendingAmount;
+    // 4. Inspect calculated outcome. Only PASS and ATKT are executable.
+    if (!["PASS", "ATKT"].includes(decision.promotion_outcome)) {
+      if (
+        decision.result_status === "NO_RESULT" ||
+        decision.promotion_outcome === "NO_RESULT"
+      ) {
+        throw new AppError(
+          "No published semester result found for this student.",
+          400,
+          "NO_RESULT",
+        );
+      }
+      if (
+        decision.result_status === "INCOMPLETE" ||
+        decision.promotion_outcome === "INCOMPLETE"
+      ) {
+        throw new AppError(
+          "Semester result is incomplete.",
+          400,
+          "RESULT_INCOMPLETE",
+        );
+      }
+      if (
+        decision.result_status === "AMBIGUOUS_RESULT" ||
+        decision.promotion_outcome === "AMBIGUOUS_RESULT"
+      ) {
+        throw new AppError(
+          "Multiple published semester results found for this student.",
+          400,
+          "AMBIGUOUS_RESULT",
+        );
+      }
+      if (decision.decision_reason === "KT_LIMIT_EXCEEDED") {
+        const limit =
+          decision.policy_snapshot?.resolvedMaxAllowedKTs ??
+          decision.policy_snapshot?.maxAllowedKTs ??
+          0;
+        throw new AppError(
+          `Student has exceeded the maximum allowed KT limit of ${limit} KTs.`,
+          400,
+          "KT_LIMIT_EXCEEDED",
+        );
+      }
+      if (decision.decision_reason === "PREVIOUS_YEAR_BACKLOG_NOT_CLEARED") {
+        throw new AppError(
+          "Previous-year backlogs are not fully cleared.",
+          400,
+          "PREVIOUS_YEAR_BACKLOG_NOT_CLEARED",
+        );
+      }
+      if (decision.decision_reason === "ATTENDANCE_INSUFFICIENT") {
+        const threshold =
+          decision.attendance_snapshot?.requiredPercentage || 75;
+        throw new AppError(
+          `Student attendance is below the required threshold of ${threshold}%.`,
+          400,
+          "ATTENDANCE_INSUFFICIENT",
+        );
+      }
+      if (decision.decision_reason === "ATTENDANCE_NOT_AVAILABLE") {
+        throw new AppError(
+          "Attendance records are not available for this student.",
+          400,
+          "ATTENDANCE_NOT_AVAILABLE",
+        );
+      }
+      if (decision.decision_reason === "FEE_NOT_CLEARED") {
+        const pending = decision.fee_clearance_snapshot?.pendingAmount || 0;
+        throw new AppError(
+          `Student has pending fees of ₹${pending}. Please clear all dues or use override option.`,
+          400,
+          "FEE_PENDING",
+        );
+      }
 
-    const threshold = await getPromotionThreshold(req.college_id);
-    const attendanceData = (
-      await getAttendanceDataForStudents([student], req.college_id)
-    )[0];
-    const attendanceStatus = getAttendanceStatus(attendanceData, threshold);
-    const attendanceOverrideReason = validateAttendanceOverride(
-      overrideAttendanceCheck,
-      overrideAttendanceReason,
-      attendanceStatus,
-    );
-
-    // 5. Check fee payment (can be overridden by admin)
-    if (!allInstallmentsPaid && !overrideFeeCheck) {
       throw new AppError(
-        `Student has pending fees of ₹${pendingAmount}. Please clear all dues or use override option.`,
+        `Student is not eligible for promotion: ${decision.decision_reason || decision.promotion_outcome}`,
         400,
-        "FEE_PENDING",
+        decision.decision_reason || "PROMOTION_NOT_ELIGIBLE",
       );
     }
 
-    if (attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE) {
-      throw new AppError(
-        `Student attendance is below the required threshold of ${threshold}%.`,
-        400,
-        "ATTENDANCE_INSUFFICIENT",
-      );
-    }
-
+    // 5. Auto-approve decision if in reviewable status
     if (
-      attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
-      !overrideAttendanceCheck
+      decision.workflow_status === "DRAFT" ||
+      decision.workflow_status === "RECOMMENDED" ||
+      decision.workflow_status === "UNDER_REVIEW"
     ) {
-      throw new AppError(
-        "Attendance records are not available for this student.",
-        400,
-        "ATTENDANCE_NOT_AVAILABLE",
-      );
+      if (decision.workflow_status === "DRAFT") {
+        await submitPromotionRecommendation({
+          decisionId: decision._id,
+          collegeId: req.college_id,
+          actorId,
+          actorRole,
+          comment: remarks || "Auto-recommended via legacy promotion endpoint.",
+          request: req,
+        });
+      }
+      await approvePromotionDecision({
+        decisionId: decision._id,
+        collegeId: req.college_id,
+        actorId,
+        actorRole,
+        comment: remarks || "Auto-approved via legacy promotion endpoint.",
+        request: req,
+      });
     }
 
-    // 6. Calculate new semester and academic year
-    const fromSemester = student.currentSemester;
-    const fromAcademicYear = student.currentAcademicYear;
-    const toSemester = fromSemester + 1;
+    // 6. Execute promotion authoritatively
+    const executionResult = await executePromotion({
+      decisionId: decision._id,
+      collegeId: req.college_id,
+      actorId,
+      actorRole,
+      actorName,
+      request: req,
+    });
 
-    // Parse current academic year
-    const [currentAcademicYearStart] = fromAcademicYear.split("-").map(Number);
-
-    // Calculate new academic year (increment if moving to odd semester after even)
-    let newAcademicYearStart = currentAcademicYearStart;
-    if (fromSemester % 2 === 0) {
-      // Moving from even to odd semester (e.g., 2 -> 3, 4 -> 5)
-      newAcademicYearStart = currentAcademicYearStart + 1;
-    }
-    const newAcademicYear = `${newAcademicYearStart}-${newAcademicYearStart + 1}`;
-
-    // 7. Update student record
-    student.currentSemester = toSemester;
-    student.currentAcademicYear = newAcademicYear;
-    student.lastPromotionDate = new Date();
-
-    await student.save();
-
-    // 8. Calculate year labels
+    const history = executionResult.promotionHistory || {};
+    const fromSemester =
+      executionResult.previousSemester || history.fromSemester;
+    const toSemester = executionResult.newSemester || history.toSemester;
+    const fromAcademicYear = history.fromAcademicYear;
+    const toAcademicYear = history.toAcademicYear;
     const fromYearLabel = getAcademicYearLabel(fromSemester);
     const toYearLabel = getAcademicYearLabel(toSemester);
-
-    // 9. Assign fee structure for new semester
-    const feeAssignment = await assignFeeAfterPromotion(
-      student,
-      toSemester,
-      newAcademicYear,
-      req.college_id,
-    );
-
-    const attendanceSnapshot = getAttendanceSnapshot(
-      attendanceData,
-      attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
-      attendanceOverrideReason,
-      threshold,
-    );
-
-    // 10. Create promotion history record
-    const promotionRecord = await PromotionHistory.create({
-      student_id: student._id,
-      college_id: req.college_id,
-      course_id: student.course_id,
-      fromSemester,
-      toSemester,
-      fromAcademicYear,
-      toAcademicYear: newAcademicYear,
-      feeStatus,
-      totalFee: fee ? fee.totalFee : 0,
-      paidAmount: fee ? fee.paidAmount : 0,
-      pendingAmount,
-      ...attendanceSnapshot,
-      promotedBy: req.user.id,
-      promotedByName: req.user.name || req.user.email || "Admin",
-      promotionDate: new Date(),
-      remarks: remarks || null,
-      status: "ACTIVE",
-      isFinalSemesterPromotion: isMovingToFinalSemester,
-      newFeeAssigned: feeAssignment.newFeeAssigned,
-      newFeeStructureId: feeAssignment.newFeeStructureId,
-      newStudentFeeId: feeAssignment.newStudentFeeId,
-      feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
-    });
-
-    // 11. Add to student's promotion history array
-    student.promotionHistory.push(promotionRecord._id);
-    await student.save();
-
-    // 12. Send notification to student (non-blocking)
-    const adminName = req.user.name || req.user.email || "Admin";
-    sendPromotionNotification(
-      student,
-      toSemester,
-      toYearLabel,
-      newAcademicYear,
-      req.user.id,
-      adminName,
-      req.college_id,
-    );
+    const isMovingToFinalSemester = toSemester === maxSemester;
 
     ApiResponse.success(
       res,
@@ -662,17 +561,24 @@ exports.promoteStudent = async (req, res, next) => {
           fromYearLabel,
           toYearLabel,
           fromAcademicYear,
-          toAcademicYear: newAcademicYear,
-          feeStatus,
-          pendingAmount,
-          ...attendanceSnapshot,
-          promotedBy: req.user.name,
-          promotionDate: promotionRecord.promotionDate,
-          remarks,
+          toAcademicYear,
+          feeStatus: history.feeStatus,
+          pendingAmount: history.pendingAmount,
+          attendancePercentage: history.attendancePercentage,
+          attendanceStatus: history.attendanceStatus,
+          attendanceCheckedAt: history.attendanceCheckedAt,
+          attendanceOverridden: history.attendanceOverridden,
+          attendanceOverrideReason: history.attendanceOverrideReason,
+          promotedBy: history.promotedByName || actorName,
+          promotionDate: history.promotionDate,
+          remarks: history.remarks || remarks,
           isFinalSemesterPromotion: isMovingToFinalSemester,
           maxSemester,
-          newFeeAssigned: feeAssignment.newFeeAssigned,
-          feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
+          newFeeAssigned:
+            executionResult.newFeeAssigned ?? history.newFeeAssigned,
+          feeAssignmentWarning:
+            executionResult.feeAssignmentWarning ?? history.feeAssignmentWarning,
+          promotionDecisionId: decision._id,
         },
       },
       isMovingToFinalSemester
@@ -685,8 +591,8 @@ exports.promoteStudent = async (req, res, next) => {
 };
 
 /**
- * BULK PROMOTE multiple students at once
- * Only accessible by COLLEGE_ADMIN
+ * BULK PROMOTE multiple students at once (authoritative batch adapter)
+ * Only accessible by COLLEGE_ADMIN and ADMISSION_OFFICER
  */
 exports.bulkPromoteStudents = async (req, res, next) => {
   try {
@@ -711,12 +617,15 @@ exports.bulkPromoteStudents = async (req, res, next) => {
       failed: [],
     };
 
-    const threshold = await getPromotionThreshold(req.college_id);
+    const actorId = req.user?.id || req.user?._id;
+    const actorRole = req.user?.role || ROLE.COLLEGE_ADMIN;
+    const actorName = req.user?.name || req.user?.email || "Admin";
 
-    // Process each student
+    // Process students sequentially; each student has independent execution
     for (const studentId of studentIds) {
+      let student = null;
       try {
-        const student = await Student.findOne({
+        student = await Student.findOne({
           _id: studentId,
           college_id: req.college_id,
           status: { $in: ["APPROVED", "ENROLLED"] },
@@ -727,166 +636,162 @@ exports.bulkPromoteStudents = async (req, res, next) => {
             studentId,
             studentName: "Unknown",
             reason: "Student not found or not approved",
+            reasons: ["Student not found or not approved"],
+            code: "STUDENT_NOT_FOUND",
           });
           continue;
         }
 
-        // Get max semester from course duration
         const maxSemester = student.course_id?.durationSemesters || 8;
-
         if (student.currentSemester >= maxSemester) {
           results.failed.push({
             studentId,
             studentName: student.fullName,
             reason: "Already in final semester - ready for Alumni",
+            reasons: ["Already in final semester - ready for Alumni"],
+            code: "ALREADY_FINAL_SEMESTER",
           });
           continue;
         }
 
-        // Check if this is the last semester promotion
-        const isMovingToFinalSemester =
-          student.currentSemester + 1 === maxSemester;
-
-        // Check fee
-        const fee = await StudentFee.findOne({
-          student_id: studentId,
-          college_id: req.college_id,
+        // Create or refresh decision
+        const decision = await createPromotionDecision({
+          studentId: student._id,
+          collegeId: req.college_id,
+          userId: actorId,
+          overrideFeeCheck: Boolean(overrideFeeCheck),
+          overrideAttendanceCheck: Boolean(overrideAttendanceCheck),
+          overrideAttendanceReason,
         });
-        const feeClearance = calculateFeeClearanceData(fee);
-        const allInstallmentsPaid = feeClearance.cleared;
-        const feeStatus = feeClearance.status;
-        const pendingAmount = feeClearance.pendingAmount;
 
-        // Collect all rejection reasons for this student
-        const rejectionReasons = [];
+        // Inspect outcome: only PASS and ATKT are executable
+        if (!["PASS", "ATKT"].includes(decision.promotion_outcome)) {
+          const rejectionReasons = [];
 
-        if (!allInstallmentsPaid && !overrideFeeCheck) {
-          rejectionReasons.push(`Pending fees: ₹${pendingAmount}`);
-        }
+          if (
+            decision.result_status === "NO_RESULT" ||
+            decision.promotion_outcome === "NO_RESULT"
+          ) {
+            rejectionReasons.push(
+              "No published semester result found for this student",
+            );
+          } else if (
+            decision.result_status === "INCOMPLETE" ||
+            decision.promotion_outcome === "INCOMPLETE"
+          ) {
+            rejectionReasons.push("Semester result is incomplete");
+          } else if (
+            decision.result_status === "AMBIGUOUS_RESULT" ||
+            decision.promotion_outcome === "AMBIGUOUS_RESULT"
+          ) {
+            rejectionReasons.push("Multiple published semester results found");
+          }
 
-        const attendanceData = (
-          await getAttendanceDataForStudents([student], req.college_id)
-        )[0];
-        const attendanceStatus = getAttendanceStatus(attendanceData, threshold);
-        let attendanceOverrideReason = null;
+          if (decision.decision_reason === "KT_LIMIT_EXCEEDED") {
+            const limit =
+              decision.policy_snapshot?.resolvedMaxAllowedKTs ??
+              decision.policy_snapshot?.maxAllowedKTs ??
+              0;
+            rejectionReasons.push(
+              `KT limit exceeded: ${decision.kt_count} KT(s) (maximum allowed: ${limit})`,
+            );
+          }
 
-        try {
-          attendanceOverrideReason = validateAttendanceOverride(
-            overrideAttendanceCheck,
-            overrideAttendanceReason,
-            attendanceStatus,
-          );
-        } catch (error) {
-          results.failed.push({
-            studentId,
-            studentName: student.fullName,
-            reason: error.message,
-            code: error.code,
-          });
-          continue;
-        }
+          if (
+            decision.decision_reason === "PREVIOUS_YEAR_BACKLOG_NOT_CLEARED"
+          ) {
+            rejectionReasons.push(
+              "Previous-year backlogs are not fully cleared",
+            );
+          }
 
-        if (attendanceStatus === ATTENDANCE_STATUS.NOT_ELIGIBLE) {
-          rejectionReasons.push(
-            `Attendance insufficient: ${attendanceData.percentage}% (minimum ${threshold}% required)`,
-          );
-        }
+          if (
+            decision.attendance_snapshot &&
+            !decision.attendance_snapshot.passed
+          ) {
+            if (decision.attendance_snapshot.status === "NOT_ELIGIBLE") {
+              rejectionReasons.push(
+                `Attendance insufficient: ${decision.attendance_snapshot.percentage}% (minimum ${decision.attendance_snapshot.requiredPercentage}% required)`,
+              );
+            } else {
+              rejectionReasons.push("Attendance records are not available");
+            }
+          }
 
-        if (
-          attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE &&
-          !overrideAttendanceCheck
-        ) {
-          rejectionReasons.push("Attendance records are not available");
-        }
+          if (
+            decision.fee_clearance_snapshot &&
+            !decision.fee_clearance_snapshot.passed
+          ) {
+            rejectionReasons.push(
+              `Pending fees: ₹${decision.fee_clearance_snapshot.pendingAmount}`,
+            );
+          }
 
-        // If there are any rejection reasons, the student cannot be promoted
-        if (rejectionReasons.length > 0) {
+          if (rejectionReasons.length === 0) {
+            rejectionReasons.push(
+              decision.decision_reason ||
+                decision.promotion_outcome ||
+                "Student is not eligible for promotion",
+            );
+          }
+
           results.failed.push({
             studentId,
             studentName: student.fullName,
             reason: rejectionReasons[0],
             reasons: rejectionReasons,
+            code: decision.decision_reason || decision.promotion_outcome,
           });
           continue;
         }
 
-        // Promote
-        const fromSemester = student.currentSemester;
-        const fromAcademicYear = student.currentAcademicYear;
-        const toSemester = fromSemester + 1;
-
-        const [currentAcademicYearStart] = fromAcademicYear
-          .split("-")
-          .map(Number);
-        let newAcademicYearStart = currentAcademicYearStart;
-        if (fromSemester % 2 === 0) {
-          newAcademicYearStart = currentAcademicYearStart + 1;
+        // PASS / ATKT: Auto-approve if in reviewable status
+        if (
+          decision.workflow_status === "DRAFT" ||
+          decision.workflow_status === "RECOMMENDED" ||
+          decision.workflow_status === "UNDER_REVIEW"
+        ) {
+          if (decision.workflow_status === "DRAFT") {
+            await submitPromotionRecommendation({
+              decisionId: decision._id,
+              collegeId: req.college_id,
+              actorId,
+              actorRole,
+              comment:
+                remarks ||
+                `Auto-recommended as part of bulk promotion - ${new Date().toLocaleDateString()}`,
+              request: req,
+            });
+          }
+          await approvePromotionDecision({
+            decisionId: decision._id,
+            collegeId: req.college_id,
+            actorId,
+            actorRole,
+            comment:
+              remarks ||
+              `Auto-approved as part of bulk promotion - ${new Date().toLocaleDateString()}`,
+            request: req,
+          });
         }
-        const newAcademicYear = `${newAcademicYearStart}-${newAcademicYearStart + 1}`;
 
-        student.currentSemester = toSemester;
-        student.currentAcademicYear = newAcademicYear;
-        student.lastPromotionDate = new Date();
-        await student.save();
-
-        const fromYearLabel = getAcademicYearLabel(fromSemester);
-        const toYearLabel = getAcademicYearLabel(toSemester);
-
-        // Assign fee structure for new semester
-        const feeAssignment = await assignFeeAfterPromotion(
-          student,
-          toSemester,
-          newAcademicYear,
-          req.college_id,
-        );
-
-        const attendanceSnapshot = getAttendanceSnapshot(
-          attendanceData,
-          attendanceStatus === ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
-          attendanceOverrideReason,
-          threshold,
-        );
-
-        const promotionRecord = await PromotionHistory.create({
-          student_id: student._id,
-          college_id: req.college_id,
-          course_id: student.course_id,
-          fromSemester,
-          toSemester,
-          fromAcademicYear,
-          toAcademicYear: newAcademicYear,
-          feeStatus,
-          totalFee: fee ? fee.totalFee : 0,
-          paidAmount: fee ? fee.paidAmount : 0,
-          pendingAmount,
-          ...attendanceSnapshot,
-          promotedBy: req.user.id,
-          promotedByName: req.user.name || req.user.email || "Admin",
-          promotionDate: new Date(),
-          remarks:
-            remarks || `Bulk promotion - ${new Date().toLocaleDateString()}`,
-          status: "ACTIVE",
-          isFinalSemesterPromotion: isMovingToFinalSemester,
-          newFeeAssigned: feeAssignment.newFeeAssigned,
-          newFeeStructureId: feeAssignment.newFeeStructureId,
-          newStudentFeeId: feeAssignment.newStudentFeeId,
-          feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
+        // Authoritatively execute promotion (individual transaction per student)
+        const executionResult = await executePromotion({
+          decisionId: decision._id,
+          collegeId: req.college_id,
+          actorId,
+          actorRole,
+          actorName,
+          request: req,
         });
 
-        student.promotionHistory.push(promotionRecord._id);
-        await student.save();
-
-        // Send notification (non-blocking)
-        const adminName = req.user.name || req.user.email || "Admin";
-        sendPromotionNotification(
-          student,
-          toSemester,
-          toYearLabel,
-          newAcademicYear,
-          req.user.id,
-          adminName,
-          req.college_id,
-        );
+        const history = executionResult.promotionHistory || {};
+        const fromSemester =
+          executionResult.previousSemester || history.fromSemester;
+        const toSemester = executionResult.newSemester || history.toSemester;
+        const fromYearLabel = getAcademicYearLabel(fromSemester);
+        const toYearLabel = getAcademicYearLabel(toSemester);
+        const isMovingToFinalSemester = toSemester === maxSemester;
 
         results.success.push({
           studentId,
@@ -896,13 +801,19 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           fromYearLabel,
           toYearLabel,
           isFinalSemesterPromotion: isMovingToFinalSemester,
-          newFeeAssigned: feeAssignment.newFeeAssigned,
-          feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
+          newFeeAssigned:
+            executionResult.newFeeAssigned ?? history.newFeeAssigned,
+          feeAssignmentWarning:
+            executionResult.feeAssignmentWarning ?? history.feeAssignmentWarning,
+          promotionDecisionId: decision._id,
         });
-      } catch (error) {
+      } catch (studentError) {
         results.failed.push({
           studentId,
-          reason: error.message,
+          studentName: student ? student.fullName : "Unknown",
+          reason: studentError.message,
+          reasons: [studentError.message],
+          code: studentError.code || "PROMOTION_ERROR",
         });
       }
     }
