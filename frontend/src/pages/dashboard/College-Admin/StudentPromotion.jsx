@@ -55,6 +55,15 @@ function getOrdinalSuffix(num) {
   return "th";
 }
 
+/**
+ * Helper function to get academic year label based on semester and optional year
+ * Returns: 1st Year, 2nd Year, 3rd Year, 4th Year, etc.
+ */
+function getAcademicYearLabel(semester, year) {
+  const y = year || Math.ceil(Number(semester || 1) / 2);
+  return `${y}${getOrdinalSuffix(y)} Year`;
+}
+
 const ATTENDANCE_STATUS = {
   ELIGIBLE: "ELIGIBLE",
   NOT_ELIGIBLE: "NOT_ELIGIBLE",
@@ -212,9 +221,9 @@ function formatPercent(value) {
  * Compact status row component for eligibility checks
  * Shows: ✓ Specific message  |  ✗ Short reason with key value
  */
-function renderCompactStatus({ label, passed, value, reason, message, icon }) {
+function renderCompactStatus({ label, passed, value, reason, message }) {
   return (
-    <div className="compact-status-row" style={{ 
+    <div key={label} className="compact-status-row" style={{ 
       display: "flex", 
       alignItems: "center", 
       gap: "10px", 
@@ -878,7 +887,12 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       setEligibilityLoading(true);
       setEligibilityError(null);
       setEligibilityData(null);
-      setEligibilityStudent(student);
+      setEligibilityStudent({
+        ...student,
+        academicYearLabel:
+          student.academicYearLabel ||
+          getAcademicYearLabel(student.currentSemester, student.currentYear),
+      });
       setShowEligibilityModal(true);
 
       const res = await getPromotionEligibility(student._id);
@@ -1106,13 +1120,60 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
         eligibilityData?.workflow_status;
       toast.success("Promotion executed successfully.");
       setShowExecuteModal(false);
-      await refreshEligibility();
-      if (responseStatus === "PROMOTED" && eligibilityStudent) {
+
+      if (
+        (responseStatus === "PROMOTED" ||
+          response?.executionStatus === "PROMOTED" ||
+          response?.data?.executionStatus === "PROMOTED") &&
+        eligibilityStudent
+      ) {
+        const updatedStudentData =
+          response?.student ||
+          response?.data?.student;
+
+        const nextSemester =
+          response?.newSemester ||
+          response?.data?.newSemester ||
+          updatedStudentData?.currentSemester ||
+          ((eligibilityStudent?.currentSemester || 0) + 1);
+
+        const nextYear =
+          updatedStudentData?.currentYear ||
+          Math.ceil(nextSemester / 2);
+
+        const nextAcademicYear =
+          updatedStudentData?.currentAcademicYear ||
+          eligibilityStudent?.currentAcademicYear;
+
+        const nextAcademicYearLabel =
+          getAcademicYearLabel(nextSemester, nextYear);
+
+        const synchronizedStudent = {
+          ...eligibilityStudent,
+          ...(updatedStudentData || {}),
+          currentSemester: nextSemester,
+          currentYear: nextYear,
+          currentAcademicYear: nextAcademicYear,
+          academicYearLabel: nextAcademicYearLabel,
+        };
+
+        setEligibilityStudent(synchronizedStudent);
+
+        setStudents((prev) =>
+          prev.map((s) =>
+            s._id === synchronizedStudent._id
+              ? { ...s, ...synchronizedStudent }
+              : s
+          )
+        );
+
         fetchEligibleStudents();
         if (showHistory) {
           await fetchPromotionHistory();
         }
       }
+
+      await refreshEligibility();
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -2049,7 +2110,12 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                     <div className="student-email">{eligibilityStudent.email}</div>
                     <div className="promotion-info">
                       <span className="badge badge-info">
-                        {eligibilityStudent.academicYearLabel} (Sem {eligibilityStudent.currentSemester})
+                        {eligibilityStudent.academicYearLabel ||
+                          getAcademicYearLabel(
+                            eligibilityStudent.currentSemester,
+                            eligibilityStudent.currentYear
+                          )}{" "}
+                        (Sem {eligibilityStudent.currentSemester})
                       </span>
                       <span className="badge badge-secondary">
                         Course: {eligibilityStudent.course_id?.name || "N/A"}
