@@ -15,6 +15,11 @@ const {
   evaluateAttendanceData,
   createPromotionDecision,
 } = require("../services/promotionDecision.service");
+const {
+  checkTimetableAvailabilityAfterPromotion,
+  checkTimetableAvailabilityForBulkPromotion,
+} = require("../services/promotionTimetable.service");
+const logger = require("../utils/logger");
 
 const ATTENDANCE_THRESHOLD = 75;
 const ATTENDANCE_STATUS = {
@@ -653,6 +658,20 @@ exports.promoteStudent = async (req, res, next) => {
       req.college_id,
     );
 
+    // 13. Issue #533: Check timetable availability for target semester (non-blocking)
+    checkTimetableAvailabilityAfterPromotion({
+      student,
+      actorId: req.user.id,
+      actorRole: req.user.role,
+      collegeId: req.college_id,
+      toSemester,
+      newAcademicYear,
+    }).catch((err) => {
+      logger.logError("[PROMOTION] Timetable availability check failed", {
+        error: err.message,
+      });
+    });
+
     ApiResponse.success(
       res,
       {
@@ -710,6 +729,7 @@ exports.bulkPromoteStudents = async (req, res, next) => {
       success: [],
       failed: [],
     };
+    const successfullyPromotedStudents = [];
 
     const threshold = await getPromotionThreshold(req.college_id);
 
@@ -899,12 +919,33 @@ exports.bulkPromoteStudents = async (req, res, next) => {
           newFeeAssigned: feeAssignment.newFeeAssigned,
           feeAssignmentWarning: feeAssignment.feeAssignmentWarning,
         });
+
+        successfullyPromotedStudents.push({
+          student,
+          toSemester,
+          newAcademicYear,
+        });
       } catch (error) {
         results.failed.push({
           studentId,
           reason: error.message,
         });
       }
+    }
+
+    // Issue #533: Batch-check timetable availability for all promoted students (non-blocking)
+    if (successfullyPromotedStudents.length > 0) {
+      checkTimetableAvailabilityForBulkPromotion({
+        promotedStudents: successfullyPromotedStudents,
+        actorId: req.user.id,
+        actorRole: req.user.role,
+        collegeId: req.college_id,
+      }).catch((err) => {
+        logger.logError(
+          "[BULK_PROMOTION] Timetable availability check failed",
+          { error: err.message },
+        );
+      });
     }
 
     ApiResponse.success(
