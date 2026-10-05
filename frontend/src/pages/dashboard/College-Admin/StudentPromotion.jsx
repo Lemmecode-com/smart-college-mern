@@ -13,7 +13,7 @@ import {
   createBacklogAttempt,
   executePromotionDecision,
 } from "../../../api/promotion";
-import { moveToAlumni } from "../../../api/alumni";
+import { moveToAlumni, getAlumniEligibility } from "../../../api/alumni";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import ConfirmModal from "../../../components/ConfirmModal";
@@ -862,6 +862,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [eligibilityLoading, setEligibilityLoading] = useState(false);
   const [eligibilityData, setEligibilityData] = useState(null);
   const [eligibilityError, setEligibilityError] = useState(null);
+  const [alumniEligibilityData, setAlumniEligibilityData] = useState(null);
 
   // Backlog Management State (read-only, Step 5)
   const [backlogs, setBacklogs] = useState([]);
@@ -967,6 +968,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       setEligibilityLoading(true);
       setEligibilityError(null);
       setEligibilityData(null);
+      setAlumniEligibilityData(null);
       setEligibilityStudent({
         ...student,
         academicYearLabel:
@@ -975,8 +977,27 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       });
       setShowEligibilityModal(true);
 
-      const res = await getPromotionEligibility(student._id);
-      setEligibilityData(res.data || res);
+      const isFinal = Boolean(
+        student?.isFinalYear ||
+          (student?.currentSemester &&
+            student?.course_id?.durationSemesters &&
+            student.currentSemester >= student.course_id.durationSemesters)
+      );
+
+      const [promoRes, alumniRes] = await Promise.all([
+        getPromotionEligibility(student._id),
+        isFinal
+          ? getAlumniEligibility(student._id).catch((err) => {
+              logger.warn("Alumni eligibility error:", err.message);
+              return null;
+            })
+          : Promise.resolve(null),
+      ]);
+
+      setEligibilityData(promoRes.data || promoRes);
+      if (alumniRes) {
+        setAlumniEligibilityData(alumniRes.data || alumniRes);
+      }
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -1001,8 +1022,27 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const refreshEligibility = async () => {
     if (!eligibilityStudent) return;
     try {
-      const res = await getPromotionEligibility(eligibilityStudent._id);
-      setEligibilityData(res.data || res);
+      const isFinal = Boolean(
+        eligibilityStudent?.isFinalYear ||
+          (eligibilityStudent?.currentSemester &&
+            eligibilityStudent?.course_id?.durationSemesters &&
+            eligibilityStudent.currentSemester >= eligibilityStudent.course_id.durationSemesters)
+      );
+
+      const [promoRes, alumniRes] = await Promise.all([
+        getPromotionEligibility(eligibilityStudent._id),
+        isFinal
+          ? getAlumniEligibility(eligibilityStudent._id).catch((err) => {
+              logger.warn("Alumni eligibility refresh error:", err.message);
+              return null;
+            })
+          : Promise.resolve(null),
+      ]);
+
+      setEligibilityData(promoRes.data || promoRes);
+      if (alumniRes) {
+        setAlumniEligibilityData(alumniRes.data || alumniRes);
+      }
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -1291,10 +1331,31 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     isReviewableOutcome(eligibilityData.promotion_outcome) &&
     workflowStatus !== "PROMOTED";
 
-  const alumniInfo =
-    isFinalSemester && eligibilityData
-      ? getAlumniEligibilityInfo(eligibilityData)
-      : { isEligible: false, blockers: [] };
+  const alumniInfo = useMemo(() => {
+    if (!isFinalSemester) return { isEligible: false, blockers: [] };
+
+    // Prefer backend authoritative Alumni Eligibility response
+    if (alumniEligibilityData) {
+      const isEligible = alumniEligibilityData.eligible === true;
+      const status = alumniEligibilityData.status;
+      const rawBlockers = alumniEligibilityData.blockers || [];
+      const blockers = rawBlockers.map((b) => (typeof b === "string" ? b : b.message));
+      return {
+        isEligible,
+        status,
+        message: alumniEligibilityData.message,
+        blockers,
+        checks: alumniEligibilityData.checks,
+        policy: alumniEligibilityData.policy,
+      };
+    }
+
+    if (eligibilityData) {
+      return getAlumniEligibilityInfo(eligibilityData);
+    }
+
+    return { isEligible: false, blockers: [] };
+  }, [isFinalSemester, alumniEligibilityData, eligibilityData]);
 
   useEffect(() => {
     fetchEligibleStudents();
@@ -2234,7 +2295,11 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                      <div
                        className="outcome-banner"
                        style={{
-                         background: alumniInfo.isEligible
+                         background: alumniInfo.status === "CONFIGURATION_REQUIRED"
+                           ? "linear-gradient(135deg, #d97706 0%, #b45309 100%)"
+                           : alumniInfo.status === "ALUMNI_DISABLED"
+                           ? "linear-gradient(135deg, #4b5563 0%, #374151 100%)"
+                           : alumniInfo.isEligible
                            ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
                            : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
                          color: "white",
@@ -2242,22 +2307,36 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                      >
                        <div className="outcome-banner-content">
                          <div className="outcome-icon">
-                           {alumniInfo.isEligible ? "🎓" : "🔴"}
+                           {alumniInfo.status === "CONFIGURATION_REQUIRED"
+                             ? "⚠️"
+                             : alumniInfo.status === "ALUMNI_DISABLED"
+                             ? "🚫"
+                             : alumniInfo.isEligible
+                             ? "🎓"
+                             : "🔴"}
                          </div>
                          <div className="outcome-text">
                            <div className="outcome-label">
-                             {alumniInfo.isEligible
+                             {alumniInfo.status === "CONFIGURATION_REQUIRED"
+                               ? "Alumni Settings Required"
+                               : alumniInfo.status === "ALUMNI_DISABLED"
+                               ? "Alumni Transition Disabled"
+                               : alumniInfo.isEligible
                                ? "Eligible for Move to Alumni"
                                : "Not Eligible for Move to Alumni"}
                            </div>
                            <div className="outcome-reason" style={{ flexDirection: "column", alignItems: "flex-start", gap: "6px" }}>
                              <div>
                                <strong>Reason:</strong>{" "}
-                               {alumniInfo.isEligible
+                               {alumniInfo.status === "CONFIGURATION_REQUIRED"
+                                 ? (alumniInfo.message || "Alumni eligibility settings are not configured for this course.")
+                                 : alumniInfo.status === "ALUMNI_DISABLED"
+                                 ? (alumniInfo.message || "Alumni transition is currently disabled by policy.")
+                                 : alumniInfo.isEligible
                                  ? "All graduation requirements satisfied."
                                  : "Requirements for graduation have not been satisfied."}
                              </div>
-                             {!alumniInfo.isEligible && alumniInfo.blockers.length > 0 && (
+                             {!alumniInfo.isEligible && alumniInfo.blockers && alumniInfo.blockers.length > 0 && (
                                <div style={{ marginTop: "6px", width: "100%", background: "rgba(0,0,0,0.2)", borderRadius: "8px", padding: "10px 14px" }}>
                                  <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", opacity: 0.95 }}>
                                    Blockers:
@@ -2272,6 +2351,27 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                            </div>
                          </div>
                          <div className="outcome-actions">
+                           {alumniInfo.status === "CONFIGURATION_REQUIRED" && (
+                             <button
+                               onClick={() => {
+                                 setShowEligibilityModal(false);
+                                 navigate("/system-settings/alumni");
+                               }}
+                               className="btn btn-warning"
+                               style={{
+                                 fontWeight: 700,
+                                 padding: "10px 18px",
+                                 whiteSpace: "nowrap",
+                                 boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                                 display: "inline-flex",
+                                 alignItems: "center",
+                                 gap: "8px",
+                               }}
+                               id="configure-alumni-banner-btn"
+                             >
+                               Configure Alumni Settings
+                             </button>
+                           )}
                            {alumniInfo.isEligible && (
                              <button
                                onClick={() => {
@@ -2334,13 +2434,68 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                      </div>
                    )}
 
-{/* Compact Eligibility Status */}
+                    {/* Compact Eligibility Status */}
                     <div style={{ marginTop: "16px" }}>
                       <h5 style={{ margin: "0 0 12px 0", color: "#0f3a4a", fontSize: "14px", fontWeight: 600 }}>
                         Eligibility Checks
                       </h5>
                       {(() => {
                         const rows = [];
+
+                        // For final semester students with authoritative Alumni checks
+                        if (isFinalSemester && alumniInfo.checks && Object.keys(alumniInfo.checks).length > 0) {
+                          const checks = alumniInfo.checks;
+
+                          if (checks.result) {
+                            rows.push(
+                              renderCompactStatus({
+                                label: "Result",
+                                passed: checks.result.passed,
+                                message: checks.result.passed ? "Result is clear" : (checks.result.message || "Final semester exam result requirement not met"),
+                              })
+                            );
+                          }
+
+                          if (checks.attendance && !checks.attendance.skipped) {
+                            rows.push(
+                              renderCompactStatus({
+                                label: "Attendance",
+                                passed: checks.attendance.passed,
+                                message: checks.attendance.passed
+                                  ? `${checks.attendance.actualPercentage}% — Required: ${checks.attendance.requiredPercentage}%`
+                                  : `Requirement not met (${checks.attendance.actualPercentage}% / Required: ${checks.attendance.requiredPercentage}%)`,
+                              })
+                            );
+                          }
+
+                          if (checks.fee && !checks.fee.skipped) {
+                            rows.push(
+                              renderCompactStatus({
+                                label: "Fee",
+                                passed: checks.fee.passed,
+                                message: checks.fee.passed
+                                  ? `Paid ${checks.fee.actualPercentage}% — Required: ${checks.fee.requiredPercentage}%`
+                                  : `Payment requirement not met (${checks.fee.actualPercentage}% / Required: ${checks.fee.requiredPercentage}%)`,
+                              })
+                            );
+                          }
+
+                          if (checks.backlog) {
+                            rows.push(
+                              renderCompactStatus({
+                                label: "Backlog Clearance",
+                                passed: checks.backlog.passed,
+                                message: checks.backlog.passed
+                                  ? "All graduation backlog requirements satisfied"
+                                  : "Uncleared backlogs found",
+                              })
+                            );
+                          }
+
+                          return rows;
+                        }
+
+                        // For non-final students, standard promotion checks
                         const resultStatus = getResultStatus(eligibilityData);
                         if (resultStatus) rows.push(renderCompactStatus(resultStatus));
                         
