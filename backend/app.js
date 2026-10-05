@@ -122,9 +122,10 @@ app.use("/api/admin/payment", require("./src/routes/paymentConfig.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
 app.use("/api/accountant", require("./src/routes/accountant.routes")); // Accountant module
 
-/* ================= STUDENT PROMOTION ================= */
+/* ================= STUDENT PROMOTION & ALUMNI ================= */
 app.use("/api/promotion", require("./src/routes/promotion.routes"));
 app.use("/api/promotion-policy", require("./src/routes/promotionPolicy.routes"));
+app.use("/api/alumni", require("./src/routes/alumni.routes"));
 
 /* ================= REPORTS & DASHBOARD ================= */
 app.use(

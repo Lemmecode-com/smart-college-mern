@@ -230,6 +230,10 @@ const PromotionSetting = lazy(
   () =>
     import("./pages/dashboard/College-Admin/SystemSetting/PromotionSetting"),
 );
+const AlumniSetting = lazy(
+  () =>
+    import("./pages/dashboard/College-Admin/SystemSetting/AlumniSetting"),
+);
 const EmailConfigurations = lazy(
   () =>
     import("./pages/dashboard/College-Admin/SystemSetting/EmailConfigurations"),
@@ -1904,6 +1908,14 @@ function AppContent({
                 element={
                   <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
                     <PromotionSetting />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/system-settings/alumni"
+                element={
+                  <ProtectedRoute allowedRoles={["COLLEGE_ADMIN"]}>
+                    <AlumniSetting />
                   </ProtectedRoute>
                 }
               />
