@@ -435,7 +435,7 @@ describe("Alumni Settings & Eligibility Matrix", () => {
   // 18. Move-to-Alumni endpoint revalidates eligibility -> stale/ineligible student cannot be moved (409 ALUMNI_ELIGIBILITY_FAILED)
   it("18. Move-to-Alumni endpoint revalidates eligibility -> stale/ineligible student cannot be moved (409 ALUMNI_ELIGIBILITY_FAILED)", async () => {
     await createPolicy();
-    const student = await createTestStudent();
+    const student = await createTestStudent(); // status: APPROVED
     // Do NOT create result -> student is ineligible
 
     const req = {
@@ -460,5 +460,104 @@ describe("Alumni Settings & Eligibility Matrix", () => {
     expect(thrownError).toBeTruthy();
     expect(thrownError.statusCode).toBe(409);
     expect(thrownError.code).toBe("ALUMNI_ELIGIBILITY_FAILED");
+  });
+
+  // 19. Ineligible ENROLLED student reaches eligibility check and receives 409 ALUMNI_ELIGIBILITY_FAILED
+  it("19. Ineligible ENROLLED student reaches eligibility check and receives 409 ALUMNI_ELIGIBILITY_FAILED", async () => {
+    await createPolicy();
+    const enrolledStudent = await createTestStudent({ status: "ENROLLED" });
+    // Ineligible because no published result exists
+
+    const req = {
+      params: { studentId: enrolledStudent._id.toString() },
+      body: { graduationYear: 2028 },
+      college_id: collegeId,
+      user: { id: new mongoose.Types.ObjectId() },
+    };
+
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    let thrownError = null;
+    const next = (err) => {
+      thrownError = err;
+    };
+
+    await moveToAlumni(req, res, next);
+
+    expect(thrownError).toBeTruthy();
+    expect(thrownError.statusCode).toBe(409);
+    expect(thrownError.code).toBe("ALUMNI_ELIGIBILITY_FAILED");
+  });
+
+  // 20. Eligible ENROLLED student successfully moves to Alumni
+  it("20. Eligible ENROLLED student successfully moves to Alumni", async () => {
+    await createPolicy();
+    const enrolledStudent = await createTestStudent({ status: "ENROLLED" });
+    await createPublishedResult(enrolledStudent);
+    await createFeeRecord(enrolledStudent);
+
+    const req = {
+      params: { studentId: enrolledStudent._id.toString() },
+      body: { graduationYear: 2028 },
+      college_id: collegeId,
+      user: { id: new mongoose.Types.ObjectId() },
+    };
+
+    let responseData = null;
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn((data) => {
+        responseData = data;
+      }),
+    };
+
+    let thrownError = null;
+    const next = (err) => {
+      thrownError = err;
+    };
+
+    await moveToAlumni(req, res, next);
+
+    expect(thrownError).toBeNull();
+    expect(responseData).toBeTruthy();
+    expect(responseData.success).toBe(true);
+
+    const updatedStudent = await Student.findById(enrolledStudent._id);
+    expect(updatedStudent.status).toBe("ALUMNI");
+    expect(updatedStudent.alumniStatus).toBe(true);
+    expect(updatedStudent.graduationYear).toBe(2028);
+  });
+
+  // 21. Move-to-Alumni enforces tenant isolation for ENROLLED student
+  it("21. Move-to-Alumni enforces tenant isolation for ENROLLED student", async () => {
+    await createPolicy();
+    const enrolledStudent = await createTestStudent({ status: "ENROLLED" });
+
+    // Request from different college (collegeId2)
+    const req = {
+      params: { studentId: enrolledStudent._id.toString() },
+      body: { graduationYear: 2028 },
+      college_id: collegeId2,
+      user: { id: new mongoose.Types.ObjectId() },
+    };
+
+    const res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+
+    let thrownError = null;
+    const next = (err) => {
+      thrownError = err;
+    };
+
+    await moveToAlumni(req, res, next);
+
+    expect(thrownError).toBeTruthy();
+    expect(thrownError.statusCode).toBe(404);
+    expect(thrownError.code).toBe("STUDENT_NOT_FOUND");
   });
 });
