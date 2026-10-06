@@ -320,10 +320,23 @@ export default function StudentProfile() {
     navigate("/student/dashboard");
   };
 
-  /* ================= LOADING STATE ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Student Profile..." />;
-  }
+// Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Student Profile..."
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR STATE ================= */
   if (error) {

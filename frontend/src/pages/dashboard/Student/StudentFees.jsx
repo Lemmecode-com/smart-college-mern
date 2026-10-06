@@ -323,9 +323,23 @@ export default function StudentFees() {
   };
 
   /* ================= LOADING STATE ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Fee Dashboard..." />;
-  }
+// Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Fee Dashboard..."
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR STATE ================= */
   if (error) {

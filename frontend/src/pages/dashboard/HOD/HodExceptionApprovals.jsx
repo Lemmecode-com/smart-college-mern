@@ -387,16 +387,29 @@ export default function HodExceptionApprovals() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "HOD") return <Navigate to="/hod/dashboard" />;
 
-  if (loading && pendingRequests.length === 0 && history.approved.length === 0 && history.rejected.length === 0 && history.withdrawn.length === 0) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text="Loading Exception Approvals..."
-        color="primary"
-      />
-    );
-  }
+// Loading State
+if (
+  loading &&
+  pendingRequests.length === 0 &&
+  history.approved.length === 0 &&
+  history.rejected.length === 0 &&
+  history.withdrawn.length === 0
+) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Exception Approvals..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error && pendingRequests.length === 0 && history.approved.length === 0 && history.rejected.length === 0 && history.withdrawn.length === 0) {
     return (

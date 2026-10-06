@@ -51,7 +51,20 @@ export default function MyStudents() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Students..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Students..."
+          />
+        </div>
+      </div>
+    );
   }
 
   const totalPages = pagination.pages || 0;

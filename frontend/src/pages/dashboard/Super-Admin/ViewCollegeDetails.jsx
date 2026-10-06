@@ -613,7 +613,20 @@ export default function ViewCollegeDetails() {
 
   // Loading state with animated spinner
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading college details..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading college details..."
+          />
+        </div>
+      </div>
+    );
   }
 
   // Error state
