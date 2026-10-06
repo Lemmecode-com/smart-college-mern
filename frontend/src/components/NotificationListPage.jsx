@@ -423,10 +423,24 @@ export default function NotificationListPage({ role = "college-admin" }) {
     };
   }, [primaryNotes, secondaryNotes, tertiaryNotes]);
 
-  /* ================= LOADING STATE ================= */
-  if (loading && retryCount === 0) {
-    return <Loading fullScreen size="lg" text="Loading notifications..." />;
-  }
+
+    // ================= LOADING STATE =================
+    if (loading && retryCount === 0) {
+      return (
+        <div className="parent-portal-wrapper">
+          <div
+            className="parent-portal-container parent-loading-container"
+            style={{ minHeight: "70vh" }}
+          >
+            <Loading
+              size="md"
+              color="primary"
+              text="Loading Notifications..."
+            />
+          </div>
+        </div>
+      );
+    }
 
   /* ================= ERROR STATE ================= */
   if (error) {

@@ -52,35 +52,7 @@ const fadeUp = {
   }),
 };
 
-const LoadingState = () => (
-   <div
-     style={{
-       minHeight: "70vh",
-       display: "flex",
-       alignItems: "center",
-       justifyContent: "center",
-       background: `linear-gradient(135deg, ${BRAND.bg} 0%, ${BRAND.primaryLight} 100%)`,
-     }}
-   >
-     <div style={{ textAlign: "center" }}>
-       <div
-         style={{
-           width: 64,
-           height: 64,
-           margin: "0 auto 1rem",
-           border: `4px solid ${BRAND.border}`,
-           borderTopColor: BRAND.accent,
-           borderRadius: "50%",
-           animation: "novaa-spin 0.9s linear infinite",
-         }}
-       />
-       <p style={{ color: BRAND.muted, fontWeight: 500, margin: 0 }}>
-         Loading department reports…
-       </p>
-       <style>{`@keyframes novaa-spin { to { transform: rotate(360deg); } }`}</style>
-     </div>
-   </div>
- );
+
 
  const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -224,7 +196,23 @@ const HodReports = () => {
      }
    };
 
-   if (loading) return <LoadingState />;
+   // Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Department Reports..."
+        />
+      </div>
+    </div>
+  );
+}
 
    if (error) {
      return (

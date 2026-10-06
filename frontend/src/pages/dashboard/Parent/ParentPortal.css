@@ -337,8 +337,8 @@ body {
 }
 
 .parent-profile-item:hover {
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.02) 0%, transparent 100%);
-  margin: 0 -1.5rem;
+  background: linear-gradient(90deg, rgba(251, 71, 11, 0.02) 0%, transparent 100%);
+  margin: 0 -0.75rem;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
   border-radius: var(--border-radius-md);
@@ -941,7 +941,7 @@ body {
 
 .parent-profile-header {
   padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--parent-primary) 0%, var(--parent-secondary) 100%);
+  background: #0E3746;
   color: white;
   display: flex;
   align-items: center;

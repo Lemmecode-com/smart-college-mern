@@ -533,12 +533,18 @@ export default function ReportDashboard() {
   // ================= LOADING STATE =================
   if (loading) {
     return (
-      <Loading
-        size="lg"
-        color="primary"
-        text="Loading reports dashboard..."
-        fullScreen={true}
-      />
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Reports Dashboard..."
+          />
+        </div>
+      </div>
     );
   }
 

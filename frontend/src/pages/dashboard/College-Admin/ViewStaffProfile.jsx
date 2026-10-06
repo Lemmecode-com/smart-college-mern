@@ -126,7 +126,22 @@ export default function ViewStaffProfile() {
     if (actualUserId) fetchProfile();
   }, [actualUserId, fetchProfile]);
 
-  if (loading) return <Loading />;
+  if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Staff Profile..."
+        />
+      </div>
+    </div>
+  );
+}
   if (error) return (
     <ApiError
       title="Staff Profile Loading Error"

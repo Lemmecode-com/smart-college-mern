@@ -6,6 +6,7 @@ import api from "../../../api/axios";
 import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
@@ -256,9 +257,22 @@ export default function ChildDetail() {
     return Math.round((presentCount / attendance.length) * 100);
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading child information..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Child Information..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (!child) {
     return (
@@ -308,37 +322,11 @@ export default function ChildDetail() {
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            {/* Hero Section */}
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaUserGraduate />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    {child.fullName}
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    {child.course_id?.name} • Semester {child.currentSemester} • {getStatusLabel(child.status)}
-                  </p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-              </div>
-            </div>
-          </motion.div>
+<PageHeader
+  icon={FaUserGraduate}
+  title={child.fullName}
+  subtitle={`${child.course_id?.name} • Semester ${child.currentSemester} • ${getStatusLabel(child.status)}`}
+/>
 
           {/* ================= QUICK STATS ================= */}
           <motion.div

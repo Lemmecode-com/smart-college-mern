@@ -499,16 +499,28 @@ export default function NotificationForm({
     BRAND_COLORS.priorities[form.priority] || BRAND_COLORS.priorities.NORMAL;
   const TypeIcon = typeConfig.icon;
 
-  /* ================= LOADING STATE ================= */
-  if (loading) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text={mode === "edit" ? "Loading notification..." : "Preparing form..."}
-      />
-    );
-  }
+
+/* ================= LOADING STATE ================= */
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text={
+            mode === "edit"
+              ? "Loading Notification..."
+              : "Preparing Notification Form..."
+          }
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR STATE ================= */
   if (error && mode === "edit") {

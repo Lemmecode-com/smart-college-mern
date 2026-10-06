@@ -274,9 +274,23 @@ export default function CreateTimetable() {
       }
    };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Department Information..." />;
-  }
+  // Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Department Information..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (authError) {
     return (

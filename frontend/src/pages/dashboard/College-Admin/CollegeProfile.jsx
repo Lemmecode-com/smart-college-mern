@@ -283,8 +283,21 @@ export default function CollegeProfile() {
   ];
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading College Profile..." />;
-  }
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading College Profile..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return (

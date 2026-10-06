@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import Loading from "../../../components/Loading";
 import {
   FaArrowLeft,
   FaCalendarCheck,
@@ -12,8 +14,8 @@ import {
   FaChartBar,
   FaCalendarAlt,
   FaUserGraduate,
-  FaExclamationTriangle,
-  FaSyncAlt
+  FaExclamationTriangle, 
+  FaSyncAlt,
 } from "react-icons/fa";
 import api from "../../../api/axios";
 
@@ -87,7 +89,6 @@ const pulseVariants = {
     }
   }
 };
-
 const spinVariants = {
   animate: {
     rotate: 360,
@@ -98,6 +99,8 @@ const spinVariants = {
     }
   }
 };
+
+
 
 export default function ChildAttendance() {
   const { childId } = useParams();
@@ -149,64 +152,41 @@ export default function ChildAttendance() {
     return () => clearInterval(interval);
   }, [childId]);
 
-  if (loading) {
-    return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
-          <div className="parent-loading-state">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="parent-loading-spinner"
-              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Attendance...</h4>
-          </div>
-        </div>
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Attendance..."
+        />
       </div>
-    );
-  }
-
+    </div>
+  );
+}
   if (error) {
     return (
       <div className="parent-portal-wrapper">
         <div className="parent-portal-container">
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaExclamationTriangle />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">Error Loading Attendance</h1>
-                  <p className="parent-header-subtitle">{error}</p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="parent-btn-primary"
-                  onClick={() => navigate("/dashboard/parent")}
-                >
-                  <FaArrowLeft className="parent-me-2" />
-                  Back to Dashboard
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
+<PageHeader
+  icon={FaExclamationTriangle}
+  title="Error Loading Attendance"
+  subtitle={error}
+  actions={
+    <button
+      type="button"
+      onClick={() => navigate("/dashboard/parent")}
+      className="parent-btn-primary"
+    >
+      <FaArrowLeft className="parent-me-2" />
+      Back to Dashboard
+    </button>
+  }
+/>
         </div>
       </div>
     );
@@ -231,36 +211,11 @@ export default function ChildAttendance() {
           />
 
           {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            {/* Hero Section */}
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaCalendarCheck />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    Attendance Records
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    Track your child's attendance performance and history
-                  </p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-              </div>
-            </div>
-          </motion.div>
+          <PageHeader
+            icon={FaCalendarCheck}
+            title="Attendance Records"
+            subtitle="Track your child's attendance performance and history"
+          />
 
           {/* ================= ATTENDANCE STATS ================= */}
           <motion.div

@@ -258,7 +258,20 @@ export default function EditTeacherProfile() {
   };
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Profile..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Teacher Profile..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

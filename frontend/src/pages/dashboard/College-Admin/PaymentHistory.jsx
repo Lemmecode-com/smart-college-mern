@@ -283,7 +283,20 @@ export default function PaymentHistory() {
 
   // Loading state
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading payment history..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Payment History..."
+          />
+        </div>
+      </div>
+    );
   }
 
   // Error state

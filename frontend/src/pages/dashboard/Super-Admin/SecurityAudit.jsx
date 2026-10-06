@@ -273,16 +273,22 @@ const getCategoryBadgeClass = (category) => {
     );
   }
 
-  if (loading && !logs.length) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text="Loading Security Audit..."
-        variant="spinner"
-      />
-    );
-  }
+if (loading && !logs.length) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Security Audit..."
+        />
+      </div>
+    </div>
+  );
+}
 
   return (
     <>

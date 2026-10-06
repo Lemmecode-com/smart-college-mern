@@ -133,7 +133,20 @@ export default function AttendanceSessionsList() {
   const totalStudents = sessions.reduce((sum, s) => sum + (s.totalStudents || 0), 0);
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Attendance Sessions..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Attendance Sessions..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

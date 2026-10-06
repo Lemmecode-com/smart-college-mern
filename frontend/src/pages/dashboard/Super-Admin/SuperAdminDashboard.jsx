@@ -175,12 +175,18 @@ export default function SuperAdminDashboard() {
   /* ================= LOADING STATE ================= */
   if (loading || !data) {
     return (
-      <Loading
-        fullScreen
-        size="lg"
-        text="Loading Super Admin Dashboard..."
-        variant="spinner"
-      />
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Super Admin Dashboard..."
+          />
+        </div>
+      </div>
     );
   }
 

@@ -134,9 +134,23 @@ export default function StudentExamTimetable() {
     fetchExams(true);
   };
 
-  if (loading) {
-    return <Loading fullScreen text="Loading exam timetable..." />;
-  }
+// Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Exam Timetable..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error && !selectedExam) {
     const isAuthError = AUTH_ERROR_CODES.has(errorCode);
@@ -206,7 +220,13 @@ export default function StudentExamTimetable() {
               <FaArrowLeft /> Back to Exams
             </button>
 
-            {scheduleLoading && <Loading text="Loading schedule..." />}
+            {scheduleLoading && (
+              <Loading
+              size="md"
+              color="primary"
+              text="Loading Exam Schedule..."
+            />
+          )}
 
             {scheduleError && !scheduleLoading && (
               <div className="student-exam-timetable-schedule-error">

@@ -149,8 +149,22 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
     );
   }
 
+  /* ================= LOADING STATE ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading deactivated students..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading deactivated students..."
+          />
+        </div>
+      </div>
+    );
   }
 
    return (
