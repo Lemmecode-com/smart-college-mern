@@ -278,9 +278,21 @@ export default function FeeStructureList() {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading fee structures..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading fee structures..."
+          />
+        </div>
+      </div>
+    );
   }
-
   return (
     <div className="erp-page erp-viewport-min-100" style={{ background: "#f5f7fa" }}>
       {/* BREADCRUMBS */}

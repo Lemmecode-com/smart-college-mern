@@ -357,9 +357,21 @@ addToast("Filters reset successfully!", "info");
   };
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Attendance Report..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Attendance Report..."
+          />
+        </div>
+      </div>
+    );
   }
-
   if (error) {
     return (
       <ApiError
@@ -629,7 +641,7 @@ addToast("Filters reset successfully!", "info");
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowFilters(!showFilters)}
-style={{
+                      style={{
                     minHeight: "48px",
                     padding: "0 20px",
                     border: "1px solid rgba(255, 255, 255, 0.35)",
@@ -664,7 +676,7 @@ style={{
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={refreshData}
-style={{
+                    style={{
                     minHeight: "48px",
                     padding: "0 20px",
                     border: "1px solid rgba(255, 255, 255, 0.35)",

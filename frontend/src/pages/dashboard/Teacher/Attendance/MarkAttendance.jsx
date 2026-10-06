@@ -275,10 +275,22 @@ export default function MarkAttendance() {
     navigate(`/session/close/${selectedSession}`);
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading..." />;
-  }
-
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading..."
+        />
+      </div>
+    </div>
+  );
+}
 return (
   <div className="container-fluid px-3 px-md-4">
 
