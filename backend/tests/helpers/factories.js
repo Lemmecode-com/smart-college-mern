@@ -94,12 +94,13 @@ const createUser = async (overrides = {}) => {
 const createTeacher = async (overrides = {}) => {
   const now = new Date();
   const birthYear = now.getFullYear() - 30; // 30 years old
+  const rand = `${Date.now()}.${Math.floor(Math.random() * 1000000)}`;
   const payload = {
     name: 'Test Teacher',
-    email: 'teacher@test.com',
+    email: overrides.email || `teacher.${rand}@test.com`,
     college_id: null,
     department_id: null,
-    employeeId: 'EMP-001',
+    employeeId: overrides.employeeId || `EMP-${rand}`,
     designation: 'Teacher',
     qualification: 'MSc',
     experienceYears: 5,
@@ -121,7 +122,7 @@ const createStudent = async (overrides = {}) => {
   const birthYear = now.getFullYear() - 20; // 20 years old
   const payload = {
     fullName: 'Test Student',
-    email: 'student@test.com',
+    email: overrides.email || `student.${Date.now()}.${Math.floor(Math.random() * 1000000)}@test.com`,
     college_id: null,
     department_id: null,
     course_id: null,

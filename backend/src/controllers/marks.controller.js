@@ -162,7 +162,19 @@ const getSupplementaryBacklogStudentIds = async (examId, collegeId) => {
  * belongs to the exam's course and semester (Marks Entry ownership rule).
  */
 const authorizeTeacher = async (req, subjectId, collegeId, exam = null) => {
+  const examSubject = exam
+    ? exam.subjects?.find((s) => String(s.subject) === String(subjectId))
+    : null;
+  const isBacklog = examSubject?.category === "BACKLOG";
+
   if (req.user.role === ROLE.EXAM_COORDINATOR) {
+    if (isBacklog) {
+      throw new AppError(
+        "Only the assigned teacher can enter marks for a backlog paper",
+        403,
+        "SUBJECT_ACCESS_DENIED",
+      );
+    }
     return null;
   }
 
@@ -181,7 +193,7 @@ const authorizeTeacher = async (req, subjectId, collegeId, exam = null) => {
     }
 
     const subject = await Subject.findById(subjectId).select(
-      "college_id teacher_id",
+      "college_id teacher_id course_id semester",
     );
 
     if (!subject) {
@@ -205,6 +217,32 @@ const authorizeTeacher = async (req, subjectId, collegeId, exam = null) => {
         403,
         "SUBJECT_ACCESS_DENIED",
       );
+    }
+
+    if (exam) {
+      if (isBacklog) {
+        if (
+          String(subject.course_id) !== String(exam.course_id) ||
+          Number(subject.semester) !== Number(examSubject.originalSemester)
+        ) {
+          throw new AppError(
+            "You are not authorized for this subject",
+            403,
+            "SUBJECT_ACCESS_DENIED",
+          );
+        }
+      } else {
+        if (
+          String(subject.course_id) !== String(exam.course_id) ||
+          Number(subject.semester) !== Number(exam.semester)
+        ) {
+          throw new AppError(
+            "You are not authorized for this subject",
+            403,
+            "SUBJECT_ACCESS_DENIED",
+          );
+        }
+      }
     }
 
     return hodTeacher;
@@ -233,17 +271,32 @@ const authorizeTeacher = async (req, subjectId, collegeId, exam = null) => {
   }
 
   // The subject must belong to the same course and semester as the exam being
-  // entered. Enforced only for TEACHER; HOD and EXAM_COORDINATOR are untouched.
-  if (
-    exam &&
-    (String(subject.course_id) !== String(exam.course_id) ||
-      Number(subject.semester) !== Number(exam.semester))
-  ) {
-    throw new AppError(
-      "You are not authorized for this subject",
-      403,
-      "SUBJECT_ACCESS_DENIED",
-    );
+  // entered. For BACKLOG subjects, validate against originalSemester instead of
+  // exam.semester.
+  if (exam) {
+    if (isBacklog) {
+      if (
+        String(subject.course_id) !== String(exam.course_id) ||
+        Number(subject.semester) !== Number(examSubject.originalSemester)
+      ) {
+        throw new AppError(
+          "You are not authorized for this subject",
+          403,
+          "SUBJECT_ACCESS_DENIED",
+        );
+      }
+    } else {
+      if (
+        String(subject.course_id) !== String(exam.course_id) ||
+        Number(subject.semester) !== Number(exam.semester)
+      ) {
+        throw new AppError(
+          "You are not authorized for this subject",
+          403,
+          "SUBJECT_ACCESS_DENIED",
+        );
+      }
+    }
   }
 
   // Strict ownership: Subject.teacher_id is the source of truth. Subjects with
@@ -294,7 +347,28 @@ exports.getStudentRoster = async (req, res, next) => {
     await authorizeTeacher(req, subjectId, req.college_id, exam);
 
     let students;
-    if (exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
+    if (examSubject.category === "BACKLOG") {
+      const activeBacklogs = await Backlog.find({
+        college_id: req.college_id,
+        subject_id: subjectId,
+        status: { $in: [BACKLOG_STATUS.OPEN, BACKLOG_STATUS.ATTEMPTED] },
+      })
+        .select("student_id")
+        .lean();
+
+      const studentIds = [
+        ...new Set(activeBacklogs.map((b) => String(b.student_id))),
+      ];
+
+      students = await Student.find({
+        college_id: req.college_id,
+        course_id: exam.course_id,
+        _id: { $in: studentIds },
+        status: { $in: ["APPROVED", "ENROLLED"] },
+      })
+        .select("_id fullName enrollmentNumber rollNumber")
+        .sort({ fullName: 1 });
+    } else if (exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
       const studentIds = await getSupplementaryBacklogStudentIds(
         examId,
         req.college_id,
@@ -358,6 +432,8 @@ exports.getStudentRoster = async (req, res, next) => {
       data: {
         examId,
         subjectId,
+        category: examSubject.category,
+        originalSemester: examSubject.originalSemester,
         subjectType: examSubject.subjectType,
         internalMaxMarks: examSubject.internalMaxMarks,
         externalMaxMarks: examSubject.externalMaxMarks,
@@ -459,6 +535,8 @@ exports.saveMarks = async (req, res, next) => {
     const examSubject = getExamSubject(exam, subjectId);
     await authorizeTeacher(req, subjectId, req.college_id, exam);
 
+    const isBacklog = examSubject.category === "BACKLOG";
+
     const supplementaryBacklogStudentIds =
       exam.exam_type === EXAM_TYPE.SUPPLEMENTARY
         ? await getSupplementaryBacklogStudentIds(examId, req.college_id)
@@ -490,20 +568,18 @@ exports.saveMarks = async (req, res, next) => {
         );
       }
 
-      let student = await Student.findOne({
-        _id: studentId,
-        college_id: req.college_id,
-        course_id: exam.course_id,
-        currentSemester: exam.semester,
-        status: { $in: ["APPROVED", "ENROLLED"] },
-      });
+      let student;
+      if (isBacklog) {
+        const hasActiveBacklog = await Backlog.exists({
+          college_id: req.college_id,
+          student_id: studentId,
+          subject_id: subjectId,
+          status: { $in: [BACKLOG_STATUS.OPEN, BACKLOG_STATUS.ATTEMPTED] },
+        });
 
-      if (!student && exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
-        if (
-          !supplementaryBacklogStudentIds?.includes(String(studentId))
-        ) {
+        if (!hasActiveBacklog) {
           throw new AppError(
-            `Student ${studentId} is not eligible for this exam`,
+            `Student ${studentId} is not eligible for this backlog exam`,
             400,
             "STUDENT_NOT_ELIGIBLE",
           );
@@ -515,6 +591,33 @@ exports.saveMarks = async (req, res, next) => {
           course_id: exam.course_id,
           status: { $in: ["APPROVED", "ENROLLED"] },
         });
+      } else {
+        student = await Student.findOne({
+          _id: studentId,
+          college_id: req.college_id,
+          course_id: exam.course_id,
+          currentSemester: exam.semester,
+          status: { $in: ["APPROVED", "ENROLLED"] },
+        });
+
+        if (!student && exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
+          if (
+            !supplementaryBacklogStudentIds?.includes(String(studentId))
+          ) {
+            throw new AppError(
+              `Student ${studentId} is not eligible for this exam`,
+              400,
+              "STUDENT_NOT_ELIGIBLE",
+            );
+          }
+
+          student = await Student.findOne({
+            _id: studentId,
+            college_id: req.college_id,
+            course_id: exam.course_id,
+            status: { $in: ["APPROVED", "ENROLLED"] },
+          });
+        }
       }
 
       if (!student) {
