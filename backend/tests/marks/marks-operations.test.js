@@ -1,5 +1,6 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
+const Subject = require("../../src/models/subject.model");
 const {
   connectTestDb,
   clearTestDb,
@@ -163,7 +164,7 @@ describe("MARKS — StudentMarks operations", () => {
 
     const res = await coordinatorAgent
       .get("/api/marks/roster")
-      .query({ examId: exam._id, subjectId: subject._id })
+      .query({ examId: exam._id, subjectId: subject._id.toString() })
       .expect(200);
 
     expect(res.body.success).toBe(true);
@@ -172,13 +173,13 @@ describe("MARKS — StudentMarks operations", () => {
   });
 
   it("2. teacher can get student roster for their own subject", async () => {
-    const { teacherAgent, exam, subject } = await baseSetup();
+    const { teacherAgent, exam, subject, teacher } = await baseSetup();
 
-    await Subject.findByIdAndUpdate(subject._id, { teacher_id: subject.teacher_id });
+    await Subject.findByIdAndUpdate(subject._id, { teacher_id: teacher._id });
 
     const res = await teacherAgent
       .get("/api/marks/roster")
-      .query({ examId: exam._id, subjectId: subject._id })
+      .query({ examId: exam._id, subjectId: subject._id.toString() })
       .expect(200);
 
     expect(res.body.success).toBe(true);
@@ -199,7 +200,7 @@ describe("MARKS — StudentMarks operations", () => {
 
     const res = await teacherAgent
       .get("/api/marks/roster")
-      .query({ examId: exam._id, subjectId: subject._id })
+      .query({ examId: exam._id, subjectId: subject._id.toString() })
       .expect(403);
 
     expect(res.body.error.code).toBe("SUBJECT_ACCESS_DENIED");
@@ -429,9 +430,9 @@ describe("MARKS — StudentMarks operations", () => {
 
     const res = await agentB
       .get("/api/marks/roster")
-      .query({ examId: exam._id, subjectId: subject._id })
+      .query({ examId: exam._id, subjectId: subject._id.toString() })
       .expect(404);
 
-    expect(res.body.message).toBeDefined();
+    expect(res.body.error?.message || res.body.message).toBeDefined();
   });
 });

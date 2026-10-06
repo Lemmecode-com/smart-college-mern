@@ -498,9 +498,11 @@ export default function MarksEntry() {
                   const subjectId = sub.subject?._id || sub.subject;
                   const subjectName = sub.subject?.name || sub.subject;
                   const subjectType = sub.subjectType || "N/A";
+                  const isBacklog = sub.category === "BACKLOG";
+                  const originalSem = sub.originalSemester;
                   return (
                     <option key={subjectId} value={subjectId}>
-                      {subjectName} [{subjectType}]
+                      {subjectName} [{subjectType}]{isBacklog ? ` — BACKLOG (Sem ${originalSem})` : ""}
                     </option>
                   );
                 })}
@@ -518,6 +520,28 @@ export default function MarksEntry() {
                 <FaGraduationCap />
                 Semester {selectedExam.semester}
               </span>
+              {(() => {
+                const activeSub = subjects.find(
+                  (s) => String(s.subject?._id || s.subject) === String(selectedSubjectId),
+                );
+                if (activeSub?.category === "BACKLOG" || roster?.category === "BACKLOG") {
+                  const origSem = activeSub?.originalSemester ?? roster?.originalSemester;
+                  return (
+                    <span
+                      className="badge-me"
+                      style={{
+                        background: "var(--me-amber-50)",
+                        color: "var(--me-amber-600)",
+                        border: "1px solid rgba(232, 165, 49, 0.4)",
+                        fontWeight: 700,
+                      }}
+                    >
+                      BACKLOG — Original Semester: {origSem}
+                    </span>
+                  );
+                }
+                return null;
+              })()}
               {roster && (
                 <>
                   <span className="badge-me" style={{ background: "var(--me-green-50)", color: "var(--me-green-600)" }}>
