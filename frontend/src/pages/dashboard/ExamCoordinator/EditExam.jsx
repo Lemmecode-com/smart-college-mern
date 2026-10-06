@@ -6,6 +6,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
+import { getEligibleBacklogSubjects } from "../../../api/exam";
 
 import {
   FaBookOpen,
@@ -384,9 +385,11 @@ export default function EditExam() {
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [backlogSubjects, setBacklogSubjects] = useState([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [loadingBacklogs, setLoadingBacklogs] = useState(false);
   const [loadingExam, setLoadingExam] = useState(true);
   const [exam, setExam] = useState(null);
 
@@ -498,6 +501,7 @@ export default function EditExam() {
     const fetchSubjects = async () => {
       if (!formData.course_id || !formData.semester) {
         setSubjects([]);
+        setBacklogSubjects([]);
         return;
       }
 
@@ -512,10 +516,49 @@ export default function EditExam() {
       } finally {
         setLoadingSubjects(false);
       }
+
+      if (Number(formData.semester) > 1) {
+        setLoadingBacklogs(true);
+        try {
+          const res = await getEligibleBacklogSubjects(formData.course_id, formData.semester);
+          let backlogData = res?.data || res || [];
+          if (!Array.isArray(backlogData)) backlogData = [];
+
+          // If the existing exam being edited already has backlog subjects, ensure they are present in the list
+          if (exam?.subjects) {
+            for (const es of exam.subjects) {
+              const subObj = es.subject;
+              if (es.category === "BACKLOG" && subObj) {
+                const subId = String(subObj._id || subObj);
+                const alreadyInList = backlogData.some((b) => String(b._id) === subId);
+                if (!alreadyInList) {
+                  backlogData.push({
+                    _id: subId,
+                    name: subObj.name || "Backlog Subject",
+                    code: subObj.code || "",
+                    semester: es.originalSemester || subObj.semester,
+                    subjectType: es.subjectType || subObj.subjectType,
+                    credits: subObj.credits || 0,
+                    category: "BACKLOG",
+                    originalSemester: es.originalSemester || subObj.semester,
+                  });
+                }
+              }
+            }
+          }
+          setBacklogSubjects(backlogData);
+        } catch {
+          setBacklogSubjects([]);
+        } finally {
+          setLoadingBacklogs(false);
+        }
+      } else {
+        setBacklogSubjects([]);
+      }
     };
 
     fetchSubjects();
-  }, [formData.course_id, formData.semester]);
+  }, [formData.course_id, formData.semester, exam]);
 
   /* ================= HANDLERS ================= */
   const handleInputChange = (e) => {
@@ -527,6 +570,10 @@ export default function EditExam() {
       ...(name === "department_id" ? { course_id: "", semester: "", subjects: [] } : {}),
       ...(resetsSubjects && name !== "department_id" ? { subjects: [] } : {}),
     }));
+    if (resetsSubjects) {
+      setSubjects([]);
+      setBacklogSubjects([]);
+    }
     if (validationErrors[name]) {
       setValidationErrors((prev) => ({ ...prev, [name]: "" }));
     }
@@ -590,12 +637,38 @@ export default function EditExam() {
     setError("");
 
     try {
+      // Prepare subjects payload with category & originalSemester
+      const payloadSubjects = formData.subjects.map((id) => {
+        const backlogSub = backlogSubjects.find((b) => String(b._id) === String(id));
+        if (backlogSub) {
+          return {
+            subject: id,
+            category: "BACKLOG",
+            originalSemester: backlogSub.originalSemester || backlogSub.semester,
+          };
+        }
+        const examSub = exam?.subjects?.find((s) => String(s.subject?._id || s.subject) === String(id));
+        if (examSub?.category === "BACKLOG") {
+          return {
+            subject: id,
+            category: "BACKLOG",
+            originalSemester: examSub.originalSemester || examSub.subject?.semester,
+          };
+        }
+        const regularSub = subjects.find((s) => String(s._id) === String(id));
+        return {
+          subject: id,
+          category: "REGULAR",
+          originalSemester: regularSub?.semester || Number(formData.semester),
+        };
+      });
+
       await api.put(`/exam/${id}`, {
         name: formData.name.trim(),
         course_id: formData.course_id,
         semester: Number(formData.semester),
         academicYear: formData.academicYear.trim(),
-        subjects: formData.subjects,
+        subjects: payloadSubjects,
       });
 
       toast.success("Exam updated successfully!");
@@ -838,62 +911,149 @@ export default function EditExam() {
                 {/* Subject Selection */}
                 <div className="field-group">
                   <label className="field-label">Subjects *</label>
-                   {!formData.course_id || !formData.semester ? (
-                     <div className="alert-edx alert-edx-info">
-                       Select a department, course, and semester to load subjects.
-                    </div>
-                  ) : loadingSubjects ? (
-                    <div className="text-center py-4" style={{ color: "var(--edx-slate-600)" }}>
-                      <FaSpinner className="spin me-2" />
-                      Loading subjects...
-                    </div>
-                  ) : subjects.length === 0 ? (
-                    <div className="alert-edx alert-edx-warning">
-                      <FaExclamationTriangle />
-                      No subjects found for the selected course and semester.
+                  {!formData.course_id || !formData.semester ? (
+                    <div className="alert-edx alert-edx-info">
+                      Select a department, course, and semester to load subjects.
                     </div>
                   ) : (
-                    <div className="subject-list">
-                      {subjects.map((subject) => {
-                        const isSelected = formData.subjects.includes(subject._id);
-                        return (
-                          <div
-                            key={subject._id}
-                            className={`subject-item ${isSelected ? "selected" : ""}`}
-                            onClick={() => toggleSubject(subject._id)}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => toggleSubject(subject._id)}
-                              disabled={loading}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <div className="subject-item-icon">
-                              <FaBook />
-                            </div>
-                            <div className="subject-main">
-                              <div className="subject-top-row">
-                                <div>
-                                  <span className="subject-name">{subject.name}</span>
-                                  <span className="pill pill-slate">{subject.code}</span>
-                                  <span className="pill pill-cyan">{subject.subjectType || "N/A"}</span>
-                                </div>
-                                <span className="subject-credits">
-                                  Credits: {subject.credits}
-                                </span>
-                              </div>
-                              {subject.teacher_id?.name && (
-                                <div className="subject-teacher">
-                                  <FaChalkboardTeacher />
-                                  {subject.teacher_id.name}
-                                </div>
-                              )}
-                            </div>
+                    <>
+                      {/* Regular Subjects Section */}
+                      <div className="mb-4">
+                        <div className="d-flex align-items-center justify-content-between mb-2">
+                          <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--edx-navy-900)" }}>
+                            Regular Subjects (Semester {formData.semester})
+                          </span>
+                          <span className="pill pill-cyan pill-sm">REGULAR</span>
+                        </div>
+                        {loadingSubjects ? (
+                          <div className="text-center py-3" style={{ color: "var(--edx-slate-600)" }}>
+                            <FaSpinner className="spin me-2" />
+                            Loading regular subjects...
                           </div>
-                        );
-                      })}
-                    </div>
+                        ) : subjects.length === 0 ? (
+                          <div className="alert-edx alert-edx-info">
+                            <FaInfoCircle />
+                            No regular subjects found for Semester {formData.semester}.
+                          </div>
+                        ) : (
+                          <div className="subject-list">
+                            {subjects.map((subject) => {
+                              const isSelected = formData.subjects.includes(subject._id);
+                              return (
+                                <div
+                                  key={subject._id}
+                                  className={`subject-item ${isSelected ? "selected" : ""}`}
+                                  onClick={() => toggleSubject(subject._id)}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleSubject(subject._id)}
+                                    disabled={loading}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  <div className="subject-item-icon">
+                                    <FaBook />
+                                  </div>
+                                  <div className="subject-main">
+                                    <div className="subject-top-row">
+                                      <div>
+                                        <span className="subject-name">{subject.name}</span>
+                                        <span className="pill pill-slate ms-2">{subject.code}</span>
+                                        <span className="pill pill-cyan ms-1">REGULAR</span>
+                                        <span className="pill pill-slate ms-1">{subject.subjectType || "N/A"}</span>
+                                      </div>
+                                      <span className="subject-credits">
+                                        Credits: {subject.credits}
+                                      </span>
+                                    </div>
+                                    {subject.teacher_id?.name && (
+                                      <div className="subject-teacher">
+                                        <FaChalkboardTeacher />
+                                        {subject.teacher_id.name}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Eligible Backlog Subjects Section (for semester > 1) */}
+                      {Number(formData.semester) > 1 && (
+                        <div className="mb-3">
+                          <div className="d-flex align-items-center justify-content-between mb-2">
+                            <span style={{ fontWeight: 600, fontSize: "0.9rem", color: "var(--edx-navy-900)" }}>
+                              Eligible Backlog Subjects (Previous Semesters)
+                            </span>
+                            <span className="pill pill-warning pill-sm">BACKLOG</span>
+                          </div>
+                          {loadingBacklogs ? (
+                            <div className="text-center py-3" style={{ color: "var(--edx-slate-600)" }}>
+                              <FaSpinner className="spin me-2" />
+                              Loading eligible backlog subjects...
+                            </div>
+                          ) : backlogSubjects.length === 0 ? (
+                            <div className="alert-edx alert-edx-info">
+                              <FaInfoCircle />
+                              No active open backlogs found for previous semesters in this course.
+                            </div>
+                          ) : (
+                            <div className="subject-list">
+                              {backlogSubjects.map((subject) => {
+                                const isSelected = formData.subjects.includes(subject._id);
+                                return (
+                                  <div
+                                    key={subject._id}
+                                    className={`subject-item ${isSelected ? "selected" : ""}`}
+                                    onClick={() => toggleSubject(subject._id)}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => toggleSubject(subject._id)}
+                                      disabled={loading}
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                    <div
+                                      className="subject-item-icon"
+                                      style={{ background: "var(--edx-amber-50)", color: "var(--edx-amber-600)" }}
+                                    >
+                                      <FaBook />
+                                    </div>
+                                    <div className="subject-main">
+                                      <div className="subject-top-row">
+                                        <div>
+                                          <span className="subject-name">{subject.name}</span>
+                                          <span className="pill pill-slate ms-2">{subject.code}</span>
+                                          <span className="pill pill-warning ms-1">
+                                            BACKLOG (Sem {subject.originalSemester || subject.semester})
+                                          </span>
+                                          <span className="pill pill-slate ms-1">{subject.subjectType || "N/A"}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center gap-2">
+                                          {subject.studentCount !== undefined && (
+                                            <span className="pill pill-warning pill-sm">
+                                              <FaUsers className="me-1" />
+                                              {subject.studentCount} student{subject.studentCount === 1 ? "" : "s"}
+                                            </span>
+                                          )}
+                                          <span className="subject-credits">
+                                            Credits: {subject.credits || 0}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
                   {validationErrors.subjects && (
                     <div className="field-feedback">{validationErrors.subjects}</div>

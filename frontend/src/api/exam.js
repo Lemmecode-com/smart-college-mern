@@ -77,3 +77,17 @@ export const getPublishedExamById = async (examId) => {
   const response = await api.get(`${EXAM_BASE_URL}/published/${examId}`);
   return response.data;
 };
+
+/**
+ * Get eligible backlog subjects for a course and semester
+ * @param {string} courseId - Course ID
+ * @param {number} semester - Semester number
+ * @returns {Promise}
+ */
+export const getEligibleBacklogSubjects = async (courseId, semester) => {
+  const response = await api.get(`${EXAM_BASE_URL}/eligible-backlog-subjects`, {
+    params: { course_id: courseId, semester },
+  });
+  return response.data;
+};
+

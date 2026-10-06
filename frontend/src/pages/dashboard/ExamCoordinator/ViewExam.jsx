@@ -764,6 +764,7 @@ export default function ViewExam() {
                       <tr>
                         <th>Subject Name</th>
                         <th>Code</th>
+                        <th>Category</th>
                         <th>Type</th>
                         <th>Teacher</th>
                         <th>Max Marks Config</th>
@@ -777,6 +778,17 @@ export default function ViewExam() {
                             <td className="subject-name-cell">{subject.name || "N/A"}</td>
                             <td>
                               <span className="pill pill-slate pill-sm">{subject.code || "N/A"}</span>
+                            </td>
+                            <td>
+                              {examSubject.category === "BACKLOG" ? (
+                                <span className="pill pill-warning pill-sm">
+                                  BACKLOG {examSubject.originalSemester ? `(Sem ${examSubject.originalSemester})` : ""}
+                                </span>
+                              ) : (
+                                <span className="pill pill-cyan pill-sm">
+                                  REGULAR
+                                </span>
+                              )}
                             </td>
                             <td>{getSubjectTypeBadge(examSubject.subjectType)}</td>
                             <td>

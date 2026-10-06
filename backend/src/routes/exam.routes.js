@@ -26,6 +26,15 @@ router.get(
   examController.getDashboard,
 );
 
+// Eligible backlog subjects for exam creation/editing (must come before /:id)
+router.get(
+  "/eligible-backlog-subjects",
+  auth,
+  role(ROLE.EXAM_COORDINATOR),
+  collegeMiddleware,
+  examController.getEligibleBacklogSubjects,
+);
+
 // Published visibility routes (must come before /:id to avoid route conflicts)
 router.get(
   "/published",

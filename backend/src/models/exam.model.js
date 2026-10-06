@@ -16,6 +16,15 @@ const examSubjectSchema = new mongoose.Schema(
       enum: ["THEORY", "PRACTICAL", "COMPOSITE"],
       required: false,
     },
+    category: {
+      type: String,
+      enum: ["REGULAR", "BACKLOG"],
+      default: "REGULAR",
+    },
+    originalSemester: {
+      type: Number,
+      required: false,
+    },
     internalMaxMarks: { type: Number },
     externalMaxMarks: { type: Number },
     internalPassMarks: { type: Number },

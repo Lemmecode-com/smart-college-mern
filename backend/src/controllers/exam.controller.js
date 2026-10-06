@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Exam = require("../models/exam.model");
 const Course = require("../models/course.model");
 const Subject = require("../models/subject.model");
@@ -5,6 +6,7 @@ const ExamSchedule = require("../models/examSchedule.model");
 const Student = require("../models/student.model");
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
+const Backlog = require("../models/backlog.model");
 const AppError = require("../utils/AppError");
 const auditLogService = require("../services/auditLog.service");
 const teacherService = require("../services/teacher.service");
@@ -12,24 +14,74 @@ const ApiResponse = require("../utils/ApiResponse");
 const { ROLE } = require("../utils/constants");
 
 /**
- * Build a normalized array of subject ids (strings) from the request payload,
- * which may be an array of ids or an array of { subject } objects.
+ * Normalize incoming subjects payload. Supports:
+ * - String subject IDs: ["id1", "id2"] (defaults to category: "REGULAR")
+ * - Objects: [{ subject: "id1", category: "REGULAR" }, { subject: "id2", category: "BACKLOG" }]
  */
-const extractSubjectIds = (subjects) =>
-  (subjects || []).map((s) => (typeof s === "string" ? s : s.subject));
+const normalizeIncomingSubjects = (subjects) => {
+  if (!Array.isArray(subjects)) return [];
+  return subjects.map((s, idx) => {
+    if (typeof s === "string") {
+      const trimmed = s.trim();
+      if (!trimmed) {
+        throw new AppError(
+          `Invalid subject entry at index ${idx}`,
+          400,
+          "INVALID_SUBJECT_ENTRY",
+        );
+      }
+      return { subject: trimmed, category: "REGULAR" };
+    }
+    if (s && typeof s === "object") {
+      const subjectId = s.subject
+        ? typeof s.subject === "object" && s.subject._id
+          ? String(s.subject._id)
+          : String(s.subject)
+        : null;
+      if (!subjectId) {
+        throw new AppError(
+          `Invalid subject entry at index ${idx}`,
+          400,
+          "INVALID_SUBJECT_ENTRY",
+        );
+      }
+      const category = s.category ? String(s.category).toUpperCase().trim() : "REGULAR";
+      if (!["REGULAR", "BACKLOG"].includes(category)) {
+        throw new AppError(
+          `Invalid subject category "${s.category}". Category must be REGULAR or BACKLOG`,
+          400,
+          "INVALID_SUBJECT_CATEGORY",
+        );
+      }
+      return {
+        subject: subjectId,
+        category,
+      };
+    }
+    throw new AppError(
+      `Invalid subject format at index ${idx}`,
+      400,
+      "INVALID_SUBJECT_ENTRY",
+    );
+  });
+};
 
 /**
- * Fetch subjects (scoped to the authenticated college) and validate that every
- * one belongs to the given course AND semester. Returns the exam subject
- * snapshots (subject ref + copied exam/marks configuration) on success.
+ * Fetch subjects (scoped to the authenticated college) and validate that:
+ * 1. For REGULAR: subject belongs to the given course AND exam semester.
+ * 2. For BACKLOG: subject belongs to the given course, has an earlier semester than the exam semester,
+ *    and has at least one active OPEN or ATTEMPTED backlog in this college.
+ * Returns the exam subject snapshots on success.
  */
 const resolveExamSubjects = async (
-  subjectIds,
+  incomingSubjects,
   collegeId,
   courseId,
   semester,
 ) => {
-  const uniqueIds = [...new Set(subjectIds.map((id) => String(id)))];
+  const normalized = normalizeIncomingSubjects(incomingSubjects);
+  const subjectIds = normalized.map((s) => s.subject);
+  const uniqueIds = [...new Set(subjectIds)];
 
   if (uniqueIds.length !== subjectIds.length) {
     throw new AppError(
@@ -56,8 +108,9 @@ const resolveExamSubjects = async (
 
   const subjectMap = new Map(subjectDocs.map((s) => [s._id.toString(), s]));
 
-  return uniqueIds.map((id) => {
-    const sub = subjectMap.get(id);
+  const resolved = [];
+  for (const item of normalized) {
+    const sub = subjectMap.get(item.subject);
 
     if (String(sub.course_id) !== String(courseId)) {
       throw new AppError(
@@ -67,24 +120,53 @@ const resolveExamSubjects = async (
       );
     }
 
-    if (Number(sub.semester) !== Number(semester)) {
-      throw new AppError(
-        `Subject "${sub.name}" does not belong to the selected semester`,
-        400,
-        "INVALID_SUBJECT_SEMESTER",
-      );
+    if (item.category === "REGULAR") {
+      if (Number(sub.semester) !== Number(semester)) {
+        throw new AppError(
+          `Subject "${sub.name}" does not belong to the selected semester`,
+          400,
+          "INVALID_SUBJECT_SEMESTER",
+        );
+      }
+    } else if (item.category === "BACKLOG") {
+      if (Number(sub.semester) >= Number(semester)) {
+        throw new AppError(
+          `Backlog subject "${sub.name}" must belong to an earlier semester than the exam semester`,
+          400,
+          "INVALID_BACKLOG_SEMESTER",
+        );
+      }
+
+      const hasOpenBacklog = await Backlog.exists({
+        college_id: collegeId,
+        course_id: courseId,
+        subject_id: sub._id,
+        status: { $in: ["OPEN", "ATTEMPTED"] },
+      });
+
+      if (!hasOpenBacklog) {
+        throw new AppError(
+          `Subject "${sub.name}" cannot be marked as BACKLOG because there are no active open backlogs for it in this course`,
+          400,
+          "NO_ACTIVE_BACKLOG_FOR_SUBJECT",
+        );
+      }
     }
 
-    return {
+    resolved.push({
       subject: sub._id,
       subjectType: sub.subjectType || undefined,
+      category: item.category,
+      originalSemester: sub.semester,
       internalMaxMarks: sub.internalMaxMarks,
       externalMaxMarks: sub.externalMaxMarks,
       internalPassMarks: sub.internalPassMarks,
       externalPassMarks: sub.externalPassMarks,
       passMarks: sub.passMarks,
-    };
-  });
+    });
+  }
+
+  return resolved;
 };
 
 /**
@@ -137,7 +219,7 @@ exports.createExam = async (req, res, next) => {
     }
 
     const examSubjects = await resolveExamSubjects(
-      extractSubjectIds(subjects),
+      subjects,
       req.college_id,
       course_id,
       semNum,
@@ -368,6 +450,107 @@ exports.getDashboard = async (req, res, next) => {
 };
 
 /**
+ * GET ELIGIBLE BACKLOG SUBJECTS FOR COURSE & SEMESTER
+ * Returns distinct subjects from earlier semesters that have active/open backlogs.
+ */
+exports.getEligibleBacklogSubjects = async (req, res, next) => {
+  try {
+    const { course_id, semester } = req.query;
+
+    if (!course_id || !mongoose.Types.ObjectId.isValid(course_id)) {
+      throw new AppError("Valid course_id is required", 400, "INVALID_COURSE_ID");
+    }
+
+    const examSemester = Number(semester);
+    if (!examSemester || isNaN(examSemester) || examSemester <= 1) {
+      return res.json({
+        success: true,
+        data: [],
+      });
+    }
+
+    const course = await Course.findOne({
+      _id: course_id,
+      college_id: req.college_id,
+    });
+    if (!course) {
+      throw new AppError("Course not found", 404, "COURSE_NOT_FOUND");
+    }
+
+    const backlogs = await Backlog.aggregate([
+      {
+        $match: {
+          college_id: new mongoose.Types.ObjectId(req.college_id),
+          course_id: new mongoose.Types.ObjectId(course_id),
+          semester: { $lt: examSemester },
+          status: { $in: ["OPEN", "ATTEMPTED"] },
+        },
+      },
+      {
+        $group: {
+          _id: "$subject_id",
+          studentCount: { $addToSet: "$student_id" },
+          backlogCount: { $sum: 1 },
+          originalSemester: { $first: "$semester" },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          studentCount: { $size: "$studentCount" },
+          backlogCount: 1,
+          originalSemester: 1,
+        },
+      },
+    ]);
+
+    if (!backlogs || backlogs.length === 0) {
+      return res.json({
+        success: true,
+        data: [],
+      });
+    }
+
+    const subjectIds = backlogs.map((b) => b._id);
+    const subjects = await Subject.find({
+      _id: { $in: subjectIds },
+      college_id: req.college_id,
+      course_id: course_id,
+    }).lean();
+
+    const subjectMap = new Map(subjects.map((s) => [s._id.toString(), s]));
+
+    const result = [];
+    for (const b of backlogs) {
+      const sub = subjectMap.get(b._id.toString());
+      if (sub && Number(sub.semester) < examSemester) {
+        result.push({
+          _id: sub._id,
+          name: sub.name,
+          code: sub.code,
+          semester: sub.semester,
+          subjectType: sub.subjectType,
+          credits: sub.credits,
+          studentCount: b.studentCount,
+          backlogCount: b.backlogCount,
+          category: "BACKLOG",
+          originalSemester: sub.semester,
+        });
+      }
+    }
+
+    result.sort((a, b) => a.semester - b.semester || a.name.localeCompare(b.name));
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * PUBLISH EXAM
  * DRAFT -> PUBLISHED only. Idempotent if already PUBLISHED.
  */
@@ -489,7 +672,7 @@ exports.updateExam = async (req, res, next) => {
         );
       }
       examSubjects = await resolveExamSubjects(
-        extractSubjectIds(subjects),
+        subjects,
         req.college_id,
         effectiveCourseId,
         effectiveSemester,
