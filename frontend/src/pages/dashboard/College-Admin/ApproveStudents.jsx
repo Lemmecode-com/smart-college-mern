@@ -370,7 +370,20 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading approved students..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading approved students..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -1419,29 +1419,7 @@ MarkPaidModal.propTypes = {
 };
 
 /* ---- Loading Display Component ---- */
-function LoadingDisplay() {
-  return (
-    <motion.div
-      className="erp-loading-container"
-      role="status"
-      aria-label="Loading"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Loading
-        size="lg"
-        color="primary"
-        text="Loading student profile..."
-        variant="spinner"
-      />
-      <div className="loading-skeleton-wrapper">
-        <ProfileSkeleton />
-      </div>
-    </motion.div>
-  );
-}
+
 
 /* ================= MAIN COMPONENT ================= */
 export default function ViewApproveStudent() {
@@ -1750,8 +1728,21 @@ export default function ViewApproveStudent() {
 
   /* ================= LOADING STATE ================= */
   if (loading || !student) {
-    return <LoadingDisplay />;
-  }
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Student Profile..."
+        />
+      </div>
+    </div>
+  );
+}
 
    /* ================= RENDER ================= */
    const renderSection = (sectionId, content) => {

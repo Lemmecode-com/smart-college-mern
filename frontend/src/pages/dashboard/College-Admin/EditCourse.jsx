@@ -129,9 +129,22 @@ export default function EditCourse() {
   };
 
   /* ================= LOADING ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading course details..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Course Details..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error && typeof error === 'object') {
     return (

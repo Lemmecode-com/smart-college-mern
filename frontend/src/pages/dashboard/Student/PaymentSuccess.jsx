@@ -337,20 +337,42 @@ export default function PaymentSuccess() {
   }, [paymentGatewayParam, orderId, retryNonce]);
 
   /* ========== SECURITY ========== */
-  if (authLoading) {
-    return <Loading fullScreen text="Verifying your session..." />;
-  }
+if (authLoading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Verifying your session..."
+        />
+      </div>
+    </div>
+  );
+}
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" replace />;
 
   /* ========== LOADING ========== */
-  if (loading) {
-    return (
-      <div className="ps-wrapper">
-        <Loading fullScreen size="lg" text="Confirming your payment..." />
+ if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Confirming your payment..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   /* ========== ERROR ========== */
   if (error) {
