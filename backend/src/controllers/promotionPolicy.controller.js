@@ -101,6 +101,13 @@ exports.updatePromotionPolicy = async (req, res, next) => {
       policy = await PromotionPolicy.getActivePolicy(req.college_id);
     }
 
+    if (!policy) {
+      policy = await PromotionPolicy.findOne({
+        collegeId: req.college_id,
+        isActive: true,
+      });
+    }
+
     if (policy) {
       policy.minAttendancePercentage =
         minAttendancePercentage ?? policy.minAttendancePercentage;
@@ -120,6 +127,9 @@ exports.updatePromotionPolicy = async (req, res, next) => {
         policy.ktRules = ktRules;
       if (effectiveFrom) policy.effectiveFrom = effectiveFrom;
       if (isActive !== undefined) policy.isActive = isActive;
+      if (isCourseSpecific && course_id) {
+        policy.course_id = course_id;
+      }
       await policy.save();
     } else {
       const createData = {

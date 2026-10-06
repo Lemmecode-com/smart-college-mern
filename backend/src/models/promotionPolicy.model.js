@@ -151,11 +151,17 @@ promotionPolicySchema.statics.getActivePolicy = async function (collegeId, cours
     }
   }
   // Fallback to college-level policy (course_id: null)
-  const collegePolicy = await this.findOne({
+  let collegePolicy = await this.findOne({
     collegeId,
     course_id: null,
     isActive: true,
   });
+  if (!collegePolicy) {
+    collegePolicy = await this.findOne({
+      collegeId,
+      isActive: true,
+    });
+  }
   if (collegePolicy && collegePolicy.maxAllowedKTs === undefined) {
     collegePolicy.maxAllowedKTs = DEFAULT_MAX_ALLOWED_KTS;
   }

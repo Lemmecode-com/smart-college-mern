@@ -192,8 +192,26 @@ const PromotionSetting = () => {
         return;
       }
 
+      let targetCourseId = preferredCourseId;
+      if (!targetCourseId) {
+        try {
+          const activePolicyRes = await getPromotionPolicy();
+          const activePolicy = activePolicyRes?.data ?? activePolicyRes;
+          if (activePolicy?.course_id) {
+            const matchingCourse = scopedCourses.find(
+              (c) => String(c._id) === String(activePolicy.course_id)
+            );
+            if (matchingCourse) {
+              targetCourseId = matchingCourse._id;
+            }
+          }
+        } catch {
+          // Ignore and fallback to first course
+        }
+      }
+
       const target =
-        scopedCourses.find((course) => course._id === preferredCourseId) ||
+        scopedCourses.find((course) => course._id === targetCourseId) ||
         scopedCourses[0];
 
       setSelectedCourseId(target._id);
