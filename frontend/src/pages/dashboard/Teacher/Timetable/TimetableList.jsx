@@ -390,9 +390,27 @@ export default function TimetableList() {
      }
    };
 
-   if (initialLoading && timetables.length === 0 && archivedTimetables.length === 0) {
-     return <Loading fullScreen size="lg" text="Loading Timetables..." />;
-   }
+  // Loading State
+if (
+  initialLoading &&
+  timetables.length === 0 &&
+  archivedTimetables.length === 0
+) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Timetables..."
+        />
+      </div>
+    </div>
+  );
+}
 
    if (error) {
      return (

@@ -5,6 +5,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
@@ -72,26 +73,9 @@ const fadeInVariants = {
   })
 };
 
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
-};
 
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: {
-      duration: 2,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
+
+
 
 const spinVariants = {
   animate: {
@@ -191,9 +175,22 @@ export default function ChildrenList() {
     return statusLabels[status] || status;
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading your children..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Your Children..."
+        />
+      </div>
+    </div>
+  );
+}
 
   return (
     <AnimatePresence mode="wait">
@@ -213,34 +210,11 @@ export default function ChildrenList() {
           />
 
           {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            {/* Hero Section */}
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaUsers />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    My Children
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    View and manage all your children's academic information.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+<PageHeader
+  icon={FaUsers}
+  title="My Children"
+  subtitle="View and manage all your children's academic information."
+/>
 
           {/* ================= SEARCH AND FILTERS ================= */}
           <motion.div

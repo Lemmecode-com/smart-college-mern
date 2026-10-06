@@ -144,21 +144,20 @@ export default function SuperAdminReports() {
   /* ================= LOADING STATE ================= */
   if (loading || !data) {
     return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading admission reports..."
+          />
         </div>
-        <h4 className="erp-loading-text">Loading admission reports...</h4>
-        <div className="loading-progress">
-          <div className="progress-bar"></div>
-        </div>
-        {renderSkeleton()}
       </div>
     );
   }
-
   return (
     <div className="erp-container">
       {/* BREADCRUMBS */}

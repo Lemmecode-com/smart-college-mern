@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import Pagination from "../../../../components/Pagination";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import Loading from "../../../../components/Loading";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -410,47 +411,22 @@ export default function AttendanceReport() {
     printWindow.document.close();
   };
 
-  if (loading && !report) {
-    return (
+if (loading && !report) {
+  return (
+    <div className="parent-portal-wrapper">
       <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-          padding: "2rem",
-        }}
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
       >
-        <div style={{ textAlign: "center" }}>
-          <motion.div
-            variants={spinVariants}
-            animate="animate"
-            style={{
-              marginBottom: "1.5rem",
-              color: BRAND_COLORS.primary.main,
-              fontSize: "4rem",
-            }}
-          >
-            <FaSyncAlt />
-          </motion.div>
-          <h3
-            style={{
-              margin: "0 0 0.5rem 0",
-              color: "#1e293b",
-              fontWeight: 700,
-              fontSize: "1.5rem",
-            }}
-          >
-            Loading Attendance Report...
-          </h3>
-          <p style={{ color: "#64748b", margin: 0 }}>
-            Preparing your comprehensive attendance analytics
-          </p>
-        </div>
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Attendance Report..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   const { summary = {}, sessions = [] } = report || {};
 

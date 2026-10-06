@@ -643,20 +643,22 @@ export default function AlumniList({ admissionOfficerMode = false }) {
   };
 
   // Loading state
-  if (loading) {
-    return (
-      <div className="page-container alumni-page">
-        <div className="page-header-skeleton" />
-        <div className="stats-grid-skeleton">
-          <div className="stat-card-skeleton" />
-          <div className="stat-card-skeleton" />
-          <div className="stat-card-skeleton" />
-          <div className="stat-card-skeleton" />
-        </div>
-        <TableSkeleton rows={8} />
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Alumni Records..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (

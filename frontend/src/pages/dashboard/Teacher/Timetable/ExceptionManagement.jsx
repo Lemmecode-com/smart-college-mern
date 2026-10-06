@@ -312,16 +312,22 @@ export default function ExceptionManagement() {
   if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
   /* ================= LOADING ================= */
-  if (loading && exceptions.length === 0) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text="Loading Exceptions..."
-        color="primary"
-      />
-    );
-  }
+if (loading && exceptions.length === 0) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Exceptions..."
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR STATE ================= */
   if (error && exceptions.length === 0) {
