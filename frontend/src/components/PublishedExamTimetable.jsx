@@ -80,13 +80,24 @@ const normalizeExamItem = (item) => {
    Handles the flat shape produced by loadPublishedSchedule too.
  */
 const getSubjectInfo = (entry) => {
-  if (!entry) return { name: "N/A", code: "" };
+  if (!entry) return { name: "N/A", code: "", category: "REGULAR", originalSemester: null };
+
+  const category =
+    entry.category ||
+    (entry.subject && typeof entry.subject === "object" ? entry.subject.category : null) ||
+    "REGULAR";
+  const originalSemester =
+    entry.originalSemester !== undefined
+      ? entry.originalSemester
+      : (entry.subject && typeof entry.subject === "object" ? entry.subject.originalSemester : null);
 
   // Flat shape (loadPublishedSchedule remaps)
   if (entry.subjectName || entry.subjectCode) {
     return {
       name: entry.subjectName || "N/A",
       code: entry.subjectCode || "",
+      category,
+      originalSemester,
     };
   }
 
@@ -96,10 +107,12 @@ const getSubjectInfo = (entry) => {
     return {
       name: sub.name || "N/A",
       code: sub.code || "",
+      category,
+      originalSemester,
     };
   }
 
-  return { name: "N/A", code: "" };
+  return { name: "N/A", code: "", category, originalSemester };
 };
 
 /** Returns true when at least one subject entry carries schedule timing. */
@@ -211,12 +224,24 @@ export default function PublishedExamTimetable({ exams, onExamClick }) {
                       </thead>
                       <tbody>
                         {subjects.map((entry, idx) => {
-                          const { name, code } = getSubjectInfo(entry);
+                          const { name, code, category, originalSemester } = getSubjectInfo(entry);
                           return (
                             <tr
                               key={entry._id || `${exam._id}-${idx}`}
                             >
-                              <td>{name}</td>
+                              <td>
+                                <div className="published-exam-subject-cell">
+                                  <span className="published-exam-subject-name">{name}</span>
+                                  {category === "BACKLOG" && (
+                                    <span
+                                      className="published-exam-backlog-badge"
+                                      title="Backlog Subject"
+                                    >
+                                      BACKLOG{originalSemester ? ` (Sem ${originalSemester})` : ""}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
                               <td>{code || "—"}</td>
                               <td>{formatDate(entry.examDate)}</td>
                               <td>{formatTime12Hour(entry.startTime)}</td>
@@ -233,16 +258,26 @@ export default function PublishedExamTimetable({ exams, onExamClick }) {
                   {/* Mobile cards */}
                   <div className="published-exam-mobile-list">
                     {subjects.map((entry, idx) => {
-                      const { name, code } = getSubjectInfo(entry);
+                      const { name, code, category, originalSemester } = getSubjectInfo(entry);
                       return (
                         <div
                           key={entry._id || `${exam._id}-${idx}`}
                           className="published-exam-mobile-card"
                         >
                           <div className="published-exam-mobile-card-header">
-                            <span className="published-exam-subject-name">
-                              {name}
-                            </span>
+                            <div className="published-exam-subject-cell">
+                              <span className="published-exam-subject-name">
+                                {name}
+                              </span>
+                              {category === "BACKLOG" && (
+                                <span
+                                  className="published-exam-backlog-badge"
+                                  title="Backlog Subject"
+                                >
+                                  BACKLOG{originalSemester ? ` (Sem ${originalSemester})` : ""}
+                                </span>
+                              )}
+                            </div>
                             <span className="published-exam-subject-code">
                               {code || "—"}
                             </span>
@@ -291,15 +326,16 @@ export default function PublishedExamTimetable({ exams, onExamClick }) {
                   </h6>
                   <div className="published-exam-subject-tag-list">
                     {subjects.map((entry, idx) => {
-                      const { name, code } = getSubjectInfo(entry);
+                      const { name, code, category, originalSemester } = getSubjectInfo(entry);
                       return (
                         <span
                           key={entry._id || `${exam._id}-${idx}`}
-                          className="published-exam-subject-tag"
+                          className={`published-exam-subject-tag ${category === "BACKLOG" ? "is-backlog" : ""}`}
                           title={name}
                         >
                           {name}
                           {code ? ` (${code})` : ""}
+                          {category === "BACKLOG" ? ` (BACKLOG${originalSemester ? ` Sem ${originalSemester}` : ""})` : ""}
                         </span>
                       );
                     })}

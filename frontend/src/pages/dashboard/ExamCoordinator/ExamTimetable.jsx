@@ -302,7 +302,14 @@ const normalizeRows = (scheduleSubjects, examSubjects) => {
     (examSubjects || []).map((entry) => {
       const subject = entry?.subject?._id ? entry.subject : entry;
       const id = getSubjectId(entry);
-      return [String(id), subject];
+      return [
+        String(id),
+        {
+          ...subject,
+          category: entry?.category,
+          originalSemester: entry?.originalSemester,
+        },
+      ];
     }),
   );
 
@@ -320,6 +327,11 @@ const normalizeRows = (scheduleSubjects, examSubjects) => {
       subjectName: row.subjectName || subject.name || "Subject",
       subjectCode: row.subjectCode || subject.code || "",
       subjectType: row.subjectType || subject.subjectType || "",
+      category: row.category || subject.category || "REGULAR",
+      originalSemester:
+        row.originalSemester !== undefined
+          ? row.originalSemester
+          : subject.originalSemester,
     };
   });
 };
@@ -327,6 +339,9 @@ const normalizeRows = (scheduleSubjects, examSubjects) => {
 const toSchedulePayload = (rows) => ({
   subjects: rows.map((row) => ({
     subject: getSubjectId(row.subject),
+    category: row.category || undefined,
+    originalSemester:
+      row.originalSemester !== undefined ? row.originalSemester : undefined,
     examDate: row.examDate || undefined,
     startTime: row.startTime || undefined,
     endTime: row.endTime || undefined,
