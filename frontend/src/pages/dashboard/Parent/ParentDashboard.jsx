@@ -205,10 +205,22 @@ export default function ParentDashboard() {
     }
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading your children..." />;
-  }
-
+ if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading your children..."
+        />
+      </div>
+    </div>
+  );
+}
   return (
     <AnimatePresence mode="wait">
       <motion.div

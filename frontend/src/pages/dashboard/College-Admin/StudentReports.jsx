@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import {
   FaSearch,
   FaUser,
@@ -448,15 +449,47 @@ export default function StudentReports() {
         ]}
       />
 
-      {/* HEADER */}
-      <div className="reports-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
-          <FaArrowLeft />
-          Back
-        </button>
-        <h1>Student Payment Reports</h1>
-        <p>Search and access detailed payment reports for individual students</p>
-      </div>
+     
+{/* HEADER */}
+<PageHeader
+  icon={FaFileInvoiceDollar}
+  title="Student Payment Reports"
+  subtitle="Search and access detailed payment reports for individual students"
+  actions={
+    <button
+      type="button"
+      onClick={() => navigate(-1)}
+                      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+    >
+      <FaArrowLeft />
+      <span>Back</span>
+    </button>
+  }
+/>
 
       {/* SEARCH SECTION */}
       <div className="search-section">
@@ -563,8 +596,7 @@ export default function StudentReports() {
         </div>
       )}
 
-      {/* LOADING */}
-      {loading && <Loading fullScreen size="lg" text="Searching students..." />}
+  
 
       {/* ERROR */}
       {error && !loading && (

@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -133,7 +134,7 @@ export default function AddSubject() {
     Array.isArray(courses) && courses.length > 0
       ? courses.find((c) => c._id === formData.course_id)
       : null;
-
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -141,16 +142,19 @@ export default function AddSubject() {
 
   /* ================= LOAD DEPARTMENTS ================= */
   useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        const res = await api.get("/departments");
-        setDepartments(res.data);
-      } catch (err) {
-        setError("Failed to load departments. Please try again later.");
-      }
-    };
-    fetchDepartments();
-  }, []);
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get("/departments");
+      setDepartments(res.data);
+    } catch (err) {
+      setError("Failed to load departments. Please try again later.");
+    } finally {
+      setLoadingDepartments(false);
+    }
+  };
+
+  fetchDepartments();
+}, []);
 
   /* ================= LOAD COURSES BY DEPARTMENT ================= */
   useEffect(() => {
@@ -398,7 +402,22 @@ export default function AddSubject() {
       setLoading(false);
     }
   };
-
+if (loadingDepartments) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Department Information..."
+        />
+      </div>
+    </div>
+  );
+}
   return (
     <AnimatePresence mode="wait">
       <motion.div

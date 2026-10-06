@@ -346,9 +346,22 @@ export default function SessionDetails() {
     }
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Session Details..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Session Details..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return (

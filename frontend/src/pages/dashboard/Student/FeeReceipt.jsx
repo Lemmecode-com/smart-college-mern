@@ -55,9 +55,24 @@ export default function FeeReceipt() {
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
-  if (authLoading) {
-    return <Loading fullScreen text="Verifying your session..." />;
-  }
+if (authLoading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Verifying your session..."
+        />
+      </div>
+    </div>
+  );
+}
+
+
 
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "STUDENT" && user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "PRINCIPAL")
@@ -433,9 +448,22 @@ export default function FeeReceipt() {
   }
 
   /* ================= LOADING STATE ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Receipt..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Receipt..."
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= EMPTY STATE ================= */
   if (!receipt) {
