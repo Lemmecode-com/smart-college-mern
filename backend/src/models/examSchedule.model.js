@@ -22,6 +22,15 @@ const examScheduleSubjectSchema = new mongoose.Schema(
       ref: "Subject",
       required: true,
     },
+    category: {
+      type: String,
+      enum: ["REGULAR", "BACKLOG"],
+      default: "REGULAR",
+    },
+    originalSemester: {
+      type: Number,
+      required: false,
+    },
     examDate: {
       type: Date,
       required: false,
