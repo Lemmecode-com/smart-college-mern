@@ -5,6 +5,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
 import {
   FaUserTimes,
@@ -155,7 +156,20 @@ export default function DefaulterList() {
   ];
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading defaulters list..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Defaulters List..."
+          />
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -180,12 +194,12 @@ export default function DefaulterList() {
          ]}
        />
 
-       <div className="dashboard-header">
-         <h1>
-           <FaUserTimes />
-           Defaulter List
-         </h1>
-       </div>
+ {/* ================= HEADER ================= */}
+<PageHeader
+  icon={FaUserTimes}
+  title="Defaulter List"
+  subtitle="View and manage students with overdue fee payments"
+/>
 
        {summary && (
          <div className="summary-grid">

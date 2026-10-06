@@ -379,7 +379,20 @@ export default function ParentList() {
   }
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading parent data..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading parent data..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (

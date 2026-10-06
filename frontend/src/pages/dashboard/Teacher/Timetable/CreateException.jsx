@@ -326,10 +326,22 @@ const fetchTeachersForSearch = async (query) => {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "TEACHER") return <Navigate to="/teacher/dashboard" />;
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading..." color="primary" />;
-  }
-
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Exceptions..."
+        />
+      </div>
+    </div>
+  );
+}
   if (loadError) {
     return (
       <ApiError

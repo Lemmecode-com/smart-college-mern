@@ -705,9 +705,23 @@ export default function StudentTimetable() {
     renderFirstSlot?.yearLabel ||
     "";
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Your Timetable..." />;
-  }
+// Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Your Timetable..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return (

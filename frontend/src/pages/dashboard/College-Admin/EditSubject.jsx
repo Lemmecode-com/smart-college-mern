@@ -174,7 +174,20 @@ export default function EditSubject() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading subject details..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Subject Details..."
+          />
+        </div>
+      </div>
+    );
   }
 
   if (error && typeof error === 'object') {

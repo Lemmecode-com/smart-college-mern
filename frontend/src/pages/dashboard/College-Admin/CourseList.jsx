@@ -789,10 +789,22 @@ export default function CourseList() {
   }
 
   /* ================= LOADING STATE ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading courses..." />;
-  }
-
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Courses..."
+        />
+      </div>
+    </div>
+  );
+}
   const selectedDeptName =
     departments.find((d) => d._id === selectedDepartment)?.name ||
     "Select Department";

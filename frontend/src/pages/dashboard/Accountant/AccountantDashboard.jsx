@@ -4,6 +4,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { Button } from "react-bootstrap";
 import { motion } from "framer-motion";
 import "./AccountantDashboard.css";
@@ -142,7 +143,20 @@ export default function AccountantDashboard() {
 
   // Loading state
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Accountant Dashboard..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Accountant Dashboard..."
+          />
+        </div>
+      </div>
+    );
   }
 
   // Error state
@@ -168,34 +182,97 @@ export default function AccountantDashboard() {
         ]}
       />
 
-      {/* ================= HEADER ================= */}
-      <motion.div
-        variants={slideDownVariants}
-        initial="hidden"
-        animate="visible"
-        className="dashboard-header"
+<PageHeader
+  icon={FaFileInvoiceDollar}
+  title="Accountant Dashboard"
+  subtitle="Manage fee collection, payments, and financial records"
+  actions={
+    <>
+      {/* Date */}
+      <div
+        style={{
+          minWidth: "115px",
+          padding: "0.55rem 0.85rem",
+          borderRadius: "10px",
+          background: "rgba(255, 255, 255, 0.12)",
+          color: "#ffffff",
+          textAlign: "center",
+          border: "1px solid rgba(255, 255, 255, 0.18)",
+        }}
       >
-        <div>
-          <h1>
-            <FaFileInvoiceDollar />
-            Accountant Dashboard
-          </h1>
-          <p>Manage fee collection, payments, and financial records</p>
+        <div
+          style={{
+            fontSize: "0.68rem",
+            opacity: 0.75,
+            marginBottom: "0.2rem",
+          }}
+        >
+          Date
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <div className="time-display">
-            {currentTime.toLocaleDateString()} {currentTime.toLocaleTimeString()}
-          </div>
-          <Button
-            variant="outline-light"
-            onClick={fetchStats}
-            className="refresh-btn"
-          >
-            <FaSyncAlt /> Refresh
-          </Button>
-        </div>
-      </motion.div>
 
+        <div
+          style={{
+            fontSize: "0.9rem",
+            fontWeight: 700,
+          }}
+        >
+          {currentTime.toLocaleDateString("en-IN", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          })}
+        </div>
+      </div>
+
+      {/* Time */}
+      <div
+        style={{
+          minWidth: "115px",
+          padding: "0.55rem 0.85rem",
+          borderRadius: "10px",
+          background: "rgba(255, 255, 255, 0.12)",
+          color: "#ffffff",
+          textAlign: "center",
+          border: "1px solid rgba(255, 255, 255, 0.18)",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.68rem",
+            opacity: 0.75,
+            marginBottom: "0.2rem",
+          }}
+        >
+          Time
+        </div>
+
+        <div
+          style={{
+            fontSize: "0.9rem",
+            fontWeight: 700,
+          }}
+        >
+          {currentTime.toLocaleTimeString("en-IN", {
+            hour: "2-digit",
+            minute: "2-digit",
+            // second: "2-digit",
+            hour12: true,
+          })}
+        </div>
+      </div>
+
+      {/* Refresh */}
+      <Button
+        variant="outline-light"
+        onClick={fetchStats}
+        className="refresh-btn"
+      >
+        <FaSyncAlt />
+        Refresh
+      </Button>
+    </>
+  }
+/>
       {/* ================= STATS CARDS ================= */}
       <motion.div
         variants={fadeInVariants}

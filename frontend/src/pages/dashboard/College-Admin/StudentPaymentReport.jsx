@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import {
   FaUser,
   FaRupeeSign,
@@ -143,9 +144,22 @@ export default function StudentPaymentReport() {
   const totals = calculateTotals();
 
   // Loading state
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading student payment report..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Student Payment Report..."
+        />
+      </div>
+    </div>
+  );
+}
 
   // Error state
   if (error) {
@@ -290,30 +304,98 @@ export default function StudentPaymentReport() {
           font-size: 0.875rem;
         }
 
+        /* ================= PAYMENT HISTORY FILTERS ================= */
+
         .filters-section {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          padding: 1.5rem;
-          margin-bottom: 2rem;
+          background: #ffffff;
+          border: 1px solid #e7edf1;
+          border-radius: 14px;
+          box-shadow: 0 3px 12px rgba(15, 55, 70, 0.06);
+
+          padding: 1rem 1.25rem;
+          margin-bottom: 1.5rem;
         }
 
+        /* Filter toolbar */
         .filter-toggle {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          margin-bottom: 1rem;
+          justify-content: space-between;
+          gap: 1rem;
+
+          margin-bottom: 0;
         }
 
+        /* Left side */
+        .filter-title {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          min-width: 0;
+        }
+
+        .filter-title-icon {
+          width: 42px;
+          height: 42px;
+          min-width: 42px;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          background: rgba(14, 55, 70, 0.08);
+          color: #0E3746;
+
+          border-radius: 10px;
+          font-size: 0.95rem;
+        }
+
+        .filter-title h3 {
+          margin: 0;
+
+          color: #0E3746;
+          font-size: 1.05rem;
+          font-weight: 700;
+          line-height: 1.25;
+        }
+
+        .filter-title span {
+          display: block;
+
+          margin-top: 0.2rem;
+
+          color: #6c757d;
+          font-size: 0.76rem;
+          line-height: 1.3;
+        }
+
+        /* Filter button */
         .filter-toggle-btn {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          color: white;
-          border: none;
-          padding: 0.75rem 1.5rem;
-          border-radius: 8px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+
+          min-height: 42px;
+          padding: 0 1rem;
+
+          background: #0E3746;
+          color: #ffffff;
+
+          border: 1px solid #0E3746;
+          border-radius: 10px;
+
+          font-size: 0.82rem;
           font-weight: 600;
+
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
+          white-space: nowrap;
+        }
+
+        .filter-toggle-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(14, 55, 70, 0.18);
         }
 
         .filter-toggle-btn:hover {
@@ -530,33 +612,54 @@ export default function StudentPaymentReport() {
           { label: "Student Report" },
         ]}
       />
-
-      {/* HEADER */}
-      <div className="report-header">
-        <div className="student-info">
-          <div className="student-avatar">
-            <FaUser />
-          </div>
-          <div className="student-details">
-            <h1>{studentData?.student?.fullName || "Student"}</h1>
-            <div className="student-meta">
-              <div className="student-meta-item">
-                <FaFileInvoiceDollar />
-                {studentData?.course?.name || "N/A"}
-              </div>
-              <div className="student-meta-item">
-                <FaRupeeSign />
-                Total Fee: ₹{totals.totalExpected?.toLocaleString() || "0"}
-              </div>
-            </div>
-          </div>
-        </div>
-        <button className="back-btn" onClick={() => navigate(-1)}>
-          <FaArrowLeft />
-          Back to Reports
-        </button>
-      </div>
-
+{/* HEADER */}
+<PageHeader
+  icon={FaUser}
+  title={studentData?.student?.fullName || "Student"}
+  subtitle={
+    <>
+      <FaFileInvoiceDollar className="me-1" />
+      {studentData?.course?.name || "N/A"}
+      <span className="mx-2">•</span>
+      <FaRupeeSign className="me-1" />
+      Total Fee: ₹{totals.totalExpected?.toLocaleString() || "0"}
+    </>
+  }
+  actions={
+    <button
+      type="button"
+      onClick={() => navigate(-1)}
+                      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+    >
+      <FaArrowLeft />
+      <span>Back to Reports</span>
+    </button>
+  }
+/>
       {/* SUMMARY CARDS */}
       <div className="summary-cards">
         <div className="summary-card expected">
@@ -602,16 +705,26 @@ export default function StudentPaymentReport() {
 
       {/* FILTERS SECTION */}
       <div className="filters-section">
-        <div className="filter-toggle">
-          <h3 style={{ margin: 0, color: '#1a4b6d' }}>Payment History Filters</h3>
-          <button
-            className="filter-toggle-btn"
-            onClick={() => setShowDateFilters(!showDateFilters)}
-          >
-            <FaFilter />
-            {showDateFilters ? 'Hide Filters' : 'Show Filters'}
-          </button>
-        </div>
+<div className="filter-toggle">
+  <div className="filter-title">
+    <div className="filter-title-icon">
+      <FaFilter />
+    </div>
+
+    <div>
+      <h3>Payment History Filters</h3>
+      <span>Filter payment records by date</span>
+    </div>
+  </div>
+
+  <button
+    className="filter-toggle-btn"
+    onClick={() => setShowDateFilters(!showDateFilters)}
+  >
+    <FaFilter />
+    {showDateFilters ? "Hide Filters" : "Show Filters"}
+  </button>
+</div>
 
         {showDateFilters && (
           <div className="date-filters animate-fade-in">

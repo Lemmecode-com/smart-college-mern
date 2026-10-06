@@ -4,6 +4,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import Pagination from "../../../components/Pagination";
@@ -278,9 +279,22 @@ export default function RecordOfflinePayment() {
       );
    };
 
-   if (loading) {
-      return <Loading fullScreen size="lg" text="Loading students..." />;
-   }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Payment Records..."
+        />
+      </div>
+    </div>
+  );
+}
 
    if (error) {
       return (
@@ -305,18 +319,23 @@ export default function RecordOfflinePayment() {
          />
 
          {/* ================= HEADER ================= */}
-         <div className="record-header">
-            <div>
-               <h1>
-                  <FaMoneyBillWave />
-                  Record Offline Payment
-               </h1>
-               <p>Search and select a student to record an offline payment</p>
-            </div>
-            <button className="refresh-btn" onClick={fetchReport}>
-               <FaSyncAlt /> Refresh
-            </button>
-         </div>
+{/* ================= HEADER ================= */}
+<PageHeader
+  icon={FaMoneyBillWave}
+  title="Record Offline Payment"
+  subtitle="Search and select a student to record an offline payment"
+  actions={
+    <button
+      type="button"
+      className="refresh-btn"
+      onClick={fetchReport}
+      aria-label="Refresh payment records"
+    >
+      <FaSyncAlt />
+      <span>Refresh</span>
+    </button>
+  }
+/>
 
           {/* ================= SUMMARY CARDS ================= */}
           <div className="summary-grid">

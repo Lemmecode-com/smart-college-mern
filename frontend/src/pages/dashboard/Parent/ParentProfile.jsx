@@ -176,11 +176,11 @@ export default function ParentProfile() {
         <div className="parent-portal-container">
         
 
-<PageHeader
-  icon={FaUserTie}
-  title="My Profile"
-  subtitle="Loading your profile details..."
-/>
+        <PageHeader
+          icon={FaUserTie}
+          title="My Profile"
+          subtitle="Loading your profile details..."
+        />
 
           <div className="parent-loading-state">
             <div className="parent-loading-spinner" />

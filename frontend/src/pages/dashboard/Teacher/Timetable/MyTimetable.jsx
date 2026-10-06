@@ -609,16 +609,22 @@ export default function MyTimetable() {
   };
 
   /* ================= LOADING ================= */
-  if (loading) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text="Loading My Timetable..."
-        color="primary"
-      />
-    );
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading My Timetable..."
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR STATE ================= */
   if (error) {

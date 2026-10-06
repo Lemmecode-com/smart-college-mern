@@ -12,6 +12,7 @@ import {
 import { getGeneralSettings, updateGeneralSettings } from "../../../../api/generalSettings";
 import { showSuccess, showError } from "../../../../utils/toast";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import Loading from "../../../../components/Loading";
 
 const GeneralSetting = () => {
   const [formData, setFormData] = useState({
@@ -116,15 +117,7 @@ const GeneralSetting = () => {
     setIsModified(false);
   };
 
-  if (isLoading) {
-    return (
-      <div className="general-settings-page">
-        <div style={{ textAlign: "center", padding: "4rem 1rem", color: "#718096" }}>
-          Loading settings...
-        </div>
-      </div>
-    );
-  }
+  
 
   if (fetchError) {
     return (

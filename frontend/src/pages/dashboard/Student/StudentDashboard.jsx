@@ -481,10 +481,24 @@ export default function StudentDashboard() {
       percentage: subject.percentage || 0,
     })) || [];
 
-  // Loading State
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading your dashboard..." />;
-  }
+ 
+// Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading your dashboard..."
+        />
+      </div>
+    </div>
+  );
+}
 
   // Error State
   if (error) {
@@ -605,7 +619,7 @@ export default function StudentDashboard() {
       />
 
       <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
-        {/* ================= PAGE HEADER ================= */}
+        
 {/* ================= PAGE HEADER ================= */}
 <PageHeader
   icon={FaGraduationCap}

@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import Loading from "../../../components/Loading";
 import { logger } from "../../../utils/logger";
 
 import {
@@ -210,17 +211,22 @@ export default function AddCourse() {
   };
 
   /* ================= LOADING ================= */
-  if (loadingDeps) {
-    return (
-      <div className="d-flex justify-content-center align-items-center min-vh-100">
-        <div className="text-center">
-          <FaSpinner className="spin-icon text-primary mb-3" size={48} />
-          <h5>Loading departments...</h5>
-        </div>
+if (loadingDeps) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Add New Course..."
+        />
       </div>
-    );
-  }
-
+    </div>
+  );
+}
   return (
     <div className="container-fluid py-4">
       {error && typeof error === 'object' && !loading && (

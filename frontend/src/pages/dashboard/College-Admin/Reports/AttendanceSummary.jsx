@@ -190,16 +190,22 @@ export default function AttendanceSummary() {
   }
 
   /* ================= LOADING STATE ================= */
-  if (loading) {
-    return (
-      <Loading
-        size="lg"
-        color="primary"
-        text="Loading attendance summary reports..."
-        fullScreen={true}
-      />
-    );
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Attendance Summary Reports..."
+        />
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="erp-container">

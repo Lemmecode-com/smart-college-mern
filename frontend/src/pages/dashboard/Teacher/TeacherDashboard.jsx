@@ -164,9 +164,22 @@ export default function TeacherDashboard() {
     fetchDashboard();
   }, []);
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Teacher Dashboard..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Teacher Dashboard..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return <ErrorDisplay message={error} onRetry={() => window.location.reload()} />;
@@ -211,7 +224,7 @@ export default function TeacherDashboard() {
           >
             <div
               className="p-3 p-md-4 text-white"
-              style={{ background: BRAND_COLORS.primary.gradient }}
+              style={{ background: '#0E3746'}}
             >
               <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3 teacher-banner-main">
                 <div className="d-flex align-items-center gap-3">
@@ -225,7 +238,7 @@ export default function TeacherDashboard() {
                       height: '72px',
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       fontSize: '2rem',
-                      boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3)'
+                      // boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3)'
                     }}
                   >
                     <FaChalkboardTeacher />

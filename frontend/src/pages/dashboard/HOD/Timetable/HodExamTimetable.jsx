@@ -112,8 +112,22 @@ export default function HodExamTimetable() {
     fetchExams(true);
   };
 
+  // Loading State
   if (loading) {
-    return <Loading fullScreen text="Loading exam timetable..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Exam Timetable..."
+          />
+        </div>
+      </div>
+    );
   }
 
   if (error && !selectedExam) {

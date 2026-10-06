@@ -4,6 +4,7 @@ import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import Loading from "../../../../components/Loading";
 import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaCalendarAlt,
@@ -1339,26 +1340,23 @@ headerIcon: {
   };
   const styles = getResponsiveStyles();
 
-  if (loading || !sessionsLoaded) {
-    return (
-      <div className="schedule-container">
-        <div className="loading-wrapper">
-          <div className="loading-spinner">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="spinner-icon"
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h3>Loading Today's Schedule...</h3>
-            <p>Fetching your teaching schedule for {currentDayName}</p>
-          </div>
-        </div>
-        <style>{componentStyles}</style>
+// Loading State
+if (loading || !sessionsLoaded) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Today's Schedule..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <AnimatePresence mode="wait">
