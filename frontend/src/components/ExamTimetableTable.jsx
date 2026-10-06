@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   FaBook,
   FaCheckCircle,
@@ -335,9 +335,20 @@ function ScheduleRow({
   return (
     <tr className={showError ? "has-error" : ""}>
       <td>
-        <span className="exam-schedule-subject-name" title={row.subjectName}>
-          {row.subjectName || "Subject"}
-        </span>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
+          <span className="exam-schedule-subject-name" title={row.subjectName}>
+            {row.subjectName || "Subject"}
+          </span>
+          {row.category === "BACKLOG" && (
+            <span
+              className="exam-schedule-pill warning"
+              style={{ fontSize: "0.7rem", padding: "0.15rem 0.45rem", fontWeight: 700 }}
+              title="Backlog paper"
+            >
+              BACKLOG{row.originalSemester ? ` (Sem ${row.originalSemester})` : ""}
+            </span>
+          )}
+        </div>
       </td>
       <td>
         <span className="exam-schedule-subject-code">
@@ -471,6 +482,15 @@ function ScheduleCard({
           <span className="exam-schedule-subject-name">
             {row.subjectName || "Subject"}
           </span>
+          {row.category === "BACKLOG" && (
+            <span
+              className="exam-schedule-pill warning"
+              style={{ fontSize: "0.68rem", padding: "0.12rem 0.4rem", fontWeight: 700 }}
+              title="Backlog paper"
+            >
+              BACKLOG{row.originalSemester ? ` (Sem ${row.originalSemester})` : ""}
+            </span>
+          )}
           {row.subjectCode && (
             <span className="exam-schedule-subject-code">
               {row.subjectCode}

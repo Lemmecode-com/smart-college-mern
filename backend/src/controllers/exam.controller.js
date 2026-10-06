@@ -12,6 +12,10 @@ const auditLogService = require("../services/auditLog.service");
 const teacherService = require("../services/teacher.service");
 const ApiResponse = require("../utils/ApiResponse");
 const { ROLE } = require("../utils/constants");
+const {
+  filterPublishedExamAndScheduleForStudent,
+  filterPublishedExamsListForStudent,
+} = require("../utils/examVisibility.util");
 
 /**
  * Normalize incoming subjects payload. Supports:
@@ -714,9 +718,16 @@ const loadPublishedSchedule = async (examId, collegeId) => {
     exam_id: examId,
     college_id: collegeId,
     status: "PUBLISHED",
-  }).populate("exam_id", "name course_id semester academicYear status");
+  }).populate("exam_id", "name course_id semester academicYear status subjects");
 
   if (!schedule) return null;
+
+  const examSubMap = new Map(
+    (schedule.exam_id?.subjects || []).map((es) => [
+      String(es.subject?._id || es.subject),
+      es,
+    ]),
+  );
 
   schedule.subjects = schedule.subjects.map((entry) => {
     const raw = entry.subject || {};
@@ -725,11 +736,18 @@ const loadPublishedSchedule = async (examId, collegeId) => {
         ? raw
         : { _id: raw, name: "N/A", code: "N/A", subjectType: undefined };
 
+    const examSub = examSubMap.get(String(subject._id || raw));
+
     return {
       subject: subject._id,
       subjectName: subject.name || "N/A",
       subjectCode: subject.code || "N/A",
       subjectType: subject.subjectType || undefined,
+      category: entry.category || examSub?.category || "REGULAR",
+      originalSemester:
+        entry.originalSemester !== undefined
+          ? entry.originalSemester
+          : examSub?.originalSemester,
       examDate: entry.examDate || undefined,
       startTime: entry.startTime || undefined,
       endTime: entry.endTime || undefined,
@@ -769,7 +787,17 @@ exports.getPublishedExamsForStudent = async (req, res, next) => {
       .populate("subjects.subject", "name code teacher_id subjectType")
       .sort({ createdAt: -1 });
 
-    ApiResponse.success(res, exams, "Published exams fetched successfully");
+    const filteredExams = await filterPublishedExamsListForStudent({
+      exams,
+      student,
+      collegeId: req.college_id,
+    });
+
+    ApiResponse.success(
+      res,
+      filteredExams,
+      "Published exams fetched successfully",
+    );
   } catch (error) {
     console.error("Get Published Exams For Student Error:", error);
     res.status(500).json({ message: "Failed to fetch published exams" });
@@ -814,9 +842,16 @@ exports.getPublishedExamByIdForStudent = async (req, res, next) => {
 
     const schedule = await loadPublishedSchedule(exam._id, req.college_id);
 
+    const filtered = await filterPublishedExamAndScheduleForStudent({
+      exam,
+      schedule,
+      student,
+      collegeId: req.college_id,
+    });
+
     ApiResponse.success(
       res,
-      { exam, schedule },
+      { exam: filtered.exam, schedule: filtered.schedule },
       "Published exam fetched successfully",
     );
   } catch (error) {

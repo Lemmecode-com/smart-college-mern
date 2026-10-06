@@ -9,6 +9,9 @@ const AppError = require("../utils/AppError");
 const auditLogService = require("../services/auditLog.service");
 const teacherService = require("../services/teacher.service");
 const ApiResponse = require("../utils/ApiResponse");
+const {
+  filterPublishedExamAndScheduleForStudent,
+} = require("../utils/examVisibility.util");
 
 /* ============================================================
  * Validation helpers (Step 1)
@@ -41,7 +44,7 @@ const isValidDate = (value) => {
  * that there are no duplicates inside a single schedule. Returns the list of
  * valid subjects for downstream use.
  */
-const validateScheduleSubjects = (incomingSubjects, examSubjectIds) => {
+const validateScheduleSubjects = (incomingSubjects, examSubjects) => {
   if (!Array.isArray(incomingSubjects)) {
     throw new AppError(
       "subjects must be an array",
@@ -50,9 +53,11 @@ const validateScheduleSubjects = (incomingSubjects, examSubjectIds) => {
     );
   }
 
-  const examSubjectIdStrings = new Set(
-    examSubjectIds.map((id) => String(id)),
-  );
+  const examSubjectMap = new Map();
+  for (const s of examSubjects || []) {
+    const idStr = String(s.subject?._id || s.subject || s._id || s);
+    examSubjectMap.set(idStr, s);
+  }
 
   const seen = new Set();
 
@@ -76,13 +81,15 @@ const validateScheduleSubjects = (incomingSubjects, examSubjectIds) => {
     }
     seen.add(subjectKey);
 
-    if (!examSubjectIdStrings.has(subjectKey)) {
+    if (!examSubjectMap.has(subjectKey)) {
       throw new AppError(
         `Subject "${subjectKey}" does not belong to the selected Exam`,
         400,
         "SUBJECT_NOT_IN_EXAM",
       );
     }
+
+    const examSub = examSubjectMap.get(subjectKey);
 
     // examDate / startTime / endTime are optional in DRAFT, but if any one is
     // present the pair/triple must be consistent.
@@ -148,6 +155,11 @@ const validateScheduleSubjects = (incomingSubjects, examSubjectIds) => {
 
     return {
       subject: subjectKey,
+      category: examSub?.category || entry.category || "REGULAR",
+      originalSemester:
+        examSub?.originalSemester !== undefined
+          ? examSub.originalSemester
+          : entry.originalSemester,
       examDate: examDate !== undefined && examDate !== null && examDate !== ""
         ? new Date(examDate)
         : undefined,
@@ -197,7 +209,7 @@ const ensureSubjectsExistInCollege = async (subjectIds, collegeId) => {
  */
 const loadSchedule = async (examId, collegeId) =>
   ExamSchedule.findOne({ exam_id: examId, college_id: collegeId })
-    .populate("exam_id", "name course_id semester academicYear status")
+    .populate("exam_id", "name course_id semester academicYear status subjects")
     .populate("subjects.subject", "name code subjectType teacher_id");
 
 const respondWithSchedule = (schedule) => ({
@@ -231,14 +243,13 @@ exports.createExamSchedule = async (req, res, next) => {
       );
     }
 
-    const examSubjectIds = exam.subjects.map((s) => s.subject);
     const incomingSubjects = Array.isArray(subjects) ? subjects : [];
 
     // In DRAFT creation, subjects array may be empty/partial. We only require
     // that any provided subjects are valid.
     const validatedSubjects = validateScheduleSubjects(
       incomingSubjects,
-      examSubjectIds,
+      exam.subjects,
     );
 
     await ensureSubjectsExistInCollege(
@@ -347,10 +358,9 @@ exports.updateExamSchedule = async (req, res, next) => {
     const { subjects } = req.body;
 
     if (subjects !== undefined) {
-      const examSubjectIds = exam.subjects.map((s) => s.subject);
       const validatedSubjects = validateScheduleSubjects(
         subjects,
-        examSubjectIds,
+        exam.subjects,
       );
       await ensureSubjectsExistInCollege(
         validatedSubjects.map((s) => s.subject),
@@ -538,7 +548,7 @@ const loadPublishedScheduleForVisibility = async (examId, collegeId) => {
     college_id: collegeId,
     status: "PUBLISHED",
   })
-    .populate("exam_id", "name course_id semester academicYear status")
+    .populate("exam_id", "name course_id semester academicYear status subjects")
     .populate(
       "subjects.subject",
       "name code subjectType teacher_id internalMaxMarks externalMaxMarks internalPassMarks externalPassMarks passMarks",
@@ -553,6 +563,11 @@ const loadPublishedScheduleForVisibility = async (examId, collegeId) => {
  * GET PUBLISHED SCHEDULE — STUDENT
  * Returns the PUBLISHED exam schedule only if the student is enrolled
  * in the exam's course + semester.
+ *
+ * Backlog filtering:
+ *   - Regular subjects are visible to all enrolled students.
+ *   - Backlog subjects are visible only if the logged-in student has an
+ *     active backlog record (OPEN or ATTEMPTED) for that exact subject.
  */
 exports.getPublishedScheduleForStudent = async (req, res, next) => {
   try {
@@ -592,9 +607,16 @@ exports.getPublishedScheduleForStudent = async (req, res, next) => {
       return ApiResponse.success(res, null, "Exam schedule not found");
     }
 
+    const filtered = await filterPublishedExamAndScheduleForStudent({
+      exam,
+      schedule,
+      student,
+      collegeId: req.college_id,
+    });
+
     ApiResponse.success(
       res,
-      { exam, schedule },
+      { exam: filtered.exam, schedule: filtered.schedule },
       "Published exam schedule fetched successfully",
     );
   } catch (error) {
