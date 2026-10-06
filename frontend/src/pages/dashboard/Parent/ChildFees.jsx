@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Loading from "../../../components/Loading";
 import PageHeader from "../../../components/PageHeader";
 import {
   FaArrowLeft,
@@ -131,25 +132,22 @@ export default function ChildFees() {
     fetchFees();
   }, [childId]);
 
-  if (loading) {
-    return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
-          <div className="parent-loading-state">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="parent-loading-spinner"
-              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Fee Details...</h4>
-          </div>
-        </div>
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Fee Details..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (

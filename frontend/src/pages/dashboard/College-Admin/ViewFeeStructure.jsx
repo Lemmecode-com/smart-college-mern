@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import PageHeader from "../../../components/PageHeader";
+import Loading from "../../../components/Loading";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -590,10 +591,24 @@ export default function ViewFeeStructure() {
     };
   }, [fee]);
 
-  /* ================= LOADING STATE ================= */
-  if (loading) {
-    return <SkeletonLoader />;
-  }
+/* ================= LOADING STATE ================= */
+
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Fee Structure..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error && !fee) {
     return (

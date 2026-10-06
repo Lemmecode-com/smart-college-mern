@@ -1539,6 +1539,36 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     }
   };
 
+  if (loading && students.length === 0) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Student Promotion..."
+        />
+      </div>
+    </div>
+  );
+}
+
+if (error && !loading && students.length === 0) {
+  return (
+    <ApiError
+      title="Student Promotion Loading Error"
+      message={error.message}
+      statusCode={error.statusCode}
+      errorCode={error.errorCode}
+      onRetry={handleRetry}
+      onGoBack={() => navigate(-1)}
+    />
+  );
+}
+
   if (error && !loading && students.length === 0) {
     return (
       <ApiError
@@ -2576,13 +2606,19 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
                         )}
 
                         {/* Loading state */}
-                        {backlogLoading ? (
-                          <div className="loading-container" style={{ padding: "30px 0", textAlign: "center" }}>
-                            <FaSpinner className="spinner-icon" style={{ fontSize: "32px", color: "#3db5e6" }} />
-                            <p style={{ marginTop: "12px", color: "#64748b" }}>Loading backlog records...</p>
-                          </div>
-                        ) : backlogError ? (
-                          <div className="alert alert-danger" style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                            {backlogLoading ? (
+                              <div
+                                className="d-flex justify-content-center align-items-center"
+                                style={{ minHeight: "180px" }}
+                              >
+                                <Loading
+                                  size="md"
+                                  color="primary"
+                                  text="Loading Backlog Records..."
+                                />
+                              </div>
+                            ) : backlogError ? (
+                            <div className="alert alert-danger" style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
                             <FaExclamationCircle style={{ fontSize: "20px", marginTop: "2px" }} />
                             <div>
                               <p className="alert-text" style={{ margin: 0 }}><strong>Error:</strong> {backlogError.message}</p>

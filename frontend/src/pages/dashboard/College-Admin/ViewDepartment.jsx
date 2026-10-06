@@ -311,7 +311,22 @@ export default function ViewDepartment() {
     };
   }, [id]);
 
-  if (loading) return <Loading fullScreen size="lg" text="Loading department..." />;
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Department Information..."
+        />
+      </div>
+    </div>
+  );
+}
   if (error)
     return (
       <ApiError

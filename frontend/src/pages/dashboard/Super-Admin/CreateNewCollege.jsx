@@ -392,19 +392,21 @@ export default function CreateNewCollege() {
   /* ================= LOADING STATE ================= */
   if (loading && !success) {
     return (
-      <div className="erp-loading-container">
-        <div className="erp-loading-spinner">
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-          <div className="spinner-ring"></div>
-        </div>
-        <h4 className="erp-loading-text">Creating college...</h4>
-        <div className="loading-progress">
-          <div className="progress-bar"></div>
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Creating college..."
+          />
         </div>
       </div>
     );
   }
+
 
   return (
     <div className="erp-container">

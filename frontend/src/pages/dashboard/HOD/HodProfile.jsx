@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
+import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaEnvelope,
@@ -96,38 +97,7 @@ const safeString = (value, fallback = "—") => {
   return String(value);
 };
 
-// ============================================================
-// LOADING STATE
-// ============================================================
-const LoadingState = () => (
-  <div
-    style={{
-      minHeight: "60vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: `linear-gradient(135deg, ${BRAND.bg} 0%, ${BRAND.primaryLight} 100%)`,
-    }}
-  >
-    <div style={{ textAlign: "center" }}>
-      <div
-        style={{
-          width: 48,
-          height: 48,
-          margin: "0 auto 1rem",
-          border: `4px solid ${BRAND.border}`,
-          borderTopColor: BRAND.accent,
-          borderRadius: "50%",
-          animation: "profile-spin 0.8s linear infinite",
-        }}
-      />
-      <p style={{ color: BRAND.muted, fontWeight: 500, margin: 0 }}>
-        Loading profile…
-      </p>
-      <style>{`@keyframes profile-spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  </div>
-);
+
 
 // ============================================================
 // EMPTY STATE
@@ -198,7 +168,7 @@ const EmptyState = ({ onRetry }) => (
 const CardSurface = ({ children, style = {} }) => (
   <div
     style={{
-      background: BRAND.card,
+      background: '#0E3746',
       borderRadius: 16,
       border: `1px solid ${BRAND.border}`,
       boxShadow: "0 1px 3px rgba(15,23,42,0.03), 0 6px 16px rgba(15,23,42,0.03)",
@@ -517,7 +487,23 @@ export default function HodProfile() {
     }
   };
 
-  if (loading) return <LoadingState />;
+ // Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading HOD Profile..."
+        />
+      </div>
+    </div>
+  );
+}
 
   const handleGoBack = () => {
     navigate("/hod/dashboard");
@@ -655,7 +641,7 @@ export default function HodProfile() {
           initial="hidden"
           animate="visible"
           style={{
-            background: `linear-gradient(120deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 55%, #091f2b 100%)`,
+            background: '#0E3746',
             borderRadius: 20,
             padding: "1.75rem 2rem",
             color: "#fff",
