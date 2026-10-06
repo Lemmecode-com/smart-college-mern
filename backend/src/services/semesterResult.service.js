@@ -95,7 +95,10 @@ exports.generateSemesterResult = async ({
   }
 
   // 3. Exam subjects (snapshot) drive calculation.
-  const examSubjects = exam.subjects || [];
+  // Backlog papers in unified exams must not pollute regular SemesterResult.
+  const examSubjects = (exam.subjects || []).filter(
+    (s) => s.category !== "BACKLOG",
+  );
   if (examSubjects.length === 0) {
     throw new AppError("Exam has no subjects", 400, "EXAM_NO_SUBJECTS");
   }
@@ -615,7 +618,9 @@ exports.generateResultsForExam = async ({ collegeId, examId, userId }) => {
     throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
   }
 
-  const examSubjects = exam.subjects || [];
+  const examSubjects = (exam.subjects || []).filter(
+    (s) => s.category !== "BACKLOG",
+  );
   if (examSubjects.length === 0) {
     throw new AppError("Exam has no subjects", 400, "EXAM_NO_SUBJECTS");
   }

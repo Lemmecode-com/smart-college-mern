@@ -210,6 +210,7 @@ const createAttempt = async ({
   collegeId,
   actorId,
   actorRole,
+  examId,
   request,
 }) => {
   assertRole("CREATE_ATTEMPT", actorRole);
@@ -220,12 +221,50 @@ const createAttempt = async ({
     await session.withTransaction(async () => {
       const backlog = await getBacklog(backlogId, collegeId, session);
 
-      const exam = await createSupplementaryExam(backlog, actorId, session);
+      let exam;
+      if (examId) {
+        exam = await Exam.findOne({
+          _id: examId,
+          college_id: collegeId,
+        })
+          .session(session)
+          .exec();
+
+        if (!exam) {
+          throw new AppError("Exam not found", 404, "EXAM_NOT_FOUND");
+        }
+
+        const subjectInExam = (exam.subjects || []).find(
+          (s) => String(s.subject) === String(backlog.subject_id),
+        );
+        if (!subjectInExam) {
+          throw new AppError(
+            "Subject not found in exam configuration",
+            400,
+            "SUBJECT_NOT_IN_EXAM",
+          );
+        }
+      } else {
+        exam = await createSupplementaryExam(backlog, actorId, session);
+      }
+
+      if (
+        backlog.status === BACKLOG_STATUS.CLEARED ||
+        backlog.status === BACKLOG_STATUS.CANCELLED
+      ) {
+        throw new AppError(
+          `Backlog cannot be attempted in ${backlog.status} status.`,
+          409,
+          "BACKLOG_NOT_OPEN",
+          { backlogId, status: backlog.status },
+        );
+      }
 
       const existingAttempt = await BacklogAttempt.findOne({
         backlog_id: backlogId,
         exam_id: exam._id,
         attempted_by: actorId,
+        result_status: "INCOMPLETE",
       })
         .session(session)
         .exec();
@@ -273,7 +312,7 @@ const createAttempt = async ({
             attempt_number: currentAttemptNumber,
             exam_id: exam._id,
             exam_name: exam.name,
-            exam_type: EXAM_TYPE.SUPPLEMENTARY,
+            exam_type: exam.exam_type || EXAM_TYPE.REGULAR,
             attempted_by: actorId,
             attempted_at: new Date(),
             result_status: "INCOMPLETE",
@@ -314,7 +353,7 @@ const createAttempt = async ({
             subjectName: backlog.subject_name,
             attemptNumber: currentAttemptNumber,
             examId: exam._id,
-            examType: EXAM_TYPE.SUPPLEMENTARY,
+            examType: exam.exam_type || EXAM_TYPE.REGULAR,
             previousStatus: BACKLOG_STATUS.OPEN,
             newStatus: BACKLOG_STATUS.ATTEMPTED,
           },
@@ -338,6 +377,8 @@ const createAttempt = async ({
 
 const evaluateAttempt = async ({
   attemptId,
+  backlogId,
+  examId,
   collegeId,
   actorId,
   actorRole,
@@ -349,9 +390,27 @@ const evaluateAttempt = async ({
 
   try {
     await session.withTransaction(async () => {
-      const attempt = await BacklogAttempt.findById(attemptId)
-        .session(session)
-        .exec();
+      let attempt;
+      if (attemptId) {
+        attempt = await BacklogAttempt.findOne({
+          _id: attemptId,
+          college_id: collegeId,
+        })
+          .session(session)
+          .exec();
+      } else if (backlogId) {
+        const attemptQuery = {
+          backlog_id: backlogId,
+          college_id: collegeId,
+        };
+        if (examId) {
+          attemptQuery.exam_id = examId;
+        }
+        attempt = await BacklogAttempt.findOne(attemptQuery)
+          .sort({ attempt_number: -1 })
+          .session(session)
+          .exec();
+      }
 
       if (!attempt) {
         throw new AppError(
@@ -366,18 +425,33 @@ const evaluateAttempt = async ({
           attempt,
           isIdempotent: true,
           backlogCleared: attempt.cleared,
+          resultStatus: attempt.result_status,
+          passed: attempt.passed,
         };
         return;
       }
 
       const backlog = await getBacklog(attempt.backlog_id, collegeId, session);
+
+      if (
+        backlog.status === BACKLOG_STATUS.CLEARED ||
+        backlog.status === BACKLOG_STATUS.CANCELLED
+      ) {
+        throw new AppError(
+          `Backlog cannot be evaluated in ${backlog.status} status.`,
+          409,
+          "INVALID_BACKLOG_STATUS",
+          { backlogId: backlog._id, status: backlog.status },
+        );
+      }
+
       const student = await getStudent(
         attempt.student_id,
         collegeId,
         session,
       );
 
-      const { exam } = await resolveExamSubjectConfig(
+      const { exam, examSubject } = await resolveExamSubjectConfig(
         attempt.exam_id,
         attempt.subject_id,
         collegeId,
@@ -391,7 +465,7 @@ const evaluateAttempt = async ({
         session,
       );
 
-      const examSubjectConfig = exam.subjects.find(
+      const examSubjectConfig = examSubject || exam.subjects.find(
         (s) => String(s.subject) === String(attempt.subject_id),
       );
 
@@ -432,55 +506,58 @@ const evaluateAttempt = async ({
       attempt.external_marks = calculation.externalMarks;
       attempt.total_marks = calculation.totalMarks;
 
-      const existingSemesterResult = await SemesterResult.findOne({
-        college_id: collegeId,
-        student_id: attempt.student_id,
-        exam_id: attempt.exam_id,
-      })
-        .session(session)
-        .exec();
-
-      if (!existingSemesterResult) {
-        const semesterResultData = {
+      // STEP 7 — KEEP REGULAR RESULT ISOLATED:
+      // Only for standalone supplementary exams, create/link supplementary SemesterResult.
+      // Unified regular exam results must NEVER be modified or contaminated with backlog marks.
+      if (exam.exam_type === EXAM_TYPE.SUPPLEMENTARY) {
+        const existingSemesterResult = await SemesterResult.findOne({
           college_id: collegeId,
           student_id: attempt.student_id,
           exam_id: attempt.exam_id,
-          course_id: attempt.course_id,
-          semester: backlog.semester,
-          academicYear: backlog.academicYear,
-          subjects: [
-            {
-              subject: attempt.subject_id,
-              subjectName: attempt.subject_name,
-              subjectCode: attempt.subject_code,
-              subjectType: examSubjectConfig?.subjectType || "THEORY",
-              internalMarks: calculation.internalMarks,
-              externalMarks: calculation.externalMarks,
-              totalMarks: calculation.totalMarks,
-              internalPassed: calculation.internalPassed,
-              externalPassed: calculation.externalPassed,
-              passed: calculation.passed,
-              status: resultStatus,
-              marksRecorded: hasMarks,
-            },
-          ],
-          totalSubjects: 1,
-          passedSubjects: resultStatus === "PASS" ? 1 : 0,
-          failedSubjects: resultStatus === "FAIL" ? 1 : 0,
-          incompleteSubjects: resultStatus === "INCOMPLETE" ? 1 : 0,
-          overallResult: resultStatus,
-          status: RESULT_STATUS.PUBLISHED,
-          createdBy: actorId,
-          updatedBy: actorId,
-          calculatedAt: new Date(),
-        };
+        })
+          .session(session)
+          .exec();
 
-        await SemesterResult.create([semesterResultData], { session });
-        attempt.result_id = semesterResultData._id
-          ? semesterResultData._id
-          : null;
-      } else {
-        attempt.result_id = existingSemesterResult._id;
+        if (!existingSemesterResult) {
+          const semesterResultData = {
+            college_id: collegeId,
+            student_id: attempt.student_id,
+            exam_id: attempt.exam_id,
+            course_id: attempt.course_id,
+            semester: backlog.semester,
+            academicYear: backlog.academicYear,
+            subjects: [
+              {
+                subject: attempt.subject_id,
+                subjectName: attempt.subject_name,
+                subjectCode: attempt.subject_code,
+                subjectType: examSubjectConfig?.subjectType || "THEORY",
+                internalMarks: calculation.internalMarks,
+                externalMarks: calculation.externalMarks,
+                totalMarks: calculation.totalMarks,
+                internalPassed: calculation.internalPassed,
+                externalPassed: calculation.externalPassed,
+                passed: calculation.passed,
+                status: resultStatus,
+                marksRecorded: hasMarks,
+              },
+            ],
+            totalSubjects: 1,
+            passedSubjects: resultStatus === "PASS" ? 1 : 0,
+            failedSubjects: resultStatus === "FAIL" ? 1 : 0,
+            incompleteSubjects: resultStatus === "INCOMPLETE" ? 1 : 0,
+            overallResult: resultStatus,
+            status: RESULT_STATUS.PUBLISHED,
+            createdBy: actorId,
+            updatedBy: actorId,
+            calculatedAt: new Date(),
+          };
+
+          const createdRes = await SemesterResult.create([semesterResultData], { session });
+          attempt.result_id = createdRes[0]?._id || null;
+        } else {
+          attempt.result_id = existingSemesterResult._id;
+        }
       }
 
       let cleared = false;
