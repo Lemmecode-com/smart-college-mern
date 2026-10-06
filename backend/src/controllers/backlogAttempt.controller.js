@@ -8,6 +8,7 @@ const {
 
 const input = (req) => ({
   backlogId: req.params.backlogId,
+  examId: req.body?.examId || req.query?.examId,
   collegeId: req.college_id,
   actorId: req.user.id,
   actorRole: req.user.role,
@@ -43,7 +44,7 @@ exports.evaluateAttempt = async (req, res, next) => {
     const { attempt, backlog, isIdempotent, resultStatus, passed, backlogCleared } =
       await evaluateAttempt({
         ...input(req),
-        attemptId: req.params.attemptId,
+        attemptId: req.params.attemptId || req.body?.attemptId,
       });
 
     const responseResultStatus = isIdempotent

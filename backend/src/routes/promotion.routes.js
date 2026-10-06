@@ -53,6 +53,7 @@ router.get("/backlogs/:studentId", getStudentBacklogs);
 
 router.post("/backlogs/:backlogId/attempts", createAttempt);
 router.post("/backlogs/:backlogId/attempts/:attemptId/evaluate", evaluateAttempt);
+router.post("/backlogs/:backlogId/evaluate", evaluateAttempt);
 router.get("/backlogs/:backlogId/attempts", getBacklogAttempts);
 
 router.post("/decisions/:decisionId/recommend", recommendPromotionDecision);
