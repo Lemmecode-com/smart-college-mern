@@ -103,6 +103,11 @@ const buildRowsFromSelectedSubjects = (
         subjectName: subj.name || "Subject",
         subjectCode: subj.code || "",
         subjectType: subj.subjectType || existing.subjectType || "",
+        category: subj.category || existing.category || "REGULAR",
+        originalSemester:
+          subj.originalSemester !== undefined
+            ? subj.originalSemester
+            : existing.originalSemester,
       };
     }
     return {
@@ -110,6 +115,8 @@ const buildRowsFromSelectedSubjects = (
       subjectName: subj.name || "Subject",
       subjectCode: subj.code || "",
       subjectType: subj.subjectType || "",
+      category: subj.category || "REGULAR",
+      originalSemester: subj.originalSemester,
       examDate: "",
       startTime: "",
       endTime: "",
@@ -665,6 +672,11 @@ export default function CreateExam() {
         exam_id: examId,
         subjects: scheduleRows.map((row) => ({
           subject: row.subject,
+          category: row.category || undefined,
+          originalSemester:
+            row.originalSemester !== undefined
+              ? row.originalSemester
+              : undefined,
           examDate: row.examDate || undefined,
           startTime: row.startTime || undefined,
           endTime: row.endTime || undefined,
