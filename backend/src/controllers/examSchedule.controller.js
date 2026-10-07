@@ -236,6 +236,13 @@ exports.createExamSchedule = async (req, res, next) => {
       college_id: req.college_id,
     });
     if (existing) {
+      if (existing.status === "PUBLISHED") {
+        throw new AppError(
+          "Exam Timetable is already published",
+          400,
+          "TIMETABLE_ALREADY_PUBLISHED",
+        );
+      }
       throw new AppError(
         "Exam schedule already exists for this exam",
         409,
@@ -349,9 +356,9 @@ exports.updateExamSchedule = async (req, res, next) => {
 
     if (schedule.status === "PUBLISHED") {
       throw new AppError(
-        "Published schedule cannot be modified",
+        "Exam Timetable is already published",
         400,
-        "SCHEDULE_LOCKED",
+        "TIMETABLE_ALREADY_PUBLISHED",
       );
     }
 
@@ -430,10 +437,11 @@ exports.publishExamSchedule = async (req, res, next) => {
     }
 
     if (schedule.status === "PUBLISHED") {
-      return res.json({
-        ...respondWithSchedule(schedule),
-        message: "Exam schedule is already published",
-      });
+      throw new AppError(
+        "Exam Timetable is already published",
+        400,
+        "TIMETABLE_ALREADY_PUBLISHED",
+      );
     }
 
     const examSubjectIds = exam.subjects.map((s) => String(s.subject));
