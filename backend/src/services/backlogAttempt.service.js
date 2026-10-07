@@ -131,56 +131,7 @@ const hasMarksForExam = async (examId, studentId, collegeId, session) => {
   return count > 0;
 };
 
-const createSupplementaryExam = async (
-  backlog,
-  actorId,
-  session,
-) => {
-  const existingExam = await Exam.findOne({
-    college_id: backlog.college_id,
-    name: `Supplementary - ${backlog.subject_code || backlog.subject_name}`,
-    semester: backlog.semester,
-    academicYear: backlog.academicYear,
-    "subjects.subject": backlog.subject_id,
-  })
-    .session(session)
-    .exec();
 
-  if (existingExam) {
-    return existingExam;
-  }
-
-  const subjectDoc = await getSubject(backlog.subject_id, backlog.college_id, session);
-
-  const exam = await Exam.create(
-    [
-      {
-        college_id: backlog.college_id,
-        name: `Supplementary - ${backlog.subject_code || backlog.subject_name}`,
-        course_id: backlog.course_id,
-        semester: backlog.semester,
-        academicYear: backlog.academicYear,
-        exam_type: EXAM_TYPE.SUPPLEMENTARY,
-        subjects: [
-          {
-            subject: backlog.subject_id,
-            subjectType: subjectDoc?.subjectType || "THEORY",
-            internalMaxMarks: subjectDoc?.internalMaxMarks || 30,
-            externalMaxMarks: subjectDoc?.externalMaxMarks || 70,
-            internalPassMarks: subjectDoc?.internalPassMarks || 12,
-            externalPassMarks: subjectDoc?.externalPassMarks || 28,
-            passMarks: subjectDoc?.passMarks || 40,
-          },
-        ],
-        status: "DRAFT",
-        createdBy: actorId,
-      },
-    ],
-    { session },
-  );
-
-  return exam[0];
-};
 
 const buildAttemptSnapshot = (backlog, exam, result) => ({
   college_id: backlog.college_id,
@@ -245,7 +196,11 @@ const createAttempt = async ({
           );
         }
       } else {
-        exam = await createSupplementaryExam(backlog, actorId, session);
+        throw new AppError(
+          "examId is required. Standalone supplementary exams have been removed in the Unified Exam architecture.",
+          400,
+          "MISSING_EXAM_ID",
+        );
       }
 
       if (
