@@ -673,6 +673,69 @@ exports.saveMarks = async (req, res, next) => {
         isNew,
       });
 
+      // Unified Regular + Backlog workflow:
+      // When marks are entered for a BACKLOG subject in the Unified Exam,
+      // automatically create or update the BacklogAttempt for that student.
+      if (isBacklog) {
+        const backlog = await Backlog.findOne({
+          college_id: req.college_id,
+          student_id: studentId,
+          subject_id: subjectId,
+          status: { $in: [BACKLOG_STATUS.OPEN, BACKLOG_STATUS.ATTEMPTED] },
+        });
+
+        if (backlog) {
+          let attempt = await BacklogAttempt.findOne({
+            college_id: req.college_id,
+            backlog_id: backlog._id,
+            exam_id: examId,
+          });
+
+          const hasInternal = marksToValidate.internalMarks !== null && marksToValidate.internalMarks !== undefined;
+          const hasExternal = marksToValidate.externalMarks !== null && marksToValidate.externalMarks !== undefined;
+          const totalMarksValue = (hasInternal || hasExternal)
+            ? (hasInternal ? Number(marksToValidate.internalMarks) : 0) + (hasExternal ? Number(marksToValidate.externalMarks) : 0)
+            : null;
+
+          if (!attempt) {
+            const currentAttemptNumber = (backlog.attempt_count || 0) + 1;
+            attempt = await BacklogAttempt.create({
+              backlog_id: backlog._id,
+              student_id: studentId,
+              college_id: req.college_id,
+              course_id: exam.course_id,
+              subject_id: subjectId,
+              subject_code: examSubject.subject?.code || backlog.subject_code,
+              subject_name: examSubject.subject?.name || backlog.subject_name,
+              subject_type: examSubject.subjectType || backlog.subject_type,
+              attempt_number: currentAttemptNumber,
+              exam_id: exam._id,
+              exam_name: exam.name,
+              exam_type: exam.exam_type || EXAM_TYPE.REGULAR,
+              attempted_by: req.user.id,
+              attempted_at: now,
+              internal_marks: marksToValidate.internalMarks,
+              external_marks: marksToValidate.externalMarks,
+              total_marks: totalMarksValue,
+              result_status: "INCOMPLETE",
+              passed: false,
+              cleared: false,
+            });
+
+            backlog.status = BACKLOG_STATUS.ATTEMPTED;
+            backlog.attempt_count = currentAttemptNumber;
+            backlog.latest_attempt_id = attempt._id;
+            backlog.latest_result_status = "INCOMPLETE";
+            await backlog.save();
+          } else {
+            attempt.internal_marks = marksToValidate.internalMarks;
+            attempt.external_marks = marksToValidate.externalMarks;
+            attempt.total_marks = totalMarksValue;
+            await attempt.save();
+          }
+        }
+      }
+
       auditLogs.push({
         action: isNew ? "MARKS_ENTERED" : "MARKS_UPDATED",
         resourceType: "StudentMarks",

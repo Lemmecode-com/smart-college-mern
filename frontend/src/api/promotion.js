@@ -122,9 +122,9 @@ export const getBacklogAttempts = async (backlogId) => {
 };
 
 /**
- * Create a backlog attempt (creates supplementary exam)
+ * Create a backlog attempt tied to a Unified Exam
  * @param {string} backlogId - Backlog ID
- * @param {Object} payload - Attempt payload
+ * @param {Object} payload - Attempt payload (e.g., { examId })
  * @returns {Promise}
  */
 export const createBacklogAttempt = async (backlogId, payload) => {
