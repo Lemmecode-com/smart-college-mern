@@ -419,9 +419,16 @@ exports.publishResult = async ({ resultId, collegeId, userId }) => {
 
 /**
  * Load a single SemesterResult for review (college-scoped).
+ * Populates student, exam, course, and actor metadata for the review screen.
  */
 exports.getResultById = async ({ resultId, collegeId }) =>
-  findResultInCollege(resultId, collegeId);
+  SemesterResult.findOne({ _id: resultId, college_id: collegeId })
+    .populate("student_id", "fullName enrollmentNumber rollNumber email")
+    .populate("exam_id", "name semester academicYear")
+    .populate("course_id", "name code")
+    .populate("lockedBy", "name email")
+    .populate("publishedBy", "name email")
+    .lean();
 
 /**
  * GET /api/results/my-results
