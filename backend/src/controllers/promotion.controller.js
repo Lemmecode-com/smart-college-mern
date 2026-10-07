@@ -476,7 +476,7 @@ exports.promoteStudent = async (req, res, next) => {
       }
       if (decision.decision_reason === "ATTENDANCE_INSUFFICIENT") {
         const threshold =
-          decision.attendance_snapshot?.requiredPercentage || 75;
+          decision.attendance_snapshot?.requiredPercentage ?? 75;
         throw new AppError(
           `Student attendance is below the required threshold of ${threshold}%.`,
           400,
