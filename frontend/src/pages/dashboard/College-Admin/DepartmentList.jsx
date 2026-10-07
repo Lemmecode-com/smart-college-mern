@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import Pagination from "../../../components/Pagination";
 import useRole from "../../../hooks/useRole";
 
@@ -468,6 +469,201 @@ export default function DepartmentList() {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredDepartments.slice(indexOfFirstItem, indexOfLastItem);
 
+  const hasActiveFilters = search || statusFilter !== "All" || typeFilter !== "All";
+  const columns = [
+  {
+    key: "srNo",
+    label: "Sr.No",
+    sortable: false,
+    width: "50px",
+    render: (department, index) => (
+      <span className="department-index">
+        {indexOfFirstItem + index + 1}
+      </span>
+    ),
+  },
+
+  {
+    key: "name",
+    label: "Department",
+    sortable: true,
+    width: "190px",
+    render: (department) => (
+      <div className="department-info">
+        <div className="department-avatar">
+          <FaGraduationCap size={15} />
+        </div>
+
+        <div className="department-details">
+          <div className="department-name">
+            {department.name}
+          </div>
+
+          <div className="department-year">
+            {department.establishedYear}
+          </div>
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "code",
+    label: "Code",
+    sortable: true,
+    width: "90px",
+    render: (department) => (
+      <span className="department-code">
+        {department.code}
+      </span>
+    ),
+  },
+
+  {
+    key: "type",
+    label: "Type",
+    sortable: true,
+    width: "100px",
+    render: (department) => (
+      <span className="department-type">
+        {department.type}
+      </span>
+    ),
+  },
+
+  {
+    key: "status",
+    label: "Status",
+    sortable: true,
+    width: "105px",
+    render: (department) => {
+      const isActive = department.status === "ACTIVE";
+
+      return (
+        <span
+          className={`department-status ${
+            isActive ? "active" : "inactive"
+          }`}
+        >
+          <span className="status-dot" />
+          {department.status}
+        </span>
+      );
+    },
+  },
+
+  {
+    key: "programsOffered",
+    label: "Programs",
+    sortable: false,
+    width: "145px",
+    render: (department) => (
+      <div className="department-programs">
+        {(department.programsOffered || [])
+          .slice(0, 2)
+          .map((program, index) => (
+            <span key={index} className="program-pill">
+              {program}
+            </span>
+          ))}
+
+        {(department.programsOffered || []).length > 2 && (
+          <span className="program-pill more">
+            +{department.programsOffered.length - 2}
+          </span>
+        )}
+      </div>
+    ),
+  },
+
+  {
+    key: "startYear",
+    label: "Start Year",
+    sortable: true,
+    width: "90px",
+    render: (department) =>
+      department.startYear || "N/A",
+  },
+
+  {
+    key: "sanctionedFacultyCount",
+    label: "Faculty",
+    sortable: true,
+    width: "90px",
+    render: (department) => (
+      <div className="department-count">
+        <FaChalkboardTeacher />
+        <span>
+          {department.sanctionedFacultyCount || 0}
+        </span>
+      </div>
+    ),
+  },
+
+  {
+    key: "sanctionedStudentIntake",
+    label: "Students",
+    sortable: true,
+    width: "90px",
+    render: (department) => (
+      <div className="department-count">
+        <FaGraduationCap />
+        <span>
+          {department.sanctionedStudentIntake || 0}
+        </span>
+      </div>
+    ),
+  },
+];
+
+const tableActions = {
+  label: "Actions",
+  width: "170px",
+  items: [
+    {
+      key: "view",
+      label: "View Department",
+      icon: FaEye,
+      className: "view-btn",
+      show: () =>
+        hasAccess("departments") ||
+        hasAccess("departments-view"),
+      onClick: (department) =>
+        navigate(`/departments/view/${department._id}`),
+    },
+    {
+      key: "edit",
+      label: "Edit Department",
+      icon: FaEdit,
+      className: "edit-btn",
+      show: () => canEdit("departments"),
+      onClick: (department) =>
+        navigate(`/departments/edit/${department._id}`),
+    },
+    {
+      key: "remove-hod",
+      label: "Remove HOD",
+      icon: FaUserSlash,
+      className: "remove-btn",
+      show: (department) =>
+        canEdit("departments") && !!department.hod_id,
+      onClick: (department) =>
+        handleRemoveHodClick(department),
+    },
+    {
+      key: "delete",
+      label: "Delete Department",
+      icon: FaTrash,
+      className: "delete-btn",
+      show: () => canDelete("departments"),
+      onClick: (department) =>
+        handleDeleteClick(department),
+    },
+  ],
+};
+
+
+
   /* ================= EFFECTS FOR PAGINATION AND FILTERS ================= */
 
   // Reset page when filters change
@@ -533,7 +729,7 @@ export default function DepartmentList() {
     );
   }
 
-  const hasActiveFilters = search || statusFilter !== "All" || typeFilter !== "All";
+  
 
   // Responsive column visibility — fixes the old CSS breakpoints, which
   // accidentally hid the Actions column on tablet widths.
@@ -785,253 +981,58 @@ export default function DepartmentList() {
           )}
         </div>
 
-        {/* ================= DEPARTMENTS TABLE ================= */}
-        <div
-          style={{
-            background: T.surface,
-            border: `1px solid ${T.border}`,
-            borderRadius: T.radiusLg,
-            boxShadow: T.shadow,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "1.1rem 1.35rem",
-              borderBottom: `1px solid ${T.border}`,
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <FaBuilding style={{ color: T.navy }} />
-            <h2 style={{ fontSize: "0.98rem", fontWeight: 700, margin: 0, color: T.text }}>Department List</h2>
-            <Pill bg={T.navyTint} color={T.navyDark}>
-              {currentItems.length} of {filteredDepartments.length} departments
-            </Pill>
-          </div>
+        {/* ================= STANDARD DEPARTMENT LIST ================= */}
 
-          {filteredDepartments.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3.5rem 1.5rem" }}>
-              <FaBuilding style={{ color: T.textMuted, opacity: 0.4 }} size={56} />
-              <h5 style={{ color: T.textMuted, margin: "1rem 0 0.4rem", fontWeight: 600 }}>No Departments Found</h5>
-              <p style={{ color: T.textMuted, marginBottom: "1.5rem", fontSize: "0.88rem" }}>
-                {hasActiveFilters
-                  ? "Try adjusting your filters or search criteria"
-                  : "No departments available in the system"}
-              </p>
-              <div style={{ display: "flex", justifyContent: "center", gap: "0.6rem", flexWrap: "wrap" }}>
-                {hasActiveFilters && (
-                  <Btn onClick={resetFilters} color={T.navy}>
-                    <FaTimes size={13} /> Clear Filters
-                  </Btn>
-                )}
-                {canCreate('departments') && (
-                  <Btn onClick={() => navigate("/departments/add")} variant="solid" color={T.navy}>
-                    <FaPlus size={13} /> Add Department
-                  </Btn>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.87rem" }}>
-                <thead>
-                  <tr style={{ background: "#fafbfc", borderBottom: `1px solid ${T.border}` }}>
-                    {showSrNo && <th style={thStyle("3.5rem")}>Sr.No</th>}
-                    <th style={thStyle("20%")}>Department</th>
-                    {showCode && <th style={thStyle("10%")}>Code</th>}
-                    {showType && <th style={thStyle("10%")}>Type</th>}
-                    <th style={thStyle("10%")}>Status</th>
-                    {showPrograms && <th style={thStyle("14%")}>Programs</th>}
-                    {showStartYear && <th style={thStyle("7%")}>Start Year</th>}
-                    {showFaculty && <th style={thStyle("7%")}>Faculty</th>}
-                    {showStudents && <th style={thStyle("7%")}>Students</th>}
-                    <th style={{ ...thStyle("10%"), textAlign: "center" }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentItems.map((d, index) => {
-                    const globalIndex = indexOfFirstItem + index;
-                    const isActive = d.status === "ACTIVE";
-                    const isHovered = hoveredRow === d._id;
-                    return (
-                      <tr
-                        key={d._id}
-                        onMouseEnter={() => setHoveredRow(d._id)}
-                        onMouseLeave={() => setHoveredRow(null)}
-                        style={{
-                          background: isHovered ? "#f7f9fb" : "transparent",
-                          borderBottom: `1px solid ${T.border}`,
-                          transition: "background 0.15s ease",
-                        }}
-                      >
-                        {showSrNo && <td style={tdStyle}>{globalIndex + 1}</td>}
-                        <td style={tdStyle}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                            <div
-                              style={{
-                                width: 34,
-                                height: 34,
-                                borderRadius: "50%",
-                                background: T.tealTint,
-                                color: T.teal,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                              }}
-                            >
-                              <FaGraduationCap size={15} />
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 600, color: T.text }}>{d.name}</div>
-                              <div style={{ fontSize: "0.76rem", color: T.textMuted }}>{d.establishedYear}</div>
-                            </div>
-                          </div>
-                        </td>
-                        {showCode && (
-                          <td style={tdStyle}>
-                            <Pill bg={T.navyTint} color={T.navyDark} mono>
-                              {d.code}
-                            </Pill>
-                          </td>
-                        )}
-                        {showType && (
-                          <td style={tdStyle}>
-                            <Chip bg={T.tealTint} color={T.teal}>
-                              {d.type}
-                            </Chip>
-                          </td>
-                        )}
-                        <td style={tdStyle}>
-                          <Chip bg={isActive ? T.successBg : T.inactiveBg} color={isActive ? T.success : T.inactive} dot>
-                            {d.status}
-                          </Chip>
-                        </td>
-                        {showPrograms && (
-                          <td style={tdStyle}>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                              {(d.programsOffered || []).slice(0, 2).map((prog, i) => (
-                                <Pill key={i} bg="#f1f2f4" color={T.text}>
-                                  {prog}
-                                </Pill>
-                              ))}
-                              {(d.programsOffered || []).length > 2 && (
-                                <Pill bg={T.inactiveBg} color={T.textMuted}>
-                                  +{(d.programsOffered || []).length - 2}
-                                </Pill>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                        {showStartYear && <td style={tdStyle}>{d.startYear || "N/A"}</td>}
-                        {showFaculty && (
-                          <td style={tdStyle}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                              <FaChalkboardTeacher style={{ color: T.teal }} size={13} />
-                              <span>{d.sanctionedFacultyCount || 0}</span>
-                            </div>
-                          </td>
-                        )}
-                        {showStudents && (
-                          <td style={tdStyle}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                              <FaGraduationCap style={{ color: T.navy }} size={13} />
-                              <span>{d.sanctionedStudentIntake || 0}</span>
-                            </div>
-                          </td>
-                        )}
-                        <td style={{ ...tdStyle, textAlign: "center" }}>
-                          <div style={{ display: "flex", justifyContent: "center", gap: "0.4rem" }}>
-                            {(hasAccess('departments') || hasAccess('departments-view')) && (
-                              <IconAction
-                                icon={<FaEye size={13} />}
-                                title="View Department"
-                                color={T.teal}
-                                tint={T.tealTint}
-                                onClick={() => navigate(`/departments/view/${d._id}`)}
-                              />
-                            )}
-                            {canEdit('departments') && (
-                              <IconAction
-                                icon={<FaEdit size={13} />}
-                                title="Edit Department"
-                                color={T.navy}
-                                tint={T.navyTint}
-                                onClick={() => navigate(`/departments/edit/${d._id}`)}
-                              />
-                            )}
-                            {canEdit('departments') && d.hod_id && (
-                              <IconAction
-                                icon={<FaUserSlash size={13} />}
-                                title="Remove HOD"
-                                color={T.textMuted}
-                                tint={T.inactiveBg}
-                                onClick={() => handleRemoveHodClick(d)}
-                              />
-                            )}
-                            {canDelete('departments') && (
-                              <IconAction
-                                icon={<FaTrash size={13} />}
-                                title="Delete Department"
-                                color={T.danger}
-                                tint={T.dangerTint}
-                                onClick={() => handleDeleteClick(d)}
-                              />
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+<StandardListView
+  title="Department List"
+  icon={FaBuilding}
+  count={filteredDepartments.length}
+  columns={columns}
+  data={currentItems}
+  loading={false}
+  emptyState={{
+    icon: FaBuilding,
+    title: "No Departments Found",
+    description: hasActiveFilters
+      ? "Try adjusting your filters or search criteria."
+      : "No departments available in the system.",
 
-          {/* ================= TABLE FOOTER ================= */}
-          {filteredDepartments.length > 0 && (
-            <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              position: "relative",
-              minHeight: "90px",
-              padding: "1rem 1.35rem",
-            }}
-          >
-            <div className="department-list-showing">
-              Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
-              {filteredDepartments.length} departments
-            </div>
-            <style>
-              {`
-                @media (max-width: 991px) {
-                  .department-list-showing {
-                    display: none !important;
-                  }
-                }
-              `}
-            </style>
+    action: hasActiveFilters
+      ? {
+          label: "Clear Filters",
+          icon: FaTimes,
+          onClick: resetFilters,
+        }
+      : canCreate("departments")
+      ? {
+          label: "Add Department",
+          icon: FaPlus,
+          onClick: () =>
+            navigate("/departments/add"),
+        }
+      : null,
+  }}
+  actions={tableActions}
+/>
 
-            <div
-              style={{
-                position: "absolute",
-                left: "50%",
-                transform: "translateX(-50%) scale(0.95)",
-              }}
-            >
-              <Pagination
-                page={currentPage}
-                totalPages={totalPages}
-                setPage={setCurrentPage}
-              />
-            </div>
-          </div>
-          )}
-        </div>
+{filteredDepartments.length > 0 && (
+  <div className="department-pagination">
+    <div className="department-list-showing">
+      Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
+      {filteredDepartments.length} departments
+    </div>
+
+    <Pagination
+      page={currentPage}
+      totalPages={totalPages}
+      setPage={setCurrentPage}
+    />
+  </div>
+
+  
+)}
+
+
 
         {/* ================= FOOTER ================= */}
         <div
@@ -1131,7 +1132,7 @@ export default function DepartmentList() {
 const thStyle = (width) => ({
   width,
   textAlign: "left",
-  padding: "0.85rem 1rem",
+  padding: "0.7rem 0.75rem",
   fontSize: "0.72rem",
   fontWeight: 700,
   textTransform: "uppercase",
@@ -1141,7 +1142,7 @@ const thStyle = (width) => ({
 });
 
 const tdStyle = {
-  padding: "0.85rem 1rem",
+  padding: "0.7rem 0.75rem",
   verticalAlign: "middle",
   color: "#1f2530",
 };
