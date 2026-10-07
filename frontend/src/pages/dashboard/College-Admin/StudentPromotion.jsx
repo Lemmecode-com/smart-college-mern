@@ -11,7 +11,7 @@ import {
   getPromotionEligibility,
   getStudentBacklogs,
   getBacklogAttempts,
-  createBacklogAttempt,
+  evaluateBacklogAttempt,
   executePromotionDecision,
 } from "../../../api/promotion";
 import { moveToAlumni, getAlumniEligibility } from "../../../api/alumni";
@@ -881,14 +881,13 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   const [backlogError, setBacklogError] = useState(null);
   const [backlogStatusFilter, setBacklogStatusFilter] = useState("ALL");
 
-  // Backlog Attempts State (Step 6 - attempt history / creation UI)
+  // Backlog Attempts State (attempt history view)
   const [showAttemptsModal, setShowAttemptsModal] = useState(false);
   const [selectedBacklog, setSelectedBacklog] = useState(null);
   const [attempts, setAttempts] = useState([]);
   const [attemptsLoading, setAttemptsLoading] = useState(false);
   const [attemptsError, setAttemptsError] = useState(null);
-  const [attemptActionLoading, setAttemptActionLoading] = useState(false);
-  const [attemptCreateError, setAttemptCreateError] = useState(null);
+  const [evaluatingAttemptId, setEvaluatingAttemptId] = useState(null);
 
   // Workflow action state
   const [actionLoading, setActionLoading] = useState(false);
@@ -1154,7 +1153,6 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     setSelectedBacklog(backlog);
     setAttempts([]);
     setAttemptsError(null);
-    setAttemptCreateError(null);
     setShowAttemptsModal(true);
     fetchAttempts(backlog._id);
   };
@@ -1164,72 +1162,38 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     setSelectedBacklog(null);
     setAttempts([]);
     setAttemptsError(null);
-    setAttemptCreateError(null);
+    setEvaluatingAttemptId(null);
   };
 
   /**
-   * Create a backlog attempt (Step 6).
-   *
-   * The backend `createAttempt` service requires NO request body: it auto-creates
-   * a supplementary exam and the first attempt row. Backend remains authoritative
-   * for attempt limits, status transitions, and exam creation.
-   *
-   * Response mapping: the axios interceptor flattens the standardized
-   * `{ success, message, data: {...} }` envelope so the attempt/exam payload
-   * arrives at the top level. The `payload` extraction below handles both the
-   * flattened shape and a legacy nested `{ data: {...} }` shape.
+   * Evaluate an incomplete backlog attempt based on teacher marks.
    */
-  const handleCreateAttempt = async () => {
-    const backlogId = selectedBacklog?._id;
-    if (!backlogId) {
-      toast.error("Backlog not available.");
-      return;
-    }
-    setAttemptActionLoading(true);
-    setAttemptCreateError(null);
+  const handleEvaluateAttempt = async (attemptId) => {
+    if (!selectedBacklog?._id || !attemptId) return;
+    setEvaluatingAttemptId(attemptId);
     try {
-      const res = await createBacklogAttempt(backlogId, {});
-      const payload = res?.data || res;
-      const attempt = payload?.data?.attempt || payload?.attempt || null;
-      const exam = payload?.data?.exam || payload?.exam || null;
-
-      toast.success("Backlog attempt created successfully.");
-      await fetchAttempts(backlogId);
+      const res = await evaluateBacklogAttempt(selectedBacklog._id, attemptId, {});
+      const data = res?.data || res;
+      const resultStatus = data?.resultStatus || data?.attempt?.result_status;
+      const passed = data?.passed ?? data?.attempt?.passed;
+      if (passed || resultStatus === "PASS") {
+        toast.success("Backlog cleared successfully! (Result: PASS)");
+      } else if (resultStatus === "FAIL") {
+        toast.info("Backlog evaluated: FAIL (Backlog remains OPEN)");
+      } else {
+        toast.info("Backlog attempt is pending / incomplete");
+      }
+      await fetchAttempts(selectedBacklog._id);
       if (eligibilityStudent?._id) {
         await fetchBacklogs(eligibilityStudent._id, backlogStatusFilter);
       }
-      if (attempt?._id) {
-        toast.info(`Exam: ${exam?.name || "Supplementary exam created"}`, {
-          autoClose: 6000,
-        });
-      }
     } catch (err) {
-      const statusCode = err.response?.status;
-      const errorCode = err.response?.data?.code;
-      const backendMessage = err.response?.data?.message;
-      const errorMessage = backendMessage || "Failed to create backlog attempt.";
-
-      logger.error("Error creating backlog attempt:", statusCode, errorCode);
-      setAttemptCreateError({ message: errorMessage, statusCode, errorCode });
-
-      if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
-        toast.error(errorMessage);
-      }
+      const message = err.response?.data?.message || "Failed to evaluate backlog attempt.";
+      logger.error("Error evaluating attempt:", err);
+      toast.error(message);
     } finally {
-      setAttemptActionLoading(false);
+      setEvaluatingAttemptId(null);
     }
-  };
-
-  const openCreateAttemptConfirm = () => {
-    if (!selectedBacklog) return;
-    showConfirm(
-      "Create Backlog Attempt",
-      `Are you sure you want to create a new attempt for "${selectedBacklog.subject_name || selectedBacklog.subject_code || "this subject"}"?\n\n` +
-        `A supplementary exam will be created automatically by the backend.\n` +
-        `This action cannot be undone.`,
-      "warning",
-      handleCreateAttempt,
-    );
   };
 
   const openExecuteModal = () => {
@@ -2832,37 +2796,24 @@ if (error && !loading && students.length === 0) {
                 </div>
               </div>
 
-              {/* Create attempt action */}
-              <div className="backlog-create-attempt" style={{ marginBottom: "16px" }}>
-                {selectedBacklog.status === "OPEN" ? (
-                  <button
-                    onClick={openCreateAttemptConfirm}
-                    disabled={attemptActionLoading}
-                    className="btn btn-success"
-                  >
-                    <FaCheckCircle /> Create Attempt
-                  </button>
-                ) : (
-                  <p className="alert-text text-muted" style={{ margin: 0 }}>
-                    {selectedBacklog.status === "CLEARED"
-                      ? "This backlog has been cleared. No further attempts can be created."
-                      : "Create Attempt is only available for backlogs with OPEN status."}
-                  </p>
-                )}
-                {attemptCreateError && (
-                  <div className="alert alert-danger" style={{ marginTop: "12px" }}>
-                    <FaExclamationCircle />
-                    <div>
-                      <p className="alert-text"><strong>Error:</strong> {attemptCreateError.message}</p>
-                      {attemptCreateError.statusCode && (
-                        <p className="alert-text" style={{ fontSize: "12px", marginTop: "8px" }}>
-                          Status: {attemptCreateError.statusCode}
-                          {attemptCreateError.errorCode && ` | Code: ${attemptCreateError.errorCode}`}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
+              {/* Backlog status guidance (Unified Regular + Backlog Architecture) */}
+              <div
+                className="backlog-status-notice"
+                style={{
+                  marginBottom: "16px",
+                  padding: "12px 16px",
+                  background: "#f8fafc",
+                  borderRadius: "8px",
+                  border: "1px solid #e2e8f0",
+                }}
+              >
+                <p className="alert-text text-muted" style={{ margin: 0, fontSize: "13px" }}>
+                  {selectedBacklog.status === "CLEARED"
+                    ? "This backlog has been cleared. Full attempt history is displayed below."
+                    : selectedBacklog.status === "ATTEMPTED"
+                      ? "This backlog is scheduled in an exam. Evaluation will update once teacher marks are recorded."
+                      : "This backlog is currently OPEN. Eligible backlog subjects are scheduled in the Unified Exam Timetable by the Exam Coordinator, and marks are entered by the assigned teacher."}
+                </p>
               </div>
 
               {/* Attempts list */}
@@ -2890,7 +2841,7 @@ if (error && !loading && students.length === 0) {
                   <p className="empty-title" style={{ marginTop: "12px" }}>No attempts found</p>
                   <p className="empty-text">
                     {selectedBacklog.status === "OPEN"
-                      ? "No attempts have been created for this backlog yet."
+                      ? "No attempts recorded for this backlog yet."
                       : "No attempts exist for this backlog."}
                   </p>
                 </div>
@@ -2906,6 +2857,7 @@ if (error && !loading && students.length === 0) {
                         <th>Evaluated</th>
                         <th>Marks</th>
                         <th>Result</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2949,14 +2901,30 @@ if (error && !loading && students.length === 0) {
                             )}
                           </td>
                           <td>
-                            {attempt.passed === true && (
+                            {attempt.result_status === "PASS" || attempt.passed === true ? (
                               <span className="badge badge-success">Passed</span>
-                            )}
-                            {attempt.passed === false && (
+                            ) : attempt.result_status === "INCOMPLETE" ? (
+                              <span className="badge badge-warning">Pending</span>
+                            ) : attempt.result_status === "FAIL" || attempt.passed === false ? (
                               <span className="badge badge-danger">Failed</span>
-                            )}
-                            {attempt.passed !== true && attempt.passed !== false && (
+                            ) : (
                               <span className="text-muted">-</span>
+                            )}
+                          </td>
+                          <td>
+                            {attempt.result_status === "INCOMPLETE" && selectedBacklog?.status !== "CLEARED" ? (
+                              <button
+                                onClick={() => handleEvaluateAttempt(attempt._id)}
+                                disabled={evaluatingAttemptId === attempt._id}
+                                className="btn btn-sm btn-primary"
+                                style={{ padding: "4px 10px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                title="Evaluate backlog attempt based on teacher marks"
+                              >
+                                {evaluatingAttemptId === attempt._id && <FaSpinner className="spinner-icon" />}
+                                Evaluate
+                              </button>
+                            ) : (
+                              <span className="text-muted" style={{ fontSize: "12px" }}>-</span>
                             )}
                           </td>
                         </tr>
