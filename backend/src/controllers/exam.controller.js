@@ -362,7 +362,12 @@ const filterExamsForTeacher = async (exams, req) => {
  */
 exports.getExams = async (req, res, next) => {
   try {
-    const exams = await Exam.find({ college_id: req.college_id })
+    const filter = { college_id: req.college_id };
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+    const exams = await Exam.find(filter)
       .populate("course_id", "name code")
       .populate("subjects.subject", "name code teacher_id subjectType")
       .sort({ createdAt: -1 });
