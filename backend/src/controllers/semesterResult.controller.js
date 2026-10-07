@@ -214,14 +214,27 @@ exports.publishResult = async (req, res, next) => {
  */
 exports.getMyResults = async (req, res, next) => {
   try {
-    const results = await SemesterResultService.getMyResults({
+    const outcome = await SemesterResultService.getMyResults({
       collegeId: req.college_id,
       userId: req.user.id,
     });
 
+    const regularResults = Array.isArray(outcome)
+      ? outcome
+      : outcome.results || [];
+    const backlogResults = Array.isArray(outcome)
+      ? []
+      : outcome.backlogResults || [];
+
+    // Attach backlogResults metadata to array
+    regularResults.backlogResults = backlogResults;
+    regularResults.regularResults = regularResults;
+
     res.json({
       success: true,
-      data: results,
+      data: regularResults,
+      regularResults,
+      backlogResults,
     });
   } catch (error) {
     next(error);

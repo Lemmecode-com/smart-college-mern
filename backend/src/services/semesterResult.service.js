@@ -5,10 +5,13 @@ const Student = require("../models/student.model");
 const Subject = require("../models/subject.model");
 const StudentMarks = require("../models/studentMarks.model");
 const Notification = require("../models/notification.model");
+const Backlog = require("../models/backlog.model");
+const BacklogAttempt = require("../models/backlogAttempt.model");
 const AppError = require("../utils/AppError");
 const { RESULT_STATUS } = require("../utils/constants");
 const { validateUnlockReason } = require("../utils/resultLifecycle.util");
 const { calculateSubjectResult } = require("./examCalculation.service");
+const { evaluateAttempt } = require("./backlogAttempt.service");
 const logger = require("../utils/logger");
 
 /**
@@ -414,6 +417,35 @@ exports.publishResult = async ({ resultId, collegeId, userId }) => {
     }
   })();
 
+  // Fire-and-forget backlog attempt auto-evaluation for this student if taking a backlog paper
+  (async () => {
+    try {
+      const studentAttempt = await BacklogAttempt.findOne({
+        college_id: collegeId,
+        exam_id: existing.exam_id,
+        student_id: existing.student_id,
+        result_status: "INCOMPLETE",
+      });
+      if (studentAttempt) {
+        await evaluateAttempt({
+          attemptId: studentAttempt._id,
+          collegeId,
+          actorId: userId,
+          actorRole: "COLLEGE_ADMIN",
+        });
+        logger.logInfo("Backlog attempt auto-evaluated on publishResult", {
+          attemptId: studentAttempt._id,
+          studentId: existing.student_id,
+        });
+      }
+    } catch (evalErr) {
+      logger.logError("Failed to auto-evaluate backlog attempt on publishResult", {
+        error: evalErr.message,
+        resultId: existing._id,
+      });
+    }
+  })();
+
   return updated;
 };
 
@@ -452,15 +484,64 @@ exports.getMyResults = async ({ collegeId, userId }) => {
     throw new AppError("Student profile not found", 404, "STUDENT_NOT_FOUND");
   }
 
-  return SemesterResult.find({
+  const regularResults = await SemesterResult.find({
     college_id: collegeId,
     student_id: student._id,
     status: RESULT_STATUS.PUBLISHED,
   })
-    .populate("exam_id", "name semester academicYear")
+    .populate("exam_id", "name semester academicYear status")
     .populate("course_id", "name code")
     .sort({ createdAt: -1 })
     .lean();
+
+  const backlogAttempts = await BacklogAttempt.find({
+    college_id: collegeId,
+    student_id: student._id,
+  })
+    .populate("exam_id", "name semester academicYear status")
+    .populate("backlog_id", "semester academicYear")
+    .populate("subject_id", "name code subjectType")
+    .sort({ attempt_number: 1, created_at: 1 })
+    .lean();
+
+  const formattedBacklogs = backlogAttempts.map((attempt) => ({
+    backlogId: attempt.backlog_id?._id || attempt.backlog_id,
+    attemptId: attempt._id,
+    subjectId: attempt.subject_id?._id || attempt.subject_id,
+    subjectName: attempt.subject_name || attempt.subject_id?.name || "Subject",
+    subjectCode: attempt.subject_code || attempt.subject_id?.code || "",
+    subjectType: attempt.subject_type || attempt.subject_id?.subjectType || "THEORY",
+    semester: attempt.backlog_id?.semester,
+    academicYear: attempt.backlog_id?.academicYear,
+    examId: attempt.exam_id?._id || attempt.exam_id,
+    examName: attempt.exam_name || attempt.exam_id?.name || "Exam",
+    attemptNumber: attempt.attempt_number,
+    resultStatus: attempt.result_status,
+    internalMarks: attempt.internal_marks,
+    externalMarks: attempt.external_marks,
+    totalMarks: attempt.total_marks,
+    marks: {
+      internalMarks: attempt.internal_marks,
+      externalMarks: attempt.external_marks,
+      totalMarks: attempt.total_marks,
+    },
+    passed: attempt.passed,
+    cleared: attempt.cleared,
+    evaluatedAt: attempt.evaluated_at,
+  }));
+
+  // Attach matching backlog results to each regular SemesterResult by exam_id
+  for (const result of regularResults) {
+    const examIdStr = String(result.exam_id?._id || result.exam_id);
+    result.backlogResults = formattedBacklogs.filter(
+      (b) => String(b.examId) === examIdStr,
+    );
+  }
+
+  return {
+    results: regularResults,
+    backlogResults: formattedBacklogs,
+  };
 };
 
 // ---------------------------------------------------------------------------
@@ -821,6 +902,37 @@ exports.publishResultsForExam = async ({ collegeId, examId, userId }) => {
       logger.logError("Failed to send bulk exam results notification", {
         error: notifErr.message,
         examId,
+      });
+    }
+  })();
+
+  // Fire-and-forget backlog attempts auto-evaluation for this exam
+  (async () => {
+    try {
+      const pendingAttempts = await BacklogAttempt.find({
+        college_id: collegeId,
+        exam_id: examId,
+        result_status: "INCOMPLETE",
+      });
+      for (const attempt of pendingAttempts) {
+        try {
+          await evaluateAttempt({
+            attemptId: attempt._id,
+            collegeId,
+            actorId: userId,
+            actorRole: "COLLEGE_ADMIN",
+          });
+        } catch (attemptErr) {
+          logger.logError("Failed to auto-evaluate backlog attempt in publishResultsForExam", {
+            attemptId: attempt._id,
+            error: attemptErr.message,
+          });
+        }
+      }
+    } catch (batchErr) {
+      logger.logError("Failed to query backlog attempts for exam publish", {
+        examId,
+        error: batchErr.message,
       });
     }
   })();
