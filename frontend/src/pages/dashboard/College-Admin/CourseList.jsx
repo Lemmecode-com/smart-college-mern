@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -53,263 +54,7 @@ const StatCard = ({ icon: Icon, label, value, color, subValue }) => (
   </div>
 );
 
-// Course Table Component
-const CourseTable = ({
-  courses,
-  sortConfig,
-  onSort,
-  onEdit,
-  onView,
-  onDelete,
-  canEdit,
-  canDelete,
-}) => {
-  const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return null;
-    return sortConfig.direction === "asc" ? (
-      <FaChevronUp size={10} />
-    ) : (
-      <FaChevronDown size={10} />
-    );
-  };
 
-  const getTypeStyles = (type) => {
-    const styles = {
-      THEORY: {
-        bg: "rgba(59, 130, 246, 0.1)",
-        color: "#3B82F6",
-        border: "rgba(59, 130, 246, 0.2)",
-      },
-      PRACTICAL: {
-        bg: "rgba(249, 115, 22, 0.1)",
-        color: "#F97316",
-        border: "rgba(249, 115, 22, 0.2)",
-      },
-      BOTH: {
-        bg: "rgba(139, 92, 246, 0.1)",
-        color: "#8B5CF6",
-        border: "rgba(139, 92, 246, 0.2)",
-      },
-    };
-    return styles[type?.toUpperCase()] || styles.THEORY;
-  };
-
-  const getStatusStyles = (status) => {
-    return status === "ACTIVE"
-      ? {
-          bg: "rgba(34, 197, 94, 0.1)",
-          color: "#22C55E",
-          border: "rgba(34, 197, 94, 0.2)",
-        }
-      : {
-          bg: "rgba(156, 163, 175, 0.1)",
-          color: "#9CA3AF",
-          border: "rgba(156, 163, 175, 0.2)",
-        };
-  };
-
-  return (
-    <div className="table-responsive">
-      <table className="modern-table">
-        <thead>
-          <tr>
-            <th className="col-index">Sr.No.</th>
-            <th className="col-course sortable" onClick={() => onSort("name")}>
-              <div className="th-content">
-                <FaGraduationCap className="th-icon" />
-                <span>Course Name</span>
-                {getSortIcon("name")}
-              </div>
-            </th>
-            <th className="col-code sortable" onClick={() => onSort("code")}>
-              <div className="th-content">
-                <span>Code</span>
-                {getSortIcon("code")}
-              </div>
-            </th>
-            <th className="col-type sortable" onClick={() => onSort("type")}>
-              <div className="th-content">
-                <FaChalkboardTeacher className="th-icon" />
-                <span>Type</span>
-                {getSortIcon("type")}
-              </div>
-            </th>
-            <th
-              className="col-status sortable"
-              onClick={() => onSort("status")}
-            >
-              <div className="th-content">
-                <span>Status</span>
-                {getSortIcon("status")}
-              </div>
-            </th>
-            <th
-              className="col-duration sortable"
-              onClick={() => onSort("durationSemesters")}
-            >
-              <div className="th-content">
-                <FaClock className="th-icon" />
-                <span>Duration</span>
-                {getSortIcon("durationSemesters")}
-              </div>
-            </th>
-            <th
-              className="col-credits sortable"
-              onClick={() => onSort("credits")}
-            >
-              <div className="th-content">
-                <FaAward className="th-icon" />
-                <span>Credits</span>
-                {getSortIcon("credits")}
-              </div>
-            </th>
-            <th
-              className="col-capacity sortable"
-              onClick={() => onSort("maxStudents")}
-            >
-              <div className="th-content">
-                <FaUsers className="th-icon" />
-                <span>Capacity</span>
-                {getSortIcon("maxStudents")}
-              </div>
-            </th>
-            <th className="col-actions">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {courses.map((course, index) => {
-            const typeStyles = getTypeStyles(course.type);
-            const statusStyles = getStatusStyles(course.status);
-
-            return (
-              <tr key={course._id} className="table-row">
-                <td className="col-index">
-                  <span className="index-badge">{index + 1}</span>
-                </td>
-                <td className="col-course">
-                  <div className="course-info">
-                    <div className="course-avatar">
-                      <FaBookOpen />
-                    </div>
-                    <div className="course-text">
-                      <span className="course-name-text">{course.name}</span>
-                      <span className="course-level">
-                        {course.programLevel}
-                      </span>
-                    </div>
-                  </div>
-                </td>
-                <td className="col-code">
-                  <span className="code-badge">{course.code}</span>
-                </td>
-                <td className="col-type">
-                  <span
-                    className="type-badge"
-                    style={{
-                      background: typeStyles.bg,
-                      color: typeStyles.color,
-                      borderColor: typeStyles.border,
-                    }}
-                  >
-                    {course.type}
-                  </span>
-                </td>
-                <td className="col-status">
-                  <span
-                    className="status-indicator"
-                    style={{
-                      background: statusStyles.bg,
-                      color: statusStyles.color,
-                      borderColor: statusStyles.border,
-                    }}
-                  >
-                    <span
-                      className="status-dot"
-                      style={{
-                        background:
-                          course.status === "ACTIVE" ? "#22C55E" : "#9CA3AF",
-                      }}
-                    />
-                    {course.status}
-                  </span>
-                </td>
-                <td className="col-duration">
-                  <div className="duration-info">
-                    <span className="duration-value">
-                      {course.durationSemesters || "N/A"}
-                    </span>
-                    <span className="duration-label">semesters</span>
-                  </div>
-                </td>
-                <td className="col-credits">
-                  <div className="credits-info">
-                    <span className="credits-value">{course.credits}</span>
-                    <span className="credits-label">hrs</span>
-                  </div>
-                </td>
-                <td className="col-capacity">
-                  <div className="capacity-info">
-                    <div className="capacity-bar-container">
-                      <div className="capacity-bar">
-                        <div
-                          className="capacity-fill"
-                          style={{
-                            width: `${Math.min((course.maxStudents / 100) * 100, 100)}%`,
-                            background:
-                              course.maxStudents >= 80
-                                ? "linear-gradient(90deg, #22C55E, #16A34A)"
-                                : course.maxStudents >= 50
-                                  ? "linear-gradient(90deg, #F59E0B, #D97706)"
-                                  : "linear-gradient(90deg, #3B82F6, #2563EB)",
-                          }}
-                        />
-                      </div>
-                      <span className="capacity-text">
-                        {course.maxStudents}
-                      </span>
-                    </div>
-                  </div>
-                </td>
-                <td className="col-actions">
-                  <div className="action-group">
-                    <button
-                      className="action-btn action-view"
-                      title="View Details"
-                      aria-label={`View ${course.name} details`}
-                      onClick={() => onView(course._id)}
-                    >
-                      <FaEye />
-                    </button>
-                    {canEdit && (
-                      <button
-                        className="action-btn action-edit"
-                        title="Edit Course"
-                        aria-label={`Edit ${course.name}`}
-                        onClick={() => onEdit(course._id)}
-                      >
-                        <FaEdit />
-                      </button>
-                    )}
-                    {canDelete && (
-                      <button
-                        className="action-btn action-delete"
-                        title="Delete Course"
-                        aria-label={`Delete ${course.name}`}
-                        onClick={() => onDelete(course)}
-                      >
-                        <FaTrash />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-};
 
 // Delete Modal Component
 const DeleteModal = ({
@@ -411,57 +156,9 @@ const DeleteModal = ({
   );
 };
 
-// Skeleton Loader Component
-const SkeletonLoader = () => (
-  <div className="skeleton-wrapper">
-    {[...Array(5)].map((_, i) => (
-      <div key={i} className="skeleton-row">
-        <div className="skeleton-cell skeleton-index"></div>
-        <div className="skeleton-cell skeleton-course">
-          <div className="skeleton-avatar"></div>
-          <div className="skeleton-text-group">
-            <div className="skeleton-text skeleton-title"></div>
-            <div className="skeleton-text skeleton-subtitle"></div>
-          </div>
-        </div>
-        <div className="skeleton-cell skeleton-code"></div>
-        <div className="skeleton-cell skeleton-type"></div>
-        <div className="skeleton-cell skeleton-status"></div>
-        <div className="skeleton-cell skeleton-duration"></div>
-        <div className="skeleton-cell skeleton-credits"></div>
-        <div className="skeleton-cell skeleton-capacity"></div>
-        <div className="skeleton-cell skeleton-actions">
-          <div className="skeleton-action-btn"></div>
-          <div className="skeleton-action-btn"></div>
-          <div className="skeleton-action-btn"></div>
-        </div>
-      </div>
-    ))}
-  </div>
-);
 
-// Empty State Component
-const EmptyState = ({ hasDepartment, onAddCourse, allowAdd }) => (
-  <div className="empty-state-wrapper">
-    <div className="empty-icon-circle">
-      <FaBookOpen />
-    </div>
-    <h3 className="empty-state-title">
-      {hasDepartment ? "No courses found" : "Select a department"}
-    </h3>
-    <p className="empty-state-description">
-      {hasDepartment
-        ? "There are no courses in this department yet. Get started by adding your first course."
-        : "Choose a department from the dropdown above to view and manage courses."}
-    </p>
-    {hasDepartment && allowAdd && (
-      <button className="btn btn-primary btn-lg" onClick={onAddCourse}>
-        <FaPlus className="btn-icon" />
-        <span>Add Your First Course</span>
-      </button>
-    )}
-  </div>
-);
+
+
 
 export default function CourseList() {
   const { user } = useContext(AuthContext);
@@ -495,10 +192,6 @@ export default function CourseList() {
   const [departmentsError, setDepartmentsError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({
-    key: "name",
-    direction: "asc",
-  });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState(null);
   const [stats, setStats] = useState({
@@ -649,35 +342,225 @@ export default function CourseList() {
     setStats(calculateStats(courses));
   }, [courses, calculateStats]);
 
-  /* ================= SORTING ================= */
-  const handleSort = useCallback((key) => {
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }));
-  }, []);
 
-  /* ================= FILTERED & SORTED COURSES ================= */
-  const filteredCourses = useMemo(() => {
-    let result = courses.filter(
-      (course) =>
-        course.name
-          ?.toLowerCase()
-          .includes(debouncedSearchTerm.toLowerCase()) ||
-        course.code?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()),
-    );
 
-    result = [...result].sort((a, b) => {
-      const aValue = a[sortConfig.key] || "";
-      const bValue = b[sortConfig.key] || "";
+ /* ================= FILTERED COURSES ================= */
+const filteredCourses = useMemo(() => {
+  const search = debouncedSearchTerm.toLowerCase();
 
-      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-      return 0;
-    });
+  return courses.filter(
+    (course) =>
+      course.name?.toLowerCase().includes(search) ||
+      course.code?.toLowerCase().includes(search)
+  );
+}, [courses, debouncedSearchTerm]);
 
-    return result;
-  }, [courses, debouncedSearchTerm, sortConfig]);
+const columns = [
+  {
+    key: "index",
+    label: "Sr.No.",
+    sortable: false,
+    width: "60px",
+    render: (_, rowIndex) => (
+      <span className="index-badge">{rowIndex + 1}</span>
+    ),
+  },
+
+  {
+    key: "name",
+    label: "Course Name",
+    sortable: true,
+    width: "220px",
+    render: (course) => (
+      <div className="course-info">
+        <div className="course-avatar">
+          <FaBookOpen />
+        </div>
+
+        <div className="course-text">
+          <span className="course-name-text">
+            {course.name}
+          </span>
+
+          <span className="course-level">
+            {course.programLevel}
+          </span>
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "code",
+    label: "Code",
+    sortable: true,
+    width: "105px",
+    render: (course) => (
+      <span className="code-badge">
+        {course.code}
+      </span>
+    ),
+  },
+
+  {
+    key: "type",
+    label: "Type",
+    sortable: true,
+    width: "100px",
+    render: (course) => {
+      const typeStyles = {
+        THEORY: {
+          bg: "rgba(59, 130, 246, 0.1)",
+          color: "#3B82F6",
+          border: "rgba(59, 130, 246, 0.2)",
+        },
+
+        PRACTICAL: {
+          bg: "rgba(249, 115, 22, 0.1)",
+          color: "#F97316",
+          border: "rgba(249, 115, 22, 0.2)",
+        },
+
+        BOTH: {
+          bg: "rgba(139, 92, 246, 0.1)",
+          color: "#8B5CF6",
+          border: "rgba(139, 92, 246, 0.2)",
+        },
+      };
+
+      const styles =
+        typeStyles[course.type?.toUpperCase()] ||
+        typeStyles.THEORY;
+
+      return (
+        <span
+          className="type-badge"
+          style={{
+            background: styles.bg,
+            color: styles.color,
+            borderColor: styles.border,
+          }}
+        >
+          {course.type}
+        </span>
+      );
+    },
+  },
+
+  {
+    key: "status",
+    label: "Status",
+    sortable: true,
+    width: "110px",
+    render: (course) => {
+      const isActive = course.status === "ACTIVE";
+
+      return (
+        <span
+          className="status-indicator"
+          style={{
+            background: isActive
+              ? "rgba(34, 197, 94, 0.1)"
+              : "rgba(156, 163, 175, 0.1)",
+            color: isActive
+              ? "#22C55E"
+              : "#9CA3AF",
+            borderColor: isActive
+              ? "rgba(34, 197, 94, 0.2)"
+              : "rgba(156, 163, 175, 0.2)",
+          }}
+        >
+          <span
+            className="status-dot"
+            style={{
+              background: isActive
+                ? "#22C55E"
+                : "#9CA3AF",
+            }}
+          />
+
+          {course.status}
+        </span>
+      );
+    },
+  },
+
+  {
+    key: "durationSemesters",
+    label: "Duration",
+    sortable: true,
+    width: "105px",
+    render: (course) => (
+      <div className="duration-info">
+        <span className="duration-value">
+          {course.durationSemesters || "N/A"}
+        </span>
+
+        <span className="duration-label">
+          semesters
+        </span>
+      </div>
+    ),
+  },
+
+  {
+    key: "credits",
+    label: "Credits",
+    sortable: true,
+    width: "85px",
+    render: (course) => (
+      <div className="credits-info">
+        <span className="credits-value">
+          {course.credits}
+        </span>
+
+        <span className="credits-label">
+          hrs
+        </span>
+      </div>
+    ),
+  },
+
+  {
+    key: "maxStudents",
+    label: "Capacity",
+    sortable: true,
+    width: "125px",
+    render: (course) => {
+      const capacity = course.maxStudents || 0;
+
+      return (
+        <div className="capacity-info">
+          <div className="capacity-bar-container">
+            <div className="capacity-bar">
+              <div
+                className="capacity-fill"
+                style={{
+                  width: `${Math.min(
+                    (capacity / 100) * 100,
+                    100
+                  )}%`,
+                  background:
+                    capacity >= 80
+                      ? "linear-gradient(90deg, #22C55E, #16A34A)"
+                      : capacity >= 50
+                        ? "linear-gradient(90deg, #F59E0B, #D97706)"
+                        : "linear-gradient(90deg, #3B82F6, #2563EB)",
+                }}
+              />
+            </div>
+
+            <span className="capacity-text">
+              {capacity}
+            </span>
+          </div>
+        </div>
+      );
+    },
+  },
+];
+
+
 
   /* ================= DELETE HANDLER ================= */
   const handleDeleteClick = (course) => {
@@ -762,6 +645,40 @@ export default function CourseList() {
     () => navigate("/courses/add"),
     [navigate],
   );
+
+  /* ================= TABLE ACTIONS ================= */
+
+const tableActions = {
+  label: "Actions",
+  width: "140px",
+  items: [
+    {
+      key: "view",
+      label: "View Details",
+      icon: FaEye,
+      className: "action-view",
+      onClick: (course) => handleViewCourse(course._id),
+    },
+
+    {
+      key: "edit",
+      label: "Edit Course",
+      icon: FaEdit,
+      className: "action-edit",
+      show: () => canEdit("courses"),
+      onClick: (course) => handleEditCourse(course._id),
+    },
+
+    {
+      key: "delete",
+      label: "Delete Course",
+      icon: FaTrash,
+      className: "action-delete",
+      show: () => canDelete("courses"),
+      onClick: handleDeleteClick,
+    },
+  ],
+};
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = useCallback(() => {
@@ -1060,29 +977,27 @@ if (loading) {
               />
             </div>
 
-            {/* TABLE */}
-            <div className="table-wrapper">
-              {loadingCourses ? (
-                <SkeletonLoader />
-              ) : filteredCourses.length === 0 ? (
-                <EmptyState
-                  hasDepartment={true}
-                  onAddCourse={handleAddCourse}
-                  allowAdd={canCreate("courses")}
-                />
-              ) : (
-                <CourseTable
-                  courses={filteredCourses}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                  onView={handleViewCourse}
-                  onEdit={handleEditCourse}
-                  onDelete={handleDeleteClick}
-                  canEdit={canEdit("courses")}
-                  canDelete={canDelete("courses")}
-                />
-              )}
-            </div>
+           {/* STANDARD COURSE LIST */}
+<StandardListView
+  columns={columns}
+  data={filteredCourses}
+  loading={loadingCourses}
+  emptyState={{
+    icon: FaBookOpen,
+    title: "No courses found",
+    description:
+      "There are no courses in this department yet. Get started by adding your first course.",
+    action: canCreate("courses")
+      ? {
+          label: "Add Your First Course",
+          icon: FaPlus,
+          onClick: handleAddCourse,
+        }
+      : null,
+  }}
+  actions={tableActions}
+/>
+            
           </div>
         </div>
       )}
@@ -1321,25 +1236,27 @@ if (loading) {
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ================= CARDS ================= */
-        .card {
-          background: var(--bg-secondary);
-          border-radius: var(--radius-xl);
-          box-shadow: var(--shadow-sm);
-          overflow: hidden;
-          border: 1px solid var(--border-light);
-          margin-bottom: var(--space-6);
-        }
+.card {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  margin-bottom: 16px;
+}
 
-        .card-header {
-          padding: var(--space-5) var(--space-6);
-          background: var(--bg-tertiary);
-          border-bottom: 1px solid var(--border-light);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: var(--space-4);
-          flex-wrap: wrap;
-        }
+.card-header {
+  padding: 14px 20px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+
 
         .card-title-group {
           display: flex;
@@ -1378,7 +1295,9 @@ if (loading) {
           display: block;
         }
 
-        .card-body { padding: var(--space-6); }
+       .card-body {
+  padding: 18px 20px;
+}
 
         .department-error-badge {
           display: flex;
@@ -1419,32 +1338,33 @@ if (loading) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           gap: var(--space-4);
         }
 
-        .select-wrapper {
-          position: relative;
-          min-width: 320px;
-          flex: 1;
-          max-width: 480px;
-        }
+.select-wrapper {
+  position: relative;
+  min-width: 280px;
+  flex: 0 1 520px;
+  max-width: 520px;
+}
 
-        .modern-select {
-          width: 100%;
-          height: 46px;
-          padding: 0 3rem 0 var(--space-5);
-          border: 1.5px solid var(--border-light);
-          border-radius: var(--radius-md);
-          font-size: 0.95rem;
-          font-weight: 500;
-          font-family: inherit;
-          color: var(--text-primary);
-          background: var(--bg-secondary);
-          cursor: pointer;
-          appearance: none;
-          transition: all 0.18s var(--ease);
-        }
+       
+.modern-select {
+  width: 100%;
+  height: 44px;
+  padding: 0 2.75rem 0 16px;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  appearance: none;
+  transition: all 0.18s var(--ease);
+}
 
         .modern-select:hover { border-color: var(--border-medium); }
 
@@ -1464,14 +1384,15 @@ if (loading) {
           font-size: 0.8rem;
         }
 
-        .quick-stats {
-          display: flex;
-          align-items: center;
-          gap: var(--space-6);
-          padding: var(--space-3) var(--space-5);
-          background: var(--bg-tertiary);
-          border-radius: var(--radius-md);
-        }
+.quick-stats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
 
         .quick-stat {
           display: flex;
@@ -1480,34 +1401,33 @@ if (loading) {
           gap: 2px;
         }
 
-        .quick-stat-value {
-          font-size: 1.375rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          line-height: 1;
-        }
+.quick-stat-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
 
         .quick-stat-value.active { color: var(--success); }
 
-        .quick-stat-label {
-          font-size: 0.7rem;
-          color: var(--text-secondary);
-          font-weight: 600;
-          letter-spacing: 0.02em;
-        }
-
-        .quick-stat-divider {
-          width: 1px;
-          height: 30px;
-          background: var(--border-medium);
-        }
+ .quick-stat-label {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.quick-stat-divider {
+  width: 1px;
+  height: 26px;
+  background: var(--border-medium);
+}
 
         /* ================= COURSE CARD ================= */
-        .card-actions {
-          display: flex;
-          align-items: center;
-          gap: var(--space-3);
-        }
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 
         .search-wrapper {
           position: relative;
@@ -1524,18 +1444,18 @@ if (loading) {
           pointer-events: none;
         }
 
-        .search-input {
-          width: 100%;
-          height: 42px;
-          padding: 0 2.5rem 0 2.5rem;
-          border: 1.5px solid var(--border-light);
-          border-radius: var(--radius-md);
-          font-size: 0.875rem;
-          font-family: inherit;
-          color: var(--text-primary);
-          background: var(--bg-secondary);
-          transition: all 0.18s var(--ease);
-        }
+.search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 2.4rem 0 2.35rem;
+  border: 1.5px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  transition: all 0.18s var(--ease);
+}
 
         .search-input::placeholder { color: var(--text-muted); }
         .search-input:hover { border-color: var(--border-medium); }
@@ -1564,39 +1484,39 @@ if (loading) {
         .search-clear:hover { color: var(--text-primary); }
 
         /* ================= STATS GRID ================= */
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: var(--space-4);
-          margin-bottom: var(--space-6);
-        }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
 
-        .stat-card {
-          display: flex;
-          align-items: center;
-          gap: var(--space-4);
-          background: var(--bg-secondary);
-          border-radius: var(--radius-lg);
-          padding: var(--space-5);
-          border: 1px solid var(--border-light);
-          transition: box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
-        }
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-height: 76px;
+  border: 1px solid var(--border-light);
+  transition: box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
+}
 
         .stat-card:hover {
           box-shadow: var(--shadow-md);
           border-color: var(--border-medium);
         }
-
-        .stat-icon {
-          width: 46px;
-          height: 46px;
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.15rem;
-          flex-shrink: 0;
-        }
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
 
         .stat-icon-blue { background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%); color: white; }
         .stat-icon-green { background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%); color: white; }
@@ -1610,18 +1530,18 @@ if (loading) {
           min-width: 0;
         }
 
-        .stat-label {
-          font-size: 0.78rem;
-          color: var(--text-secondary);
-          font-weight: 500;
-        }
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
 
-        .stat-value {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: var(--text-primary);
-          line-height: 1.3;
-        }
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
 
         .stat-sub-value {
           font-size: 0.72rem;
