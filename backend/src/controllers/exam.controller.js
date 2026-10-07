@@ -229,6 +229,29 @@ exports.createExam = async (req, res, next) => {
       semNum,
     );
 
+    const existingPublishedExam = await Exam.findOne({
+      college_id: req.college_id,
+      course_id,
+      semester: semNum,
+      academicYear: String(academicYear).trim(),
+      status: "PUBLISHED",
+    });
+
+    if (existingPublishedExam) {
+      const publishedSchedule = await ExamSchedule.findOne({
+        exam_id: existingPublishedExam._id,
+        college_id: req.college_id,
+        status: "PUBLISHED",
+      });
+      if (publishedSchedule) {
+        throw new AppError(
+          "Exam Timetable is already published",
+          400,
+          "TIMETABLE_ALREADY_PUBLISHED",
+        );
+      }
+    }
+
     const exam = await Exam.create({
       college_id: req.college_id,
       name: String(name).trim(),
