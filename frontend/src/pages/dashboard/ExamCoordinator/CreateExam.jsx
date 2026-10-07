@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import {
   createExam,
+  updateExam,
+  getExams,
   publishExam,
   getEligibleBacklogSubjects,
 } from "../../../api/exam";
 import {
   createExamSchedule,
+  updateExamSchedule,
   publishExamSchedule,
 } from "../../../api/examSchedule";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -309,6 +312,49 @@ export default function CreateExam() {
   const [publishError, setPublishError] = useState(null);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
   const [showUnsavedConfirm, setShowUnsavedConfirm] = useState(false);
+
+  /* ================= PUBLISHED / DUPLICATE PREVENTION STATE ================= */
+  const [existingExams, setExistingExams] = useState([]);
+  const [isPublished, setIsPublished] = useState(false);
+  const [createdExamId, setCreatedExamId] = useState(null);
+  const createdExamIdRef = useRef(null);
+  const submittingRef = useRef(false);
+
+  useEffect(() => {
+    const fetchExistingExams = async () => {
+      try {
+        const res = await getExams();
+        const data = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+            ? res.data
+            : [];
+        setExistingExams(data);
+      } catch (err) {
+        logger.error("Error fetching existing exams in CreateExam:", err);
+      }
+    };
+    fetchExistingExams();
+  }, []);
+
+  const isAlreadyPublished = useMemo(() => {
+    if (
+      !formData.course_id ||
+      !formData.semester ||
+      !formData.academicYear?.trim()
+    ) {
+      return false;
+    }
+    return existingExams.some(
+      (ex) =>
+        String(ex.course_id?._id || ex.course_id) ===
+          String(formData.course_id) &&
+        Number(ex.semester) === Number(formData.semester) &&
+        String(ex.academicYear).trim().toLowerCase() ===
+          String(formData.academicYear).trim().toLowerCase() &&
+        ex.status === "PUBLISHED",
+    );
+  }, [existingExams, formData.course_id, formData.semester, formData.academicYear]);
 
   /* ================= UNSAVED CHANGES TRACKING ================= */
   const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -626,6 +672,19 @@ export default function CreateExam() {
       }
     }
 
+    if (isPublished || isAlreadyPublished) {
+      const msg = "Exam Timetable is already published";
+      setPublishError({
+        message: msg,
+        errorCode: "TIMETABLE_ALREADY_PUBLISHED",
+      });
+      toast.warning(msg);
+      return;
+    }
+
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     setLoading(true);
     setError("");
     setPublishError(null);
@@ -649,27 +708,40 @@ export default function CreateExam() {
         };
       });
 
-      // Step 1: Create the Exam
-      const examRes = await createExam({
-        name: formData.name.trim(),
-        course_id: formData.course_id,
-        semester: Number(formData.semester),
-        academicYear: formData.academicYear.trim(),
-        subjects: payloadSubjects,
-      });
+      // Step 1: Create or Update the Exam (avoid creating duplicates on retries)
+      let currentExamId = createdExamIdRef.current;
+      if (!currentExamId) {
+        const examRes = await createExam({
+          name: formData.name.trim(),
+          course_id: formData.course_id,
+          semester: Number(formData.semester),
+          academicYear: formData.academicYear.trim(),
+          subjects: payloadSubjects,
+        });
 
-      const createdExam = examRes?.exam || examRes;
-      const examId = createdExam?._id;
+        const createdExam = examRes?.exam || examRes;
+        currentExamId = createdExam?._id;
 
-      if (!examId) {
-        throw new Error("Failed to get exam ID after creation");
+        if (!currentExamId) {
+          throw new Error("Failed to get exam ID after creation");
+        }
+        createdExamIdRef.current = currentExamId;
+        setCreatedExamId(currentExamId);
+      } else {
+        await updateExam(currentExamId, {
+          name: formData.name.trim(),
+          course_id: formData.course_id,
+          semester: Number(formData.semester),
+          academicYear: formData.academicYear.trim(),
+          subjects: payloadSubjects,
+        });
       }
 
       toast.success("Exam created successfully!");
 
       // Step 2: Create / save the subject-wise timetable (DRAFT)
       const schedulePayload = {
-        exam_id: examId,
+        exam_id: currentExamId,
         subjects: scheduleRows.map((row) => ({
           subject: row.subject,
           category: row.category || undefined,
@@ -685,7 +757,18 @@ export default function CreateExam() {
         })),
       };
 
-      await createExamSchedule(examId, schedulePayload);
+      try {
+        await createExamSchedule(currentExamId, schedulePayload);
+      } catch (schedErr) {
+        if (
+          schedErr?.response?.status === 409 ||
+          schedErr?.response?.data?.code === "SCHEDULE_ALREADY_EXISTS"
+        ) {
+          await updateExamSchedule(currentExamId, schedulePayload);
+        } else {
+          throw schedErr;
+        }
+      }
 
       if (mode === "DRAFT") {
         toast.success("Exam created and saved as draft!");
@@ -693,8 +776,9 @@ export default function CreateExam() {
 
       // Step 3: If Publish, publish the schedule and the exam
       if (mode === "PUBLISH") {
-        await publishExamSchedule(examId);
-        await publishExam(examId);
+        await publishExamSchedule(currentExamId);
+        await publishExam(currentExamId);
+        setIsPublished(true);
         toast.success("Exam created and published successfully!");
       }
 
@@ -730,7 +814,18 @@ export default function CreateExam() {
       const { statusCode, errorCode, message } = extractApiError(err);
       logger.error("Error in exam creation workflow:", statusCode, errorCode);
 
-      if (AUTH_ERROR_CODES.has(errorCode)) {
+      if (
+        errorCode === "TIMETABLE_ALREADY_PUBLISHED" ||
+        message?.toLowerCase().includes("already published")
+      ) {
+        setIsPublished(true);
+        const pubMsg = "Exam Timetable is already published";
+        setPublishError({
+          message: pubMsg,
+          errorCode: "TIMETABLE_ALREADY_PUBLISHED",
+        });
+        toast.warning(pubMsg);
+      } else if (AUTH_ERROR_CODES.has(errorCode)) {
         setError({
           message,
           statusCode,
@@ -743,18 +838,28 @@ export default function CreateExam() {
         setError(message);
       }
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
 
   const handleSaveAsDraft = (e) => {
     e.preventDefault();
+    if (isPublished || isAlreadyPublished) {
+      toast.warning("Exam Timetable is already published");
+      return;
+    }
+    if (loading || submittingRef.current) return;
     handleSubmit("DRAFT");
   };
 
   const handlePublishClick = (e) => {
     e.preventDefault();
-    if (loading) return;
+    if (isPublished || isAlreadyPublished) {
+      toast.warning("Exam Timetable is already published");
+      return;
+    }
+    if (loading || submittingRef.current) return;
 
     const blocking = scheduleRows.filter(
       (r) => computeRowStatus(r) !== "SCHEDULED",
@@ -1379,15 +1484,36 @@ export default function CreateExam() {
                         scheduled.
                       </div>
 
+                      {(isPublished || isAlreadyPublished) && (
+                        <div
+                          className="schedule-readiness is-published mb-3"
+                          role="status"
+                          style={{
+                            background: "var(--edx-green-50, #e5f6ee)",
+                            color: "var(--edx-green-600, #1f8a5f)",
+                            border: "1px solid rgba(42, 168, 118, 0.3)",
+                            borderRadius: "10px",
+                            padding: "0.85rem 1.1rem",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "0.6rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <FaCheckCircle />
+                          <span>Exam Timetable is already published</span>
+                        </div>
+                      )}
+
                       <ExamTimetableTable
                         rows={scheduleRows}
-                        readOnly={false}
+                        readOnly={isPublished || isAlreadyPublished}
                         onRowChange={handleRowChange}
                         validationErrors={rowValidationErrors}
                         statusAnnouncement=""
                       />
 
-                      {!allScheduled && (
+                      {!allScheduled && !isPublished && !isAlreadyPublished && (
                         <div
                           className="schedule-readiness is-pending"
                           role="status"
@@ -1422,7 +1548,7 @@ export default function CreateExam() {
                       type="button"
                       className="btn-edx-draft"
                       onClick={handleSaveAsDraft}
-                      disabled={loading}
+                      disabled={loading || isPublished || isAlreadyPublished}
                     >
                       {loading ? (
                         <>
@@ -1441,12 +1567,28 @@ export default function CreateExam() {
                       type="button"
                       className="btn-edx-publish"
                       onClick={handlePublishClick}
-                      disabled={loading || !allScheduled || scheduleRows.length === 0}
+                      disabled={
+                        loading ||
+                        isPublished ||
+                        isAlreadyPublished ||
+                        !allScheduled ||
+                        scheduleRows.length === 0
+                      }
+                      title={
+                        isPublished || isAlreadyPublished
+                          ? "Exam Timetable is already published"
+                          : undefined
+                      }
                     >
                       {loading ? (
                         <>
                           <FaSpinner className="spin" />
                           Publishing...
+                        </>
+                      ) : isPublished || isAlreadyPublished ? (
+                        <>
+                          <FaCheckCircle />
+                          Published
                         </>
                       ) : (
                         <>

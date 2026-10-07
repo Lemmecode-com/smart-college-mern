@@ -399,7 +399,10 @@ export default function ExamList() {
   };
 
   const handlePublishClick = (exam) => {
-    if (exam.status === "PUBLISHED") return;
+    if (exam.status === "PUBLISHED") {
+      toast.info("Exam Timetable is already published");
+      return;
+    }
     setPublishTarget(exam);
     setShowPublishConfirm(true);
     setActionError(null);
@@ -419,8 +422,15 @@ export default function ExamList() {
       );
     } catch (err) {
       const msg = err.response?.data?.message || "Failed to publish exam.";
+      if (msg.toLowerCase().includes("already published")) {
+        toast.info("Exam Timetable is already published");
+        setExams((prev) =>
+          prev.map((e) => (e._id === examId ? { ...e, status: "PUBLISHED" } : e)),
+        );
+      } else {
+        toast.error(msg);
+      }
       setActionError(msg);
-      toast.error(msg);
     } finally {
       setActionBusy(null);
       setPublishTarget(null);

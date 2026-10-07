@@ -532,6 +532,10 @@ export default function ExamTimetable() {
 
   const handlePublish = async () => {
     setShowPublishConfirm(false);
+    if (readOnly || schedule?.status === "PUBLISHED") {
+      toast.info("Exam Timetable is already published");
+      return;
+    }
     setSaving(true);
     try {
       const response = await publishExamSchedule(examId);
@@ -550,7 +554,18 @@ export default function ExamTimetable() {
         publishError,
         "Failed to publish timetable.",
       );
-      toast.error(details.message);
+      if (
+        details.errorCode === "TIMETABLE_ALREADY_PUBLISHED" ||
+        details.message?.toLowerCase().includes("already published")
+      ) {
+        toast.info("Exam Timetable is already published");
+        setSchedule((current) => ({
+          ...current,
+          status: "PUBLISHED",
+        }));
+      } else {
+        toast.error(details.message);
+      }
       logger.error(
         "Error publishing exam timetable:",
         details.statusCode,
@@ -723,28 +738,42 @@ export default function ExamTimetable() {
             statusAnnouncement={statusAnnouncement}
           />
 
-          {!readOnly && schedule.status === "DRAFT" && (
-            <div className="exam-timetable-actions">
-              <button
-                type="button"
-                className="btn-edx-draft"
-                onClick={handleSaveDraft}
-                disabled={saving}
-              >
-                <FaSave />
-                {saving ? "Saving..." : "Save Draft"}
-              </button>
+          <div className="exam-timetable-actions">
+            {schedule.status === "PUBLISHED" ? (
               <button
                 type="button"
                 className="btn-edx-publish"
-                onClick={() => setShowPublishConfirm(true)}
-                disabled={saving}
+                disabled={true}
+                title="Exam Timetable is already published"
+                onClick={() => toast.info("Exam Timetable is already published")}
+                style={{ opacity: 0.8, cursor: "not-allowed" }}
               >
                 <FaCheckCircle />
-                Publish
+                Exam Timetable is already published
               </button>
-            </div>
-          )}
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="btn-edx-draft"
+                  onClick={handleSaveDraft}
+                  disabled={saving}
+                >
+                  <FaSave />
+                  {saving ? "Saving..." : "Save Draft"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-edx-publish"
+                  onClick={() => setShowPublishConfirm(true)}
+                  disabled={saving}
+                >
+                  <FaCheckCircle />
+                  Publish
+                </button>
+              </>
+            )}
+          </div>
         </>
       )}
 
