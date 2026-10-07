@@ -40,9 +40,11 @@ const BACKLOG_STATUS = {
 const assertRole = (action, actorRole) => {
   const normalizedRole = String(actorRole || "").toUpperCase();
   const allowedRoles =
-    action === "CREATE_ATTEMPT" || action === "EVALUATE_ATTEMPT"
+    action === "CREATE_ATTEMPT"
       ? ["COLLEGE_ADMIN", "ADMISSION_OFFICER"]
-      : [];
+      : action === "EVALUATE_ATTEMPT"
+        ? ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "EXAM_COORDINATOR"]
+        : [];
   if (!allowedRoles.includes(normalizedRole)) {
     throw new AppError(
       `Role ${actorRole || "UNKNOWN"} cannot ${action.toLowerCase()}`,
@@ -641,18 +643,20 @@ const evaluateAttempt = async ({
                 : `Your supplementary attempt for ${backlog.subject_code || backlog.subject_name} is incomplete. Please complete all marks before retrying.`;
 
           await Notification.create(
-            {
-              college_id: backlog.college_id,
-              createdBy: actorId,
-              createdByRole: actorRole,
-              target: "INDIVIDUAL",
-              target_users: [studentUser],
-              title: notificationTitle,
-              message: notificationMessage,
-              type: "ACADEMIC",
-              priority: resultStatus === "PASS" ? "HIGH" : "NORMAL",
-              actionUrl: "/student/dashboard",
-            },
+            [
+              {
+                college_id: backlog.college_id,
+                createdBy: actorId,
+                createdByRole: actorRole,
+                target: "INDIVIDUAL",
+                target_users: [studentUser],
+                title: notificationTitle,
+                message: notificationMessage,
+                type: "ACADEMIC",
+                priority: resultStatus === "PASS" ? "HIGH" : "NORMAL",
+                actionUrl: "/student/dashboard",
+              },
+            ],
             { session },
           );
         } catch (err) {

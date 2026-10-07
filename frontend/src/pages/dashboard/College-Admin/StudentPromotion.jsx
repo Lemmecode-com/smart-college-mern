@@ -395,7 +395,7 @@ function getFeeStatus(data) {
 /**
  * Get compact status for Previous Year Backlog check
  */
-function getBacklogStatus(data) {
+function getBacklogStatus(data, backlogs = []) {
   if (!data || !data.policy_snapshot) return null;
   const policy = data.policy_snapshot;
   const required = policy.previousYearClearanceRequired === true;
@@ -406,7 +406,36 @@ function getBacklogStatus(data) {
   }
   
   if (passed) {
-    return { label: "Previous Backlog", passed: true, message: "No pending backlog" };
+    return { label: "Previous Backlog", passed: true, message: "Cleared (No pending backlog)" };
+  }
+
+  // Inspect student's authoritative backlogs to provide the precise status
+  const activeBacklogs = (backlogs || []).filter(
+    (b) => b.status !== "CLEARED" && b.status !== "CANCELLED"
+  );
+  const hasAttempted = activeBacklogs.some(
+    (b) => b.status === "ATTEMPTED" || b.latest_result_status === "INCOMPLETE"
+  );
+  const hasFailed = activeBacklogs.some(
+    (b) => b.latest_result_status === "FAIL"
+  );
+
+  if (hasAttempted) {
+    return {
+      label: "Previous Backlog",
+      passed: false,
+      value: "Attempted / Pending",
+      reason: "Attempt in progress — evaluation pending",
+    };
+  }
+
+  if (hasFailed) {
+    return {
+      label: "Previous Backlog",
+      passed: false,
+      value: "Not cleared (Failed)",
+      reason: "Previous backlog attempt failed",
+    };
   }
   
   return { 
@@ -1008,6 +1037,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       if (alumniRes) {
         setAlumniEligibilityData(alumniRes.data || alumniRes);
       }
+      fetchBacklogs(student._id, "ALL");
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -1053,6 +1083,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       if (alumniRes) {
         setAlumniEligibilityData(alumniRes.data || alumniRes);
       }
+      fetchBacklogs(eligibilityStudent._id, "ALL");
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -1186,6 +1217,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       await fetchAttempts(selectedBacklog._id);
       if (eligibilityStudent?._id) {
         await fetchBacklogs(eligibilityStudent._id, backlogStatusFilter);
+        await refreshEligibility();
       }
     } catch (err) {
       const message = err.response?.data?.message || "Failed to evaluate backlog attempt.";
@@ -2481,7 +2513,7 @@ if (error && !loading && students.length === 0) {
                         const feeStatus = getFeeStatus(eligibilityData);
                         if (feeStatus) rows.push(renderCompactStatus(feeStatus));
                         
-                        const backlogStatus = getBacklogStatus(eligibilityData);
+                        const backlogStatus = getBacklogStatus(eligibilityData, backlogs);
                         if (backlogStatus) rows.push(renderCompactStatus(backlogStatus));
                         
                         const policyStatus = getPolicyStatus(eligibilityData);
