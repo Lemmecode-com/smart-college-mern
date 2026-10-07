@@ -22,7 +22,9 @@ import {
   FaTrophy,
   FaInfoCircle,
   FaTable,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaClipboardCheck,
+  FaHistory
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -104,11 +106,62 @@ const tdStyle = (align = "left", emphasis = false) => ({
   fontWeight: emphasis ? 600 : 400,
 });
 
+const backlogThStyle = (align = "left") => ({
+  padding: `${SPACE.md}px ${SPACE.lg}px`,
+  textAlign: align,
+  fontWeight: 700,
+  color: "#78350f",
+  background: "#fef3c7",
+  borderBottom: "2px solid #fde68a",
+  fontSize: "0.75rem",
+  textTransform: "uppercase",
+  letterSpacing: "0.06em",
+  whiteSpace: "nowrap",
+});
+
+const getBacklogAttemptBadge = (status) => {
+  switch (status) {
+    case "PASS":
+      return {
+        bg: "#dcfce7",
+        color: "#15803d",
+        border: "#86efac",
+        label: "PASS (Cleared)",
+        icon: <FaCheckCircle />,
+      };
+    case "FAIL":
+      return {
+        bg: "#fee2e2",
+        color: "#b91c1c",
+        border: "#fca5a5",
+        label: "FAIL (Open)",
+        icon: <FaTimesCircle />,
+      };
+    case "INCOMPLETE":
+      return {
+        bg: "#fef3c7",
+        color: "#b45309",
+        border: "#fcd34d",
+        label: "INCOMPLETE (Pending)",
+        icon: <FaExclamationTriangle />,
+      };
+    default:
+      return {
+        bg: "#f1f5f9",
+        color: "#475569",
+        border: "#cbd5e1",
+        label: status || "Pending",
+        icon: <FaInfoCircle />,
+      };
+  }
+};
+
 export default function StudentResults() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const loadTimeoutRef = useRef(null);
   const [results, setResults] = useState([]);
+  const [allBacklogResults, setAllBacklogResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -143,7 +196,16 @@ export default function StudentResults() {
         setLoading(true);
         setError(null);
         const data = await getMyResults();
-        setResults(Array.isArray(data) ? data : []);
+        const regularResults = Array.isArray(data)
+          ? data
+          : (data?.data || data?.regularResults || []);
+        const rawBacklogs = Array.isArray(data?.backlogResults)
+          ? data.backlogResults
+          : Array.isArray(data?.data?.backlogResults)
+            ? data.data.backlogResults
+            : regularResults.flatMap((r) => r.backlogResults || []);
+        setResults(regularResults);
+        setAllBacklogResults(rawBacklogs);
 
         if (loadTimeoutRef.current) {
           clearTimeout(loadTimeoutRef.current);
@@ -442,7 +504,7 @@ if (loading) {
   }
 />
 
-          {results.length === 0 ? (
+          {results.length === 0 && allBacklogResults.length === 0 ? (
             <EmptyState onGoBack={handleGoBack} />
           ) : (
             <motion.div
@@ -455,6 +517,23 @@ if (loading) {
               {results.map((result, idx) => (
                 <ResultCard key={result._id || idx} result={result} index={idx} />
               ))}
+
+              {/* Standalone backlog examination results (e.g. Supplementary exams without regular results) */}
+              {(() => {
+                const regularExamIds = new Set(
+                  results.map((r) => String(r.exam_id?._id || r.exam_id))
+                );
+                const standaloneBacklogs = allBacklogResults.filter(
+                  (b) => !regularExamIds.has(String(b.examId))
+                );
+                if (standaloneBacklogs.length === 0) return null;
+                return (
+                  <StandaloneBacklogCard
+                    backlogResults={standaloneBacklogs}
+                    index={results.length}
+                  />
+                );
+              })()}
             </motion.div>
           )}
         </div>
@@ -648,6 +727,12 @@ function ResultCard({ result, index }) {
           <SubjectsTable subjects={result.subjects} examName={exam.name} />
         )}
 
+        {result.backlogResults && result.backlogResults.length > 0 && (
+          <div style={{ marginTop: `${SPACE.xl}px` }}>
+            <BacklogSubjectsTable backlogResults={result.backlogResults} examName={exam.name} />
+          </div>
+        )}
+
         <div
           style={{
             marginTop: SPACE.lg,
@@ -821,5 +906,266 @@ function SummaryPill({ icon, value, label, color }) {
         </span>
       </div>
     </div>
+  );
+}
+
+function BacklogSubjectsTable({ backlogResults, examName }) {
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          margin: `0 0 ${SPACE.md}px`,
+          flexWrap: "wrap",
+          gap: SPACE.sm,
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: "1.02rem",
+            fontWeight: 600,
+            color: "#1e293b",
+            display: "flex",
+            alignItems: "center",
+            gap: SPACE.sm,
+          }}
+        >
+          <FaClipboardCheck style={{ color: "#d97706" }} /> Backlog Examination Attempts
+        </h3>
+        <span
+          style={{
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            padding: "0.2rem 0.6rem",
+            borderRadius: "12px",
+            backgroundColor: "#fef3c7",
+            color: "#92400e",
+            border: "1px solid #fde68a",
+          }}
+        >
+          {backlogResults.length} {backlogResults.length === 1 ? "Subject" : "Subjects"} Attempted
+        </span>
+      </div>
+
+      <div style={{ overflowX: "auto", borderRadius: RADIUS.sm, border: "1px solid #fde68a", background: "#fffdfa" }}>
+        <table
+          style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}
+          role="table"
+          aria-label={`Backlog attempt results for ${examName || "exam"}`}
+        >
+          <thead>
+            <tr>
+              <th style={backlogThStyle("left")} scope="col">Backlog Subject</th>
+              <th style={backlogThStyle("center")} scope="col">Attempt</th>
+              <th style={backlogThStyle("left")} scope="col">Original Term</th>
+              <th style={backlogThStyle("right")} scope="col">Internal</th>
+              <th style={backlogThStyle("right")} scope="col">External</th>
+              <th style={backlogThStyle("right")} scope="col">Total</th>
+              <th style={backlogThStyle("center")} scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {backlogResults.map((attempt, aIdx) => (
+              <BacklogSubjectRow key={attempt.attemptId || attempt.backlogId || aIdx} attempt={attempt} index={aIdx} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function BacklogSubjectRow({ attempt, index: aIdx }) {
+  const badge = getBacklogAttemptBadge(attempt.resultStatus);
+
+  return (
+    <motion.tr
+      variants={fadeInVariants}
+      custom={aIdx * 0.05}
+      initial="hidden"
+      animate="visible"
+      style={{ backgroundColor: aIdx % 2 === 0 ? "#ffffff" : "#fffbeb" }}
+      whileHover={{ backgroundColor: "#fef9c3" }}
+    >
+      <td style={tdStyle("left")}>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <span style={{ fontWeight: 600, color: "#1e293b" }}>
+            {attempt.subjectName || "Unnamed Subject"}
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "2px" }}>
+            <span style={{ fontSize: "0.78rem", color: "#64748b" }}>
+              {attempt.subjectCode || "N/A"}
+            </span>
+            <span
+              style={{
+                fontSize: "0.68rem",
+                padding: "1px 5px",
+                borderRadius: "4px",
+                backgroundColor: "#fef3c7",
+                color: "#92400e",
+                fontWeight: 600,
+                textTransform: "uppercase",
+              }}
+            >
+              {attempt.subjectType || "BACKLOG"}
+            </span>
+          </div>
+        </div>
+      </td>
+      <td style={tdStyle("center")}>
+        <span
+          style={{
+            padding: "0.2rem 0.55rem",
+            borderRadius: "12px",
+            fontSize: "0.72rem",
+            fontWeight: 700,
+            backgroundColor: "#e0f2fe",
+            color: "#0369a1",
+          }}
+        >
+          #{attempt.attemptNumber ?? 1}
+        </span>
+      </td>
+      <td style={tdStyle("left")}>
+        <span style={{ fontSize: "0.82rem", color: "#475569" }}>
+          {attempt.semester ? `Sem ${attempt.semester}` : ""}
+          {attempt.academicYear ? ` (${attempt.academicYear})` : ""}
+        </span>
+      </td>
+      <td style={tdStyle("right")}>
+        {attempt.internalMarks !== null && attempt.internalMarks !== undefined ? attempt.internalMarks : "—"}
+      </td>
+      <td style={tdStyle("right")}>
+        {attempt.externalMarks !== null && attempt.externalMarks !== undefined ? attempt.externalMarks : "—"}
+      </td>
+      <td style={tdStyle("right", true)}>
+        {attempt.totalMarks !== null && attempt.totalMarks !== undefined ? attempt.totalMarks : "—"}
+      </td>
+      <td style={tdStyle("center")}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.3rem",
+            padding: "0.35rem 0.85rem",
+            borderRadius: "20px",
+            fontSize: "0.72rem",
+            fontWeight: 700,
+            backgroundColor: badge.bg,
+            color: badge.color,
+            border: `1px solid ${badge.border}`,
+          }}
+        >
+          {badge.icon} {badge.label}
+        </span>
+      </td>
+    </motion.tr>
+  );
+}
+
+function StandaloneBacklogCard({ backlogResults, index }) {
+  const passedCount = backlogResults.filter((b) => b.resultStatus === "PASS").length;
+  const failedCount = backlogResults.filter((b) => b.resultStatus === "FAIL").length;
+  const incompleteCount = backlogResults.filter((b) => b.resultStatus === "INCOMPLETE").length;
+
+  return (
+    <motion.div
+      variants={fadeInVariants}
+      custom={index * 0.1 + 0.1}
+      initial="hidden"
+      animate="visible"
+      whileHover={{ y: -3, boxShadow: SHADOW.cardHover }}
+      style={{
+        background: "white",
+        borderRadius: RADIUS.xl,
+        boxShadow: SHADOW.card,
+        overflow: "hidden",
+        border: "1px solid #fde68a",
+      }}
+    >
+      <div
+        className="sr-result-header"
+        style={{
+          background: "linear-gradient(180deg, #78350f, #92400e)",
+          padding: `${SPACE.lg}px ${SPACE.xl}px`,
+          color: "white",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: SPACE.md,
+        }}
+      >
+        <div className="sr-result-header-content">
+          <h2
+            className="sr-result-exam-title"
+            style={{
+              margin: 0,
+              fontSize: "1.3rem",
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: SPACE.sm,
+            }}
+          >
+            <FaHistory /> Backlog & Supplementary Examination Results
+          </h2>
+          <p
+            className="sr-result-meta"
+            style={{
+              margin: "0.4rem 0 0",
+              opacity: 0.8,
+              fontSize: "0.88rem",
+              display: "flex",
+              alignItems: "center",
+              gap: SPACE.md,
+              flexWrap: "wrap",
+            }}
+          >
+            <span>Evaluated Backlog Papers</span>
+            <span>Total Papers: {backlogResults.length}</span>
+          </p>
+        </div>
+        <div className="sr-result-badges" style={{ display: "flex", alignItems: "center", gap: SPACE.md }}>
+          <span
+            style={{
+              padding: "0.5rem 1.25rem",
+              borderRadius: "20px",
+              backgroundColor: "rgba(255, 255, 255, 0.15)",
+              color: "white",
+              fontSize: "0.82rem",
+              fontWeight: 600,
+            }}
+          >
+            Evaluated
+          </span>
+        </div>
+      </div>
+
+      <div style={{ padding: `${SPACE.xl}px` }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+            gap: SPACE.md,
+            marginBottom: SPACE.xl,
+          }}
+        >
+          <SummaryPill icon={<FaCheckCircle />} value={passedCount} label="Cleared" color={BRAND_COLORS.success.main} />
+          {failedCount > 0 && (
+            <SummaryPill icon={<FaTimesCircle />} value={failedCount} label="Failed" color={BRAND_COLORS.danger.main} />
+          )}
+          {incompleteCount > 0 && (
+            <SummaryPill icon={<FaInfoCircle />} value={incompleteCount} label="Incomplete" color={BRAND_COLORS.warning.main} />
+          )}
+          <SummaryPill icon={<FaBook />} value={backlogResults.length} label="Total Backlogs" color={BRAND_COLORS.secondary.main} />
+        </div>
+
+        <BacklogSubjectsTable backlogResults={backlogResults} examName="Supplementary / Backlog Exams" />
+      </div>
+    </motion.div>
   );
 }

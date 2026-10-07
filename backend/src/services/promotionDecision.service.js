@@ -3,7 +3,10 @@ const StudentFee = require("../models/studentFee.model");
 const PromotionPolicy = require("../models/promotionPolicy.model");
 const PromotionDecision = require("../models/promotionDecision.model");
 const Backlog = require("../models/backlog.model");
+const BacklogAttempt = require("../models/backlogAttempt.model");
+const Exam = require("../models/exam.model");
 const AppError = require("../utils/AppError");
+const { evaluateAttempt } = require("./backlogAttempt.service");
 const {
   resolveAuthoritativeResult,
   RESULT_AUTHORITY_STATUS,
@@ -253,6 +256,7 @@ const calculatePromotionDecision = async ({
   studentId,
   collegeId,
   academicYear,
+  userId,
 }) => {
   const authorityStatus = authoritativeResult?.status;
   const result = authoritativeResult?.result;
@@ -323,6 +327,42 @@ const calculatePromotionDecision = async ({
   ) {
     const previousAcademicYear = calculatePreviousAcademicYear(academicYear);
     if (previousAcademicYear) {
+      // Synchronize / auto-evaluate any pending backlog attempts from published exams
+      const candidateBacklogs = await Backlog.find({
+        student_id: studentId,
+        college_id: collegeId,
+        academicYear: previousAcademicYear,
+        status: { $ne: "CLEARED" },
+      });
+
+      for (const b of candidateBacklogs) {
+        if (b.status === "ATTEMPTED" && b.latest_attempt_id) {
+          const attempt = await BacklogAttempt.findById(b.latest_attempt_id);
+          if (attempt) {
+            if (attempt.result_status === "PASS") {
+              b.status = "CLEARED";
+              b.latest_result_status = "PASS";
+              b.cleared_at = attempt.cleared_at || new Date();
+              await b.save();
+            } else if (attempt.result_status === "INCOMPLETE") {
+              const exam = await Exam.findById(attempt.exam_id).select("status").lean();
+              if (exam && exam.status === "PUBLISHED") {
+                try {
+                  await evaluateAttempt({
+                    attemptId: attempt._id,
+                    collegeId,
+                    actorId: userId || collegeId,
+                    actorRole: "COLLEGE_ADMIN",
+                  });
+                } catch (evalErr) {
+                  // Keep current status if evaluation fails
+                }
+              }
+            }
+          }
+        }
+      }
+
       const unclearedBacklogs = await Backlog.find({
         student_id: studentId,
         college_id: collegeId,
@@ -427,6 +467,7 @@ const createPromotionDecision = async ({
     studentId: student._id,
     collegeId,
     academicYear: student.currentAcademicYear,
+    userId,
   });
   const lookup = {
     college_id: collegeId,
