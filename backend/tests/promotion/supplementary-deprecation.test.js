@@ -16,6 +16,7 @@ const {
 const app = require("../../app");
 const Backlog = require("../../src/models/backlog.model");
 const SemesterResult = require("../../src/models/semesterResult.model");
+const Exam = require("../../src/models/exam.model");
 
 describe("Legacy Supplementary Workflow Deprecation & Removal", () => {
   beforeAll(async () => {
@@ -208,17 +209,51 @@ describe("Legacy Supplementary Workflow Deprecation & Removal", () => {
       expect(String(res.body.data[0]._id)).toBe(String(backlog._id));
     });
 
-    it("can create and retrieve backlog attempts via active /attempts endpoints", async () => {
+    it("rejects attempt creation without examId (legacy standalone supplementary removed)", async () => {
       const { college, backlog } = await createBacklogCase();
       const { agent } = await createUserSession("COLLEGE_ADMIN", college._id);
 
-      const createRes = await agent
+      const res = await agent
         .post(`/api/promotion/backlogs/${backlog._id}/attempts`)
         .send({})
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe("MISSING_EXAM_ID");
+    });
+
+    it("can create and retrieve backlog attempts via active /attempts endpoints with Unified examId", async () => {
+      const { college, backlog, subject, course } = await createBacklogCase();
+      const { agent } = await createUserSession("COLLEGE_ADMIN", college._id);
+
+      const exam = await Exam.create({
+        college_id: college._id,
+        name: "Unified End Semester Exam",
+        course_id: course._id,
+        semester: 3,
+        academicYear: "2026-27",
+        exam_type: "REGULAR",
+        subjects: [
+          {
+            subject: subject._id,
+            category: "BACKLOG",
+            originalSemester: 3,
+            subjectType: "THEORY",
+          },
+        ],
+        status: "PUBLISHED",
+        createdBy: new mongoose.Types.ObjectId(),
+      });
+
+      const createRes = await agent
+        .post(`/api/promotion/backlogs/${backlog._id}/attempts`)
+        .send({ examId: exam._id })
         .expect(201);
 
       expect(createRes.body.success).toBe(true);
       expect(createRes.body.data.attempt).toBeDefined();
+      expect(String(createRes.body.data.attempt.exam_id)).toBe(String(exam._id));
+      expect(createRes.body.data.attempt.exam_type).toBe("REGULAR");
 
       const getRes = await agent
         .get(`/api/promotion/backlogs/${backlog._id}/attempts`)
@@ -226,6 +261,9 @@ describe("Legacy Supplementary Workflow Deprecation & Removal", () => {
 
       expect(getRes.body.success).toBe(true);
       expect(getRes.body.data.attempts.length).toBe(1);
+      expect(String(getRes.body.data.attempts[0]._id)).toBe(
+        String(createRes.body.data.attempt._id),
+      );
     });
   });
 });
