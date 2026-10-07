@@ -4,10 +4,11 @@ const EXAM_BASE_URL = "/exam";
 
 /**
  * Get all exams for the authenticated user's college
+ * @param {Object} [params] - Query parameters (e.g. { status: 'PUBLISHED' })
  * @returns {Promise}
  */
-export const getExams = async () => {
-  const response = await api.get(EXAM_BASE_URL);
+export const getExams = async (params = {}) => {
+  const response = await api.get(EXAM_BASE_URL, { params });
   return response.data;
 };
 
