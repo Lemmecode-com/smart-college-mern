@@ -83,10 +83,11 @@ describe("Step 3 - promotion decision eligibility engine", () => {
     statuses,
     attendanceData = attendance(),
     feeData = fee(),
+    customPolicy = policy,
   ) =>
     calculatePromotionDecision({
       authoritativeResult: found(result(overallResult, statuses)),
-      policy,
+      policy: customPolicy,
       attendance: attendanceData,
       feeClearance: feeData,
     });
@@ -198,6 +199,112 @@ describe("Step 3 - promotion decision eligibility engine", () => {
 
       expect(decision.promotionOutcome).toBe("BLOCKED");
       expect(decision.decisionReason).toBe("FEE_NOT_CLEARED");
+    });
+
+    describe("attendance 0% threshold and availability handling (RCA-3)", () => {
+      const zeroAttendancePolicy = {
+        snapshot: {
+          minAttendancePercentage: 0,
+          maxAllowedKTs: 3,
+          scopedSemesters: [],
+        },
+      };
+
+      it("Test 1: 0% requirement + no attendance data (totalSessions = 0) passes attendance and yields PASS", async () => {
+        const evaluatedAttendance = evaluateAttendanceData({
+          attendanceData: { totalSessions: 0, percentage: 0 },
+          requiredPercentage: 0,
+        });
+        expect(evaluatedAttendance.status).toBe("ELIGIBLE");
+        expect(evaluatedAttendance.passed).toBe(true);
+
+        const decision = await decide(
+          "PASS",
+          ["PASS"],
+          evaluatedAttendance,
+          fee(true),
+          zeroAttendancePolicy,
+        );
+        expect(decision.attendanceSnapshot.passed).toBe(true);
+        expect(decision.promotionOutcome).toBe("PASS");
+        expect(decision.decisionReason).toBe("ELIGIBLE");
+      });
+
+      it("Test 2: 0% requirement + attendance exists (totalSessions > 0, 0% attendance) passes attendance", () => {
+        const evaluated = evaluateAttendanceData({
+          attendanceData: { totalSessions: 10, percentage: 0 },
+          requiredPercentage: 0,
+        });
+        expect(evaluated.status).toBe("ELIGIBLE");
+        expect(evaluated.passed).toBe(true);
+      });
+
+      it("Test 3: 75% requirement + no attendance data (totalSessions = 0) blocks promotion with ATTENDANCE_NOT_AVAILABLE", async () => {
+        const evaluated = evaluateAttendanceData({
+          attendanceData: { totalSessions: 0, percentage: 0 },
+          requiredPercentage: 75,
+        });
+        expect(evaluated.status).toBe("ATTENDANCE_NOT_AVAILABLE");
+        expect(evaluated.passed).toBe(false);
+
+        const decision = await decide("PASS", ["PASS"], evaluated, fee(true), policy);
+        expect(decision.promotionOutcome).toBe("BLOCKED");
+        expect(decision.decisionReason).toBe("ATTENDANCE_NOT_AVAILABLE");
+      });
+
+      it("Test 4: 75% requirement + insufficient attendance (60%) blocks promotion with ATTENDANCE_INSUFFICIENT", async () => {
+        const evaluated = evaluateAttendanceData({
+          attendanceData: { totalSessions: 10, percentage: 60 },
+          requiredPercentage: 75,
+        });
+        expect(evaluated.status).toBe("NOT_ELIGIBLE");
+        expect(evaluated.passed).toBe(false);
+
+        const decision = await decide("PASS", ["PASS"], evaluated, fee(true), policy);
+        expect(decision.promotionOutcome).toBe("BLOCKED");
+        expect(decision.decisionReason).toBe("ATTENDANCE_INSUFFICIENT");
+      });
+
+      it("Test 5: 75% requirement + sufficient attendance (80%) passes attendance", () => {
+        const evaluated = evaluateAttendanceData({
+          attendanceData: { totalSessions: 10, percentage: 80 },
+          requiredPercentage: 75,
+        });
+        expect(evaluated.status).toBe("ELIGIBLE");
+        expect(evaluated.passed).toBe(true);
+      });
+
+      it("Test 6: Other blocker remains active when attendance is 0% (fee fails)", async () => {
+        const evaluated = evaluateAttendanceData({
+          attendanceData: { totalSessions: 0, percentage: 0 },
+          requiredPercentage: 0,
+        });
+        const decision = await decide(
+          "PASS",
+          ["PASS"],
+          evaluated,
+          fee(false),
+          zeroAttendancePolicy,
+        );
+        expect(decision.attendanceSnapshot.passed).toBe(true);
+        expect(decision.feeClearanceSnapshot.passed).toBe(false);
+        expect(decision.promotionOutcome).toBe("BLOCKED");
+        expect(decision.decisionReason).toBe("FEE_NOT_CLEARED");
+      });
+
+      it("Test 7: Result remains PASS in decision snapshot even when blocked by fee/attendance", async () => {
+        const blockedDecision = await decide(
+          "PASS",
+          ["PASS"],
+          attendance(),
+          fee(false),
+        );
+        expect(blockedDecision.resultStatus).toBe("PUBLISHED");
+        expect(blockedDecision.failedSubjectCount).toBe(0);
+        expect(blockedDecision.ktCount).toBe(0);
+        expect(blockedDecision.promotionOutcome).toBe("BLOCKED");
+        expect(blockedDecision.decisionReason).toBe("FEE_NOT_CLEARED");
+      });
     });
   });
 

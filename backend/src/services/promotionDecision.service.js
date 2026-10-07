@@ -63,11 +63,16 @@ const evaluateAttendanceData = ({
   overrideAttendanceCheck = false,
   overrideAttendanceReason,
 }) => {
+  const isZeroRequirement = Number(requiredPercentage) === 0;
   const totalSessions = Number(attendanceData?.totalSessions || 0);
   const percentage = Number(attendanceData?.percentage || 0);
   const status =
     totalSessions === 0
-      ? ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
+      ? (
+          isZeroRequirement
+            ? ATTENDANCE_STATUS.ELIGIBLE
+            : ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
+        )
       : percentage >= requiredPercentage
         ? ATTENDANCE_STATUS.ELIGIBLE
         : ATTENDANCE_STATUS.NOT_ELIGIBLE;
@@ -102,7 +107,10 @@ const evaluateAttendanceData = ({
     requiredPercentage,
     totalSessions,
     status,
-    passed: status === ATTENDANCE_STATUS.ELIGIBLE || overridden,
+    passed:
+      isZeroRequirement ||
+      status === ATTENDANCE_STATUS.ELIGIBLE ||
+      overridden,
     overridden,
     overrideReason: overridden ? trimmedReason : null,
   };
@@ -217,15 +225,20 @@ const evaluateFeeClearance = async ({
   );
 };
 
-const emptyAttendanceSnapshot = (requiredPercentage) => ({
-  percentage: 0,
-  requiredPercentage,
-  totalSessions: 0,
-  status: ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
-  passed: false,
-  overridden: false,
-  overrideReason: null,
-});
+const emptyAttendanceSnapshot = (requiredPercentage) => {
+  const isZeroRequirement = Number(requiredPercentage) === 0;
+  return {
+    percentage: 0,
+    requiredPercentage,
+    totalSessions: 0,
+    status: isZeroRequirement
+      ? ATTENDANCE_STATUS.ELIGIBLE
+      : ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
+    passed: isZeroRequirement,
+    overridden: false,
+    overrideReason: null,
+  };
+};
 
 const emptyFeeSnapshot = (
   minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE,
