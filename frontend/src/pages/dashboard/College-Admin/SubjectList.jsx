@@ -7,7 +7,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 
 import Loading from "../../../components/Loading";
-
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
 import useRole from "../../../hooks/useRole";
@@ -125,8 +125,6 @@ export default function SubjectList() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [subjectToDelete, setSubjectToDelete] = useState(null);
-
-  const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
 
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -434,36 +432,6 @@ export default function SubjectList() {
     restoreFilters();
   }, [user]);
 
-  /* ================= SORTING ================= */
-
-  const handleSort = (key) => {
-
-    let direction = "asc";
-
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-
-      direction = "desc";
-
-    }
-
-    setSortConfig({ key, direction });
-
-
-
-    const sorted = [...subjects].sort((a, b) => {
-
-      if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
-
-      if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
-
-      return 0;
-
-    });
-
-    setSubjects(sorted);
-
-  };
-
 
 
   /* ================= FILTERING ================= */
@@ -521,49 +489,6 @@ export default function SubjectList() {
     }
 
   };
-
-
-
-  /* ================= LOADING SKELETON ================= */
-
-  const renderSkeleton = () => (
-
-    <div className="skeleton-table">
-
-      {[...Array(5)].map((_, i) => (
-
-        <div key={i} className="skeleton-row">
-
-          <div className="skeleton-cell skeleton-text long"></div>
-
-          <div className="skeleton-cell skeleton-text short"></div>
-
-          <div className="skeleton-cell skeleton-text short"></div>
-
-          <div className="skeleton-cell skeleton-text short"></div>
-
-          <div className="skeleton-cell skeleton-text medium"></div>
-
-          <div className="skeleton-cell skeleton-badge"></div>
-
-          <div className="skeleton-cell skeleton-actions">
-
-            <div className="skeleton-action"></div>
-
-            <div className="skeleton-action"></div>
-
-          </div>
-
-        </div>
-
-      ))}
-
-    </div>
-
-  );
-
-
-
   /* ================= ERROR STATE ================= */
 
   if (error && !loading) {
@@ -622,6 +547,181 @@ if (loading) {
 
 
   const filteredSubjects = getFilteredSubjects();
+
+  const columns = [
+    {
+      key: "name",
+      label: "Subject Name",
+      sortable: true,
+      width: "30%",
+      render: (subject) => (
+        <div className="subject-name">
+          <div className="subject-icon">
+            <FaGraduationCap />
+          </div>
+
+          <div className="subject-details">
+            <div className="subject-title">
+              {subject.name}
+            </div>
+
+            <div className="subject-meta">
+              <div className="subject-main-badges">
+                {subject.course_id?.name && (
+                  <>
+                    <span className="course-badge">
+                      {subject.course_id.name}
+                    </span>
+
+                    <span className="dept-badge">
+                      {selectedDeptName}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {subject.subjectType && (
+                <div className="subject-type-row">
+                  <span className="subject-type-badge">
+                    {subject.subjectType}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+
+    {
+      key: "code",
+      label: "Code",
+      sortable: true,
+      width: "13%",
+      render: (subject) => (
+        <span className="subject-code-badge">
+          {subject.code}
+        </span>
+      ),
+    },
+
+    {
+      key: "semester",
+      label: "Semester",
+      sortable: true,
+      width: "10%",
+      render: (subject) => (
+        <span className="semester-badge">
+          <FaClock className="semester-icon" />
+          Sem {subject.semester}
+        </span>
+      ),
+    },
+
+    {
+      key: "credits",
+      label: "Credits",
+      sortable: true,
+      width: "8%",
+      render: (subject) => (
+        <span className="credits-badge">
+          <FaAward className="credits-icon" />
+          {subject.credits}
+        </span>
+      ),
+    },
+
+    {
+      key: "teacher",
+      label: "Teacher",
+      sortable: false,
+      width: "16%",
+      render: (subject) => (
+        subject.teacher_id?.name ? (
+          <div className="teacher-info">
+            <div className="teacher-avatar">
+              {subject.teacher_id.name.charAt(0).toUpperCase()}
+            </div>
+
+            <div className="teacher-details">
+              <div className="teacher-name">
+                {subject.teacher_id.name}
+              </div>
+
+              <div className="teacher-role">
+                {subject.teacher_id.designation || "Faculty"}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <span className="not-assigned">
+            Not Assigned
+          </span>
+        )
+      ),
+    },
+
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      width: "9%",
+      render: (subject) => (
+        <span
+          className={`status-badge status-${
+            subject.status?.toLowerCase() || "inactive"
+          }`}
+        >
+          {subject.status || "INACTIVE"}
+        </span>
+      ),
+    },
+  ];
+
+  const tableActions = {
+    label: "Actions",
+    width: "14%",
+    items: [
+      {
+        key: "view",
+        label: "View Details",
+        icon: FaEye,
+        className: "view-btn",
+        onClick: (subject) => {
+          sessionStorage.setItem(
+            "subjectListFilters",
+            JSON.stringify({
+              department: selectedDepartment,
+              course: selectedCourse,
+              semester: selectedSemester,
+            })
+          );
+
+          navigate(`/subjects/view/${subject._id}`);
+        },
+      },
+
+      {
+        key: "edit",
+        label: "Edit Subject",
+        icon: FaEdit,
+        className: "edit-btn",
+        show: () => canEdit("subjects"),
+        onClick: (subject) => {
+          navigate(`/subjects/edit/${subject._id}`);
+        },
+      },
+
+      {
+        key: "delete",
+        label: "Delete Subject",
+        icon: FaTrash,
+        className: "delete-btn",
+        show: () => canDelete("subjects"),
+        onClick: handleDeleteClick,
+      },
+    ],
+  };
 
   const selectedDeptName = Array.isArray(departments) ? departments.find(d => d._id === selectedDepartment)?.name || "Select Department" : "Select Department";
 
@@ -971,367 +1071,44 @@ if (loading) {
         </div>
 
       </div>
-
-
-
       {/* SUBJECTS SECTION */}
 
-      {selectedCourse && (
-
-        <div className="erp-card animate-fade-in">
-
-          <div className="erp-card-header">
-
-            <div className="header-left">
-
-              <h3>
-
-                <FaBook className="erp-card-icon" />
-
-                {selectedCourseName} Subjects
-
-              </h3>
-
-              <span className="subject-count">
-
-                {filteredSubjects.length} {filteredSubjects.length === 1 ? "Subject" : "Subjects"}
-
-              </span>
-
-            </div>
-
-            <div className="header-right">
-
-              <div className="search-box">
-
-                <FaSearch className="search-icon" />
-
-                <input
-
-                  type="text"
-
-                  placeholder="Search subjects..."
-
-                  value={searchTerm}
-
-                  onChange={(e) => setSearchTerm(e.target.value)}
-
-                />
-
-              </div>
-
-            </div>
-
-          </div>
-
-
-
-          <div className="erp-card-body">
-
-            {/* TABLE */}
-
-            <div className="erp-table-responsive table-container">
-
-              {loadingSubjects ? (
-
-                renderSkeleton()
-
-              ) : filteredSubjects.length === 0 ? (
-
-                <div className="empty-state">
-
-                  <div className="empty-icon">
-
-                    <FaBook />
-
-                  </div>
-
-                  <h3>No Subjects Found</h3>
-
-                  <p className="empty-description">
-
-                    {searchTerm 
-
-                      ? "No subjects match your search criteria." 
-
-                      : `No subjects found for ${selectedCourseName}.`}
-
-                  </p>
-
-                   {!searchTerm && canCreate('subjects') && (
-
-                     <button
-
-                       className="add-subject-btn large"
-
-                       onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
-
-                     >
-
-                       <FaPlus className="erp-btn-icon" />
-
-                       Add Your First Subject
-
-                     </button>
-
-                   )}
-
-                </div>
-
-              ) : (
-
-                <table className="erp-table">
-
-                  <thead>
-
-                    <tr>
-
-                      <th onClick={() => handleSort('name')}>
-
-                        Subject Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-
-                      </th>
-
-                      <th onClick={() => handleSort('code')}>
-
-                        Code {sortConfig.key === 'code' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-
-                      </th>
-
-                      <th onClick={() => handleSort('semester')}>
-
-                        Semester {sortConfig.key === 'semester' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-
-                      </th>
-
-                      <th onClick={() => handleSort('credits')}>
-
-                        Credits {sortConfig.key === 'credits' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-
-                      </th>
-
-                      <th>Teacher</th>
-
-                      <th onClick={() => handleSort('status')}>
-
-                        Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-
-                      </th>
-
-                      <th className="text-center">Actions</th>
-
-                    </tr>
-
-                  </thead>
-
-                  <tbody>
-
-                    {filteredSubjects.map((subject) => (
-
-                      <tr key={subject._id} className="table-row">
-
-                        <td>
-
-                          <div className="subject-name">
-
-                            <div className="subject-icon">
-
-                              <FaGraduationCap />
-
-                            </div>
-
-                            <div className="subject-details">
-
-                              <div className="subject-title">{subject.name}</div>
-
-<div className="subject-meta">
-  <div className="subject-main-badges">
-    {subject.course_id?.name && (
-      <>
-        <span className="course-badge">
-          {subject.course_id.name}
-        </span>
-
-        <span className="dept-badge">
-          {selectedDeptName}
-        </span>
-      </>
-    )}
-  </div>
-
-  {subject.subjectType && (
-    <div className="subject-type-row">
-      <span className="subject-type-badge">
-        {subject.subjectType}
-      </span>
-    </div>
-  )}
-</div>
-
-                            </div>
-
-                          </div>
-
-                        </td>
-
-                        <td>
-
-                          <span className="subject-code-badge">{subject.code}</span>
-
-                        </td>
-
-                        <td>
-
-                          <span className="semester-badge">
-
-                            <FaClock className="semester-icon" />
-
-                            Sem {subject.semester}
-
-                          </span>
-
-                        </td>
-
-                        <td>
-
-                          <span className="credits-badge">
-
-                            <FaAward className="credits-icon" />
-
-                            {subject.credits}
-
-                          </span>
-
-                        </td>
-
-                        <td>
-
-                          {subject.teacher_id?.name ? (
-
-                            <div className="teacher-info">
-
-                              <div className="teacher-avatar">
-
-                                {subject.teacher_id.name.charAt(0).toUpperCase()}
-
-                              </div>
-
-                              <div className="teacher-details">
-
-                                <div className="teacher-name">{subject.teacher_id.name}</div>
-
-                                <div className="teacher-role">{subject.teacher_id.designation || "Faculty"}</div>
-
-                              </div>
-
-                            </div>
-
-                          ) : (
-
-                            <span className="not-assigned">Not Assigned</span>
-
-                          )}
-
-                        </td>
-
-                        <td>
-
-                          <span className={`status-badge status-${subject.status?.toLowerCase() || 'inactive'}`}>
-
-                            {subject.status || "INACTIVE"}
-
-                          </span>
-
-                        </td>
-
-                        <td className="action-cell">
-
-                          <div className="action-buttons">
-
-                            <button 
-
-                              className="action-btn view-btn"
-
-                              title="View Details"
-
-                              onClick={() => {
-                              sessionStorage.setItem(
-                                "subjectListFilters",
-                                JSON.stringify({
-                                  department: selectedDepartment,
-                                  course: selectedCourse,
-                                  semester: selectedSemester,
-                                })
-                              );
-
-                              navigate(`/subjects/view/${subject._id}`);
-                            }}
-
-                            >
-
-                              <FaEye />
-
-                            </button>
-
-                            {canEdit('subjects') && (
-
-                              <button 
-
-                                className="action-btn edit-btn"
-
-                                title="Edit Subject"
-
-                                onClick={() => navigate(`/subjects/edit/${subject._id}`)}
-
-                              >
-
-                                <FaEdit />
-
-                              </button>
-
-                            )}
-
-                            {canDelete('subjects') && (
-
-                              <button 
-
-                                className="action-btn delete-btn"
-
-                                title="Delete Subject"
-
-                                onClick={() => handleDeleteClick(subject)}
-
-                              >
-
-                                <FaTrash />
-
-                              </button>
-
-                            )}
-
-                          </div>
-
-                        </td>
-
-                      </tr>
-
-                    ))}
-
-                  </tbody>
-
-                </table>
-
-              )}
-
-            </div>
-
-          </div>
-
-        </div>
-
-      )}
-
-
+      {/* SUBJECTS LIST */}
+
+{selectedCourse && (
+  <StandardListView
+    title={`${selectedCourseName} Subjects`}
+    icon={FaBook}
+    count={filteredSubjects.length}
+    search={{
+      value: searchTerm,
+      onChange: setSearchTerm,
+      placeholder: "Search subjects...",
+    }}
+    columns={columns}
+    data={filteredSubjects}
+    loading={loadingSubjects}
+    emptyState={{
+      icon: FaBook,
+      title: "No Subjects Found",
+      description: searchTerm
+        ? "No subjects match your search criteria."
+        : `No subjects found for ${selectedCourseName}.`,
+      action:
+        !searchTerm && canCreate("subjects")
+          ? {
+              label: "Add Your First Subject",
+              icon: FaPlus,
+              onClick: () =>
+                navigate(
+                  `/subjects/add?courseId=${selectedCourse}`
+                ),
+            }
+          : null,
+    }}
+    actions={tableActions}
+  />
+)}
 
       {/* DELETE MODAL */}
 
@@ -1468,14 +1245,14 @@ if (loading) {
         }
 
         .erp-card {
-        background: white;
-        border-radius: 16px;
-        box-shadow: var(--card-shadow);
-        margin-bottom: 1.5rem;
-        overflow: hidden;
-        animation: fadeIn 0.6s ease;
-        border: 1px solid rgba(15, 58, 74, 0.08);
-        transition: box-shadow 0.3s ease;
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  animation: fadeIn 0.6s ease;
+  border: 1px solid rgba(15, 58, 74, 0.08);
+  transition: box-shadow 0.3s ease;
       }
 
       .erp-card:hover {
@@ -1483,12 +1260,12 @@ if (loading) {
       }
 
         .erp-card-header {
-          padding: 1.5rem 1.75rem;
-          background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
-          border-bottom: 2px solid rgba(61, 181, 230, 0.15);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+  padding: 1rem 1.4rem;
+  background: linear-gradient(135deg, #f5f8fa 0%, #edf2f6 100%);
+  border-bottom: 1px solid rgba(61, 181, 230, 0.18);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
         }
 
         .erp-card-header h3 {
@@ -1507,36 +1284,37 @@ if (loading) {
         }
 
         .erp-card-body {
-          padding: 1.75rem;
+          padding: 1.25rem 1.4rem;
         }
         
         /* FILTERS */
-        .filter-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr auto;
-          gap: 1.5rem;
-          align-items: end;
-        }
+.filter-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 1.15rem;
+  align-items: end;
+}
 
-        .filter-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.625rem;
-          position: relative;
-        }
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  position: relative;
+  min-width: 0;
+}
 
-        .filter-label {
-          font-weight: 600;
-          color: #0f3a4a;
-          font-size: 0.95rem;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.625rem;
-          padding: 0.25rem 0;
-          white-space: nowrap;
-          padding-left: 20px !important;
-        }
-
+.filter-label {
+  font-weight: 600;
+  color: #0f3a4a;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  margin-bottom: 0.1rem;
+  white-space: nowrap;
+  padding-left: 20px !important;
+}
         .filter-icon {
           color: #3db5e6;
           font-size: 1rem;
@@ -1554,20 +1332,23 @@ if (loading) {
           width: 100%;
         }
 
-        .filter-select {
-          width: 100%;
-          padding: 0.875rem 1.25rem;
-          padding-right: 2.5rem;
-          border: 2px solid #e0e8f0;
-          border-radius: 10px;
-          font-size: 1rem;
-          font-weight: 500;
-          color: #2c3e50;
-          background: white;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          outline: none;
-          appearance: none;
-        }
+        
+.filter-select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 50px;
+  padding: 0.7rem 1rem;
+  padding-right: 2.5rem;
+  border: 1.5px solid #dce6ed;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #2c3e50;
+  background: white;
+  transition: all 0.25s ease;
+  outline: none;
+  appearance: none;
+}
 
         .filter-select:hover {
           border-color: #3db5e6;
@@ -1585,18 +1366,17 @@ if (loading) {
           border-color: #e9ecef;
         }
 
-        .filter-select-arrow {
-          position: absolute;
-          right: 1rem;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #3db5e6;
-          pointer-events: none;
-          font-size: 0.875rem;
-          transition: transform 0.3s ease, color 0.3s ease;
-          z-index: 1;
-        }
-
+.filter-select-arrow {
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #3db5e6;
+  pointer-events: none;
+  font-size: 0.8rem;
+  transition: transform 0.25s ease, color 0.25s ease;
+  z-index: 1;
+}
         .filter-select-wrapper:hover .filter-select-arrow {
           transform: translateY(-50%) scale(1.1);
           color: #0f3a4a;
@@ -1613,12 +1393,13 @@ if (loading) {
           display: inline-flex;
           align-items: center;
           gap: 0.75rem;
-          padding: 0.875rem 1.75rem;
+          padding: 0.7rem 1.25rem;
+          min-height: 50px;
           background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
           color: white;
           border: none;
-          border-radius: 12px;
-          font-size: 1rem;
+          border-radius: 10px;
+          font-size: 0.9rem;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
