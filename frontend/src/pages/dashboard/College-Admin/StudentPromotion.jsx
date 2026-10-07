@@ -278,43 +278,44 @@ function renderCompactStatus({ label, passed, value, reason, message }) {
 /**
  * Get compact status for Result/KT check
  */
-function getResultStatus(data) {
+export function getResultStatus(data) {
   if (!data) return null;
+  const resultStatus = data.result_status;
   const outcome = data.promotion_outcome;
   const ktCount = data.kt_count ?? 0;
-  const maxKt = data.policy_snapshot?.maxAllowedKTs;
+  const maxKt = data.policy_snapshot?.resolvedMaxAllowedKTs ?? data.policy_snapshot?.maxAllowedKTs;
   const reason = data.decision_reason;
   
-  // NO_RESULT, INCOMPLETE, AMBIGUOUS_RESULT
-  if (outcome === "NO_RESULT") {
+  // 1. Missing, incomplete, or ambiguous results
+  if (resultStatus === "NO_RESULT" || outcome === "NO_RESULT") {
     return { label: "Result", passed: false, reason: "No published semester result available" };
   }
-  if (outcome === "INCOMPLETE" || outcome === "RESULT_INCOMPLETE") {
+  if (resultStatus === "INCOMPLETE" || outcome === "INCOMPLETE" || outcome === "RESULT_INCOMPLETE") {
     return { label: "Result", passed: false, reason: "Semester result contains incomplete marks" };
   }
-  if (outcome === "AMBIGUOUS_RESULT") {
+  if (resultStatus === "AMBIGUOUS_RESULT" || outcome === "AMBIGUOUS_RESULT") {
     return { label: "Result", passed: false, reason: "Multiple published results found" };
   }
   
-  // PASS - all subjects passed
-  if (outcome === "PASS") {
+  // 2. Clear pass (either outcome is PASS or published result with 0 KTs/failed subjects)
+  if (outcome === "PASS" || (resultStatus === "PUBLISHED" && ktCount === 0)) {
     return { label: "Result", passed: true, message: "Result is clear" };
   }
   
-  // ATKT - failed subjects within limit
-  if (outcome === "ATKT") {
-    const value = maxKt !== undefined && maxKt !== null 
-      ? `${ktCount} KT — Allowed: ${maxKt}`
-      : `${ktCount} KT found`;
-    return { label: "KT", passed: true, message: value };
-  }
-  
-  // FAIL / BLOCKED with KT limit exceeded
+  // 3. FAIL / BLOCKED with KT limit exceeded
   if (reason === "KT_LIMIT_EXCEEDED" || outcome === "FAIL") {
     const value = maxKt !== undefined && maxKt !== null
       ? `${ktCount} KT — Allowed: ${maxKt}`
       : `${ktCount} KT found`;
     return { label: "KT", passed: false, value, reason: "KT limit exceeded" };
+  }
+  
+  // 4. ATKT - failed subjects within limit
+  if (outcome === "ATKT" || (resultStatus === "PUBLISHED" && ktCount > 0)) {
+    const value = maxKt !== undefined && maxKt !== null 
+      ? `${ktCount} KT — Allowed: ${maxKt}`
+      : `${ktCount} KT found`;
+    return { label: "KT", passed: true, message: value };
   }
   
   return { label: "Result", passed: false, reason: "Result not evaluable" };
@@ -323,7 +324,7 @@ function getResultStatus(data) {
 /**
  * Get compact status for Attendance check
  */
-function getAttendanceStatus(data) {
+export function getAttendanceStatus(data) {
   if (!data || !data.attendance_snapshot) return null;
   const snap = data.attendance_snapshot;
   const percentage = roundPercent(snap.percentage);
@@ -331,6 +332,15 @@ function getAttendanceStatus(data) {
   const passed = snap.passed === true;
   const status = snap.status || (passed ? "ELIGIBLE" : "NOT_ELIGIBLE");
   
+  if (required === 0) {
+    return { 
+      label: "Attendance", 
+      passed: true, 
+      value: "Not required",
+      message: "No attendance requirement (0% required)" 
+    };
+  }
+
   if (status === "ATTENDANCE_NOT_AVAILABLE") {
     return { 
       label: "Attendance", 
@@ -629,11 +639,11 @@ function getAlumniEligibilityInfo(data) {
 
   // 2. Attendance Check
   if (attendanceSnap) {
-    if (attendanceSnap.status === "ATTENDANCE_NOT_AVAILABLE") {
+    const req = roundPercent(attendanceSnap.requiredPercentage ?? 75);
+    if (req > 0 && attendanceSnap.status === "ATTENDANCE_NOT_AVAILABLE") {
       blockers.push("Attendance data is not available for this semester.");
     } else if (attendanceSnap.passed === false) {
       const pct = roundPercent(attendanceSnap.percentage);
-      const req = roundPercent(attendanceSnap.requiredPercentage ?? 75);
       blockers.push(`Attendance requirement not met (${pct}% / Required: ${req}%).`);
     }
   }
