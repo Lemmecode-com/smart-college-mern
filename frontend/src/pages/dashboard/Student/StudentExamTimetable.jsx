@@ -1,5 +1,5 @@
-import { useContext, useEffect, useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useContext, useEffect, useState, useCallback } from "react";
+import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import { getPublishedExams } from "../../../api/exam";
 import { getPublishedExamSchedule } from "../../../api/examSchedule";
@@ -16,27 +16,6 @@ import {
   FaExclamationTriangle,
   FaBook,
 } from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-
-const BRAND_COLORS = {
-  primary: { main: "#1a4b6d" },
-  success: { main: "#28a745" },
-  danger: { main: "#dc3545" },
-  warning: { main: "#ffc107" },
-  info: { main: "#17a2b8" },
-  secondary: { main: "#6c757d" },
-};
-
-const fadeInVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.04, duration: 0.4, ease: "easeOut" },
-  }),
-};
 
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
@@ -51,7 +30,6 @@ const AUTH_ERROR_CODES = new Set([
 
 export default function StudentExamTimetable() {
   const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
 
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,15 +43,12 @@ export default function StudentExamTimetable() {
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [scheduleError, setScheduleError] = useState(null);
 
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
-
   const breadcrumbItems = [
     { label: "Home", path: "/student/dashboard" },
     { label: "Exam Timetable", icon: FaCalendarAlt },
   ];
 
-  const fetchExams = async (isRetry = false) => {
+  const fetchExams = useCallback(async (isRetry = false) => {
     try {
       setLoading(true);
       setError(null);
@@ -88,13 +63,17 @@ export default function StudentExamTimetable() {
       const status = err?.response?.status;
       setErrorCode(code);
       setStatusCode(status);
-      setError(err?.response?.data?.error?.message || err?.message || "Failed to fetch exam timetable");
+      setError(
+        err?.response?.data?.error?.message ||
+          err?.message ||
+          "Failed to fetch exam timetable",
+      );
       logger.error("StudentExamTimetable fetch error", { error: err });
     } finally {
       setLoading(false);
       setIsRetrying(false);
     }
-  };
+  }, []);
 
   const handleViewTimetable = async (exam) => {
     try {
@@ -108,12 +87,18 @@ export default function StudentExamTimetable() {
       const code = err?.response?.data?.error?.code || err?.code;
       const status = err?.response?.status;
       setScheduleError({
-        message: err?.response?.data?.error?.message || err?.message || "Failed to fetch exam schedule",
+        message:
+          err?.response?.data?.error?.message ||
+          err?.message ||
+          "Failed to fetch exam schedule",
         code,
         status,
       });
       setSchedule(null);
-      logger.error("StudentExamTimetable schedule fetch error", { error: err, examId: exam._id });
+      logger.error("StudentExamTimetable schedule fetch error", {
+        error: err,
+        examId: exam._id,
+      });
     } finally {
       setScheduleLoading(false);
     }
@@ -125,33 +110,36 @@ export default function StudentExamTimetable() {
     setScheduleError(null);
   };
 
-  useEffect(() => {
-    fetchExams();
-  }, []);
-
   const handleRetry = () => {
     setRetryCount((prev) => prev + 1);
     fetchExams(true);
   };
 
-// Loading State
-if (loading) {
-  return (
-    <div className="parent-portal-wrapper">
-      <div
-        className="parent-portal-container parent-loading-container"
-        style={{ minHeight: "70vh" }}
-      >
-        <Loading
-          size="md"
-          color="primary"
-          text="Loading Exam Timetable..."
-        />
-      </div>
-    </div>
-  );
-}
+  useEffect(() => {
+    if (user && user.role === "STUDENT") {
+      fetchExams();
+    }
+  }, [user, fetchExams]);
 
+  // Auth Protection (rendered after all hooks have been declared)
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
+
+  // Loading State
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading size="md" color="primary" text="Loading Exam Timetable..." />
+        </div>
+      </div>
+    );
+  }
+
+  // Error State (List View)
   if (error && !selectedExam) {
     const isAuthError = AUTH_ERROR_CODES.has(errorCode);
     if (isAuthError) {
@@ -194,19 +182,25 @@ if (loading) {
         <Breadcrumb items={breadcrumbItems} />
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="student-exam-timetable-content"
-      >
+      <div className="student-exam-timetable-content">
         {!selectedExam ? (
           <>
-    <PageHeader
-  icon={FaCalendarAlt}
-  title="Published Exam Timetable"
-  subtitle="View your published exam schedules below."
-/>
+            <PageHeader
+              icon={FaCalendarAlt}
+              title="Published Exam Timetable"
+              subtitle="View your upcoming and past examination schedules below."
+              actions={
+                <button
+                  type="button"
+                  className="student-exam-timetable-refresh-btn"
+                  onClick={() => fetchExams(true)}
+                  disabled={isRetrying}
+                >
+                  <FaSyncAlt className={isRetrying ? "fa-spin" : ""} aria-hidden="true" />
+                  <span>{isRetrying ? "Refreshing..." : "Refresh"}</span>
+                </button>
+              }
+            />
 
             <PublishedExamTimetable exams={exams} onExamClick={handleViewTimetable} />
           </>
@@ -217,20 +211,19 @@ if (loading) {
               className="student-exam-timetable-back"
               onClick={handleBackToList}
             >
-              <FaArrowLeft /> Back to Exams
+              <FaArrowLeft aria-hidden="true" /> Back to Exams
             </button>
 
             {scheduleLoading && (
-              <Loading
-              size="md"
-              color="primary"
-              text="Loading Exam Schedule..."
-            />
-          )}
+              <Loading size="md" color="primary" text="Loading Exam Schedule..." />
+            )}
 
             {scheduleError && !scheduleLoading && (
               <div className="student-exam-timetable-schedule-error">
-                <FaExclamationTriangle className="student-exam-timetable-error-icon" />
+                <FaExclamationTriangle
+                  className="student-exam-timetable-error-icon"
+                  aria-hidden="true"
+                />
                 <p>{scheduleError.message}</p>
                 <button
                   type="button"
@@ -248,13 +241,13 @@ if (loading) {
 
             {!scheduleLoading && !scheduleError && !schedule && (
               <div className="student-exam-timetable-no-schedule">
-                <FaBook />
+                <FaBook aria-hidden="true" />
                 <p>No published schedule found for this exam.</p>
               </div>
             )}
           </div>
         )}
-      </motion.div>
+      </div>
 
       <style>{`
         .student-exam-timetable-page {
@@ -268,34 +261,37 @@ if (loading) {
         }
 
         .student-exam-timetable-content {
-          animation: fadeIn 0.4s ease-out;
+          animation: fadeIn 0.3s ease-out;
         }
 
         @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
+          from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
         }
 
-        .student-exam-timetable-title-row {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 1rem;
-          margin-bottom: 1.25rem;
-          flex-wrap: wrap;
+        .student-exam-timetable-refresh-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          background: rgba(255, 255, 255, 0.14);
+          color: #fff;
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
-        .student-exam-timetable-title {
-          font-size: 1.35rem;
-          font-weight: 700;
-          color: #0f172a;
-          margin: 0;
+        .student-exam-timetable-refresh-btn:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-1px);
         }
 
-        .student-exam-timetable-subtitle {
-          color: #64748b;
-          font-size: 0.95rem;
-          margin: 0.25rem 0 0;
+        .student-exam-timetable-refresh-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
 
         .student-exam-timetable-error {
@@ -303,28 +299,30 @@ if (loading) {
         }
 
         .student-exam-timetable-detail {
-          animation: fadeIn 0.35s ease-out;
+          animation: fadeIn 0.3s ease-out;
         }
 
         .student-exam-timetable-back {
           display: inline-flex;
           align-items: center;
-          gap: 0.4rem;
-          padding: 0.45rem 0.9rem;
+          gap: 0.45rem;
+          padding: 0.5rem 1.05rem;
           border-radius: 10px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid #cbd5e1;
           background: #fff;
-          color: #475569;
-          font-size: 0.85rem;
+          color: #1e293b;
+          font-size: 0.88rem;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
-          margin-bottom: 0.75rem;
+          margin-bottom: 1.1rem;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
         }
 
         .student-exam-timetable-back:hover {
-          background: #f8f9fa;
-          border-color: #cbd5e1;
+          background: #f8fafc;
+          border-color: #94a3b8;
+          transform: translateX(-2px);
         }
 
         .student-exam-timetable-schedule-error {
@@ -363,11 +361,11 @@ if (loading) {
 
         .student-exam-timetable-no-schedule {
           text-align: center;
-          padding: 2rem;
+          padding: 2.5rem 1.5rem;
           color: #64748b;
           background: #fff;
           border-radius: 16px;
-          border: 1px solid #eef2f6;
+          border: 1px solid #e2e8f0;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -382,14 +380,6 @@ if (loading) {
         @media (max-width: 768px) {
           .student-exam-timetable-page {
             padding: 1rem;
-          }
-
-          .student-exam-timetable-title {
-            font-size: 1.15rem;
-          }
-
-          .student-exam-timetable-title-row {
-            flex-direction: column;
           }
         }
       `}</style>
