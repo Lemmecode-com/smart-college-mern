@@ -23,6 +23,7 @@ import {
   FaBook,
   FaTrash,
   FaUniversity,
+  FaInfoCircle,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
