@@ -24,8 +24,10 @@ const TableActions = ({ item, actions = [] }) => {
             onClick={() => action.onClick?.(item)}
             title={action.label}
             aria-label={action.label}
+            style={action.style}
           >
             {Icon && <Icon />}
+            <span>{action.text}</span>
           </button>
         );
       })}
