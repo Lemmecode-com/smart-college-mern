@@ -1,5 +1,5 @@
 /* =========================================================
-   Published Exam Timetable — read-only viewer
+   Published Exam Timetable — Read-Only Viewer
    Scoped under .published-exam-timetable
    Reuses the same navy/cyan token set as ExamSchedulePage.
    ========================================================= */
@@ -11,48 +11,56 @@
   --edx-cyan-600: #0e93ab;
   --edx-cyan-500: #17aecb;
   --edx-cyan-50: #e7f7fa;
-  --edx-amber-600: #b6790d;
-  --edx-amber-500: #e8a531;
-  --edx-green-600: #1f8a5f;
-  --edx-green-500: #2aa876;
-  --edx-green-50: #e5f6ee;
+  --edx-amber-700: #92400e;
+  --edx-amber-600: #b45309;
+  --edx-amber-500: #d97706;
+  --edx-amber-100: #fef3c7;
+  --edx-amber-50: #fffbeb;
+  --edx-green-700: #15803d;
+  --edx-green-600: #16a34a;
+  --edx-green-500: #22c55e;
+  --edx-green-50: #f0fdf4;
+  --edx-blue-700: #1d4ed8;
+  --edx-blue-600: #2563eb;
+  --edx-blue-50: #eff6ff;
   --edx-red-500: #e5484d;
-  --edx-slate-900: #1d2733;
-  --edx-slate-600: #55677c;
-  --edx-slate-400: #8695a7;
-  --edx-slate-200: #dfe6ec;
-  --edx-slate-100: #eef2f6;
+  --edx-slate-900: #0f172a;
+  --edx-slate-700: #334155;
+  --edx-slate-600: #475569;
+  --edx-slate-400: #94a3b8;
+  --edx-slate-200: #e2e8f0;
+  --edx-slate-100: #f1f5f9;
 
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-/* ---------- Empty state ---------- */
+/* ---------- Empty State ---------- */
 .published-exam-timetable-empty {
   text-align: center;
-  padding: 3rem 1.5rem;
+  padding: 3.5rem 1.5rem;
   background: #fff;
   border-radius: 16px;
-  border: 1px solid var(--edx-slate-100);
-  box-shadow: 0 4px 18px rgba(12, 43, 71, 0.08);
+  border: 1px solid var(--edx-slate-200);
+  box-shadow: 0 4px 18px rgba(12, 43, 71, 0.06);
 }
 
 .published-exam-timetable-empty-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 1rem;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 1.25rem;
   border-radius: 50%;
   background: var(--edx-slate-100);
   color: var(--edx-slate-400);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.5rem;
+  font-size: 1.75rem;
 }
 
 .published-exam-timetable-empty-title {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--edx-slate-900);
   margin: 0 0 0.5rem;
@@ -61,17 +69,17 @@
 .published-exam-timetable-empty-text {
   color: var(--edx-slate-600);
   font-size: 0.95rem;
-  max-width: 420px;
+  max-width: 440px;
   margin: 0 auto;
   line-height: 1.6;
 }
 
-/* ---------- Card shell ---------- */
+/* ---------- Card Shell ---------- */
 .published-exam-card {
   background: #fff;
   border-radius: 16px;
-  border: 1px solid var(--edx-slate-100);
-  box-shadow: 0 4px 18px rgba(12, 43, 71, 0.08);
+  border: 1px solid var(--edx-slate-200);
+  box-shadow: 0 4px 18px rgba(12, 43, 71, 0.07);
   overflow: hidden;
 }
 
@@ -93,33 +101,53 @@
 }
 
 .published-exam-card-header-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.12);
   color: var(--edx-cyan-500);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   flex-shrink: 0;
 }
 
 .published-exam-card-title {
   color: #fff;
-  font-size: 1.15rem;
+  font-size: 1.18rem;
   font-weight: 700;
   margin: 0;
   overflow-wrap: anywhere;
+  letter-spacing: -0.01em;
 }
 
 .published-exam-card-subtitle {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.86rem;
   margin: 0.2rem 0 0;
 }
 
-/* ---------- Card meta (status badge + button) ---------- */
+.published-exam-card-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.published-exam-card-dates .date-range-icon {
+  color: var(--edx-cyan-500);
+  font-size: 0.78rem;
+}
+
+/* ---------- Card Meta (Status badge + button) ---------- */
 .published-exam-card-meta {
   display: inline-flex;
   align-items: center;
@@ -131,7 +159,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.3rem 0.7rem;
+  padding: 0.32rem 0.75rem;
   border-radius: 999px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -147,11 +175,11 @@
 
 .published-exam-status-badge.is-published {
   background: #fff;
-  color: var(--edx-green-600);
+  color: var(--edx-green-700);
 }
 
 .published-exam-status-badge.is-published .published-exam-status-dot {
-  background: var(--edx-green-500);
+  background: var(--edx-green-600);
 }
 
 .published-exam-status-badge.is-draft {
@@ -197,28 +225,251 @@
 
 .published-exam-empty {
   text-align: center;
-  padding: 1.5rem;
+  padding: 2rem;
   color: var(--edx-slate-600);
 }
 
-/* ---------- Desktop table ---------- */
+/* =========================================================
+   Quick Summary Grid
+   ========================================================= */
+.published-exam-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.published-exam-summary-card {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: var(--edx-slate-100);
+  border: 1px solid var(--edx-slate-200);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: transform 0.15s ease;
+}
+
+.published-exam-summary-card.is-next {
+  background: #f0fdfa;
+  border-color: #99f6e4;
+}
+
+.published-exam-summary-card.is-next .summary-card-value {
+  color: #0f766e;
+}
+
+.published-exam-summary-card.is-backlog-metric {
+  background: var(--edx-amber-50);
+  border-color: #fde68a;
+}
+
+.published-exam-summary-card.is-backlog-metric .summary-card-value {
+  color: var(--edx-amber-700);
+}
+
+.summary-card-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--edx-slate-600);
+}
+
+.summary-card-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--edx-slate-900);
+  line-height: 1.2;
+}
+
+/* =========================================================
+   Upcoming / Completed Filter Tabs
+   ========================================================= */
+.published-exam-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.published-exam-filter-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--edx-slate-100);
+  padding: 0.3rem;
+  border-radius: 10px;
+  border: 1px solid var(--edx-slate-200);
+}
+
+.published-exam-filter-btn {
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--edx-slate-600);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.18s ease;
+}
+
+.published-exam-filter-btn:hover {
+  color: var(--edx-slate-900);
+}
+
+.published-exam-filter-btn.is-active {
+  background: #fff;
+  color: var(--edx-navy-900);
+  box-shadow: 0 2px 6px rgba(12, 43, 71, 0.08);
+}
+
+.published-exam-filter-btn .filter-badge {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* ---------- Filter Empty State ---------- */
+.published-exam-filter-empty {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: var(--edx-slate-100);
+  border-radius: 12px;
+  border: 1px dashed var(--edx-slate-200);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.filter-empty-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.filter-empty-icon.is-completed {
+  color: var(--edx-green-600);
+}
+
+.filter-empty-icon.is-upcoming {
+  color: var(--edx-cyan-600);
+}
+
+.filter-empty-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--edx-slate-900);
+  margin: 0;
+}
+
+.filter-empty-text {
+  font-size: 0.85rem;
+  color: var(--edx-slate-600);
+  margin: 0;
+}
+
+/* =========================================================
+   Badges (Regular, Backlog, Relative Status)
+   ========================================================= */
+
+.published-exam-regular-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: var(--edx-blue-50);
+  color: var(--edx-blue-700);
+  border: 1px solid #bfdbfe;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.published-exam-backlog-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: var(--edx-amber-100);
+  color: var(--edx-amber-700);
+  border: 1px solid #fde68a;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Relative status badges */
+.published-exam-relative-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.22rem 0.58rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.published-exam-relative-badge.is-today {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
+}
+
+.published-exam-relative-badge.is-tomorrow {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #ffedd5;
+}
+
+.published-exam-relative-badge.is-future {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid var(--edx-slate-200);
+}
+
+.published-exam-relative-badge.is-completed {
+  background: var(--edx-green-50);
+  color: var(--edx-green-700);
+  border: 1px solid #bbf7d0;
+}
+
+.published-exam-relative-badge.is-unscheduled {
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-600);
+  border: 1px solid var(--edx-slate-200);
+}
+
+/* =========================================================
+   Desktop Table View
+   ========================================================= */
 .published-exam-table-wrap {
   width: 100%;
   overflow-x: auto;
-  border-radius: 10px;
-  border: 1px solid var(--edx-slate-100);
+  border-radius: 12px;
+  border: 1px solid var(--edx-slate-200);
 }
 
 .published-exam-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   table-layout: fixed;
-  min-width: 760px;
+  min-width: 820px;
 }
 
 .published-exam-table thead th {
-  padding: 0.75rem 1rem;
+  padding: 0.8rem 1rem;
   text-align: left;
   font-weight: 700;
   color: var(--edx-slate-900);
@@ -231,13 +482,11 @@
 }
 
 .published-exam-table tbody td {
-  padding: 0.7rem 1rem;
-  border-bottom: 1px solid var(--edx-slate-100);
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--edx-slate-200);
   vertical-align: middle;
   font-size: 0.86rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  background: #fff;
 }
 
 .published-exam-table tbody tr:last-child td {
@@ -248,35 +497,148 @@
   background: var(--edx-cyan-50);
 }
 
+/* Subject cell */
+.published-exam-subject-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.published-exam-subject-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .published-exam-subject-name {
   font-weight: 600;
   color: var(--edx-slate-900);
+  font-size: 0.92rem;
+  line-height: 1.3;
+}
+
+.published-exam-badges-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .published-exam-subject-code {
   color: var(--edx-slate-600);
-  font-family: "SF Mono", Monaco, monospace;
+  font-family: "SF Mono", Monaco, Consolas, monospace;
   font-size: 0.82rem;
+  font-weight: 500;
 }
 
-/* ---------- Mobile cards (hidden on desktop) ---------- */
+/* Date cell */
+.published-exam-date-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.published-exam-date-weekday {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--edx-cyan-600);
+}
+
+.published-exam-date-value {
+  font-weight: 600;
+  color: var(--edx-slate-900);
+  font-size: 0.88rem;
+}
+
+/* Time & duration cell */
+.published-exam-time-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.published-exam-time-range {
+  font-weight: 600;
+  color: var(--edx-slate-900);
+  font-size: 0.86rem;
+}
+
+.published-exam-duration-chip {
+  display: inline-block;
+  font-size: 0.72rem;
+  color: var(--edx-slate-600);
+  background: var(--edx-slate-100);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+/* Session cell */
+.published-exam-session-chip {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-700);
+  border: 1px solid var(--edx-slate-200);
+}
+
+/* Room / Venue display */
+.published-exam-room,
+.published-exam-venue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+}
+
+.published-exam-room.is-assigned,
+.published-exam-venue.is-assigned {
+  color: var(--edx-slate-900);
+  font-weight: 600;
+}
+
+.published-exam-room.is-assigned .room-pin-icon,
+.published-exam-venue.is-assigned .venue-pin-icon {
+  color: #e11d48;
+}
+
+.published-exam-room.is-unassigned,
+.published-exam-venue.is-unassigned {
+  color: var(--edx-slate-400);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.published-exam-room.is-unassigned .room-pin-icon,
+.published-exam-venue.is-unassigned .venue-pin-icon {
+  color: var(--edx-slate-400);
+}
+
+/* =========================================================
+   Mobile Cards View (Hidden on desktop)
+   ========================================================= */
 .published-exam-mobile-list {
   display: none;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .published-exam-mobile-card {
   background: #fff;
-  border: 1px solid var(--edx-slate-100);
+  border: 1px solid var(--edx-slate-200);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(12, 43, 71, 0.04);
+  box-shadow: 0 2px 6px rgba(12, 43, 71, 0.04);
 }
 
 .published-exam-mobile-card-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.85rem 1rem;
@@ -284,11 +646,18 @@
   border-bottom: 1px solid var(--edx-slate-200);
 }
 
+.published-exam-mobile-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
 .published-exam-mobile-card-body {
   padding: 0.85rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .published-exam-mobile-row {
@@ -296,26 +665,37 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  font-size: 0.84rem;
 }
 
 .published-exam-mobile-label {
   color: var(--edx-slate-600);
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-.published-exam-mobile-row span:last-child {
+.published-exam-mobile-date-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 600;
   color: var(--edx-slate-900);
-  font-weight: 500;
-  font-size: 0.88rem;
-  text-align: right;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-/* ---------- List-view subject summary ---------- */
+.published-exam-weekday-chip {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: var(--edx-cyan-50);
+  color: var(--edx-cyan-600);
+  font-weight: 700;
+}
+
+/* =========================================================
+   List-View Subject Summary (When no timings loaded)
+   ========================================================= */
 .published-exam-subject-summary {
   display: flex;
   flex-direction: column;
@@ -334,33 +714,55 @@
 .published-exam-subject-tag-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.45rem;
   align-items: center;
 }
 
 .published-exam-subject-tag {
   display: inline-flex;
   align-items: center;
-  padding: 0.3rem 0.7rem;
+  gap: 0.2rem;
+  padding: 0.35rem 0.75rem;
   background: var(--edx-slate-100);
   color: var(--edx-slate-900);
+  border: 1px solid var(--edx-slate-200);
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 500;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+}
+
+.published-exam-subject-tag.is-backlog {
+  background: var(--edx-amber-50);
+  color: var(--edx-amber-700);
+  border-color: #fde68a;
+}
+
+.tag-subject-name {
+  font-weight: 600;
+}
+
+.tag-subject-code {
+  color: var(--edx-slate-600);
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+.tag-subject-category {
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .published-exam-subject-hint {
   color: var(--edx-slate-600);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   margin: 0.25rem 0 0;
 }
 
-/* ---------- Responsive ---------- */
-@media (max-width: 768px) {
+/* =========================================================
+   Responsive Breakpoints
+   ========================================================= */
+@media (max-width: 820px) {
   .published-exam-table-wrap {
     display: none;
   }
@@ -378,11 +780,7 @@
   }
 
   .published-exam-card-title {
-    font-size: 1rem;
-  }
-
-  .published-exam-card-subtitle {
-    font-size: 0.8rem;
+    font-size: 1.05rem;
   }
 
   .published-exam-card-meta {
@@ -402,6 +800,21 @@
     width: 100%;
     justify-content: flex-start;
   }
+
+  .published-exam-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .published-exam-filter-tabs {
+    width: 100%;
+    display: flex;
+  }
+
+  .published-exam-filter-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 0.4rem 0.5rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -413,32 +826,56 @@
   }
 }
 
-/* ---------- Backlog badge styling ---------- */
-.published-exam-subject-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  max-width: 100%;
-}
+/* =========================================================
+   Print Stylesheet Support
+   ========================================================= */
+@media print {
+  .published-exam-card {
+    box-shadow: none !important;
+    border: 1px solid #94a3b8 !important;
+    page-break-inside: avoid;
+    margin-bottom: 2rem;
+  }
 
-.published-exam-backlog-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: rgba(232, 165, 49, 0.15);
-  color: var(--edx-amber-600);
-  border: 1px solid rgba(232, 165, 49, 0.35);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
+  .published-exam-card-header {
+    background: #f1f5f9 !important;
+    color: #000 !important;
+    border-bottom: 2px solid #000 !important;
+  }
 
-.published-exam-subject-tag.is-backlog {
-  background: rgba(232, 165, 49, 0.12);
-  color: var(--edx-amber-600);
-  border: 1px solid rgba(232, 165, 49, 0.3);
-}
+  .published-exam-card-title,
+  .published-exam-card-subtitle,
+  .published-exam-card-dates {
+    color: #000 !important;
+  }
 
+  .published-exam-view-btn,
+  .published-exam-filter-row {
+    display: none !important;
+  }
+
+  .published-exam-table-wrap {
+    display: block !important;
+    border: 1px solid #94a3b8 !important;
+  }
+
+  .published-exam-table {
+    display: table !important;
+    width: 100% !important;
+  }
+
+  .published-exam-mobile-list {
+    display: none !important;
+  }
+
+  .published-exam-table thead th {
+    background: #e2e8f0 !important;
+    color: #000 !important;
+    border-bottom: 2px solid #000 !important;
+  }
+
+  .published-exam-table tbody td {
+    color: #000 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+}
