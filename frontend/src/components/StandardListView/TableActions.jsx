@@ -14,6 +14,16 @@ const TableActions = ({ item, actions = [] }) => {
       {visibleActions.map((action) => {
         const Icon = action.icon;
 
+        const isDisabled =
+          typeof action.disabled === "function"
+            ? action.disabled(item)
+            : action.disabled === true;
+
+        const title =
+          typeof action.title === "function"
+            ? action.title(item)
+            : action.title || action.label;
+
         return (
           <button
             key={action.key}
@@ -21,8 +31,13 @@ const TableActions = ({ item, actions = [] }) => {
             className={`standard-action-btn ${
               action.className || ""
             }`}
-            onClick={() => action.onClick?.(item)}
-            title={action.label}
+            onClick={() => {
+              if (!isDisabled) {
+                action.onClick?.(item);
+              }
+            }}
+            disabled={isDisabled}
+            title={title}
             aria-label={action.label}
             style={action.style}
           >

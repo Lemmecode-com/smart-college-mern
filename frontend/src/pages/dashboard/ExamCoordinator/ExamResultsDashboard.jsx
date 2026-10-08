@@ -5,6 +5,7 @@ import { getResultsByExam, getExamResultSummaries, lockResultsForExam, unlockRes
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
@@ -129,13 +130,7 @@ color: var(--edx-navy-800); border-left: 3px solid var(--edx-navy-800); }
 .erd .select-box select { width: 100%; appearance: none; border: 1px solid var(--edx-slate-200); border-radius: 10px; padding: 0.6rem 2.1rem 0.6rem 0.85rem; font-size: 0.92rem; color: var(--edx-slate-900); background: var(--edx-bg); cursor: pointer; transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
 .erd .select-box select:focus { outline: none; border-color: var(--edx-cyan-500); box-shadow: 0 0 0 3px var(--edx-cyan-50); background: #fff; }
 .erd .select-box::after { content: ""; position: absolute; right: 0.9rem; top: 50%; width: 7px; height: 7px; border-right: 2px solid var(--edx-slate-400); border-bottom: 2px solid var(--edx-slate-400); transform: translateY(-65%) rotate(45deg); pointer-events: none; }
-.erd .table-card { background: #fff; border-radius: 14px; border: 1px solid var(--edx-slate-100); box-shadow: 0 1px 3px rgba(12,43,71,0.06); overflow: hidden; }
-.erd table { margin-bottom: 0; }
-.erd thead th { background: var(--edx-slate-100); color: var(--edx-navy-900); font-weight: 600; font-size: 0.82rem; border-bottom: 2px solid var(--edx-cyan-500) !important; padding: 0.85rem 1rem; white-space: nowrap; }
-.erd tbody td { padding: 0.8rem 1rem; vertical-align: middle; border-bottom: 1px solid var(--edx-slate-100); font-size: 0.9rem; }
-.erd tbody tr { transition: background 0.12s ease; }
-.erd tbody tr:hover { background: var(--edx-cyan-50); }
-.erd tbody tr:last-child td { border-bottom: none; }
+
 .erd .row-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--edx-cyan-50); color: var(--edx-navy-800); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
 .erd .row-title { font-weight: 600; color: var(--edx-slate-900); }
 .erd .course-name { font-weight: 600; color: var(--edx-slate-900); font-size: 0.9rem; }
@@ -372,6 +367,383 @@ export default function ExamResultsDashboard() {
     return <span className="pill pill-cyan"><span className="pill-dot" />Not Generated</span>;
   };
 
+  const columns = [
+  {
+    key: "exam",
+    label: "Exam",
+    width: "220px",
+    render: (exam) => (
+      <div className="d-flex align-items-center gap-2">
+        <div className="row-icon">
+          <FaClipboardList />
+        </div>
+
+        <span className="row-title">
+          {exam.name}
+        </span>
+      </div>
+    ),
+  },
+
+  {
+    key: "course",
+    label: "Course",
+    width: "100px",
+    render: (exam) => (
+      <div>
+        <div className="course-name">
+          {exam.course_id?.name || "N/A"}
+        </div>
+
+        <div className="course-code">
+          {exam.course_id?.code || ""}
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "semester",
+    label: "Sem",
+    width: "100px",
+    render: (exam) => (
+      <span className="pill pill-cyan">
+        <FaLayerGroup size={10} />
+        Sem {exam.semester}
+      </span>
+    ),
+  },
+
+  {
+    key: "academicYear",
+    label: "Year",
+    width: "100px",
+    render: (exam) => (
+      <span
+        style={{
+          color: "var(--edx-slate-600)",
+        }}
+      >
+        {exam.academicYear}
+      </span>
+    ),
+  },
+
+  {
+    key: "resultStatus",
+    label: "Result Status",
+    width: "150px",
+    render: (exam) => {
+      const info = resultMap[exam._id];
+
+      const dominant = getDominantStatus(exam._id);
+
+      const totalStudents = info
+        ? info.summary.totalStudents
+        : 0;
+
+      const published = info
+        ? info.summary.byStatus.PUBLISHED
+        : 0;
+
+      const locked = info
+        ? info.summary.byStatus.LOCKED
+        : 0;
+
+      const draft = info
+        ? info.summary.byStatus.DRAFT
+        : 0;
+
+      return (
+        <div>
+          {statusPill(dominant)}
+
+          {info && totalStudents > 0 && (
+            <div className="result-meta mt-1">
+              <span>
+                <FaCog size={9} />
+                {totalStudents} results
+              </span>
+
+              {published > 0 && (
+                <span>
+                  <FaGlobe size={9} />
+                  {published}
+                </span>
+              )}
+
+              {locked > 0 && (
+                <span>
+                  <FaLock size={9} />
+                  {locked}
+                </span>
+              )}
+
+              {draft > 0 && (
+                <span>
+                  <FaPencilAlt size={9} />
+                  {draft}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      );
+    },
+  },
+
+  {
+    key: "students",
+    label: "Students",
+    width: "100px",
+    render: (exam) => {
+      const info = resultMap[exam._id];
+
+      const totalStudents = info
+        ? info.summary.totalStudents
+        : 0;
+
+      return totalStudents > 0 ? (
+        totalStudents
+      ) : (
+        <span
+          style={{
+            color: "var(--edx-slate-400)",
+          }}
+        >
+          —
+        </span>
+      );
+    },
+  },
+
+  {
+    key: "passedFailed",
+    label: "Passed / Failed",
+    width: "130px",
+    render: (exam) => {
+      const info = resultMap[exam._id];
+
+      const totalStudents = info
+        ? info.summary.totalStudents
+        : 0;
+
+      const passed = info
+        ? info.summary.passed
+        : 0;
+
+      const failed = info
+        ? info.summary.failed
+        : 0;
+
+      if (totalStudents === 0) {
+        return (
+          <span
+            style={{
+              color: "var(--edx-slate-400)",
+            }}
+          >
+            —
+          </span>
+        );
+      }
+
+      return (
+        <span style={{ fontSize: "0.85rem" }}>
+          <span
+            style={{
+              color: "var(--edx-green-600)",
+              fontWeight: 600,
+            }}
+          >
+            {passed}
+          </span>
+
+          {" / "}
+
+          <span
+            style={{
+              color: "var(--edx-red-500)",
+              fontWeight: 600,
+            }}
+          >
+            {failed}
+          </span>
+        </span>
+      );
+    },
+  },
+];
+
+const tableActions = {
+  label: "Actions",
+  width: "250px",
+
+  items: [
+    {
+      key: "generate",
+      label: "Generate Result",
+      icon: FaCog,
+      className: "view-btn",
+      text: "Generate Result",
+      style: {
+        minWidth: "140px",
+        gap: "8px",
+      },
+      disabled: (exam) =>
+        actionBusy === exam._id,
+
+      title: (exam) =>
+        actionBusy === exam._id
+          ? "Generating..."
+          : "Generate Result",
+
+      onClick: (exam) =>
+        handleGenerate(exam._id),
+    },
+
+    {
+      key: "review",
+      label: "Review Results",
+      icon: FaEye,
+      className: "view-btn",
+      text: "View",
+      style: {
+        minWidth: "80px",
+        gap: "8px",
+      },
+
+      disabled: (exam) => {
+        const info = resultMap[exam._id];
+
+        const totalStudents = info
+          ? info.summary.totalStudents
+          : 0;
+
+        return totalStudents === 0;
+      },
+
+      title: (exam) => {
+        const info = resultMap[exam._id];
+
+        const totalStudents = info
+          ? info.summary.totalStudents
+          : 0;
+
+        return totalStudents === 0
+          ? "No results available to review"
+          : "Review Results";
+      },
+
+      onClick: (exam) =>
+        handleReview(exam._id),
+    },
+
+    {
+      key: "lock",
+      label: "Lock All",
+      icon: FaLock,
+      className: "edit-btn",
+
+      show: (exam) => {
+        const info = resultMap[exam._id];
+
+        const locked = info
+          ? info.summary.byStatus.LOCKED
+          : 0;
+
+        const draft = info
+          ? info.summary.byStatus.DRAFT
+          : 0;
+
+        const published = info
+          ? info.summary.byStatus.PUBLISHED
+          : 0;
+
+        return (
+          draft > 0 &&
+          locked === 0 &&
+          published === 0
+        );
+      },
+
+      disabled: (exam) =>
+        actionBusy === exam._id,
+
+      title: (exam) =>
+        actionBusy === exam._id
+          ? "Locking..."
+          : "Lock All",
+
+      onClick: (exam) =>
+        handleLock(exam._id),
+    },
+
+    {
+      key: "unlock",
+      label: "Unlock All",
+      icon: FaLockOpen,
+      className: "warning-btn",
+
+      show: (exam) => {
+        const info = resultMap[exam._id];
+
+        const locked = info
+          ? info.summary.byStatus.LOCKED
+          : 0;
+
+        return locked > 0;
+      },
+
+      disabled: (exam) =>
+        actionBusy === exam._id,
+
+      title: (exam) =>
+        actionBusy === exam._id
+          ? "Unlocking..."
+          : "Unlock All",
+
+      onClick: (exam) =>
+        handleUnlock(exam._id),
+    },
+
+    {
+      key: "publish",
+      label: "Publish All",
+      icon: FaGlobe,
+      className: "approve-btn",
+
+      show: (exam) => {
+        const info = resultMap[exam._id];
+
+        const locked = info
+          ? info.summary.byStatus.LOCKED
+          : 0;
+
+        const draft = info
+          ? info.summary.byStatus.DRAFT
+          : 0;
+
+        return (
+          locked > 0 &&
+          draft === 0
+        );
+      },
+
+      disabled: (exam) =>
+        actionBusy === exam._id,
+
+      title: (exam) =>
+        actionBusy === exam._id
+          ? "Publishing..."
+          : "Publish All",
+
+      onClick: (exam) =>
+        handlePublish(exam._id),
+    },
+  ],
+};
+
   const totalGenerated = Object.values(resultMap).reduce((acc, info) => acc + (info ? info.summary.totalStudents : 0), 0);
   const totalPassed = Object.values(resultMap).reduce((acc, info) => acc + (info ? info.summary.passed : 0), 0);
   const totalFailed = Object.values(resultMap).reduce((acc, info) => acc + (info ? info.summary.failed : 0), 0);
@@ -421,7 +793,7 @@ export default function ExamResultsDashboard() {
         items={[
           { label: "Home", path: "/dashboard/exam" },
           { label: "Exam Dashboard", path: "/dashboard/exam" },
-          { label: "Results Dashboard" },
+          { label: "Result Dashboard" },
         ]}
       />
 
@@ -530,109 +902,24 @@ export default function ExamResultsDashboard() {
         </div>
       )}
 
-      <div className="table-card">
-        {filteredExams.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon"><FaChartBar size={26} /></div>
-            <h5 className="empty-title">No exam results found</h5>
-            <p className="empty-text">
-              {exams.length === 0
-                ? "No exams available. Create an exam first to generate results."
-                : "No exams match your search criteria."}
-            </p>
-          </div>
-        ) : (
-          <div className="table-responsive">
-            <table className="table mb-0">
-              <thead>
-                <tr>
-                  <th>Exam</th>
-                  <th>Course</th>
-                  <th>Sem</th>
-                  <th>Year</th>
-                  <th>Result Status</th>
-                  <th>Students</th>
-                  <th>Passed / Failed</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredExams.map((exam) => {
-                  const info = resultMap[exam._id];
-                  const dominant = getDominantStatus(exam._id);
-                  const totalStudents = info ? info.summary.totalStudents : 0;
-                  const passed = info ? info.summary.passed : 0;
-                  const failed = info ? info.summary.failed : 0;
-                  const published = info ? info.summary.byStatus.PUBLISHED : 0;
-                  const locked = info ? info.summary.byStatus.LOCKED : 0;
-                  const draft = info ? info.summary.byStatus.DRAFT : 0;
-                  const canReview = totalStudents > 0;
-                  const canGenerate = true;
-                  const canLock = draft > 0 && locked === 0 && published === 0;
-                  const canPublish = locked > 0 && draft === 0;
-                  const canUnlock = locked > 0;
-                  return (
-                    <tr key={exam._id}>
-                      <td>
-                        <div className="d-flex align-items-center gap-2">
-                          <div className="row-icon"><FaClipboardList /></div>
-                          <span className="row-title">{exam.name}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="course-name">{exam.course_id?.name || "N/A"}</div>
-                        <div className="course-code">{exam.course_id?.code || ""}</div>
-                      </td>
-                      <td><span className="pill pill-cyan"><FaLayerGroup size={10} /> Sem {exam.semester}</span></td>
-                      <td><span style={{ color: "var(--edx-slate-600)" }}>{exam.academicYear}</span></td>
-                      <td>
-                        <div>{statusPill(dominant)}</div>
-                        {info && totalStudents > 0 && (
-                          <div className="result-meta mt-1">
-                            <span><FaCog size={9} /> {totalStudents} results</span>
-                            {published > 0 && <span><FaGlobe size={9} /> {published}</span>}
-                            {locked > 0 && <span><FaLock size={9} /> {locked}</span>}
-                            {draft > 0 && <span><FaPencilAlt size={9} /> {draft}</span>}
-                          </div>
-                        )}
-                      </td>
-                      <td>{totalStudents > 0 ? totalStudents : <span style={{ color: "var(--edx-slate-400)" }}>—</span>}</td>
-                      <td>
-                        {totalStudents > 0 ? (
-                          <span style={{ fontSize: "0.85rem" }}>
-                            <span style={{ color: "var(--edx-green-600)", fontWeight: 600 }}>{passed}</span>
-                            {" / "}
-                            <span style={{ color: "var(--edx-red-500)", fontWeight: 600 }}>{failed}</span>
-                          </span>
-                        ) : <span style={{ color: "var(--edx-slate-400)" }}>—</span>}
-                      </td>
-                      <td>
-                        <div className="d-flex gap-1 flex-wrap">
-                          <button className="icon-btn" title="Generate Result" disabled={actionBusy === exam._id} onClick={() => handleGenerate(exam._id)}>
-                            <FaCog />
-                          </button>
-                          <button className="icon-btn" title="Review Results" disabled={!canReview} onClick={() => handleReview(exam._id)}>
-                            <FaEye />
-                          </button>
-                          <button className="icon-btn icon-btn-locked" title="Lock All" disabled={!canLock || actionBusy === exam._id} onClick={() => handleLock(exam._id)}>
-                            <FaLock />
-                          </button>
-                          <button className="icon-btn icon-btn-unlock" title="Unlock All" disabled={!canUnlock || actionBusy === exam._id} onClick={() => handleUnlock(exam._id)}>
-                            <FaLockOpen />
-                          </button>
-                          <button className="icon-btn icon-btn-publish" title="Publish All" disabled={!canPublish || actionBusy === exam._id} onClick={() => handlePublish(exam._id)}>
-                            <FaGlobe />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <StandardListView
+  className="exam-results-list"
+  title="Exam Results"
+  icon={FaChartBar}
+  count={filteredExams.length}
+  columns={columns}
+  data={filteredExams}
+  loading={false}
+  emptyState={{
+    icon: FaChartBar,
+    title: "No Exam Results Found",
+    description:
+      exams.length === 0
+        ? "No exams available. Create an exam first to generate results."
+        : "No exams match your search criteria.",
+  }}
+  actions={tableActions}
+/>
     </div>
   );
 }
