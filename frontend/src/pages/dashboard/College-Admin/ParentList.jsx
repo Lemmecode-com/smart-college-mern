@@ -790,7 +790,7 @@ const tableActions = {
 
             <motion.button
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => {
                 setSearchTerm("");
                 setStatusFilter("");
