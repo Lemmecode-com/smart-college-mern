@@ -6,6 +6,7 @@ import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
 import useRole from "../../../hooks/useRole";
@@ -413,6 +414,152 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
     page * PAGE_SIZE,
   );
 
+  /* ================= STANDARD TABLE COLUMNS ================= */
+
+const columns = [
+  {
+    key: "fullName",
+    label: "Student Name",
+    sortable: true,
+    width: "240px",
+    render: (student) => (
+      <div className="student-info">
+        <span className="student-avatar" aria-hidden="true">
+          {getInitials(student.fullName)}
+        </span>
+
+        <div className="student-info-text">
+          <span className="student-name-cell">
+            {student.fullName}
+          </span>
+
+          <span className="student-email">
+            {student.email}
+          </span>
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "department",
+    label: "Department",
+    sortable: true,
+    width: "200px",
+    render: (student) => (
+      <span className="department-name">
+        {student.department_id?.name ||
+          student.department_id?.code ||
+          (typeof student.department_id === "string"
+            ? student.department_id
+            : student.course_id?.name || "N/A")}
+      </span>
+    ),
+  },
+
+  {
+    key: "admissionYear",
+    label: "Admission Year",
+    sortable: true,
+    width: "110px",
+    render: (student) => (
+      <span className="badge badge-graduation-year">
+        <FaCalendarAlt className="badge-icon" />
+        {student.admissionYear || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "status",
+    label: "Status",
+    sortable: false,
+    width: "140px",
+    render: (student) => (
+      <div className="student-status-cell">
+        <span className="badge badge-pending">
+          <FaClock className="badge-icon" />
+          PENDING
+        </span>
+
+        {!student.division && (
+          <span
+            className="badge badge-warning"
+            title="Division not assigned"
+          >
+            <FaExclamationTriangle className="badge-icon" />
+            No division
+          </span>
+        )}
+      </div>
+    ),
+  },
+];
+
+/* ================= STANDARD TABLE ACTIONS ================= */
+
+const tableActions = {
+  label: "Actions",
+  width: "300px",
+  items: [
+    {
+      key: "view",
+      label: "View Student",
+      icon: FaEye,
+      className: "view-btn",
+      text: "View",
+      style: {
+      width: "80px",
+      height: "35px",
+      fontSize: "13px",
+      fontWeight: "600",
+      gap: "5px",
+        },
+      onClick: (student) =>
+        navigate(`/college/view-student/${student._id}`),
+      
+    },
+
+    {
+      key: "approve",
+      label: "Approve Student",
+      icon: FaCheck,
+      className: "approve-btn",
+      text: "Approve",
+      style: {
+      width: "80px",
+      height: "35px",
+      color: "white",
+      background: "linear-gradient(90deg, #60b662 0%, #2d9530 100%)",
+      fontSize: "13px",
+      fontWeight: "600",
+      gap: "5px",
+        },
+      show: () => canEdit("students"),
+      onClick: (student) => handleApprove(student._id),
+
+    },
+
+    {
+      key: "reject",
+      label: "Reject Student",
+      icon: FaTimes,
+      className: "delete-btn",
+      text: "Reject",
+      style: {
+    width: "80px",
+    height: "35px",
+    fontSize: "13px",
+    fontWeight: "600",
+    gap: "5px",
+    background: "linear-gradient(90deg, #e74c3c 0%, #c0392b 100%)",
+  },
+      show: () => canEdit("students"),
+      onClick: (student) => handleRejectClick(student._id),
+    },
+  ],
+};
+
   /* ================= HELPERS (display only) ================= */
   const getInitials = (name = "") =>
     name
@@ -613,184 +760,41 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
         </div>
       </div>
 
-      {/* STUDENTS TABLE */}
-      <div className="erp-card">
-        <div className="erp-card-header">
-          <h3>
-            <FaClock className="erp-card-icon" />
-            Awaiting Your Review
-          </h3>
-          <span className="record-count">
-            {filteredStudents.length}{" "}
-            {filteredStudents.length === 1 ? "Student" : "Students"} Pending
-          </span>
-        </div>
+{/* ================= STANDARD STUDENT LIST ================= */}
 
-        <div className="erp-card-body erp-card-body--flush">
-          {paginatedStudents.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">
-                <FaCheckCircle />
-              </div>
-              <h3>No Pending Approvals</h3>
-              <p className="empty-description">
-                {search
-                  ? "No pending students match your search criteria."
-                  : "All caught up! No student applications awaiting approval."}
-              </p>
-            </div>
-          ) : (
-            <div className="table-container">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th className="th-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={
-                          paginatedStudents.length > 0 &&
-                          selectedStudents.size === paginatedStudents.length
-                        }
-                        onChange={toggleSelectAll}
-                        className="row-checkbox"
-                        readOnly
-                      />
-                    </th>
-                    <th className="th-student">
-                      <FaGraduationCap className="header-icon" /> Student Name
-                    </th>
-                    <th className="th-department">
-                      <FaBuilding className="header-icon" /> Department
-                    </th>
-                    <th className="th-year">
-                      <FaCalendarAlt className="header-icon" /> Admission Year
-                    </th>
-                    <th className="th-status">Status</th>
-                    <th className="th-actions text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedStudents.map((student) => (
-                    <tr key={student._id} className="table-row">
-                      <td className="cell-checkbox" data-label="">
-                        <input
-                          type="checkbox"
-                          checked={selectedStudents.has(student._id)}
-                          onChange={() => toggleStudent(student._id)}
-                          className="row-checkbox"
-                        />
-                      </td>
-                      <td className="cell-student" data-label="Student">
-                        <div className="student-info">
-                          <span className="student-avatar" aria-hidden="true">
-                            {getInitials(student.fullName)}
-                          </span>
-                          <div className="student-info-text">
-                            <span className="student-name-cell">
-                              {student.fullName}
-                            </span>
-                            <span className="student-email">{student.email}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="cell-department" data-label="Department">
-                        <span className="department-name">
-                          {student.department_id?.name || student.department_id?.code || (typeof student.department_id === "string" ? student.department_id : student.course_id?.name || "N/A")}
-                        </span>
-                      </td>
-                      <td className="cell-year" data-label="Year">
-                        <span className="badge badge-graduation-year">
-                          <FaCalendarAlt className="badge-icon" />
-                          {student.admissionYear || "N/A"}
-                        </span>
-                      </td>
-                      <td className="cell-status" data-label="Status">
-                        <span className="badge badge-pending">
-                          <FaClock className="badge-icon" />
-                          PENDING
-                        </span>
-                        {!student.division && (
-                          <span
-                            className="badge badge-warning"
-                            title="Division not assigned"
-                          >
-                            <FaExclamationTriangle className="badge-icon" />
-                            No division
-                          </span>
-                        )}
-                      </td>
-                      <td className="cell-actions" data-label="Actions">
-                        <div className="action-buttons">
-                          <button
-                            className="btn btn-action btn-view-student"
-                            onClick={() =>
-                              navigate(`/college/view-student/${student._id}`)
-                            }
-                            title="View Student Details"
-                          >
-                            <FaEye />
-                            <span className="btn-text">View</span>
-                          </button>
-                          {canEdit('students') && (
-                            <>
-                              <button
-                                className="btn btn-action btn-approve"
-                                onClick={() => handleApprove(student._id)}
-                                disabled={processingId === student._id}
-                                title="Approve Student"
-                              >
-                                {processingId === student._id ? (
-                                  <FaSpinner className="spin" />
-                                ) : (
-                                  <FaCheck />
-                                )}
-                                <span className="btn-text">
-                                  {processingId === student._id
-                                    ? "Processing…"
-                                    : "Approve"}
-                                </span>
-                              </button>
-                              <button
-                                className="btn btn-action btn-reject"
-                                onClick={() => handleRejectClick(student._id)}
-                                disabled={processingId === student._id}
-                                title="Reject Student"
-                              >
-                                {processingId === student._id ? (
-                                  <FaSpinner className="spin" />
-                                ) : (
-                                  <FaTimes />
-                                )}
-                                <span className="btn-text">
-                                  {processingId === student._id
-                                    ? "Processing…"
-                                    : "Reject"}
-                                </span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+<StandardListView
+  title="Awaiting Your Review"
+  icon={FaClock}
+  count={filteredStudents.length}
+  columns={columns}
+  data={paginatedStudents}
+  selection={{
+  enabled: true,
+  selectedIds: selectedStudents,
+  getRowId: (student) => student._id,
+  onToggle: toggleStudent,
+  onToggleAll: toggleSelectAll,
+}}
+  loading={false}
+  emptyState={{
+    icon: FaCheckCircle,
+    title: "No Pending Approvals",
+    description: search
+      ? "No pending students match your search criteria."
+      : "All caught up! No student applications awaiting approval.",
+  }}
+  actions={tableActions}
+/>
 
-          {/* PAGINATION */}
-          {totalPages > 1 && (
-            <div className="erp-pagination">
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                setPage={setPage}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
+{totalPages > 1 && (
+  <div className="erp-pagination">
+    <Pagination
+      page={page}
+      totalPages={totalPages}
+      setPage={setPage}
+    />
+  </div>
+)}
       {/* CONFIRM APPROVE MODAL */}
       <ConfirmModal
         isOpen={showApproveModal}

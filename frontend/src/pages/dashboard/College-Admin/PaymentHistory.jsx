@@ -7,6 +7,7 @@ import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import { showSuccess, showError } from "../../../utils/toast";
 import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
@@ -185,10 +186,13 @@ export default function PaymentHistory() {
   };
 
   // Toggle dropdown for a specific row (using index)
-  const toggleDropdown = (rowIndex, event) => {
-    event.stopPropagation();
-    setActiveDropdown((prev) => (prev === rowIndex ? null : rowIndex));
-  };
+const toggleDropdown = (recordKey, event) => {
+  event.stopPropagation();
+
+  setActiveDropdown((prev) =>
+    prev === recordKey ? null : recordKey
+  );
+};
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -242,6 +246,233 @@ export default function PaymentHistory() {
     setCurrentPage(1);
   }, [statusFilter, searchQuery]);
 
+
+  /* ================= STANDARD LIST COLUMNS ================= */
+
+const columns = [
+  {
+    key: "student",
+    label: "Student",
+    sortable: true,
+    width: "220px",
+    render: (record) => (
+      <div className="payment-student-info">
+        <span className="payment-student-name">
+          {record.student?.fullName || "N/A"}
+        </span>
+
+        <span className="payment-student-email">
+          {record.student?.email || "N/A"}
+        </span>
+      </div>
+    ),
+  },
+
+  {
+    key: "course",
+    label: "Course",
+    sortable: true,
+    width: "195px",
+    render: (record) => (
+      <span className="payment-course-badge">
+        {record.course?.name || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "totalFee",
+    label: "Total Fee",
+    sortable: true,
+    width: "120px",
+    render: (record) => (
+      <span className="payment-amount-cell">
+        {formatCurrency(record.totalFee)}
+      </span>
+    ),
+  },
+
+  {
+    key: "paidAmount",
+    label: "Paid Amount",
+    sortable: true,
+    width: "120px",
+    render: (record) => (
+      <span className="payment-amount-cell payment-amount-paid">
+        {formatCurrency(record.paidAmount)}
+      </span>
+    ),
+  },
+
+  {
+    key: "pendingAmount",
+    label: "Pending",
+    sortable: true,
+    width: "120px",
+    render: (record) => (
+      <span className="payment-amount-cell payment-amount-pending">
+        {formatCurrency(record.pendingAmount)}
+      </span>
+    ),
+  },
+
+  {
+    key: "calculatedStatus",
+    label: "Status",
+    sortable: true,
+    width: "125px",
+    render: (record) => (
+      <span
+        className={`payment-status-badge ${getStatusBadgeClass(
+          record.calculatedStatus
+        )}`}
+      >
+        {getStatusIcon(record.calculatedStatus)}
+        {record.calculatedStatus}
+      </span>
+    ),
+  },
+
+
+];
+
+/* ================= STANDARD LIST ACTIONS ================= */
+
+const tableActions = {
+  label: "Actions",
+  width: "210px",
+  icon: FaReceipt,
+  items: [
+
+  {
+    key: "receipts",
+    label: "Receipts",
+    sortable: false,
+    icon: FaReceipt,
+    width: "230px",
+    text: "Receipts",
+    style: { background: "#427ed3", width: "230px", gap: "5px" },
+    render: (record) => {
+      const installments = getInstallmentDetails(record);
+
+      const paidInstallments = installments.filter(
+        (installment) => installment.status === "PAID"
+      );
+
+      const recordKey =
+        record.student_id?._id ||
+        record.student?._id ||
+        record.student?.fullName ||
+        record._id;
+
+      if (paidInstallments.length === 0) {
+        return (
+          <span className="no-receipts-text">
+            No Receipts
+          </span>
+        );
+      }
+
+      return (
+        <div
+          className={`receipt-dropdown-wrapper ${
+            activeDropdown === recordKey ? "active" : ""
+          }`}
+        >
+          <button
+            className="receipt-dropdown-btn"
+            onClick={(event) =>
+              toggleDropdown(recordKey, event)
+            }
+            aria-expanded={activeDropdown === recordKey}
+            aria-haspopup="true"
+          >
+            <FaReceipt className="receipt-icon" />
+
+            <span className="receipt-btn-text">
+              Receipts
+            </span>
+
+            <span className="receipt-count-badge">
+              {paidInstallments.length}
+            </span>
+
+            {activeDropdown === recordKey ? (
+              <FaChevronUp className="dropdown-arrow" />
+            ) : (
+              <FaChevronDown className="dropdown-arrow" />
+            )}
+          </button>
+
+          {activeDropdown === recordKey && (
+            <div className="receipt-dropdown-menu">
+              <div className="dropdown-header">
+                <FaReceipt className="dropdown-icon" />
+                <span>Payment Receipts</span>
+              </div>
+
+              <div className="dropdown-divider" />
+
+              {paidInstallments.map((installment, installmentIndex) => (
+                <Link
+                  key={installment._id || installmentIndex}
+                  to={`/student/fee-receipt/${installment._id}`}
+                  className="dropdown-item"
+                  onClick={() => setActiveDropdown(null)}
+                >
+                  <div className="dropdown-item-icon">
+                    <FaReceipt />
+                  </div>
+
+                  <div className="dropdown-item-content">
+                    <span className="dropdown-item-name">
+                      {installment.name}
+                    </span>
+
+                    <span className="dropdown-item-date">
+                      {installment.paidAt
+                        ? `Paid: ${new Date(
+                            installment.paidAt
+                          ).toLocaleDateString("en-IN")}`
+                        : "Payment date unavailable"}
+                    </span>
+                  </div>
+
+                  <div className="dropdown-item-amount">
+                    {formatCurrency(installment.amount)}
+                  </div>
+
+                  <FaExternalLinkAlt className="dropdown-item-arrow" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    },
+  },
+
+
+    {
+      key: "report",
+      label: "Report",
+      icon: FaUser,
+      className: "report-btn",
+      text: "Report",
+      style: { background: "#38a6b0", width: "230px", gap: "5px" },
+
+      onClick: (record) => {
+        if (record.student_id?._id) {
+          navigate(
+            `/college-admin/student-payment-report/${record.student_id._id}`
+          );
+        }
+      },
+
+      show: (record) => !!record.student_id?._id,
+    },
+  ],
+};
   // Prepare export data
   const getExportData = () => {
     return filteredRecords.map((record) => {
@@ -2233,227 +2464,38 @@ export default function PaymentHistory() {
         )}
       </div>
 
-      {/* ================= TABLE ================= */}
-      <div className="payment-table-card">
-        <div className="payment-table-header">
-          <h3>
-            <FaFileInvoiceDollar />
-            Student Payment Records
-          </h3>
-          <span className="payment-record-count">
-            {filteredRecords.length}{" "}
-            {filteredRecords.length === 1 ? "Student" : "Students"}
-          </span>
-        </div>
+        {/* ================= STANDARD PAYMENT LIST ================= */}
 
-        <div className="payment-table-container">
-          {paginatedRecords.length === 0 ? (
-            <div className="payment-empty-state">
-              <div className="payment-empty-icon">
-                <FaFileInvoiceDollar />
-              </div>
-              <h3>No Payment Records Found</h3>
-              <p>
-                {searchQuery || statusFilter
-                  ? "No records match your search criteria. Try adjusting your filters."
-                  : "There are no payment records to display."}
-              </p>
-            </div>
-          ) : (
-            <table className="payment-table">
-              <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Course</th>
-                  <th>Total Fee</th>
-                  <th>Paid Amount</th>
-                  <th>Pending</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: "center" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedRecords.map((record, idx) => {
-                  const installments = getInstallmentDetails(record);
-                  const paidInstallments = installments.filter(
-                    (i) => i.status === "PAID",
-                  );
-                  const transactionIds = paidInstallments
-                    .map((i) => i.transactionId)
-                    .filter(Boolean)
-                    .join(", ");
-                  const paymentDates = paidInstallments
-                    .map((i) =>
-                      i.paidAt
-                        ? new Date(i.paidAt).toLocaleDateString("en-IN")
-                        : null,
-                    )
-                    .filter(Boolean)
-                    .join(", ");
+<StandardListView
+  className="payment-history-list"
+  title="Student Payment Records"
+  icon={FaFileInvoiceDollar}
+  count={filteredRecords.length}
+  columns={columns}
+  data={paginatedRecords}
+  loading={false}
+  emptyState={{
+    icon: FaFileInvoiceDollar,
 
-                  return (
-                    <tr key={record.student_id?._id || record.student?.fullName || `student-${idx}`}>
-                      <td>
-                        <div className="payment-student-info">
-                          <span className="payment-student-name">
-                            {record.student?.fullName || "N/A"}
-                          </span>
-                          <span className="payment-student-email">
-                            {record.student?.email || "N/A"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="payment-course-badge">
-                          {record.course?.name || "N/A"}
-                        </span>
-                      </td>
-                      <td className="payment-amount-cell">
-                        {formatCurrency(record.totalFee)}
-                      </td>
-                      <td className="payment-amount-cell payment-amount-paid">
-                        {formatCurrency(record.paidAmount)}
-                      </td>
-                      <td className="payment-amount-cell payment-amount-pending">
-                        {formatCurrency(record.pendingAmount)}
-                      </td>
-                      <td>
-                        <span
-                          className={`payment-status-badge ${getStatusBadgeClass(record.calculatedStatus)}`}
-                        >
-                          {getStatusIcon(record.calculatedStatus)}
-                          {record.calculatedStatus}
-                        </span>
-                      </td>
-                      <td className="payment-actions-cell">
-                        {paidInstallments.length > 0 ? (
-                          <div
-                            className={`receipt-dropdown-wrapper ${
-                              activeDropdown === idx ? "active" : ""
-                            }`}
-                          >
-                            <button
-                              className="receipt-dropdown-btn"
-                              onClick={(e) => toggleDropdown(idx, e)}
-                              aria-expanded={activeDropdown === idx}
-                              aria-haspopup="true"
-                            >
-                              <FaReceipt className="receipt-icon" />
-                              <span className="receipt-btn-text">Receipts</span>
-                              <span className="receipt-count-badge">
-                                {paidInstallments.length}
-                              </span>
-                              {activeDropdown === idx ? (
-                                <FaChevronUp className="dropdown-arrow" />
-                              ) : (
-                                <FaChevronDown className="dropdown-arrow" />
-                              )}
-                            </button>
+    title: "No Payment Records Found",
 
-                            {activeDropdown === idx ? (
-                              <div className="receipt-dropdown-menu">
-                                <div className="dropdown-header">
-                                  <FaReceipt className="dropdown-icon" />
-                                  <span>Payment Receipts</span>
-                                </div>
-                                <div className="dropdown-divider" />
-                                {paidInstallments.map((inst, instIdx) => (
-                                  <Link
-                                    key={instIdx}
-                                    to={`/student/fee-receipt/${inst._id}`}
-                                    className="dropdown-item"
-                                    onClick={() => setActiveDropdown(null)}
-                                  >
-                                    <div className="dropdown-item-icon">
-                                      <FaReceipt />
-                                    </div>
-                                    <div className="dropdown-item-content">
-                                      <span className="dropdown-item-name">
-                                        {inst.name}
-                                      </span>
-                                      <span className="dropdown-item-date">
-                                        {inst.paidAt
-                                          ? `Paid: ${new Date(inst.paidAt).toLocaleDateString("en-IN")}`
-                                          : "Payment date unavailable"}
-                                      </span>
-                                    </div>
-                                    <div className="dropdown-item-amount">
-                                      {formatCurrency(inst.amount)}
-                                    </div>
-                                    <FaExternalLinkAlt className="dropdown-item-arrow" />
-                                  </Link>
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <span className="no-receipts-text">No Receipts</span>
-                        )}
-                        {/* View Student Report Button */}
-                        {record.student_id && (
-                          <button
-                            className="payment-action-btn"
-                            onClick={() => navigate(`/college-admin/student-payment-report/${record.student_id._id}`)}
-                            title="View detailed student payment report"
-                            style={{
-                              background: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)',
-                              marginLeft: '8px'
-                            }}
-                          >
-                            <FaUser />
-                            <span className="btn-text">Report</span>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+    description:
+      searchQuery || statusFilter
+        ? "No records match your search criteria. Try adjusting your filters."
+        : "There are no payment records to display.",
+  }}
+  actions={tableActions}
+/>
 
-        {/* ================= PAGINATION ================= */}
-        {totalPages > 1 && (
-          <div className="payment-pagination">
-            <button
-              className="payment-page-btn"
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              aria-label="Previous page"
-            >
-              <FaChevronLeft />
-            </button>
-
-            <div className="payment-page-numbers">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (num) => (
-                  <button
-                    key={num}
-                    className={`payment-page-btn ${currentPage === num ? "active" : ""}`}
-                    onClick={() => setCurrentPage(num)}
-                    aria-label={`Page ${num}`}
-                    aria-current={currentPage === num ? "page" : undefined}
-                  >
-                    {num}
-                  </button>
-                ),
-              )}
-            </div>
-
-            <button
-              className="payment-page-btn"
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-              aria-label="Next page"
-            >
-              <FaChevronRight />
-            </button>
-          </div>
-        )}
-      </div>
+{totalPages > 1 && (
+  <div className="payment-pagination">
+    <Pagination
+      page={currentPage}
+      totalPages={totalPages}
+      setPage={setCurrentPage}
+    />
+  </div>
+)}
     </div>
   );
 }
