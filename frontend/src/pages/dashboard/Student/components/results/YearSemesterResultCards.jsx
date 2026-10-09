@@ -4,36 +4,23 @@ import {
   FaGraduationCap,
   FaEye,
   FaDownload,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaClock,
   FaCalendarAlt,
-  FaCalculator,
-  FaPercentage,
+  FaBook,
 } from "react-icons/fa";
-
-import {
-  formatMarksRatio,
-  formatPercentage,
-  getResultStatusLabel,
-  getResultStatusTone,
-} from "../../../../../utils/resultFormatters.util";
 
 /**
  * Compact Year -> Semester Result Cards Component.
  *
  * Displays academic results hierarchically:
  * First Year
- *   ├── Semester 1 (Compact Card: Preview, Download)
- *   └── Semester 2 (Compact Card: Preview, Download)
+ *   ├── Semester 1 (Clean Card: Semester, Exam Name, AY, Course, Preview, Download)
+ *   └── Semester 2 (Clean Card: Semester, Exam Name, AY, Course, Preview, Download)
  * Second Year
  *   ├── Semester 3
  *   └── Semester 4
  * etc.
  *
- * IMPORTANT:
- * Subject tables are NOT displayed here. Full subject breakdowns
- * appear exclusively inside the Preview modal.
+ * Subject breakdowns appear exclusively inside the Preview modal / PDF statement.
  */
 export default function YearSemesterResultCards({
   groupedYears = [],
@@ -99,18 +86,22 @@ export default function YearSemesterResultCards({
           <div className="sr-semester-cards-grid" role="list">
             {yearGroup.semesters.map((result) => {
               const semNum = Number(result.semester);
-              const statusTone = getResultStatusTone(result.overallResult);
-              const statusLabel = getResultStatusLabel(result.overallResult);
-              const isPercentagePending =
-                result.overallResult === "INCOMPLETE" ||
-                result.percentage === null ||
-                result.percentage === undefined;
+              const examName =
+                result.examName ||
+                result.exam_id?.name ||
+                `Semester ${semNum} Examination`;
 
-              const totalMarksDisplay = formatMarksRatio(
-                result.totalMarks,
-                result.totalMaxMarks
-              );
-              const percentageDisplay = formatPercentage(result.percentage);
+              const ayDisplay = result.academicYear
+                ? String(result.academicYear).trim().startsWith("AY")
+                  ? result.academicYear
+                  : `AY ${result.academicYear}`
+                : null;
+
+              const courseName =
+                result.course_id?.name ||
+                result.courseName ||
+                result.course?.name ||
+                (typeof result.course === "string" ? result.course : null);
 
               return (
                 <article
@@ -119,88 +110,31 @@ export default function YearSemesterResultCards({
                   role="listitem"
                   aria-label={`Semester ${semNum} Result Card`}
                 >
-                  {/* Top Bar: Semester & Status */}
+                  {/* Semester Label & Exam Name */}
                   <div className="sr-compact-card-header">
-                    <div>
-                      <span className="sr-sem-tag">Semester {semNum}</span>
-                      <h4 className="sr-compact-exam-name">
-                        {result.examName ||
-                          result.exam_id?.name ||
-                          `Semester ${semNum} Examination`}
-                      </h4>
-                    </div>
+                    <span className="sr-sem-tag">Semester {semNum}</span>
+                    <h4 className="sr-compact-exam-name">{examName}</h4>
+                  </div>
 
-                    <span className={`sr-status-pill tone-${statusTone.tone}`}>
-                      {result.overallResult === "PASS" ? (
-                        <FaCheckCircle aria-hidden="true" />
-                      ) : result.overallResult === "FAIL" ? (
-                        <FaTimesCircle aria-hidden="true" />
-                      ) : (
-                        <FaClock aria-hidden="true" />
+                  {/* Metadata Row: Academic Year and Course */}
+                  {(ayDisplay || courseName) && (
+                    <div className="sr-compact-meta-strip">
+                      {ayDisplay && (
+                        <span className="sr-compact-meta-item">
+                          <FaCalendarAlt aria-hidden="true" />
+                          <span>{ayDisplay}</span>
+                        </span>
                       )}
-                      <span>{statusLabel}</span>
-                    </span>
-                  </div>
-
-                  {/* Meta Strip: Academic Year & Published Date */}
-                  <div className="sr-compact-meta-strip">
-                    {result.academicYear && (
-                      <span className="sr-compact-meta-item">
-                        <FaCalendarAlt aria-hidden="true" /> AY {result.academicYear}
-                      </span>
-                    )}
-                    {result.course_id?.name && (
-                      <span className="sr-compact-meta-item">
-                        • {result.course_id.name}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Core Metrics: Total Marks & Overall Percentage */}
-                  <div className="sr-compact-metrics-grid">
-                    <div className="sr-compact-metric-box">
-                      <div className="sr-metric-mini-label">
-                        <FaCalculator aria-hidden="true" />
-                        <span>Total Marks</span>
-                      </div>
-                      <span className="sr-metric-mini-val">
-                        {totalMarksDisplay}
-                      </span>
+                      {courseName && (
+                        <span className="sr-compact-meta-item">
+                          <FaBook aria-hidden="true" />
+                          <span>{courseName}</span>
+                        </span>
+                      )}
                     </div>
+                  )}
 
-                    <div className="sr-compact-metric-box">
-                      <div className="sr-metric-mini-label">
-                        <FaPercentage aria-hidden="true" />
-                        <span>Overall Percentage</span>
-                      </div>
-                      <span
-                        className={`sr-metric-mini-val ${
-                          isPercentagePending ? "text-pending" : "text-percentage"
-                        }`}
-                      >
-                        {percentageDisplay}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Subject Counts Indicator */}
-                  <div className="sr-compact-counts-bar">
-                    <span className="text-success">
-                      ✓ {result.passedSubjects ?? 0} Passed
-                    </span>
-                    {(result.failedSubjects ?? 0) > 0 && (
-                      <span className="text-danger">
-                        ✕ {result.failedSubjects} Failed
-                      </span>
-                    )}
-                    {(result.backlogCount ?? 0) > 0 && (
-                      <span className="text-warning">
-                        ↻ {result.backlogCount} Backlogs
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Primary Actions: Preview Result & Download PDF */}
+                  {/* Action Buttons: Preview Result & Download PDF */}
                   <div className="sr-compact-card-actions">
                     <button
                       type="button"
