@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import Pagination from "../../../components/Pagination";
 import { logger } from "../../../utils/logger";
 import "./StaffList.css";
@@ -283,6 +284,204 @@ export default function StaffList() {
     roles: new Set(staff.map((s) => s.role).filter(Boolean)).size,
   };
 
+
+  /* ================= STANDARD LIST COLUMNS ================= */
+
+const columns = [
+  {
+    key: "name",
+    label: "Staff Member",
+    sortable: true,
+    width: "250px",
+    render: (staffMember) => (
+      <div className="erp-staff-identity">
+        <div
+          className="erp-staff-avatar"
+          aria-label={`Avatar for ${
+            staffMember.name || "staff"
+          }`}
+        >
+          {getInitials(staffMember.name)}
+        </div>
+
+        <div className="erp-staff-identity-details">
+          <div
+            className="erp-staff-name"
+            title={staffMember.name || undefined}
+          >
+            {staffMember.name || "Unnamed Staff"}
+          </div>
+
+          <div
+            className="erp-staff-designation"
+            title={staffMember.designation || undefined}
+          >
+            {staffMember.designation || "Not Provided"}
+          </div>
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "role",
+    label: "Role",
+    sortable: true,
+    width: "120px",
+    render: (staffMember) => (
+      <span
+        className="erp-staff-role-badge"
+        title={formatRole(staffMember.role)}
+      >
+        {formatRole(staffMember.role)}
+      </span>
+    ),
+  },
+
+  {
+    key: "contact",
+    label: "Contact",
+    sortable: false,
+    width: "245px",
+    
+    render: (staffMember) => (
+      <div className="erp-staff-contact" style={{ fontSize: "10px" }}>
+        <div
+          className="erp-staff-contact-item "
+          title={staffMember.email || undefined}
+        >
+          <FaEnvelope
+            className="erp-staff-contact-icon"
+            aria-hidden="true"
+          />
+
+          <span className="erp-staff-contact-text">
+            {staffMember.email || "Not Provided"}
+          </span>
+        </div>
+
+        <div className="erp-staff-contact-item">
+          <FaPhone
+            className="erp-staff-contact-icon"
+            aria-hidden="true"
+          />
+
+          <span className="erp-staff-contact-text">
+            {staffMember.mobileNumber || "Not Provided"}
+          </span>
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "isActive",
+    label: "Status",
+    sortable: true,
+    width: "100px",
+    render: (staffMember) => (
+      <span
+        className={`erp-staff-status ${
+          staffMember.isActive
+            ? "erp-staff-status--active"
+            : "erp-staff-status--inactive"
+        }`}
+      >
+        <FaCircle
+          className="erp-staff-status-dot"
+          aria-hidden="true"
+        />
+
+        <span className="erp-staff-status-text">
+          {staffMember.isActive ? "Active" : "Inactive"}
+        </span>
+      </span>
+    ),
+  },
+
+  {
+    key: "mustChangePassword",
+    label: "Account",
+    sortable: true,
+    width: "180px",
+    render: (staffMember) => (
+      <span
+        className={`erp-staff-account ${
+          staffMember.mustChangePassword
+            ? "erp-staff-account--pending"
+            : "erp-staff-account--set"
+        }`}
+        title={
+          staffMember.mustChangePassword
+            ? "Temporary password set — user must change it"
+            : "Password is set"
+        }
+      >
+        {staffMember.mustChangePassword ? (
+          <FaKey
+            className="erp-staff-account-icon"
+            aria-hidden="true"
+          />
+        ) : (
+          <FaCheckCircle
+            className="erp-staff-account-icon"
+            aria-hidden="true"
+          />
+        )}
+
+        <span className="erp-staff-account-text">
+          {staffMember.mustChangePassword
+            ? "Temporary Password"
+            : "Set"}
+        </span>
+      </span>
+    ),
+  },
+];
+
+/* ================= STANDARD LIST ACTIONS ================= */
+
+const tableActions = {
+  label: "Actions",
+  width: "200px",
+
+  items: [
+    {
+      key: "view",
+      label: "View",
+      icon: FaEye,
+      className: "view-btn",
+      text: "View",
+      style: { background: "#1b5bb5", width: "70px", gap: "5px" },
+
+      onClick: (staffMember) => {
+        logger.info(
+          "[StaffList] View profile for id:",
+          staffMember.id
+        );
+
+        navigate(`/staff/profile/${staffMember.id}`);
+      },
+    },
+
+    {
+      key: "edit",
+      label: "Edit",
+      icon: FaEdit,
+      className: "edit-btn",
+      text: "Edit",
+      style: { background: "#f0ad4e", width: "70px", gap: "5px" },
+      onClick: (staffMember) => {
+        logger.info(
+          "[StaffList] Edit profile for id:",
+          staffMember.id
+        );
+
+        navigate(`/staff/profile/edit/${staffMember.id}`);
+      },
+    },
+  ],
+};
   if (error && !loading) {
     return (
       <ApiError
@@ -447,234 +646,52 @@ export default function StaffList() {
           </motion.button>
         </motion.div>
 
-        {/* ================= STAFF DIRECTORY ================= */}
-        <motion.div
-          variants={fadeInUp}
-          initial="hidden"
-          animate="visible"
-          className="erp-staff-directory"
-        >
-          <div className="erp-staff-directory__head">
-            <h2 className="erp-staff-directory__title">
-              <FaUser className="erp-staff-directory__icon" aria-hidden="true" />
-              Staff Directory
-            </h2>
-            <div className="erp-staff-directory__count">
-              {filteredStaff.length === 0
-                ? `Showing 0 of ${staff.length} staff members`
-                : `Showing ${pageStart + 1} to ${pageEnd} of ${filteredStaff.length} staff members`}
-            </div>
-          </div>
+       
+  {/* ================= STANDARD STAFF LIST ================= */}
 
-          <div className="erp-staff-table-wrap">
-            {loading ? (
-              <StaffTableSkeleton rows={ITEMS_PER_PAGE} />
-            ) : filteredStaff.length === 0 ? (
-              <EmptyState
-                title="No Staff Members Found"
-                message={
-                  staff.length === 0
-                    ? "No staff accounts have been created yet."
-                    : "No staff members match your search or filters."
-                }
-                actionLabel={hasFilters ? "Clear Filters" : undefined}
-                onAction={hasFilters ? clearFilters : undefined}
-              />
-            ) : (
-              <table className="erp-staff-table" role="table">
-                <thead>
-                  <tr>
-                    <th scope="col" className="erp-staff-th erp-staff-th--staff">
-                      Staff Member
-                    </th>
-                    <th scope="col" className="erp-staff-th erp-staff-th--role">
-                      Role
-                    </th>
-                     <th scope="col" className="erp-staff-th erp-staff-th--contact">
-                       Contact
-                     </th>
-                     <th scope="col" className="erp-staff-th erp-staff-th--status">
-                      Status
-                    </th>
-                    <th scope="col" className="erp-staff-th erp-staff-th--account">
-                      Account
-                    </th>
-                    <th
-                      scope="col"
-                      className="erp-staff-th erp-staff-th--actions"
-                    >
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                 <tbody>
-                  {paginatedStaff.map((s, idx) => (
-                    <motion.tr
-                      key={s.id}
-                      variants={fadeInRow}
-                      custom={idx}
-                      initial="hidden"
-                      animate="visible"
-                      className="erp-staff-tr"
-                    >
-                      <td className="erp-staff-td erp-staff-td--staff">
-                        <div className="erp-staff-identity">
-                          <div
-                            className="erp-staff-avatar"
-                            aria-label={`Avatar for ${s.name || "staff"}`}
-                          >
-                            {getInitials(s.name)}
-                          </div>
-                          <div className="erp-staff-identity-details">
-                            <div
-                              className="erp-staff-name"
-                              title={s.name || undefined}
-                            >
-                              {s.name || "Unnamed Staff"}
-                            </div>
-                            <div
-                              className="erp-staff-designation"
-                              title={s.designation || undefined}
-                            >
-                              {s.designation || "Not Provided"}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="erp-staff-td">
-                        <span
-                          className="erp-staff-role-badge"
-                          title={formatRole(s.role)}
-                        >
-                          {formatRole(s.role)}
-                        </span>
-                      </td>
-                      <td className="erp-staff-td">
-                        <div className="erp-staff-contact">
-                          <div
-                            className="erp-staff-contact-item"
-                            title={s.email || undefined}
-                          >
-                            <FaEnvelope
-                              className="erp-staff-contact-icon"
-                              aria-hidden="true"
-                            />
-                            <span className="erp-staff-contact-text">
-                              {s.email || "Not Provided"}
-                            </span>
-                          </div>
-                          <div className="erp-staff-contact-item">
-                            <FaPhone
-                              className="erp-staff-contact-icon"
-                              aria-hidden="true"
-                            />
-                            <span className="erp-staff-contact-text">
-                              {s.mobileNumber || "Not Provided"}
-                            </span>
-                          </div>
-                        </div>
-                       </td>
-                       <td className="erp-staff-td">
-                         <span
-                          className={`erp-staff-status ${
-                            s.isActive
-                              ? "erp-staff-status--active"
-                              : "erp-staff-status--inactive"
-                          }`}
-                        >
-                          <FaCircle
-                            className="erp-staff-status-dot"
-                            aria-hidden="true"
-                          />
-                          <span className="erp-staff-status-text">
-                            {s.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </span>
-                      </td>
-                      <td className="erp-staff-td">
-                        <span
-                          className={`erp-staff-account ${
-                            s.mustChangePassword
-                              ? "erp-staff-account--pending"
-                              : "erp-staff-account--set"
-                          }`}
-                          title={
-                            s.mustChangePassword
-                              ? "Temporary password set — user must change it"
-                              : "Password is set"
-                          }
-                        >
-                          {s.mustChangePassword ? (
-                            <FaKey
-                              className="erp-staff-account-icon"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <FaCheckCircle
-                              className="erp-staff-account-icon"
-                              aria-hidden="true"
-                            />
-                          )}
-                          <span className="erp-staff-account-text">
-                            {s.mustChangePassword
-                              ? "Temporary Password"
-                              : "Set"}
-                          </span>
-                        </span>
-                      </td>
-                      <td className="erp-staff-td erp-staff-td--actions">
-                        <div className="erp-staff-actions">
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.93 }}
-                            onClick={() => {
-                              logger.info(
-                                "[StaffList] View profile for id:",
-                                s.id
-                              );
-                              navigate(`/staff/profile/${s.id}`);
-                            }}
-                            className="erp-staff-btn erp-staff-btn--icon erp-staff-btn--view"
-                            aria-label={`View profile for ${s.name || "staff"}`}
-                            title="View Profile"
-                          >
-                            <FaEye aria-hidden="true" />
-                            <span>View</span>
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.93 }}
-                            onClick={() => {
-                              logger.info(
-                                "[StaffList] Edit profile for id:",
-                                s.id
-                              );
-                              navigate(`/staff/profile/edit/${s.id}`);
-                            }}
-                            className="erp-staff-btn erp-staff-btn--icon erp-staff-btn--edit"
-                            aria-label={`Edit profile for ${s.name || "staff"}`}
-                            title="Edit Profile"
-                          >
-                            <FaEdit aria-hidden="true" />
-                            <span>Edit</span>
-                          </motion.button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+<motion.div
+  variants={fadeInUp}
+  initial="hidden"
+  animate="visible"
+  className="erp-staff-directory"
+>
+  <StandardListView
+    className="staff-list-view"
+    title="Staff Directory"
+    icon={FaUser}
+    count={filteredStaff.length}
+    columns={columns}
+    data={paginatedStaff}
+    loading={loading}
+    emptyState={{
+      icon: FaUser,
 
-          {showPagination && (
-            <Pagination
-              page={safePage}
-              totalPages={totalPages}
-              setPage={setCurrentPage}
-            />
-          )}
-        </motion.div>
+      title: "No Staff Members Found",
+
+      description:
+        staff.length === 0
+          ? "No staff accounts have been created yet."
+          : "No staff members match your search or filters.",
+
+      action: hasFilters
+        ? {
+            label: "Clear Filters",
+            icon: FaSyncAlt,
+            onClick: clearFilters,
+          }
+        : undefined,
+    }}
+    actions={tableActions}
+  />
+
+  {showPagination && (
+    <Pagination
+      page={safePage}
+      totalPages={totalPages}
+      setPage={setCurrentPage}
+    />
+  )}
+</motion.div>
       </div>
     </motion.div>
   );

@@ -21,6 +21,7 @@ const StandardListView = ({
   sortable = true,
   showHeader = true,
   showSearch = true,
+  selection,
 }) => {
   const [sortConfig, setSortConfig] = useState({
     key: null,
@@ -153,6 +154,7 @@ const StandardListView = ({
             sortConfig={sortConfig}
             onSort={handleSort}
             actions={actions}
+            selection={selection}
           />
         )}
       </div>
