@@ -39,17 +39,24 @@ export default function YearSemesterResultCards({
   groupedYears = [],
   onPreview,
   onDownload,
+  selectedYear = null,
   selectedSemester = "ALL",
 }) {
   if (!Array.isArray(groupedYears) || groupedYears.length === 0) {
     return null;
   }
 
+  // Filter if a specific year is chosen
+  const filteredYearsByYear =
+    selectedYear !== null && selectedYear !== undefined && selectedYear !== "ALL"
+      ? groupedYears.filter((group) => Number(group.yearNumber) === Number(selectedYear))
+      : groupedYears;
+
   // Filter if a specific semester is chosen
   const filteredYears =
-    selectedSemester === "ALL"
-      ? groupedYears
-      : groupedYears
+    selectedSemester === "ALL" || !selectedSemester
+      ? filteredYearsByYear
+      : filteredYearsByYear
           .map((group) => ({
             ...group,
             semesters: group.semesters.filter(
@@ -57,6 +64,10 @@ export default function YearSemesterResultCards({
             ),
           }))
           .filter((group) => group.semesters.length > 0);
+
+  if (filteredYears.length === 0) {
+    return null;
+  }
 
   return (
     <div className="sr-year-hierarchy-container" aria-label="Semester Results by Academic Year">
@@ -73,7 +84,9 @@ export default function YearSemesterResultCards({
                 <FaGraduationCap />
               </div>
               <div>
-                <h3 className="sr-year-title">{yearGroup.yearLabel}</h3>
+                <h3 className="sr-year-title">
+                  {yearGroup.yearNumber === 4 ? "Fourth Year" : yearGroup.yearLabel}
+                </h3>
                 <span className="sr-year-subtitle">
                   Academic Year {yearGroup.yearNumber} • {yearGroup.semesters.length}{" "}
                   {yearGroup.semesters.length === 1 ? "Semester" : "Semesters"} Available
@@ -232,4 +245,5 @@ YearSemesterResultCards.propTypes = {
   onPreview: PropTypes.func.isRequired,
   onDownload: PropTypes.func.isRequired,
   selectedSemester: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  selectedYear: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };
