@@ -1,8 +1,8 @@
-import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
+import api from "../../../api/axios";
 import { getMyResults } from "../../../api/results";
-import { formatDate } from "../../../utils/format";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
@@ -10,21 +10,30 @@ import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FaFileAlt, FaSyncAlt, FaExclamationTriangle, FaArrowLeft } from "react-icons/fa";
+
+// CSS Stylesheet
+import "./StudentResults.css";
+
+// Subcomponents
+import SemesterSelector from "./components/results/SemesterSelector";
+import ResultSummaryHero from "./components/results/ResultSummaryHero";
+import YearSemesterResultCards from "./components/results/YearSemesterResultCards";
+import ResultStatementModal from "./components/results/ResultStatementModal";
+import BacklogSection from "./components/results/BacklogSection";
+import ResultsEmptyState from "./components/results/ResultsEmptyState";
+
+// Formatters & Utilities
 import {
-  FaFileAlt,
-  FaArrowLeft,
-  FaSync,
-  FaExclamationTriangle,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaBook,
-  FaLayerGroup,
-  FaTrophy,
-  FaInfoCircle,
-  FaTable,
-  FaCalendarAlt
-} from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
+  getAvailableSemesters,
+  getCurrentSemesterNumber,
+  filterResultsBySemester,
+  groupBacklogsBySubject,
+} from "../../../utils/resultFormatters.util";
+import {
+  groupSemestersByYear,
+  mapResultToStatement,
+} from "../../../utils/resultStatementDataMapper";
 
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
@@ -38,89 +47,56 @@ const AUTH_ERROR_CODES = new Set([
   "STUDENT_NOT_FOUND",
 ]);
 
-// Unchanged brand palette — only the tokens below (spacing/radius/shadow)
-// are new, purely presentational additions to keep the layout consistent.
-const BRAND_COLORS = {
-  primary: { main: "#1a4b6d" },
-  success: { main: "#28a745" },
-  danger: { main: "#dc3545" },
-  warning: { main: "#ffc107" },
-  info: { main: "#17a2b8" },
-  secondary: { main: "#6c757d" },
-};
-
-// A small spacing/radius/shadow scale so every gap, corner, and elevation
-// in the page is drawn from the same rhythm instead of one-off pixel values.
-const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 };
-const RADIUS = { sm: 8, md: 12, lg: 16, xl: 20 };
-const SHADOW = {
-  card: "0 8px 24px rgba(15, 23, 42, 0.07)",
-  cardHover: "0 16px 36px rgba(15, 23, 42, 0.12)",
-  banner: "0 10px 28px rgba(15, 58, 74, 0.28)",
-};
-
-const fadeInVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.04, duration: 0.4, ease: "easeOut" },
-  }),
-};
-
-const getSubjectStatusColor = (status) => {
-  switch (status) {
-    case "PASS":
-      return { bg: `${BRAND_COLORS.success.main}15`, color: BRAND_COLORS.success.main };
-    case "FAIL":
-      return { bg: `${BRAND_COLORS.danger.main}15`, color: BRAND_COLORS.danger.main };
-    case "INCOMPLETE":
-      return { bg: `${BRAND_COLORS.warning.main}15`, color: BRAND_COLORS.warning.main };
-    default:
-      return { bg: "#f1f5f9", color: "#64748b" };
-  }
-};
-
-// Shared table-cell style builders so the six near-identical header cells
-// (and their body counterparts) collapse into one definition each.
-const thStyle = (align = "left") => ({
-  padding: `${SPACE.md}px ${SPACE.lg}px`,
-  textAlign: align,
-  fontWeight: 700,
-  color: "#495057",
-  background: "#f8f9fa",
-  borderBottom: "2px solid #e9ecef",
-  fontSize: "0.75rem",
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-  whiteSpace: "nowrap",
-});
-
-const tdStyle = (align = "left", emphasis = false) => ({
-  padding: `${SPACE.md}px ${SPACE.lg}px`,
-  borderBottom: "1px solid #e9ecef",
-  textAlign: align,
-  fontFamily: align === "right" ? "monospace" : undefined,
-  fontWeight: emphasis ? 600 : 400,
-});
-
 export default function StudentResults() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const loadTimeoutRef = useRef(null);
+
   const [results, setResults] = useState([]);
+  const [allBacklogResults, setAllBacklogResults] = useState([]);
+  const [studentProfile, setStudentProfile] = useState(null);
+  const [selectedSemester, setSelectedSemester] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  if (!user) {
-    return null;
-  }
-  if (user.role !== "STUDENT") {
-    return null;
-  }
+  // Statement Preview Modal State
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+  const [activeStatementData, setActiveStatementData] = useState(null);
 
+  // Derived in-memory models (called unconditionally at top of component)
+  const availableSemesters = useMemo(
+    () => getAvailableSemesters(results),
+    [results]
+  );
+
+  const currentSemester = useMemo(
+    () => getCurrentSemesterNumber(results),
+    [results]
+  );
+
+  const groupedYears = useMemo(
+    () => groupSemestersByYear(results),
+    [results]
+  );
+
+  const filteredResults = useMemo(
+    () => filterResultsBySemester(results, selectedSemester),
+    [results, selectedSemester]
+  );
+
+  const groupedBacklogs = useMemo(
+    () => groupBacklogsBySubject(allBacklogResults),
+    [allBacklogResults]
+  );
+
+  // Fetch student published results and profile metadata
   useEffect(() => {
+    if (!user || user.role !== "STUDENT") {
+      setLoading(false);
+      return;
+    }
+
     if (loadTimeoutRef.current) {
       clearTimeout(loadTimeoutRef.current);
     }
@@ -142,8 +118,34 @@ export default function StudentResults() {
       try {
         setLoading(true);
         setError(null);
-        const data = await getMyResults();
-        setResults(Array.isArray(data) ? data : []);
+
+        // Concurrently fetch authoritative results and student profile metadata
+        const [resultsRes, profileRes] = await Promise.allSettled([
+          getMyResults(),
+          api.get("/students/my-profile"),
+        ]);
+
+        if (resultsRes.status === "fulfilled") {
+          const data = resultsRes.value;
+          const regularResults = Array.isArray(data)
+            ? data
+            : (data?.data || data?.regularResults || []);
+
+          const rawBacklogs = Array.isArray(data?.backlogResults)
+            ? data.backlogResults
+            : Array.isArray(data?.data?.backlogResults)
+              ? data.data.backlogResults
+              : regularResults.flatMap((r) => r.backlogResults || []);
+
+          setResults(regularResults);
+          setAllBacklogResults(rawBacklogs);
+        } else {
+          throw resultsRes.reason;
+        }
+
+        if (profileRes.status === "fulfilled" && profileRes.value?.data) {
+          setStudentProfile(profileRes.value.data);
+        }
 
         if (loadTimeoutRef.current) {
           clearTimeout(loadTimeoutRef.current);
@@ -172,7 +174,7 @@ export default function StudentResults() {
         setError({
           message:
             backendMessage ||
-            "Failed to load your results. Please try again later.",
+            "Failed to load your examination results. Please try again later.",
           statusCode,
           errorCode,
         });
@@ -194,8 +196,7 @@ export default function StudentResults() {
         clearTimeout(loadTimeoutRef.current);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [retryCount]);
+  }, [retryCount, user]);
 
   const handleRetry = () => {
     setRetryCount((prev) => prev + 1);
@@ -205,621 +206,168 @@ export default function StudentResults() {
     navigate("/student/dashboard");
   };
 
-// Loading State
-if (loading) {
-  return (
-    <div className="parent-portal-wrapper">
-      <div
-        className="parent-portal-container parent-loading-container"
-        style={{ minHeight: "70vh" }}
-      >
+  // Preview Result handler: maps data to marksheet format and opens modal
+  const handlePreviewResult = (semesterResult) => {
+    const statement = mapResultToStatement(semesterResult, studentProfile, user);
+    setActiveStatementData(statement);
+    setPreviewModalOpen(true);
+  };
+
+  // Download PDF handler: opens modal with statement to trigger A4 generation
+  const handleDownloadPdf = (semesterResult) => {
+    const statement = mapResultToStatement(semesterResult, studentProfile, user);
+    setActiveStatementData(statement);
+    setPreviewModalOpen(true);
+  };
+
+  // Auth protection guard (rendered after all hooks have been declared)
+  if (!user || user.role !== "STUDENT") {
+    return null;
+  }
+
+  // Loading State
+  if (loading) {
+    return (
+      <div className="student-results-page" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Loading
           size="md"
           color="primary"
-          text="Loading Results..."
+          text="Loading your results... Please wait while we retrieve your examination records."
         />
       </div>
-    </div>
-  );
-}
-
-  if (error) {
-    return (
-      <ApiError
-        title="Results Loading Error"
-        message={error.message}
-        statusCode={error.statusCode}
-        errorCode={error.errorCode}
-        onRetry={handleRetry}
-        onGoBack={handleGoBack}
-        retryCount={retryCount}
-        maxRetry={3}
-      />
     );
   }
 
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key="student-results-page"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="erp-page erp-viewport-min-100"
-        style={{
-          background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-          paddingTop: SPACE.xl,
-          paddingBottom: SPACE.xxl,
-          paddingLeft: SPACE.lg,
-          paddingRight: SPACE.lg,
-        }}
-        role="main"
-        aria-label="My Results"
-      >
-        <a
-          href="#results-content"
-          className="sr-only sr-only-focusable"
-          style={{
-            position: "absolute",
-            width: "1px",
-            height: "1px",
-            padding: 0,
-            margin: "-1px",
-            overflow: "hidden",
-            clip: "rect(0,0,0,0)",
-            whiteSpace: "nowrap",
-            border: 0,
-          }}
-        >
-          Skip to results content
-        </a>
-
-        <div style={{ maxWidth: "1320px", margin: "0 auto" }} id="results-content">
-          <style>{`
-
-/* ================= RESULT BANNER RESPONSIVE ================= */
-
-@media (max-width: 1024px) {
-  .sr-result-header {
-    flex-direction: column;
-    align-items: stretch !important;
-    gap: 1rem !important;
-  }
-
-  .sr-result-header-content {
-    width: 100%;
-    min-width: 0;
-  }
-
-  .sr-result-exam-title {
-    line-height: 1.2 !important;
-    word-break: break-word;
-  }
-
-  .sr-result-meta {
-    width: 100%;
-    row-gap: 0.5rem !important;
-  }
-
-  .sr-result-badges {
-    width: 100%;
-    justify-content: flex-start !important;
-    align-items: stretch !important;
-    flex-wrap: nowrap !important;
-  }
-
-  .sr-result-published {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .sr-result-badge-overall {
-    min-width: 120px !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .sr-result-header {
-    padding: 1rem 1.1rem !important;
-    border-radius: 16px 16px 0 0;
-  }
-
-  .sr-result-exam-title {
-    font-size: 1.15rem !important;
-    line-height: 1.25 !important;
-  }
-
-  .sr-result-meta {
-    font-size: 0.82rem !important;
-    gap: 0.45rem 0.8rem !important;
-  }
-
-  .sr-result-badges {
-    gap: 0.6rem !important;
-  }
-
-  .sr-result-published {
-    flex: 1;
-    min-width: 0;
-    padding: 0.65rem 0.75rem !important;
-  }
-
-  .sr-result-badge-overall {
-    flex: 1.2;
-    min-width: 0 !important;
-    padding: 0.55rem 0.75rem !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .sr-result-header {
-    padding: 1rem !important;
-  }
-
-  .sr-result-exam-title {
-    font-size: 1.05rem !important;
-  }
-
-  .sr-result-meta {
-    flex-direction: column;
-    align-items: flex-start !important;
-    gap: 0.4rem !important;
-  }
-
-  .sr-result-badges {
-    display: grid !important;
-    grid-template-columns: 0.9fr 1.1fr;
-    gap: 0.6rem !important;
-    width: 100%;
-  }
-
-  .sr-result-published {
-    width: 100%;
-    min-height: 70px;
-    box-sizing: border-box;
-  }
-
-  .sr-result-badge-overall {
-    width: 100%;
-    min-height: 70px;
-    box-sizing: border-box;
-  }
-}
-
-          `}</style>
-          <Breadcrumb
-            items={[
-              { label: "Dashboard", path: "/student/dashboard" },
-              { label: "My Results" },
-            ]}
-          />
-
-          <PageHeader
-  icon={FaFileAlt}
-  title="My Results"
-  subtitle={
-    results.length > 0
-      ? `${results.length} published semester result${
-          results.length === 1 ? "" : "s"
-        }`
-      : "Your published semester results"
-  }
-  actions={
-    <button
-      type="button"
-      onClick={handleRetry}
-     style={{
-                    minHeight: "48px",
-                    padding: "0 20px",
-                    border: "1px solid rgba(255, 255, 255, 0.35)",
-                    borderRadius: "12px",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    color: "#ffffff",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "9px",
-                    fontSize: "15px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",       
-                }}
-                  onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 10px rgba(20, 27, 41, 0.18)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-
-    >
-      <FaSync />
-      Refresh
-    </button>
-  }
-/>
-
-          {results.length === 0 ? (
-            <EmptyState onGoBack={handleGoBack} />
-          ) : (
-            <motion.div
-              variants={fadeInVariants}
-              custom={1}
-              initial="hidden"
-              animate="visible"
-              style={{ display: "flex", flexDirection: "column", gap: SPACE.xl }}
-            >
-              {results.map((result, idx) => (
-                <ResultCard key={result._id || idx} result={result} index={idx} />
-              ))}
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-    </AnimatePresence>
-  );
-}
-
-
-
-function EmptyState({ onGoBack }) {
-  return (
-    <motion.div
-      variants={fadeInVariants}
-      custom={1}
-      initial="hidden"
-      animate="visible"
-      style={{
-        background: "white",
-        borderRadius: RADIUS.xl,
-        boxShadow: SHADOW.card,
-        padding: `${SPACE.xxxl}px ${SPACE.xxl}px`,
-        textAlign: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "88px",
-          height: "88px",
-          margin: `0 auto ${SPACE.xl}px`,
-          borderRadius: "50%",
-          backgroundColor: "#f1f5f9",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "2.25rem",
-          color: "#94a3b8",
-        }}
-      >
-        <FaFileAlt />
+  // Error State
+  if (error) {
+    return (
+      <div className="student-results-page">
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/student/dashboard" },
+            { label: "My Results" },
+          ]}
+        />
+        <ApiError
+          title="Results Loading Error"
+          message={error.message}
+          statusCode={error.statusCode}
+          errorCode={error.errorCode}
+          onRetry={handleRetry}
+          onGoBack={handleGoBack}
+          retryCount={retryCount}
+          maxRetry={3}
+        />
       </div>
-      <h3 style={{ margin: `0 0 ${SPACE.sm}px`, color: "#1e293b", fontWeight: 700, fontSize: "1.4rem" }}>
-        No published results yet
-      </h3>
-      <p style={{ color: "#64748b", margin: `0 0 ${SPACE.xl}px`, fontSize: "1rem", maxWidth: "420px", marginLeft: "auto", marginRight: "auto" }}>
-        Your semester results will appear here once they are published by the exam coordinator.
-      </p>
-      <button
-        onClick={onGoBack}
-        style={{
-          padding: "0.75rem 2rem",
-          background: "linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%)",
-          color: "white",
-          border: "none",
-          borderRadius: RADIUS.md,
-          fontSize: "1rem",
-          fontWeight: 600,
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: SPACE.sm,
-        }}
-      >
-        <FaArrowLeft /> Back to Dashboard
-      </button>
-    </motion.div>
-  );
-}
+    );
+  }
 
-function ResultCard({ result, index }) {
-  const exam = result.exam_id || {};
-  const course = result.course_id || {};
+  // Zero published results overall
+  const hasNoResultsAtAll = results.length === 0 && allBacklogResults.length === 0;
 
-  return (
-    <motion.div
-      variants={fadeInVariants}
-      custom={index * 0.1 + 0.1}
-      initial="hidden"
-      animate="visible"
-      whileHover={{ y: -3, boxShadow: SHADOW.cardHover }}
-      style={{
-        background: "white",
-        borderRadius: RADIUS.xl,
-        boxShadow: SHADOW.card,
-        overflow: "hidden",
-      }}
-    >
-        <div
-          className="sr-result-header"
-          style={{
-            background: "linear-gradient(180deg, #0f3a4a, #134952)",
-            padding: `${SPACE.lg}px ${SPACE.xl}px`,
-            color: "white",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: SPACE.md,
-          }}
-        >
-          <div className="sr-result-header-content">
-            <h2
-      className="sr-result-exam-title"
-            style={{
-              margin: 0,
-              fontSize: "1.3rem",
-              fontWeight: 700,
-              display: "flex",
-              alignItems: "center",
-              gap: SPACE.sm,
-            }}
-          >
-            <FaBook /> {exam.name || "Semester Result"}
-          </h2>
-          <p
-            className="sr-result-meta"
-            style={{
-              margin: "0.4rem 0 0",
-              opacity: 0.8,
-              fontSize: "0.88rem",
-              display: "flex",
-              alignItems: "center",
-              gap: SPACE.md,
-              flexWrap: "wrap",
-            }}
-          >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-              <FaLayerGroup /> {course.name || course.code || "Course"}
-            </span>
-            <span>Semester {result.semester}</span>
-            <span>Academic Year: {result.academicYear}</span>
-          </p>
-        </div>
-        <div className="sr-result-badges" style={{ display: "flex", alignItems: "center", gap: SPACE.md }}>
-          <span
-          className="sr-result-published"
-            style={{
-              padding: "0.5rem 1.25rem",
-              borderRadius: "20px",
-              backgroundColor: "rgba(255, 255, 255, 0.15)",
-              color: "white",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-            }}
-          >
-            Published
-          </span>
-          <div
-            className="sr-result-badge-overall"
-            style={{
-              padding: "0.6rem 1.5rem",
-              borderRadius: RADIUS.md,
-              backgroundColor: "rgba(255, 255, 255, 0.15)",
-              color: "white",
-              textAlign: "center",
-              minWidth: "84px",
-              backdropFilter: "blur(4px)",
-            }}
-          >
-            <div style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.06em", opacity: 0.75 }}>
-              Overall
-            </div>
-            <div style={{ fontSize: "1.25rem", fontWeight: 700, marginTop: "0.25rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem" }}>
-              <FaTrophy /> {result.overallResult || "INCOMPLETE"}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: `${SPACE.xl}px` }}>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-            gap: SPACE.md,
-            marginBottom: SPACE.xl,
-          }}
-        >
-          <SummaryPill icon={<FaCheckCircle />} value={result.passedSubjects} label="Passed" color={BRAND_COLORS.success.main} />
-          {result.failedSubjects > 0 && (
-            <SummaryPill icon={<FaTimesCircle />} value={result.failedSubjects} label="Failed" color={BRAND_COLORS.danger.main} />
-          )}
-          {result.incompleteSubjects > 0 && (
-            <SummaryPill icon={<FaInfoCircle />} value={result.incompleteSubjects} label="Incomplete" color={BRAND_COLORS.warning.main} />
-          )}
-          <SummaryPill icon={<FaBook />} value={result.totalSubjects} label="Total Subjects" color={BRAND_COLORS.secondary.main} />
-          <SummaryPill icon={<FaCalendarAlt />} value={formatDate(result.publishedAt)} label="Published On" color={BRAND_COLORS.info.main} />
-        </div>
-
-        {result.subjects && result.subjects.length > 0 && (
-          <SubjectsTable subjects={result.subjects} examName={exam.name} />
-        )}
-
-        <div
-          style={{
-            marginTop: SPACE.lg,
-            paddingTop: SPACE.lg,
-            borderTop: "1px solid #e2e8f0",
-            fontSize: "0.8rem",
-            color: "#94a3b8",
-            display: "flex",
-            gap: SPACE.xl,
-            flexWrap: "wrap",
-          }}
-        >
-          <span>Published: {formatDate(result.publishedAt)}</span>
-          <span>Last Updated: {formatDate(result.updatedAt)}</span>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function SubjectsTable({ subjects, examName }) {
-  return (
-    <div>
-      <h3
-        style={{
-          margin: `0 0 ${SPACE.md}px`,
-          fontSize: "1.02rem",
-          fontWeight: 600,
-          color: "#1e293b",
-          display: "flex",
-          alignItems: "center",
-          gap: SPACE.sm,
-        }}
-      >
-        <FaTable /> Subject-wise Breakdown
-      </h3>
-      <div style={{ overflowX: "auto", borderRadius: RADIUS.sm, border: "1px solid #e9ecef" }}>
-        <table
-          style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}
-          role="table"
-          aria-label={`Subject-wise results for ${examName || "exam"}`}
-        >
-          <thead>
-            <tr>
-              <th style={thStyle("left")} scope="col">Subject</th>
-              <th style={thStyle("left")} scope="col">Type</th>
-              <th style={thStyle("right")} scope="col">Internal</th>
-              <th style={thStyle("right")} scope="col">External</th>
-              <th style={thStyle("right")} scope="col">Total</th>
-              <th style={thStyle("center")} scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {subjects.map((subj, sIdx) => (
-              <SubjectRow key={subj.subject || sIdx} subject={subj} index={sIdx} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function SubjectRow({ subject: subj, index: sIdx }) {
-  const statusColors = getSubjectStatusColor(subj.status);
-
-  return (
-    <motion.tr
-      variants={fadeInVariants}
-      custom={sIdx * 0.05}
-      initial="hidden"
-      animate="visible"
-      style={{ backgroundColor: sIdx % 2 === 0 ? "#ffffff" : "#f8fafc" }}
-      whileHover={{ backgroundColor: "#f1f5f9" }}
-    >
-      <td style={tdStyle("left")}>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontWeight: 600, color: "#1e293b" }}>
-            {subj.subjectName || "Unnamed Subject"}
-          </span>
-          <span style={{ fontSize: "0.78rem", color: "#64748b" }}>
-            {subj.subjectCode || "N/A"}
-          </span>
-        </div>
-      </td>
-      <td style={tdStyle("left")}>
-        <span
-          style={{
-            padding: "0.25rem 0.6rem",
-            borderRadius: "6px",
-            fontSize: "0.72rem",
-            fontWeight: 600,
-            backgroundColor: "#f1f5f9",
-            color: "#4a5568",
-            textTransform: "uppercase",
-          }}
-        >
-          {subj.subjectType || "—"}
-        </span>
-      </td>
-      <td style={tdStyle("right")}>
-        {subj.internalMarks !== null && subj.internalMarks !== undefined ? subj.internalMarks : "—"}
-      </td>
-      <td style={tdStyle("right")}>
-        {subj.externalMarks !== null && subj.externalMarks !== undefined ? subj.externalMarks : "—"}
-      </td>
-      <td style={tdStyle("right", true)}>
-        {subj.totalMarks !== null && subj.totalMarks !== undefined ? subj.totalMarks : "—"}
-      </td>
-      <td style={tdStyle("center")}>
-        <span
-          style={{
-            padding: "0.35rem 0.85rem",
-            borderRadius: "20px",
-            fontSize: "0.72rem",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            backgroundColor: statusColors.bg,
-            color: statusColors.color,
-          }}
-        >
-          {subj.status || "—"}
-        </span>
-        {!subj.marksRecorded && (
-          <FaInfoCircle
-            style={{ marginLeft: "0.4rem", color: BRAND_COLORS.warning.main }}
-            title="Marks not recorded"
-            aria-label="Marks not recorded"
-          />
-        )}
-      </td>
-    </motion.tr>
-  );
-}
-
-function SummaryPill({ icon, value, label, color }) {
   return (
     <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: SPACE.sm,
-        padding: `${SPACE.sm}px ${SPACE.md}px`,
-        borderRadius: RADIUS.md,
-        backgroundColor: `${color}10`,
-        border: `1px solid ${color}30`,
-      }}
+      className="student-results-page"
+      role="main"
+      aria-label="My Results"
     >
-      <span
-        style={{
-          color,
-          fontSize: "1rem",
-          width: "28px",
-          height: "28px",
-          flexShrink: 0,
-          borderRadius: "50%",
-          backgroundColor: `${color}18`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {icon}
-      </span>
-      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <span style={{ fontSize: "1.05rem", fontWeight: 700, color, lineHeight: 1.2 }}>
-          {value}
-        </span>
-        <span style={{ fontSize: "0.7rem", color: "#64748b", lineHeight: 1.2, whiteSpace: "nowrap" }}>
-          {label}
-        </span>
-      </div>
+      <Breadcrumb
+        items={[
+          { label: "Dashboard", path: "/student/dashboard" },
+          { label: "My Results" },
+        ]}
+      />
+
+      <PageHeader
+        icon={FaFileAlt}
+        title="My Results"
+        subtitle="Academic Performance & Examination Records"
+        actions={
+          <div className="student-results-header-actions">
+            <button
+              type="button"
+              className="student-results-refresh-btn"
+              onClick={handleRetry}
+              aria-label="Refresh examination results"
+            >
+              <FaSyncAlt aria-hidden="true" />
+              <span>Refresh</span>
+            </button>
+          </div>
+        }
+      />
+
+      {hasNoResultsAtAll ? (
+        <ResultsEmptyState
+          type="no-published-results"
+          onGoBack={handleGoBack}
+        />
+      ) : (
+        <>
+          {/* 1. Horizontal Semester Selector */}
+          {availableSemesters.length > 0 && (
+            <SemesterSelector
+              semesters={availableSemesters}
+              selectedSemester={selectedSemester}
+              onSelectSemester={setSelectedSemester}
+              currentSemester={currentSemester}
+            />
+          )}
+
+          {/* 2. Overview Mode vs. Selected Semester Filter */}
+          {selectedSemester === "ALL" ? (
+            <ResultSummaryHero
+              isAllView={true}
+              allResults={results}
+              onSelectSemester={setSelectedSemester}
+            />
+          ) : (
+            <>
+              {/* Back to All Semesters Navigation Strip */}
+              <div className="sr-back-to-overview-strip">
+                <button
+                  type="button"
+                  className="sr-back-to-all-btn"
+                  onClick={() => setSelectedSemester("ALL")}
+                  aria-label="Back to All Semesters overview"
+                >
+                  <FaArrowLeft aria-hidden="true" />
+                  <span>Back to All Semesters</span>
+                </button>
+                <span className="sr-active-sem-tag">
+                  Viewing Results for Semester {selectedSemester}
+                </span>
+              </div>
+
+              {filteredResults.length === 0 && (
+                <ResultsEmptyState
+                  type="no-semester-results"
+                  semesterNumber={selectedSemester}
+                  onResetFilter={() => setSelectedSemester("ALL")}
+                />
+              )}
+            </>
+          )}
+
+          {/* 3. Year -> Semester Result Cards (NO main-page subject tables) */}
+          <YearSemesterResultCards
+            groupedYears={groupedYears}
+            onPreview={handlePreviewResult}
+            onDownload={handleDownloadPdf}
+            selectedSemester={selectedSemester}
+          />
+
+          {/* 4. Backlog & Re-Examination Section */}
+          <BacklogSection groupedBacklogs={groupedBacklogs} />
+
+          {/* 5. Statement of Marks Preview & PDF Download Modal */}
+          <ResultStatementModal
+            isOpen={previewModalOpen}
+            onClose={() => setPreviewModalOpen(false)}
+            statementData={activeStatementData}
+          />
+        </>
+      )}
     </div>
   );
 }

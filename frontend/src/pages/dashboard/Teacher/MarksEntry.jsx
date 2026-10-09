@@ -274,8 +274,9 @@ export default function MarksEntry() {
     const fetchExams = async () => {
       try {
         setLoadingExams(true);
-        const data = await getExams();
-        const examsList = Array.isArray(data) ? data : data.data || [];
+        const data = await getExams({ status: "PUBLISHED" });
+        const rawList = Array.isArray(data) ? data : data?.data || [];
+        const examsList = rawList.filter((exam) => exam.status === "PUBLISHED");
         setExams(examsList);
       } catch (err) {
         logger.error("Error fetching exams:", err);
@@ -484,6 +485,14 @@ export default function MarksEntry() {
                   </option>
                 ))}
               </select>
+              <small className="text-muted d-block mt-1" style={{ fontSize: "0.8rem" }}>
+                Only published exams are available for marks entry.
+              </small>
+              {!loadingExams && exams.length === 0 && (
+                <div className="alert alert-info py-2 px-3 mt-2 mb-0" style={{ fontSize: "0.82rem" }}>
+                  No published exams found for your assigned subjects.
+                </div>
+              )}
             </div>
             <div className="col-md-6">
               <label className="form-label">Subject</label>

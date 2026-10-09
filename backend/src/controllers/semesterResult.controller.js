@@ -1,4 +1,5 @@
 const SemesterResultService = require("../services/semesterResult.service");
+const promotionDecisionService = require("../services/promotionDecision.service");
 const auditLogService = require("../services/auditLog.service");
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
@@ -214,14 +215,59 @@ exports.publishResult = async (req, res, next) => {
  */
 exports.getMyResults = async (req, res, next) => {
   try {
-    const results = await SemesterResultService.getMyResults({
+    const outcome = await SemesterResultService.getMyResults({
       collegeId: req.college_id,
       userId: req.user.id,
     });
 
+    const regularResults = Array.isArray(outcome)
+      ? outcome
+      : outcome.results || [];
+    const backlogResults = Array.isArray(outcome)
+      ? []
+      : outcome.backlogResults || [];
+
+    // Attach backlogResults metadata to array
+    regularResults.backlogResults = backlogResults;
+    regularResults.regularResults = regularResults;
+
     res.json({
       success: true,
-      data: results,
+      data: regularResults,
+      regularResults,
+      backlogResults,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/results/my-promotion-status
+ *
+ * Student-scoped read. Returns only sanitized promotion status for the
+ * authenticated student. Identity is derived strictly from req.user.id and
+ * req.college_id — never trusted from query params or body.
+ *
+ * Optional query parameter: ?semester=<1-8>. If omitted, uses student's current semester.
+ * Returns 200 with data: null when no decision has been generated yet.
+ */
+exports.getMyPromotionStatus = async (req, res, next) => {
+  try {
+    const { semester } = req.query;
+
+    const data = await promotionDecisionService.getStudentPromotionStatus({
+      collegeId: req.college_id,
+      userId: req.user.id,
+      semester,
+    });
+
+    res.json({
+      success: true,
+      data,
+      message: data
+        ? "Promotion status retrieved successfully"
+        : "No promotion decision found for this semester",
     });
   } catch (error) {
     next(error);
