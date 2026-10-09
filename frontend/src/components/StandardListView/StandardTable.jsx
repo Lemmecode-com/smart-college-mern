@@ -12,12 +12,41 @@ const StandardTable = ({
   sortConfig,
   onSort,
   actions,
+  selection,
 }) => {
+
+const isSelectionEnabled = selection?.enabled === true;
+
+const allSelected =
+  isSelectionEnabled &&
+  data.length > 0 &&
+  data.every((row) =>
+    selection.selectedIds.has(selection.getRowId(row))
+  );
+  
   return (
     <div className="standard-table-container">
       <table className="standard-table">
         <thead>
           <tr>
+
+            {selection?.enabled && (
+              <th className="standard-selection-header">
+                <input
+                  type="checkbox"
+                  checked={
+                    data.length > 0 &&
+                    data.every((row) =>
+                      selection.selectedIds.has(
+                        selection.getRowId(row)
+                      )
+                    )
+                  }
+                  onChange={selection.onToggleAll}
+                  aria-label="Select all rows"
+                />
+              </th>
+            )}
             {columns.map((column) => {
               const isSortable = column.sortable === true;
               const isActiveSort =
@@ -78,6 +107,23 @@ const StandardTable = ({
                 rowIndex
               }
             >
+              {selection?.enabled && (
+                <td className="standard-selection-cell">
+                  <input
+                    type="checkbox"
+                    checked={selection.selectedIds.has(
+                      selection.getRowId(item)
+                    )}
+                    onChange={() =>
+                      selection.onToggle(
+                        selection.getRowId(item)
+                      )
+                    }
+                    aria-label="Select row"
+                  />
+                </td>
+              )}
+
               {columns.map((column) => (
                 <td
                   key={column.key}
