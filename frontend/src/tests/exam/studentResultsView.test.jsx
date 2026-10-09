@@ -461,7 +461,8 @@ describe("Student Results UX — Components & Interactive Views", () => {
 
       expect(container.textContent).toContain("Second Year");
       expect(container.textContent).toContain("Semester 3");
-      expect(container.textContent).toContain("410 / 500");
+      expect(container.textContent).toContain("Sem 3");
+      expect(container.textContent).not.toContain("410 / 500");
       expect(container.textContent).not.toContain("Semester 1");
       expect(container.textContent).not.toContain("Semester 2");
       expect(container.textContent).not.toContain("First Year");

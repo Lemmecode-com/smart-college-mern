@@ -210,7 +210,67 @@ export const mapResultToStatement = (
     };
   });
 
-  // 6. Resolve Semester Summary Aggregates
+  // 6. Resolve Cleared Backlog Attempts (Authoritative clearance associated with this examination/semester)
+  const rawBacklogs = Array.isArray(semesterResult.backlogResults)
+    ? semesterResult.backlogResults
+    : [];
+
+  const clearedBacklogs = rawBacklogs
+    .filter((b) => {
+      if (!b) return false;
+      const isCleared =
+        (b.cleared === true || b.resultStatus === "PASS" || b.status === "PASS") &&
+        b.resultStatus !== "FAIL" &&
+        b.resultStatus !== "INCOMPLETE";
+      return isCleared;
+    })
+    .map((b) => {
+      const internalMarks =
+        b.internalMarks !== null && b.internalMarks !== undefined
+          ? Number(b.internalMarks)
+          : b.marks?.internalMarks !== null && b.marks?.internalMarks !== undefined
+          ? Number(b.marks.internalMarks)
+          : null;
+
+      const externalMarks =
+        b.externalMarks !== null && b.externalMarks !== undefined
+          ? Number(b.externalMarks)
+          : b.marks?.externalMarks !== null && b.marks?.externalMarks !== undefined
+          ? Number(b.marks.externalMarks)
+          : null;
+
+      const totalMarks =
+        b.totalMarks !== null && b.totalMarks !== undefined
+          ? Number(b.totalMarks)
+          : b.marks?.totalMarks !== null && b.marks?.totalMarks !== undefined
+          ? Number(b.marks.totalMarks)
+          : null;
+
+      return {
+        backlogId: b.backlogId || null,
+        attemptId: b.attemptId || null,
+        subjectId: b.subjectId || null,
+        subjectCode: b.subjectCode || "—",
+        subjectName: b.subjectName || "Unnamed Subject",
+        subjectType: b.subjectType || "THEORY",
+        formattedType: formatSubjectType(b.subjectType),
+        originalSemester: b.semester != null ? Number(b.semester) : null,
+        originalAcademicYear: b.academicYear || null,
+        clearanceSemester: Number(semesterResult.semester),
+        attemptNumber: b.attemptNumber != null ? Number(b.attemptNumber) : 1,
+        examName: b.examName || null,
+        internalMarks,
+        externalMarks,
+        totalMarks,
+        resultStatus: "PASS",
+        status: "CLEARED",
+        cleared: true,
+        passed: true,
+        evaluatedAt: b.evaluatedAt || null,
+      };
+    });
+
+  // 7. Resolve Semester Summary Aggregates (Strictly regular semester totals; backlog marks are never added)
   const summary = {
     totalMarks:
       semesterResult.totalMarks !== null &&
@@ -241,6 +301,7 @@ export const mapResultToStatement = (
     course,
     examination,
     subjects,
+    clearedBacklogs,
     summary,
   };
 };
