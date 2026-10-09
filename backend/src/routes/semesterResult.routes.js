@@ -34,6 +34,17 @@ router.get(
   semesterResultController.getMyResults,
 );
 
+// Student-scoped: authenticated student's own promotion status.
+// MUST be declared before /:resultId so "my-promotion-status" is not captured
+// as a resultId param.
+router.get(
+  "/my-promotion-status",
+  auth,
+  role(ROLE.STUDENT),
+  collegeMiddleware,
+  semesterResultController.getMyPromotionStatus,
+);
+
 // ── Exam-level Coordinator workflow ──────────────────────────────────────
 // All four MUST be declared before /:resultId so "generate-exam",
 // "lock-exam", "publish-exam" and the query-based listing are not captured
