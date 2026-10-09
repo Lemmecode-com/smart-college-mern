@@ -1016,11 +1016,11 @@ const tableActions = {
 />
 
 {filteredDepartments.length > 0 && (
-  <div className="department-pagination">
-    <div className="department-list-showing">
+  <div >
+    {/* <div className="department-list-showing">
       Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
       {filteredDepartments.length} departments
-    </div>
+    </div> */}
 
     <Pagination
       page={currentPage}
