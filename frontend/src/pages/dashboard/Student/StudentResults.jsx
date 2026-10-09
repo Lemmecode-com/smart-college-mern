@@ -10,26 +10,24 @@ import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaFileAlt, FaSyncAlt, FaExclamationTriangle, FaArrowLeft } from "react-icons/fa";
+import {
+  FaFileAlt,
+  FaSyncAlt,
+  FaExclamationTriangle,
+  FaGraduationCap,
+} from "react-icons/fa";
 
 // CSS Stylesheet
 import "./StudentResults.css";
 
 // Subcomponents
-import SemesterSelector from "./components/results/SemesterSelector";
-import ResultSummaryHero from "./components/results/ResultSummaryHero";
 import YearSemesterResultCards from "./components/results/YearSemesterResultCards";
 import ResultStatementModal from "./components/results/ResultStatementModal";
 import BacklogSection from "./components/results/BacklogSection";
 import ResultsEmptyState from "./components/results/ResultsEmptyState";
 
 // Formatters & Utilities
-import {
-  getAvailableSemesters,
-  getCurrentSemesterNumber,
-  filterResultsBySemester,
-  groupBacklogsBySubject,
-} from "../../../utils/resultFormatters.util";
+import { groupBacklogsBySubject } from "../../../utils/resultFormatters.util";
 import {
   groupSemestersByYear,
   mapResultToStatement,
@@ -47,6 +45,14 @@ const AUTH_ERROR_CODES = new Set([
   "STUDENT_NOT_FOUND",
 ]);
 
+// 4-Year Academic Curriculum Quick Filters
+const ACADEMIC_YEARS = [
+  { yearNumber: 1, label: "First Year" },
+  { yearNumber: 2, label: "Second Year" },
+  { yearNumber: 3, label: "Third Year" },
+  { yearNumber: 4, label: "Fourth Year" },
+];
+
 export default function StudentResults() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -55,7 +61,8 @@ export default function StudentResults() {
   const [results, setResults] = useState([]);
   const [allBacklogResults, setAllBacklogResults] = useState([]);
   const [studentProfile, setStudentProfile] = useState(null);
-  const [selectedSemester, setSelectedSemester] = useState("ALL");
+  const [selectedYear, setSelectedYear] = useState(null);
+  const userSelectedYearRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -65,24 +72,56 @@ export default function StudentResults() {
   const [activeStatementData, setActiveStatementData] = useState(null);
 
   // Derived in-memory models (called unconditionally at top of component)
-  const availableSemesters = useMemo(
-    () => getAvailableSemesters(results),
-    [results]
-  );
-
-  const currentSemester = useMemo(
-    () => getCurrentSemesterNumber(results),
-    [results]
-  );
-
   const groupedYears = useMemo(
     () => groupSemestersByYear(results),
     [results]
   );
 
-  const filteredResults = useMemo(
-    () => filterResultsBySemester(results, selectedSemester),
-    [results, selectedSemester]
+  // Latest academic/curriculum year that contains at least one published semester result
+  const latestPublishedYear = useMemo(() => {
+    if (!Array.isArray(groupedYears) || groupedYears.length === 0) {
+      return 1;
+    }
+    const yearsWithResults = groupedYears
+      .filter((g) => Array.isArray(g.semesters) && g.semesters.length > 0)
+      .map((g) => g.yearNumber);
+
+    return yearsWithResults.length > 0 ? Math.max(...yearsWithResults) : 1;
+  }, [groupedYears]);
+
+  // Synchronize default selected year with latest published year when results load
+  useEffect(() => {
+    if (!userSelectedYearRef.current) {
+      setSelectedYear(latestPublishedYear);
+    } else if (selectedYear !== null && (selectedYear < 1 || selectedYear > 4)) {
+      setSelectedYear(latestPublishedYear);
+    }
+  }, [latestPublishedYear, selectedYear]);
+
+  // Effective active year (fallback to latestPublishedYear if not explicitly set)
+  const currentSelectedYear = selectedYear ?? latestPublishedYear;
+
+  const handleSelectYear = (yearNumber) => {
+    userSelectedYearRef.current = true;
+    setSelectedYear(yearNumber);
+  };
+
+  const selectedYearObj = useMemo(
+    () => ACADEMIC_YEARS.find((y) => y.yearNumber === currentSelectedYear),
+    [currentSelectedYear]
+  );
+  const selectedYearLabel = selectedYearObj ? selectedYearObj.label : `Year ${currentSelectedYear}`;
+
+  const selectedYearGroup = useMemo(() => {
+    return (
+      groupedYears.find((g) => Number(g.yearNumber) === Number(currentSelectedYear)) || null
+    );
+  }, [groupedYears, currentSelectedYear]);
+
+  const hasSelectedYearResults = Boolean(
+    selectedYearGroup &&
+      Array.isArray(selectedYearGroup.semesters) &&
+      selectedYearGroup.semesters.length > 0
   );
 
   const groupedBacklogs = useMemo(
@@ -297,6 +336,37 @@ export default function StudentResults() {
         }
       />
 
+      {/* Year Quick Filters */}
+      <nav
+        className="sr-year-quick-filters-wrapper sr-semester-selector-wrapper"
+        aria-label="Filter results by academic year"
+      >
+        <span className="sr-semester-selector-label">
+          <FaGraduationCap style={{ marginRight: "6px" }} aria-hidden="true" />
+          Year:
+        </span>
+        <div className="sr-year-quick-filters-pills sr-semester-pills" role="tablist">
+          {ACADEMIC_YEARS.map((year) => {
+            const isSelected = currentSelectedYear === year.yearNumber;
+            return (
+              <button
+                key={year.yearNumber}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                aria-pressed={isSelected}
+                className={`sr-year-filter-btn sr-semester-pill ${
+                  isSelected ? "active" : ""
+                }`}
+                onClick={() => handleSelectYear(year.yearNumber)}
+              >
+                <span>{year.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
       {hasNoResultsAtAll ? (
         <ResultsEmptyState
           type="no-published-results"
@@ -304,63 +374,27 @@ export default function StudentResults() {
         />
       ) : (
         <>
-          {/* 1. Horizontal Semester Selector */}
-          {availableSemesters.length > 0 && (
-            <SemesterSelector
-              semesters={availableSemesters}
-              selectedSemester={selectedSemester}
-              onSelectSemester={setSelectedSemester}
-              currentSemester={currentSemester}
-            />
-          )}
+          {/* Selected Year Results */}
+          <div className="sr-selected-year-container" aria-label={`${selectedYearLabel} Results`}>
+            {hasSelectedYearResults ? (
+              <YearSemesterResultCards
+                groupedYears={groupedYears}
+                selectedYear={currentSelectedYear}
+                onPreview={handlePreviewResult}
+                onDownload={handleDownloadPdf}
+              />
+            ) : (
+              <ResultsEmptyState
+                type="no-year-results"
+                yearLabel={selectedYearLabel}
+              />
+            )}
+          </div>
 
-          {/* 2. Overview Mode vs. Selected Semester Filter */}
-          {selectedSemester === "ALL" ? (
-            <ResultSummaryHero
-              isAllView={true}
-              allResults={results}
-              onSelectSemester={setSelectedSemester}
-            />
-          ) : (
-            <>
-              {/* Back to All Semesters Navigation Strip */}
-              <div className="sr-back-to-overview-strip">
-                <button
-                  type="button"
-                  className="sr-back-to-all-btn"
-                  onClick={() => setSelectedSemester("ALL")}
-                  aria-label="Back to All Semesters overview"
-                >
-                  <FaArrowLeft aria-hidden="true" />
-                  <span>Back to All Semesters</span>
-                </button>
-                <span className="sr-active-sem-tag">
-                  Viewing Results for Semester {selectedSemester}
-                </span>
-              </div>
-
-              {filteredResults.length === 0 && (
-                <ResultsEmptyState
-                  type="no-semester-results"
-                  semesterNumber={selectedSemester}
-                  onResetFilter={() => setSelectedSemester("ALL")}
-                />
-              )}
-            </>
-          )}
-
-          {/* 3. Year -> Semester Result Cards (NO main-page subject tables) */}
-          <YearSemesterResultCards
-            groupedYears={groupedYears}
-            onPreview={handlePreviewResult}
-            onDownload={handleDownloadPdf}
-            selectedSemester={selectedSemester}
-          />
-
-          {/* 4. Backlog & Re-Examination Section */}
+          {/* Backlog & Re-Examination Section */}
           <BacklogSection groupedBacklogs={groupedBacklogs} />
 
-          {/* 5. Statement of Marks Preview & PDF Download Modal */}
+          {/* Statement of Marks Preview & PDF Download Modal */}
           <ResultStatementModal
             isOpen={previewModalOpen}
             onClose={() => setPreviewModalOpen(false)}

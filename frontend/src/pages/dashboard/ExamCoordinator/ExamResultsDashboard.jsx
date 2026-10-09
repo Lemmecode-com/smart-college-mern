@@ -9,7 +9,6 @@ import {
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
-import StandardListView from "../../../components/StandardListView/StandardListView";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
