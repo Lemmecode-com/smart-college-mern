@@ -1277,7 +1277,7 @@ if (loading) {
       }
 
         .erp-card-header {
-  padding: 1rem 1.4rem;
+  padding: 0.765rem 1.4rem;
   background: linear-gradient(135deg, #f5f8fa 0%, #edf2f6 100%);
   border-bottom: 1px solid rgba(61, 181, 230, 0.18);
   display: flex;
@@ -1287,7 +1287,7 @@ if (loading) {
 
         .erp-card-header h3 {
           margin: 0;
-          font-size: 1.375rem;
+          font-size: 1.275rem;
           font-weight: 700;
           color: #0f3a4a;
           display: flex;
@@ -1301,7 +1301,7 @@ if (loading) {
         }
 
         .erp-card-body {
-          padding: 1.25rem 1.4rem;
+          padding: 1.15rem 1.4rem;
         }
         
         /* FILTERS */
