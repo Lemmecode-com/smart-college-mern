@@ -5,6 +5,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
@@ -175,6 +176,123 @@ export default function ChildrenList() {
     return statusLabels[status] || status;
   };
 
+  
+const columns = [
+  {
+    key: "student",
+    label: "Student",
+    sortable: true,
+    width: "280px",
+    render: (child) => (
+      <div className="parent-student-info">
+        <div className="parent-student-avatar">
+          {(child.fullName || "?").charAt(0).toUpperCase()}
+        </div>
+
+        <div className="parent-student-details">
+          <div className="parent-student-name">
+            {child.fullName}
+          </div>
+          <div className="parent-student-email">
+            {child.email}
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: "course",
+    label: "Class",
+    sortable: true,
+    width: "260px",
+    render: (child) => (
+      <div className="parent-course-info">
+        <div className="parent-course-name">
+          {child.course_id?.name || "—"}
+        </div>
+        <div className="parent-course-semester">
+          Semester {child.currentSemester ?? "—"}
+        </div>
+      </div>
+    ),
+  },
+  {
+    key: "status",
+    label: "Status",
+    sortable: true,
+    width: "150px",
+    render: (child) => (
+      <span
+        className={`parent-status-badge ${getStatusClass(
+          child.status
+        )}`}
+      >
+        {getStatusLabel(child.status)}
+      </span>
+    ),
+  },
+];
+
+const tableActions = {
+  label: "Actions",
+  width: "320px",
+  items: [
+    {
+      key: "view",
+      label: "View",
+      text: "View",
+      icon: FaEye,
+      // className: "view-btn",
+      style: {
+        minWidth: "80px",
+        gap: "5px",
+        fontWeight: 600,
+        // backgroundColor: "#005f82",
+        background: "linear-gradient(to right, #005f82, #1d8bb7)",
+      },
+      onClick: (child) =>
+        navigate(`/dashboard/parent/child/${child._id}`),
+    },
+    {
+      key: "attendance",
+      label: "Attendance",
+      text: "Attendance",
+      icon: FaCalendarCheck,
+      className: "attendance-btn",
+      style: {
+        minWidth: "110px",
+        gap: "5px",
+        fontWeight: 600,
+        background: "linear-gradient(to right, #27b9cc, #0184b4)",
+      },
+      show: (child) =>
+        ["APPROVED", "ENROLLED"].includes(child.status),
+      onClick: (child) =>
+        navigate(
+          `/dashboard/parent/child/${child._id}/attendance`
+        ),
+    },
+    {
+      key: "fees",
+      label: "Fees",
+      text: "Fees",
+      icon: FaRupeeSign,
+      // className: "fees-btn",
+      style: {
+        minWidth: "80px",
+        gap: "5px",
+        fontWeight: 600,
+        background: "linear-gradient(to right, #f0ad4e, #f7c873)",
+      },
+      show: (child) =>
+        ["APPROVED", "ENROLLED"].includes(child.status),
+      onClick: (child) =>
+        navigate(`/dashboard/parent/child/${child._id}/fees`),
+    },
+  ],
+};
+
+
 if (loading) {
   return (
     <div className="parent-portal-wrapper">
@@ -268,125 +386,37 @@ if (loading) {
             </div>
           </motion.div>
 
-          {/* ================= CHILDREN TABLE ================= */}
-          <motion.div
-            variants={fadeInVariants}
-            custom={1}
-            initial="hidden"
-            animate="visible"
-          >
-            <div className="parent-table-container">
-              <div className="parent-table-header">
-                <h3 className="parent-table-title">
-                  <FaChild className="parent-table-icon" />
-                  Children Overview
-                </h3>
-                <div className="parent-table-count">
-                  Showing {filteredChildren.length} of {children.length}
-                </div>
-              </div>
 
-              <div className="parent-table-responsive">
-                {filteredChildren.length === 0 ? (
-                  <EmptyState
-                    icon={<FaChild style={{ color: BRAND_COLORS.primary.main }} />}
-                    title={children.length === 0 ? "No Children Found" : "No Children Match Your Search"}
-                    message={
-                      children.length === 0
-                        ? "No student accounts are linked to your parent account yet."
-                        : "Try adjusting your search or filter criteria."
-                    }
-                    success={false}
-                  />
-                ) : (
-                  <table className="parent-table">
-                    <thead>
-                      <tr>
-                        <th>Student</th>
-                        <th>Class</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredChildren.map((child, idx) => (
-                        <motion.tr
-                          key={child._id}
-                          variants={fadeInVariants}
-                          custom={idx}
-                          initial="hidden"
-                          animate="visible"
-                        >
-                          <td>
-                            <div className="parent-student-info">
-                              <div className="parent-student-avatar">
-                                {child.fullName.charAt(0).toUpperCase()}
-                              </div>
-                              <div className="parent-student-details">
-                                <div className="parent-student-name">{child.fullName}</div>
-                                <div className="parent-student-email">{child.email}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <div className="parent-course-info">
-                              <div className="parent-course-name">{child.course_id?.name}</div>
-                              <div className="parent-course-semester">
-                                Semester {child.currentSemester}
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            <span className={`parent-status-badge ${getStatusClass(child.status)}`}>
-                              {getStatusLabel(child.status)}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="parent-action-buttons">
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="parent-btn-view"
-                                onClick={() => navigate(`/dashboard/parent/child/${child._id}`)}
-                                title="View Details"
-                              >
-                                <FaEye />
-                                View
-                              </motion.button>
-                              {["APPROVED", "ENROLLED"].includes(child.status) && (
-                                <>
-                                  <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="parent-btn-attendance"
-                                    onClick={() => navigate(`/dashboard/parent/child/${child._id}/attendance`)}
-                                    title="View Attendance"
-                                  >
-                                    <FaCalendarCheck />
-                                    Attendance
-                                  </motion.button>
-                                  <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className="parent-btn-fees"
-                                    onClick={() => navigate(`/dashboard/parent/child/${child._id}/fees`)}
-                                    title="View Fees"
-                                  >
-                                    <FaRupeeSign />
-                                    Fees
-                                  </motion.button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-          </motion.div>
+{/* ================= CHILDREN STANDARD LIST ================= */}
+<motion.div
+  variants={fadeInVariants}
+  custom={1}
+  initial="hidden"
+  animate="visible"
+>
+  <StandardListView
+    className="parent-children-list"
+    title="Children Overview"
+    icon={FaChild}
+    count={filteredChildren.length}
+    columns={columns}
+    data={filteredChildren}
+    loading={false}
+    emptyState={{
+      icon: FaChild,
+      title:
+        children.length === 0
+          ? "No Children Found"
+          : "No Children Match Your Search",
+      description:
+        children.length === 0
+          ? "No student accounts are linked to your parent account yet."
+          : "Try adjusting your search or filter criteria.",
+    }}
+    actions={tableActions}
+  />
+</motion.div>
+
         </div>
       </motion.div>
     </AnimatePresence>

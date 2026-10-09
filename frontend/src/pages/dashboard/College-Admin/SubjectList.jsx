@@ -127,7 +127,8 @@ export default function SubjectList() {
   const [subjectToDelete, setSubjectToDelete] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
-
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
 
   useEffect(() => {
@@ -432,6 +433,14 @@ export default function SubjectList() {
     restoreFilters();
   }, [user]);
 
+  useEffect(() => {
+  setPage(1);
+}, [
+  searchTerm,
+  selectedDepartment,
+  selectedCourse,
+  selectedSemester,
+]);
 
 
   /* ================= FILTERING ================= */
@@ -547,6 +556,15 @@ if (loading) {
 
 
   const filteredSubjects = getFilteredSubjects();
+
+  const totalPages = Math.ceil(
+    filteredSubjects.length / ITEMS_PER_PAGE
+  );
+
+  const paginatedSubjects = filteredSubjects.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE
+  );
 
   const columns = [
     {

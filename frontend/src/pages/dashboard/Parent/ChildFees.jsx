@@ -300,10 +300,10 @@ if (loading) {
             <div className="parent-fee-card">
               <div className="parent-fee-header">
                 <div className="parent-fee-icon" style={{ background: `linear-gradient(135deg, ${BRAND_COLORS.primary.main}20, ${BRAND_COLORS.primary.main}10)` }}>
-                  <FaCreditCard style={{ color: BRAND_COLORS.primary.main }} />
+                  <FaCreditCard  />
                 </div>
                 <div>
-                  <h3 className="parent-fee-title">Payment Progress</h3>
+                  <h3 className="parent-fee-title" style={{color: 'white' }}>Payment Progress</h3>
                 </div>
               </div>
               <div className="parent-fee-card-body">
@@ -360,7 +360,7 @@ if (loading) {
                   <FaCalendarAlt style={{ color: BRAND_COLORS.success.main }} />
                 </div>
                 <div>
-                  <h3 className="parent-fee-title">Installment History</h3>
+                  <h3 className="parent-fee-title" style={{color: 'white' }}>Installment History</h3>
                 </div>
               </div>
               <div className="parent-fee-card-body">
