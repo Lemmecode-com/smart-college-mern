@@ -35,6 +35,7 @@ import {
   FaClock,
   FaInfoCircle,
   FaCalendarAlt,
+  FaPencilAlt,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
