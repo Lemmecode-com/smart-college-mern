@@ -492,6 +492,9 @@ const evaluateAttempt = async ({
                 internalMarks: calculation.internalMarks,
                 externalMarks: calculation.externalMarks,
                 totalMarks: calculation.totalMarks,
+                internalMaxMarks: calculation.internalMaxMarks ?? null,
+                externalMaxMarks: calculation.externalMaxMarks ?? null,
+                maxMarks: calculation.maxMarks ?? null,
                 internalPassed: calculation.internalPassed,
                 externalPassed: calculation.externalPassed,
                 passed: calculation.passed,
@@ -504,6 +507,15 @@ const evaluateAttempt = async ({
             failedSubjects: resultStatus === "FAIL" ? 1 : 0,
             incompleteSubjects: resultStatus === "INCOMPLETE" ? 1 : 0,
             overallResult: resultStatus,
+            totalMarks: calculation.totalMarks ?? null,
+            totalMaxMarks: calculation.maxMarks ?? null,
+            percentage:
+              calculation.totalMarks !== null &&
+              calculation.totalMarks !== undefined &&
+              calculation.maxMarks &&
+              resultStatus !== "INCOMPLETE"
+                ? Number(((calculation.totalMarks / calculation.maxMarks) * 100).toFixed(2))
+                : null,
             status: RESULT_STATUS.PUBLISHED,
             createdBy: actorId,
             updatedBy: actorId,

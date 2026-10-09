@@ -565,12 +565,99 @@ const createPromotionDecision = async ({
     ).populate("failed_subject_ids", "name code");
   }
 
-  const created = await PromotionDecision.create({
+    const created = await PromotionDecision.create({
     ...lookup,
     ...freshFields,
     createdBy: userId,
   });
   return created.populate("failed_subject_ids", "name code");
+};
+
+/**
+ * Strips all internal, administrative, actor, and reviewer metadata from a
+ * PromotionDecision document, producing a safe, read-only payload for student view.
+ */
+const sanitizeStudentPromotionDecision = (decision) => {
+  if (!decision) return null;
+
+  const attendance = decision.attendance_snapshot
+    ? {
+        percentage: decision.attendance_snapshot.percentage,
+        requiredPercentage: decision.attendance_snapshot.requiredPercentage,
+        status: decision.attendance_snapshot.status,
+        passed: decision.attendance_snapshot.passed,
+      }
+    : null;
+
+  const feeClearance = decision.fee_clearance_snapshot
+    ? {
+        status: decision.fee_clearance_snapshot.status,
+        cleared: decision.fee_clearance_snapshot.cleared,
+        passed: decision.fee_clearance_snapshot.passed,
+      }
+    : null;
+
+  return {
+    status: decision.workflow_status,
+    outcome: decision.promotion_outcome,
+    decisionReason: decision.decision_reason,
+    semester: decision.semester,
+    academicYear: decision.academicYear,
+    ktCount: decision.kt_count ?? 0,
+    failedSubjectCount: decision.failed_subject_count ?? 0,
+    attendance,
+    feeClearance,
+    evaluatedAt: decision.updatedAt || decision.createdAt || null,
+    promotedAt: decision.promotedAt || null,
+  };
+};
+
+/**
+ * Resolves the authenticated student's authoritative PromotionDecision for the
+ * requested semester (or currentSemester if not specified) and returns a sanitized
+ * view. Student identity is strictly derived from the authenticated userId.
+ */
+const getStudentPromotionStatus = async ({ collegeId, userId, semester }) => {
+  const student = await Student.findOne({
+    user_id: userId,
+    college_id: collegeId,
+  }).select("_id course_id currentSemester");
+
+  if (!student) {
+    throw new AppError("Student profile not found", 404, "STUDENT_NOT_FOUND");
+  }
+
+  let targetSemester = student.currentSemester;
+  if (semester !== undefined && semester !== null && semester !== "") {
+    const parsedSemester = Number(semester);
+    if (
+      !Number.isInteger(parsedSemester) ||
+      parsedSemester < 1 ||
+      parsedSemester > 8
+    ) {
+      throw new AppError(
+        "Invalid semester. Semester must be an integer between 1 and 8.",
+        400,
+        "INVALID_SEMESTER",
+      );
+    }
+    targetSemester = parsedSemester;
+  }
+
+  const decision = await PromotionDecision.findOne({
+    college_id: collegeId,
+    student_id: student._id,
+    course_id: student.course_id,
+    semester: targetSemester,
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (!decision) {
+    return null;
+  }
+
+  return sanitizeStudentPromotionDecision(decision);
 };
 
 module.exports = {
@@ -583,4 +670,7 @@ module.exports = {
   calculatePromotionDecision,
   createPromotionDecision,
   calculatePreviousAcademicYear,
+  sanitizeStudentPromotionDecision,
+  getStudentPromotionStatus,
 };
+

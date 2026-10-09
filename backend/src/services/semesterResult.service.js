@@ -10,7 +10,10 @@ const BacklogAttempt = require("../models/backlogAttempt.model");
 const AppError = require("../utils/AppError");
 const { RESULT_STATUS } = require("../utils/constants");
 const { validateUnlockReason } = require("../utils/resultLifecycle.util");
-const { calculateSubjectResult } = require("./examCalculation.service");
+const {
+  calculateSubjectResult,
+  calculateSemesterTotals,
+} = require("./examCalculation.service");
 const { evaluateAttempt } = require("./backlogAttempt.service");
 const logger = require("../utils/logger");
 
@@ -154,6 +157,9 @@ exports.generateSemesterResult = async ({
       internalMarks: calculation.internalMarks,
       externalMarks: calculation.externalMarks,
       totalMarks: calculation.totalMarks,
+      internalMaxMarks: calculation.internalMaxMarks,
+      externalMaxMarks: calculation.externalMaxMarks,
+      maxMarks: calculation.maxMarks,
       internalPassed: calculation.internalPassed,
       externalPassed: calculation.externalPassed,
       passed: calculation.passed,
@@ -167,6 +173,10 @@ exports.generateSemesterResult = async ({
   }
 
   const overallResult = calculateOverallResult(subjects.map((s) => s.status));
+  const { totalMarks, totalMaxMarks, percentage } = calculateSemesterTotals(
+    subjects,
+    overallResult,
+  );
 
   const persistedResult = {
     college_id: collegeId,
@@ -181,6 +191,9 @@ exports.generateSemesterResult = async ({
     failedSubjects,
     incompleteSubjects,
     overallResult,
+    totalMarks,
+    totalMaxMarks,
+    percentage,
     calculatedAt: new Date(),
     status: RESULT_STATUS.DRAFT,
     updatedBy: userId,
@@ -211,6 +224,9 @@ exports.generateSemesterResult = async ({
     existing.failedSubjects = persistedResult.failedSubjects;
     existing.incompleteSubjects = persistedResult.incompleteSubjects;
     existing.overallResult = persistedResult.overallResult;
+    existing.totalMarks = persistedResult.totalMarks;
+    existing.totalMaxMarks = persistedResult.totalMaxMarks;
+    existing.percentage = persistedResult.percentage;
     existing.calculatedAt = persistedResult.calculatedAt;
     existing.updatedBy = userId;
     await existing.save();
@@ -489,53 +505,225 @@ exports.getMyResults = async ({ collegeId, userId }) => {
     student_id: student._id,
     status: RESULT_STATUS.PUBLISHED,
   })
-    .populate("exam_id", "name semester academicYear status")
+    .populate("exam_id", "name semester academicYear status subjects")
     .populate("course_id", "name code")
     .sort({ createdAt: -1 })
     .lean();
 
-  const backlogAttempts = await BacklogAttempt.find({
+  // P0 Security Fix:
+  // Identify all exams in this college where results are officially PUBLISHED.
+  // Backlog attempts must only be exposed if their associated exam results are published.
+  const publishedExamIds = await SemesterResult.distinct("exam_id", {
+    college_id: collegeId,
+    status: RESULT_STATUS.PUBLISHED,
+  });
+  const publishedExamIdSet = new Set(publishedExamIds.map(String));
+
+  // Query backlog attempts scoped to this student & college,
+  // restricted to evaluated outcomes (PASS/FAIL) in published exams.
+  const rawBacklogAttempts = await BacklogAttempt.find({
     college_id: collegeId,
     student_id: student._id,
+    result_status: { $in: ["PASS", "FAIL"] },
+    exam_id: { $in: publishedExamIds },
   })
     .populate("exam_id", "name semester academicYear status")
     .populate("backlog_id", "semester academicYear")
     .populate("subject_id", "name code subjectType")
+    .populate("result_id", "status")
     .sort({ attempt_number: 1, created_at: 1 })
     .lean();
 
-  const formattedBacklogs = backlogAttempts.map((attempt) => ({
-    backlogId: attempt.backlog_id?._id || attempt.backlog_id,
-    attemptId: attempt._id,
-    subjectId: attempt.subject_id?._id || attempt.subject_id,
-    subjectName: attempt.subject_name || attempt.subject_id?.name || "Subject",
-    subjectCode: attempt.subject_code || attempt.subject_id?.code || "",
-    subjectType: attempt.subject_type || attempt.subject_id?.subjectType || "THEORY",
-    semester: attempt.backlog_id?.semester,
-    academicYear: attempt.backlog_id?.academicYear,
-    examId: attempt.exam_id?._id || attempt.exam_id,
-    examName: attempt.exam_name || attempt.exam_id?.name || "Exam",
-    attemptNumber: attempt.attempt_number,
-    resultStatus: attempt.result_status,
-    internalMarks: attempt.internal_marks,
-    externalMarks: attempt.external_marks,
-    totalMarks: attempt.total_marks,
-    marks: {
+  // Strict publication & evaluation filter:
+  // - Exam must be PUBLISHED
+  // - Exam results must be officially PUBLISHED in the college
+  // - Linked direct result (if any, e.g. supplementary) must be PUBLISHED
+  // - Attempt result_status must be PASS or FAIL (never INCOMPLETE)
+  const visibleAttempts = rawBacklogAttempts.filter((attempt) => {
+    if (!attempt.exam_id || attempt.exam_id.status !== "PUBLISHED") {
+      return false;
+    }
+    const examIdStr = String(attempt.exam_id?._id || attempt.exam_id);
+    if (!publishedExamIdSet.has(examIdStr)) {
+      return false;
+    }
+    if (attempt.result_id && attempt.result_id.status !== RESULT_STATUS.PUBLISHED) {
+      return false;
+    }
+    if (attempt.result_status !== "PASS" && attempt.result_status !== "FAIL") {
+      return false;
+    }
+    return true;
+  });
+
+  // Group attempts by backlog_id to assemble complete historical attempt chains
+  const attemptsByBacklog = new Map();
+  for (const attempt of visibleAttempts) {
+    const bId = String(attempt.backlog_id?._id || attempt.backlog_id);
+    if (!attemptsByBacklog.has(bId)) {
+      attemptsByBacklog.set(bId, []);
+    }
+    attemptsByBacklog.get(bId).push({
+      attemptId: attempt._id,
+      attemptNumber: attempt.attempt_number,
+      examId: attempt.exam_id?._id || attempt.exam_id,
+      examName: attempt.exam_name || attempt.exam_id?.name || "Exam",
+      semester: attempt.backlog_id?.semester,
+      academicYear: attempt.backlog_id?.academicYear,
       internalMarks: attempt.internal_marks,
       externalMarks: attempt.external_marks,
       totalMarks: attempt.total_marks,
-    },
-    passed: attempt.passed,
-    cleared: attempt.cleared,
-    evaluatedAt: attempt.evaluated_at,
-  }));
+      marks: {
+        internalMarks: attempt.internal_marks,
+        externalMarks: attempt.external_marks,
+        totalMarks: attempt.total_marks,
+      },
+      resultStatus: attempt.result_status,
+      status: attempt.result_status,
+      passed: attempt.passed,
+      cleared: attempt.cleared,
+      evaluatedAt: attempt.evaluated_at,
+    });
+  }
+
+  // Format visible attempts for response
+  const formattedAttempts = visibleAttempts.map((attempt) => {
+    const bId = String(attempt.backlog_id?._id || attempt.backlog_id);
+    const history = attemptsByBacklog.get(bId) || [];
+    return {
+      backlogId: attempt.backlog_id?._id || attempt.backlog_id,
+      attemptId: attempt._id,
+      subjectId: attempt.subject_id?._id || attempt.subject_id,
+      subjectName: attempt.subject_name || attempt.subject_id?.name || "Subject",
+      subjectCode: attempt.subject_code || attempt.subject_id?.code || "",
+      subjectType: attempt.subject_type || attempt.subject_id?.subjectType || "THEORY",
+      semester: attempt.backlog_id?.semester,
+      academicYear: attempt.backlog_id?.academicYear,
+      examId: attempt.exam_id?._id || attempt.exam_id,
+      examName: attempt.exam_name || attempt.exam_id?.name || "Exam",
+      attemptNumber: attempt.attempt_number,
+      resultStatus: attempt.result_status,
+      status: attempt.result_status,
+      internalMarks: attempt.internal_marks,
+      externalMarks: attempt.external_marks,
+      totalMarks: attempt.total_marks,
+      marks: {
+        internalMarks: attempt.internal_marks,
+        externalMarks: attempt.external_marks,
+        totalMarks: attempt.total_marks,
+      },
+      passed: attempt.passed,
+      cleared: attempt.cleared,
+      evaluatedAt: attempt.evaluated_at,
+      attempts: history,
+    };
+  });
+
+  // Track backlogs that already have at least one visible published attempt
+  const attemptedBacklogIds = new Set(
+    formattedAttempts.map((a) => String(a.backlogId)),
+  );
+
+  // Objective 2 — Open Backlog Completeness:
+  // Query active backlogs (OPEN or ATTEMPTED) for this student in this college.
+  // Backlogs that have 0 published attempts returned (unattempted or attempts in draft exams)
+  // are represented so students see their active backlog status.
+  const activeBacklogs = await Backlog.find({
+    college_id: collegeId,
+    student_id: student._id,
+    status: { $in: ["OPEN", "ATTEMPTED"] },
+  })
+    .populate("subject_id", "name code subjectType")
+    .sort({ semester: 1, created_at: 1 })
+    .lean();
+
+  const zeroAttemptBacklogs = [];
+  for (const backlog of activeBacklogs) {
+    const backlogIdStr = String(backlog._id);
+    if (!attemptedBacklogIds.has(backlogIdStr)) {
+      zeroAttemptBacklogs.push({
+        backlogId: backlog._id,
+        attemptId: null,
+        subjectId: backlog.subject_id?._id || backlog.subject_id,
+        subjectName: backlog.subject_name || backlog.subject_id?.name || "Subject",
+        subjectCode: backlog.subject_code || backlog.subject_id?.code || "",
+        subjectType: backlog.subject_type || backlog.subject_id?.subjectType || "THEORY",
+        semester: backlog.semester,
+        academicYear: backlog.academicYear,
+        examId: null,
+        examName: null,
+        attemptNumber: 0,
+        resultStatus: "OPEN",
+        status: backlog.status || "OPEN",
+        internalMarks: null,
+        externalMarks: null,
+        totalMarks: null,
+        marks: {
+          internalMarks: null,
+          externalMarks: null,
+          totalMarks: null,
+        },
+        passed: false,
+        cleared: false,
+        evaluatedAt: null,
+        attempts: [],
+      });
+    }
+  }
+
+  const formattedBacklogs = [
+    ...formattedAttempts,
+    ...zeroAttemptBacklogs,
+  ];
 
   // Attach matching backlog results to each regular SemesterResult by exam_id
   for (const result of regularResults) {
     const examIdStr = String(result.exam_id?._id || result.exam_id);
     result.backlogResults = formattedBacklogs.filter(
-      (b) => String(b.examId) === examIdStr,
+      (b) => b.examId && String(b.examId) === examIdStr,
     );
+
+    // Defense-in-depth: resolve missing maxMarks or percentage for historical records
+    if (
+      result.totalMaxMarks === null ||
+      result.totalMaxMarks === undefined ||
+      result.percentage === null ||
+      result.percentage === undefined
+    ) {
+      const examSubjectsMap = new Map(
+        (result.exam_id?.subjects || []).map((s) => [String(s.subject), s]),
+      );
+      for (const sub of result.subjects || []) {
+        if (sub.maxMarks === null || sub.maxMarks === undefined) {
+          const cfg = examSubjectsMap.get(String(sub.subject));
+          if (cfg) {
+            const subCalc = calculateSubjectResult(cfg, {
+              internalMarks: sub.internalMarks,
+              externalMarks: sub.externalMarks,
+            });
+            sub.internalMaxMarks = subCalc.internalMaxMarks;
+            sub.externalMaxMarks = subCalc.externalMaxMarks;
+            sub.maxMarks = subCalc.maxMarks;
+          }
+        }
+      }
+      const totals = calculateSemesterTotals(result.subjects, result.overallResult);
+      result.totalMarks = totals.totalMarks;
+      result.totalMaxMarks = totals.totalMaxMarks;
+      result.percentage = totals.percentage;
+    }
+
+    result.examName = result.exam_id?.name || "Semester Exam";
+    result.resultStatus = result.overallResult;
+
+    // Count active or non-cleared backlogs originating from this semester
+    const semBacklogs = formattedBacklogs.filter(
+      (b) =>
+        Number(b.semester) === Number(result.semester) &&
+        !b.cleared &&
+        b.resultStatus !== "CLEARED",
+    );
+    result.backlogCount = semBacklogs.length;
   }
 
   return {
@@ -941,5 +1129,74 @@ exports.publishResultsForExam = async ({ collegeId, examId, userId }) => {
     examId,
     matched: updateResult.matchedCount || 0,
     modified: updateResult.modifiedCount || 0,
+  };
+};
+
+/**
+ * Idempotently backfill missing maxMarks, totalMarks, totalMaxMarks, and percentage
+ * on existing SemesterResult records using their authoritative linked Exam.subjects[].
+ *
+ * @param {Object} [options]
+ * @param {ObjectId|string} [options.collegeId]
+ * @returns {Promise<{ totalProcessed: number, updatedCount: number, skippedCount: number }>}
+ */
+exports.backfillSemesterResultPercentages = async ({ collegeId } = {}) => {
+  const query = {};
+  if (collegeId) query.college_id = collegeId;
+
+  const results = await SemesterResult.find(query);
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  for (const res of results) {
+    const exam = await Exam.findById(res.exam_id).lean();
+    if (!exam || !Array.isArray(exam.subjects) || exam.subjects.length === 0) {
+      skippedCount++;
+      continue;
+    }
+
+    const examSubMap = new Map(exam.subjects.map((s) => [String(s.subject), s]));
+    let modified = false;
+
+    for (const sub of res.subjects || []) {
+      if (sub.maxMarks === null || sub.maxMarks === undefined) {
+        const cfg = examSubMap.get(String(sub.subject));
+        if (cfg) {
+          const calc = calculateSubjectResult(cfg, {
+            internalMarks: sub.internalMarks,
+            externalMarks: sub.externalMarks,
+          });
+          sub.internalMaxMarks = calc.internalMaxMarks;
+          sub.externalMaxMarks = calc.externalMaxMarks;
+          sub.maxMarks = calc.maxMarks;
+          modified = true;
+        }
+      }
+    }
+
+    if (
+      res.totalMaxMarks === null ||
+      res.totalMaxMarks === undefined ||
+      res.totalMarks === null ||
+      res.totalMarks === undefined ||
+      res.percentage === null ||
+      res.percentage === undefined ||
+      modified
+    ) {
+      const totals = calculateSemesterTotals(res.subjects, res.overallResult);
+      res.totalMarks = totals.totalMarks;
+      res.totalMaxMarks = totals.totalMaxMarks;
+      res.percentage = totals.percentage;
+      await res.save();
+      updatedCount++;
+    } else {
+      skippedCount++;
+    }
+  }
+
+  return {
+    totalProcessed: results.length,
+    updatedCount,
+    skippedCount,
   };
 };
