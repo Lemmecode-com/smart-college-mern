@@ -229,6 +229,29 @@ exports.createExam = async (req, res, next) => {
       semNum,
     );
 
+    const existingPublishedExam = await Exam.findOne({
+      college_id: req.college_id,
+      course_id,
+      semester: semNum,
+      academicYear: String(academicYear).trim(),
+      status: "PUBLISHED",
+    });
+
+    if (existingPublishedExam) {
+      const publishedSchedule = await ExamSchedule.findOne({
+        exam_id: existingPublishedExam._id,
+        college_id: req.college_id,
+        status: "PUBLISHED",
+      });
+      if (publishedSchedule) {
+        throw new AppError(
+          "Exam Timetable is already published",
+          400,
+          "TIMETABLE_ALREADY_PUBLISHED",
+        );
+      }
+    }
+
     const exam = await Exam.create({
       college_id: req.college_id,
       name: String(name).trim(),
@@ -339,7 +362,12 @@ const filterExamsForTeacher = async (exams, req) => {
  */
 exports.getExams = async (req, res, next) => {
   try {
-    const exams = await Exam.find({ college_id: req.college_id })
+    const filter = { college_id: req.college_id };
+    if (req.query.status) {
+      filter.status = req.query.status;
+    }
+
+    const exams = await Exam.find(filter)
       .populate("course_id", "name code")
       .populate("subjects.subject", "name code teacher_id subjectType")
       .sort({ createdAt: -1 });

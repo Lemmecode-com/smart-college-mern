@@ -1,149 +1,483 @@
-import { useMemo } from "react";
-import { FaBook, FaCalendarAlt, FaEye } from "react-icons/fa";
+import React, { useMemo, useState } from "react";
+import {
+  FaBook,
+  FaCalendarAlt,
+  FaEye,
+  FaClock,
+  FaMapMarkerAlt,
+  FaCheckCircle,
+  FaCalendarDay,
+} from "react-icons/fa";
+import {
+  formatTime12Hour,
+  calculateDuration,
+  formatSession,
+  getRelativeExamStatus,
+  sortScheduleSubjects,
+  filterScheduleSubjects,
+  getScheduleSummaryMetrics,
+  getExamDateRange,
+  normalizeExamItem,
+  getSubjectInfo,
+  hasScheduleData,
+  formatDateWithWeekday,
+} from "../utils/examTimetable.util";
 import "./PublishedExamTimetable.css";
 
 /* =========================================================
-   Formatting helpers
+   Subcomponents
    ========================================================= */
 
-const formatDate = (value) => {
-  if (!value) return "N/A";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "N/A";
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-};
-
-const formatTime12Hour = (time24) => {
-  if (!time24) return "N/A";
-  const [hours, minutes] = time24.split(":").map(Number);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return "N/A";
-  const period = hours >= 12 ? "PM" : "AM";
-  const hours12 = hours % 12 || 12;
-  return `${String(hours12).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${period}`;
-};
-
-const formatSession = (session) => {
-  if (!session) return "N/A";
-  if (session === "FORENOON") return "Morning";
-  if (session === "AFTERNOON") return "Afternoon";
-  return session;
-};
-
-/* =========================================================
-   Data normalization
-
-   The published timetable is consumed from two different API
-   responses that produce two different shapes:
-
-   1. GET /exam/published  →  array of flat Exam docs.
-      Each exam's `subjects` are subject snapshots (no schedule
-      timing — those live in ExamSchedule).
-
-   2. GET /exam-schedule/published/:examId  →  { exam, schedule }
-      wrapper.  `schedule.subjects` hold the actual timetable
-      entries (examDate, startTime, endTime, session, room).
-
-   This helper unifies both into a single flat exam object whose
-   `subjects` always carries schedule timing when available.
-   ========================================================= */
-
-const normalizeExamItem = (item) => {
-  if (!item || typeof item !== "object") return null;
-
-  // Detail wrapper: { exam, schedule, success, message }
-  if (item.exam && item.schedule) {
-    const exam = item.exam;
-    const sched = item.schedule;
-    return {
-      _id: exam._id,
-      name: exam.name,
-      course_id: exam.course_id,
-      semester: exam.semester,
-      academicYear: exam.academicYear,
-      status: sched.status || exam.status || "PUBLISHED",
-      subjects: Array.isArray(sched.subjects) ? sched.subjects : [],
-    };
+function RelativeStatusBadge({ statusInfo }) {
+  if (!statusInfo || statusInfo.key === "UNSCHEDULED") {
+    return (
+      <span className="published-exam-relative-badge is-unscheduled">
+        <FaClock aria-hidden="true" /> {statusInfo?.label || "Date not set"}
+      </span>
+    );
   }
 
-  // Flat Exam doc (list view) — already in the right shape.
-  return item;
-};
-
-/**
- * Extract subject name / code from a schedule entry whose `subject`
-   field may be a populated object or a plain string id.
-   Handles the flat shape produced by loadPublishedSchedule too.
- */
-const getSubjectInfo = (entry) => {
-  if (!entry) return { name: "N/A", code: "", category: "REGULAR", originalSemester: null };
-
-  const category =
-    entry.category ||
-    (entry.subject && typeof entry.subject === "object" ? entry.subject.category : null) ||
-    "REGULAR";
-  const originalSemester =
-    entry.originalSemester !== undefined
-      ? entry.originalSemester
-      : (entry.subject && typeof entry.subject === "object" ? entry.subject.originalSemester : null);
-
-  // Flat shape (loadPublishedSchedule remaps)
-  if (entry.subjectName || entry.subjectCode) {
-    return {
-      name: entry.subjectName || "N/A",
-      code: entry.subjectCode || "",
-      category,
-      originalSemester,
-    };
+  if (statusInfo.key === "COMPLETED") {
+    return (
+      <span className="published-exam-relative-badge is-completed">
+        <FaCheckCircle aria-hidden="true" /> Completed
+      </span>
+    );
   }
 
-  // Populated subject object (loadPublishedScheduleForVisibility)
-  const sub = entry.subject;
-  if (sub && typeof sub === "object") {
-    return {
-      name: sub.name || "N/A",
-      code: sub.code || "",
-      category,
-      originalSemester,
-    };
+  if (statusInfo.key === "TODAY") {
+    return (
+      <span className="published-exam-relative-badge is-today">
+        <FaCalendarDay aria-hidden="true" /> Today
+      </span>
+    );
   }
 
-  return { name: "N/A", code: "", category, originalSemester };
-};
+  if (statusInfo.key === "TOMORROW") {
+    return (
+      <span className="published-exam-relative-badge is-tomorrow">
+        <FaClock aria-hidden="true" /> Tomorrow
+      </span>
+    );
+  }
 
-/** Returns true when at least one subject entry carries schedule timing. */
-const hasScheduleData = (subjects) =>
-  Array.isArray(subjects) &&
-  subjects.some(
-    (s) =>
-      s &&
-      (s.examDate || s.startTime || s.endTime || s.session || s.room),
+  return (
+    <span className="published-exam-relative-badge is-future">
+      <FaClock aria-hidden="true" /> {statusInfo.label}
+    </span>
   );
+}
+
+function SubjectCategoryBadge({ category, originalSemester }) {
+  if (category === "BACKLOG") {
+    return (
+      <span className="published-exam-backlog-badge" title="Backlog Subject">
+        BACKLOG{originalSemester ? ` · Sem ${originalSemester}` : ""}
+      </span>
+    );
+  }
+
+  return (
+    <span className="published-exam-regular-badge" title="Regular Subject">
+      REGULAR
+    </span>
+  );
+}
+
+function RoomDisplay({ room }) {
+  const isAssigned = Boolean(room && room.trim());
+  return (
+    <span className={`published-exam-room ${isAssigned ? "is-assigned" : "is-unassigned"}`}>
+      <FaMapMarkerAlt className="room-pin-icon" aria-hidden="true" />
+      <span>{isAssigned ? room.trim() : "Room not assigned"}</span>
+    </span>
+  );
+}
+
+function ExamScheduleCard({ exam, onExamClick }) {
+  const [activeFilter, setActiveFilter] = useState("ALL");
+
+  const rawSubjects = useMemo(() => {
+    return Array.isArray(exam.subjects) ? exam.subjects : [];
+  }, [exam.subjects]);
+
+  const showSchedule = hasScheduleData(rawSubjects);
+
+  // Chronological sorting (primary: examDate asc, secondary: startTime asc)
+  const sortedSubjects = useMemo(() => {
+    return sortScheduleSubjects(rawSubjects);
+  }, [rawSubjects]);
+
+  const summaryMetrics = useMemo(() => {
+    return getScheduleSummaryMetrics(sortedSubjects);
+  }, [sortedSubjects]);
+
+  const filteredSubjects = useMemo(() => {
+    return filterScheduleSubjects(sortedSubjects, activeFilter);
+  }, [sortedSubjects, activeFilter]);
+
+  const dateRange = useMemo(() => {
+    return getExamDateRange(sortedSubjects);
+  }, [sortedSubjects]);
+
+  const courseName = exam.course_id?.name || "—";
+  const courseCode = exam.course_id?.code || "";
+  const examName = exam.name || "Exam";
+  const isPublished = exam.status === "PUBLISHED";
+
+  return (
+    <div className="published-exam-card">
+      {/* ── Card Header ── */}
+      <div className="published-exam-card-header">
+        <div className="published-exam-card-header-left">
+          <div className="published-exam-card-header-icon" aria-hidden="true">
+            <FaCalendarAlt />
+          </div>
+          <div>
+            <h4 className="published-exam-card-title">{examName}</h4>
+            <p className="published-exam-card-subtitle">
+              {courseName}
+              {courseCode ? ` (${courseCode})` : ""} · Semester {exam.semester ?? "—"}
+              {exam.academicYear ? ` · ${exam.academicYear}` : ""}
+            </p>
+            {dateRange && (
+              <p className="published-exam-card-dates">
+                <FaCalendarAlt className="date-range-icon" aria-hidden="true" />
+                <span>Exam Dates: {dateRange}</span>
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="published-exam-card-meta">
+          <span
+            className={`published-exam-status-badge ${
+              isPublished ? "is-published" : "is-draft"
+            }`}
+          >
+            <span className="published-exam-status-dot" aria-hidden="true" />
+            {isPublished ? "Published" : exam.status || "Draft"}
+          </span>
+          {onExamClick && (
+            <button
+              type="button"
+              className="published-exam-view-btn"
+              onClick={() => onExamClick(exam)}
+            >
+              <FaEye aria-hidden="true" />
+              View Timetable
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Card Body ── */}
+      <div className="published-exam-card-body">
+        {sortedSubjects.length === 0 ? (
+          <div className="published-exam-empty">
+            <p>No subjects scheduled for this exam.</p>
+          </div>
+        ) : showSchedule ? (
+          <>
+            {/* Quick Summary Strip */}
+            <div className="published-exam-summary-grid">
+              <div className="published-exam-summary-card is-next">
+                <span className="summary-card-label">Next Exam</span>
+                <span className="summary-card-value">
+                  {summaryMetrics.nextExamText ||
+                    (summaryMetrics.completedPapers === summaryMetrics.totalPapers &&
+                    summaryMetrics.totalPapers > 0
+                      ? "Completed"
+                      : "—")}
+                </span>
+              </div>
+              <div className="published-exam-summary-card">
+                <span className="summary-card-label">Total Papers</span>
+                <span className="summary-card-value">{summaryMetrics.totalPapers}</span>
+              </div>
+              <div className="published-exam-summary-card">
+                <span className="summary-card-label">Regular</span>
+                <span className="summary-card-value">{summaryMetrics.regularPapers}</span>
+              </div>
+              {summaryMetrics.backlogPapers > 0 && (
+                <div className="published-exam-summary-card is-backlog-metric">
+                  <span className="summary-card-label">Backlog</span>
+                  <span className="summary-card-value">{summaryMetrics.backlogPapers}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Upcoming / Completed Filter Bar */}
+            <div className="published-exam-filter-row">
+              <div
+                className="published-exam-filter-tabs"
+                role="tablist"
+                aria-label="Filter schedule entries"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeFilter === "ALL"}
+                  className={`published-exam-filter-btn ${
+                    activeFilter === "ALL" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActiveFilter("ALL")}
+                >
+                  All <span className="filter-badge">({summaryMetrics.totalPapers})</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeFilter === "UPCOMING"}
+                  className={`published-exam-filter-btn ${
+                    activeFilter === "UPCOMING" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActiveFilter("UPCOMING")}
+                >
+                  Upcoming{" "}
+                  <span className="filter-badge">({summaryMetrics.upcomingPapers})</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeFilter === "COMPLETED"}
+                  className={`published-exam-filter-btn ${
+                    activeFilter === "COMPLETED" ? "is-active" : ""
+                  }`}
+                  onClick={() => setActiveFilter("COMPLETED")}
+                >
+                  Completed{" "}
+                  <span className="filter-badge">({summaryMetrics.completedPapers})</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filtered Empty States */}
+            {filteredSubjects.length === 0 ? (
+              <div className="published-exam-filter-empty">
+                {activeFilter === "UPCOMING" ? (
+                  <>
+                    <FaCheckCircle className="filter-empty-icon is-completed" aria-hidden="true" />
+                    <h6 className="filter-empty-title">
+                      All exams in this schedule have been completed
+                    </h6>
+                    <p className="filter-empty-text">
+                      Select "All" or "Completed" above to view past paper schedules.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <FaClock className="filter-empty-icon is-upcoming" aria-hidden="true" />
+                    <h6 className="filter-empty-title">No completed exams yet</h6>
+                    <p className="filter-empty-text">
+                      Exams will appear here once their scheduled date and time has passed.
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Desktop Table View */}
+                <div className="published-exam-table-wrap">
+                  <table className="published-exam-table">
+                    <thead>
+                      <tr>
+                        <th scope="col" style={{ width: "28%" }}>Subject</th>
+                        <th scope="col" style={{ width: "13%" }}>Code</th>
+                        <th scope="col" style={{ width: "17%" }}>Exam Date</th>
+                        <th scope="col" style={{ width: "18%" }}>Time & Duration</th>
+                        <th scope="col" style={{ width: "11%" }}>Session</th>
+                        <th scope="col" style={{ width: "13%" }}>Room No.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredSubjects.map((entry, idx) => {
+                        const { name, code, category, originalSemester } = getSubjectInfo(entry);
+                        const { weekday, dateStr, isoDate } = formatDateWithWeekday(entry.examDate);
+                        const duration = calculateDuration(entry.startTime, entry.endTime);
+                        const statusInfo = getRelativeExamStatus(
+                          entry.examDate,
+                          entry.startTime,
+                          entry.endTime,
+                        );
+
+                        return (
+                          <tr key={entry._id || `${exam._id}-${idx}`}>
+                            <td>
+                              <div className="published-exam-subject-cell">
+                                <div className="published-exam-subject-top">
+                                  <span className="published-exam-subject-name">{name}</span>
+                                  <RelativeStatusBadge statusInfo={statusInfo} />
+                                </div>
+                                <div className="published-exam-badges-row">
+                                  <SubjectCategoryBadge
+                                    category={category}
+                                    originalSemester={originalSemester}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="published-exam-subject-code">{code || "—"}</span>
+                            </td>
+                            <td>
+                              <div className="published-exam-date-block">
+                                <span className="published-exam-date-weekday">{weekday}</span>
+                                <time className="published-exam-date-value" dateTime={isoDate}>
+                                  {dateStr}
+                                </time>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="published-exam-time-block">
+                                <span className="published-exam-time-range">
+                                  {entry.startTime && entry.endTime
+                                    ? `${formatTime12Hour(entry.startTime)} – ${formatTime12Hour(entry.endTime)}`
+                                    : entry.startTime
+                                      ? formatTime12Hour(entry.startTime)
+                                      : "N/A"}
+                                </span>
+                                {duration && (
+                                  <span className="published-exam-duration-chip">
+                                    {duration}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <span className="published-exam-session-chip">
+                                {formatSession(entry.session)}
+                              </span>
+                            </td>
+                            <td>
+                              <RoomDisplay room={entry.room} />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Mobile Cards View */}
+                <div className="published-exam-mobile-list">
+                  {filteredSubjects.map((entry, idx) => {
+                    const { name, code, category, originalSemester } = getSubjectInfo(entry);
+                    const { weekday, dateStr, isoDate } = formatDateWithWeekday(entry.examDate);
+                    const duration = calculateDuration(entry.startTime, entry.endTime);
+                    const statusInfo = getRelativeExamStatus(
+                      entry.examDate,
+                      entry.startTime,
+                      entry.endTime,
+                    );
+
+                    return (
+                      <div
+                        key={entry._id || `${exam._id}-${idx}`}
+                        className="published-exam-mobile-card"
+                      >
+                        <div className="published-exam-mobile-card-header">
+                          <div className="published-exam-mobile-title-wrap">
+                            <span className="published-exam-subject-name">{name}</span>
+                            <span className="published-exam-subject-code">{code || "—"}</span>
+                          </div>
+                          <RelativeStatusBadge statusInfo={statusInfo} />
+                        </div>
+                        <div className="published-exam-mobile-card-body">
+                          <div className="published-exam-mobile-row">
+                            <span className="published-exam-mobile-label">Type</span>
+                            <SubjectCategoryBadge
+                              category={category}
+                              originalSemester={originalSemester}
+                            />
+                          </div>
+                          <div className="published-exam-mobile-row">
+                            <span className="published-exam-mobile-label">Date</span>
+                            <span className="published-exam-mobile-date-val">
+                              <span className="published-exam-weekday-chip">{weekday}</span>
+                              <time dateTime={isoDate}>{dateStr}</time>
+                            </span>
+                          </div>
+                          <div className="published-exam-mobile-row">
+                            <span className="published-exam-mobile-label">Time</span>
+                            <span>
+                              {entry.startTime && entry.endTime
+                                ? `${formatTime12Hour(entry.startTime)} – ${formatTime12Hour(entry.endTime)}`
+                                : "N/A"}
+                              {duration ? ` · ${duration}` : ""}
+                            </span>
+                          </div>
+                          <div className="published-exam-mobile-row">
+                            <span className="published-exam-mobile-label">Session</span>
+                            <span>{formatSession(entry.session)}</span>
+                          </div>
+                          <div className="published-exam-mobile-row">
+                            <span className="published-exam-mobile-label">Room No.</span>
+                            <RoomDisplay room={entry.room} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          /* List View — Subjects without schedule timing yet */
+          <div className="published-exam-subject-summary">
+            <h6 className="published-exam-subject-summary-title">
+              {sortedSubjects.length} {sortedSubjects.length === 1 ? "Subject" : "Subjects"}
+            </h6>
+            <div className="published-exam-subject-tag-list">
+              {sortedSubjects.map((entry, idx) => {
+                const { name, code, category, originalSemester } = getSubjectInfo(entry);
+                return (
+                  <span
+                    key={entry._id || `${exam._id}-${idx}`}
+                    className={`published-exam-subject-tag ${category === "BACKLOG" ? "is-backlog" : ""}`}
+                    title={name}
+                  >
+                    <span className="tag-subject-name">{name}</span>
+                    {code ? <span className="tag-subject-code"> ({code})</span> : null}
+                    <span className="tag-subject-category">
+                      {category === "BACKLOG"
+                        ? ` [BACKLOG${originalSemester ? ` · Sem ${originalSemester}` : ""}]`
+                        : " [REGULAR]"}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
+            {onExamClick && (
+              <p className="published-exam-subject-hint">
+                Click "View Timetable" to see the full schedule, timings, and rooms.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function PublishedExamTimetable({ exams, onExamClick }) {
   const examList = useMemo(() => {
     if (!Array.isArray(exams)) return [];
-    return exams
-      .map(normalizeExamItem)
-      .filter((item) => item != null);
+    return exams.map(normalizeExamItem).filter((item) => item != null);
   }, [exams]);
 
   if (!examList.length) {
     return (
       <div className="published-exam-timetable-empty">
-        <div className="published-exam-timetable-empty-icon">
+        <div className="published-exam-timetable-empty-icon" aria-hidden="true">
           <FaBook />
         </div>
         <h5 className="published-exam-timetable-empty-title">
           No published exam timetable available
         </h5>
         <p className="published-exam-timetable-empty-text">
-          Published exam timetables will appear here once the Exam
-          Coordinator publishes them.
+          Published exam timetables will appear here once the Exam Coordinator publishes them.
         </p>
       </div>
     );
@@ -151,206 +485,9 @@ export default function PublishedExamTimetable({ exams, onExamClick }) {
 
   return (
     <div className="published-exam-timetable">
-      {examList.map((exam) => {
-        const subjects = Array.isArray(exam.subjects) ? exam.subjects : [];
-        const showSchedule = hasScheduleData(subjects);
-        const courseName = exam.course_id?.name || "—";
-        const courseCode = exam.course_id?.code || "";
-        const examName = exam.name || "Exam";
-        const isPublished = exam.status === "PUBLISHED";
-
-        return (
-          <div key={exam._id} className="published-exam-card">
-            {/* ── Card header ── */}
-            <div className="published-exam-card-header">
-              <div className="published-exam-card-header-left">
-                <div className="published-exam-card-header-icon">
-                  <FaCalendarAlt />
-                </div>
-                <div>
-                  <h4 className="published-exam-card-title">{examName}</h4>
-                  <p className="published-exam-card-subtitle">
-                    {courseName}
-                    {courseCode ? ` (${courseCode})` : ""} · Semester{" "}
-                    {exam.semester ?? "—"}
-                    {exam.academicYear ? ` · ${exam.academicYear}` : ""}
-                  </p>
-                </div>
-              </div>
-
-              <div className="published-exam-card-meta">
-                <span
-                  className={`published-exam-status-badge ${
-                    isPublished ? "is-published" : "is-draft"
-                  }`}
-                >
-                  <span className="published-exam-status-dot" />
-                  {isPublished ? "Published" : exam.status || "Draft"}
-                </span>
-                {onExamClick && (
-                  <button
-                    type="button"
-                    className="published-exam-view-btn"
-                    onClick={() => onExamClick(exam)}
-                  >
-                    <FaEye />
-                    View Timetable
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* ── Card body ── */}
-            <div className="published-exam-card-body">
-              {subjects.length === 0 ? (
-                <div className="published-exam-empty">
-                  <p>No subjects scheduled for this exam.</p>
-                </div>
-              ) : showSchedule ? (
-                <>
-                  {/* Desktop table */}
-                  <div className="published-exam-table-wrap">
-                    <table className="published-exam-table">
-                      <thead>
-                        <tr>
-                          <th scope="col">Subject</th>
-                          <th scope="col">Code</th>
-                          <th scope="col">Exam Date</th>
-                          <th scope="col">Start Time</th>
-                          <th scope="col">End Time</th>
-                          <th scope="col">Session</th>
-                          <th scope="col">Room</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {subjects.map((entry, idx) => {
-                          const { name, code, category, originalSemester } = getSubjectInfo(entry);
-                          return (
-                            <tr
-                              key={entry._id || `${exam._id}-${idx}`}
-                            >
-                              <td>
-                                <div className="published-exam-subject-cell">
-                                  <span className="published-exam-subject-name">{name}</span>
-                                  {category === "BACKLOG" && (
-                                    <span
-                                      className="published-exam-backlog-badge"
-                                      title="Backlog Subject"
-                                    >
-                                      BACKLOG{originalSemester ? ` (Sem ${originalSemester})` : ""}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td>{code || "—"}</td>
-                              <td>{formatDate(entry.examDate)}</td>
-                              <td>{formatTime12Hour(entry.startTime)}</td>
-                              <td>{formatTime12Hour(entry.endTime)}</td>
-                              <td>{formatSession(entry.session)}</td>
-                              <td>{entry.room || "—"}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile cards */}
-                  <div className="published-exam-mobile-list">
-                    {subjects.map((entry, idx) => {
-                      const { name, code, category, originalSemester } = getSubjectInfo(entry);
-                      return (
-                        <div
-                          key={entry._id || `${exam._id}-${idx}`}
-                          className="published-exam-mobile-card"
-                        >
-                          <div className="published-exam-mobile-card-header">
-                            <div className="published-exam-subject-cell">
-                              <span className="published-exam-subject-name">
-                                {name}
-                              </span>
-                              {category === "BACKLOG" && (
-                                <span
-                                  className="published-exam-backlog-badge"
-                                  title="Backlog Subject"
-                                >
-                                  BACKLOG{originalSemester ? ` (Sem ${originalSemester})` : ""}
-                                </span>
-                              )}
-                            </div>
-                            <span className="published-exam-subject-code">
-                              {code || "—"}
-                            </span>
-                          </div>
-                          <div className="published-exam-mobile-card-body">
-                            <div className="published-exam-mobile-row">
-                              <span className="published-exam-mobile-label">
-                                Date
-                              </span>
-                              <span>{formatDate(entry.examDate)}</span>
-                            </div>
-                            <div className="published-exam-mobile-row">
-                              <span className="published-exam-mobile-label">
-                                Time
-                              </span>
-                              <span>
-                                {entry.startTime && entry.endTime
-                                  ? `${formatTime12Hour(entry.startTime)} - ${formatTime12Hour(entry.endTime)}`
-                                  : "N/A"}
-                              </span>
-                            </div>
-                            <div className="published-exam-mobile-row">
-                              <span className="published-exam-mobile-label">
-                                Session
-                              </span>
-                              <span>{formatSession(entry.session)}</span>
-                            </div>
-                            <div className="published-exam-mobile-row">
-                              <span className="published-exam-mobile-label">
-                                Room
-                              </span>
-                              <span>{entry.room || "—"}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              ) : (
-                /* List view — subjects without schedule timing */
-                <div className="published-exam-subject-summary">
-                  <h6 className="published-exam-subject-summary-title">
-                    {subjects.length}{" "}
-                    {subjects.length === 1 ? "Subject" : "Subjects"}
-                  </h6>
-                  <div className="published-exam-subject-tag-list">
-                    {subjects.map((entry, idx) => {
-                      const { name, code, category, originalSemester } = getSubjectInfo(entry);
-                      return (
-                        <span
-                          key={entry._id || `${exam._id}-${idx}`}
-                          className={`published-exam-subject-tag ${category === "BACKLOG" ? "is-backlog" : ""}`}
-                          title={name}
-                        >
-                          {name}
-                          {code ? ` (${code})` : ""}
-                          {category === "BACKLOG" ? ` (BACKLOG${originalSemester ? ` Sem ${originalSemester}` : ""})` : ""}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  {onExamClick && (
-                    <p className="published-exam-subject-hint">
-                      Click "View Timetable" to see the full schedule.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
+      {examList.map((exam) => (
+        <ExamScheduleCard key={exam._id} exam={exam} onExamClick={onExamClick} />
+      ))}
     </div>
   );
 }
