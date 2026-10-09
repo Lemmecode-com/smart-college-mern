@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import Pagination from "../../../components/Pagination";
 import StandardListView from "../../../components/StandardListView/StandardListView";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
@@ -192,6 +193,8 @@ export default function CourseList() {
   const [departmentsError, setDepartmentsError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState(null);
   const [stats, setStats] = useState({
@@ -354,6 +357,19 @@ const filteredCourses = useMemo(() => {
       course.code?.toLowerCase().includes(search)
   );
 }, [courses, debouncedSearchTerm]);
+
+const totalPages = Math.ceil(
+  filteredCourses.length / ITEMS_PER_PAGE
+);
+
+const paginatedCourses = filteredCourses.slice(
+  (page - 1) * ITEMS_PER_PAGE,
+  page * ITEMS_PER_PAGE
+);
+
+useEffect(() => {
+  setPage(1);
+}, [debouncedSearchTerm, selectedDepartment]);
 
 const columns = [
   {
@@ -980,7 +996,7 @@ if (loading) {
            {/* STANDARD COURSE LIST */}
 <StandardListView
   columns={columns}
-  data={filteredCourses}
+  data={paginatedCourses}
   loading={loadingCourses}
   emptyState={{
     icon: FaBookOpen,
@@ -997,6 +1013,15 @@ if (loading) {
   }}
   actions={tableActions}
 />
+{totalPages > 1 && (
+  <div style={{ marginBottom: "24px" }}>
+    <Pagination
+      page={page}
+      totalPages={totalPages}
+      setPage={setPage}
+    />
+  </div>
+)}
             
           </div>
         </div>
@@ -1268,7 +1293,8 @@ if (loading) {
           width: 38px;
           height: 38px;
           border-radius: var(--radius-sm);
-          background: rgba(79, 70, 229, 0.1);
+          background: #0E3746;
+         
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1277,7 +1303,7 @@ if (loading) {
 
         .card-icon {
           font-size: 1.05rem;
-          color: var(--primary);
+          color: white;
         }
 
         .card-title {
@@ -1634,7 +1660,7 @@ if (loading) {
         .course-avatar {
           width: 40px;
           height: 40px;
-          background: linear-gradient(135deg, var(--primary) 0%, #7C3AED 100%);
+          background: #0E3746;
           border-radius: var(--radius-sm);
           display: flex;
           align-items: center;

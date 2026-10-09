@@ -9,6 +9,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import StandardListView from "../../../components/StandardListView/StandardListView";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Pagination from "../../../components/Pagination";
 import PageHeader from "../../../components/PageHeader";
 import useRole from "../../../hooks/useRole";
 
@@ -759,7 +760,7 @@ if (loading) {
 
   return (
 
-    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)", paddingBottom: "4px" }}>
 
       {/* BREADCRUMBS */}
 
@@ -1093,40 +1094,38 @@ if (loading) {
 
       {/* SUBJECTS LIST */}
 
-{selectedCourse && (
-  <StandardListView
-    title={`${selectedCourseName} Subjects`}
-    icon={FaBook}
-    count={filteredSubjects.length}
-    search={{
-      value: searchTerm,
-      onChange: setSearchTerm,
-      placeholder: "Search subjects...",
-    }}
-    columns={columns}
-    data={filteredSubjects}
-    loading={loadingSubjects}
-    emptyState={{
-      icon: FaBook,
-      title: "No Subjects Found",
-      description: searchTerm
-        ? "No subjects match your search criteria."
-        : `No subjects found for ${selectedCourseName}.`,
-      action:
-        !searchTerm && canCreate("subjects")
-          ? {
-              label: "Add Your First Subject",
-              icon: FaPlus,
-              onClick: () =>
-                navigate(
-                  `/subjects/add?courseId=${selectedCourse}`
-                ),
-            }
-          : null,
-    }}
-    actions={tableActions}
-  />
+  {selectedCourse && (
+  <>
+    <StandardListView
+      title={`${selectedCourseName} Subjects`}
+      icon={FaBook}
+      count={filteredSubjects.length}
+      search={{
+        value: searchTerm,
+        onChange: setSearchTerm,
+        placeholder: "Search subjects...",
+      }}
+      columns={columns}
+      data={paginatedSubjects}
+      loading={loadingSubjects}
+      emptyState={{
+        // Keep your existing emptyState configuration.
+      }}
+      actions={tableActions}
+    />
+
+    {totalPages > 1 && (
+      
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          setPage={setPage}
+        />
+    
+    )}
+  </>
 )}
+
 
       {/* DELETE MODAL */}
 
