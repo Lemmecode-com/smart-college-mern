@@ -7,6 +7,7 @@ import ResultSummaryHero from "../../pages/dashboard/Student/components/results/
 import SubjectResultsSection from "../../pages/dashboard/Student/components/results/SubjectResultsSection";
 import BacklogSection from "../../pages/dashboard/Student/components/results/BacklogSection";
 import ResultsEmptyState from "../../pages/dashboard/Student/components/results/ResultsEmptyState";
+import YearSemesterResultCards from "../../pages/dashboard/Student/components/results/YearSemesterResultCards";
 
 import {
   groupBacklogsBySubject,
@@ -387,6 +388,83 @@ describe("Student Results UX — Components & Interactive Views", () => {
 
       expect(container.textContent).toContain("No Published Result for Semester 4");
       expect(container.textContent).toContain("View All Semesters");
+    });
+
+    it("renders no-year-results empty state with friendly message", () => {
+      act(() => {
+        root.render(
+          <ResultsEmptyState
+            type="no-year-results"
+            yearLabel="Second Year"
+          />
+        );
+      });
+
+      expect(container.textContent).toContain("No published results for Second Year yet.");
+    });
+  });
+
+  describe("YearSemesterResultCards — Year Filtering", () => {
+    const mockMultiYear = [
+      {
+        yearNumber: 1,
+        yearLabel: "First Year",
+        semesters: [
+          {
+            _id: "s1",
+            semester: 1,
+            examName: "Sem 1",
+            totalMarks: 400,
+            totalMaxMarks: 500,
+            percentage: 80,
+            overallResult: "PASS",
+          },
+          {
+            _id: "s2",
+            semester: 2,
+            examName: "Sem 2",
+            totalMarks: 390,
+            totalMaxMarks: 500,
+            percentage: 78,
+            overallResult: "PASS",
+          },
+        ],
+      },
+      {
+        yearNumber: 2,
+        yearLabel: "Second Year",
+        semesters: [
+          {
+            _id: "s3",
+            semester: 3,
+            examName: "Sem 3",
+            totalMarks: 410,
+            totalMaxMarks: 500,
+            percentage: 82,
+            overallResult: "PASS",
+          },
+        ],
+      },
+    ];
+
+    it("displays only selected year semester cards and never leaks other years", () => {
+      act(() => {
+        root.render(
+          <YearSemesterResultCards
+            groupedYears={mockMultiYear}
+            selectedYear={2}
+            onPreview={() => {}}
+            onDownload={() => {}}
+          />
+        );
+      });
+
+      expect(container.textContent).toContain("Second Year");
+      expect(container.textContent).toContain("Semester 3");
+      expect(container.textContent).toContain("410 / 500");
+      expect(container.textContent).not.toContain("Semester 1");
+      expect(container.textContent).not.toContain("Semester 2");
+      expect(container.textContent).not.toContain("First Year");
     });
   });
 });
