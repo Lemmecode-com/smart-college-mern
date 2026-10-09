@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -135,6 +136,85 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
     }
   };
 
+const columns = [
+  {
+    key: "fullName",
+    label: "Student Name",
+    render: (student) => (
+      <div className="student-info">
+        <span className="student-name-cell">
+          {student.fullName}
+        </span>
+        <span className="student-email">
+          {student.email}
+        </span>
+      </div>
+    ),
+  },
+  {
+    key: "course",
+    label: "Course",
+    render: (student) => (
+      <span className="badge badge-course">
+        {student.course_id?.name || "N/A"}
+      </span>
+    ),
+  },
+  {
+    key: "department",
+    label: "Department",
+    render: (student) => (
+      <span className="department-name">
+        {student.department_id?.name ||
+          student.course_id?.name ||
+          "N/A"}
+      </span>
+    ),
+  },
+  {
+    key: "admissionYear",
+    label: "Admission Year",
+    render: (student) => (
+      <span className="badge badge-graduation-year">
+        <FaCalendarAlt className="badge-icon" />
+        {student.admissionYear || "N/A"}
+      </span>
+    ),
+  },
+  {
+    key: "status",
+    label: "Status",
+    render: () => (
+      <span className="badge badge-status-deactivated">
+        <FaUserTimes className="badge-icon" />
+        DEACTIVATED
+      </span>
+    ),
+  },
+];
+const tableActions = {
+  label: "Actions",
+  width: "180px",
+  items: [
+    {
+      key: "reactivate",
+      label: "Reactivate",
+      text: "Reactivate",
+      icon: FaUserCheck,
+      className: "reactivate-btn",
+      style: {
+        fontSize: "12px",
+        fontWeight: "500",
+        width: "120px",
+        gap: "8px",
+        background: "linear-gradient(135deg, #3eac41 0%, #2e751f 100%)"
+      },
+      show: (student) => !!student.user_id,
+      onClick: (student) => handleReactivate(student),
+    },
+  ],
+};
+
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
     return (
@@ -217,91 +297,29 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
           </div>
         </div>
       </div>
-
-      {/* TABLE */}
-      <div className="erp-card animate-fade-in">
-        <div className="erp-card-header">
-          <h3><FaGraduationCap className="erp-card-icon" /> Deactivated Student Records</h3>
-          <span className="record-count">{filteredStudents.length} {filteredStudents.length === 1 ? "Student" : "Students"}</span>
-        </div>
-        <div className="erp-card-body">
-          {paginatedStudents.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon"><FaUserTimes /></div>
-              <h3>No Deactivated Students</h3>
-              <p className="empty-description">
-                {search ? "No deactivated students match your search." : "All students are currently active."}
-              </p>
-            </div>
-          ) : (
-            <div className="table-container">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th className="th-student">Student Name</th>
-                    <th className="th-course">Course</th>
-                    <th className="th-department">Department</th>
-                    <th className="th-year">Admission Year</th>
-                    <th className="th-status">Status</th>
-                    <th className="th-actions text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedStudents.map((student) => (
-                    <tr key={student._id} className="table-row">
-                      <td className="cell-student">
-                        <div className="student-info">
-                          <span className="student-name-cell">{student.fullName}</span>
-                          <span className="student-email">{student.email}</span>
-                        </div>
-                      </td>
-                      <td className="cell-course">
-                        <span className="badge badge-course">{student.course_id?.name || "N/A"}</span>
-                      </td>
-                      <td className="cell-department">
-                        <span className="department-name">{student.department_id?.name || student.course_id?.name || "N/A"}</span>
-                      </td>
-                      <td className="cell-year">
-                        <span className="badge badge-graduation-year">
-                          <FaCalendarAlt className="badge-icon" /> {student.admissionYear || "N/A"}
-                        </span>
-                      </td>
-                      <td className="cell-status">
-                        <span className="badge badge-status-deactivated">
-                          <FaUserTimes className="badge-icon" /> DEACTIVATED
-                        </span>
-                      </td>
-                      <td className="cell-actions">
-                        <div className="action-buttons">
-                          {student.user_id && (
-                            <button
-                              className="btn btn-action btn-reactivate-student"
-                              onClick={() => handleReactivate(student)}
-                              title="Reactivate Student"
-                            >
-                              <FaUserCheck />
-                              <span className="btn-text">Reactivate</span>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* PAGINATION */}
+      {/* {Header} */}
+      <StandardListView
+        className="deactivated-students-list"
+        title="Deactivated Student Records"
+        icon={FaGraduationCap}
+        count={filteredStudents.length}
+        columns={columns}
+        data={paginatedStudents}
+        loading={false}
+        emptyState={{
+          icon: FaUserTimes,
+          title: "No Deactivated Students",
+          description: search
+            ? "No deactivated students match your search."
+            : "All students are currently active.",
+        }}
+        actions={tableActions}
+      />
           {totalPages > 1 && (
-            <div className="erp-pagination">
-              <button className="page-btn" onClick={() => setPage((p) => Math.max(p - 1, 1))} disabled={page === 1}>Prev</button>
-              <span style={{ padding: "0 1rem" }}>Page {page} of {totalPages}</span>
-              <button className="page-btn" onClick={() => setPage((p) => Math.min(p + 1, totalPages))} disabled={page === totalPages}>Next</button>
-            </div>
-          )}
-        </div>
+      <div className="erp-pagination">
+        ...
       </div>
+    )}
 
       {/* STYLES */}
       <style>{`
@@ -321,12 +339,8 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
         .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #666; }
         .search-box input { width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 2px solid #e9ecef; border-radius: 10px; font-size: 0.95rem; }
         .search-box input:focus { border-color: #6b7280; outline: none; }
-        .table-container { overflow-x: auto; }
-        .erp-table { width: 100%; border-collapse: collapse; }
-        .erp-table thead { background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); }
-        .erp-table th { padding: 16px 20px; text-align: left; font-size: 12px; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 1px; }
-        .erp-table td { padding: 18px 20px; border-bottom: 1px solid #e2e8f0; }
-        .erp-table tbody tr:hover { background: #f0f9ff; }
+       
+       
         .student-info { display: flex; flex-direction: column; gap: 6px; }
         .student-name-cell { font-weight: 700; color: #0f3a4a; }
         .student-email { font-size: 13px; color: #64748b; }

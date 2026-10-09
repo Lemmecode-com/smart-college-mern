@@ -6,6 +6,7 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
 import Pagination from "../../../components/Pagination";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
@@ -59,7 +60,7 @@ export default function FeeStructureList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: "createdAt", direction: "desc" });
+  
   const [stats, setStats] = useState({
     totalStructures: 0,
     totalFeeAmount: 0,
@@ -146,21 +147,7 @@ export default function FeeStructureList() {
     loadStructures();
   };
 
-  /* ================= SORTING ================= */
-  const handleSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
 
-    const sorted = [...structures].sort((a, b) => {
-      if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
-      if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
-      return 0;
-    });
-    setStructures(sorted);
-  };
 
   /* ================= FILTERING & PAGINATION ================= */
   const filteredStructures = useMemo(() => {
@@ -178,24 +165,6 @@ export default function FeeStructureList() {
   const currentStructures = filteredStructures.slice(startIndex, endIndex);
     
 
-  const departmentGroups = useMemo(() => {
-  const groups = {};
-
-  currentStructures.forEach((structure) => {
-    const departmentName =
-      structure.department_id?.name ||
-      structure.course_id?.department_id?.name ||
-      "Department";
-
-    if (!groups[departmentName]) {
-      groups[departmentName] = [];
-    }
-
-    groups[departmentName].push(structure);
-  });
-
-  return Object.entries(groups);
-}, [currentStructures]);
 
 
   // Reset to page 1 when search changes
@@ -223,6 +192,106 @@ export default function FeeStructureList() {
     }
   };
 
+
+  /* ================= STANDARD LIST COLUMNS ================= */
+
+const columns = [
+  {
+    key: "course",
+    label: "Course",
+    sortable: true,
+    width: "300px",
+    render: (structure) => (
+      <div className="course-info">
+        <div className="course-name">
+          {structure.course_id?.name || "N/A"}
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "category",
+    label: "Category",
+    sortable: true,
+    width: "160px",
+    render: (structure) => (
+      <span
+        className={`category-badge category-${
+          structure.category?.toLowerCase() || "general"
+        }`}
+      >
+        {structure.category || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "totalFee",
+    label: "Total Fee",
+    sortable: true,
+    width: "180px",
+    render: (structure) => (
+      <div className="fee-amount">
+        <FaRupeeSign className="rupee-icon" />
+        {structure.totalFee?.toLocaleString() || "0"}
+      </div>
+    ),
+  },
+
+  {
+    key: "installments",
+    label: "Installments",
+    sortable: true,
+    width: "200px",
+    render: (structure) => (
+      <div className="installment-info">
+        <FaListOl className="installment-icon" />
+        {structure.installments?.length || 0}
+        <span className="installment-label">
+          installments
+        </span>
+      </div>
+    ),
+  },
+];
+
+/* ================= STANDARD LIST ACTIONS ================= */
+
+const tableActions = {
+  label: "Actions",
+  width: "250px",
+  items: [
+    {
+      key: "view",
+      label: "View",
+      icon: FaEye,
+      className: "view-btn",
+      onClick: (structure) =>
+        navigate(`/fees/view/${structure._id}`),
+    },
+
+    {
+      key: "edit",
+      label: "Edit",
+      icon: FaEdit,
+      className: "edit-btn",
+      show: () => canEdit("fee-structure"),
+      onClick: (structure) =>
+        navigate(`/fees/edit/${structure._id}`),
+    },
+
+    {
+      key: "delete",
+      label: "Delete",
+      icon: FaTrash,
+      className: "delete-btn",
+      show: () => canDelete("fee-structure"),
+      onClick: (structure) =>
+        handleDelete(structure._id),
+    },
+  ],
+};
   /* ================= LOADING SKELETON ================= */
   const renderSkeleton = () => (
     <div className="skeleton-container">
@@ -420,273 +489,46 @@ export default function FeeStructureList() {
         </div>
       </div>
 
-      {/* FEE STRUCTURES TABLE */}
-      <div className="erp-card animate-fade-in">
-        <div className="erp-card-header">
-          <h3>
-            <FaMoneyBillWave className="erp-card-icon" />
-            Fee Structures List
-          </h3>
-          <span className="structure-count">
-            {currentStructures.length} of {filteredStructures.length} {filteredStructures.length === 1 ? "Structure" : "Structures"}
-          </span>
-        </div>
+ {/* FEE STRUCTURES LIST */}
 
-        <div className="erp-card-body">
-          {currentStructures.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">
-                <FaMoneyBillWave />
-              </div>
-              <h3>No Fee Structures Found</h3>
-              <p className="empty-description">
-                {searchTerm 
-                  ? "No fee structures match your search criteria. Try adjusting your filters."
-                  : "There are no fee structures configured yet. Create your first structure to get started."}
-              </p>
-               {!searchTerm && canCreate('fee-structure') && (
-                 <button 
-                   className="erp-btn erp-btn-primary empty-action"
-                   onClick={() => navigate("/fees/create")}
-                 >
-                   <FaPlus className="erp-btn-icon" />
-                   Create First Fee Structure
-                 </button>
-               )}
-            </div>
-          ) : (
-            <>
-            <div className="erp-table-responsive table-container">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th>Sr. No.</th>
-                    <th onClick={() => handleSort('course_id.name')}>
-                      Course {sortConfig.key === 'course_id.name' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-                    </th>
-                    <th onClick={() => handleSort('category')}>
-                      Category {sortConfig.key === 'category' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-                    </th>
-                    <th onClick={() => handleSort('totalFee')}>
-                      Total Fee {sortConfig.key === 'totalFee' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-                    </th>
-                    <th onClick={() => handleSort('installments.length')}>
-                      Installments {sortConfig.key === 'installments.length' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-                    </th>
-                    <th className="text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentStructures.map((structure, index) => (
-                    <tr key={structure._id} className="table-row">
-                      <td>{startIndex + index + 1}</td>
-                      <td>
-                        <div className="course-info">
-                          <div className="course-name">{structure.course_id?.name || "N/A"}</div>
-                          {/* <div className="course-meta">
-                            <span className="course-code">{structure.course_id?.code || "N/A"}</span>
-                          </div> */}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`category-badge category-${structure.category?.toLowerCase() || 'general'}`}>
-                          {structure.category || "N/A"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="fee-amount">
-                          <FaRupeeSign className="rupee-icon" />
-                          {structure.totalFee?.toLocaleString() || "0"}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="installment-info">
-                          <FaListOl className="installment-icon" />
-                          {structure.installments?.length || 0}
-                          <span className="installment-label">installments</span>
-                        </div>
-                      </td>
-                       <td className="action-cell">
-                         <div className="action-buttons">
-                           <button
-                             className="action-btn view-btn"
-                             title="View Fee Structure Details"
-                             onClick={() => navigate(`/fees/view/${structure._id}`)}
-                             aria-label={`View details for ${structure.course_id?.name}`}
-                           >
-                             <FaEye className="action-icon pulse" />
-                           </button>
-                           {canEdit('fee-structure') && (
-                             <button
-                               className="action-btn edit-btn"
-                               title="Edit Fee Structure"
-                               onClick={() => navigate(`/fees/edit/${structure._id}`)}
-                               aria-label={`Edit ${structure.course_id?.name} fee structure`}
-                             >
-                               <FaEdit className="action-icon pulse" />
-                             </button>
-                           )}
-                           {canDelete('fee-structure') && (
-                             <button
-                               className="action-btn delete-btn"
-                               title="Delete Fee Structure"
-                               onClick={() => handleDelete(structure._id)}
-                               aria-label={`Delete ${structure.course_id?.name} fee structure`}
-                             >
-                               <FaTrash className="action-icon shake" />
-                             </button>
-                           )}
-                         </div>
-                       </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div> 
-            {/* TABLET + MOBILE DEPARTMENT CARDS */}
-          <div className="fee-department-cards">
-            {departmentGroups.map(([departmentName, departmentStructures]) => (
-              <div className="fee-department-card" key={departmentName}>
+<StandardListView
+  className="fee-structures-list"
+  title="Fee Structures List"
+  icon={FaMoneyBillWave}
+  count={filteredStructures.length}
+  columns={columns}
+  data={currentStructures}
+  loading={false}
+  emptyState={{
+    icon: FaMoneyBillWave,
 
-                {/* Department Header */}
-                <div className="fee-department-card-header">
-                  <div className="fee-department-title">
-                    <div className="fee-department-icon">
-                      <FaUniversity />
-                    </div>
+    title: "No Fee Structures Found",
 
-                    <div>
-                      <span>Fee Structures List</span>
-                      <h4>{departmentName}</h4>
-                    </div>
-                  </div>
+    description: searchTerm
+      ? "No fee structures match your search criteria. Try adjusting your search."
+      : "There are no fee structures configured yet. Create your first structure to get started.",
 
-                  <div className="fee-department-count">
-                    {departmentStructures.length}{" "}
-                    {departmentStructures.length === 1
-                      ? "Structure"
-                      : "Structures"}
-                  </div>
-                </div>
+    action:
+      !searchTerm && canCreate("fee-structure")
+        ? {
+            label: "Create First Fee Structure",
+            icon: FaPlus,
+            onClick: () => navigate("/fees/create"),
+          }
+        : undefined,
+  }}
+  actions={tableActions}
+/>
 
-                {/* Fee Structures */}
-                <div className="fee-department-structures">
-                  {departmentStructures.map((structure) => (
-                    <div
-                      className="fee-structure-mobile-card"
-                      key={structure._id}
-                    >
-
-                      {/* Course + Category */}
-                      <div className="fee-mobile-card-top">
-                        <div>
-                          <span className="fee-mobile-label">
-                            Course
-                          </span>
-
-                          <h5>
-                            {structure.course_id?.name || "N/A"}
-                          </h5>
-                        </div>
-
-                        <span
-                          className={`category-badge category-${
-                            structure.category?.toLowerCase() || "general"
-                          }`}
-                        >
-                          {structure.category || "N/A"}
-                        </span>
-                      </div>
-
-                      {/* Fee Details */}
-                      <div className="fee-mobile-details">
-
-                        <div className="fee-mobile-detail">
-                          <FaRupeeSign />
-
-                          <div>
-                            <span>Total Fee</span>
-                            <strong>
-                              ₹{structure.totalFee?.toLocaleString() || "0"}
-                            </strong>
-                          </div>
-                        </div>
-
-                        <div className="fee-mobile-detail">
-                          <FaListOl />
-
-                          <div>
-                            <span>Installments</span>
-                            <strong>
-                              {structure.installments?.length || 0}
-                            </strong>
-                          </div>
-                        </div>
-
-                      </div>
-
-                      {/* Actions */}
-                      <div className="fee-mobile-actions">
-
-                        <button
-                          className="fee-mobile-action view"
-                          onClick={() =>
-                            navigate(`/fees/view/${structure._id}`)
-                          }
-                        >
-                          <FaEye />
-                          View
-                        </button>
-
-                        {canEdit("fee-structure") && (
-                          <button
-                            className="fee-mobile-action edit"
-                            onClick={() =>
-                              navigate(`/fees/edit/${structure._id}`)
-                            }
-                          >
-                            <FaEdit />
-                            Edit
-                          </button>
-                        )}
-
-                        {canDelete("fee-structure") && (
-                          <button
-                            className="fee-mobile-action delete"
-                            onClick={() =>
-                              handleDelete(structure._id)
-                            }
-                          >
-                            <FaTrash />
-                            Delete
-                          </button>
-                        )}
-
-                      </div>
-
-                    </div>
-                  ))}
-                </div>
-                
-              </div>
-            ))}
-          </div>
-          </>
-          )}
-        
-        </div>
-        
-        {/* PAGINATION */}
-        {totalPages > 1 && (
-          <div className="card-footer-pagination">
-            <Pagination 
-              page={currentPage} 
-              totalPages={totalPages} 
-              setPage={setCurrentPage} 
-            />
-          </div>
-        )}
-      </div>
+{totalPages > 1 && (
+  <div className="card-footer-pagination">
+    <Pagination
+      page={currentPage}
+      totalPages={totalPages}
+      setPage={setCurrentPage}
+    />
+  </div>
+)}
 
       {/* STYLES */}
       <style>{`
