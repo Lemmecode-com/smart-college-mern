@@ -22,7 +22,6 @@ import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { logger } from "../../../utils/logger";
-import { fontWeight } from "html2canvas/dist/types/css/property-descriptors/font-weight";
 
 // Moved outside component to prevent re-creation on every render
 const AUTH_ERROR_CODES = new Set([
