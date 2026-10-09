@@ -40,9 +40,11 @@ const BACKLOG_STATUS = {
 const assertRole = (action, actorRole) => {
   const normalizedRole = String(actorRole || "").toUpperCase();
   const allowedRoles =
-    action === "CREATE_ATTEMPT" || action === "EVALUATE_ATTEMPT"
+    action === "CREATE_ATTEMPT"
       ? ["COLLEGE_ADMIN", "ADMISSION_OFFICER"]
-      : [];
+      : action === "EVALUATE_ATTEMPT"
+        ? ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "EXAM_COORDINATOR"]
+        : [];
   if (!allowedRoles.includes(normalizedRole)) {
     throw new AppError(
       `Role ${actorRole || "UNKNOWN"} cannot ${action.toLowerCase()}`,
@@ -131,56 +133,7 @@ const hasMarksForExam = async (examId, studentId, collegeId, session) => {
   return count > 0;
 };
 
-const createSupplementaryExam = async (
-  backlog,
-  actorId,
-  session,
-) => {
-  const existingExam = await Exam.findOne({
-    college_id: backlog.college_id,
-    name: `Supplementary - ${backlog.subject_code || backlog.subject_name}`,
-    semester: backlog.semester,
-    academicYear: backlog.academicYear,
-    "subjects.subject": backlog.subject_id,
-  })
-    .session(session)
-    .exec();
 
-  if (existingExam) {
-    return existingExam;
-  }
-
-  const subjectDoc = await getSubject(backlog.subject_id, backlog.college_id, session);
-
-  const exam = await Exam.create(
-    [
-      {
-        college_id: backlog.college_id,
-        name: `Supplementary - ${backlog.subject_code || backlog.subject_name}`,
-        course_id: backlog.course_id,
-        semester: backlog.semester,
-        academicYear: backlog.academicYear,
-        exam_type: EXAM_TYPE.SUPPLEMENTARY,
-        subjects: [
-          {
-            subject: backlog.subject_id,
-            subjectType: subjectDoc?.subjectType || "THEORY",
-            internalMaxMarks: subjectDoc?.internalMaxMarks || 30,
-            externalMaxMarks: subjectDoc?.externalMaxMarks || 70,
-            internalPassMarks: subjectDoc?.internalPassMarks || 12,
-            externalPassMarks: subjectDoc?.externalPassMarks || 28,
-            passMarks: subjectDoc?.passMarks || 40,
-          },
-        ],
-        status: "DRAFT",
-        createdBy: actorId,
-      },
-    ],
-    { session },
-  );
-
-  return exam[0];
-};
 
 const buildAttemptSnapshot = (backlog, exam, result) => ({
   college_id: backlog.college_id,
@@ -245,7 +198,11 @@ const createAttempt = async ({
           );
         }
       } else {
-        exam = await createSupplementaryExam(backlog, actorId, session);
+        throw new AppError(
+          "examId is required. Standalone supplementary exams have been removed in the Unified Exam architecture.",
+          400,
+          "MISSING_EXAM_ID",
+        );
       }
 
       if (
@@ -535,6 +492,9 @@ const evaluateAttempt = async ({
                 internalMarks: calculation.internalMarks,
                 externalMarks: calculation.externalMarks,
                 totalMarks: calculation.totalMarks,
+                internalMaxMarks: calculation.internalMaxMarks ?? null,
+                externalMaxMarks: calculation.externalMaxMarks ?? null,
+                maxMarks: calculation.maxMarks ?? null,
                 internalPassed: calculation.internalPassed,
                 externalPassed: calculation.externalPassed,
                 passed: calculation.passed,
@@ -547,6 +507,15 @@ const evaluateAttempt = async ({
             failedSubjects: resultStatus === "FAIL" ? 1 : 0,
             incompleteSubjects: resultStatus === "INCOMPLETE" ? 1 : 0,
             overallResult: resultStatus,
+            totalMarks: calculation.totalMarks ?? null,
+            totalMaxMarks: calculation.maxMarks ?? null,
+            percentage:
+              calculation.totalMarks !== null &&
+              calculation.totalMarks !== undefined &&
+              calculation.maxMarks &&
+              resultStatus !== "INCOMPLETE"
+                ? Number(((calculation.totalMarks / calculation.maxMarks) * 100).toFixed(2))
+                : null,
             status: RESULT_STATUS.PUBLISHED,
             createdBy: actorId,
             updatedBy: actorId,
@@ -686,18 +655,20 @@ const evaluateAttempt = async ({
                 : `Your supplementary attempt for ${backlog.subject_code || backlog.subject_name} is incomplete. Please complete all marks before retrying.`;
 
           await Notification.create(
-            {
-              college_id: backlog.college_id,
-              createdBy: actorId,
-              createdByRole: actorRole,
-              target: "INDIVIDUAL",
-              target_users: [studentUser],
-              title: notificationTitle,
-              message: notificationMessage,
-              type: "ACADEMIC",
-              priority: resultStatus === "PASS" ? "HIGH" : "NORMAL",
-              actionUrl: "/student/dashboard",
-            },
+            [
+              {
+                college_id: backlog.college_id,
+                createdBy: actorId,
+                createdByRole: actorRole,
+                target: "INDIVIDUAL",
+                target_users: [studentUser],
+                title: notificationTitle,
+                message: notificationMessage,
+                type: "ACADEMIC",
+                priority: resultStatus === "PASS" ? "HIGH" : "NORMAL",
+                actionUrl: "/student/dashboard",
+              },
+            ],
             { session },
           );
         } catch (err) {

@@ -3,7 +3,10 @@ const StudentFee = require("../models/studentFee.model");
 const PromotionPolicy = require("../models/promotionPolicy.model");
 const PromotionDecision = require("../models/promotionDecision.model");
 const Backlog = require("../models/backlog.model");
+const BacklogAttempt = require("../models/backlogAttempt.model");
+const Exam = require("../models/exam.model");
 const AppError = require("../utils/AppError");
+const { evaluateAttempt } = require("./backlogAttempt.service");
 const {
   resolveAuthoritativeResult,
   RESULT_AUTHORITY_STATUS,
@@ -63,11 +66,16 @@ const evaluateAttendanceData = ({
   overrideAttendanceCheck = false,
   overrideAttendanceReason,
 }) => {
+  const isZeroRequirement = Number(requiredPercentage) === 0;
   const totalSessions = Number(attendanceData?.totalSessions || 0);
   const percentage = Number(attendanceData?.percentage || 0);
   const status =
     totalSessions === 0
-      ? ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
+      ? (
+          isZeroRequirement
+            ? ATTENDANCE_STATUS.ELIGIBLE
+            : ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE
+        )
       : percentage >= requiredPercentage
         ? ATTENDANCE_STATUS.ELIGIBLE
         : ATTENDANCE_STATUS.NOT_ELIGIBLE;
@@ -102,7 +110,10 @@ const evaluateAttendanceData = ({
     requiredPercentage,
     totalSessions,
     status,
-    passed: status === ATTENDANCE_STATUS.ELIGIBLE || overridden,
+    passed:
+      isZeroRequirement ||
+      status === ATTENDANCE_STATUS.ELIGIBLE ||
+      overridden,
     overridden,
     overrideReason: overridden ? trimmedReason : null,
   };
@@ -217,15 +228,20 @@ const evaluateFeeClearance = async ({
   );
 };
 
-const emptyAttendanceSnapshot = (requiredPercentage) => ({
-  percentage: 0,
-  requiredPercentage,
-  totalSessions: 0,
-  status: ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
-  passed: false,
-  overridden: false,
-  overrideReason: null,
-});
+const emptyAttendanceSnapshot = (requiredPercentage) => {
+  const isZeroRequirement = Number(requiredPercentage) === 0;
+  return {
+    percentage: 0,
+    requiredPercentage,
+    totalSessions: 0,
+    status: isZeroRequirement
+      ? ATTENDANCE_STATUS.ELIGIBLE
+      : ATTENDANCE_STATUS.ATTENDANCE_NOT_AVAILABLE,
+    passed: isZeroRequirement,
+    overridden: false,
+    overrideReason: null,
+  };
+};
 
 const emptyFeeSnapshot = (
   minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE,
@@ -240,6 +256,7 @@ const calculatePromotionDecision = async ({
   studentId,
   collegeId,
   academicYear,
+  userId,
 }) => {
   const authorityStatus = authoritativeResult?.status;
   const result = authoritativeResult?.result;
@@ -310,6 +327,42 @@ const calculatePromotionDecision = async ({
   ) {
     const previousAcademicYear = calculatePreviousAcademicYear(academicYear);
     if (previousAcademicYear) {
+      // Synchronize / auto-evaluate any pending backlog attempts from published exams
+      const candidateBacklogs = await Backlog.find({
+        student_id: studentId,
+        college_id: collegeId,
+        academicYear: previousAcademicYear,
+        status: { $ne: "CLEARED" },
+      });
+
+      for (const b of candidateBacklogs) {
+        if (b.status === "ATTEMPTED" && b.latest_attempt_id) {
+          const attempt = await BacklogAttempt.findById(b.latest_attempt_id);
+          if (attempt) {
+            if (attempt.result_status === "PASS") {
+              b.status = "CLEARED";
+              b.latest_result_status = "PASS";
+              b.cleared_at = attempt.cleared_at || new Date();
+              await b.save();
+            } else if (attempt.result_status === "INCOMPLETE") {
+              const exam = await Exam.findById(attempt.exam_id).select("status").lean();
+              if (exam && exam.status === "PUBLISHED") {
+                try {
+                  await evaluateAttempt({
+                    attemptId: attempt._id,
+                    collegeId,
+                    actorId: userId || collegeId,
+                    actorRole: "COLLEGE_ADMIN",
+                  });
+                } catch (evalErr) {
+                  // Keep current status if evaluation fails
+                }
+              }
+            }
+          }
+        }
+      }
+
       const unclearedBacklogs = await Backlog.find({
         student_id: studentId,
         college_id: collegeId,
@@ -414,6 +467,7 @@ const createPromotionDecision = async ({
     studentId: student._id,
     collegeId,
     academicYear: student.currentAcademicYear,
+    userId,
   });
   const lookup = {
     college_id: collegeId,
@@ -511,12 +565,99 @@ const createPromotionDecision = async ({
     ).populate("failed_subject_ids", "name code");
   }
 
-  const created = await PromotionDecision.create({
+    const created = await PromotionDecision.create({
     ...lookup,
     ...freshFields,
     createdBy: userId,
   });
   return created.populate("failed_subject_ids", "name code");
+};
+
+/**
+ * Strips all internal, administrative, actor, and reviewer metadata from a
+ * PromotionDecision document, producing a safe, read-only payload for student view.
+ */
+const sanitizeStudentPromotionDecision = (decision) => {
+  if (!decision) return null;
+
+  const attendance = decision.attendance_snapshot
+    ? {
+        percentage: decision.attendance_snapshot.percentage,
+        requiredPercentage: decision.attendance_snapshot.requiredPercentage,
+        status: decision.attendance_snapshot.status,
+        passed: decision.attendance_snapshot.passed,
+      }
+    : null;
+
+  const feeClearance = decision.fee_clearance_snapshot
+    ? {
+        status: decision.fee_clearance_snapshot.status,
+        cleared: decision.fee_clearance_snapshot.cleared,
+        passed: decision.fee_clearance_snapshot.passed,
+      }
+    : null;
+
+  return {
+    status: decision.workflow_status,
+    outcome: decision.promotion_outcome,
+    decisionReason: decision.decision_reason,
+    semester: decision.semester,
+    academicYear: decision.academicYear,
+    ktCount: decision.kt_count ?? 0,
+    failedSubjectCount: decision.failed_subject_count ?? 0,
+    attendance,
+    feeClearance,
+    evaluatedAt: decision.updatedAt || decision.createdAt || null,
+    promotedAt: decision.promotedAt || null,
+  };
+};
+
+/**
+ * Resolves the authenticated student's authoritative PromotionDecision for the
+ * requested semester (or currentSemester if not specified) and returns a sanitized
+ * view. Student identity is strictly derived from the authenticated userId.
+ */
+const getStudentPromotionStatus = async ({ collegeId, userId, semester }) => {
+  const student = await Student.findOne({
+    user_id: userId,
+    college_id: collegeId,
+  }).select("_id course_id currentSemester");
+
+  if (!student) {
+    throw new AppError("Student profile not found", 404, "STUDENT_NOT_FOUND");
+  }
+
+  let targetSemester = student.currentSemester;
+  if (semester !== undefined && semester !== null && semester !== "") {
+    const parsedSemester = Number(semester);
+    if (
+      !Number.isInteger(parsedSemester) ||
+      parsedSemester < 1 ||
+      parsedSemester > 8
+    ) {
+      throw new AppError(
+        "Invalid semester. Semester must be an integer between 1 and 8.",
+        400,
+        "INVALID_SEMESTER",
+      );
+    }
+    targetSemester = parsedSemester;
+  }
+
+  const decision = await PromotionDecision.findOne({
+    college_id: collegeId,
+    student_id: student._id,
+    course_id: student.course_id,
+    semester: targetSemester,
+  })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (!decision) {
+    return null;
+  }
+
+  return sanitizeStudentPromotionDecision(decision);
 };
 
 module.exports = {
@@ -529,4 +670,7 @@ module.exports = {
   calculatePromotionDecision,
   createPromotionDecision,
   calculatePreviousAcademicYear,
+  sanitizeStudentPromotionDecision,
+  getStudentPromotionStatus,
 };
+

@@ -42,6 +42,22 @@ const subjectResultSchema = new mongoose.Schema(
       type: Number,
     },
 
+    // Point-in-time maximum marks snapshot from Exam configuration (Exam.subjects[])
+    internalMaxMarks: {
+      type: Number,
+      default: null,
+    },
+
+    externalMaxMarks: {
+      type: Number,
+      default: null,
+    },
+
+    maxMarks: {
+      type: Number,
+      default: null,
+    },
+
     internalPassed: {
       type: Boolean,
     },
@@ -147,6 +163,24 @@ const semesterResultSchema = new mongoose.Schema(
       type: String,
       enum: ["PASS", "FAIL", "INCOMPLETE"],
       required: true,
+    },
+
+    // Authoritative semester marks aggregates & percentage
+    totalMarks: {
+      type: Number,
+      default: null,
+    },
+
+    totalMaxMarks: {
+      type: Number,
+      default: null,
+    },
+
+    // Official semester overall percentage, rounded to 2 decimal places.
+    // null when result is INCOMPLETE or marks missing.
+    percentage: {
+      type: Number,
+      default: null,
     },
 
     // Result lifecycle: DRAFT -> LOCKED -> PUBLISHED.
