@@ -197,6 +197,87 @@ describe("Step 10 — Result Statement Data Mapper & Preview/PDF Components", ()
       const filename = generateResultStatementFilename(statement);
       expect(filename).toBe("Result_Statement_Sem1_EN202409876.pdf");
     });
+
+    it("maps cleared backlog attempts into clearedBacklogs without altering regular totals", () => {
+      const sem2ResultWithBacklog = {
+        ...mockSemesterResult,
+        semester: 2,
+        totalMarks: 450,
+        totalMaxMarks: 500,
+        percentage: 90.0,
+        backlogResults: [
+          {
+            backlogId: "b1",
+            attemptId: "att1",
+            subjectId: "sub_c1",
+            subjectCode: "CS101",
+            subjectName: "Programming in C",
+            subjectType: "THEORY",
+            semester: 1, // original semester
+            academicYear: "2023-2024",
+            attemptNumber: 1,
+            internalMarks: 22,
+            externalMarks: 58,
+            totalMarks: 80,
+            resultStatus: "PASS",
+            passed: true,
+            cleared: true,
+            examName: "Semester 2 Regular & Backlog Exam",
+          },
+          {
+            backlogId: "b2",
+            attemptId: "att2",
+            subjectId: "sub_math",
+            subjectCode: "MATH101",
+            subjectName: "Engineering Mathematics",
+            subjectType: "THEORY",
+            semester: 1,
+            attemptNumber: 1,
+            internalMarks: 10,
+            externalMarks: 15,
+            totalMarks: 25,
+            resultStatus: "FAIL",
+            passed: false,
+            cleared: false,
+          },
+        ],
+      };
+
+      const statement = mapResultToStatement(sem2ResultWithBacklog, mockProfile);
+
+      // Cleared backlogs mapped
+      expect(statement.clearedBacklogs).toBeDefined();
+      expect(statement.clearedBacklogs.length).toBe(1);
+
+      const cleared = statement.clearedBacklogs[0];
+      expect(cleared.subjectCode).toBe("CS101");
+      expect(cleared.subjectName).toBe("Programming in C");
+      expect(cleared.originalSemester).toBe(1);
+      expect(cleared.clearanceSemester).toBe(2);
+      expect(cleared.attemptNumber).toBe(1);
+      expect(cleared.internalMarks).toBe(22);
+      expect(cleared.externalMarks).toBe(58);
+      expect(cleared.totalMarks).toBe(80);
+      expect(cleared.status).toBe("CLEARED");
+      expect(cleared.resultStatus).toBe("PASS");
+      expect(cleared.cleared).toBe(true);
+
+      // Failed attempt is NOT included in clearedBacklogs
+      expect(statement.clearedBacklogs.some((b) => b.subjectCode === "MATH101")).toBe(false);
+
+      // Regular subjects remain unchanged
+      expect(statement.subjects.length).toBe(2);
+
+      // Regular totals and percentage are NOT contaminated by backlog marks
+      expect(statement.summary.totalMarks).toBe(450);
+      expect(statement.summary.totalMaxMarks).toBe(500);
+      expect(statement.summary.percentage).toBe(90.0);
+    });
+
+    it("defaults clearedBacklogs to empty array when no backlogResults are present", () => {
+      const statement = mapResultToStatement(mockSemesterResult, mockProfile);
+      expect(statement.clearedBacklogs).toEqual([]);
+    });
   });
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -254,16 +335,19 @@ describe("Step 10 — Result Statement Data Mapper & Preview/PDF Components", ()
       expect(container.textContent).toContain("First Year");
       expect(container.textContent).toContain("Academic Year 1");
 
-      // Semester Cards
+      // Semester Cards (Minimal ERP: Semester, Exam Name, Academic Year, buttons)
       expect(container.textContent).toContain("Semester 1");
       expect(container.textContent).toContain("Winter 2024 Exams");
-      expect(container.textContent).toContain("400 / 500");
-      expect(container.textContent).toContain("80.00%");
+      expect(container.textContent).toContain("AY 2024-2025");
 
       expect(container.textContent).toContain("Semester 2");
       expect(container.textContent).toContain("Summer 2025 Exams");
-      expect(container.textContent).toContain("380 / 500");
-      expect(container.textContent).toContain("76.00%");
+
+      // Verify removed elements are not present on the card
+      expect(container.textContent).not.toContain("400 / 500");
+      expect(container.textContent).not.toContain("80.00%");
+      expect(container.textContent).not.toContain("Passed");
+      expect(container.textContent).not.toContain("Failed");
 
       // Action buttons
       const previewBtns = container.querySelectorAll(".preview-btn");
@@ -273,6 +357,72 @@ describe("Step 10 — Result Statement Data Mapper & Preview/PDF Components", ()
 
       // CRITICAL: Subject tables must NOT exist on the main page
       expect(container.querySelector(".sr-table")).toBeNull();
+    });
+
+    it("renders ONLY the 6 allowed details on the semester card and excludes summary statistics", () => {
+      const mockResultWithCourse = [
+        {
+          yearNumber: 1,
+          yearLabel: "First Year",
+          semesters: [
+            {
+              _id: "sem-card-test",
+              semester: 1,
+              examName: "First Sem Exam",
+              academicYear: "2026-27",
+              course_id: { name: "MSC IT" },
+              totalMarks: 450,
+              totalMaxMarks: 500,
+              percentage: 90.0,
+              overallResult: "PASS",
+              passedSubjects: 5,
+              failedSubjects: 0,
+              backlogCount: 0,
+            },
+          ],
+        },
+      ];
+
+      act(() => {
+        root.render(
+          <YearSemesterResultCards
+            groupedYears={mockResultWithCourse}
+            onPreview={() => {}}
+            onDownload={() => {}}
+            selectedSemester="ALL"
+          />
+        );
+      });
+
+      const card = container.querySelector(".sr-compact-sem-card");
+      expect(card).not.toBeNull();
+
+      // 1. Semester
+      expect(card.querySelector(".sr-sem-tag").textContent).toBe("Semester 1");
+      // 2. Exam Name
+      expect(card.querySelector(".sr-compact-exam-name").textContent).toBe("First Sem Exam");
+      // 3. Academic Year
+      expect(card.textContent).toContain("AY 2026-27");
+      // 4. Course
+      expect(card.textContent).toContain("MSC IT");
+      // 5. Preview Result button
+      const previewBtn = card.querySelector(".preview-btn");
+      expect(previewBtn).not.toBeNull();
+      expect(previewBtn.textContent).toContain("Preview Result");
+      // 6. Download PDF button
+      const downloadBtn = card.querySelector(".download-btn");
+      expect(downloadBtn).not.toBeNull();
+      expect(downloadBtn.textContent).toContain("Download PDF");
+
+      // STRICTLY EXCLUDED:
+      expect(card.textContent).not.toContain("450 / 500");
+      expect(card.textContent).not.toContain("90.00%");
+      expect(card.textContent).not.toContain("Total Marks");
+      expect(card.textContent).not.toContain("Overall Percentage");
+      expect(card.querySelector(".sr-status-pill")).toBeNull();
+      expect(card.textContent).not.toContain("Passed");
+      expect(card.textContent).not.toContain("Failed");
+      expect(card.textContent).not.toContain("Backlogs");
     });
 
     it("triggers onPreview and onDownload callbacks on button click", () => {
@@ -422,7 +572,7 @@ describe("Step 10 — Result Statement Data Mapper & Preview/PDF Components", ()
 
       // Toolbar actions
       expect(container.querySelector(".rsm-toolbar")).not.toBeNull();
-      expect(container.textContent).toContain("Print");
+      expect(container.textContent).not.toContain("Print");
       expect(container.textContent).toContain("Download PDF");
     });
 
@@ -449,9 +599,7 @@ describe("Step 10 — Result Statement Data Mapper & Preview/PDF Components", ()
       expect(closed).toBe(true);
     });
 
-    it("triggers window.print when print button is clicked", () => {
-      const printSpy = vi.spyOn(window, "print").mockImplementation(() => {});
-
+    it("renders Download PDF button and does not render Print button", () => {
       act(() => {
         root.render(
           <ResultStatementModal
@@ -462,13 +610,12 @@ describe("Step 10 — Result Statement Data Mapper & Preview/PDF Components", ()
         );
       });
 
-      const printBtn = container.querySelector(".rsm-action-btn"); // First button is Print
-      act(() => {
-        printBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      });
+      const buttons = Array.from(container.querySelectorAll("button"));
+      const printBtn = buttons.find((btn) => btn.textContent.trim() === "Print");
+      const downloadBtn = buttons.find((btn) => btn.textContent.includes("Download PDF"));
 
-      expect(printSpy).toHaveBeenCalled();
-      printSpy.mockRestore();
+      expect(printBtn).toBeUndefined();
+      expect(downloadBtn).not.toBeNull();
     });
 
     it("returns null when isOpen is false", () => {
@@ -483,6 +630,82 @@ describe("Step 10 — Result Statement Data Mapper & Preview/PDF Components", ()
       });
 
       expect(container.children.length).toBe(0);
+    });
+
+    it("renders separate clearance table inside printable paper when clearedBacklogs are present", () => {
+      const statementWithCleared = {
+        ...mockStatementData,
+        clearedBacklogs: [
+          {
+            backlogId: "b1",
+            attemptId: "att1",
+            subjectCode: "CS101",
+            subjectName: "Programming in C",
+            subjectType: "THEORY",
+            formattedType: "Theory",
+            originalSemester: 1,
+            clearanceSemester: 3,
+            attemptNumber: 1,
+            totalMarks: 78,
+            resultStatus: "PASS",
+            status: "CLEARED",
+            cleared: true,
+          },
+        ],
+      };
+
+      act(() => {
+        root.render(
+          <ResultStatementModal
+            isOpen={true}
+            onClose={() => {}}
+            statementData={statementWithCleared}
+          />
+        );
+      });
+
+      // Clearance container exists inside printable paper
+      const printableSheet = container.querySelector(".result-statement-paper");
+      expect(printableSheet).not.toBeNull();
+
+      const clearanceSection = printableSheet.querySelector(".rsm-backlog-clearance-container");
+      expect(clearanceSection).not.toBeNull();
+
+      // Clearance content
+      expect(clearanceSection.textContent).toContain("Supplementary / Backlog Examination Clearance");
+      expect(clearanceSection.textContent).toContain("CS101");
+      expect(clearanceSection.textContent).toContain("Programming in C");
+      expect(clearanceSection.textContent).toContain("Semester 1");
+      expect(clearanceSection.textContent).toContain("Attempt 1");
+      expect(clearanceSection.textContent).toContain("78");
+      expect(clearanceSection.textContent).toContain("CLEARED");
+      expect(clearanceSection.textContent).toContain(
+        "Supplementary/backlog marks are recorded separately and are not included in regular semester totals or percentage"
+      );
+
+      // Regular subjects still present and intact
+      expect(printableSheet.textContent).toContain("Signal Processing");
+      expect(printableSheet.textContent).toContain("Hardware Simulation Lab");
+
+      // Regular totals and percentage unchanged
+      expect(printableSheet.textContent).toContain("333 / 400");
+      expect(printableSheet.textContent).toContain("83.25%");
+    });
+
+    it("does not render clearance table when clearedBacklogs is empty or missing", () => {
+      act(() => {
+        root.render(
+          <ResultStatementModal
+            isOpen={true}
+            onClose={() => {}}
+            statementData={{ ...mockStatementData, clearedBacklogs: [] }}
+          />
+        );
+      });
+
+      const clearanceSection = container.querySelector(".rsm-backlog-clearance-container");
+      expect(clearanceSection).toBeNull();
+      expect(container.textContent).not.toContain("Supplementary / Backlog Examination Clearance");
     });
   });
 });
