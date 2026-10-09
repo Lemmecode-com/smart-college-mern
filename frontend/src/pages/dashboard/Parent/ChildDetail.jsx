@@ -707,12 +707,12 @@ if (loading) {
                       ) : (
                         <div className="parent-two-col-grid">
                           <div className="parent-fee-card">
-                            <div className="parent-fee-header">
+                            <div className="parent-fee-header" style={{  background: '#0E3746' }}>
                               <div className="parent-fee-icon" style={{ background: `linear-gradient(135deg, ${BRAND_COLORS.primary.main}20, ${BRAND_COLORS.primary.main}10)` }}>
-                                <FaRupeeSign style={{ color: BRAND_COLORS.primary.main }} />
+                                <FaRupeeSign />
                               </div>
-                              <div>
-                                <h3 className="parent-fee-title">Fee Summary</h3>
+                              <div >
+                                <h3 className="parent-fee-title" style={{color: 'white' }}>Fee Summary</h3>
                               </div>
                             </div>
                             <div className="parent-fee-card-body">
@@ -754,7 +754,7 @@ if (loading) {
                                 <FaCreditCard style={{ color: BRAND_COLORS.info.main }} />
                               </div>
                               <div>
-                                <h3 className="parent-fee-title">Payment Installments</h3>
+                                <h3 className="parent-fee-title" style={{color: 'white' }}>Payment Installments</h3>
                               </div>
                             </div>
                             <div className="parent-fee-card-body">
