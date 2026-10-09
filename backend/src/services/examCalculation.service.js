@@ -20,12 +20,16 @@ const normalizeMark = (value) => (isMissing(value) ? null : value);
 /**
  * THEORY calculation.
  *
- * Configuration: internalPassMarks, externalPassMarks.
+ * Configuration: internalPassMarks, externalPassMarks, internalMaxMarks, externalMaxMarks.
  * Both internal and external marks are required to determine a result.
  */
 const calculateTheory = (config, marks) => {
   const internal = normalizeMark(marks.internalMarks);
   const external = normalizeMark(marks.externalMarks);
+
+  const internalMax = !isMissing(config.internalMaxMarks) ? Number(config.internalMaxMarks) : null;
+  const externalMax = !isMissing(config.externalMaxMarks) ? Number(config.externalMaxMarks) : null;
+  const maxMarks = internalMax !== null && externalMax !== null ? internalMax + externalMax : null;
 
   const configIncomplete =
     isMissing(config.internalPassMarks) || isMissing(config.externalPassMarks);
@@ -36,6 +40,9 @@ const calculateTheory = (config, marks) => {
       internalMarks: internal,
       externalMarks: external,
       totalMarks: null,
+      internalMaxMarks: internalMax,
+      externalMaxMarks: externalMax,
+      maxMarks,
       internalPassed: null,
       externalPassed: null,
       passed: false,
@@ -52,6 +59,9 @@ const calculateTheory = (config, marks) => {
     internalMarks: internal,
     externalMarks: external,
     totalMarks: internal + external,
+    internalMaxMarks: internalMax,
+    externalMaxMarks: externalMax,
+    maxMarks,
     internalPassed,
     externalPassed,
     passed,
@@ -67,6 +77,8 @@ const calculateTheory = (config, marks) => {
  */
 const calculatePractical = (config, marks) => {
   const internal = normalizeMark(marks.internalMarks);
+  const internalMax = !isMissing(config.internalMaxMarks) ? Number(config.internalMaxMarks) : null;
+  const maxMarks = internalMax;
 
   if (isMissing(config.passMarks) || isMissing(internal)) {
     return {
@@ -74,6 +86,9 @@ const calculatePractical = (config, marks) => {
       internalMarks: internal,
       externalMarks: null,
       totalMarks: null,
+      internalMaxMarks: internalMax,
+      externalMaxMarks: null,
+      maxMarks,
       passed: false,
       status: "INCOMPLETE",
     };
@@ -86,6 +101,9 @@ const calculatePractical = (config, marks) => {
     internalMarks: internal,
     externalMarks: null,
     totalMarks: internal,
+    internalMaxMarks: internalMax,
+    externalMaxMarks: null,
+    maxMarks,
     passed,
     status: passed ? "PASS" : "FAIL",
   };
@@ -94,12 +112,16 @@ const calculatePractical = (config, marks) => {
 /**
  * COMPOSITE calculation.
  *
- * Configuration: passMarks (overall).
+ * Configuration: passMarks (overall), internalMaxMarks, externalMaxMarks.
  * Total = internal + external; passed = total >= passMarks.
  */
 const calculateComposite = (config, marks) => {
   const internal = normalizeMark(marks.internalMarks);
   const external = normalizeMark(marks.externalMarks);
+
+  const internalMax = !isMissing(config.internalMaxMarks) ? Number(config.internalMaxMarks) : null;
+  const externalMax = !isMissing(config.externalMaxMarks) ? Number(config.externalMaxMarks) : null;
+  const maxMarks = internalMax !== null && externalMax !== null ? internalMax + externalMax : null;
 
   if (isMissing(config.passMarks) || isMissing(internal) || isMissing(external)) {
     return {
@@ -107,6 +129,9 @@ const calculateComposite = (config, marks) => {
       internalMarks: internal,
       externalMarks: external,
       totalMarks: null,
+      internalMaxMarks: internalMax,
+      externalMaxMarks: externalMax,
+      maxMarks,
       passed: false,
       status: "INCOMPLETE",
     };
@@ -120,6 +145,9 @@ const calculateComposite = (config, marks) => {
     internalMarks: internal,
     externalMarks: external,
     totalMarks: total,
+    internalMaxMarks: internalMax,
+    externalMaxMarks: externalMax,
+    maxMarks,
     passed,
     status: passed ? "PASS" : "FAIL",
   };
@@ -140,6 +168,8 @@ const calculateComposite = (config, marks) => {
  */
 exports.calculateSubjectResult = (config = {}, marks = {}) => {
   const type = config.subjectType;
+  const internalMax = !isMissing(config.internalMaxMarks) ? Number(config.internalMaxMarks) : null;
+  const externalMax = !isMissing(config.externalMaxMarks) ? Number(config.externalMaxMarks) : null;
 
   if (!SUBJECT_TYPES.includes(type)) {
     return {
@@ -147,6 +177,9 @@ exports.calculateSubjectResult = (config = {}, marks = {}) => {
       internalMarks: normalizeMark(marks.internalMarks),
       externalMarks: normalizeMark(marks.externalMarks),
       totalMarks: null,
+      internalMaxMarks: internalMax,
+      externalMaxMarks: externalMax,
+      maxMarks: null,
       passed: false,
       status: "INCOMPLETE",
     };
@@ -165,10 +198,64 @@ exports.calculateSubjectResult = (config = {}, marks = {}) => {
         internalMarks: normalizeMark(marks.internalMarks),
         externalMarks: normalizeMark(marks.externalMarks),
         totalMarks: null,
+        internalMaxMarks: internalMax,
+        externalMaxMarks: externalMax,
+        maxMarks: null,
         passed: false,
         status: "INCOMPLETE",
       };
   }
 };
 
+/**
+ * Calculate totals and official percentage for a list of subjects.
+ *
+ * Rules:
+ * - All subjects (PASS and FAIL) are included in totalMarks and totalMaxMarks.
+ * - If overallResult is INCOMPLETE or any subject is INCOMPLETE or has null marks:
+ *   percentage is null.
+ * - If totalMaxMarks is 0 or null: percentage is null.
+ * - Otherwise: percentage is rounded to 2 decimal places.
+ *
+ * @param {Array<Object>} subjects
+ * @param {string} overallResult  "PASS" | "FAIL" | "INCOMPLETE"
+ * @returns {{ totalMarks: number, totalMaxMarks: number, percentage: number|null }}
+ */
+const calculateSemesterTotals = (subjects = [], overallResult = "INCOMPLETE") => {
+  let totalMarks = 0;
+  let totalMaxMarks = 0;
+  let hasIncomplete = overallResult === "INCOMPLETE" || subjects.length === 0;
+
+  for (const s of subjects) {
+    if (
+      s.status === "INCOMPLETE" ||
+      s.totalMarks === null ||
+      s.totalMarks === undefined ||
+      s.maxMarks === null ||
+      s.maxMarks === undefined
+    ) {
+      hasIncomplete = true;
+    }
+
+    if (s.totalMarks !== null && s.totalMarks !== undefined) {
+      totalMarks += Number(s.totalMarks);
+    }
+    if (s.maxMarks !== null && s.maxMarks !== undefined) {
+      totalMaxMarks += Number(s.maxMarks);
+    }
+  }
+
+  const percentage =
+    hasIncomplete || totalMaxMarks <= 0
+      ? null
+      : Number(((totalMarks / totalMaxMarks) * 100).toFixed(2));
+
+  return {
+    totalMarks,
+    totalMaxMarks,
+    percentage,
+  };
+};
+
+exports.calculateSemesterTotals = calculateSemesterTotals;
 exports.SUBJECT_TYPES = SUBJECT_TYPES;
