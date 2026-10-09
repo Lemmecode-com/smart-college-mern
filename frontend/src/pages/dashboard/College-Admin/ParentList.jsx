@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line 
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import Pagination from "../../../components/Pagination";
 import {
   FaUser,
@@ -21,6 +22,7 @@ import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { logger } from "../../../utils/logger";
+import { fontWeight } from "html2canvas/dist/types/css/property-descriptors/font-weight";
 
 // Moved outside component to prevent re-creation on every render
 const AUTH_ERROR_CODES = new Set([
@@ -365,6 +367,270 @@ export default function ParentList() {
     });
   }, [fetchParents]);
 
+/* ================= STANDARD LIST COLUMNS ================= */
+
+const columns = [
+  {
+    key: "name",
+    label: "Parent",
+    sortable: true,
+    width: "220px",
+
+    render: (parent) => (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <div
+          style={{
+            width: "40px",
+            height: "40px",
+            minWidth: "40px",
+            borderRadius: "50%",
+            backgroundColor: `${BRAND_COLORS.primary.light}20`,
+            color: BRAND_COLORS.primary.main,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "700",
+            fontSize: "1rem",
+          }}
+        >
+          {parent.name?.charAt(0)?.toUpperCase() || "P"}
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontWeight: "700",
+              color: BRAND_COLORS.text.primary,
+              fontSize: "0.8rem",
+            }}
+          >
+            {parent.name || "Unnamed Parent"}
+          </div>
+
+          <div
+            style={{
+              fontSize: "0.75rem",
+              color: BRAND_COLORS.text.muted,
+              textTransform: "capitalize",
+            }}
+          >
+            {parent.relation?.replace("_", " ") || "Parent"}
+          </div>
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "email",
+    label: "Email",
+    sortable: true,
+    width: "220px",
+
+    render: (parent) => (
+      <span
+        style={{
+          color: BRAND_COLORS.text.secondary,
+          fontSize: "0.8rem",
+        }}
+      >
+        {parent.email || "Not Provided"}
+      </span>
+    ),
+  },
+
+  {
+    key: "relation",
+    label: "Relationship",
+    sortable: true,
+    width: "100px",
+
+    render: (parent) => (
+      <span
+        style={{
+          padding: "4px 10px",
+          borderRadius: "6px",
+          fontSize: "0.7rem",
+          fontWeight: "600",
+          backgroundColor: "#f8f9fa",
+          color: BRAND_COLORS.text.secondary,
+          textTransform: "capitalize",
+        }}
+      >
+        {parent.relation?.replace("_", " ") || "Not Provided"}
+      </span>
+    ),
+  },
+
+  {
+    key: "linkedStudents",
+    label: "Linked Students",
+    sortable: false,
+    width: "120px",
+
+    render: (parent) => (
+      <div>
+        <div
+          style={{
+            fontWeight: "600",
+            color: BRAND_COLORS.text.primary,
+            fontSize: "0.75rem",
+          }}
+        >
+          {parent.linkedStudents?.length || 0} student(s)
+        </div>
+
+        <small
+          style={{
+            color: BRAND_COLORS.text.muted,
+            fontSize: "0.7rem",
+          }}
+        >
+          {parent.linkedStudents?.length > 0
+            ? parent.linkedStudents
+                .map((student) => student.fullName)
+                .join(", ")
+            : "Not linked"}
+        </small>
+      </div>
+    ),
+  },
+
+  {
+    key: "isActive",
+    label: "Status",
+    sortable: true,
+    width: "100px",
+
+    render: (parent) => (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+          padding: "6px 12px",
+          borderRadius: "20px",
+          fontSize: "0.7rem",
+          fontWeight: "700",
+          backgroundColor: parent.isActive
+            ? BRAND_COLORS.success.light
+            : BRAND_COLORS.danger.light,
+          color: parent.isActive
+            ? BRAND_COLORS.success.dark
+            : BRAND_COLORS.danger.dark,
+          border: `1px solid ${
+            parent.isActive
+              ? BRAND_COLORS.success.main
+              : BRAND_COLORS.danger.main
+          }30`,
+        }}
+      >
+        {parent.isActive ? <FaCheckCircle /> : <FaTimesCircle />}
+
+        {parent.isActive ? "Active" : "Inactive"}
+      </span>
+    ),
+  },
+
+  {
+    key: "mustChangePassword",
+    label: "Account",
+    sortable: true,
+    width: "160px",
+
+    render: (parent) =>
+      parent.mustChangePassword ? (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "6px 12px",
+            borderRadius: "20px",
+            fontSize: "0.7rem",
+            fontWeight: "600",
+            backgroundColor: BRAND_COLORS.warning.light,
+            color: BRAND_COLORS.warning.dark,
+          }}
+        >
+          <FaKey />
+          Temp password
+        </span>
+      ) : (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "6px 12px",
+            borderRadius: "20px",
+            fontSize: "0.8rem",
+            fontWeight: "600",
+            backgroundColor: BRAND_COLORS.success.light,
+            color: BRAND_COLORS.success.dark,
+          }}
+        >
+          <FaCheckCircle />
+          Set
+        </span>
+      ),
+  },
+];
+
+/* ================= STANDARD LIST ACTIONS ================= */
+
+const tableActions = {
+  label: "Actions",
+  width: "200px",
+
+  items: [
+    {
+      key: "view",
+      label: "View",
+      icon: FaEye,
+      className: "view-btn",
+      style: {  },
+
+      onClick: (parent) => {
+        navigate(`/college/parents/${parent.id}`);
+      },
+    },
+
+    {
+      key: "edit",
+      label: "Edit",
+      icon: FaEdit,
+      className: "edit-btn",
+      
+
+      onClick: (parent) => {
+        navigate(`/college/parents/edit/${parent.id}`);
+      },
+    },
+
+    {
+      key: "toggle-status",
+      text: "x",
+      style: { backgroundColor: "#c82121", fontWeight: "bold", fontSize: "1.8rem" },
+      label: (parent) =>
+        parent.isActive ? "Deactivate" : "Activate",
+      icon: (parent) =>
+        parent.isActive ? FaTimesCircle : FaCheckCircle,
+      className: "danger-btn",
+
+      onClick: (parent) => {
+        handleToggleStatus(parent);
+      },
+    },
+  ],
+};
+
   if (error && !loading) {
     return (
       <ApiError
@@ -524,7 +790,7 @@ export default function ParentList() {
 
             <motion.button
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => {
                 setSearchTerm("");
                 setStatusFilter("");
@@ -993,125 +1259,80 @@ export default function ParentList() {
 
         </motion.div>
 
-        {/* Table Section */}
-        <motion.div
-          className="parent-management-table-section"
-          variants={fadeInVariants}
-          custom={1}
-          initial="hidden"
-          animate="visible"
-        >
-          <div 
-          
-            className="parent-management-table-card"style={{
-            backgroundColor: "#f8f9fa",
-            borderRadius: "16px",
-            padding: "24px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
-          }}>
-            <div style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "20px",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}>
-              <h3 style={{
-                margin: 0,
-                fontSize: "1.1rem",
-                fontWeight: "700",
-                color: BRAND_COLORS.text.primary,
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}>
-                <FaUser style={{ color: BRAND_COLORS.accent.main }} />
-                Parent/Guardian Overview
-              </h3>
-              <div style={{
-                fontSize: "0.9rem",
-                fontWeight: "600",
-                color: BRAND_COLORS.text.secondary,
-                backgroundColor: "#ffffff",
-                padding: "6px 14px",
-                borderRadius: "20px",
-                border: "1px solid #e2e8f0",
-              }}>
-                 Showing: <span style={{ color: BRAND_COLORS.accent.main }}>{Math.min(indexOfLastItem, filteredParents.length)}</span> of {filteredParents.length} parents
-              </div>
-            </div>
+<motion.div
+  className="parent-management-table-section"
+  variants={fadeInVariants}
+  custom={1}
+  initial="hidden"
+  animate="visible"
+>
 
-            {currentItems.length === 0 ? (
-              <EmptyState
-                icon={<FaUserFriends />}
-                title="No Parents Found"
-                message={parents.length === 0 ? "No parent accounts have been created yet." : "No parents match your search criteria."}
-                success={false}
-              />
-            ) : (
-              <div className="parent-management-table-wrapper" style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 10px" }}>
-                  <thead>
-                    <tr>
-                      {["Parent", "Email", "Relationship", "Linked Students", "Status", "Account", "Actions"].map((header) => (
-                        <th
-                          key={header}
-                          style={{
-                            padding: "12px 20px",
-                            textAlign: "left",
-                            fontSize: "0.8rem",
-                            fontWeight: "700",
-                            color: BRAND_COLORS.text.primary,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            borderBottom: `2px solid ${BRAND_COLORS.accent.main}`,
-                          }}
-                        >
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentItems.map((p, idx) => (
-                      <ParentTableRow
-                        key={p.id}
-                        p={p}
-                        idx={idx}
-                        onNavigate={navigate}
-                        onToggleStatus={handleToggleStatus}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {filteredParents.length > 0 && (
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "12px",
-                marginTop: "20px",
-              }}>
-                <div style={{
-                  fontSize: "0.85rem",
-                  color: BRAND_COLORS.text.secondary,
-                  fontWeight: "600",
-                }}>
-                  Showing <strong>{Math.min(indexOfLastItem, filteredParents.length)}</strong> of{" "}
-                  <strong>{filteredParents.length}</strong> parents
-                </div>
-                <Pagination
-                  page={currentPage}
-                  totalPages={totalPages}
-                  setPage={setCurrentPage}
-                />
-              </div>
-            )}
-          </div>
-        </motion.div>
+  <StandardListView
+  className="parent-management-list"
+  title="Parent/Guardian Overview"
+  icon={FaUserFriends}
+  count={filteredParents.length}
+  columns={columns}
+  data={currentItems}
+  loading={false}
+  emptyState={{
+    icon: FaUserFriends,
+
+    title: "No Parents Found",
+
+    description:
+      parents.length === 0
+        ? "No parent accounts have been created yet."
+        : "No parents match your search criteria.",
+
+    action:
+      searchTerm || statusFilter
+        ? {
+            label: "Clear Filters",
+            icon: FaSyncAlt,
+            onClick: () => {
+              setSearchTerm("");
+              setStatusFilter("");
+            },
+          }
+        : undefined,
+  }}
+  actions={tableActions}
+/>
+
+{filteredParents.length > 0 && totalPages > 1 && (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "12px",
+      marginTop: "20px",
+    }}
+  >
+    <div
+      style={{
+        fontSize: "0.85rem",
+        color: BRAND_COLORS.text.secondary,
+        fontWeight: "600",
+      }}
+    >
+      Showing{" "}
+      <strong>
+        {Math.min(indexOfLastItem, filteredParents.length)}
+      </strong>{" "}
+      of{" "}
+      <strong>{filteredParents.length}</strong> parents
+    </div>
+
+    <Pagination
+      page={currentPage}
+      totalPages={totalPages}
+      setPage={setCurrentPage}
+    />
+  </div>
+)}
+</motion.div>
 
         <ConfirmModal
           isOpen={confirmModal.isOpen}

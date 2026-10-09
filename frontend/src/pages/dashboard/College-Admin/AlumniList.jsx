@@ -6,6 +6,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { TableSkeleton } from "../../../components/Skeleton";
 import { showSuccess, showError } from "../../../utils/toast";
@@ -542,6 +543,108 @@ export default function AlumniList({ admissionOfficerMode = false }) {
     setDetailsModalOpen(true);
   };
 
+  const columns = [
+  {
+    key: "student",
+    label: "Student",
+    sortable: true,
+    width: "250px",
+    render: (alumnus) => (
+      <div className="student-info">
+        <span className="student-name-cell">
+          {alumnus.fullName}
+        </span>
+
+        <span className="student-email">
+          {alumnus.email}
+        </span>
+      </div>
+    ),
+  },
+
+  {
+    key: "course",
+    label: "Course",
+    sortable: true,
+    width: "180px",
+    render: (alumnus) => (
+      <span className="badge badge-course">
+        {alumnus.course_id?.name || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "department",
+    label: "Department",
+    sortable: true,
+    width: "210px",
+    render: (alumnus) => (
+      <span className="department-name">
+        {alumnus.department_id?.name ||
+          alumnus.course_id?.name ||
+          "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "graduationYear",
+    label: "Graduation Year",
+    sortable: true,
+    width: "150px",
+    render: (alumnus) => (
+      <span className="badge badge-graduation-year">
+        <FaGraduationCap className="badge-icon" />
+        {alumnus.graduationYear || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "alumniDate",
+    label: "Alumni Since",
+    sortable: true,
+    width: "160px",
+    render: (alumnus) => {
+      const formattedDate = alumnus.alumniDate
+        ? new Date(alumnus.alumniDate).toLocaleDateString(
+            "en-GB",
+            {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }
+          )
+        : "N/A";
+
+      return (
+        <span className="alumni-date">
+          <FaCalendarAlt className="date-icon" />
+          {formattedDate}
+        </span>
+      );
+    },
+  },
+];
+
+const tableActions = {
+  label: "Actions",
+  width: "170px",
+  items: [
+    {
+      key: "certificate",
+      label: "Certificate",
+      icon: FaCertificate,
+      className: "view-btn",
+      text: "Certificate",
+      style: { minWidth: "100px", minHeight: "30px", gap: "5px", fontWeight: "500" },
+      onClick: (alumnus) =>
+        handleGenerateCertificate(alumnus),
+    },
+  ],
+};
+
   const handleDownloadPDF = async (alumnusData, collegeData) => {
     try {
       // Show loading state
@@ -798,55 +901,41 @@ if (loading) {
         </div>
       </div>
 
-      {/* Alumni Table Card */}
-      <div className="card table-card">
-        <div className="card-header">
-          <div className="card-title-wrapper">
-            <FaUsers className="card-icon" />
-            <h3 className="card-title">
-              Alumni Members ({filteredAlumni.length})
-            </h3>
-          </div>
-        </div>
-        <div className="card-body">
-          {filteredAlumni.length === 0 ? (
-            <div className="empty-state">
-              <FaGraduationCap className="empty-icon" />
-              <h4 className="empty-title">No alumni found</h4>
-              <p className="empty-text">
-                {search || yearFilter !== "ALL" || departmentFilter !== "ALL"
-                  ? "Try adjusting your search or filters"
-                  : "Move students to Alumni to see them here"}
-              </p>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="data-table alumni-table">
-                <thead>
-                  <tr>
-                    <th className="th-student">Student</th>
-                    <th className="th-course">Course</th>
-                    <th className="th-department">Department</th>
-                    <th className="th-year">Graduation Year</th>
-                    <th className="th-date">Alumni Since</th>
-                    <th className="th-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAlumni.map((alumnus) => (
-                    <AlumniTableRow
-                      key={alumnus._id}
-                      alumnus={alumnus}
-                      onGenerateCertificate={handleGenerateCertificate}
-                      onViewDetails={handleViewDetails}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+          {/* Alumni List */}
+          <StandardListView
+            className="alumni-list"
+            title="Alumni Members"
+            icon={FaUsers}
+            count={filteredAlumni.length}
+            columns={columns}
+            data={filteredAlumni}
+            loading={false}
+            emptyState={{
+              icon: FaGraduationCap,
+              title: "No Alumni Found",
+              description:
+                search ||
+                yearFilter !== "ALL" ||
+                departmentFilter !== "ALL"
+                  ? "Try adjusting your search or filters."
+                  : "Move students to Alumni to see them here.",
+              action:
+                search ||
+                yearFilter !== "ALL" ||
+                departmentFilter !== "ALL"
+                  ? {
+                      label: "Clear Filters",
+                      icon: FaTimes,
+                      onClick: () => {
+                        setSearch("");
+                        setYearFilter("ALL");
+                        setDepartmentFilter("ALL");
+                      },
+                    }
+                  : undefined,
+            }}
+            actions={tableActions}
+          />
 
       {/* Certificate Modal */}
       <CertificateModal

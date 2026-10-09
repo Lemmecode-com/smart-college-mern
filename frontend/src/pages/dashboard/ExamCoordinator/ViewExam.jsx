@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import ApiError from "../../../components/ApiError";
 import { publishExam } from "../../../api/exam";
 import { getExamSchedule } from "../../../api/examSchedule";
@@ -238,31 +239,8 @@ const viewStyles = `
 }
 .exam-view .section-title svg { color: var(--edx-cyan-600); }
 
-/* ---------- Table ---------- */
-.exam-view .table-card {
-  border: 1px solid var(--edx-slate-100);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.exam-view table { margin-bottom: 0; }
-.exam-view thead th {
-  background: var(--edx-slate-100);
-  color: var(--edx-navy-900);
-  font-weight: 600;
-  font-size: 0.82rem;
-  border-bottom: 2px solid var(--edx-cyan-500) !important;
-  padding: 0.8rem 1rem;
-  white-space: nowrap;
-}
-.exam-view tbody td {
-  padding: 0.75rem 1rem;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--edx-slate-100);
-  font-size: 0.88rem;
-}
-.exam-view tbody tr { transition: background 0.12s ease; }
-.exam-view tbody tr:hover { background: var(--edx-cyan-50); }
-.exam-view tbody tr:last-child td { border-bottom: none; }
+
+
 .exam-view .subject-name-cell { font-weight: 600; color: var(--edx-slate-900); }
 .exam-view .teacher-empty { color: var(--edx-slate-400); font-style: italic; }
 .exam-view .marks-text { color: var(--edx-slate-600); font-size: 0.82rem; }
@@ -501,6 +479,117 @@ export default function ViewExam() {
     };
     return <span className={`pill pill-sm ${variants[type] || "type-default"}`}>{type || "N/A"}</span>;
   };
+
+  const subjectColumns = [
+  {
+    key: "subject",
+    label: "Subject Name",
+    sortable: false,
+    width: "190px",
+    render: (examSubject) => {
+      const subject = examSubject.subject || {};
+
+      return (
+        <div className="subject-name-cell">
+          {subject.name || "N/A"}
+        </div>
+      );
+    },
+  },
+
+  {
+    key: "code",
+    label: "Code",
+    sortable: false,
+    width: "150px",
+    render: (examSubject) => {
+      const subject = examSubject.subject || {};
+
+      return (
+        <span className="pill pill-slate pill-sm">
+          {subject.code || "N/A"}
+        </span>
+      );
+    },
+  },
+
+  {
+    key: "category",
+    label: "Category",
+    sortable: false,
+    width: "130px",
+    render: (examSubject) =>
+      examSubject.category === "BACKLOG" ? (
+        <span className="pill pill-warning pill-sm">
+          BACKLOG{" "}
+          {examSubject.originalSemester
+            ? `(Sem ${examSubject.originalSemester})`
+            : ""}
+        </span>
+      ) : (
+        <span className="pill pill-cyan pill-sm">
+          REGULAR
+        </span>
+      ),
+  },
+
+  {
+    key: "subjectType",
+    label: "Type",
+    sortable: false,
+    width: "120px",
+    render: (examSubject) =>
+      getSubjectTypeBadge(examSubject.subjectType),
+  },
+
+  {
+    key: "teacher",
+    label: "Teacher",
+    sortable: false,
+    width: "130px",
+    render: (examSubject) => {
+      const teacher = examSubject.subject?.teacher_id;
+
+      if (!teacher) {
+        return (
+          <span className="teacher-empty">
+            Not assigned
+          </span>
+        );
+      }
+
+      return typeof teacher === "object"
+        ? teacher.name || "N/A"
+        : teacher;
+    },
+  },
+
+  {
+    key: "marks",
+    label: "Max Marks Config",
+    sortable: false,
+    width: "170px",
+    render: (examSubject) => (
+      <span className="marks-text">
+        {examSubject.internalMaxMarks !== undefined &&
+          `Int: ${examSubject.internalMaxMarks}`}
+
+        {examSubject.externalMaxMarks !== undefined &&
+          ` / Ext: ${examSubject.externalMaxMarks}`}
+
+        {examSubject.passMarks !== undefined &&
+          ` / Pass: ${examSubject.passMarks}`}
+
+        {examSubject.internalMaxMarks === undefined &&
+          examSubject.externalMaxMarks === undefined &&
+          examSubject.passMarks === undefined &&
+          "Not configured"}
+      </span>
+    ),
+  },
+];
+
+
 
   /* ================= TIMETABLE DERIVED STATE ================= */
   const timetableStatus = scheduleData ? scheduleData.status : "NONE";
@@ -752,78 +841,21 @@ export default function ViewExam() {
                 </div>
               </div>
 
-              {/* Subjects List */}
-              <h5 className="section-title">
-                <FaBook />
-                Subjects
-              </h5>
-              {exam.subjects && exam.subjects.length > 0 ? (
-                <div className="table-card table-responsive">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Subject Name</th>
-                        <th>Code</th>
-                        <th>Category</th>
-                        <th>Type</th>
-                        <th>Teacher</th>
-                        <th>Max Marks Config</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {exam.subjects.map((examSubject, index) => {
-                        const subject = examSubject.subject || {};
-                        return (
-                          <tr key={examSubject._id || index}>
-                            <td className="subject-name-cell">{subject.name || "N/A"}</td>
-                            <td>
-                              <span className="pill pill-slate pill-sm">{subject.code || "N/A"}</span>
-                            </td>
-                            <td>
-                              {examSubject.category === "BACKLOG" ? (
-                                <span className="pill pill-warning pill-sm">
-                                  BACKLOG {examSubject.originalSemester ? `(Sem ${examSubject.originalSemester})` : ""}
-                                </span>
-                              ) : (
-                                <span className="pill pill-cyan pill-sm">
-                                  REGULAR
-                                </span>
-                              )}
-                            </td>
-                            <td>{getSubjectTypeBadge(examSubject.subjectType)}</td>
-                            <td>
-                              {subject.teacher_id ? (
-                                typeof subject.teacher_id === "object" ? (
-                                  subject.teacher_id.name || "N/A"
-                                ) : (
-                                  subject.teacher_id
-                                )
-                              ) : (
-                                <span className="teacher-empty">Not assigned</span>
-                              )}
-                            </td>
-                            <td>
-                              <span className="marks-text">
-                                {examSubject.internalMaxMarks !== undefined && `Int: ${examSubject.internalMaxMarks}`}
-                                {examSubject.externalMaxMarks !== undefined && ` / Ext: ${examSubject.externalMaxMarks}`}
-                                {examSubject.passMarks !== undefined && ` / Pass: ${examSubject.passMarks}`}
-                                {examSubject.internalMaxMarks === undefined && examSubject.externalMaxMarks === undefined && examSubject.passMarks === undefined && (
-                                  "Not configured"
-                                )}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="alert-edx alert-edx-warning">
-                  <FaExclamationTriangle />
-                  No subjects assigned to this exam.
-                </div>
-              )}
+{/* Subjects List */}
+<StandardListView
+  className="exam-subjects-list"
+  title="Subjects"
+  icon={FaBook}
+  count={exam.subjects?.length || 0}
+  columns={subjectColumns}
+  data={exam.subjects || []}
+  loading={false}
+  emptyState={{
+    icon: FaBook,
+    title: "No Subjects Assigned",
+    description: "No subjects have been assigned to this exam yet.",
+  }}
+/>
 
               {/* Actions */}
               <div className="d-flex justify-content-between mt-4">

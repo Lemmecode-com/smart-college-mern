@@ -4,6 +4,7 @@ import { toast } from "react-toastify";
 import { AuthContext } from "../../../auth/AuthContext";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import {
   getPromotionEligibleStudents,
   bulkPromoteStudents,
@@ -1545,6 +1546,124 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
     }
   };
 
+  const columns = [
+  {
+    key: "student",
+    label: "Student",
+    sortable: true,
+    width: "260px",
+    render: (student) => (
+      <div>
+        <div className="student-name">
+          {student.fullName}
+        </div>
+        <div className="student-email">
+          {student.email}
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "academicYear",
+    label: "Academic Year",
+    sortable: true,
+    width: "160px",
+    render: (student) => (
+      <div>
+        <span className="badge badge-info">
+          {student.academicYearLabel}
+        </span>
+
+        <div
+          className="text-muted"
+          style={{ fontSize: "12px" }}
+        >
+          Sem {student.currentSemester}
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "totalFee",
+    label: "Total Fee",
+    sortable: true,
+    width: "140px",
+    render: (student) => (
+      <div className="fee-amount">
+        <FaRupeeSign className="rupee-icon" />
+        {student.fee?.totalFee || 0}
+      </div>
+    ),
+  },
+
+  {
+    key: "paidAmount",
+    label: "Paid Amount",
+    sortable: true,
+    width: "140px",
+    render: (student) => (
+      <div
+        className={`fee-amount ${
+          student.fee?.paidAmount >= student.fee?.totalFee
+            ? "text-success fw-bold"
+            : "text-muted"
+        }`}
+      >
+        <FaRupeeSign className="rupee-icon" />
+        {student.fee?.paidAmount || 0}
+      </div>
+    ),
+  },
+
+  {
+    key: "feeStatus",
+    label: "Status",
+    sortable: true,
+    width: "180px",
+    render: (student) => (
+      <span
+        className={`badge ${getFeeStatusBadge(
+          student.feeStatus
+        )}`}
+      >
+        {student.feeStatus === "FULLY_PAID" && (
+          <FaCheckCircle className="badge-icon" />
+        )}
+
+        {student.feeStatus.replace("_", " ")}
+      </span>
+    ),
+  },
+];
+
+const tableActions = {
+  label: "Action",
+  width: "200px",
+  items: [
+    {
+      key: "promotion",
+      label: "Promotion",
+      icon: FaClipboardCheck,
+      className: "view-btn",
+      text: "Promotion",
+     style: { minWidth: "100px", minHeight: "30px", gap: "5px", fontWeight: "500" },
+      onClick: (student) => checkEligibility(student),
+    },
+
+    {
+      key: "alumni",
+      label: "Move to Alumni",
+      icon: FaGraduationCap,
+      className: "warning-btn",
+      show: (student) =>
+        student.isFinalYear && student.isAlumniEligible,
+      onClick: (student) => openAlumniModal(student),
+    },
+  ],
+};
+
   if (loading && students.length === 0) {
   return (
     <div className="parent-portal-wrapper">
@@ -1921,216 +2040,66 @@ if (error && !loading && students.length === 0) {
             </div>
           </div>
         </>
-      ) : (
-        /* Students Table */
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Eligible Students</h3>
-            <div className="card-header-actions">
-              <span className="text-muted">
-                {filteredStudents.length} of {students.length} students
-              </span>
-              <span className="badge badge-info ml-2">
-                Attendance threshold: {promotionThreshold}%
-              </span>
-            </div>
-          </div>
-          <div className="card-body">
-            {loading && students.length === 0 ? (
-              <div className="loading-container">
-                <FaSpinner className="spinner-icon" />
-                <p>Loading students...</p>
-              </div>
-            ) : !loading && students.length === 0 ? (
-              <div className="empty-state">
-                <FaGraduationCap className="empty-icon" />
-                <p className="empty-title">No Students Found</p>
-                <p className="empty-text">
-                  No students with "APPROVED" status found in your college.
-                </p>
-                <div className="empty-help" style={{ marginTop: '20px', textAlign: 'left', maxWidth: '500px', margin: '20px auto' }}>
-                  <p style={{ marginBottom: '10px' }}><strong>Possible reasons:</strong></p>
-                  <ul style={{ lineHeight: '1.8' }}>
-                    <li>Students status is not set to "APPROVED"</li>
-                    <li>Students are not assigned to your college</li>
-                    <li>No students exist in the database yet</li>
-                  </ul>
-                  <p style={{ marginTop: '15px', marginBottom: '10px' }}><strong>Steps to fix:</strong></p>
-                  <ol style={{ lineHeight: '1.8' }}>
-                    <li>Check backend terminal for detailed logs</li>
-                    <li>Open browser console (F12) to see API response</li>
-                    <li>Verify students have status "APPROVED" in MongoDB</li>
-                    <li>Ensure students are assigned to your college</li>
-                  </ol>
-                </div>
-                <button 
-                  onClick={fetchEligibleStudents} 
-                  className="btn btn-primary"
-                  style={{ marginTop: '15px' }}
-                >
-                  <FaSyncAlt /> Retry
-                </button>
-              </div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="empty-state">
-                <FaGraduationCap className="empty-icon" />
-                <p className="empty-title">No students match your filters</p>
-                <p className="empty-text">
-                  Try adjusting your search or filters
-                </p>
-                <button 
-                  onClick={() => { setSearch(""); setSemesterFilter("ALL"); }}
-                  className="btn btn-outline-primary"
-                  style={{ marginTop: '15px' }}
-                >
-                  <FaTimes /> Reset Filters
-                </button>
-              </div>
-            ) : (
-              <div className="table-responsive">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th className="checkbox-column">
-                        <input
-                          type="checkbox"
-                          checked={
-                            selectedStudents.length ===
-                              paginatedStudents.length &&
-                            paginatedStudents.length > 0
-                          }
-                          onChange={handleSelectAll}
-                          className="custom-checkbox"
-                        />
-                      </th>
-                      <th>Student</th>
-                      <th>Academic Year</th>
-                      <th>Total Fee</th>
-                      <th>Paid Amount</th>
-                      <th>Status</th>
-                      {/* <th>Attendance %</th> */}
-                      {/* <th>Attendance Status</th> */}
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedStudents.map((student) => (
-                      <tr key={student._id}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={selectedStudents.includes(student._id)}
-                            onChange={() => handleSelectStudent(student._id)}
-                            className="custom-checkbox"
-                          />
-                        </td>
-                        <td>
-                          <div className="student-name">{student.fullName}</div>
-                          <div className="student-email">{student.email}</div>
-                        </td>
-                        <td>
-                          <div>
-                            <span className="badge badge-info">
-                              {student.academicYearLabel}
-                            </span>
-                            <div
-                              className="text-muted"
-                              style={{ fontSize: "12px" }}
-                            >
-                              Sem {student.currentSemester}
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="fee-amount">
-                            <FaRupeeSign className="rupee-icon" />
-                            {student.fee?.totalFee || 0}
-                          </div>
-                        </td>
-                        <td>
-                          <div
-                            className={`fee-amount ${
-                              student.fee?.paidAmount >= student.fee?.totalFee
-                                ? "text-success fw-bold"
-                                : "text-muted"
-                            }`}
-                          >
-                            <FaRupeeSign className="rupee-icon" />
-                            {student.fee?.paidAmount || 0}
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className={`badge ${getFeeStatusBadge(student.feeStatus)}`}
-                          >
-                            {student.feeStatus === "FULLY_PAID" && (
-                              <FaCheckCircle className="badge-icon" />
-                            )}
-                            {student.feeStatus.replace("_", " ")}
-                          </span>
-                        </td>
-                        {/* <td>
-                          <span className="fw-bold">
-                            {student.attendancePercentage ?? 0}%
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            className={`badge ${getAttendanceStatusBadge(student.attendanceStatus)}`}
-                          >
-                            {formatStatus(student.attendanceStatus)}
-                          </span>
-                        </td> */}
-                        <td>
-                          <div className="d-flex" style={{ gap: "8px" }}>
-                            <button
-                              onClick={() => checkEligibility(student)}
-                              className="btn btn-sm btn-primary"
-                              disabled={eligibilityLoading}
-                              title={
-                                student.isFinalYear
-                                  ? "Check final-semester eligibility and Move to Alumni status"
-                                  : "Check promotion eligibility and promote student"
-                              }
-                            >
-                              <FaClipboardCheck /> Promotion
-                            </button>
-                            {student.isFinalYear && student.isAlumniEligible && (
-                              <button
-                                onClick={() => openAlumniModal(student)}
-                                className="btn btn-sm btn-outline-warning"
-                                title="Move to Alumni"
-                              >
-                                <FaGraduationCap /> Move to Alumni
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="card-footer">
-              <div className="pagination-info">
-                Showing <strong>{(page - 1) * PAGE_SIZE + 1}</strong> to{" "}
-                <strong>{Math.min(page * PAGE_SIZE, filteredStudents.length)}</strong> of{" "}
-                <strong>{filteredStudents.length}</strong> students
-              </div>
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                setPage={setPage}
-              />
-            </div>
-          )}
-        </div>
-      )}
+
+) : (
+  <>
+    <StandardListView
+      className="student-promotion-list"
+      title="Eligible Students"
+      icon={FaGraduationCap}
+      count={filteredStudents.length}
+      columns={columns}
+      data={paginatedStudents}
+      selection={{
+        enabled: true,
+        selectedIds: new Set(selectedStudents),
+        getRowId: (student) => student._id,
+        onToggle: handleSelectStudent,
+        onToggleAll: handleSelectAll,
+      }}
+      loading={loading}
+      emptyState={{
+        icon: FaGraduationCap,
+        title:
+          students.length === 0
+            ? "No Students Found"
+            : "No Students Match Your Filters",
+        description:
+          students.length === 0
+            ? 'No students with "APPROVED" status found in your college.'
+            : "Try adjusting your search or semester filter.",
+        action:
+          students.length === 0
+            ? {
+                label: "Retry",
+                icon: FaSyncAlt,
+                onClick: fetchEligibleStudents,
+              }
+            : {
+                label: "Reset Filters",
+                icon: FaTimes,
+                onClick: () => {
+                  setSearch("");
+                  setSemesterFilter("ALL");
+                },
+              },
+      }}
+      actions={tableActions}
+    />
+
+    {totalPages > 1 && (
+      <div className="erp-pagination">
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          setPage={setPage}
+        />
+      </div>
+    )}
+  </>
+)}
+      
 
       {/* Promote Modal */}
       {/* Move to Alumni Modal */}

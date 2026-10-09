@@ -592,7 +592,7 @@ function ScheduleCard({
               value={row.room || ""}
               onChange={handle("room")}
               disabled={fieldDisabled}
-placeholder="Room (optional)"
+              placeholder="Room (optional)"
             />
           </div>
         </div>

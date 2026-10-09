@@ -1,3 +1,20 @@
+/* ================= ROW SELECTION ================= */
+
+.standard-selection-header,
+.standard-selection-cell {
+  width: 52px;
+  min-width: 52px;
+  text-align: center;
+}
+
+.standard-selection-header input,
+.standard-selection-cell input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #0E3746;
+}
+
 .department-index {
   font-size: 0.82rem;
   color: #6b7280;
