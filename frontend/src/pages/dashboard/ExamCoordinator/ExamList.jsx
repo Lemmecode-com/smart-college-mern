@@ -5,7 +5,6 @@ import { publishExam } from "../../../api/exam";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
-import StandardListView from "../../../components/StandardListView/StandardListView";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
@@ -166,7 +165,31 @@ const listStyles = `
   pointer-events: none;
 }
 
-
+/* ---------- Table card ---------- */
+.exam-list-page .table-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--edx-slate-100);
+  box-shadow: 0 1px 3px rgba(12, 43, 71, 0.06);
+  overflow: hidden;
+}
+.exam-list-page table { margin-bottom: 0; }
+.exam-list-page thead th {
+  background: #0E3746;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.82rem;
+  border-bottom: 2px solid var(--edx-cyan-500) !important;
+  padding: 0.85rem 1rem;
+  white-space: nowrap;
+}
+.exam-list-page tbody td {
+  padding: 0.8rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--edx-slate-100);
+  font-size: 0.9rem;
+}
+.exam-list-page tbody tr { transition: background 0.12s ease; }
 .exam-list-page tbody tr:hover { background: var(--edx-cyan-50); }
 .exam-list-page tbody tr:last-child td { border-bottom: none; }
 
@@ -421,185 +444,6 @@ export default function ExamList() {
     );
   };
 
-  /* ================= STANDARD LIST COLUMNS ================= */
-
-const columns = [
-  {
-    key: "name",
-    label: "Exam Name",
-    sortable: true,
-    width: "250px",
-
-    render: (exam) => (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-        }}
-      >
-        <div className="row-icon">
-          <FaClock />
-        </div>
-
-        <span className="row-title">
-          {exam.name || "N/A"}
-        </span>
-      </div>
-    ),
-  },
-
-  {
-    key: "course",
-    label: "Course",
-    sortable: true,
-    width: "150px",
-
-    render: (exam) => (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-        }}
-      >
-        <FaGraduationCap className="course-cell-icon" />
-
-        <div>
-          <div className="course-name">
-            {exam.course_id?.name || "N/A"}
-          </div>
-
-          <div className="course-code">
-            {exam.course_id?.code || ""}
-          </div>
-        </div>
-      </div>
-    ),
-  },
-
-  {
-    key: "semester",
-    label: "Semester",
-    sortable: true,
-    width: "120px",
-
-    render: (exam) => (
-      <span className="pill pill-cyan">
-        <FaLayerGroup size={10} />
-        Sem {exam.semester}
-      </span>
-    ),
-  },
-
-  {
-    key: "academicYear",
-    label: "Academic Year",
-    sortable: true,
-    width: "130px",
-
-    render: (exam) => (
-      <span className="year-cell">
-        {exam.academicYear || "N/A"}
-      </span>
-    ),
-  },
-
-  {
-    key: "subjects",
-    label: "Subjects",
-    sortable: true,
-    width: "125px",
-
-    render: (exam) => (
-      <span className="pill pill-slate">
-        {exam.subjects?.length || 0} subjects
-      </span>
-    ),
-  },
-
-  {
-    key: "status",
-    label: "Status",
-    sortable: true,
-    width: "120px",
-
-    render: (exam) => getStatusBadge(exam.status),
-  },
-];
-
-
-/* ================= STANDARD LIST ACTIONS ================= */
-
-const tableActions = {
-  label: "Actions",
-  width: "220px",
-
-  items: [
-    {
-      key: "publish",
-      label: "Publish Exam",
-      icon: FaCheckCircle,
-      className: "approve-btn",
-      style: {
-        backgroundColor: "#4caf50",
-      },
-
-      show: (exam) => exam.status === "DRAFT",
-
-      disabled: (exam) =>
-        actionBusy === exam._id,
-
-      onClick: (exam) => {
-        handlePublishClick(exam);
-      },
-    },
-
-    {
-      key: "view",
-      label: "View Exam",
-      icon: FaEye,
-      className: "view-btn",
-
-      onClick: (exam) => {
-        handleViewExam(exam._id);
-      },
-    },
-
-    {
-      key: "timetable",
-      label: "Timetable",
-      icon: FaCalendarAlt,
-      // className: "view-btn",
-      style: {
-        backgroundColor: "#456784",
-      },
-
-      show: (exam) =>
-        exam.status === "PUBLISHED" ||
-        exam.status === "LOCKED" ||
-        exam.status === "DRAFT",
-
-      onClick: (exam) => {
-        handleTimetable(exam._id);
-      },
-    },
-
-    {
-      key: "edit",
-      label: "Edit Exam",
-      icon: FaEdit,
-      className: "edit-btn",
-
-      show: (exam) => exam.status === "DRAFT",
-
-      onClick: (exam) => {
-        handleEditExam(exam._id);
-      },
-    },
-  ],
-};
-
   /* ================= RENDER ================= */
   if (loading) {
     return <Loading message="Loading exams..." />;
@@ -736,40 +580,130 @@ const tableActions = {
         </div>
       </div>
 
-{/* ================= STANDARD EXAM LIST ================= */}
-<StandardListView
-  className="exam-list-view"
-  title="Exam List"
-  icon={FaClock}
-  count={filteredExams.length}
-  columns={columns}
-  data={filteredExams}
-  loading={false}
-  emptyState={{
-    icon: FaClock,
-    title: "No Examinations Found",
-    description:
-      exams.length === 0
-        ? "Create an exam to get started."
-        : "No exams match your search criteria.",
-    action:
-      exams.length === 0
-        ? {
-            label: "Create Your First Exam",
-            icon: FaPlus,
-            onClick: handleCreateExam,
-          }
-        : {
-            label: "Clear Filters",
-            icon: FaTimes,
-            onClick: () => {
-              setSearchTerm("");
-              setStatusFilter("ALL");
-            },
-          },
-  }}
-  actions={tableActions}
-/>
+      {/* Exams Table */}
+      <div className="table-card">
+        {filteredExams.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <FaClock size={26} />
+            </div>
+            <h5 className="empty-title">No examinations found</h5>
+            <p className="empty-text">
+              {exams.length === 0
+                ? "Create an exam to get started."
+                : "No exams match your search criteria."}
+            </p>
+            {exams.length === 0 && (
+              <button className="btn-edx-primary mt-3" onClick={handleCreateExam}>
+                <FaPlus />
+                Create Your First Exam
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="table mb-0">
+              <thead>
+                <tr>
+                  <th>Exam Name</th>
+                  <th>Course</th>
+                  <th>Semester</th>
+                  <th>Academic Year</th>
+                  <th>Subjects</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredExams.map((exam) => (
+                  <tr key={exam._id}>
+                    <td>
+                      <div className="d-flex align-items-center gap-2">
+                        <div className="row-icon">
+                          <FaClock />
+                        </div>
+                        <span className="row-title">{exam.name}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="d-flex align-items-center gap-2">
+                        <FaGraduationCap className="course-cell-icon" />
+                        <div>
+                          <div className="course-name">
+                            {exam.course_id?.name || "N/A"}
+                          </div>
+                          <div className="course-code">
+                            {exam.course_id?.code || ""}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="pill pill-cyan">
+                        <FaLayerGroup size={10} />
+                        Sem {exam.semester}
+                      </span>
+                    </td>
+                    <td>
+                      <span className="year-cell">{exam.academicYear}</span>
+                    </td>
+                    <td>
+                      <span className="pill pill-slate">
+                        {exam.subjects?.length || 0} subjects
+                      </span>
+                    </td>
+                    <td>{getStatusBadge(exam.status)}</td>
+                    <td>
+                      <div className="d-flex gap-2">
+                        {exam.status === "DRAFT" && (
+                          <button
+                            className="icon-btn"
+                            style={{ color: "var(--edx-green-600)", borderColor: "var(--edx-green-500)" }}
+                            onClick={() => handlePublishClick(exam)}
+                            title="Publish Exam"
+                            disabled={actionBusy === exam._id}
+                          >
+                            <FaCheckCircle />
+                          </button>
+                        )}
+                        <button
+                          className="icon-btn icon-btn-view"
+                          onClick={() => handleViewExam(exam._id)}
+                          title="View Exam"
+                        >
+                          <FaEye />
+                        </button>
+                        {(exam.status === "PUBLISHED" || exam.status === "LOCKED" || exam.status === "DRAFT") && (
+                          <button
+                            className="icon-btn icon-btn-schedule"
+                            onClick={() => handleTimetable(exam._id)}
+                            title={
+                              exam.status === "DRAFT"
+                                ? "Manage Timetable"
+                                : "View Timetable"
+                            }
+                          >
+                            <FaCalendarAlt />
+                          </button>
+                        )}
+                        {exam.status === "DRAFT" && (
+                          <button
+                            className="icon-btn icon-btn-edit"
+                            onClick={() => handleEditExam(exam._id)}
+                            title="Edit Exam"
+                          >
+                            <FaEdit />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
