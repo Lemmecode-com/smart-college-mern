@@ -8,7 +8,6 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
-import { validateFileObject } from "../../../utils/fileValidation";
 import "react-toastify/dist/ReactToastify.css";
 
 // REPLACE THIS (INVALID):
@@ -49,7 +48,6 @@ import {
   FaFileSignature, // VALID
   FaCertificate, // VALID: Standalone certificate icon
   FaWheelchair,
-  FaFileUpload,
 } from "react-icons/fa";
 
 // Authentication / session error codes that must NOT surface a toast.
@@ -253,67 +251,7 @@ export default function StudentProfile() {
     setIsRetrying(false);
   };
 
-  const handleDocumentUpload = async (docType, documentId, file) => {
-    const docConfigItem = documentConfig.find((d) => d.type === docType);
-    const allowedFormats = docConfigItem?.allowedFormats || ["pdf", "jpg", "jpeg", "png"];
-    const fileValidation = validateFileObject(file, allowedFormats);
 
-    if (!fileValidation.valid) {
-      toast.error(
-        `${docConfigItem?.label || docType}: ${fileValidation.error}`,
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
-      return;
-    }
-
-    const MAX_SIZE = (docConfigItem?.maxFileSize || 5) * 1024 * 1024;
-
-    if (file.size > MAX_SIZE) {
-      toast.error(
-        `${docConfigItem?.label || docType} file size must be less than ${docConfigItem?.maxFileSize || 5}MB. Uploaded: ${(file.size / (1024 * 1024)).toFixed(1)}MB`,
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append("ownerType", "Student");
-      formData.append("ownerId", profile?.student?._id);
-      formData.append("documentType", docType);
-      formData.append("file", file);
-
-      const endpoint = documentId ? `/documents/${documentId}` : "/documents/upload";
-      const method = documentId ? "put" : "post";
-
-      await api[method](endpoint, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      toast.success("Document uploaded successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />,
-      });
-
-      await fetchProfile();
-    } catch (err) {
-      const message = err.response?.data?.message || "Failed to upload document";
-      toast.error(message, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaTimesCircle />,
-      });
-    }
-  };
 
   // Handle go back action
   const handleGoBack = () => {
@@ -974,9 +912,6 @@ if (loading) {
                             filePath={uploadedDoc?.downloadUrl}
                             documentId={uploadedDoc?.documentId}
                             mandatory={doc.mandatory}
-                            onUpload={handleDocumentUpload}
-                            studentId={profile?.student?._id}
-                            docType={doc.type}
                           />
                         );
                       })
@@ -1706,19 +1641,16 @@ function InfoItem({ label, value, icon, col = 6 }) {
 /* ================= DOCUMENT CARD COMPONENT ================= */
 function DocumentCard({
   icon,
-   type,
-   name,
-   board,
-   year,
-   percentage,
-   file,
-   filePath,
-   documentId,
-   mandatory,
-   onUpload,
-   studentId,
-   docType,
- }) {
+  type,
+  name,
+  board,
+  year,
+  percentage,
+  file,
+  filePath,
+  documentId,
+  mandatory,
+}) {
   const getDocumentColor = () => {
     switch (type) {
       case "10th Marksheet":
@@ -1821,19 +1753,6 @@ function DocumentCard({
     }
   };
 
-  const fileInputRef = useRef(null);
-
-  const handleFileSelect = (e) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile || !onUpload) return;
-    onUpload(docType, documentId, selectedFile);
-    e.target.value = "";
-  };
-
-  const triggerUpload = () => {
-    fileInputRef.current?.click();
-  };
-
   return (
     <div className="document-card">
       <div
@@ -1883,20 +1802,6 @@ function DocumentCard({
         >
           <FaDownload size={14} aria-hidden="true" /> Download
         </button>
-        <button
-          className="btn btn-sm btn-outline-success flex-grow-1 d-flex align-items-center justify-content-center gap-2"
-          onClick={triggerUpload}
-          aria-label={`Upload ${type}`}
-        >
-          <FaFileUpload size={14} aria-hidden="true" /> {hasFile ? "Replace" : "Upload"}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          style={{ display: "none" }}
-          onChange={handleFileSelect}
-          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-        />
       </div>
     </div>
   );
