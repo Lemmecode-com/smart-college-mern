@@ -6,6 +6,7 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
 import StandardListView from "../../../components/StandardListView/StandardListView";
+import Pagination from "../../../components/Pagination";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -315,11 +316,17 @@ const tableActions = {
         }}
         actions={tableActions}
       />
-          {totalPages > 1 && (
-      <div className="erp-pagination">
-        ...
-      </div>
-    )}
+ 
+{totalPages > 1 && (
+  <div style={{ marginBottom: "24px" }}>
+    <Pagination
+      page={page}
+      totalPages={totalPages}
+      setPage={setPage}
+    />
+  </div>
+)}
+
 
       {/* STYLES */}
       <style>{`
@@ -358,9 +365,8 @@ const tableActions = {
         .btn-reactivate-student:hover { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
         .empty-state { text-align: center; padding: 3rem; color: #64748b; }
         .empty-icon { font-size: 3rem; margin-bottom: 1rem; color: #94a3b8; }
-        .erp-pagination { display: flex; align-items: center; justify-content: center; padding: 1.5rem; gap: 0.5rem; }
-        .page-btn { padding: 0.5rem 1rem; border: 1px solid #e2e8f0; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; }
-        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        
 
         /* ================= RESPONSIVE - TABLET ================= */
 
