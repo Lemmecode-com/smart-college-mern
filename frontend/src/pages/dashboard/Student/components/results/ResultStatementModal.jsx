@@ -1,7 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import {
-  FaPrint,
   FaDownload,
   FaTimes,
   FaUniversity,
@@ -63,6 +62,7 @@ export default function ResultStatementModal({
     course = {},
     examination = {},
     subjects = [],
+    clearedBacklogs = [],
     summary = {},
   } = statementData;
 
@@ -160,12 +160,6 @@ export default function ResultStatementModal({
     }
   };
 
-  /* ==========================================================================
-     PRINT HANDLER
-     ========================================================================== */
-  const handlePrint = () => {
-    window.print();
-  };
 
   const statusLower = String(summary.overallResult || "").toLowerCase();
   const statusClass =
@@ -210,16 +204,6 @@ export default function ResultStatementModal({
           </div>
 
           <div className="rsm-toolbar-actions">
-            <button
-              type="button"
-              className="rsm-action-btn"
-              onClick={handlePrint}
-              disabled={isGeneratingPdf}
-              title="Print result statement"
-            >
-              <FaPrint aria-hidden="true" />
-              <span>Print</span>
-            </button>
 
             <button
               type="button"
@@ -426,6 +410,78 @@ export default function ResultStatementModal({
                 </table>
               </section>
 
+              {/* 3b. SUPPLEMENTARY / BACKLOG EXAMINATION CLEARANCE TABLE */}
+              {Array.isArray(clearedBacklogs) && clearedBacklogs.length > 0 && (
+                <section
+                  className="rsm-table-container rsm-backlog-clearance-container"
+                  aria-label="Supplementary / Backlog Examination Clearance"
+                >
+                  <div className="rsm-section-subtitle-banner">
+                    Supplementary / Backlog Examination Clearance
+                  </div>
+                  <table className="rsm-table rsm-clearance-table">
+                    <thead>
+                      <tr>
+                        <th scope="col" style={{ width: "12%" }}>Sub Code</th>
+                        <th scope="col" style={{ width: "30%" }}>Subject Name</th>
+                        <th scope="col" style={{ width: "12%" }}>Type</th>
+                        <th scope="col" className="align-center" style={{ width: "14%" }}>
+                          Original Sem
+                        </th>
+                        <th scope="col" className="align-center" style={{ width: "10%" }}>
+                          Attempt
+                        </th>
+                        <th scope="col" className="align-right" style={{ width: "12%" }}>
+                          Marks
+                        </th>
+                        <th scope="col" className="align-center" style={{ width: "10%" }}>
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clearedBacklogs.map((backlog, idx) => {
+                        const marksDisplay =
+                          backlog.totalMarks != null
+                            ? formatMark(backlog.totalMarks)
+                            : "—";
+
+                        return (
+                          <tr key={backlog.attemptId || backlog.subjectCode || idx}>
+                            <td>
+                              <span className="rsm-sub-code">{backlog.subjectCode}</span>
+                            </td>
+                            <td>
+                              <span className="rsm-sub-name">{backlog.subjectName}</span>
+                            </td>
+                            <td>
+                              <span className="rsm-sub-type">{backlog.formattedType}</span>
+                            </td>
+                            <td className="align-center">
+                              Semester {backlog.originalSemester ?? "—"}
+                            </td>
+                            <td className="align-center">
+                              Attempt {backlog.attemptNumber ?? 1}
+                            </td>
+                            <td className="align-right">
+                              <strong>{marksDisplay}</strong>
+                            </td>
+                            <td className="align-center">
+                              <span className="rsm-status-tag pass">
+                                CLEARED
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <p className="rsm-clearance-note">
+                    * Supplementary/backlog marks are recorded separately and are not included in regular semester totals or percentage.
+                  </p>
+                </section>
+              )}
+
               {/* 4. SEMESTER SUMMARY PANEL */}
               <section className="rsm-summary-block" aria-label="Semester Summary">
                 <div className="rsm-summary-header">Semester Summary</div>
@@ -530,6 +586,7 @@ ResultStatementModal.propTypes = {
     course: PropTypes.object,
     examination: PropTypes.object,
     subjects: PropTypes.array,
+    clearedBacklogs: PropTypes.array,
     summary: PropTypes.object,
   }),
 };

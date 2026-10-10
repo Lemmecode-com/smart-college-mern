@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   getResultsByExam,
@@ -23,20 +23,15 @@ import {
   FaLock,
   FaGlobe,
   FaLockOpen,
-  FaBook,
-  FaLayerGroup,
-  FaUserGraduate,
   FaSearch,
   FaFilter,
   FaTimes,
   FaEye,
   FaChartBar,
   FaClock,
-  FaExclamationCircle,
-  FaCalendarAlt,
   FaUndo,
 } from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
@@ -53,103 +48,209 @@ const MAX_UNLOCK_REASON_LENGTH = 500;
 
 const styles = `
 .err {
-  --edx-bg: #f4f7fa;
-  --edx-navy-950: #06192c;
-  --edx-navy-900: #0c2b47;
-  --edx-navy-800: #123a5e;
-  --edx-navy-700: #1a4a73;
-  --edx-cyan-600: #0e93ab;
-  --edx-cyan-500: #17aecb;
-  --edx-cyan-50: #e7f7fa;
-  --edx-amber-600: #b6790d;
-  --edx-amber-500: #e8a531;
-  --edx-amber-50: #fdf1de;
-  --edx-green-600: #1f8a5f;
-  --edx-green-500: #2aa876;
-  --edx-green-50: #e5f6ee;
-  --edx-red-500: #e5484d;
-  --edx-red-50: #fdecec;
-  --edx-slate-900: #1d2733;
+  --edx-bg: #f8fafc;
+  --edx-primary: #0f3a4a;
+  --edx-primary-hover: #0c2e3b;
+  --edx-secondary: #1a4b6d;
+  --edx-slate-900: #0f172a;
+  --edx-slate-800: #1e293b;
   --edx-slate-700: #334155;
-  --edx-slate-600: #55677c;
-  --edx-slate-400: #8695a7;
-  --edx-slate-200: #dfe6ec;
-  --edx-slate-100: #eef2f6;
+  --edx-slate-600: #475569;
+  --edx-slate-500: #64748b;
+  --edx-slate-400: #94a3b8;
+  --edx-slate-300: #cbd5e1;
+  --edx-slate-200: #e2e8f0;
+  --edx-slate-100: #f1f5f9;
+  --edx-slate-50: #f8fafc;
+  
+  --edx-green-700: #047857;
+  --edx-green-600: #059669;
+  --edx-green-500: #10b981;
+  --edx-green-100: #d1fae5;
+  --edx-green-50: #ecfdf5;
+
+  --edx-red-700: #b91c1c;
+  --edx-red-600: #dc2626;
+  --edx-red-500: #ef4444;
+  --edx-red-100: #fee2e2;
+  --edx-red-50: #fef2f2;
+
+  --edx-amber-700: #b45309;
+  --edx-amber-600: #d97706;
+  --edx-amber-500: #f59e0b;
+  --edx-amber-100: #fef3c7;
+  --edx-amber-50: #fffbeb;
+
+  --edx-blue-700: #1d4ed8;
+  --edx-blue-600: #2563eb;
+  --edx-blue-500: #3b82f6;
+  --edx-blue-100: #dbeafe;
+  --edx-blue-50: #eff6ff;
+
   background: var(--edx-bg);
   min-height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   color: var(--edx-slate-900);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-.err nav.erp-breadcrumb { margin-bottom: 1rem; }
-
-.err .err-card {
-  background: #fff;
-  border-radius: 14px;
-  border: 1px solid var(--edx-slate-200);
-  box-shadow: 0 2px 10px rgba(12, 43, 71, 0.05);
-  overflow: hidden;
-  margin-bottom: 1.5rem;
+.err nav.erp-breadcrumb {
+  margin-bottom: 0.75rem;
 }
 
-.err .err-card-header {
-  padding: 1.1rem 1.4rem;
-  border-bottom: 1px solid var(--edx-slate-100);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  background: #fff;
-  flex-wrap: wrap;
-}
-
-.err .err-card-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-}
-
-.err .err-card-header-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  background: var(--edx-cyan-50);
-  color: var(--edx-cyan-600);
-  display: flex;
+/* PageHeader action button styling */
+.err .btn-edx-outline {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
-  flex-shrink: 0;
+  gap: 0.45rem;
+  min-height: 38px;
+  background: #ffffff;
+  color: var(--edx-primary);
+  border: 1px solid var(--edx-slate-300);
+  border-radius: 8px;
+  padding: 0.5rem 0.95rem;
+  font-weight: 600;
+  font-size: 0.84rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.err .btn-edx-outline:hover:not(:disabled) {
+  border-color: var(--edx-primary);
+  background: var(--edx-slate-50);
+  color: var(--edx-primary);
+  transform: translateY(-1px);
+}
+.err .btn-edx-outline:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.err .err-card-title {
-  color: var(--edx-navy-900);
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin: 0;
+/* Primary Action Buttons */
+.err .btn-edx-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 38px;
+  background: linear-gradient(135deg, var(--edx-primary), var(--edx-secondary));
+  color: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.5rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(15, 58, 74, 0.15);
+  white-space: nowrap;
+}
+.err .btn-edx-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--edx-primary-hover), var(--edx-primary));
+  box-shadow: 0 4px 12px rgba(15, 58, 74, 0.25);
+  transform: translateY(-1px);
+}
+.err .btn-edx-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-.err .err-card-body {
-  padding: 1.4rem;
+/* Success Button */
+.err .btn-edx-success {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 38px;
+  background: linear-gradient(135deg, var(--edx-green-600), var(--edx-green-700));
+  color: #ffffff;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.5rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.15);
+  white-space: nowrap;
+}
+.err .btn-edx-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--edx-green-700), #064e3b);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
+  transform: translateY(-1px);
+}
+.err .btn-edx-success:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
-/* Info grid */
+/* Warning Button */
+.err .btn-edx-warning {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 38px;
+  background: var(--edx-amber-50);
+  color: var(--edx-amber-700);
+  border: 1px solid var(--edx-amber-500);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.err .btn-edx-warning:hover:not(:disabled) {
+  background: var(--edx-amber-100);
+  color: #78350f;
+  border-color: var(--edx-amber-600);
+  transform: translateY(-1px);
+}
+.err .btn-edx-warning:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spinner */
+.err .spin {
+  animation: err-spin 0.8s linear infinite;
+}
+@keyframes err-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Info Grid (Summary Cards) */
 .err .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
 }
 
 .err .info-item {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid var(--edx-slate-200);
   border-radius: 12px;
-  padding: 0.9rem 1rem;
-  box-shadow: 0 1px 3px rgba(12, 43, 71, 0.04);
+  padding: 1rem 1.15rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  min-height: 84px;
+}
+.err .info-item:hover {
+  border-color: var(--edx-slate-300);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 .err .info-icon {
@@ -159,285 +260,500 @@ const styles = `
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   flex-shrink: 0;
 }
+.err .info-icon-primary {
+  background: #f0fdfa;
+  color: var(--edx-primary);
+  border: 1px solid #ccfbf1;
+}
+.err .info-icon-context {
+  background: var(--edx-slate-50);
+  color: var(--edx-secondary);
+  border: 1px solid var(--edx-slate-200);
+}
+.err .info-icon-success {
+  background: var(--edx-green-50);
+  color: var(--edx-green-600);
+  border: 1px solid var(--edx-green-100);
+}
+.err .info-icon-danger {
+  background: var(--edx-red-50);
+  color: var(--edx-red-600);
+  border: 1px solid var(--edx-red-100);
+}
+.err .info-icon-warning {
+  background: var(--edx-amber-50);
+  color: var(--edx-amber-600);
+  border: 1px solid var(--edx-amber-100);
+}
 
-.err .info-icon-primary { background: var(--edx-cyan-50); color: var(--edx-navy-800); }
-.err .info-icon-success { background: var(--edx-green-50); color: var(--edx-green-600); }
-.err .info-icon-warning { background: var(--edx-amber-50); color: var(--edx-amber-600); }
-.err .info-icon-danger { background: var(--edx-red-50); color: var(--edx-red-500); }
-.err .info-label { color: var(--edx-slate-600); font-size: 0.76rem; text-transform: uppercase; font-weight: 600; display: block; margin-bottom: 0.2rem; }
-.err .info-value { color: var(--edx-slate-900); font-weight: 700; font-size: 1.15rem; display: block; }
-.err .info-subtext { font-size: 0.74rem; color: var(--edx-slate-600); }
+.err .info-content {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.err .info-label {
+  color: var(--edx-slate-500);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.err .info-value {
+  color: var(--edx-slate-900);
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.err .info-value.text-success { color: var(--edx-green-600); }
+.err .info-value.text-danger { color: var(--edx-red-600); }
+.err .info-value.text-warning { color: var(--edx-amber-600); }
 
-/* Lifecycle status bar */
+.err .info-subtext {
+  font-size: 0.75rem;
+  color: var(--edx-slate-400);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Lifecycle Bar */
 .err .lifecycle-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  background: var(--edx-slate-100);
+  background: #ffffff;
   border: 1px solid var(--edx-slate-200);
   border-radius: 12px;
   padding: 1rem 1.25rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   flex-wrap: wrap;
 }
 
 .err .lifecycle-status-group {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.85rem;
   flex-wrap: wrap;
 }
 
 .err .lifecycle-label {
   font-weight: 700;
-  color: var(--edx-navy-900);
-  font-size: 0.86rem;
+  color: var(--edx-slate-600);
+  font-size: 0.78rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin-right: 0.25rem;
+  letter-spacing: 0.5px;
+}
+
+.err .lifecycle-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .err .lifecycle-actions {
   display: flex;
+  align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
-  align-items: center;
 }
 
-/* Pills */
+.err .all-published-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--edx-green-700);
+  background: var(--edx-green-50);
+  border: 1px solid var(--edx-green-100);
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+}
+
+/* Badges & Pills */
 .err .pill {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
+  padding: 0.28rem 0.65rem;
   border-radius: 999px;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.err .pill strong {
   font-weight: 700;
-  letter-spacing: 0.02em;
+}
+.err .pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-.err .pill-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.err .pill-pass { background: var(--edx-green-50); color: var(--edx-green-600); }
-.err .pill-pass .pill-dot { background: var(--edx-green-500); }
-.err .pill-fail { background: var(--edx-red-50); color: var(--edx-red-500); }
-.err .pill-fail .pill-dot { background: var(--edx-red-500); }
-.err .pill-incomplete { background: var(--edx-amber-50); color: var(--edx-amber-600); }
-.err .pill-incomplete .pill-dot { background: var(--edx-amber-500); }
-.err .pill-draft { background: #eef2f6; color: var(--edx-slate-600); }
+.err .pill-draft {
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-600);
+  border-color: var(--edx-slate-200);
+}
 .err .pill-draft .pill-dot { background: var(--edx-slate-400); }
-.err .pill-locked { background: #e7f0f8; color: var(--edx-navy-800); }
-.err .pill-locked .pill-dot { background: var(--edx-navy-700); }
-.err .pill-published { background: var(--edx-green-50); color: var(--edx-green-600); }
+
+.err .pill-locked {
+  background: var(--edx-blue-50);
+  color: var(--edx-blue-700);
+  border-color: var(--edx-blue-100);
+}
+.err .pill-locked .pill-dot { background: var(--edx-blue-500); }
+
+.err .pill-published {
+  background: var(--edx-green-50);
+  color: var(--edx-green-700);
+  border-color: var(--edx-green-100);
+}
 .err .pill-published .pill-dot { background: var(--edx-green-500); }
 
-/* Filter row */
+.err .pill-total {
+  background: var(--edx-slate-50);
+  color: var(--edx-slate-700);
+  border-color: var(--edx-slate-200);
+}
+
+.err .pill-pass {
+  background: var(--edx-green-50);
+  color: var(--edx-green-700);
+  border-color: var(--edx-green-100);
+}
+.err .pill-pass .pill-dot { background: var(--edx-green-500); }
+
+.err .pill-fail {
+  background: var(--edx-red-50);
+  color: var(--edx-red-700);
+  border-color: var(--edx-red-100);
+}
+.err .pill-fail .pill-dot { background: var(--edx-red-500); }
+
+.err .pill-incomplete {
+  background: var(--edx-amber-50);
+  color: var(--edx-amber-700);
+  border-color: var(--edx-amber-100);
+}
+.err .pill-incomplete .pill-dot { background: var(--edx-amber-500); }
+
+/* Filter & Search Row */
 .err .filter-row {
   display: flex;
-  gap: 0.85rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   flex-wrap: wrap;
   margin-bottom: 1.25rem;
-  align-items: center;
 }
 
 .err .search-box {
-  flex: 1 1 240px;
+  flex: 1 1 300px;
+  min-width: 240px;
+  height: 40px;
+  border: 1px solid var(--edx-slate-300);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 0.85rem;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  border: 1px solid var(--edx-slate-200);
-  border-radius: 10px;
-  padding: 0.55rem 0.85rem;
-  background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  gap: 0.55rem;
+  transition: all 0.2s ease;
 }
-
 .err .search-box:focus-within {
-  border-color: var(--edx-cyan-500);
-  box-shadow: 0 0 0 3px var(--edx-cyan-50);
+  border-color: var(--edx-primary);
+  box-shadow: 0 0 0 3px rgba(15, 58, 74, 0.1);
 }
-
-.err .search-box svg { color: var(--edx-slate-400); flex-shrink: 0; }
+.err .search-box svg.search-icon {
+  color: var(--edx-slate-400);
+  flex-shrink: 0;
+}
 .err .search-box input {
   border: none;
   outline: none;
   background: transparent;
-  flex: 1;
-  font-size: 0.9rem;
+  width: 100%;
+  font-size: 0.88rem;
   color: var(--edx-slate-900);
-  min-width: 0;
+}
+.err .search-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--edx-slate-400);
+  cursor: pointer;
+  padding: 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+.err .search-clear-btn:hover {
+  color: var(--edx-slate-700);
+}
+
+.err .filter-selects-group {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.err .filter-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.err .filter-select-wrapper .filter-icon {
+  position: absolute;
+  left: 0.85rem;
+  color: var(--edx-slate-400);
+  pointer-events: none;
+  font-size: 0.8rem;
+}
+.err .filter-select-wrapper .filter-select {
+  padding-left: 2.1rem;
 }
 
 .err .filter-select {
-  padding: 0.55rem 0.85rem;
-  border: 1px solid var(--edx-slate-200);
-  border-radius: 10px;
-  font-size: 0.86rem;
-  color: var(--edx-slate-900);
-  background: #fff;
-  min-width: 140px;
+  height: 40px;
+  border: 1px solid var(--edx-slate-300);
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 0.85rem;
+  color: var(--edx-slate-800);
+  font-weight: 500;
+  padding: 0 0.85rem;
   cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 150px;
 }
-
 .err .filter-select:focus {
   outline: none;
-  border-color: var(--edx-cyan-500);
+  border-color: var(--edx-primary);
+  box-shadow: 0 0 0 3px rgba(15, 58, 74, 0.1);
+}
+.err .page-size-select {
+  min-width: 110px;
 }
 
-.err .clear-btn {
-  border: none;
-  background: transparent;
-  color: var(--edx-cyan-600);
-  font-weight: 600;
-  font-size: 0.84rem;
-  cursor: pointer;
+.err .clear-filters-btn {
+  height: 40px;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
+  padding: 0 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--edx-slate-300);
+  background: #ffffff;
+  color: var(--edx-primary);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.err .clear-filters-btn:hover {
+  background: var(--edx-slate-50);
+  border-color: var(--edx-primary);
 }
 
-.err .clear-btn:hover { text-decoration: underline; }
-
-/* Table card */
+/* Table Card & Modern Table */
 .err .table-card {
   border: 1px solid var(--edx-slate-200);
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
-.err table { margin-bottom: 0; }
-.err thead th {
-  background: var(--edx-slate-100);
-  color: var(--edx-navy-900);
+.err .er-table {
+  width: 100%;
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.err .er-table thead th {
+  background: #f8fafc;
+  color: var(--edx-slate-600);
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  border-bottom: 2px solid var(--edx-cyan-500) !important;
-  padding: 0.85rem 1rem;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--edx-slate-200);
+  border-top: none;
+  padding: 0.9rem 1.15rem;
   white-space: nowrap;
 }
-
-.err tbody td {
-  padding: 0.8rem 1rem;
+.err .er-table tbody td {
+  padding: 0.9rem 1.15rem;
   vertical-align: middle;
   border-bottom: 1px solid var(--edx-slate-100);
   font-size: 0.88rem;
+  color: var(--edx-slate-800);
+}
+.err .er-table tbody tr:hover {
+  background: #f8fafc;
+}
+.err .er-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.err .er-table tbody tr.row-blocked {
+  background: #fff5f5;
+  border-left: 3px solid var(--edx-red-500);
 }
 
-.err tbody tr:hover { background: #f8fafc; }
-.err tbody tr:last-child td { border-bottom: none; }
-.err tbody tr.row-blocked { background: #fff5f5; }
-
-.err .student-name { font-weight: 600; color: var(--edx-navy-900); }
-.err .student-id { color: var(--edx-slate-600); font-size: 0.78rem; font-family: monospace; }
-
-/* Buttons */
-.err .btn-edx-primary {
-  display: inline-flex;
+.err .student-name-cell {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.6rem 1.25rem;
+  flex-wrap: wrap;
+}
+.err .student-name-text {
   font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(12, 43, 71, 0.18);
+  color: var(--edx-slate-900);
 }
-.err .btn-edx-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(23, 174, 203, 0.28);
-}
-.err .btn-edx-primary:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
-
-.err .btn-edx-outline {
+.err .blocked-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  background: #fff;
-  color: var(--edx-navy-800);
-  border: 1px solid var(--edx-slate-200);
-  border-radius: 10px;
-  padding: 0.6rem 1.2rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: var(--edx-red-100);
+  color: var(--edx-red-700);
+  border: 1px solid #fca5a5;
 }
-.err .btn-edx-outline:hover:not(:disabled) {
-  border-color: var(--edx-navy-700);
+.err .student-id-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8rem;
+  color: var(--edx-slate-600);
   background: var(--edx-slate-100);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  display: inline-block;
+  font-weight: 500;
 }
-.err .btn-edx-outline:disabled { opacity: 0.65; cursor: not-allowed; }
-
-.err .btn-edx-warning {
+.err .papers-count {
+  font-weight: 700;
+  color: var(--edx-slate-900);
+  font-size: 0.9rem;
+}
+.err .breakdown-chips {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
+}
+.err .breakdown-chip {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+}
+.err .pass-chip {
+  background: var(--edx-green-50);
+  color: var(--edx-green-700);
+  border: 1px solid var(--edx-green-100);
+}
+.err .fail-chip {
+  background: var(--edx-red-50);
+  color: var(--edx-red-700);
+  border: 1px solid var(--edx-red-100);
+}
+.err .zero-chip {
+  background: var(--edx-slate-50);
+  color: var(--edx-slate-400);
+  border: 1px solid var(--edx-slate-200);
+}
+.err .inc-chip {
   background: var(--edx-amber-50);
-  color: var(--edx-amber-600);
-  border: 1px solid rgba(232, 165, 49, 0.4);
-  border-radius: 10px;
-  padding: 0.6rem 1.2rem;
+  color: var(--edx-amber-700);
+  border: 1px solid var(--edx-amber-100);
+}
+
+.err .btn-sheet-view {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  font-size: 0.88rem;
+  color: var(--edx-primary);
+  background: #ffffff;
+  border: 1.5px solid var(--edx-slate-300);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
-.err .btn-edx-warning:hover:not(:disabled) {
-  background: var(--edx-amber-500);
-  color: #fff;
-  border-color: var(--edx-amber-500);
-}
-.err .btn-edx-warning:disabled { opacity: 0.65; cursor: not-allowed; }
-
-.err .btn-edx-success {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, var(--edx-green-600), var(--edx-green-500));
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  padding: 0.6rem 1.25rem;
-  font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(31, 138, 95, 0.2);
-}
-.err .btn-edx-success:hover:not(:disabled) {
+.err .btn-sheet-view:hover {
+  background: #f0f9ff;
+  border-color: #0284c7;
+  color: #0369a1;
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(31, 138, 95, 0.28);
 }
-.err .btn-edx-success:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
 
-.err .spin { animation: err-spin 0.8s linear infinite; }
-@keyframes err-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* Empty States */
+.err .empty-state {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  color: var(--edx-slate-600);
+}
+.err .empty-state-icon {
+  font-size: 2.5rem;
+  color: var(--edx-slate-400);
+  margin-bottom: 0.85rem;
+}
+.err .empty-state-title {
+  font-weight: 700;
+  color: var(--edx-slate-900);
+  margin-bottom: 0.35rem;
+  font-size: 1.1rem;
+}
+.err .empty-state-desc {
+  font-size: 0.88rem;
+  color: var(--edx-slate-500);
+  max-width: 480px;
+  margin: 0 auto 1.25rem auto;
+}
 
 /* Alerts */
 .err .alert-edx {
   display: flex;
   align-items: flex-start;
-  gap: 0.65rem;
+  gap: 0.75rem;
   border-radius: 10px;
-  padding: 0.9rem 1.1rem;
+  padding: 1rem 1.2rem;
   font-size: 0.88rem;
   border: 1px solid transparent;
   margin-bottom: 1.25rem;
 }
-.err .alert-edx svg { margin-top: 0.15rem; flex-shrink: 0; }
-.err .alert-edx-danger { background: var(--edx-red-50); color: var(--edx-red-500); border-color: rgba(229,72,77,0.25); }
-.err .alert-edx-warning { background: var(--edx-amber-50); color: var(--edx-amber-600); border-color: rgba(232,165,49,0.3); }
-.err .alert-edx-info { background: var(--edx-cyan-50); color: var(--edx-cyan-600); border-color: rgba(23,174,203,0.3); }
+.err .alert-edx svg {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+.err .alert-edx-danger {
+  background: var(--edx-red-50);
+  color: var(--edx-red-700);
+  border-color: rgba(229, 72, 77, 0.25);
+}
 
 /* Blocked issues scrollable list */
 .err .blocked-issues-list {
@@ -445,11 +761,10 @@ const styles = `
   overflow-y: auto;
   margin: 0.75rem 0;
   border-radius: 8px;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid rgba(229, 72, 77, 0.25);
   padding: 0.5rem 0.75rem;
 }
-
 .err .blocked-issue-item {
   padding: 0.45rem 0;
   border-bottom: 1px solid #fce8e8;
@@ -459,18 +774,8 @@ const styles = `
   justify-content: space-between;
   gap: 0.5rem;
 }
-.err .blocked-issue-item:last-child { border-bottom: none; }
-
-/* Empty state */
-.err .empty-state {
-  text-align: center;
-  padding: 3.5rem 1.5rem;
-  color: var(--edx-slate-600);
-}
-.err .empty-state-icon {
-  font-size: 2.4rem;
-  color: var(--edx-slate-400);
-  margin-bottom: 0.75rem;
+.err .blocked-issue-item:last-child {
+  border-bottom: none;
 }
 
 /* Modal styling for unlock */
@@ -485,44 +790,83 @@ const styles = `
   justify-content: center;
   padding: 1rem;
 }
-
 .err .modal-box {
-  background: #fff;
+  background: #ffffff;
   border-radius: 14px;
   max-width: 520px;
   width: 100%;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   overflow: hidden;
 }
-
 .err .modal-header-custom {
   padding: 1.1rem 1.4rem;
-  background: var(--edx-slate-100);
+  background: var(--edx-slate-50);
   border-bottom: 1px solid var(--edx-slate-200);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
 .err .modal-body-custom {
   padding: 1.4rem;
 }
-
 .err .modal-footer-custom {
   padding: 1rem 1.4rem;
-  background: var(--edx-slate-100);
+  background: var(--edx-slate-50);
   border-top: 1px solid var(--edx-slate-200);
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
 }
 
+/* Responsive Media Queries */
 @media (max-width: 768px) {
-  .err .info-grid { grid-template-columns: repeat(2, 1fr); }
-  .err .lifecycle-bar { flex-direction: column; align-items: stretch; }
-  .err .lifecycle-actions { justify-content: flex-start; }
-  .err .filter-row { flex-direction: column; align-items: stretch; }
-  .err .filter-select { width: 100%; }
+  .err .info-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .err .lifecycle-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .err .lifecycle-actions {
+    justify-content: flex-start;
+  }
+  .err .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .err .search-box {
+    width: 100%;
+  }
+  .err .filter-selects-group {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .err .filter-select-wrapper {
+    width: 100%;
+  }
+  .err .filter-select {
+    width: 100%;
+  }
+  .err .clear-filters-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .err .info-grid {
+    grid-template-columns: 1fr;
+  }
+  .err .lifecycle-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .err .lifecycle-actions button {
+    width: 100%;
+  }
 }
 `;
 
@@ -926,23 +1270,16 @@ export default function ExamResultReview() {
         icon={FaChartBar}
         title={`Exam Result Review — ${exam.name}`}
         subtitle={`${exam.course_id?.name || "Course"} (${exam.course_id?.code || "Code"}) · Semester ${exam.semester} · ${exam.academicYear} · ${totalStudents} Students`}
-        onBack={() => navigate("/dashboard/exam/results")}
-        backLabel="Results Dashboard"
         actions={
           <div className="d-flex align-items-center gap-2 flex-wrap">
             <button
               type="button"
               className="btn-edx-outline"
-              onClick={() => navigate(`/dashboard/exam/results/generate?examId=${examId}`)}
+              onClick={() => navigate("/dashboard/exam")}
+              title="View all exams"
             >
-              <FaUndo /> Result Generation
-            </button>
-            <button
-              type="button"
-              className="btn-edx-outline"
-              onClick={() => navigate("/dashboard/exam/results")}
-            >
-              <FaClipboardList /> All Exams
+              <FaClipboardList aria-hidden="true" />
+              <span>All Exams</span>
             </button>
           </div>
         }
@@ -1018,36 +1355,10 @@ export default function ExamResultReview() {
       {/* ================= 1. SUMMARY METRICS GRID ================= */}
       <div className="info-grid mt-3">
         <div className="info-item">
-          <div className="info-icon info-icon-primary">
-            <FaBook />
-          </div>
-          <div>
-            <span className="info-label">Exam Paper</span>
-            <span className="info-value text-truncate" style={{ maxWidth: "200px" }}>
-              {exam.name}
-            </span>
-            <span className="info-subtext">
-              {exam.subjectCount || 0} configured papers
-            </span>
-          </div>
-        </div>
-
-        <div className="info-item">
-          <div className="info-icon info-icon-primary">
-            <FaLayerGroup />
-          </div>
-          <div>
-            <span className="info-label">Academic Context</span>
-            <span className="info-value">Sem {exam.semester}</span>
-            <span className="info-subtext">{exam.academicYear}</span>
-          </div>
-        </div>
-
-        <div className="info-item">
-          <div className="info-icon info-icon-success">
+          <div className="info-icon info-icon-success" aria-hidden="true">
             <FaCheckCircle />
           </div>
-          <div>
+          <div className="info-content">
             <span className="info-label">Passed</span>
             <span className="info-value text-success">{passedCount}</span>
             <span className="info-subtext">
@@ -1057,21 +1368,21 @@ export default function ExamResultReview() {
         </div>
 
         <div className="info-item">
-          <div className="info-icon info-icon-danger">
+          <div className="info-icon info-icon-danger" aria-hidden="true">
             <FaExclamationTriangle />
           </div>
-          <div>
+          <div className="info-content">
             <span className="info-label">Failed</span>
             <span className="info-value text-danger">{failedCount}</span>
-            <span className="info-subtext">Students requiring backlog</span>
+            <span className="info-subtext">Requires backlog attempt</span>
           </div>
         </div>
 
         <div className="info-item">
-          <div className="info-icon info-icon-warning">
+          <div className="info-icon info-icon-warning" aria-hidden="true">
             <FaClock />
           </div>
-          <div>
+          <div className="info-content">
             <span className="info-label">Incomplete</span>
             <span className="info-value text-warning">{incompleteCount}</span>
             <span className="info-subtext">Pending / unentered marks</span>
@@ -1079,25 +1390,36 @@ export default function ExamResultReview() {
         </div>
       </div>
 
-      {/* ================= 2. LIFECYCLE BAR (RESOLVED DEADLOCK) ================= */}
+      {/* ================= 2. LIFECYCLE STATUS & ACTIONS PANEL ================= */}
       <div className="lifecycle-bar">
         <div className="lifecycle-status-group">
-          <span className="lifecycle-label">Result Status:</span>
-          <span className="pill pill-draft">
-            <span className="pill-dot" /> Draft: {draftCount}
-          </span>
-          <span className="pill pill-locked">
-            <span className="pill-dot" /> Locked: {lockedCount}
-          </span>
-          <span className="pill pill-published">
-            <span className="pill-dot" /> Published: {publishedCount}
-          </span>
-          <span className="text-muted small ms-2">Total: {totalStudents}</span>
+          <span className="lifecycle-label">Result Status</span>
+          <div className="lifecycle-pills-row">
+            <span className="pill pill-draft" title={`${draftCount} Draft records`}>
+              <span className="pill-dot" />
+              <span>Draft:</span>
+              <strong>{draftCount}</strong>
+            </span>
+            <span className="pill pill-locked" title={`${lockedCount} Locked records`}>
+              <span className="pill-dot" />
+              <span>Locked:</span>
+              <strong>{lockedCount}</strong>
+            </span>
+            <span className="pill pill-published" title={`${publishedCount} Published records`}>
+              <span className="pill-dot" />
+              <span>Published:</span>
+              <strong>{publishedCount}</strong>
+            </span>
+            <span className="pill pill-total" title={`${totalStudents} Total students`}>
+              <span>Total:</span>
+              <strong>{totalStudents}</strong>
+            </span>
+          </div>
         </div>
 
         {/* State-aware Action Controls: Never Deadlocked */}
         <div className="lifecycle-actions">
-          {/* Action 1: Lock Draft Results (available whenever Draft results exist) */}
+          {/* Action 1: Lock Draft Results */}
           {draftCount > 0 && (
             <button
               type="button"
@@ -1111,11 +1433,11 @@ export default function ExamResultReview() {
               ) : (
                 <FaLock />
               )}
-              Lock Draft ({draftCount})
+              <span>Lock Draft ({draftCount})</span>
             </button>
           )}
 
-          {/* Action 2: Publish Locked Results (available whenever Locked results exist) */}
+          {/* Action 2: Publish Locked Results */}
           {lockedCount > 0 && (
             <button
               type="button"
@@ -1129,11 +1451,11 @@ export default function ExamResultReview() {
               ) : (
                 <FaGlobe />
               )}
-              Publish Locked ({lockedCount})
+              <span>Publish Locked ({lockedCount})</span>
             </button>
           )}
 
-          {/* Action 3: Unlock Locked Results (available whenever Locked results exist) */}
+          {/* Action 3: Unlock Locked Results */}
           {lockedCount > 0 && (
             <button
               type="button"
@@ -1151,13 +1473,13 @@ export default function ExamResultReview() {
               ) : (
                 <FaLockOpen />
               )}
-              Unlock Locked ({lockedCount})
+              <span>Unlock Locked ({lockedCount})</span>
             </button>
           )}
 
           {/* Indicator: All Published */}
           {publishedCount > 0 && publishedCount === totalStudents && (
-            <span className="text-success fw-bold small d-inline-flex align-items-center gap-1">
+            <span className="all-published-indicator">
               <FaCheckCircle /> All {totalStudents} results published
             </span>
           )}
@@ -1178,68 +1500,82 @@ export default function ExamResultReview() {
       {/* ================= 3. FILTER & SEARCH CONTROLS ================= */}
       <div className="filter-row">
         <div className="search-box">
-          <FaSearch />
+          <FaSearch className="search-icon" aria-hidden="true" />
           <input
             type="text"
             placeholder="Search student by name, roll no, or enrollment no…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search student records"
           />
           {searchTerm && (
             <button
               type="button"
-              className="btn-close"
-              style={{ fontSize: "0.75rem" }}
+              className="search-clear-btn"
               onClick={() => setSearchTerm("")}
-            />
+              aria-label="Clear search term"
+              title="Clear search"
+            >
+              <FaTimes />
+            </button>
           )}
         </div>
 
-        {/* Academic Outcome Filter */}
-        <div className="d-flex align-items-center gap-2">
-          <FaFilter className="text-muted" />
+        <div className="filter-selects-group">
+          {/* Academic Outcome Filter */}
+          <div className="filter-select-wrapper">
+            <FaFilter className="filter-icon" aria-hidden="true" />
+            <select
+              className="filter-select"
+              value={resultFilter}
+              onChange={(e) => setResultFilter(e.target.value)}
+              aria-label="Filter by academic outcome"
+            >
+              <option value="ALL">All Outcomes</option>
+              <option value="PASS">Passed ({passedCount})</option>
+              <option value="FAIL">Failed ({failedCount})</option>
+              <option value="INCOMPLETE">Incomplete ({incompleteCount})</option>
+            </select>
+          </div>
+
+          {/* Lifecycle Status Filter */}
           <select
             className="filter-select"
-            value={resultFilter}
-            onChange={(e) => setResultFilter(e.target.value)}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Filter by lifecycle status"
           >
-            <option value="ALL">All Outcomes</option>
-            <option value="PASS">Passed ({passedCount})</option>
-            <option value="FAIL">Failed ({failedCount})</option>
-            <option value="INCOMPLETE">Incomplete ({incompleteCount})</option>
+            <option value="ALL">All Lifecycle Statuses</option>
+            <option value="DRAFT">Draft ({draftCount})</option>
+            <option value="LOCKED">Locked ({lockedCount})</option>
+            <option value="PUBLISHED">Published ({publishedCount})</option>
           </select>
+
+          {/* Page Size Selector */}
+          <select
+            className="filter-select page-size-select"
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            aria-label="Number of students per page"
+          >
+            <option value={10}>10 / page</option>
+            <option value={20}>20 / page</option>
+            <option value={50}>50 / page</option>
+            <option value={100}>100 / page</option>
+          </select>
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="clear-filters-btn"
+              onClick={clearFilters}
+              title="Reset all active filters"
+            >
+              <FaTimes />
+              <span>Reset Filters</span>
+            </button>
+          )}
         </div>
-
-        {/* Lifecycle Status Filter */}
-        <select
-          className="filter-select"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="ALL">All Lifecycle Statuses</option>
-          <option value="DRAFT">Draft ({draftCount})</option>
-          <option value="LOCKED">Locked ({lockedCount})</option>
-          <option value="PUBLISHED">Published ({publishedCount})</option>
-        </select>
-
-        {/* Page Size Selector */}
-        <select
-          className="filter-select"
-          style={{ minWidth: "110px" }}
-          value={pageSize}
-          onChange={(e) => setPageSize(Number(e.target.value))}
-        >
-          <option value={10}>10 / page</option>
-          <option value={20}>20 / page</option>
-          <option value={50}>50 / page</option>
-          <option value={100}>100 / page</option>
-        </select>
-
-        {hasActiveFilters && (
-          <button type="button" className="clear-btn" onClick={clearFilters}>
-            <FaTimes /> Reset Filters
-          </button>
-        )}
       </div>
 
       {/* ================= 4. STUDENT RESULTS TABLE ================= */}
@@ -1247,8 +1583,8 @@ export default function ExamResultReview() {
         {totalStudents === 0 ? (
           <div className="empty-state">
             <FaClipboardList className="empty-state-icon" />
-            <h5 className="fw-bold text-dark mb-1">No Results Generated Yet</h5>
-            <p className="text-muted small mb-3">
+            <h5 className="empty-state-title">No Results Generated Yet</h5>
+            <p className="empty-state-desc">
               Results for this examination have not been compiled yet. Generate results for all enrolled students to review outcomes.
             </p>
             <button
@@ -1262,8 +1598,8 @@ export default function ExamResultReview() {
         ) : filteredResults.length === 0 ? (
           <div className="empty-state">
             <FaExclamationTriangle className="empty-state-icon text-warning" />
-            <h5 className="fw-bold text-dark mb-1">No Results Match Filter</h5>
-            <p className="text-muted small mb-3">
+            <h5 className="empty-state-title">No Results Match Filter</h5>
+            <p className="empty-state-desc">
               No student records matched your search query or filter selection.
             </p>
             <button type="button" className="btn-edx-outline" onClick={clearFilters}>
@@ -1271,31 +1607,35 @@ export default function ExamResultReview() {
             </button>
           </div>
         ) : (
-          <table className="table">
+          <table className="table er-table">
             <thead>
               <tr>
-                <th>Student Name</th>
-                <th>Roll / Enrollment</th>
-                <th>Papers</th>
-                <th>Breakdown</th>
-                <th>Academic Outcome</th>
-                <th>Lifecycle Status</th>
-                <th className="text-end">Actions</th>
+                <th scope="col">Student Name</th>
+                <th scope="col">Roll / Enrollment</th>
+                <th scope="col" className="text-center">Papers</th>
+                <th scope="col">Academic Outcome</th>
+                <th scope="col">Lifecycle Status</th>
+                <th scope="col" className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
               {paginatedResults.map((r) => {
                 const isBlocked = blockedStudentIds.has(String(r.student_id?._id || r.student_id));
+                const studentName = r.student_id?.fullName || "—";
+                const studentId =
+                  r.student_id?.enrollmentNumber ||
+                  r.student_id?.rollNumber ||
+                  "—";
+                const totalPapers = r.totalSubjects || (r.subjects || []).length;
+
                 return (
                   <tr key={r._id} className={isBlocked ? "row-blocked" : ""}>
                     <td>
-                      <div className="d-flex align-items-center gap-2">
-                        <div className="student-name">
-                          {r.student_id?.fullName || "—"}
-                        </div>
+                      <div className="student-name-cell">
+                        <span className="student-name-text">{studentName}</span>
                         {isBlocked && (
                           <span
-                            className="badge bg-danger"
+                            className="blocked-badge"
                             title="Missing marks block publishing for this student"
                           >
                             Marks Incomplete
@@ -1304,49 +1644,35 @@ export default function ExamResultReview() {
                       </div>
                     </td>
                     <td>
-                      <div className="student-id">
-                        {r.student_id?.enrollmentNumber ||
-                          r.student_id?.rollNumber ||
-                          "—"}
-                      </div>
+                      <span className="student-id-code">
+                        {studentId}
+                      </span>
                     </td>
-                    <td>{r.totalSubjects || (r.subjects || []).length}</td>
-                    <td>
-                      <div className="d-flex align-items-center gap-2 small">
-                        <span className="text-success fw-bold">
-                          {r.passedSubjects}P
-                        </span>
-                        <span className="text-danger fw-bold">
-                          {r.failedSubjects}F
-                        </span>
-                        {r.incompleteSubjects > 0 && (
-                          <span className="text-warning fw-bold">
-                            {r.incompleteSubjects}Inc
-                          </span>
-                        )}
-                      </div>
+                    <td className="text-center">
+                      <span className="papers-count">{totalPapers}</span>
                     </td>
                     <td>
                       <span className={`pill ${overallPillClass(r.overallResult)}`}>
                         <span className="pill-dot" />
-                        {r.overallResult}
+                        <span>{r.overallResult}</span>
                       </span>
                     </td>
                     <td>
                       <span className={`pill ${statusPillClass(r.status)}`}>
                         <span className="pill-dot" />
-                        {r.status}
+                        <span>{r.status}</span>
                       </span>
                     </td>
                     <td className="text-end">
                       <button
                         type="button"
-                        className="btn-edx-outline"
-                        style={{ padding: "0.38rem 0.85rem", fontSize: "0.82rem" }}
+                        className="btn-sheet-view"
                         onClick={() => navigate(`/dashboard/exam/results/${r._id}`)}
                         title="View individual result sheet"
+                        aria-label={`View result sheet for ${studentName}`}
                       >
-                        <FaEye /> View Sheet
+                        <FaEye aria-hidden="true" />
+                        <span>View Sheet</span>
                       </button>
                     </td>
                   </tr>
@@ -1359,11 +1685,11 @@ export default function ExamResultReview() {
 
       {/* Pagination Footer */}
       {filteredResults.length > 0 && (
-        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2">
-          <div className="text-muted small">
-            Showing {(page - 1) * pageSize + 1}–
-            {Math.min(page * pageSize, filteredResults.length)} of{" "}
-            {filteredResults.length} students
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3 mb-4">
+          <div className="text-muted small fw-medium">
+            Showing <strong className="text-dark">{(page - 1) * pageSize + 1}</strong>–
+            <strong className="text-dark">{Math.min(page * pageSize, filteredResults.length)}</strong> of{" "}
+            <strong className="text-dark">{filteredResults.length}</strong> students
           </div>
           <Pagination page={page} totalPages={totalPages} setPage={setPage} />
         </div>
