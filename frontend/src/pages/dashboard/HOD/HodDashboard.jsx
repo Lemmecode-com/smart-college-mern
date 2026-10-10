@@ -7,7 +7,6 @@ import {
   FaUserTie,
   FaUsers,
   FaCalendarAlt,
-  FaLayerGroup,
   FaClipboardList,
   FaUser,
   FaArrowRight,
@@ -391,13 +390,6 @@ if (loading) {
 
   // Quick actions
   const quickActions = [
-    {
-      label: "View Department",
-      description: "Department details and programs",
-      icon: FaLayerGroup,
-      route: "/hod/department",
-      color: BRAND.primary,
-    },
     {
       label: "Manage Teachers",
       description: "Faculty roster and teaching allocations",

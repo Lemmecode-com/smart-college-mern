@@ -145,15 +145,8 @@ describe("HodDashboard Quick Actions Panel", () => {
     // 1. Confirm Quick Actions header is present
     expect(container.textContent).toContain("Quick Actions");
 
-    // 2. View Department
-    const deptBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
-      btn.textContent.includes("View Department")
-    );
-    expect(deptBtn).toBeTruthy();
-    act(() => {
-      deptBtn.click();
-    });
-    expect(mockNavigate).toHaveBeenCalledWith("/hod/department");
+    // 2. Confirm View Department action is removed
+    expect(container.textContent).not.toContain("View Department");
 
     // 3. Manage Teachers
     const teachersBtn = Array.from(container.querySelectorAll("button")).find((btn) =>

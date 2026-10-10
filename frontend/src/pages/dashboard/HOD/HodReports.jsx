@@ -550,7 +550,7 @@ if (loading) {
                 {[
                   { label: "View Timetables", path: "/timetable/list", icon: FaCalendarAlt },
                   { label: "Exception Approvals", path: "/hod/exception-approvals", icon: FaExclamationTriangle },
-                  { label: "Department Info", path: "/hod/department", icon: FaLayerGroup },
+                  { label: "Department Teachers", path: "/hod/teachers", icon: FaUsers },
                 ].map((item) => {
                   const ItemIcon = item.icon;
                   return (
