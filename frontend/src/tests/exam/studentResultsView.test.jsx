@@ -283,7 +283,17 @@ describe("Student Results UX — Components & Interactive Views", () => {
         root.render(<BacklogSection groupedBacklogs={grouped} />);
       });
 
-      // Assert subject header shows Backlog Cleared
+      // Compact card contains the single action button
+      const viewBtn = container.querySelector(".sr-backlog-view-btn");
+      expect(viewBtn).not.toBeNull();
+      expect(viewBtn.textContent).toContain("View Backlog Subjects Records");
+
+      // Click button to open the modal
+      act(() => {
+        viewBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+
+      // Assert subject header shows Backlog Cleared in modal
       expect(container.textContent).toContain("Calculus I");
       expect(container.textContent).toContain("Backlog Cleared");
       expect(container.textContent).toContain("2 Attempts");
@@ -305,13 +315,61 @@ describe("Student Results UX — Components & Interactive Views", () => {
       expect(container.textContent).toContain("Summer 2025");
     });
 
-    it("renders celebration empty state when student has no backlogs", () => {
+    it("can close the backlog records modal via close button", () => {
+      const rawAttempts = [
+        {
+          backlogId: "b101",
+          subjectCode: "MATH101",
+          subjectName: "Calculus I",
+          subjectType: "THEORY",
+          semester: 1,
+          academicYear: "2024-2025",
+          examName: "Winter 2024",
+          attemptNumber: 1,
+          resultStatus: "FAIL",
+          cleared: false,
+          internalMarks: 15,
+          externalMarks: 25,
+          totalMarks: 40,
+        },
+      ];
+      const grouped = groupBacklogsBySubject(rawAttempts);
+
+      act(() => {
+        root.render(<BacklogSection groupedBacklogs={grouped} />);
+      });
+
+      const viewBtn = container.querySelector(".sr-backlog-view-btn");
+      act(() => {
+        viewBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+
+      expect(container.querySelector(".sr-backlog-modal-dialog")).not.toBeNull();
+
+      const closeBtn = container.querySelector(".sr-backlog-modal-close-btn");
+      act(() => {
+        closeBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+
+      expect(container.querySelector(".sr-backlog-modal-dialog")).toBeNull();
+    });
+
+    it("renders celebration empty state when student has no backlogs and opens clean empty modal", () => {
       act(() => {
         root.render(<BacklogSection groupedBacklogs={[]} />);
       });
 
       expect(container.textContent).toContain("No Active Backlogs");
       expect(container.textContent).toContain("Great! You currently don't have any backlog subjects");
+
+      const viewBtn = container.querySelector(".sr-backlog-view-btn");
+      expect(viewBtn).not.toBeNull();
+      act(() => {
+        viewBtn.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+
+      expect(container.querySelector(".sr-backlog-modal-empty")).not.toBeNull();
+      expect(container.textContent).toContain("No Backlog Records");
     });
   });
 

@@ -1362,7 +1362,7 @@
   font-size: 0.92rem;
 }
 
-/* Compact Clean Backlog Section (when 0 backlogs) */
+/* Compact Clean Backlog Section */
 .sr-backlog-compact-card {
   padding: 1.15rem 1.5rem;
   margin-bottom: 2rem;
@@ -1372,11 +1372,16 @@
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.04);
 }
 
+.sr-backlog-compact-card.has-backlogs {
+  border-color: #fed7aa;
+  box-shadow: 0 2px 10px rgba(217, 119, 6, 0.05);
+}
+
 .sr-backlog-compact-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.25rem;
   flex-wrap: wrap;
 }
 
@@ -1384,11 +1389,12 @@
   display: flex;
   align-items: center;
   gap: 0.85rem;
+  flex: 1 1 320px;
 }
 
 .sr-backlog-compact-icon {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: #dcfce7;
   color: #16a34a;
@@ -1399,6 +1405,18 @@
   flex-shrink: 0;
 }
 
+.sr-backlog-compact-icon.is-history {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.sr-backlog-compact-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
 .sr-backlog-compact-title {
   margin: 0;
   font-size: 0.98rem;
@@ -1406,11 +1424,238 @@
   color: #166534;
 }
 
+.sr-backlog-compact-card.has-backlogs .sr-backlog-compact-title {
+  color: #0f172a;
+}
+
 .sr-backlog-compact-desc {
   margin: 0.2rem 0 0;
   font-size: 0.82rem;
   color: #475569;
 }
+
+.sr-backlog-compact-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.sr-backlog-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 9px;
+  border: 1px solid #d97706;
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.2);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.sr-backlog-view-btn:hover {
+  background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
+  border-color: #b45309;
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.28);
+  transform: translateY(-1px);
+}
+
+.sr-backlog-view-btn:active {
+  transform: translateY(0);
+}
+
+.sr-backlog-view-btn:focus-visible {
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   BACKLOG RECORDS MODAL
+   ========================================================================== */
+
+.sr-backlog-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
+  animation: srBacklogFadeIn 0.2s ease-out;
+}
+
+.sr-backlog-modal-dialog {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 920px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  animation: srBacklogSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sr-backlog-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.15rem 1.5rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sr-backlog-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.sr-backlog-modal-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.sr-backlog-modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.sr-backlog-modal-subtitle {
+  display: inline-block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.sr-backlog-modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sr-backlog-modal-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.sr-backlog-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sr-backlog-modal-body .sr-backlog-summary-strip {
+  margin-bottom: 0;
+}
+
+.sr-backlog-modal-empty {
+  padding: 3.5rem 1.5rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.sr-backlog-modal-empty-icon {
+  font-size: 2.75rem;
+  color: #16a34a;
+  margin-bottom: 0.85rem;
+}
+
+.sr-backlog-modal-empty h4 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sr-backlog-modal-empty p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.sr-backlog-modal-footer {
+  padding: 0.85rem 1.5rem;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.sr-backlog-modal-footer-close-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sr-backlog-modal-footer-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #94a3b8;
+}
+
+@keyframes srBacklogFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes srBacklogSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 
 /* Mobile responsive refinements for new components */
 @media (max-width: 768px) {
@@ -1450,8 +1695,18 @@
 
   .sr-backlog-compact-content {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .sr-backlog-compact-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .sr-backlog-view-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 
