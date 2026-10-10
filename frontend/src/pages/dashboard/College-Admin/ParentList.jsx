@@ -1309,20 +1309,7 @@ const tableActions = {
       marginTop: "20px",
     }}
   >
-    <div
-      style={{
-        fontSize: "0.85rem",
-        color: BRAND_COLORS.text.secondary,
-        fontWeight: "600",
-      }}
-    >
-      Showing{" "}
-      <strong>
-        {Math.min(indexOfLastItem, filteredParents.length)}
-      </strong>{" "}
-      of{" "}
-      <strong>{filteredParents.length}</strong> parents
-    </div>
+  
 
     <Pagination
       page={currentPage}

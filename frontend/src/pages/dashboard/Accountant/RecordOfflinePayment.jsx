@@ -344,7 +344,7 @@ if (loading) {
                    <FaUsers />
                 </div>
                 <div className="stat-content">
-                   <div className="stat-label">Students with Pending Fees</div>
+                   <div className="stat-label" >Students with Pending Fees</div>
                    <div className="stat-value">{summaryStats.totalStudents}</div>
                 </div>
              </div>
@@ -394,8 +394,8 @@ if (loading) {
          </div>
 
           {/* ================= STUDENTS TABLE ================= */}
-          <div className="record-table-card" ref={tableRef}>
-            <div className="record-table-header">
+          <div className="record-table-card" ref={tableRef} >
+            <div className="record-table-header" >
                <h3>
                   <FaFileInvoiceDollar />
                   Students with Pending Fees

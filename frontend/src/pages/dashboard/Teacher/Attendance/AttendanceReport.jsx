@@ -445,8 +445,8 @@ if (loading && !report) {
         style={{
           minHeight: "100vh",
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-          paddingTop: "1.5rem",
-          paddingBottom: "2rem",
+          paddingTop: "1rem",
+          paddingBottom: "1.25rem",
           paddingLeft: "1rem",
           paddingRight: "1rem",
         }}
@@ -466,11 +466,11 @@ if (loading && !report) {
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: "1.5rem",
+              marginBottom: "1rem",
               backgroundColor: "#0E3746",
-              borderRadius: "1.5rem",
+              borderRadius: "15px",
               overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
+              boxShadow: "0 6px 20px rgba(26, 75, 109, 0.12)",
               display: "flex",
               flexDirection: "column",
               gap: "0rem",
@@ -481,16 +481,17 @@ if (loading && !report) {
               style={{
                 background: "#0E3746",
                 borderRadius: "15px",
-                padding: "1.5rem 1.75rem",
-                marginBottom: "1.25rem",
+                padding: "1rem 1.5rem",
+                marginBottom: 0,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 gap: "1rem",
                 boxShadow: "0 8px 24px rgba(15, 69, 83, 0.18)",
                 color: "white",
-                height: "70px",
-                marginTop: "1rem",
+                height: "auto",
+                marginTop: "30px",
+              
               }}
             >
               <div
@@ -868,9 +869,9 @@ if (loading && !report) {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "1.25rem",
-                marginBottom: "1.5rem",
+                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                gap: "0.85rem",
+                marginBottom: "0",
               }}
             >
               {/* Course Filter */}
@@ -987,7 +988,7 @@ if (loading && !report) {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
                 gap: "1.25rem",
               }}
             >

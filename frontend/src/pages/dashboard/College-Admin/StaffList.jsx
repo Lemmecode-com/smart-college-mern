@@ -293,10 +293,12 @@ const columns = [
     label: "Staff Member",
     sortable: true,
     width: "250px",
+    
     render: (staffMember) => (
       <div className="erp-staff-identity">
         <div
           className="erp-staff-avatar"
+          
           aria-label={`Avatar for ${
             staffMember.name || "staff"
           }`}
@@ -307,6 +309,7 @@ const columns = [
         <div className="erp-staff-identity-details">
           <div
             className="erp-staff-name"
+            style={{ fontSize: "13px", fontWeight: "700" }}
             title={staffMember.name || undefined}
           >
             {staffMember.name || "Unnamed Staff"}
@@ -314,6 +317,7 @@ const columns = [
 
           <div
             className="erp-staff-designation"
+            style={{ fontSize: "11px", fontWeight: "500" }}
             title={staffMember.designation || undefined}
           >
             {staffMember.designation || "Not Provided"}
@@ -327,10 +331,11 @@ const columns = [
     key: "role",
     label: "Role",
     sortable: true,
-    width: "120px",
+    width: "160px",
     render: (staffMember) => (
       <span
         className="erp-staff-role-badge"
+        style={{ fontSize: "11px", fontWeight: "500" }}
         title={formatRole(staffMember.role)}
       >
         {formatRole(staffMember.role)}
@@ -348,6 +353,7 @@ const columns = [
       <div className="erp-staff-contact" style={{ fontSize: "10px" }}>
         <div
           className="erp-staff-contact-item "
+          // style={{ fontSize: "13px", fontWeight: "500" }}
           title={staffMember.email || undefined}
         >
           <FaEnvelope
@@ -355,7 +361,7 @@ const columns = [
             aria-hidden="true"
           />
 
-          <span className="erp-staff-contact-text">
+          <span className="erp-staff-contact-text" style={{ fontSize: "13px", fontWeight: "700" }}>
             {staffMember.email || "Not Provided"}
           </span>
         </div>
@@ -366,7 +372,7 @@ const columns = [
             aria-hidden="true"
           />
 
-          <span className="erp-staff-contact-text">
+          <span className="erp-staff-contact-text" style={{ fontSize: "12px", fontWeight: "550" }}>
             {staffMember.mobileNumber || "Not Provided"}
           </span>
         </div>
@@ -381,6 +387,7 @@ const columns = [
     width: "100px",
     render: (staffMember) => (
       <span
+        style={{ fontSize: "11px", fontWeight: "550" }}
         className={`erp-staff-status ${
           staffMember.isActive
             ? "erp-staff-status--active"
@@ -403,9 +410,10 @@ const columns = [
     key: "mustChangePassword",
     label: "Account",
     sortable: true,
-    width: "180px",
+    width: "170px",
     render: (staffMember) => (
       <span
+        style={{ fontSize: "11px", fontWeight: "550" }}
         className={`erp-staff-account ${
           staffMember.mustChangePassword
             ? "erp-staff-account--pending"
