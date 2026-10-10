@@ -7,6 +7,7 @@ const StudentMarks = require("../models/studentMarks.model");
 const Notification = require("../models/notification.model");
 const Backlog = require("../models/backlog.model");
 const BacklogAttempt = require("../models/backlogAttempt.model");
+const Course = require("../models/course.model");
 const AppError = require("../utils/AppError");
 const { RESULT_STATUS } = require("../utils/constants");
 const { validateUnlockReason } = require("../utils/resultLifecycle.util");
@@ -729,6 +730,340 @@ exports.getMyResults = async ({ collegeId, userId }) => {
   return {
     results: regularResults,
     backlogResults: formattedBacklogs,
+  };
+};
+
+/**
+ * Authoritative Consolidated Academic Result Service
+ *
+ * Scoped strictly to authenticated student (derived from userId) and college tenant.
+ *
+ * Rules:
+ * 1. Resolves Student by { user_id: userId, college_id: collegeId } and populates course_id.
+ * 2. Throws AppError 404 if student or course is missing.
+ * 3. Authoritative course duration: durationSemesters (1..8) or durationYears * 2.
+ * 4. Admission path verification:
+ *    - Finds all published semester results for the student in this college.
+ *    - Checks lowest observed semester. If minObservedSem > 1 and entry path cannot be verified authoritatively:
+ *      returns isEligible: false, status: "UNKNOWN_ADMISSION_PATH", reasons: ["..."], missingSemesters: [1..minObservedSem-1].
+ * 5. Semester-by-semester authoritative resolution (1..N):
+ *    - Evaluates candidates for each semester:
+ *      - 0 candidates: missingSemesters (or unpublishedSemesters if draft/locked exists)
+ *      - >1 candidates: ambiguousSemesters (status: "AMBIGUOUS_RESULT")
+ *      - 1 candidate:
+ *        - overallResult === "PASS" -> completedSemesters, resolved
+ *        - overallResult === "FAIL" -> failedSemesters
+ *        - overallResult === "INCOMPLETE" -> incompleteSemesters
+ * 6. Backlog verification:
+ *    - Queries active backlogs: Backlog.find({ college_id: collegeId, student_id: student._id, status: { $in: ["OPEN", "ATTEMPTED"] } })
+ *    - If active backlogs count > 0: status: "ACTIVE_BACKLOGS", isEligible: false.
+ * 7. Cleared backlogs:
+ *    - Queries published BacklogAttempts where cleared: true or result_status: "PASS".
+ *    - Maps them to clearedBacklogs array.
+ *    - Strictly isolated: supplementary/backlog marks are NEVER added to grandTotalMarks or regular totals.
+ * 8. Grand Totals:
+ *    - Sums totalMarks and totalMaxMarks from regular semester results only.
+ *    - Calculates aggregatePercentage = ((grandTotalMarks / grandTotalMaxMarks) * 100).toFixed(2).
+ *    - If missing marks or grandTotalMaxMarks <= 0, aggregatePercentage = null (no NaN/Infinity).
+ * 9. Alumni status:
+ *    - student.status === "ALUMNI" does NOT bypass any academic requirements.
+ *
+ * @param {Object} params
+ * @param {ObjectId/string} params.collegeId
+ * @param {ObjectId/string} params.userId
+ * @returns {Promise<Object>} Consolidated result evaluation and view model
+ */
+exports.getMyConsolidatedResult = async ({ collegeId, userId }) => {
+  const student = await Student.findOne({
+    user_id: userId,
+    college_id: collegeId,
+  }).populate("course_id", "name code durationSemesters durationYears programLevel");
+
+  if (!student) {
+    throw new AppError("Student profile not found", 404, "STUDENT_NOT_FOUND");
+  }
+
+  if (!student.course_id) {
+    throw new AppError("Student has no assigned course", 404, "COURSE_NOT_FOUND");
+  }
+
+  const course = student.course_id;
+  let totalSemesters = null;
+  if (typeof course.durationSemesters === "number" && course.durationSemesters >= 1) {
+    totalSemesters = Math.min(course.durationSemesters, 8);
+  } else if (typeof course.durationYears === "number" && course.durationYears >= 1) {
+    totalSemesters = Math.min(course.durationYears * 2, 8);
+  }
+
+  if (!totalSemesters || totalSemesters < 1) {
+    throw new AppError("Authoritative course duration is invalid or not configured", 400, "COURSE_DURATION_INVALID");
+  }
+
+  const requiredSemesters = Array.from({ length: totalSemesters }, (_, i) => i + 1);
+
+  // Load all semester results for this student and college
+  const allResults = await SemesterResult.find({
+    college_id: collegeId,
+    student_id: student._id,
+  })
+    .populate("exam_id", "name semester academicYear status subjects")
+    .sort({ semester: 1, createdAt: 1 })
+    .lean();
+
+  const publishedResults = allResults.filter(
+    (r) => r.status === RESULT_STATUS.PUBLISHED
+  );
+
+  // Admission-Path Verification
+  const observedSemesters = publishedResults
+    .map((r) => Number(r.semester))
+    .filter((s) => !Number.isNaN(s) && s >= 1);
+  const minObservedSem = observedSemesters.length > 0 ? Math.min(...observedSemesters) : null;
+
+  let admissionPathStatus = "STANDARD";
+  const reasons = [];
+
+  if (minObservedSem !== null && minObservedSem > 1) {
+    admissionPathStatus = "UNKNOWN_ADMISSION_PATH";
+    reasons.push(
+      `UNKNOWN_ADMISSION_PATH: Results begin at Semester ${minObservedSem}, but student admission semester cannot be verified authoritatively.`
+    );
+  }
+
+  // Semester-by-Semester Resolution
+  const resolvedSemesterMap = new Map();
+  const completedSemesters = [];
+  const missingSemesters = [];
+  const unpublishedSemesters = [];
+  const failedSemesters = [];
+  const incompleteSemesters = [];
+  const ambiguousSemesters = [];
+
+  for (const s of requiredSemesters) {
+    const sCandidates = allResults.filter((r) => Number(r.semester) === s);
+    const publishedSCandidates = sCandidates.filter(
+      (r) => r.status === RESULT_STATUS.PUBLISHED
+    );
+
+    if (publishedSCandidates.length === 0) {
+      if (sCandidates.length > 0) {
+        unpublishedSemesters.push(s);
+        reasons.push(`Semester ${s} result is not yet published (status: ${sCandidates[0].status}).`);
+      } else {
+        missingSemesters.push(s);
+        reasons.push(`Semester ${s} has no published result.`);
+      }
+    } else if (publishedSCandidates.length > 1) {
+      ambiguousSemesters.push(s);
+      reasons.push(`Semester ${s} has multiple published result candidates (${publishedSCandidates.length}); cannot select arbitrarily.`);
+    } else {
+      const candidate = publishedSCandidates[0];
+      const outcome = String(candidate.overallResult || "").toUpperCase();
+
+      if (outcome === "PASS") {
+        completedSemesters.push(s);
+        resolvedSemesterMap.set(s, candidate);
+      } else if (outcome === "FAIL") {
+        failedSemesters.push(s);
+        reasons.push(`Semester ${s} result outcome is FAIL.`);
+      } else {
+        incompleteSemesters.push(s);
+        reasons.push(`Semester ${s} result outcome is ${outcome || "INCOMPLETE"}.`);
+      }
+    }
+  }
+
+  // Backlog Verification: Active backlogs
+  const activeBacklogs = await Backlog.find({
+    college_id: collegeId,
+    student_id: student._id,
+    status: { $in: ["OPEN", "ATTEMPTED"] },
+  }).lean();
+
+  const activeBacklogsCount = activeBacklogs.length;
+  if (activeBacklogsCount > 0) {
+    reasons.push(`Student has ${activeBacklogsCount} active/uncleared backlog(s). All backlogs must be cleared.`);
+  }
+
+  // Backlog Verification: Cleared backlogs from published exams
+  const publishedExamIds = await SemesterResult.distinct("exam_id", {
+    college_id: collegeId,
+    status: RESULT_STATUS.PUBLISHED,
+  });
+
+  const rawBacklogAttempts = await BacklogAttempt.find({
+    college_id: collegeId,
+    student_id: student._id,
+    result_status: { $in: ["PASS", "FAIL"] },
+    exam_id: { $in: publishedExamIds },
+  })
+    .populate("exam_id", "name semester academicYear status")
+    .populate("backlog_id", "semester academicYear")
+    .populate("subject_id", "name code subjectType")
+    .sort({ attempt_number: 1, created_at: 1 })
+    .lean();
+
+  const clearedBacklogs = rawBacklogAttempts
+    .filter((a) => a.cleared === true || a.result_status === "PASS")
+    .map((a) => ({
+      backlogId: a.backlog_id?._id || a.backlog_id || null,
+      attemptId: a._id,
+      subjectCode: a.subject_code || a.subject_id?.code || "—",
+      subjectName: a.subject_name || a.subject_id?.name || "Subject",
+      subjectType: a.subject_type || a.subject_id?.subjectType || "THEORY",
+      originalSemester: a.backlog_id?.semester != null ? Number(a.backlog_id.semester) : null,
+      originalAcademicYear: a.backlog_id?.academicYear || null,
+      attemptNumber: a.attempt_number != null ? Number(a.attempt_number) : 1,
+      examName: a.exam_name || a.exam_id?.name || null,
+      totalMarks: a.total_marks != null ? Number(a.total_marks) : null,
+      resultStatus: "PASS",
+      status: "CLEARED",
+      cleared: true,
+      evaluatedAt: a.evaluated_at || null,
+    }));
+
+  // Map Resolved Semesters Non-Mutatively
+  const mappedSemesters = requiredSemesters
+    .map((s) => resolvedSemesterMap.get(s))
+    .filter(Boolean)
+    .map((semRes) => {
+      const semNum = Number(semRes.semester);
+      const rawSubjects = Array.isArray(semRes.subjects) ? semRes.subjects : [];
+
+      const subjects = rawSubjects.map((sub) => ({
+        subjectCode: sub.subjectCode || "—",
+        subjectName: sub.subjectName || "Unnamed Subject",
+        subjectType: sub.subjectType || "THEORY",
+        internalMarks: sub.internalMarks != null ? Number(sub.internalMarks) : null,
+        internalMaxMarks: sub.internalMaxMarks != null ? Number(sub.internalMaxMarks) : null,
+        externalMarks: sub.externalMarks != null ? Number(sub.externalMarks) : null,
+        externalMaxMarks: sub.externalMaxMarks != null ? Number(sub.externalMaxMarks) : null,
+        totalMarks: sub.totalMarks != null ? Number(sub.totalMarks) : null,
+        maxMarks: sub.maxMarks != null ? Number(sub.maxMarks) : null,
+        passed: Boolean(sub.passed),
+        status: sub.status || "—",
+      }));
+
+      return {
+        semesterNumber: semNum,
+        academicYear: semRes.academicYear || "—",
+        examName: semRes.examName || semRes.exam_id?.name || `Semester ${semNum} Examination`,
+        resultDate: semRes.publishedAt || semRes.createdAt || null,
+        subjects,
+        totalMarks: semRes.totalMarks != null ? Number(semRes.totalMarks) : null,
+        totalMaxMarks: semRes.totalMaxMarks != null ? Number(semRes.totalMaxMarks) : null,
+        percentage: semRes.percentage != null ? Number(semRes.percentage) : null,
+        overallResult: semRes.overallResult || "—",
+        totalSubjects: semRes.totalSubjects ?? subjects.length,
+        passedSubjects: semRes.passedSubjects ?? 0,
+        failedSubjects: semRes.failedSubjects ?? 0,
+      };
+    });
+
+  // Calculate Grand Totals Strictly from Regular Semester Results
+  let grandTotalMarks = 0;
+  let grandTotalMaxMarks = 0;
+  let hasIncompleteMarks = false;
+
+  if (mappedSemesters.length === 0) {
+    hasIncompleteMarks = true;
+  }
+
+  for (const sem of mappedSemesters) {
+    if (sem.totalMarks !== null && !Number.isNaN(sem.totalMarks)) {
+      grandTotalMarks += Number(sem.totalMarks);
+    } else {
+      hasIncompleteMarks = true;
+    }
+
+    if (sem.totalMaxMarks !== null && !Number.isNaN(sem.totalMaxMarks)) {
+      grandTotalMaxMarks += Number(sem.totalMaxMarks);
+    } else {
+      hasIncompleteMarks = true;
+    }
+  }
+
+  let aggregatePercentage = null;
+  if (!hasIncompleteMarks && grandTotalMaxMarks > 0) {
+    const rawPct = (grandTotalMarks / grandTotalMaxMarks) * 100;
+    if (Number.isFinite(rawPct)) {
+      aggregatePercentage = Number(rawPct.toFixed(2));
+    }
+  }
+
+  // Eligibility Evaluation
+  const isEligible =
+    admissionPathStatus === "STANDARD" &&
+    missingSemesters.length === 0 &&
+    unpublishedSemesters.length === 0 &&
+    ambiguousSemesters.length === 0 &&
+    failedSemesters.length === 0 &&
+    incompleteSemesters.length === 0 &&
+    activeBacklogsCount === 0 &&
+    completedSemesters.length === requiredSemesters.length;
+
+  let status = "ELIGIBLE";
+  if (!isEligible) {
+    if (admissionPathStatus === "UNKNOWN_ADMISSION_PATH") {
+      status = "UNKNOWN_ADMISSION_PATH";
+    } else if (ambiguousSemesters.length > 0) {
+      status = "AMBIGUOUS_RESULT";
+    } else if (activeBacklogsCount > 0) {
+      status = "ACTIVE_BACKLOGS";
+    } else if (failedSemesters.length > 0) {
+      status = "FAILED_SEMESTERS";
+    } else if (incompleteSemesters.length > 0) {
+      status = "INCOMPLETE_SEMESTERS";
+    } else if (unpublishedSemesters.length > 0) {
+      status = "UNPUBLISHED_SEMESTERS";
+    } else if (missingSemesters.length > 0) {
+      status = "MISSING_SEMESTERS";
+    } else {
+      status = "INELIGIBLE";
+    }
+  }
+
+  return {
+    isEligible,
+    status,
+    reasons,
+    requiredSemesters,
+    completedSemesters,
+    missingSemesters,
+    unpublishedSemesters,
+    failedSemesters,
+    incompleteSemesters,
+    ambiguousSemesters,
+    activeBacklogsCount,
+    student: {
+      id: student._id,
+      fullName: student.fullName,
+      enrollmentNumber: student.enrollmentNumber || "—",
+      motherName: student.motherName || "—",
+      fatherName: student.fatherName || "—",
+      status: student.status,
+    },
+    course: {
+      id: course._id,
+      name: course.name,
+      code: course.code,
+      durationYears: course.durationYears ?? null,
+      durationSemesters: course.durationSemesters ?? null,
+      programLevel: course.programLevel || "UG",
+    },
+    semesters: mappedSemesters,
+    clearedBacklogs,
+    grandTotalMarks: hasIncompleteMarks ? null : grandTotalMarks,
+    grandTotalMaxMarks: hasIncompleteMarks ? null : grandTotalMaxMarks,
+    aggregatePercentage,
+    summary: {
+      totalSemesters: requiredSemesters.length,
+      completedSemesters: completedSemesters.length,
+      grandTotalMarks: hasIncompleteMarks ? null : grandTotalMarks,
+      grandTotalMaxMarks: hasIncompleteMarks ? null : grandTotalMaxMarks,
+      aggregatePercentage,
+      overallResult: isEligible ? "PASS" : "INCOMPLETE",
+    },
   };
 };
 
