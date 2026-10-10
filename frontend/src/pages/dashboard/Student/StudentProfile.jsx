@@ -4,10 +4,10 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import { getDocumentViewUrl } from "../../../utils/documentUrl";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { ToastContainer, toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
-import { validateFileObject } from "../../../utils/fileValidation";
 import "react-toastify/dist/ReactToastify.css";
 
 // REPLACE THIS (INVALID):
@@ -48,7 +48,6 @@ import {
   FaFileSignature, // VALID
   FaCertificate, // VALID: Standalone certificate icon
   FaWheelchair,
-  FaFileUpload,
 } from "react-icons/fa";
 
 // Authentication / session error codes that must NOT surface a toast.
@@ -241,7 +240,7 @@ export default function StudentProfile() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = async () => {
@@ -252,77 +251,30 @@ export default function StudentProfile() {
     setIsRetrying(false);
   };
 
-  const handleDocumentUpload = async (docType, documentId, file) => {
-    const docConfigItem = documentConfig.find((d) => d.type === docType);
-    const allowedFormats = docConfigItem?.allowedFormats || ["pdf", "jpg", "jpeg", "png"];
-    const fileValidation = validateFileObject(file, allowedFormats);
 
-    if (!fileValidation.valid) {
-      toast.error(
-        `${docConfigItem?.label || docType}: ${fileValidation.error}`,
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
-      return;
-    }
-
-    const MAX_SIZE = (docConfigItem?.maxFileSize || 5) * 1024 * 1024;
-
-    if (file.size > MAX_SIZE) {
-      toast.error(
-        `${docConfigItem?.label || docType} file size must be less than ${docConfigItem?.maxFileSize || 5}MB. Uploaded: ${(file.size / (1024 * 1024)).toFixed(1)}MB`,
-        {
-          position: "top-right",
-          autoClose: 5000,
-          icon: <FaTimesCircle />,
-        },
-      );
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append("ownerType", "Student");
-      formData.append("ownerId", profile?.student?._id);
-      formData.append("documentType", docType);
-      formData.append("file", file);
-
-      const endpoint = documentId ? `/documents/${documentId}` : "/documents/upload";
-      const method = documentId ? "put" : "post";
-
-      await api[method](endpoint, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      toast.success("Document uploaded successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />,
-      });
-
-      await fetchProfile();
-    } catch (err) {
-      const message = err.response?.data?.message || "Failed to upload document";
-      toast.error(message, {
-        position: "top-right",
-        autoClose: 5000,
-        icon: <FaTimesCircle />,
-      });
-    }
-  };
 
   // Handle go back action
   const handleGoBack = () => {
     navigate("/student/dashboard");
   };
 
-  /* ================= LOADING STATE ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Student Profile..." />;
-  }
+// Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Student Profile..."
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR STATE ================= */
   if (error) {
@@ -381,6 +333,26 @@ export default function StudentProfile() {
   return (
     <div className="erp-page erp-viewport-min-100 py-3 py-md-4 animate-fade-in" role="main">
       <ToastContainer position="top-right" />
+
+      {/* ================= BREADCRUMB ================= */}
+             <div
+              style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/student/dashboard" },
+                    { label: "My Profile" },
+                  ]}
+                />
+              </div>
+            </div>
+
+
 
       {/* Skip Link for Screen Readers */}
       <a href="#profile-content" className="sr-only sr-only-focusable">
@@ -940,9 +912,6 @@ export default function StudentProfile() {
                             filePath={uploadedDoc?.downloadUrl}
                             documentId={uploadedDoc?.documentId}
                             mandatory={doc.mandatory}
-                            onUpload={handleDocumentUpload}
-                            studentId={profile?.student?._id}
-                            docType={doc.type}
                           />
                         );
                       })
@@ -1112,9 +1081,9 @@ export default function StudentProfile() {
         }
 
         .bg-gradient-primary {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          background-size: 200% 200%;
-          animation: gradientShift 8s ease infinite;
+          background: #0E3746;
+          // background-size: 200% 200%;
+          // animation: gradientShift 8s ease infinite;
         }
 
         .profile-logo-container {
@@ -1138,9 +1107,28 @@ export default function StudentProfile() {
          }
 
          .profile-header-btn {
-           top: 1rem;
-           right: 1rem;
+         margin-top: 2rem;
+         margin-right: 2rem;
+           minHeight: 48px;
+                    padding: 0 20px;
+                    border: 1px solid rgba(255, 255, 255, 0.35);
+                    border-radius: 12px;
+                    background: rgba(255, 255, 255, 0.88);
+                    color: #0E3746;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 9px;
+                    font-size: 15px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;  
+
          }
+          .profile-header-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(20, 27, 41, 0.18);
+          }
 
          @media (max-width: 991.98px) {
            .profile-header-btn {
@@ -1431,6 +1419,115 @@ export default function StudentProfile() {
         }
         
         @media (max-width: 576px) {
+          .card-header.bg-gradient-primary {
+            padding: 1.25rem !important;
+          }
+
+          .card-header.bg-gradient-primary .position-relative > .d-flex {
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+
+          .card-header.bg-gradient-primary .position-relative > .d-flex > div:last-child {
+            min-width: 0;
+          }
+
+          .card-header.bg-gradient-primary h2 {
+            font-size: 1.35rem;
+            line-height: 1.2;
+            overflow-wrap: anywhere;
+          }
+
+          .card-header.bg-gradient-primary .profile-header-btn {
+            position: static !important;
+            width: 100%;
+            justify-content: center;
+            margin: 1rem 0 0 !important;
+          }
+
+          .card-header.bg-gradient-primary .d-flex.flex-wrap {
+            gap: 0.5rem !important;
+          }
+
+          .card-body.bg-light > .d-flex {
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+
+          .card-body.bg-light > .d-flex > div {
+            gap: 0.65rem !important;
+          }
+
+          .card-body.bg-light small {
+            display: block;
+            text-align: left;
+            white-space: normal;
+            overflow-wrap: anywhere;
+          }
+
+          .tabs-navigation {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            border-right: 0 !important;
+            border-bottom: 1px solid #e9ecef !important;
+            scrollbar-width: thin;
+          }
+
+          .tabs-navigation .tab-item {
+            flex: 0 0 142px;
+            min-width: 142px;
+            min-height: 112px;
+            padding: 0.75rem 0.5rem;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            transform: none !important;
+            border-left: 0;
+            border-bottom: 3px solid transparent;
+          }
+
+          .tabs-navigation .tab-item.active {
+            border-left: 0;
+            border-bottom-color: #1a4b6d;
+          }
+
+          .tabs-navigation .tab-item > span {
+            font-size: 1.35rem !important;
+          }
+
+          .tabs-content {
+            width: 100% !important;
+            min-width: 0 !important;
+            padding: 1rem !important;
+          }
+
+          .section-content {
+            width: 100%;
+            padding: 1rem;
+            box-sizing: border-box;
+          }
+
+          .section-title {
+            font-size: 1.15rem;
+            line-height: 1.25;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+          }
+
+          .info-item {
+            min-width: 0;
+            overflow-wrap: anywhere;
+          }
+
+          .info-value {
+            overflow-wrap: anywhere;
+          }
+
           .profile-logo-container {
             width: 50px;
             height: 50px;
@@ -1544,19 +1641,16 @@ function InfoItem({ label, value, icon, col = 6 }) {
 /* ================= DOCUMENT CARD COMPONENT ================= */
 function DocumentCard({
   icon,
-   type,
-   name,
-   board,
-   year,
-   percentage,
-   file,
-   filePath,
-   documentId,
-   mandatory,
-   onUpload,
-   studentId,
-   docType,
- }) {
+  type,
+  name,
+  board,
+  year,
+  percentage,
+  file,
+  filePath,
+  documentId,
+  mandatory,
+}) {
   const getDocumentColor = () => {
     switch (type) {
       case "10th Marksheet":
@@ -1659,19 +1753,6 @@ function DocumentCard({
     }
   };
 
-  const fileInputRef = useRef(null);
-
-  const handleFileSelect = (e) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile || !onUpload) return;
-    onUpload(docType, documentId, selectedFile);
-    e.target.value = "";
-  };
-
-  const triggerUpload = () => {
-    fileInputRef.current?.click();
-  };
-
   return (
     <div className="document-card">
       <div
@@ -1721,20 +1802,6 @@ function DocumentCard({
         >
           <FaDownload size={14} aria-hidden="true" /> Download
         </button>
-        <button
-          className="btn btn-sm btn-outline-success flex-grow-1 d-flex align-items-center justify-content-center gap-2"
-          onClick={triggerUpload}
-          aria-label={`Upload ${type}`}
-        >
-          <FaFileUpload size={14} aria-hidden="true" /> {hasFile ? "Replace" : "Upload"}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          style={{ display: "none" }}
-          onChange={handleFileSelect}
-          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-        />
       </div>
     </div>
   );

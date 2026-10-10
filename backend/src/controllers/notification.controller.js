@@ -16,6 +16,9 @@ const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/validators");
 
+// Concurrency lock for simultaneous in-flight submissions
+const inFlightAdminSubmissions = new Set();
+
 /**
  * ================================
  * COLLEGE ADMIN – CREATE NOTIFICATION
@@ -23,9 +26,55 @@ const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/val
  * ================================
  */
 exports.createAdminNotification = async (req, res, next) => {
+  let inFlightKey = null;
   try {
     const { title, message, type, target, actionUrl, expiresAt, priority,
             target_department, target_course, target_semester, target_users } = req.body;
+
+    const normalizedTitle = String(title || "").trim();
+    const normalizedMessage = String(message || "").trim();
+    const effectiveTarget = target || "ALL";
+
+    // 🔒 Concurrency Guard: prevent simultaneous duplicate submissions in flight
+    inFlightKey = `${req.college_id}:${req.user.id}:${normalizedTitle}:${effectiveTarget}`;
+    if (inFlightAdminSubmissions.has(inFlightKey)) {
+      throw new AppError(
+        "A notification submission with identical content is already being processed. Please wait.",
+        409,
+        "DUPLICATE_NOTIFICATION"
+      );
+    }
+    inFlightAdminSubmissions.add(inFlightKey);
+
+    // 🔒 Duplicate Protection: check for identical submission within 30-second window
+    const DUPLICATE_WINDOW_MS = 30 * 1000;
+    const windowStart = new Date(Date.now() - DUPLICATE_WINDOW_MS);
+
+    const duplicateQuery = {
+      college_id: req.college_id,
+      createdBy: req.user.id,
+      title: normalizedTitle,
+      message: normalizedMessage,
+      target: effectiveTarget,
+      createdAt: { $gte: windowStart },
+    };
+
+    if (effectiveTarget === "DEPARTMENT" && target_department) {
+      duplicateQuery.target_department = target_department;
+    } else if (effectiveTarget === "COURSE" && target_course) {
+      duplicateQuery.target_course = target_course;
+    } else if (effectiveTarget === "SEMESTER" && target_semester) {
+      duplicateQuery.target_semester = target_semester;
+    }
+
+    const existingDuplicate = await Notification.findOne(duplicateQuery);
+    if (existingDuplicate) {
+      throw new AppError(
+        "A notification with identical content was recently created. Please wait before submitting again.",
+        409,
+        "DUPLICATE_NOTIFICATION"
+      );
+    }
 
     // Validate target field
     const validTargets = ["ALL", "STUDENTS", "TEACHERS", "HOD", "PARENTS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"];
@@ -122,6 +171,10 @@ exports.createAdminNotification = async (req, res, next) => {
     }, "Notification created successfully");
   } catch (error) {
     next(error);
+  } finally {
+    if (inFlightKey) {
+      inFlightAdminSubmissions.delete(inFlightKey);
+    }
   }
 };
 
@@ -483,6 +536,7 @@ exports.getAdminNotifications = async (req, res, next) => {
       collegeId: req.college_id,
       role: req.user.role,
       userId: req.user.id,
+      includeOwnBroadcasts: false,
     });
 
     const notifications = await Notification.find(visibilityQuery)
@@ -494,7 +548,9 @@ exports.getAdminNotifications = async (req, res, next) => {
     notifications.forEach((n) => {
       if (
         n.createdByRole === "COLLEGE_ADMIN" &&
-        n.createdBy.toString() === req.user.id
+        (n.createdBy.toString() === req.user.id ||
+          (Array.isArray(n.target_users) &&
+            n.target_users.some((u) => u.toString() === req.user.id)))
       ) {
         myNotifications.push(n);
       } else if (n.createdByRole === "TEACHER") {
@@ -505,7 +561,7 @@ exports.getAdminNotifications = async (req, res, next) => {
     ApiResponse.success(res, {
       myNotifications: await attachReadStatus(myNotifications, req.user.id),
       staffNotifications: await attachReadStatus(staffNotifications, req.user.id),
-    }, "Student notifications fetched successfully");
+    }, "Admin notifications fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -852,6 +908,10 @@ exports.getAdminNotificationCount = async (req, res, next) => {
       collegeId: req.college_id,
       role: req.user.role,
       userId,
+      // Unread badge = inbox. Admin-authored broadcasts aimed at STUDENTS,
+      // PARENTS, TEACHERS, HOD, DEPARTMENT, COURSE or SEMESTER must not be
+      // counted against the admin who sent them.
+      includeOwnBroadcasts: false,
     });
 
     const myCount = await Notification.countDocuments({
@@ -1020,6 +1080,9 @@ exports.getUnreadForBell = async (req, res, next) => {
       userId: req.user.id,
       studentProfile,
       teacherProfile,
+      // Bell = inbox. For COLLEGE_ADMIN/PRINCIPAL this stops the admin from
+      // seeing their own student/parent/teacher/HOD-only broadcasts here.
+      includeOwnBroadcasts: false,
     });
 
     const unread = await Notification.find({

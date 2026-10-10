@@ -175,7 +175,22 @@ export default function EditAttendanceModal() {
     }, 300);
   };
 
-  if (loading) return <Loading size="sm" text="Loading students..." />;
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading students..."
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 

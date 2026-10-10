@@ -4,6 +4,8 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import Pagination from "../../../components/Pagination";
 import CustomSelect from "../../../components/CustomSelect";
 import { toast } from "react-toastify";
@@ -385,16 +387,29 @@ export default function HodExceptionApprovals() {
   if (!user) return <Navigate to="/login" />;
   if (user.role !== "HOD") return <Navigate to="/hod/dashboard" />;
 
-  if (loading && pendingRequests.length === 0 && history.approved.length === 0 && history.rejected.length === 0 && history.withdrawn.length === 0) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text="Loading Exception Approvals..."
-        color="primary"
-      />
-    );
-  }
+// Loading State
+if (
+  loading &&
+  pendingRequests.length === 0 &&
+  history.approved.length === 0 &&
+  history.rejected.length === 0 &&
+  history.withdrawn.length === 0
+) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Exception Approvals..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error && pendingRequests.length === 0 && history.approved.length === 0 && history.rejected.length === 0 && history.withdrawn.length === 0) {
     return (
@@ -758,46 +773,40 @@ export default function HodExceptionApprovals() {
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
-      <MotionDiv
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="position-relative overflow-hidden"
-        style={{
-          background:
-            "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
-        }}
-      >
-        <div className="p-4 text-white position-relative">
-          <div className="d-flex align-items-center gap-3">
-            <MotionDiv
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-              className="d-flex align-items-center justify-content-center"
+       {/* Breadcrumb - ABOVE Exception Approvals Banner */}
+            <div
               style={{
-                width: "56px",
-                height: "56px",
-                background:
-                  "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                borderRadius: "12px",
-                fontSize: "1.5rem",
-                boxShadow: "0 4px 12px rgba(61, 181, 230, 0.3)",
+                width: "96%",
+                margin: "10px auto",
+                paddingTop: "20px",
+                height: "80px",
               }}
             >
-              <FaExclamationTriangle />
-            </MotionDiv>
-            <div>
-              <h3 className="fw-bold mb-1" style={{ letterSpacing: "0.5px" }}>
-                Exception Approvals
-              </h3>
-              <p className="mb-0 opacity-75" style={{ fontSize: "0.875rem" }}>
-                Review and manage teacher exception requests
-              </p>
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Exception Approvals" },
+                  ]}
+                />
+              </div>
             </div>
-          </div>
+
+        {/* ================= PAGE HEADER ================= */}
+        <div className="page-header-compo">
+        <PageHeader
+          icon={FaExclamationTriangle}
+          title="Exception Approvals"
+          subtitle="Review and manage teacher exception requests"
+        />
+
+        <style>{`
+          .page-header-compo {
+            margin: 0 24px 24px 24px;
+            margin-bottom: -1.5rem;
+          }
+        `}</style>
         </div>
-      </MotionDiv>
 
       <div className="p-4">
         <div className="card shadow-sm border-0" style={{ borderRadius: "12px", background: "white" }}>

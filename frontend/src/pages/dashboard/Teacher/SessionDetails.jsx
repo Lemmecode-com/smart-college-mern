@@ -5,6 +5,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -27,7 +28,7 @@ import {
   FaBook,
   FaEnvelope,
 } from "react-icons/fa";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, styleEffect } from "framer-motion";
 
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
@@ -345,9 +346,22 @@ export default function SessionDetails() {
     }
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Session Details..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Session Details..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -432,6 +446,7 @@ export default function SessionDetails() {
   return (
     <AnimatePresence mode="wait">
       <motion.div
+        className="session-details-page"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -446,52 +461,12 @@ export default function SessionDetails() {
       >
         <div style={{ maxWidth: "100%", margin: "0 auto" }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: "1.5rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5, backgroundColor: "#f1f5f9" }}
-              whileTap={{ x: -2 }}
-              onClick={() => navigate("/attendance/sessions")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                color: BRAND_COLORS.primary.main,
-                background: "none",
-                border: "none",
-                fontSize: "0.95rem",
-                fontWeight: 500,
-                cursor: "pointer",
-                padding: "0.5rem",
-                borderRadius: "8px",
-                transition: "all 0.3s ease",
-                willChange: "transform, background-color",
-                backfaceVisibility: "hidden",
-              }}
-            >
-              <FaArrowLeft /> Back to Sessions
-            </motion.button>
-            <span style={{ color: "#94a3b8" }}>›</span>
-            <span
-              style={{
-                color: BRAND_COLORS.primary.main,
-                fontWeight: 600,
-                fontSize: "1rem",
-              }}
-            >
-              Session Details
-            </span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "Session Details" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -500,25 +475,29 @@ export default function SessionDetails() {
             animate="visible"
             style={{
               marginBottom: "1.5rem",
-              backgroundColor: "white",
+              backgroundColor: "#0E3746",
               borderRadius: "1.5rem",
               overflow: "hidden",
               boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
               display: "flex",
               flexDirection: "column",
               gap: "1.5rem",
+              
             }}
           >
             <div
               style={{
-                padding: "1.75rem 2rem",
-                background: BRAND_COLORS.primary.gradient,
-                color: "white",
+                background: "#0E3746",
+                borderRadius: "15px",
+                padding: "1.5rem 1.75rem",
+                marginBottom: "1.25rem",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1.5rem",
+                gap: "1rem",
+                boxShadow: "0 8px 24px rgba(15, 69, 83, 0.18)",
+                color: "white",
+                height: "70px",
               }}
             >
               <div
@@ -529,16 +508,16 @@ export default function SessionDetails() {
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: "72px",
-                    height: "72px",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    width: "52px",
+                    height: "52px",
+                    minWidth: "52px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    border: "1px solid rgba(255, 255, 255, 0.18)",
                     borderRadius: "50%",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "2rem",
-                    flexShrink: 0,
-                    boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
+                    fontSize: "1.7rem",
                   }}
                 >
                   <FaUserGraduate />
@@ -547,24 +526,400 @@ export default function SessionDetails() {
                   <h1
                     style={{
                       margin: 0,
-                      fontSize: "2rem",
+                      fontSize: "1.625rem",
                       fontWeight: 700,
-                      lineHeight: 1.2,
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.25,
                     }}
                   >
                     Attendance Session Details
                   </h1>
                   <p
                     style={{
-                      margin: "0.5rem 0 0 0",
-                      opacity: 0.9,
-                      fontSize: "1.1rem",
+                      margin: 0,
+                      opacity: 0.8,
+                      fontSize: "0.9rem",
+                      fontWeight: 400,
+                      lineHeight: 1.5,
                     }}
                   >
                     {session.subject_id?.name} • Lecture #
                     {session.lectureNumber}
                   </p>
                 </div>
+
+                <style>
+                    {`
+                    /* =========================================================
+                      SESSION DETAILS - MOBILE & TABLET RESPONSIVE
+                      Desktop remains unchanged
+                      ========================================================= */
+
+                    /* ================= TABLET ================= */
+
+                    @media (min-width: 768px) and (max-width: 1023.98px) {
+                      .session-details-page {
+                        padding: 1rem 1.25rem !important;
+                      }
+
+                      .session-details-page > div {
+                        max-width: 900px !important;
+                        width: 100% !important;
+                      }
+
+                     
+
+                      /* Main session header */
+                      .session-details-page > div > div:nth-child(2) {
+                        border-radius: 1.25rem !important;
+                        margin-bottom: 1rem !important;
+                      }
+
+                      /* Header blue section */
+                      .session-details-page > div > div:nth-child(2) > div:first-child {
+                        padding: 1.5rem !important;
+                        gap: 1rem !important;
+                      }
+
+                      /* Header content */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child {
+                        gap: 1rem !important;
+                        min-width: 0 !important;
+                      }
+
+                      /* Header icon */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child > div:first-child {
+                        width: 64px !important;
+                        height: 64px !important;
+                        font-size: 1.75rem !important;
+                      }
+
+                      /* Header title */
+                      .session-details-page h1 {
+                        font-size: 1.8rem !important;
+                        line-height: 1.15 !important;
+                      }
+
+                      /* Subject */
+                      .session-details-page h1 + p {
+                        font-size: 1rem !important;
+                        margin-top: 0.4rem !important;
+                      }
+
+                      /* Status */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:last-child {
+                        font-size: 0.95rem !important;
+                        padding: 0.45rem 1rem !important;
+                      }
+
+                      /* Session information */
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) {
+                        padding: 0.9rem 1.5rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) > div {
+                        gap: 1.25rem !important;
+                      }
+
+                      /* Stats */
+                      .session-details-page > div > div:nth-child(3) > div {
+                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                        gap: 0.9rem !important;
+                        padding: 1rem !important;
+                        border-radius: 1.25rem !important;
+                      }
+
+                      /* Stat item */
+                      .session-details-page > div > div:nth-child(3) > div > div {
+                        padding: 0.85rem !important;
+                      }
+
+                      /* Attendance section */
+                      .session-details-page > div > div:last-child {
+                        border-radius: 1.25rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:first-child {
+                        padding: 1.1rem 1.25rem !important;
+                      }
+                    }
+
+
+                    /* ================= MOBILE ================= */
+
+                    @media (max-width: 767.98px) {
+                      .session-details-page {
+                        min-height: 100vh !important;
+                        padding: 0.65rem 0.6rem 1.25rem !important;
+                      }
+
+                      .session-details-page > div {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        margin: 0 auto !important;
+                      }
+
+                   
+                      /* ---------------------------------------------------------
+                        SESSION HEADER
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:nth-child(2) {
+                        margin-bottom: 0.9rem !important;
+                        border-radius: 1rem !important;
+                        box-shadow: 0 5px 20px rgba(26, 75, 109, 0.12) !important;
+                      }
+
+                      /* Blue header */
+                      .session-details-page > div > div:nth-child(2) > div:first-child {
+                        padding: 1.15rem !important;
+                        gap: 0.9rem !important;
+                        align-items: flex-start !important;
+                      }
+
+                      /* Header content */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child {
+                        width: 100% !important;
+                        gap: 0.8rem !important;
+                        align-items: center !important;
+                      }
+
+                      /* Icon */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child > div:first-child {
+                        width: 58px !important;
+                        height: 58px !important;
+                        min-width: 58px !important;
+                        font-size: 1.5rem !important;
+                        box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2) !important;
+                      }
+
+                      /* Title */
+                      .session-details-page h1 {
+                        font-size: 1.45rem !important;
+                        line-height: 1.15 !important;
+                        word-break: normal !important;
+                        overflow-wrap: normal !important;
+                      }
+
+                      /* Subject / lecture */
+                      .session-details-page h1 + p {
+                        font-size: 0.9rem !important;
+                        line-height: 1.35 !important;
+                        margin: 0.35rem 0 0 !important;
+                      }
+
+                      /* Status */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:last-child {
+                        align-self: flex-start !important;
+                        font-size: 0.8rem !important;
+                        padding: 0.4rem 0.8rem !important;
+                        border-radius: 999px !important;
+                      }
+
+                      /* Session info */
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) {
+                        padding: 0.8rem 1rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) > div {
+                        width: 100% !important;
+                        flex-direction: column !important;
+                        align-items: flex-start !important;
+                        gap: 0.6rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) > div > div {
+                        width: 100% !important;
+                        gap: 0.45rem !important;
+                        font-size: 0.9rem !important;
+                      }
+
+                      /* ---------------------------------------------------------
+                        SESSION STATS
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:nth-child(3) {
+                        margin-bottom: 0.9rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(3) > div {
+                        grid-template-columns: 1fr !important;
+                        gap: 0.65rem !important;
+                        padding: 0.8rem !important;
+                        border-radius: 1rem !important;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+                      }
+
+                      /* Individual stat */
+                      .session-details-page > div > div:nth-child(3) > div > div {
+                        min-height: 72px !important;
+                        padding: 0.75rem !important;
+                        border-radius: 12px !important;
+                        gap: 0.75rem !important;
+                      }
+
+                      /* Stat icon */
+                      .session-details-page > div > div:nth-child(3) > div > div > div:first-child {
+                        width: 46px !important;
+                        height: 46px !important;
+                        min-width: 46px !important;
+                        border-radius: 12px !important;
+                        font-size: 1.35rem !important;
+                      }
+
+                      /* Stat label */
+                      .session-details-page > div > div:nth-child(3) > div > div > div:last-child > div:first-child {
+                        font-size: 0.75rem !important;
+                        margin-bottom: 0.15rem !important;
+                      }
+
+                      /* Stat value */
+                      .session-details-page > div > div:nth-child(3) > div > div > div:last-child > div:nth-child(2) {
+                        font-size: 1.45rem !important;
+                      }
+
+                      /* Stat subtitle */
+                      .session-details-page > div > div:nth-child(3) > div > div > div:last-child > div:nth-child(3) {
+                        font-size: 0.75rem !important;
+                        margin-top: 0.15rem !important;
+                      }
+
+                      /* ---------------------------------------------------------
+                        ACTION BUTTONS
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:nth-child(4) > div {
+                        padding: 0.9rem !important;
+                        border-radius: 1rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(4) > div > div {
+                        width: 100% !important;
+                        flex-direction: column !important;
+                        gap: 0.6rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(4) button {
+                        width: 100% !important;
+                        min-height: 44px !important;
+                      }
+
+                      /* ---------------------------------------------------------
+                        CLOSED SESSION BANNER
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:nth-child(4) {
+                        margin-bottom: 0.9rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(4) {
+                        padding: 0.9rem !important;
+                      }
+
+                      /* ---------------------------------------------------------
+                        ATTENDANCE TABLE
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:last-child {
+                        border-radius: 1rem !important;
+                        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.07) !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:first-child {
+                        padding: 0.9rem 1rem !important;
+                        gap: 0.65rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child h2 {
+                        font-size: 1.15rem !important;
+                        line-height: 1.3 !important;
+                      }
+
+                      .session-details-page > div > div:last-child h2 svg {
+                        font-size: 1rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:first-child > div:last-child {
+                        font-size: 0.75rem !important;
+                        padding: 0.4rem 0.7rem !important;
+                      }
+
+                      /* Keep table scrollable */
+                      .session-details-page table {
+                        min-width: 600px !important;
+                      }
+
+                      .session-details-page th {
+                        padding: 0.75rem !important;
+                        font-size: 0.75rem !important;
+                      }
+
+                      .session-details-page td {
+                        padding: 0.75rem !important;
+                        font-size: 0.85rem !important;
+                      }
+
+                      /* Footer */
+                      .session-details-page > div > div:last-child > div:last-child {
+                        padding: 0.9rem !important;
+                        gap: 0.65rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:last-child > div {
+                        font-size: 0.85rem !important;
+                        padding: 0.65rem 0.9rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:last-child button {
+                        width: 100% !important;
+                      }
+                    }
+
+
+                    /* ================= SMALL MOBILE ================= */
+
+                    @media (max-width: 479.98px) {
+                      .session-details-page {
+                        padding-left: 0.5rem !important;
+                        padding-right: 0.5rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:first-child {
+                        padding: 1rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child {
+                        gap: 0.65rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child > div:first-child {
+                        width: 52px !important;
+                        height: 52px !important;
+                        min-width: 52px !important;
+                        font-size: 1.35rem !important;
+                      }
+
+                      .session-details-page h1 {
+                        font-size: 1.3rem !important;
+                      }
+
+                      .session-details-page h1 + p {
+                        font-size: 0.82rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(3) > div {
+                        padding: 0.65rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(3) > div > div {
+                        min-height: 68px !important;
+                        padding: 0.65rem !important;
+                      }
+                    }
+
+                    `}
+
+                    </style>
               </div>
               <motion.div
                 style={{

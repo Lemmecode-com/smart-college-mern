@@ -4,6 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
 import { logger } from "../../../../utils/logger";
@@ -389,9 +390,27 @@ export default function TimetableList() {
      }
    };
 
-   if (initialLoading && timetables.length === 0 && archivedTimetables.length === 0) {
-     return <Loading fullScreen size="lg" text="Loading Timetables..." />;
-   }
+  // Loading State
+if (
+  initialLoading &&
+  timetables.length === 0 &&
+  archivedTimetables.length === 0
+) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Timetables..."
+        />
+      </div>
+    </div>
+  );
+}
 
    if (error) {
      return (
@@ -423,46 +442,23 @@ export default function TimetableList() {
       >
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(-1)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>
-              Timetable Management
-            </span>
-          </motion.div>
+              <div
+                style={{
+                  width: "100%",
+                  margin: "10px auto",
+                  paddingBottom: "70px",
+                  height: "40px",
+                }}
+              >
+                <div style={{ width: "100%" }}>
+                  <Breadcrumb
+                    items={[
+                      { label: "Dashboard", path: "/hod/dashboard" },
+                      { label: "Timetable Management" },
+                    ]}
+                  />
+                </div>
+              </div>
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -472,23 +468,28 @@ export default function TimetableList() {
             style={{
               marginBottom: '2rem',
               backgroundColor: 'white',
-              borderRadius: '1.5rem',
+              borderRadius: '14px',
               overflow: 'hidden',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.5rem'
+              // padding: '1.5rem 2rem',
+              // gap: '1.5rem',
+              // paddingBottom: '2rem',
+              height: '165px',
+   
             }}
           >
             <div className="erp-timetable-hero-inner" style={{
-              padding: '2rem',
-              background: BRAND_COLORS.primary.gradient,
+              padding: '1.5rem 2rem',
+              background: '#0E3746',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '1.5rem'
+              gap: '1.5rem',
+              height: '92px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div
@@ -497,14 +498,14 @@ export default function TimetableList() {
                   animate="pulse"
                   className="erp-timetable-hero-icon"
                   style={{
-                    width: '80px',
-                    height: '80px',
+                    width: '52px',
+                    height: '52px',
                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '20px',
+                    borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2.5rem',
+                    fontSize: '1.6rem',
                     flexShrink: 0,
                     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
                   }}
@@ -514,16 +515,19 @@ export default function TimetableList() {
                 <div className="erp-timetable-hero-text">
                   <h1 className="erp-timetable-hero-title" style={{
                     margin: 0,
-                    fontSize: '2.25rem',
+                    fontSize: '1.625rem',
                     fontWeight: 700,
-                    lineHeight: 1.1
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.25,
                   }}>
                     Timetable Management
                   </h1>
                   <p className="erp-timetable-hero-desc" style={{
-                    margin: '0.75rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '1.25rem'
+                    margin: 0,
+                    opacity: 0.8,
+                    fontSize: '0.9rem',
+                    fontWeight: 400,
+                    lineHeight: 1.5,
                   }}>
                     View, manage, and publish academic schedules
                   </p>
@@ -535,21 +539,31 @@ export default function TimetableList() {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate('/timetable/create-timetable')}
                   className="erp-timetable-hero-cta"
-                  style={{
-                    backgroundColor: 'white',
-                    color: BRAND_COLORS.primary.main,
-                    border: '2px solid white',
-                    padding: '0.875rem 1.75rem',
-                    borderRadius: '14px',
-                    fontSize: '1.1rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
-                  }}
+                      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgb(255, 255, 255)",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
                 >
                   <FaPlus /> Create Timetable
                 </motion.button>

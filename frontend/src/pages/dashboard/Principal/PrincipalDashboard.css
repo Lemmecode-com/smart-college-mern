@@ -48,21 +48,54 @@
 
 /* ================= DASHBOARD HEADER ================= */
 .dashboard-header {
-  background: white;
+  display: block !important;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  padding: 0 !important;
+  margin-bottom: var(--spacing-lg);
+
+  background: #ffffff;
   border-radius: var(--border-radius-lg);
   overflow: hidden;
   box-shadow: var(--card-shadow);
-  margin-bottom: var(--spacing-lg);
 }
+.dashboard-header {
+  display: block !important;
+  box-sizing: border-box;
 
+  width: 100%;
+  max-width: 100%;
+
+  padding: 0 !important;
+  margin-left: 0;
+  margin-bottom: var(--spacing-lg);
+
+  background: #ffffff;
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+}
 .dashboard-header-hero {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
   padding: var(--spacing-xl);
+
   background: linear-gradient(
     135deg,
     var(--brand-primary) 0%,
     var(--brand-primary-dark) 100%
   );
+
   color: white;
+}
+.dashboard-header-hero > .row {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .header-icon-wrapper {
@@ -138,7 +171,12 @@
 
 /* ================= HEADER INFO BAR ================= */
 .dashboard-header-info {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
   padding: var(--spacing-md) var(--spacing-lg);
+
   background: #f8fafc;
   border-top: 1px solid #e2e8f0;
 }

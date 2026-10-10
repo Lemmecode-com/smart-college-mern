@@ -5,6 +5,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaUserTie,
   FaEnvelope,
@@ -197,9 +198,22 @@ export default function MyProfile() {
     fetchProfile();
   }, []);
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Profile..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Teacher Profile..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -222,6 +236,209 @@ export default function MyProfile() {
 
   return (
     <AnimatePresence mode="wait">
+
+<style>{`
+        /* =========================================
+          TEACHER PROFILE - MOBILE & TABLET
+          ========================================= */
+
+        @media (max-width: 991px) {
+
+          /* ================= PROFILE BANNER ================= */
+
+          .teacher-profile-banner {
+            padding: 1.25rem !important;
+            gap: 1rem !important;
+          }
+
+          .teacher-profile-icon {
+            width: 75px !important;
+            height: 75px !important;
+            font-size: 2.5rem !important;
+          }
+
+          .teacher-profile-banner h1 {
+            font-size: 1.8rem !important;
+            margin-bottom: 0.5rem !important;
+          }
+
+          .teacher-profile-banner > div:nth-child(2) > div {
+            gap: 0.5rem !important;
+          }
+
+          .teacher-profile-banner > div:nth-child(2) span {
+            font-size: 1rem !important;
+          }
+
+          /* Buttons side by side */
+          .teacher-profile-banner > div:nth-child(3) {
+            width: 100% !important;
+            display: flex !important;
+            gap: 0.6rem !important;
+          }
+
+          .teacher-profile-banner > div:nth-child(3) button {
+            flex: 1 !important;
+            justify-content: center !important;
+            padding: 0.65rem 0.4rem !important;
+            font-size: 0.85rem !important;
+            white-space: nowrap !important;
+          }
+
+
+          /* ================= PERSONAL INFORMATION ================= */
+
+          .teacher-personal-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 12px !important;
+            margin: 0 !important;
+          }
+
+          /* Remove Bootstrap column sizing */
+          .teacher-personal-grid > div {
+            width: auto !important;
+            flex: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+
+          /* Information card */
+          .teacher-personal-grid > div > div {
+            width: 100% !important;
+            min-height: 82px !important;
+            padding: 12px !important;
+            gap: 10px !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+          }
+
+          /* Icon */
+          .teacher-personal-grid > div > div > div:first-child {
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            font-size: 1rem !important;
+          }
+
+          /* Text container */
+          .teacher-personal-grid > div > div > div:last-child {
+            min-width: 0 !important;
+            flex: 1 !important;
+            overflow: hidden !important;
+          }
+
+          /* Label */
+          .teacher-personal-grid h6 {
+            font-size: 0.72rem !important;
+            line-height: 1.2 !important;
+            letter-spacing: 0.4px !important;
+            margin-bottom: 5px !important;
+          }
+
+          /* Value */
+          .teacher-personal-grid h6 + div {
+            font-size: 0.9rem !important;
+            line-height: 1.3 !important;
+            font-weight: 600 !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
+          }
+
+          /* Email */
+          .teacher-personal-grid > div:nth-child(1) h6 + div {
+            font-size: 0.82rem !important;
+            white-space: nowrap !important;
+          }
+
+          /* Contact */
+          .teacher-personal-grid > div:nth-child(2) h6 + div {
+            font-size: 0.85rem !important;
+            white-space: nowrap !important;
+          }
+
+          /* Personal Information section padding */
+          .erp-page .row .p-4 {
+            padding: 0.75rem !important;
+          }
+        }
+
+
+        /* =========================================
+          SMALL MOBILE
+          ========================================= */
+
+        @media (max-width: 575px) {
+
+          .teacher-profile-banner {
+            padding: 1rem !important;
+            gap: 0.75rem !important;
+          }
+
+          .teacher-profile-icon {
+            width: 65px !important;
+            height: 65px !important;
+            font-size: 2.1rem !important;
+          }
+
+          .teacher-profile-banner h1 {
+            font-size: 1.55rem !important;
+          }
+
+          .teacher-profile-banner > div:nth-child(2) span {
+            font-size: 0.9rem !important;
+          }
+
+          .teacher-profile-banner > div:nth-child(3) {
+            gap: 0.5rem !important;
+          }
+
+          .teacher-profile-banner > div:nth-child(3) button {
+            font-size: 0.75rem !important;
+            padding: 0.6rem 0.25rem !important;
+          }
+
+
+          /* Personal Information */
+          .teacher-personal-grid {
+            gap: 8px !important;
+          }
+
+          .teacher-personal-grid > div > div {
+            min-height: 80px !important;
+            padding: 9px !important;
+            gap: 7px !important;
+          }
+
+          .teacher-personal-grid > div > div > div:first-child {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            font-size: 0.8rem !important;
+          }
+
+          .teacher-personal-grid h6 {
+            font-size: 0.63rem !important;
+            line-height: 1.2 !important;
+            margin-bottom: 4px !important;
+          }
+
+          .teacher-personal-grid h6 + div {
+            font-size: 0.78rem !important;
+            line-height: 1.25 !important;
+          }
+
+          .teacher-personal-grid > div:nth-child(1) h6 + div {
+            font-size: 0.65rem !important;
+          }
+
+          .teacher-personal-grid > div:nth-child(2) h6 + div {
+            font-size: 0.68rem !important;
+          }
+        }
+      `}</style>
+
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -237,144 +454,137 @@ export default function MyProfile() {
       >
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '0.75rem 1.5rem',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span 
-                style={{ 
-                  color: '#64748b', 
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
-                }}
-                onClick={() => navigate('/teacher/dashboard')}
-              >
-                Dashboard
-              </span>
-              <span style={{ color: '#94a3b8' }}>›</span>
-              <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '0.9rem' }}>My Profile</span>
-            </div>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "My Profile" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              backgroundColor: 'white',
-              borderRadius: '1.5rem',
-              overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)'
-            }}
+          style={{
+  marginBottom: '1.5rem',
+  backgroundColor: '#0E3746',
+  borderRadius: '15px',
+  overflow: 'hidden',
+  boxShadow: '0 8px 24px rgba(15, 55, 70, 0.18)'
+}}
           >
-            <div style={{
-              padding: '2rem',
-              background: BRAND_COLORS.primary.gradient,
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '2rem',
-              flexWrap: 'wrap'
-            }}>
-              <motion.div
+<div className="teacher-profile-banner" style={{
+  padding: '1.5rem 2rem',
+  background: '#0E3746',
+  color: 'white',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '1.25rem',
+  flexWrap: 'wrap'
+}}>
+              <motion.div 
+                className="teacher-profile-icon"
                 variants={pulseVariants}
                 initial="initial"
                 animate="pulse"
                 style={{
-                  width: '120px',
-                  height: '120px',
+                  width: '72px',
+                  height: '72px',
                   borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.12)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '4rem',
+                  fontSize: '2.2rem',
                   flexShrink: 0,
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-                  border: '4px solid rgba(255, 255, 255, 0.3)'
+                  border: '2px solid rgba(255, 255, 255, 0.25)',
+                  boxShadow: 'none'
                 }}
+             
               >
                 <FaUserTie />
               </motion.div>
               
-              <div style={{ flex: 1 }}>
-                <h1 style={{
-                  margin: 0,
-                  fontSize: '2.5rem',
-                  fontWeight: 700,
-                  marginBottom: '0.5rem',
-                  textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
-                }}>
+<div style={{ flex: 1, minWidth: 0 }}>
+  <h1 style={{
+            margin: 0,
+            fontSize: '1.625rem',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.25,
+  }}>
                   {profile.name}
                 </h1>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1.5rem',
+                    flexWrap: 'wrap'
+                  }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FaChalkboardTeacher />
-                    <span style={{ fontSize: '1.2rem', opacity: 0.9 }}>{profile.designation || 'Faculty Member'}</span>
+                    <span style={{ fontSize: '1rem', opacity: 0.65 }}>{profile.designation || 'Faculty Member'}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FaGraduationCap />
-                    <span style={{ fontSize: '1.2rem', opacity: 0.9 }}>{profile.qualification || 'N/A'}</span>
+                    <span style={{ fontSize: '1rem', opacity: 0.65 }}>{profile.qualification || 'N/A'}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FaBriefcase />
-                    <span style={{ fontSize: '1.2rem', opacity: 0.9 }}>{profile.experienceYears || 0} years experience</span>
+                    <span style={{ fontSize: '1rem', opacity: 0.65 }}>{profile.experienceYears || 0} years experience</span>
                   </div>
                 </div>
               </div>
               
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(26, 75, 109, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{
+                    y: -2,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                  }}
+                  whileTap={{ y: 0 }}
                   onClick={() => navigate('/teacher/dashboard')}
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
                     color: 'white',
-                    border: '2px solid rgba(255, 255, 255, 0.4)',
-                    padding: '0.75rem 1.5rem',
+                    border: '2px solid rgba(255, 255, 255, 0.35)',
+                    padding: '0.65rem 1.2rem',
                     borderRadius: '12px',
-                    fontSize: '0.95rem',
+                    fontSize: '0.9rem',
                     fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    transition: 'all 0.3s ease'
+                    // transition: 'all 0.25s ease'
                   }}
                 >
                   <FaArrowLeft /> Back to Dashboard
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(255, 255, 255, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
+whileHover={{
+  y: -2,
+  boxShadow: '0 5px 14px rgba(0, 0, 0, 0.18)'
+}}
+whileTap={{ y: 0 }}
                   onClick={() => navigate('/profile/edit-profile')}
-                  style={{
-                    backgroundColor: 'white',
-                    color: BRAND_COLORS.primary.main,
-                    border: '2px solid white',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
-                  }}
+                  
+style={{
+  backgroundColor: 'white',
+  color: '#0E3746',
+  border: '2px solid white',
+  padding: '0.65rem 1.2rem',
+  borderRadius: '12px',
+  fontSize: '0.95rem',
+  fontWeight: 600,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '0.5rem',
+  // transition: 'all 0.25s ease'
+}}
+            
                 >
                   <FaEdit /> Edit Profile
                 </motion.button>
@@ -444,7 +654,7 @@ export default function MyProfile() {
                 color={BRAND_COLORS.primary.main}
               >
                 <div className="p-4">
-                  <div className="row g-3">
+                  <div className="row g-3 teacher-personal-grid">
                     <div className="col-12 col-sm-6 col-lg-4">
                       <InfoItem
                         icon={<FaEnvelope />}

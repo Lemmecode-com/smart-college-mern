@@ -5,7 +5,8 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
-
+import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import { FaSearch, FaEye, FaCheckCircle, FaGraduationCap, FaBuilding, FaBookOpen, FaCalendarAlt, FaChevronLeft, FaChevronRight, FaExclamationTriangle, FaSyncAlt, FaUserCheck, FaUserTimes, FaEnvelope, FaUsers, FaCheckDouble, FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../components/ConfirmModal";
@@ -347,12 +348,197 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
     }
   };
 
+  const tableActions = {
+  label: "Actions",
+  width: "670px",
+  text: "Actions",
+
+  items: [
+    {
+      key: "view",
+      label: "View Student",
+      icon: FaEye,
+      className: "view-btn",
+      text: "View Student",
+      style: {fontSize: "11px", fontWeight: "500",},
+      show: () => !principalMode,
+      onClick: (student) =>
+        navigate(`/college/view-approved-student/${student._id}`),
+    },
+
+    {
+      key: "assign-division",
+      label: "Assign Division",
+      icon: FaEdit,
+      className: "edit-btn",
+      text: "Assign Division",
+      style: {fontSize: "11px", fontWeight: "500"},
+
+      show: (student) =>
+        !principalMode &&
+        (
+          student.status === STUDENT_STATUS.APPROVED ||
+          student.status === STUDENT_STATUS.OFFER_MADE ||
+          student.status === STUDENT_STATUS.SEAT_CONFIRMED
+        ) &&
+        !student.division,
+
+      onClick: (student) =>
+        handleOpenDivisionModal(student._id),
+    },
+
+    {
+      key: "confirm-enrollment",
+      label: "Confirm Enrollment",
+      icon: FaCheckDouble,
+      className: "approve-btn",
+      text: "Confirm Enrollment",
+      style: {fontSize: "11px", fontWeight: "500"},
+      show: (student) =>
+        !principalMode &&
+        (
+          student.status === STUDENT_STATUS.APPROVED ||
+          student.status === STUDENT_STATUS.OFFER_MADE ||
+          student.status === STUDENT_STATUS.SEAT_CONFIRMED
+        ),
+
+      onClick: (student) =>
+        handleConfirmEnrollment(student._id),
+
+      disabled: (student) =>
+        processingId === student._id || !student.division,
+
+      title: (student) =>
+        !student.division
+          ? "Assign division before enrollment"
+          : processingId === student._id
+          ? "Processing..."
+          : "Confirm Enrollment",
+    },
+
+    {
+      key: "toggle-active",
+      label: "Deactivate",
+      icon: FaUserTimes,
+      className: "warning-btn",
+      text: "Deactivate",
+      style: {fontSize: "11px", fontWeight: "500"},
+      show: (student) =>
+        !principalMode && !!student.user_id,
+
+      onClick: (student) =>
+        handleToggleActive(student),
+
+      getLabel: (student) =>
+        student.status === STUDENT_STATUS.DEACTIVATED
+          ? "Reactivate"
+          : "Deactivate",
+
+      getIcon: (student) =>
+        student.status === STUDENT_STATUS.DEACTIVATED
+          ? FaUserCheck
+          : FaUserTimes,
+    },
+  ],
+};
+
   /* ================= PAGINATION ================= */
   const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
   const paginatedStudents = filteredStudents.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE,
   );
+
+  const columns = [
+  {
+    key: "fullName",
+    label: "Student Name",
+    sortable: false,
+    width: "240px",
+    render: (student) => (
+      <div className="student-info">
+        <span className="student-name-cell" style={{ fontSize: "14px" }}>
+          {student.fullName}
+        </span>
+
+        <span className="student-email" style={{ fontSize: "12px" }}>
+          {student.email}
+        </span>
+      </div>
+    ),
+  },
+
+  {
+    key: "course",
+    label: "Course",
+    sortable: false,
+    width: "185px",
+
+    render: (student) => (
+      <span className="badge badge-course" style={{ fontSize: "10px" }}>
+        {student.course_id?.name || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "department",
+    label: "Department",
+    sortable: false,
+    width: "180px",
+    render: (student) => (
+      <span className="department-name" style={{ fontSize: "12px" }}>
+        {student.department_id?.name || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "admissionYear",
+    label: "Admission Year",
+    sortable: false,
+    width: "120px",
+    render: (student) => (
+      <span className="badge badge-graduation-year" style={{ fontSize: "10px" }}>
+        <FaCalendarAlt className="badge-icon" />
+        {student.admissionYear || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "status",
+    label: "Status",
+    sortable: false,
+    width: "130px",
+    render: (student) => {
+      if (student.status === STUDENT_STATUS.OFFER_MADE) {
+        return (
+          <span className="badge badge-offer-made" >
+            <FaEnvelope className="badge-icon" />
+            OFFER MADE
+          </span>
+        );
+      }
+
+      if (student.status === STUDENT_STATUS.ENROLLED) {
+        return (
+          <span className="badge badge-enrolled">
+            <FaCheckDouble className="badge-icon" />
+            ENROLLED
+          </span>
+        );
+      }
+
+      return (
+        <span className="badge badge-status">
+          <FaCheckCircle className="badge-icon" />
+          APPROVED
+        </span>
+      );
+    },
+  },
+];
 
   /* ================= ERROR STATE ================= */
   if (error && !loading) {
@@ -370,7 +556,20 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading approved students..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading approved students..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -380,41 +579,33 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
           items={principalMode
             ? [
                 { label: "Dashboard", path: "/dashboard/principal" },
-                { label: "Students", path: "/principal/students" },
+                { label: "Students",},
                 { label: "All Students" },
               ]
             : admissionOfficerMode
             ? [
                 { label: "Dashboard", path: "/dashboard/admission" },
-                { label: "Admissions", path: "/admission/applications" },
+                { label: "Admissions",},
                 { label: "Approved Students" },
               ]
             : [
                 { label: "Dashboard", path: "/dashboard" },
-                { label: "Students", path: "/students" },
+                { label: "Students", },
                 { label: "Approved Students" },
               ]
           }
         />
 
         {/* HEADER */}
-        <div className="erp-page-header">
-          <div className="erp-header-content">
-            <div className="erp-header-icon">
-              {principalMode ? <FaUsers /> : <FaCheckCircle />}
-            </div>
-            <div className="erp-header-text">
-              <h1 className="erp-page-title">
-                {principalMode ? "All Students" : "Approved Students"}
-              </h1>
-              <p className="erp-page-subtitle">
-                {principalMode
-                  ? "View all students across the college"
-                  : "View and manage students approved for admission"}
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHeader
+          icon={principalMode ? FaUsers : FaCheckCircle}
+          title={principalMode ? "All Students" : "Approved Students"}
+          subtitle={
+            principalMode
+              ? "View all students across the college"
+              : "View and manage students approved for admission"
+          }
+        />
 
         {/* STATS CARDS */}
         <div className="stats-grid animate-fade-in">
@@ -489,186 +680,39 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         </div>
       </div>
 
-      {/* STUDENTS TABLE */}
-      <div className="erp-card animate-fade-in">
-        <div className="erp-card-header">
-          <h3>
-            <FaGraduationCap className="erp-card-icon" />
-            {principalMode ? "Student Records" : "Approved Student Records"}
-          </h3>
-          <span className="record-count">
-            {filteredStudents.length}{" "}
-            {filteredStudents.length === 1 ? "Student" : "Students"}
-            {principalMode ? "" : " Approved"}
-          </span>
-        </div>
+{/* ================= STANDARD STUDENT LIST ================= */}
 
-        <div className="erp-card-body">
-          {paginatedStudents.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">
-                <FaCheckCircle />
-              </div>
-              <h3>No Approved Students Found</h3>
-              <p className="empty-description">
-                {search
-                  ? "No approved students match your search criteria."
-                  : "There are no approved students yet. Students will appear here after approval."}
-              </p>
-            </div>
-          ) : (
-            <div className="table-container">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th className="th-student">
-                      <FaUserCheck className="header-icon" /> Student Name
-                    </th>
-                    <th className="th-course">
-                      <FaBookOpen className="header-icon" /> Course
-                    </th>
-                    <th className="th-department">
-                      <FaBuilding className="header-icon" /> Department
-                    </th>
-                    <th className="th-year">
-                      <FaCalendarAlt className="header-icon" /> Admission Year
-                    </th>
-                    <th className="th-status">Status</th>
-                    <th className="th-actions text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedStudents.map((student, index) => (
-                    <tr key={student._id} className="table-row">
-                      <td className="cell-student">
-                        <div className="student-info">
-                          <span className="student-name-cell">
-                            {student.fullName}
-                          </span>
-                          <span className="student-email">{student.email}</span>
-                        </div>
-                      </td>
-                      <td className="cell-course">
-                        <span className="badge badge-course">
-                          {student.course_id?.name || "N/A"}
-                        </span>
-                      </td>
-                      <td className="cell-department">
-                        <span className="department-name">
-                          {student.department_id?.name || "N/A"}
-                        </span>
-                      </td>
-                      <td className="cell-year">
-                        <span className="badge badge-graduation-year">
-                          <FaCalendarAlt className="badge-icon" />
-                          {student.admissionYear || "N/A"}
-                        </span>
-                      </td>
-                      <td className="cell-status">
-                        {student.status === STUDENT_STATUS.OFFER_MADE ? (
-                          <span className="badge badge-offer-made">
-                            <FaEnvelope className="badge-icon" />
-                            OFFER MADE
-                          </span>
-                        ) : student.status === STUDENT_STATUS.ENROLLED ? (
-                          <span className="badge badge-enrolled">
-                            <FaCheckDouble className="badge-icon" />
-                            ENROLLED
-                          </span>
-                        ) : (
-                          <span className="badge badge-status">
-                            <FaCheckCircle className="badge-icon" />
-                            APPROVED
-                          </span>
-                        )}
-                      </td>
-                      <td className="cell-actions">
-                        {!principalMode && (
-                        <div className="action-buttons">
-                          <button
-                            className="btn btn-action btn-view-student"
-                            onClick={() =>
-                              navigate(
-                                `/college/view-approved-student/${student._id}`,
-                              )
-                            }
-                            title="View Student Details"
-                          >
-                            <FaEye />
-                            <span className="btn-text">View</span>
-                          </button>
-                          {(student.status === STUDENT_STATUS.APPROVED || student.status === STUDENT_STATUS.OFFER_MADE || student.status === STUDENT_STATUS.SEAT_CONFIRMED) && (
-                            <>
-                              {!student.division && (
-                                <button
-                                  className="btn btn-action btn-assign-division"
-                                  onClick={() => handleOpenDivisionModal(student._id)}
-                                  title="Assign Division"
-                                >
-                                  <FaEdit />
-                                  <span className="btn-text">Assign Division</span>
-                                </button>
-                              )}
-                              <button
-                                className="btn btn-action btn-confirm-enrollment"
-                                onClick={() => handleConfirmEnrollment(student._id)}
-                                disabled={processingId === student._id || !student.division}
-                                title={!student.division ? "Assign division before enrollment" : "Confirm Enrollment"}
-                              >
-                                <FaCheckDouble />
-                                <span className="btn-text">
-                                  {processingId === student._id
-                                    ? "Processing..."
-                                    : "Confirm Enrollment"}
-                                </span>
-                              </button>
-                            </>
-                          )}
-                              {student.user_id && (
-                                <button
-                                  className={`btn btn-action ${student.status === STUDENT_STATUS.DEACTIVATED ? "btn-reactivate-student" : "btn-deactivate-student"}`}
-                                  onClick={() => handleToggleActive(student)}
-                                  title={
-                                    student.status === STUDENT_STATUS.DEACTIVATED
-                                      ? "Reactivate"
-                                      : "Deactivate"
-                                  }
-                                >
-                                  {student.status === STUDENT_STATUS.DEACTIVATED ? (
-                                <FaUserCheck />
-                              ) : (
-                                <FaUserTimes />
-                              )}
-                              <span className="btn-text">
-                                {student.status === STUDENT_STATUS.DEACTIVATED
-                                  ? "Reactivate"
-                                  : "Deactivate"}
-                              </span>
-                            </button>
-                          )}
-                        </div>
-                          )}
-                        </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+<StandardListView
+  className="approve-students-list"
+  title={principalMode ? "Student Records" : "Approved Student Records"}
+  icon={FaGraduationCap}
+  count={filteredStudents.length}
+  columns={columns}
+  data={paginatedStudents}
+  loading={false}
+  emptyState={{
+    icon: FaCheckCircle,
 
-          {/* PAGINATION */}
-          {totalPages > 1 && (
-            <div className="erp-pagination">
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                setPage={setPage}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+    title: principalMode
+      ? "No Students Found"
+      : "No Approved Students Found",
 
+    description: search
+      ? "No approved students match your search criteria."
+      : "There are no approved students yet. Students will appear here after approval.",
+  }}
+  actions={tableActions}
+/>
+
+{totalPages > 1 && (
+  <div className="erp-pagination">
+    <Pagination
+      page={page}
+      totalPages={totalPages}
+      setPage={setPage}
+    />
+  </div>
+)}
       {/* STYLES */}
       <style>{`
         /* ================= GLOBAL TYPOGRAPHY ================= */
@@ -682,55 +726,133 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
           animation: fadeIn 0.6s ease;
         }
 
-        /* ================= PAGE HEADER ================= */
-        .erp-page-header {
-          background: linear-gradient(135deg, #0f3a4a 0%, #1c6f86 100%);
-          padding: 2rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 24px rgba(15, 58, 74, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-        }
+/* ================= APPROVED STUDENTS TABLE ACTIONS ================= */
 
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.5rem;
-        }
+.approve-students-list .standard-table-actions-cell {
+  min-width: 420px;
+  padding: 18px 20px;
+}
 
-        .erp-header-icon {
-          width: 64px;
-          height: 64px;
-          background: rgba(61, 181, 230, 0.15);
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          color: #3db5e6;
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(61, 181, 230, 0.3);
-        }
+.approve-students-list .standard-table-actions-cell > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
 
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.875rem;
-          font-weight: 700;
-          font-family: 'Poppins', sans-serif;
-          letter-spacing: -0.5px;
-        }
+/* Common action button */
+.approve-students-list .standard-action-btn {
+  min-height: 38px;
+  padding: 0 22px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: -3rem;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
 
-        .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.9;
-          font-size: 1rem;
-          font-weight: 400;
-        }
+/* Icon */
+.approve-students-list .standard-action-btn svg {
+  font-size: 12px;
+  margin-right: 14px;
+  
+}
 
+/* View */
+.approve-students-list .standard-action-btn.view-btn {
+  min-width: 140px;
+  background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(61, 181, 230, 0.28);
+}
+
+.approve-students-list .standard-action-btn.view-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(61, 181, 230, 0.35);
+}
+
+/* Assign Division */
+.approve-students-list .standard-action-btn.edit-btn {
+  min-width: 155px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.28);
+}
+
+.approve-students-list .standard-action-btn.edit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.35);
+}
+
+/* Confirm Enrollment */
+.approve-students-list .standard-action-btn.approve-btn {
+  min-width: 169px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28);
+}
+
+.approve-students-list .standard-action-btn.approve-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(59, 130, 246, 0.35);
+}
+
+/* Disabled Confirm Enrollment */
+.approve-students-list .standard-action-btn.approve-btn:disabled {
+  background: #6b9ee8;
+  color: #64748b;
+  opacity: 0.85;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Deactivate */
+.approve-students-list .standard-action-btn.warning-btn {
+  min-width: 125px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.28);
+}
+
+.approve-students-list .standard-action-btn.warning-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(245, 158, 11, 0.35);
+}
+
+/* Reactivate */
+.approve-students-list .standard-action-btn.warning-btn.reactivate {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* Active press */
+.approve-students-list .standard-action-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Small screen */
+@media (max-width: 768px) {
+  .approve-students-list .standard-table-actions-cell > div {
+    gap: 8px;
+  }
+
+  .approve-students-list .standard-action-btn {
+    min-height: 44px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+}
         /* ================= STATS GRID ================= */
         .stats-grid {
           display: grid;
@@ -1703,6 +1825,8 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
           color: #6b7280;
           font-size: 14px;
         }
+
+
       `}</style>
 
       {/* CONFIRM ENROLLMENT MODAL */}

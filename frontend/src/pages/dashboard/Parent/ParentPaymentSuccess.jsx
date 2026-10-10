@@ -115,24 +115,41 @@ export default function ParentPaymentSuccess() {
     return () => clearInterval(interval);
   }, [sessionId]);
 
-  if (authLoading) return <Loading fullScreen text="Verifying your session..." />;
+  if (authLoading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Verifying your session..."
+        />
+      </div>
+    </div>
+  );
+}
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "PARENT_GUARDIAN") return <Navigate to="/dashboard" replace />;
 
-  if (loading) {
-    return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
-          <div className="parent-loading-state">
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="parent-loading-spinner" style={{ fontSize: "3rem", color: "var(--parent-primary)" }}>
-              <FaSpinner />
-            </motion.div>
-            <h4 className="parent-mt-3" style={{ color: "var(--parent-primary)" }}>Confirming your payment...</h4>
-          </div>
-        </div>
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Confirming your payment..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (

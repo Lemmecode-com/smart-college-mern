@@ -110,7 +110,7 @@ const containerStyle = {
 
 const pageRowStyle = {
   display: "inline-flex",
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
   gap: "6px",
   alignItems: "center",
 };
@@ -164,7 +164,85 @@ function NavButton({
     </button>
   );
 }
+const responsivePaginationStyle = `
+  @media (max-width: 992px) {
+    .erp-pagination {
+      flex-wrap: nowrap !important;
+      position: relative !important;
+      justify-content: center !important;
+      align-items: center !important;
+      gap: 4px !important;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 48px !important;
+    }
 
+    .erp-pagination > button {
+      flex: 0 0 36px !important;
+      width: 36px !important;
+      min-width: 36px !important;
+      height: 36px !important;
+      min-height: 36px !important;
+      padding: 0 !important;
+      font-size: 11px !important;
+    }
+
+    .erp-pagination__pages {
+      display: inline-flex !important;
+      flex-wrap: nowrap !important;
+      gap: 3px !important;
+      flex-shrink: 0 !important;
+    }
+
+    .erp-pagination__pages > button {
+      flex: 0 0 36px !important;
+      width: 36px !important;
+      min-width: 36px !important;
+      height: 36px !important;
+      min-height: 36px !important;
+      padding: 0 !important;
+      font-size: 11px !important;
+    }
+
+    .erp-pagination__info {
+      position: absolute !important;
+      top: calc(100% + 8px) !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      margin: 0 !important;
+      padding: 5px 14px !important;
+      font-size: 12px !important;
+      white-space: nowrap !important;
+    }
+  }
+
+  @media (max-width: 576px) {
+    .erp-pagination {
+      gap: 3px !important;
+      padding: 8px 2px !important;
+    }
+
+    .erp-pagination > button,
+    .erp-pagination__pages > button {
+      flex: 0 0 30px !important;
+      width: 30px !important;
+      min-width: 30px !important;
+      height: 30px !important;
+      min-height: 30px !important;
+      padding: 0 !important;
+      font-size: 9px !important;
+    }
+
+    .erp-pagination__pages {
+      gap: 2px !important;
+    }
+
+    .erp-pagination__info {
+      font-size: 11px !important;
+      padding: 4px 12px !important;
+    }
+  }
+`;
 export default function Pagination({ page, totalPages, setPage }) {
   const [hovered, setHovered] = useState(null);
   const [focused, setFocused] = useState(null);
@@ -202,11 +280,19 @@ export default function Pagination({ page, totalPages, setPage }) {
     return pages;
   };
 
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
-      setPage(newPage);
+const handlePageChange = (newPage) => {
+  if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
+    setPage(newPage);
+
+    // Scroll to top only on tablet and mobile
+    if (window.innerWidth <= 992) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
     }
-  };
+  }
+};
 
   const pageNumbers = getPageNumbers();
 
@@ -214,6 +300,8 @@ export default function Pagination({ page, totalPages, setPage }) {
   if (totalPages <= 1) return null;
 
   return (
+    <>
+    <style>{responsivePaginationStyle}</style>
     <div
       className="erp-pagination"
       role="navigation"
@@ -301,9 +389,10 @@ export default function Pagination({ page, totalPages, setPage }) {
       />
 
       {/* Page info badge */}
-      <span style={infoStyle}>
-        Page {page} of {totalPages}
-      </span>
+     <span className="erp-pagination__info" style={infoStyle}>
+       Page {page} of {totalPages}
+    </span>
     </div>
+    </>
   );
 }

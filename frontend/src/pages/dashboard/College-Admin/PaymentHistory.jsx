@@ -6,6 +6,8 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import { showSuccess, showError } from "../../../utils/toast";
 import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
@@ -184,10 +186,13 @@ export default function PaymentHistory() {
   };
 
   // Toggle dropdown for a specific row (using index)
-  const toggleDropdown = (rowIndex, event) => {
-    event.stopPropagation();
-    setActiveDropdown((prev) => (prev === rowIndex ? null : rowIndex));
-  };
+const toggleDropdown = (recordKey, event) => {
+  event.stopPropagation();
+
+  setActiveDropdown((prev) =>
+    prev === recordKey ? null : recordKey
+  );
+};
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -241,6 +246,233 @@ export default function PaymentHistory() {
     setCurrentPage(1);
   }, [statusFilter, searchQuery]);
 
+
+  /* ================= STANDARD LIST COLUMNS ================= */
+
+const columns = [
+  {
+    key: "student",
+    label: "Student",
+    sortable: true,
+    width: "220px",
+    render: (record) => (
+      <div className="payment-student-info">
+        <span className="payment-student-name">
+          {record.student?.fullName || "N/A"}
+        </span>
+
+        <span className="payment-student-email">
+          {record.student?.email || "N/A"}
+        </span>
+      </div>
+    ),
+  },
+
+  {
+    key: "course",
+    label: "Course",
+    sortable: true,
+    width: "195px",
+    render: (record) => (
+      <span className="payment-course-badge">
+        {record.course?.name || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "totalFee",
+    label: "Total Fee",
+    sortable: true,
+    width: "120px",
+    render: (record) => (
+      <span className="payment-amount-cell">
+        {formatCurrency(record.totalFee)}
+      </span>
+    ),
+  },
+
+  {
+    key: "paidAmount",
+    label: "Paid Amount",
+    sortable: true,
+    width: "120px",
+    render: (record) => (
+      <span className="payment-amount-cell payment-amount-paid">
+        {formatCurrency(record.paidAmount)}
+      </span>
+    ),
+  },
+
+  {
+    key: "pendingAmount",
+    label: "Pending",
+    sortable: true,
+    width: "120px",
+    render: (record) => (
+      <span className="payment-amount-cell payment-amount-pending">
+        {formatCurrency(record.pendingAmount)}
+      </span>
+    ),
+  },
+
+  {
+    key: "calculatedStatus",
+    label: "Status",
+    sortable: true,
+    width: "125px",
+    render: (record) => (
+      <span
+        className={`payment-status-badge ${getStatusBadgeClass(
+          record.calculatedStatus
+        )}`}
+      >
+        {getStatusIcon(record.calculatedStatus)}
+        {record.calculatedStatus}
+      </span>
+    ),
+  },
+
+
+];
+
+/* ================= STANDARD LIST ACTIONS ================= */
+
+const tableActions = {
+  label: "Actions",
+  width: "210px",
+  icon: FaReceipt,
+  items: [
+
+  {
+    key: "receipts",
+    label: "Receipts",
+    sortable: false,
+    icon: FaReceipt,
+    width: "230px",
+    text: "Receipts",
+    style: { background: "#427ed3", width: "230px", gap: "5px" },
+    render: (record) => {
+      const installments = getInstallmentDetails(record);
+
+      const paidInstallments = installments.filter(
+        (installment) => installment.status === "PAID"
+      );
+
+      const recordKey =
+        record.student_id?._id ||
+        record.student?._id ||
+        record.student?.fullName ||
+        record._id;
+
+      if (paidInstallments.length === 0) {
+        return (
+          <span className="no-receipts-text">
+            No Receipts
+          </span>
+        );
+      }
+
+      return (
+        <div
+          className={`receipt-dropdown-wrapper ${
+            activeDropdown === recordKey ? "active" : ""
+          }`}
+        >
+          <button
+            className="receipt-dropdown-btn"
+            onClick={(event) =>
+              toggleDropdown(recordKey, event)
+            }
+            aria-expanded={activeDropdown === recordKey}
+            aria-haspopup="true"
+          >
+            <FaReceipt className="receipt-icon" />
+
+            <span className="receipt-btn-text">
+              Receipts
+            </span>
+
+            <span className="receipt-count-badge">
+              {paidInstallments.length}
+            </span>
+
+            {activeDropdown === recordKey ? (
+              <FaChevronUp className="dropdown-arrow" />
+            ) : (
+              <FaChevronDown className="dropdown-arrow" />
+            )}
+          </button>
+
+          {activeDropdown === recordKey && (
+            <div className="receipt-dropdown-menu">
+              <div className="dropdown-header">
+                <FaReceipt className="dropdown-icon" />
+                <span>Payment Receipts</span>
+              </div>
+
+              <div className="dropdown-divider" />
+
+              {paidInstallments.map((installment, installmentIndex) => (
+                <Link
+                  key={installment._id || installmentIndex}
+                  to={`/student/fee-receipt/${installment._id}`}
+                  className="dropdown-item"
+                  onClick={() => setActiveDropdown(null)}
+                >
+                  <div className="dropdown-item-icon">
+                    <FaReceipt />
+                  </div>
+
+                  <div className="dropdown-item-content">
+                    <span className="dropdown-item-name">
+                      {installment.name}
+                    </span>
+
+                    <span className="dropdown-item-date">
+                      {installment.paidAt
+                        ? `Paid: ${new Date(
+                            installment.paidAt
+                          ).toLocaleDateString("en-IN")}`
+                        : "Payment date unavailable"}
+                    </span>
+                  </div>
+
+                  <div className="dropdown-item-amount">
+                    {formatCurrency(installment.amount)}
+                  </div>
+
+                  <FaExternalLinkAlt className="dropdown-item-arrow" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    },
+  },
+
+
+    {
+      key: "report",
+      label: "Report",
+      icon: FaUser,
+      className: "report-btn",
+      text: "Report",
+      style: { background: "#38a6b0", width: "230px", gap: "5px" },
+
+      onClick: (record) => {
+        if (record.student_id?._id) {
+          navigate(
+            `/college-admin/student-payment-report/${record.student_id._id}`
+          );
+        }
+      },
+
+      show: (record) => !!record.student_id?._id,
+    },
+  ],
+};
   // Prepare export data
   const getExportData = () => {
     return filteredRecords.map((record) => {
@@ -282,7 +514,20 @@ export default function PaymentHistory() {
 
   // Loading state
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading payment history..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Payment History..."
+          />
+        </div>
+      </div>
+    );
   }
 
   // Error state
@@ -325,33 +570,8 @@ export default function PaymentHistory() {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
-        /* ================= HEADER ================= */
-        .payment-history-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
 
-        .payment-history-header h1 {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .payment-history-header p {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
+ 
 
         /* ================= SUMMARY CARDS ================= */
         .summary-grid {
@@ -919,30 +1139,34 @@ export default function PaymentHistory() {
           font-style: italic;
         }
 
-        @media (max-width: 768px) {
-          .receipt-dropdown-menu {
-            position: fixed;
-            left: 1rem;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            max-width: none;
-            max-height: 80vh;
-            overflow-y: auto;
-            z-index: 10000;
-          }
+@media (max-width: 768px) {
+  .receipt-dropdown-wrapper.active {
+    transform: none !important;
+  }
 
-          .receipt-dropdown-btn {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.8125rem;
-          }
+  .receipt-dropdown-menu {
+    position: fixed !important;
+    left: 1rem;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    max-width: none;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 100000 !important;
+  }
 
-          .receipt-count-badge {
-            min-width: 20px;
-            height: 20px;
-            font-size: 0.6875rem;
-          }
-        }
+  .receipt-dropdown-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+
+  .receipt-count-badge {
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.6875rem;
+  }
+}
 
         .payment-empty-state {
           text-align: center;
@@ -1146,6 +1370,844 @@ export default function PaymentHistory() {
             margin-top: 1rem;
           }
         }
+
+        /* =========================================================
+   PAYMENT HISTORY - RESPONSIVE DESIGN
+   Desktop remains unchanged
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   769px - 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .payment-history-container {
+    padding: 1rem;
+  }
+
+  /* ================= BREADCRUMB ================= */
+
+  .payment-history-container .breadcrumb {
+    margin-bottom: 1rem;
+  }
+
+
+  /* ================= HEADER ================= */
+
+  .payment-history-header {
+    padding: 1.35rem;
+    margin-bottom: 1.1rem;
+    gap: 1.25rem;
+    border-radius: 14px;
+  }
+
+  .payment-history-header > div:first-child {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .payment-history-header h1 {
+    font-size: 1.5rem;
+    gap: 0.65rem;
+    line-height: 1.2;
+  }
+
+  .payment-history-header p {
+    font-size: 0.9rem;
+    line-height: 1.45;
+    max-width: 500px;
+  }
+
+  .payment-history-header > div:last-child {
+    flex-shrink: 0;
+    display: flex !important;
+    align-items: center;
+    gap: 0.6rem !important;
+  }
+
+  .payment-history-header .payment-action-btn {
+    padding: 0.65rem 0.85rem;
+    font-size: 0.8rem;
+  }
+
+
+  /* ================= SUMMARY ================= */
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .stat-card {
+    min-width: 0;
+    padding: 1rem;
+    border-radius: 12px;
+    gap: 0.7rem;
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 9px;
+    font-size: 0.95rem;
+  }
+
+  .stat-content {
+    min-width: 0;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    line-height: 1.25;
+  }
+
+  .stat-value {
+    font-size: 1.05rem;
+    max-width: 100%;
+  }
+
+
+  /* ================= CONTROLS ================= */
+
+  .payment-controls-card {
+    margin-bottom: 1.1rem;
+    border-radius: 14px;
+  }
+
+  .payment-controls-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    padding: 1rem 1.15rem;
+    gap: 0.75rem;
+  }
+
+  .payment-search-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .payment-search-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.7rem 0.85rem 0.7rem 2.4rem;
+    font-size: 0.88rem;
+  }
+
+  .payment-filter-dropdown {
+    width: auto;
+  }
+
+  .payment-filter-select {
+    min-width: 135px;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  .date-filter-controls {
+    width: auto;
+  }
+
+  .filter-toggle-btn {
+    white-space: nowrap;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+
+  /* ================= DATE FILTER ================= */
+
+  .date-filters-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    align-items: end;
+    gap: 0.75rem;
+    padding: 0.9rem;
+    margin-top: 0.75rem;
+  }
+
+  .date-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .date-actions {
+    flex-wrap: wrap;
+  }
+
+  .apply-filter-btn,
+  .clear-filter-btn {
+    padding: 0.65rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+
+  /* ================= TABLE ================= */
+
+  .payment-table-card {
+    border-radius: 14px;
+  }
+
+  .payment-table-header {
+    padding: 1.1rem 1.25rem;
+  }
+
+  .payment-table-header h3 {
+    font-size: 1.1rem;
+    gap: 0.55rem;
+  }
+
+  .payment-record-count {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.65rem;
+  }
+
+  .payment-table {
+    min-width: 850px;
+  }
+
+  .payment-table th {
+    padding: 13px 15px;
+    font-size: 10px;
+  }
+
+  .payment-table td {
+    padding: 14px 15px;
+  }
+
+
+  /* ================= RECEIPTS ================= */
+
+  .receipt-dropdown-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+  }
+
+  .receipt-count-badge {
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+
+
+  /* =====================================================
+     PAGINATION - TABLET
+     ===================================================== */
+
+  .payment-pagination {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0.75rem 0.5rem;
+
+    gap: 0.25rem;
+
+    overflow: hidden;
+  }
+
+  .payment-page-numbers {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 0.15rem;
+
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .payment-pagination .payment-page-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    border-radius: 6px;
+
+    font-size: 0.68rem;
+
+    flex: 0 0 28px;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .payment-history-container {
+    padding: 0.7rem;
+  }
+
+
+  /* ================= HEADER ================= */
+
+  .payment-history-header {
+    padding: 1rem;
+    margin-bottom: 0.9rem;
+
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0.85rem;
+
+    border-radius: 14px;
+  }
+
+  .payment-history-header > div:first-child {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .payment-history-header h1 {
+    font-size: 1.35rem;
+    line-height: 1.2;
+    gap: 0.55rem;
+  }
+
+  .payment-history-header h1 svg {
+    flex-shrink: 0;
+    font-size: 1.25rem;
+  }
+
+  .payment-history-header p {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .payment-history-header > div:last-child {
+    width: 100%;
+
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 0.55rem !important;
+  }
+
+  .payment-history-header .payment-action-btn {
+    width: 100%;
+    min-height: 40px;
+
+    padding: 0.55rem 0.65rem;
+
+    justify-content: center;
+    font-size: 0.78rem;
+  }
+
+
+  /* ================= SUMMARY ================= */
+
+  .summary-grid {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.65rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .stat-card {
+    width: 100%;
+    min-width: 0;
+
+    padding: 0.75rem;
+
+    box-sizing: border-box;
+
+    border-radius: 11px;
+    gap: 0.6rem;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+
+    border-radius: 9px;
+    font-size: 0.9rem;
+  }
+
+  .stat-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stat-label {
+    font-size: 0.76rem;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-value {
+    width: 100%;
+
+    font-size: 1rem;
+    line-height: 1.2;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+
+  /* ================= CONTROLS ================= */
+
+  .payment-controls-card {
+    width: 100%;
+    margin-bottom: 0.9rem;
+
+    border-radius: 14px;
+    box-sizing: border-box;
+  }
+
+  .payment-controls-body {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    padding: 0.9rem;
+    gap: 0.7rem;
+
+    box-sizing: border-box;
+  }
+
+
+  /* ================= SEARCH ================= */
+
+  .payment-search-box {
+    width: 100%;
+    min-width: 0;
+    flex: none;
+    box-sizing: border-box;
+  }
+
+  .payment-search-input {
+    width: 100%;
+    height: 44px;
+
+    box-sizing: border-box;
+
+    padding: 0.65rem 0.75rem 0.65rem 2.35rem;
+
+    font-size: 0.82rem;
+    border-radius: 10px;
+  }
+
+  .payment-search-icon {
+    left: 0.85rem;
+    font-size: 0.9rem;
+  }
+
+
+  /* ================= STATUS FILTER ================= */
+
+  .payment-filter-dropdown {
+    width: 100%;
+  }
+
+  .payment-filter-select {
+    width: 100%;
+    height: 44px;
+
+    box-sizing: border-box;
+
+    padding: 0.65rem 0.8rem;
+
+    font-size: 0.82rem;
+    border-radius: 10px;
+  }
+
+
+  /* ================= DATE FILTER ================= */
+
+  .date-filter-controls {
+    width: 100%;
+  }
+
+  .filter-toggle-btn {
+    width: 100%;
+    min-height: 44px;
+
+    justify-content: center;
+
+    padding: 0.65rem 0.8rem;
+
+    font-size: 0.8rem;
+    border-radius: 9px;
+  }
+
+
+  /* ================= DATE RANGE ================= */
+
+  .date-filters-row {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 0.75rem;
+
+    padding: 0.85rem;
+    margin-top: 0;
+
+    box-sizing: border-box;
+  }
+
+  .date-input-group {
+    width: 100%;
+  }
+
+  .date-label {
+    font-size: 0.78rem;
+  }
+
+  .date-input {
+    width: 100%;
+    height: 42px;
+
+    box-sizing: border-box;
+
+    padding: 0.6rem;
+
+    font-size: 0.8rem;
+  }
+
+  .date-actions {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 0.55rem;
+
+    margin-top: 0 !important;
+  }
+
+  .apply-filter-btn,
+  .clear-filter-btn {
+    width: 100%;
+    min-height: 42px;
+
+    justify-content: center;
+
+    padding: 0.6rem;
+
+    font-size: 0.78rem;
+  }
+
+
+  /* ================= TABLE ================= */
+
+  .payment-table-card {
+    width: 100%;
+
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .payment-table-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .payment-table-header h3 {
+    font-size: 0.95rem;
+    line-height: 1.3;
+    gap: 0.45rem;
+  }
+
+  .payment-record-count {
+    flex-shrink: 0;
+
+    font-size: 0.68rem;
+    padding: 0.22rem 0.55rem;
+  }
+
+  .payment-table-container {
+    width: 100%;
+
+    overflow-x: auto;
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .payment-table {
+    min-width: 850px;
+  }
+
+  .payment-table th {
+    padding: 12px 13px;
+    font-size: 9px;
+    letter-spacing: 0.7px;
+  }
+
+  .payment-table td {
+    padding: 13px;
+    font-size: 12px;
+  }
+
+  .payment-student-name {
+    font-size: 13px;
+  }
+
+  .payment-student-email {
+    font-size: 11px;
+  }
+
+  .payment-course-badge {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .payment-status-badge {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .payment-action-btn {
+    padding: 8px 11px;
+    font-size: 11px;
+  }
+
+
+  /* ================= RECEIPTS ================= */
+
+  .receipt-dropdown-btn {
+    padding: 0.5rem 0.65rem;
+    font-size: 0.75rem;
+    gap: 0.4rem;
+  }
+
+  .receipt-count-badge {
+    min-width: 20px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+
+
+  /* =====================================================
+     PAGINATION - MOBILE
+     ===================================================== */
+
+  .payment-pagination {
+    width: 100%;
+    max-width: 100%;
+
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0.65rem 0.25rem;
+
+    gap: 0.12rem;
+
+    overflow: hidden;
+  }
+
+  .payment-page-numbers {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 0.1rem;
+
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+
+    min-width: 0;
+  }
+
+  .payment-pagination .payment-page-btn {
+    width: 25px !important;
+    height: 25px !important;
+    min-width: 25px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    border-radius: 5px;
+
+    font-size: 0.6rem;
+
+    flex: 0 0 25px;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .payment-history-container {
+    padding: 0.55rem;
+  }
+
+
+  /* ================= HEADER ================= */
+
+  .payment-history-header {
+    padding: 0.85rem;
+    border-radius: 12px;
+  }
+
+  .payment-history-header h1 {
+    font-size: 1.15rem;
+  }
+
+  .payment-history-header h1 svg {
+    font-size: 1.05rem;
+  }
+
+  .payment-history-header p {
+    font-size: 0.72rem;
+  }
+
+  .payment-history-header > div:last-child {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem !important;
+  }
+
+  .payment-history-header .payment-action-btn {
+    min-height: 38px;
+    padding: 0.5rem 0.4rem;
+    font-size: 0.7rem;
+  }
+
+
+  /* ================= SUMMARY ================= */
+
+  .summary-grid {
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    padding: 0.65rem;
+    gap: 0.45rem;
+    border-radius: 10px;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+
+    border-radius: 8px;
+    font-size: 0.8rem;
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+  }
+
+  .stat-value {
+    font-size: 0.9rem;
+  }
+
+
+  /* ================= CONTROLS ================= */
+
+  .payment-controls-body {
+    padding: 0.75rem;
+    gap: 0.6rem;
+  }
+
+  .payment-search-input,
+  .payment-filter-select,
+  .filter-toggle-btn {
+    height: 41px;
+    min-height: 41px;
+    font-size: 0.74rem;
+  }
+
+  .payment-search-input {
+    padding-left: 2.2rem;
+  }
+
+  .payment-search-icon {
+    left: 0.75rem;
+  }
+
+
+  /* ================= DATE FILTER ================= */
+
+  .date-filters-row {
+    padding: 0.75rem;
+    gap: 0.65rem;
+  }
+
+  .date-actions {
+    grid-template-columns: 1fr;
+  }
+
+
+  /* ================= TABLE HEADER ================= */
+
+  .payment-table-header {
+    padding: 0.8rem;
+  }
+
+  .payment-table-header h3 {
+    font-size: 0.85rem;
+  }
+
+  .payment-record-count {
+    font-size: 0.62rem;
+  }
+
+
+  /* =====================================================
+     PAGINATION - SMALL MOBILE
+     ===================================================== */
+
+  .payment-pagination {
+    padding: 0.5rem 0.15rem;
+    gap: 0.08rem;
+  }
+
+  .payment-page-numbers {
+    gap: 0.06rem;
+  }
+
+  .payment-pagination .payment-page-btn {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+
+    padding: 0 !important;
+    margin: 0 !important;
+
+    border-radius: 4px;
+
+    font-size: 0.55rem;
+
+    flex: 0 0 22px;
+  }
+}
       `}</style>
 
       {/* ================= BREADCRUMB ================= */}
@@ -1155,41 +2217,66 @@ export default function PaymentHistory() {
             label: "Dashboard",
             path: user?.role === "ACCOUNTANT" ? "/dashboard/accountant" : "/dashboard"
           },
+          { label: "Reports & Analytics", },
           { label: "Payment History" },
         ]}
       />
 
-      {/* ================= HEADER ================= */}
-      <div className="payment-history-header">
-        <div>
-          <h1>
-            <FaFileInvoiceDollar />
-            Payment History
-          </h1>
-          <p>View and manage all student fee payment records</p>
-        </div>
-        <div style={{ display: "flex", gap: "0.75rem" }}>
-          <button
-            className="payment-action-btn"
-            onClick={() => setShouldFetch(true)}
-            style={{
-              background: "rgba(255, 255, 255, 0.2)",
-              backdropFilter: "blur(10px)",
-            }}
-          >
-            <FaSyncAlt /> Refresh
-          </button>
-          <ExportButtons
-            title="Payment History Report"
-            columns={exportColumns}
-            data={getExportData()}
-            filename={`payment_history_${new Date().toISOString().split("T")[0]}`}
-            showCSV
-            showPDF={false}
-            showExcel
-          />
-        </div>
-      </div>
+      {/* ================= PAGE HEADER ================= */}
+      <PageHeader
+        icon={FaFileInvoiceDollar}
+        title="Payment History"
+        subtitle="View and manage all student fee payment records"
+        actions={
+          <>
+            <button
+             
+              onClick={() => setShouldFetch(true)}
+              title="Refresh payment history"
+                 style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+            >
+              <FaSyncAlt />
+              Refresh
+            </button>
+
+            <ExportButtons
+              title="Payment History Report"
+              columns={exportColumns}
+              data={getExportData()}
+              filename={`payment_history_${new Date().toISOString().split("T")[0]}`}
+              showCSV
+              showPDF={false}
+              showExcel
+              
+            />
+          </>
+        }
+      />
+
 
       {/* ================= SUMMARY CARDS ================= */}
       <div className="summary-grid">
@@ -1377,227 +2464,37 @@ export default function PaymentHistory() {
         )}
       </div>
 
-      {/* ================= TABLE ================= */}
-      <div className="payment-table-card">
-        <div className="payment-table-header">
-          <h3>
-            <FaFileInvoiceDollar />
-            Student Payment Records
-          </h3>
-          <span className="payment-record-count">
-            {filteredRecords.length}{" "}
-            {filteredRecords.length === 1 ? "Student" : "Students"}
-          </span>
-        </div>
+        {/* ================= STANDARD PAYMENT LIST ================= */}
+        <StandardListView
+          className="payment-history-list"
+          title="Student Payment Records"
+          icon={FaFileInvoiceDollar}
+          count={filteredRecords.length}
+          columns={columns}
+          data={paginatedRecords}
+          loading={false}
+          emptyState={{
+            icon: FaFileInvoiceDollar,
 
-        <div className="payment-table-container">
-          {paginatedRecords.length === 0 ? (
-            <div className="payment-empty-state">
-              <div className="payment-empty-icon">
-                <FaFileInvoiceDollar />
-              </div>
-              <h3>No Payment Records Found</h3>
-              <p>
-                {searchQuery || statusFilter
-                  ? "No records match your search criteria. Try adjusting your filters."
-                  : "There are no payment records to display."}
-              </p>
-            </div>
-          ) : (
-            <table className="payment-table">
-              <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Course</th>
-                  <th>Total Fee</th>
-                  <th>Paid Amount</th>
-                  <th>Pending</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: "center" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedRecords.map((record, idx) => {
-                  const installments = getInstallmentDetails(record);
-                  const paidInstallments = installments.filter(
-                    (i) => i.status === "PAID",
-                  );
-                  const transactionIds = paidInstallments
-                    .map((i) => i.transactionId)
-                    .filter(Boolean)
-                    .join(", ");
-                  const paymentDates = paidInstallments
-                    .map((i) =>
-                      i.paidAt
-                        ? new Date(i.paidAt).toLocaleDateString("en-IN")
-                        : null,
-                    )
-                    .filter(Boolean)
-                    .join(", ");
+            title: "No Payment Records Found",
 
-                  return (
-                    <tr key={record.student_id?._id || record.student?.fullName || `student-${idx}`}>
-                      <td>
-                        <div className="payment-student-info">
-                          <span className="payment-student-name">
-                            {record.student?.fullName || "N/A"}
-                          </span>
-                          <span className="payment-student-email">
-                            {record.student?.email || "N/A"}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="payment-course-badge">
-                          {record.course?.name || "N/A"}
-                        </span>
-                      </td>
-                      <td className="payment-amount-cell">
-                        {formatCurrency(record.totalFee)}
-                      </td>
-                      <td className="payment-amount-cell payment-amount-paid">
-                        {formatCurrency(record.paidAmount)}
-                      </td>
-                      <td className="payment-amount-cell payment-amount-pending">
-                        {formatCurrency(record.pendingAmount)}
-                      </td>
-                      <td>
-                        <span
-                          className={`payment-status-badge ${getStatusBadgeClass(record.calculatedStatus)}`}
-                        >
-                          {getStatusIcon(record.calculatedStatus)}
-                          {record.calculatedStatus}
-                        </span>
-                      </td>
-                      <td className="payment-actions-cell">
-                        {paidInstallments.length > 0 ? (
-                          <div
-                            className={`receipt-dropdown-wrapper ${
-                              activeDropdown === idx ? "active" : ""
-                            }`}
-                          >
-                            <button
-                              className="receipt-dropdown-btn"
-                              onClick={(e) => toggleDropdown(idx, e)}
-                              aria-expanded={activeDropdown === idx}
-                              aria-haspopup="true"
-                            >
-                              <FaReceipt className="receipt-icon" />
-                              <span className="receipt-btn-text">Receipts</span>
-                              <span className="receipt-count-badge">
-                                {paidInstallments.length}
-                              </span>
-                              {activeDropdown === idx ? (
-                                <FaChevronUp className="dropdown-arrow" />
-                              ) : (
-                                <FaChevronDown className="dropdown-arrow" />
-                              )}
-                            </button>
+            description:
+              searchQuery || statusFilter
+                ? "No records match your search criteria. Try adjusting your filters."
+                : "There are no payment records to display.",
+          }}
+          actions={tableActions}
+        />
 
-                            {activeDropdown === idx ? (
-                              <div className="receipt-dropdown-menu">
-                                <div className="dropdown-header">
-                                  <FaReceipt className="dropdown-icon" />
-                                  <span>Payment Receipts</span>
-                                </div>
-                                <div className="dropdown-divider" />
-                                {paidInstallments.map((inst, instIdx) => (
-                                  <Link
-                                    key={instIdx}
-                                    to={`/student/fee-receipt/${inst._id}`}
-                                    className="dropdown-item"
-                                    onClick={() => setActiveDropdown(null)}
-                                  >
-                                    <div className="dropdown-item-icon">
-                                      <FaReceipt />
-                                    </div>
-                                    <div className="dropdown-item-content">
-                                      <span className="dropdown-item-name">
-                                        {inst.name}
-                                      </span>
-                                      <span className="dropdown-item-date">
-                                        {inst.paidAt
-                                          ? `Paid: ${new Date(inst.paidAt).toLocaleDateString("en-IN")}`
-                                          : "Payment date unavailable"}
-                                      </span>
-                                    </div>
-                                    <div className="dropdown-item-amount">
-                                      {formatCurrency(inst.amount)}
-                                    </div>
-                                    <FaExternalLinkAlt className="dropdown-item-arrow" />
-                                  </Link>
-                                ))}
-                              </div>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <span className="no-receipts-text">No Receipts</span>
-                        )}
-                        {/* View Student Report Button */}
-                        {record.student_id && (
-                          <button
-                            className="payment-action-btn"
-                            onClick={() => navigate(`/college-admin/student-payment-report/${record.student_id._id}`)}
-                            title="View detailed student payment report"
-                            style={{
-                              background: 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)',
-                              marginLeft: '8px'
-                            }}
-                          >
-                            <FaUser />
-                            <span className="btn-text">Report</span>
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        {/* ================= PAGINATION ================= */}
         {totalPages > 1 && (
-          <div className="payment-pagination">
-            <button
-              className="payment-page-btn"
-              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              aria-label="Previous page"
-            >
-              <FaChevronLeft />
-            </button>
-
-            <div className="payment-page-numbers">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (num) => (
-                  <button
-                    key={num}
-                    className={`payment-page-btn ${currentPage === num ? "active" : ""}`}
-                    onClick={() => setCurrentPage(num)}
-                    aria-label={`Page ${num}`}
-                    aria-current={currentPage === num ? "page" : undefined}
-                  >
-                    {num}
-                  </button>
-                ),
-              )}
-            </div>
-
-            <button
-              className="payment-page-btn"
-              onClick={() =>
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-              aria-label="Next page"
-            >
-              <FaChevronRight />
-            </button>
+          <div style={{ marginBottom: "8px" }}>
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              setPage={setCurrentPage}
+            />
           </div>
         )}
-      </div>
-    </div>
-  );
-}
+            </div>
+          );
+        }

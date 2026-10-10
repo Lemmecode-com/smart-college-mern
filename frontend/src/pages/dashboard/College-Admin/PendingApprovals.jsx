@@ -5,6 +5,8 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Pagination from "../../../components/Pagination";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
 import useRole from "../../../hooks/useRole";
@@ -56,6 +58,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [processingId, setProcessingId] = useState(null);
@@ -412,6 +415,152 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
     page * PAGE_SIZE,
   );
 
+  /* ================= STANDARD TABLE COLUMNS ================= */
+
+const columns = [
+  {
+    key: "fullName",
+    label: "Student Name",
+    sortable: true,
+    width: "240px",
+    render: (student) => (
+      <div className="student-info">
+        <span className="student-avatar" aria-hidden="true">
+          {getInitials(student.fullName)}
+        </span>
+
+        <div className="student-info-text">
+          <span className="student-name-cell">
+            {student.fullName}
+          </span>
+
+          <span className="student-email">
+            {student.email}
+          </span>
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "department",
+    label: "Department",
+    sortable: true,
+    width: "200px",
+    render: (student) => (
+      <span className="department-name">
+        {student.department_id?.name ||
+          student.department_id?.code ||
+          (typeof student.department_id === "string"
+            ? student.department_id
+            : student.course_id?.name || "N/A")}
+      </span>
+    ),
+  },
+
+  {
+    key: "admissionYear",
+    label: "Admission Year",
+    sortable: true,
+    width: "110px",
+    render: (student) => (
+      <span className="badge badge-graduation-year">
+        <FaCalendarAlt className="badge-icon" />
+        {student.admissionYear || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "status",
+    label: "Status",
+    sortable: false,
+    width: "140px",
+    render: (student) => (
+      <div className="student-status-cell">
+        <span className="badge badge-pending">
+          <FaClock className="badge-icon" />
+          PENDING
+        </span>
+
+        {!student.division && (
+          <span
+            className="badge badge-warning"
+            title="Division not assigned"
+          >
+            <FaExclamationTriangle className="badge-icon" />
+            No division
+          </span>
+        )}
+      </div>
+    ),
+  },
+];
+
+/* ================= STANDARD TABLE ACTIONS ================= */
+
+const tableActions = {
+  label: "Actions",
+  width: "300px",
+  items: [
+    {
+      key: "view",
+      label: "View Student",
+      icon: FaEye,
+      className: "view-btn",
+      text: "View",
+      style: {
+      width: "80px",
+      height: "35px",
+      fontSize: "13px",
+      fontWeight: "600",
+      gap: "5px",
+        },
+      onClick: (student) =>
+        navigate(`/college/view-student/${student._id}`),
+      
+    },
+
+    {
+      key: "approve",
+      label: "Approve Student",
+      icon: FaCheck,
+      className: "approve-btn",
+      text: "Approve",
+      style: {
+      width: "80px",
+      height: "35px",
+      color: "white",
+      background: "linear-gradient(90deg, #60b662 0%, #2d9530 100%)",
+      fontSize: "13px",
+      fontWeight: "600",
+      gap: "5px",
+        },
+      show: () => canEdit("students"),
+      onClick: (student) => handleApprove(student._id),
+
+    },
+
+    {
+      key: "reject",
+      label: "Reject Student",
+      icon: FaTimes,
+      className: "delete-btn",
+      text: "Reject",
+      style: {
+    width: "80px",
+    height: "35px",
+    fontSize: "13px",
+    fontWeight: "600",
+    gap: "5px",
+    background: "linear-gradient(90deg, #e74c3c 0%, #c0392b 100%)",
+  },
+      show: () => canEdit("students"),
+      onClick: (student) => handleRejectClick(student._id),
+    },
+  ],
+};
+
   /* ================= HELPERS (display only) ================= */
   const getInitials = (name = "") =>
     name
@@ -437,7 +586,20 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
 
   /* ================= LOADING STATE ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading pending approvals..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading pending approvals..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -452,35 +614,58 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
             ]
           : [
               { label: "Dashboard", path: "/dashboard" },
-              { label: "Students", path: "/students" },
+              { label: "Students",},
               { label: "Pending Approvals" },
             ]
         }
       />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaClock />
-          </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Pending Student Approvals</h1>
-            <p className="erp-page-subtitle">
-              Review and approve or reject student admission applications
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="btn-refresh"
-          onClick={fetchPendingStudents}
-          title="Refresh list"
-          aria-label="Refresh list"
-        >
-          <FaSyncAlt />
-        </button>
-      </div>
+{/* HEADER */}
+<PageHeader
+  icon={FaClock}
+  title="Pending Student Approvals"
+  subtitle="Review and approve or reject student admission applications"
+  actions={
+    <button
+      type="button"
+      onClick={fetchPendingStudents}
+      aria-label="Refresh list"
+      title="Refresh list"
+      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow =
+          "0 4px 10px rgba(0, 0, 0, 0.15)";
+        e.currentTarget.style.background =
+          "rgba(255, 255, 255, 0.18)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.background =
+          "rgba(255, 255, 255, 0.12)";
+      }}
+    >
+      <FaSyncAlt size={15} />
+      <span>Refresh</span>
+    </button>
+  }
+/>
 
       {/* STATS CARDS */}
       <div className="stats-grid">
@@ -576,184 +761,41 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
         </div>
       </div>
 
-      {/* STUDENTS TABLE */}
-      <div className="erp-card">
-        <div className="erp-card-header">
-          <h3>
-            <FaClock className="erp-card-icon" />
-            Awaiting Your Review
-          </h3>
-          <span className="record-count">
-            {filteredStudents.length}{" "}
-            {filteredStudents.length === 1 ? "Student" : "Students"} Pending
-          </span>
-        </div>
+{/* ================= STANDARD STUDENT LIST ================= */}
 
-        <div className="erp-card-body erp-card-body--flush">
-          {paginatedStudents.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon">
-                <FaCheckCircle />
-              </div>
-              <h3>No Pending Approvals</h3>
-              <p className="empty-description">
-                {search
-                  ? "No pending students match your search criteria."
-                  : "All caught up! No student applications awaiting approval."}
-              </p>
-            </div>
-          ) : (
-            <div className="table-container">
-              <table className="erp-table">
-                <thead>
-                  <tr>
-                    <th className="th-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={
-                          paginatedStudents.length > 0 &&
-                          selectedStudents.size === paginatedStudents.length
-                        }
-                        onChange={toggleSelectAll}
-                        className="row-checkbox"
-                        readOnly
-                      />
-                    </th>
-                    <th className="th-student">
-                      <FaGraduationCap className="header-icon" /> Student Name
-                    </th>
-                    <th className="th-department">
-                      <FaBuilding className="header-icon" /> Department
-                    </th>
-                    <th className="th-year">
-                      <FaCalendarAlt className="header-icon" /> Admission Year
-                    </th>
-                    <th className="th-status">Status</th>
-                    <th className="th-actions text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedStudents.map((student) => (
-                    <tr key={student._id} className="table-row">
-                      <td className="cell-checkbox" data-label="">
-                        <input
-                          type="checkbox"
-                          checked={selectedStudents.has(student._id)}
-                          onChange={() => toggleStudent(student._id)}
-                          className="row-checkbox"
-                        />
-                      </td>
-                      <td className="cell-student" data-label="Student">
-                        <div className="student-info">
-                          <span className="student-avatar" aria-hidden="true">
-                            {getInitials(student.fullName)}
-                          </span>
-                          <div className="student-info-text">
-                            <span className="student-name-cell">
-                              {student.fullName}
-                            </span>
-                            <span className="student-email">{student.email}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="cell-department" data-label="Department">
-                        <span className="department-name">
-                          {student.department_id?.name || student.department_id?.code || (typeof student.department_id === "string" ? student.department_id : student.course_id?.name || "N/A")}
-                        </span>
-                      </td>
-                      <td className="cell-year" data-label="Year">
-                        <span className="badge badge-graduation-year">
-                          <FaCalendarAlt className="badge-icon" />
-                          {student.admissionYear || "N/A"}
-                        </span>
-                      </td>
-                      <td className="cell-status" data-label="Status">
-                        <span className="badge badge-pending">
-                          <FaClock className="badge-icon" />
-                          PENDING
-                        </span>
-                        {!student.division && (
-                          <span
-                            className="badge badge-warning"
-                            title="Division not assigned"
-                          >
-                            <FaExclamationTriangle className="badge-icon" />
-                            No division
-                          </span>
-                        )}
-                      </td>
-                      <td className="cell-actions" data-label="Actions">
-                        <div className="action-buttons">
-                          <button
-                            className="btn btn-action btn-view-student"
-                            onClick={() =>
-                              navigate(`/college/view-student/${student._id}`)
-                            }
-                            title="View Student Details"
-                          >
-                            <FaEye />
-                            <span className="btn-text">View</span>
-                          </button>
-                          {canEdit('students') && (
-                            <>
-                              <button
-                                className="btn btn-action btn-approve"
-                                onClick={() => handleApprove(student._id)}
-                                disabled={processingId === student._id}
-                                title="Approve Student"
-                              >
-                                {processingId === student._id ? (
-                                  <FaSpinner className="spin" />
-                                ) : (
-                                  <FaCheck />
-                                )}
-                                <span className="btn-text">
-                                  {processingId === student._id
-                                    ? "Processing…"
-                                    : "Approve"}
-                                </span>
-                              </button>
-                              <button
-                                className="btn btn-action btn-reject"
-                                onClick={() => handleRejectClick(student._id)}
-                                disabled={processingId === student._id}
-                                title="Reject Student"
-                              >
-                                {processingId === student._id ? (
-                                  <FaSpinner className="spin" />
-                                ) : (
-                                  <FaTimes />
-                                )}
-                                <span className="btn-text">
-                                  {processingId === student._id
-                                    ? "Processing…"
-                                    : "Reject"}
-                                </span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+<StandardListView
+  title="Awaiting Your Review"
+  icon={FaClock}
+  count={filteredStudents.length}
+  columns={columns}
+  data={paginatedStudents}
+  selection={{
+  enabled: true,
+  selectedIds: selectedStudents,
+  getRowId: (student) => student._id,
+  onToggle: toggleStudent,
+  onToggleAll: toggleSelectAll,
+}}
+  loading={false}
+  emptyState={{
+    icon: FaCheckCircle,
+    title: "No Pending Approvals",
+    description: search
+      ? "No pending students match your search criteria."
+      : "All caught up! No student applications awaiting approval.",
+  }}
+  actions={tableActions}
+/>
 
-          {/* PAGINATION */}
-          {totalPages > 1 && (
-            <div className="erp-pagination">
-              <Pagination
-                page={page}
-                totalPages={totalPages}
-                setPage={setPage}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-
+{totalPages > 1 && (
+  <div className="erp-pagination">
+    <Pagination
+      page={page}
+      totalPages={totalPages}
+      setPage={setPage}
+    />
+  </div>
+)}
       {/* CONFIRM APPROVE MODAL */}
       <ConfirmModal
         isOpen={showApproveModal}
@@ -1094,87 +1136,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
           -webkit-font-smoothing: antialiased;
         }
 
-        /* ---------- HEADER ---------- */
-        .erp-page-header {
-          background: linear-gradient(135deg, var(--erp-navy) 0%, var(--erp-navy-deep) 100%);
-          padding: 1.75rem 2rem;
-          border-radius: 16px;
-          margin: 1rem 0 1.5rem;
-          box-shadow: 0 10px 28px rgba(15, 58, 74, 0.28);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 1rem;
-          position: relative;
-          overflow: hidden;
-        }
 
-        .erp-page-header::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at 88% -20%, rgba(61, 181, 230, 0.35), transparent 55%);
-          pointer-events: none;
-        }
-
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .erp-header-icon {
-          flex-shrink: 0;
-          width: 58px;
-          height: 58px;
-          background: rgba(255, 255, 255, 0.16);
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.6rem;
-        }
-
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.6rem;
-          line-height: 1.2;
-          font-weight: 700;
-          font-family: 'Poppins', sans-serif;
-          letter-spacing: -0.01em;
-        }
-
-        .erp-page-subtitle {
-          margin: 0.35rem 0 0 0;
-          opacity: 0.85;
-          font-size: 0.95rem;
-        }
-
-        .btn-refresh {
-          position: relative;
-          z-index: 1;
-          flex-shrink: 0;
-          width: 42px;
-          height: 42px;
-          border-radius: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.25);
-          background: rgba(255, 255, 255, 0.12);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: transform 0.2s ease, background 0.2s ease;
-        }
-
-        .btn-refresh:hover {
-          background: rgba(255, 255, 255, 0.22);
-          transform: rotate(50deg);
-        }
 
         /* ---------- STATS ---------- */
         .stats-grid {
@@ -1973,54 +1935,334 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
           color: var(--erp-slate-500);
         }
 
-        /* ---------- RESPONSIVE ---------- */
-        @media (max-width: 860px) {
-          .erp-container { padding: 1rem; }
-          .erp-page-header { padding: 1.5rem; border-radius: 14px; }
-        }
+ /* ---------- RESPONSIVE ---------- */
 
-        @media (max-width: 640px) {
-          .erp-page-header { flex-direction: column; align-items: flex-start; }
-          .btn-refresh { align-self: flex-end; margin-top: -2.75rem; }
-          .erp-toolbar { flex-direction: column; align-items: stretch; }
-          .search-box { max-width: none; }
-          .toolbar-selection { justify-content: space-between; }
+@media (max-width: 991px) {
+  .erp-container {
+    padding: 1rem;
+  }
 
-          .table-container { overflow-x: visible; }
+  /* Header / Banner */
+  .erp-page-header {
+    padding: 1.35rem 1.4rem;
+    border-radius: 14px;
+    margin: 0.8rem 0 1.15rem;
+    min-height: 150px;
+  }
 
-          .erp-table thead { display: none; }
-          .erp-table, .erp-table tbody, .erp-table tr, .erp-table td {
-            display: block;
-            width: 100%;
-          }
-          .erp-table tbody tr {
-            border: 1px solid var(--erp-slate-200);
-            border-radius: 12px;
-            margin-bottom: 12px;
-            padding: 12px 14px;
-          }
-          .erp-table td {
-            padding: 8px 0;
-            border: none !important;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-          }
-          .erp-table td[data-label]:not([data-label=""])::before {
-            content: attr(data-label);
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--erp-slate-400);
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            flex-shrink: 0;
-          }
-          .cell-checkbox { justify-content: flex-end; }
-          .cell-student { justify-content: flex-start; }
-          .cell-actions { justify-content: flex-start; }
-          .action-buttons { justify-content: flex-start; width: 100%; }
-        }
+  .erp-header-content {
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .erp-header-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    font-size: 1.4rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.35rem;
+    line-height: 1.25;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.86rem;
+    line-height: 1.5;
+    max-width: 500px;
+  }
+
+  .btn-refresh {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Stats */
+  .stats-grid {
+    gap: 0.85rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .stat-card {
+    padding: 1.1rem 1.15rem;
+    gap: 0.85rem;
+  }
+
+  .stat-card-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 1.15rem;
+  }
+
+  .stat-card-label {
+    font-size: 0.76rem;
+  }
+
+  .stat-card-value {
+    font-size: 1.65rem;
+  }
+
+  /* Search / Toolbar */
+  .erp-card-body {
+    padding: 1.15rem;
+  }
+
+  .search-box {
+    max-width: none;
+  }
+
+  /* Main cards */
+  .erp-card {
+    border-radius: 13px;
+    margin-bottom: 1.15rem;
+  }
+
+  .erp-card-header {
+    padding: 1rem 1.15rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1rem;
+  }
+}
+
+
+/* ================= TABLET ================= */
+
+@media (min-width: 576px) and (max-width: 991px) {
+  .erp-page-header {
+    min-height: 145px;
+  }
+
+  .erp-header-content {
+    max-width: calc(100% - 55px);
+  }
+
+  .erp-page-title {
+    font-size: 1.45rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stat-card {
+    min-width: 0;
+  }
+
+  .stat-card-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .erp-toolbar {
+    gap: 1rem;
+  }
+
+  .search-box {
+    flex: 1 1 100%;
+  }
+
+  .toolbar-selection {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+
+/* ================= MOBILE ================= */
+
+@media (max-width: 575px) {
+  .erp-container {
+    padding: 0.75rem;
+  }
+
+  /* Header / Banner */
+  .erp-page-header {
+    padding: 1.15rem;
+    border-radius: 14px;
+    margin: 0.65rem 0 1rem;
+    min-height: 0;
+    display: block;
+  }
+
+  .erp-header-content {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: calc(100% - 42px);
+  }
+
+  .erp-header-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 11px;
+    font-size: 1.25rem;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+  }
+
+  .erp-page-title {
+    font-size: 1.15rem;
+    line-height: 1.25;
+    letter-spacing: 0;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    margin-top: 0.3rem;
+  }
+
+  .btn-refresh {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 36px;
+    height: 36px;
+    margin: 0;
+  }
+
+  /* Stats */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    padding: 0.9rem 1rem;
+    min-height: 76px;
+    border-radius: 12px;
+    gap: 0.8rem;
+  }
+
+  .stat-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    font-size: 1.1rem;
+  }
+
+  .stat-card-label {
+    font-size: 0.72rem;
+  }
+
+  .stat-card-value {
+    font-size: 1.55rem;
+  }
+
+  /* Search */
+  .erp-toolbar-card {
+    margin-bottom: 0.9rem;
+  }
+
+  .erp-toolbar {
+    gap: 0.8rem;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+  .search-box input {
+    padding: 0.7rem 0.85rem 0.7rem 2.45rem;
+    font-size: 0.84rem;
+  }
+
+  .toolbar-selection {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .select-all-label {
+    font-size: 0.82rem;
+  }
+
+  .btn-bulk-approve {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Main card */
+  .erp-card {
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .erp-card-header {
+    padding: 0.9rem 1rem;
+    gap: 0.6rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 0.92rem;
+  }
+
+  .record-count {
+    font-size: 0.7rem;
+    padding: 0.3rem 0.65rem;
+  }
+
+  /* Student cards */
+  .erp-table tbody tr {
+    border-radius: 11px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+  }
+
+  .erp-table td {
+    padding: 7px 0;
+  }
+
+  .student-info {
+    gap: 0.6rem;
+  }
+
+  .student-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .student-name-cell {
+    font-size: 0.86rem;
+  }
+
+  .student-email {
+    font-size: 11.5px;
+    word-break: break-word;
+  }
+
+  .department-name {
+    font-size: 0.84rem;
+  }
+
+  .action-buttons {
+    gap: 6px;
+  }
+
+  .btn-action {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+  }
+
+  /* Pagination */
+  .erp-pagination {
+    padding: 1rem 0.5rem;
+    overflow-x: auto;
+  }
+}
       `}</style>
     </div>
   );

@@ -2,7 +2,7 @@ const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
 const Document = require("../models/document.model");
 const {
-  getPaymentOverdueReport,
+   getPaymentOverdueReport,
 } = require("../services/paymentReminder.service");
 const { sendPaymentReceiptEmail } = require("../services/email.service");
 const { generatePaymentReceiptPdf } = require("../utils/pdfReceipt");
@@ -10,6 +10,12 @@ const AppError = require("../utils/AppError");
 const path = require("path");
 const { getStorageProvider } = require("../services/storage");
 const DocumentService = require("../services/document.service");
+const {
+   deriveStatus,
+   getSemesterMap,
+   buildFeeRecord,
+   filterInstallmentsByDate,
+} = require("../services/reports.service");
 
 /**
  * COLLEGE ADMIN: Payment report with date filtering support
@@ -52,46 +58,102 @@ exports.getCollegePaymentReport = async (req, res) => {
        }
      }
 
-     const fees = await StudentFee.find(matchConditions)
-       .populate("student_id", "fullName email enrollment_number")
-       .populate("course_id", "name code")
-       .lean();
+      const fees = await StudentFee.find(matchConditions)
+        .populate("student_id", "fullName email enrollment_number")
+        .populate("course_id", "name code")
+        .lean();
 
-     let totalCollected = 0;
+      // Consolidate StudentFee records by student_id so each student appears once.
+      // Semester (fee-record) details are preserved in feeRecords, while all
+      // installments are flattened into the installments array for receipt access.
+      const semesterMap = await getSemesterMap(collegeId, fees.map((f) => f._id));
 
-const report = fees
-       .filter(fee => fee.student_id && fee.course_id)
-       .map((fee) => {
-         totalCollected += fee.paidAmount;
+      const endDateTime = endDate
+        ? (() => {
+            const d = new Date(endDate);
+            d.setUTCHours(23, 59, 59, 999);
+            return d;
+          })()
+        : null;
 
-         // Filter installments by date if date range provided
-         let filteredInstallments = fee.installments;
-         if (startDate || endDate) {
-           filteredInstallments = fee.installments.filter(inst => {
-             if (!inst.paidAt) return false;
-             const paidDate = new Date(inst.paidAt);
-             if (startDate && paidDate < new Date(startDate)) return false;
-             if (endDate && paidDate > new Date(endDate)) return false;
-             return true;
-           });
-         }
+      const hasDateFilter = startDate || endDate;
 
-         return {
-           student: fee.student_id,
-           course: fee.course_id,
-           totalFee: fee.totalFee,
-           paidAmount: fee.paidAmount,
-           pendingAmount: fee.totalFee - fee.paidAmount,
-           installments: filteredInstallments,
-         };
-       });
+      const grouped = new Map();
+      for (const fee of fees) {
+        if (!fee.student_id || !fee.course_id) continue;
+        const key = fee.student_id._id
+          ? fee.student_id._id.toString()
+          : String(fee.student_id);
+        if (!grouped.has(key)) {
+          grouped.set(key, {
+            student: fee.student_id,
+            course: fee.course_id,
+            fees: [],
+          });
+        }
+        grouped.get(key).fees.push(fee);
+      }
 
-    res.json({
-      totalCollected,
-      totalStudents: report.length,
-      report,
-      dateRange: startDate || endDate ? { startDate, endDate } : null,
-    });
+      let totalCollected = 0;
+      const report = [];
+
+      for (const group of grouped.values()) {
+        const totalFee = group.fees.reduce(
+          (sum, f) => sum + (Number(f.totalFee) || 0),
+          0,
+        );
+        const paidAmount = group.fees.reduce(
+          (sum, f) => sum + (Number(f.paidAmount) || 0),
+          0,
+        );
+        const pendingAmount = totalFee - paidAmount;
+
+        totalCollected += paidAmount;
+
+        const feeRecords = group.fees.map((fee) => {
+          const record = buildFeeRecord(fee, semesterMap);
+          if (hasDateFilter) {
+            record.installments = filterInstallmentsByDate(
+              fee.installments,
+              startDate,
+              endDate,
+              endDateTime,
+            );
+          }
+          return record;
+        });
+
+        const allInstallments = group.fees.reduce((acc, fee) => {
+          const insts = hasDateFilter
+            ? filterInstallmentsByDate(
+                fee.installments,
+                startDate,
+                endDate,
+                endDateTime,
+              )
+            : fee.installments || [];
+          return acc.concat(insts);
+        }, []);
+
+        report.push({
+          student: group.student,
+          course: group.course,
+          student_id: group.student,
+          totalFee,
+          paidAmount,
+          pendingAmount,
+          status: deriveStatus(totalFee, paidAmount),
+          installments: allInstallments,
+          feeRecords,
+        });
+      }
+
+     res.json({
+       totalCollected,
+       totalStudents: report.length,
+       report,
+       dateRange: startDate || endDate ? { startDate, endDate } : null,
+     });
   } catch (error) {
     console.error("Admin payment report error:", error);
     res.status(500).json({

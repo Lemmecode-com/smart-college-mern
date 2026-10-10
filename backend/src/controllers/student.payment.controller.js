@@ -1,6 +1,85 @@
 const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
+const PromotionHistory = require("../models/promotionHistory.model");
 const AppError = require("../utils/AppError");
+
+/**
+ * Identify the CURRENT applicable StudentFee for a student.
+ *
+ * For promoted students: use the ACTIVE PromotionHistory matching the
+ * student's currentSemester/currentYear to find newStudentFeeId.
+ *
+ * For unpromoted students: use the initial enrollment StudentFee that is
+ * NOT linked to any PromotionHistory record.
+ *
+ * Falls back to the first StudentFee found if no specific record can be
+ * identified (preserving backward compatibility).
+ */
+async function getCurrentStudentFee(studentId, collegeId, student) {
+  // ── Case A: Student has been promoted ─────────────────────────────
+  if (student.currentSemester !== undefined && student.currentSemester !== null) {
+    const currentPromotion = await PromotionHistory.findOne({
+      student_id: studentId,
+      status: "ACTIVE",
+      toSemester: student.currentSemester,
+      toAcademicYear: student.currentYear,
+      newStudentFeeId: { $ne: null },
+    })
+      .sort({ promotionDate: -1 })
+      .select("newStudentFeeId")
+      .lean();
+
+    if (currentPromotion && currentPromotion.newStudentFeeId) {
+      const fee = await StudentFee.findById(currentPromotion.newStudentFeeId)
+        .populate("college_id", "name code")
+        .populate("course_id", "name code")
+        .lean();
+      if (fee) return fee;
+    }
+  }
+
+  // ── Case B: Student has NOT been promoted ─────────────────────────
+  // Find the initial enrollment StudentFee that is NOT linked to any
+  // PromotionHistory record (i.e., not a historical semester fee).
+  const allFees = await StudentFee.find({
+    student_id: studentId,
+    college_id: collegeId,
+  })
+    .sort({ createdAt: 1 })
+    .lean();
+
+  if (allFees.length > 0) {
+    // Check which fees are linked to promotions.
+    const feeIds = allFees
+      .map((f) => f._id)
+      .filter((id) => id && require("mongoose").Types.ObjectId.isValid(id.toString()));
+
+    const linkedPromotions = await PromotionHistory.find({
+      newStudentFeeId: { $in: feeIds },
+      status: "ACTIVE",
+    }).select("newStudentFeeId").lean();
+
+    const linkedFeeIdSet = new Set(
+      linkedPromotions.map((p) => p.newStudentFeeId.toString()),
+    );
+
+    // First fee NOT linked to a promotion is the initial enrollment fee.
+    for (const fee of allFees) {
+      if (fee._id && !linkedFeeIdSet.has(fee._id.toString())) {
+        return {
+          ...fee,
+          college_id: fee.college_id,
+          course_id: fee.course_id,
+        };
+      }
+    }
+
+    // Fallback: if ALL fees are linked to promotions (edge case), use the first.
+    return allFees[0];
+  }
+
+  return null;
+}
 
 exports.getStudentFeeDashboard = async (req, res, next) => {
   try {
@@ -17,12 +96,8 @@ exports.getStudentFeeDashboard = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // 1️⃣ Fetch student fee record using student._id
-    const studentFee = await StudentFee.findOne({
-      student_id: student._id, // ✅ Use student._id (not user_id)
-    })
-      .populate("college_id", "name code")
-      .populate("course_id", "name code");
+    // 1️⃣ Fetch the CURRENT applicable student fee record
+    const studentFee = await getCurrentStudentFee(student._id, collegeId, student);
 
     if (!studentFee) {
       throw new AppError("Fee details not found", 404, "FEE_RECORD_NOT_FOUND");

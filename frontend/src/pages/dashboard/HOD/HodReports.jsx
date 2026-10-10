@@ -17,6 +17,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { logger } from "../../../utils/logger";
 import Loading from "../../../components/Loading";
 
@@ -50,35 +52,7 @@ const fadeUp = {
   }),
 };
 
-const LoadingState = () => (
-   <div
-     style={{
-       minHeight: "70vh",
-       display: "flex",
-       alignItems: "center",
-       justifyContent: "center",
-       background: `linear-gradient(135deg, ${BRAND.bg} 0%, ${BRAND.primaryLight} 100%)`,
-     }}
-   >
-     <div style={{ textAlign: "center" }}>
-       <div
-         style={{
-           width: 64,
-           height: 64,
-           margin: "0 auto 1rem",
-           border: `4px solid ${BRAND.border}`,
-           borderTopColor: BRAND.accent,
-           borderRadius: "50%",
-           animation: "novaa-spin 0.9s linear infinite",
-         }}
-       />
-       <p style={{ color: BRAND.muted, fontWeight: 500, margin: 0 }}>
-         Loading department reports…
-       </p>
-       <style>{`@keyframes novaa-spin { to { transform: rotate(360deg); } }`}</style>
-     </div>
-   </div>
- );
+
 
  const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -222,7 +196,23 @@ const HodReports = () => {
      }
    };
 
-   if (loading) return <LoadingState />;
+   // Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Department Reports..."
+        />
+      </div>
+    </div>
+  );
+}
 
    if (error) {
      return (
@@ -321,60 +311,30 @@ const HodReports = () => {
         }}
       >
         <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-          {/* Header */}
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            style={{
-              background: `linear-gradient(120deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #0a2a38 100%)`,
-              borderRadius: 20,
-              padding: "1.75rem 2rem",
-              color: "#fff",
-              boxShadow: "0 20px 50px -20px rgba(15, 58, 74, 0.5)",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-              <div
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: 14,
-                  background: "rgba(255,255,255,0.15)",
-                  backdropFilter: "blur(10px)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "1.4rem",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                }}
-              >
-                <FaClipboardList />
-              </div>
-              <div>
-                <h2
-                  style={{
-                    margin: 0,
-                    fontSize: "clamp(1.2rem, 2.5vw, 1.6rem)",
-                    fontWeight: 700,
-                    lineHeight: 1.2,
-                  }}
-                >
-                  Department Reports
-                </h2>
-                <p
-                  style={{
-                    margin: "0.25rem 0 0",
-                    opacity: 0.85,
-                    fontSize: "0.9rem",
-                  }}
-                >
-                  {department.name || "Department"} ({department.code || "—"})
-                </p>
+          {/* ================= BREADCRUMB ================= */}
+            <div
+              style={{
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+                height: "60px",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Department Reports" },
+                  ]}
+                />
               </div>
             </div>
-          </motion.div>
+          {/* ================= PAGE HEADER ================= */}
+          <PageHeader
+            icon={FaClipboardList}
+            title="Department Reports"
+            subtitle={`${department.name || "Department"} (${department.code || "—"})`}
+          />
 
           {/* KPI Cards */}
           <div className="row g-3 mb-4">
@@ -590,7 +550,7 @@ const HodReports = () => {
                 {[
                   { label: "View Timetables", path: "/timetable/list", icon: FaCalendarAlt },
                   { label: "Exception Approvals", path: "/hod/exception-approvals", icon: FaExclamationTriangle },
-                  { label: "Department Info", path: "/hod/department", icon: FaLayerGroup },
+                  { label: "Department Teachers", path: "/hod/teachers", icon: FaUsers },
                 ].map((item) => {
                   const ItemIcon = item.icon;
                   return (

@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../../auth/AuthContext";
 import api from "../../api/axios";
@@ -24,6 +24,7 @@ export default function SidebarNav({
   isCollapsed = false
 }) {
   const { user } = useContext(AuthContext);
+  const location = useLocation();
   const [children, setChildren] = useState([]);
   const [loadingChildren, setLoadingChildren] = useState(false);
 
@@ -80,18 +81,25 @@ export default function SidebarNav({
       {/* DASHBOARD LINK - COMMON FOR ALL ROLES */}
       <NavLink
         to={dashboard.path}
+        end={dashboard.exact ?? true}
         className={({ isActive }) =>
           `nav-link ${isActive ? "active-link" : ""}`
         }
         role="menuitem"
         aria-label={dashboard.label}
-        aria-current={isActiveRoute(dashboard.path) ? "page" : undefined}
         onClick={handleNavClick}
       >
-        <span className="nav-link-icon" aria-hidden="true">
-          <dashboard.icon />
-        </span>
-        <span className="nav-link-text">{dashboard.label}</span>
+        {({ isActive }) => (
+          <>
+            <span className="nav-link-icon" aria-hidden="true">
+              <dashboard.icon />
+            </span>
+            <span className="nav-link-text">{dashboard.label}</span>
+            <span className="sr-only">
+              {isActive ? "(current page)" : ""}
+            </span>
+          </>
+        )}
       </NavLink>
 
       {/* DYNAMIC SECTIONS BASED ON ROLE */}
@@ -103,7 +111,7 @@ export default function SidebarNav({
           isOpen={openSections[section.id]}
           onToggle={() => toggleSection(section.id)}
           sectionId={section.id}
-          isActive={checkSectionActive(section)}
+          isActive={checkSectionActive(section, location.pathname)}
           isCollapsed={isCollapsed}
         >
            {section.items.map((item, index) => (
@@ -123,23 +131,23 @@ export default function SidebarNav({
 }
 
 /**
- * Check if current route matches or is a child of the target path
+ * Check if current route matches or is a child of the target path.
+ * Uses React Router's location (kept reactive across SPA navigations).
  * @param {string} path - Path to check (may contain dynamic segments like :id)
+ * @param {string} currentPath - Current pathname from useLocation()
  * @returns {boolean} True if route is active
  */
-function isActiveRoute(path) {
-  if (typeof window === 'undefined') return false;
-  
-  const currentPath = window.location.pathname;
-  
+function isActiveRoute(path, currentPath) {
+  if (!path) return false;
+
   // Exact match
   if (currentPath === path) return true;
-  
+
   // Handle dynamic routes (e.g., /subjects/course/:courseId)
   if (path.includes(':')) {
     return isDynamicRouteMatch(path, currentPath);
   }
-  
+
   // Check if current path starts with the target path (for child routes)
   return currentPath.startsWith(path + '/');
 }
@@ -147,14 +155,19 @@ function isActiveRoute(path) {
 /**
  * Check if any item in a section is active
  * @param {Object} section - Section object with items array
+ * @param {string} currentPath - Current pathname from useLocation()
  * @returns {boolean} True if section should be highlighted
  */
-function checkSectionActive(section) {
+function checkSectionActive(section, currentPath) {
   if (!section?.items || !Array.isArray(section.items)) {
     return false;
   }
-  
-  return section.items.some(item => isActiveRoute(item.path));
+
+  if (section.matchPath && isActiveRoute(section.matchPath, currentPath)) {
+    return true;
+  }
+
+  return section.items.some(item => isActiveRoute(item.path, currentPath));
 }
 
 /**

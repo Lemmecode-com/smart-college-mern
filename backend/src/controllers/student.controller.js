@@ -19,6 +19,8 @@ const collegeService = require("../services/college.service");
 const logger = require("../utils/logger");
 const auditLogService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
+const { createPromotionDecision } = require("../services/promotionDecision.service");
+const { checkAlumniEligibility } = require("../services/alumniEligibility.service");
 
 const {
   processUploadsWithStorage,
@@ -550,7 +552,9 @@ exports.getMyFullProfile = async (req, res, next) => {
     const department = await Department.findById(student.department_id).select(
       "name code",
     );
-    const course = await Course.findById(student.course_id).select("name code");
+    const course = await Course.findById(student.course_id).select(
+      "name code durationSemesters durationYears yearLabels programLevel",
+    );
 
     // 3️⃣ Document Config (to determine which fields to show)
     const docConfig = await DocumentConfig.findOne({
@@ -706,8 +710,9 @@ exports.getMyFullProfile = async (req, res, next) => {
 
       const timetableFilters = {
         college_id: student.college_id,
-        status: { $in: ["PUBLISHED", "DRAFT"] },
+        status: "PUBLISHED",
         semester,
+        academicYear: student.currentAcademicYear,
       };
 
       if (student.course_id) {
@@ -808,6 +813,7 @@ hscPassingYear: student.hscPassingYear,
         department,
         course,
         attendance: attendanceSummary,
+        todaysTimetable,
         documentConfig: (docConfig?.documents || []).map((doc) => {
           const docObj = doc.toObject ? doc.toObject() : doc;
           return {
@@ -1467,7 +1473,7 @@ exports.moveToAlumni = async (req, res, next) => {
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).populate("course_id", "name code durationSemesters");
 
     if (!student) {
@@ -1485,6 +1491,20 @@ exports.moveToAlumni = async (req, res, next) => {
         "Student has not completed the course yet. Cannot move to Alumni.",
         400,
         "NOT_ELIGIBLE_FOR_ALUMNI",
+      );
+    }
+
+    // Revalidate authoritative Alumni Eligibility using dedicated service
+    const eligibility = await checkAlumniEligibility(student._id, req.college_id);
+    if (!eligibility.eligible) {
+      const reasonMsg =
+        eligibility.blockers?.map((b) => b.message).join("; ") ||
+        eligibility.message ||
+        "Student is not eligible for Alumni status.";
+      throw new AppError(
+        `Student not eligible for Alumni: ${reasonMsg}`,
+        409,
+        "ALUMNI_ELIGIBILITY_FAILED",
       );
     }
 

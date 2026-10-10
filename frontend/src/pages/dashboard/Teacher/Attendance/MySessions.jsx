@@ -59,7 +59,20 @@ export default function MySessions() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading My Sessions..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading My Sessions..."
+          />
+        </div>
+      </div>
+    );
   }
 
   const totalPages = pagination.pages || 0;
@@ -138,7 +151,7 @@ export default function MySessions() {
                         <button
                           className="btn btn-sm btn-warning"
                           onClick={() =>
-                            navigate(`/attendance/sessions/${s._id}/edit`)
+                            navigate(`/attendance/session/${s._id}/edit`)
                           }
                           title="Edit Attendance"
                         >

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import Loading from "../../../components/Loading";
 import {
   FaUserTie,
   FaEnvelope,
@@ -127,31 +129,22 @@ export default function EditParentProfile() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-dashboard-header">
-          <div className="parent-portal-container">
-            <div className="parent-header-content">
-              <div className="parent-header-icon-wrapper">
-                <FaUserTie size={28} color="white" />
-              </div>
-              <div>
-                <h1 className="parent-header-title">Edit Profile</h1>
-                <p className="parent-header-subtitle">Loading your profile details...</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="parent-portal-container">
-          <div className="parent-loading-state">
-            <FaSyncAlt size={32} className="parent-loading-spinner" style={{ borderTopColor: "var(--brand-secondary)" }} />
-            <div className="parent-loading-text">Loading...</div>
-          </div>
-        </div>
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Profile Details..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <AnimatePresence mode="wait">
@@ -172,29 +165,13 @@ export default function EditParentProfile() {
           />
         </div>
 
-        {/* ================= HEADER HERO ================= */}
-        <div className="parent-dashboard-header">
-          <div className="parent-portal-container">
-            <div className="parent-header-content">
-              <div className="parent-header-icon-wrapper">
-                <FaUserTie size={28} color="white" />
-              </div>
-              <div>
-                <motion.h1
-                  className="parent-header-title"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  Edit Parent Profile
-                </motion.h1>
-                <p className="parent-header-subtitle">
-                  Update your display name and contact number below.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* ================= HEADER ================= */}
+      <PageHeader
+        icon={FaUserTie}
+        title="Edit Parent Profile"
+        subtitle="Update your display name and contact number below."
+      />
+
 
         <div className="parent-portal-container">
           <div className="parent-content-grid">

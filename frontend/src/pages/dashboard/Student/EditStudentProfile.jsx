@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import ChangeEmailModal from "../../../components/ChangeEmailModal";
 import { motion } from "framer-motion";
@@ -84,7 +85,7 @@ export default function EditStudentProfile() {
 
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
 
   const handleGoBack = () => {
     navigate("/student/profile");
@@ -238,10 +239,22 @@ export default function EditStudentProfile() {
   };
 
   /* ================= LOADING ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Profile..." />;
-  }
-
+ if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Profile Details..."
+        />
+      </div>
+    </div>
+  );
+}
   if (error) {
     return (
       <ApiError
@@ -261,25 +274,47 @@ export default function EditStudentProfile() {
   return (
     <div className="container-fluid">
 
-      {/* ================= HEADER ================= */}
-      <div className="position-relative mb-4">
-        <div className="gradient-header p-4 rounded-4 text-white shadow-lg">
-          <h3 className="fw-bold mb-1">
-            <FaUserEdit className="me-2 blink" />
-            Edit My Profile
-          </h3>
-          <p className="opacity-75 mb-0">
-            Update your personal & academic details
-          </p>
-        </div>
-        <button
-          className="btn btn-light d-flex align-items-center gap-2 position-absolute top-0 end-0 m-3"
-          onClick={handleGoBack}
-          aria-label="Back to profile"
-        >
-          <FaArrowLeft aria-hidden="true" /> Back
-        </button>
-      </div>
+
+        {/* ================= HEADER ================= */}
+        <PageHeader
+          icon={FaUserEdit}
+          title="Edit My Profile"
+          subtitle="Update your personal & academic details"
+          actions={
+            <button
+              type="button"
+              onClick={handleGoBack}
+                              style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+            >
+              <FaArrowLeft />
+              <span>Back</span>
+            </button>
+          }
+        />
 
       {formError && (
         <div className="alert alert-danger text-center">

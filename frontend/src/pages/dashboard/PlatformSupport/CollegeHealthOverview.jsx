@@ -290,7 +290,7 @@ export default function CollegeHealthOverview() {
                           <Button
                             variant="outline-info"
                             size="sm"
-                            onClick={() => navigate(`/colleges/${college._id}`)}
+                            onClick={() => navigate(`/super-admin/college/${college._id}`)}
                           >
                             View College
                           </Button>
