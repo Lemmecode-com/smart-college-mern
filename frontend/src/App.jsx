@@ -365,7 +365,6 @@ const ExamResultReview = lazy(
 /* ================= HOD (LAZY) ================= */
 const HodDashboard = lazy(() => import("./pages/dashboard/HOD/HodDashboard"));
 const HodTeachers = lazy(() => import("./pages/dashboard/HOD/HodTeachers"));
-const HodDepartment = lazy(() => import("./pages/dashboard/HOD/HodDepartment"));
 const HodProfile = lazy(() => import("./pages/dashboard/HOD/HodProfile"));
 const HodExceptionApprovals = lazy(
   () => import("./pages/dashboard/HOD/HodExceptionApprovals"),
@@ -1422,14 +1421,6 @@ function AppContent({
                 element={
                   <ProtectedRoute allowedRoles={["HOD"]}>
                     <HodProfile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/hod/department"
-                element={
-                  <ProtectedRoute allowedRoles={["HOD"]}>
-                    <HodDepartment />
                   </ProtectedRoute>
                 }
               />
