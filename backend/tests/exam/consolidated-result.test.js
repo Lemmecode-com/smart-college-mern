@@ -843,4 +843,610 @@ describe("Phase 3, Step 2 — Authoritative Consolidated Academic Result Verific
     expect(res.body.data).toHaveLength(4);
     expect(res.body.data[0].overallResult).toBe("PASS");
   });
+
+  // ---- Regression Tests: Consolidated Result Eligibility After Backlog Clearance ----
+  describe("Regression: Backlog Clearance and Authoritative Semester Completion", () => {
+    it("Regression 1: All backlogs cleared — eligible with full course completion and no double-counted marks", async () => {
+      const ctx = await setupStudentContext({ durationSemesters: 4 });
+      const sub1Id = new mongoose.Types.ObjectId();
+      const sub2Id = new mongoose.Types.ObjectId();
+
+      // Semester 1 regular exam: student failed SUB101
+      const sem1Exam = await createExamFixture({
+        collegeId: ctx.college._id,
+        courseId: ctx.course._id,
+        semester: 1,
+        name: "Semester 1 Regular Exam",
+      });
+
+      const sem1 = await createSemesterResultFixture({
+        collegeId: ctx.college._id,
+        studentId: ctx.student._id,
+        courseId: ctx.course._id,
+        semester: 1,
+        examId: sem1Exam._id,
+        overallResult: "FAIL",
+        totalMarks: 120,
+        totalMaxMarks: 200,
+        subjects: [
+          {
+            subject: sub1Id,
+            subjectCode: "SUB101",
+            subjectName: "Programming I",
+            subjectType: "THEORY",
+            internalMarks: 10,
+            internalMaxMarks: 30,
+            externalMarks: 20,
+            externalMaxMarks: 70,
+            totalMarks: 30,
+            maxMarks: 100,
+            passed: false,
+            status: "FAIL",
+            marksRecorded: true,
+          },
+          {
+            subject: sub2Id,
+            subjectCode: "SUB102",
+            subjectName: "Mathematics I",
+            subjectType: "THEORY",
+            internalMarks: 25,
+            internalMaxMarks: 30,
+            externalMarks: 65,
+            externalMaxMarks: 70,
+            totalMarks: 90,
+            maxMarks: 100,
+            passed: true,
+            status: "PASS",
+            marksRecorded: true,
+          },
+        ],
+      });
+
+      // Semesters 2, 3, 4: passed in regular exams
+      const sem2Exam = await createExamFixture({
+        collegeId: ctx.college._id,
+        courseId: ctx.course._id,
+        semester: 2,
+        name: "Semester 2 Regular Exam",
+      });
+      await createSemesterResultFixture({
+        collegeId: ctx.college._id,
+        studentId: ctx.student._id,
+        courseId: ctx.course._id,
+        semester: 2,
+        examId: sem2Exam._id,
+        overallResult: "PASS",
+        totalMarks: 180,
+        totalMaxMarks: 200,
+      });
+
+      const sem3Exam = await createExamFixture({
+        collegeId: ctx.college._id,
+        courseId: ctx.course._id,
+        semester: 3,
+        name: "Semester 3 Regular Exam",
+      });
+      await createSemesterResultFixture({
+        collegeId: ctx.college._id,
+        studentId: ctx.student._id,
+        courseId: ctx.course._id,
+        semester: 3,
+        examId: sem3Exam._id,
+        overallResult: "PASS",
+        totalMarks: 170,
+        totalMaxMarks: 200,
+      });
+
+      const sem4Exam = await createExamFixture({
+        collegeId: ctx.college._id,
+        courseId: ctx.course._id,
+        semester: 4,
+        name: "Semester 4 Regular Exam",
+      });
+      await createSemesterResultFixture({
+        collegeId: ctx.college._id,
+        studentId: ctx.student._id,
+        courseId: ctx.course._id,
+        semester: 4,
+        examId: sem4Exam._id,
+        overallResult: "PASS",
+        totalMarks: 190,
+        totalMaxMarks: 200,
+      });
+
+      // Backlog record for SUB101 marked CLEARED
+      const backlog = await Backlog.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        semester: 1,
+        academicYear: "2025-26",
+        original_exam_id: sem1Exam._id,
+        original_result_id: sem1._id,
+        subject_id: sub1Id,
+        subject_code: "SUB101",
+        subject_name: "Programming I",
+        subject_type: "THEORY",
+        original_marks_snapshot: { total: 30 },
+        status: "CLEARED",
+        attempt_count: 1,
+        latest_result_status: "PASS",
+      });
+
+      // BacklogAttempt passed during Semester 2 exam
+      await BacklogAttempt.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        backlog_id: backlog._id,
+        subject_id: sub1Id,
+        subject_code: "SUB101",
+        subject_name: "Programming I",
+        subject_type: "THEORY",
+        attempt_number: 1,
+        exam_id: sem2Exam._id,
+        total_marks: 85,
+        result_status: "PASS",
+        passed: true,
+        cleared: true,
+        evaluated_at: new Date(),
+      });
+
+      const res = await ctx.studentAgent
+        .get("/api/results/my-consolidated-result")
+        .expect(200);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.isEligible).toBe(true);
+      expect(res.body.data.status).toBe("ELIGIBLE");
+      expect(res.body.data.failedSemesters).toEqual([]);
+      expect(res.body.data.activeBacklogsCount).toBe(0);
+      expect(res.body.data.completedSemesters).toEqual([1, 2, 3, 4]);
+      expect(res.body.data.semesters).toHaveLength(4);
+
+      // Verify regular grand total strictly sums regular totals (120 + 180 + 170 + 190 = 660)
+      // Supplementary attempt marks (85) are isolated and NOT double-counted
+      expect(res.body.data.grandTotalMarks).toBe(660);
+      expect(res.body.data.grandTotalMaxMarks).toBe(800);
+      expect(res.body.data.aggregatePercentage).toBe(82.5);
+
+      // Verify cleared backlog is exposed in clearedBacklogs history
+      expect(res.body.data.clearedBacklogs).toHaveLength(1);
+      expect(res.body.data.clearedBacklogs[0].subjectCode).toBe("SUB101");
+      expect(res.body.data.clearedBacklogs[0].totalMarks).toBe(85);
+      expect(res.body.data.clearedBacklogs[0].cleared).toBe(true);
+    });
+
+    it("Regression 2: One failed subject remains unresolved — remains ineligible", async () => {
+      const ctx = await setupStudentContext({ durationSemesters: 4 });
+      const sub1Id = new mongoose.Types.ObjectId();
+
+      const sem1Exam = await createExamFixture({
+        collegeId: ctx.college._id,
+        courseId: ctx.course._id,
+        semester: 1,
+      });
+
+      const sem1 = await createSemesterResultFixture({
+        collegeId: ctx.college._id,
+        studentId: ctx.student._id,
+        courseId: ctx.course._id,
+        semester: 1,
+        examId: sem1Exam._id,
+        overallResult: "FAIL",
+        subjects: [
+          {
+            subject: sub1Id,
+            subjectCode: "SUB101",
+            subjectName: "Programming I",
+            subjectType: "THEORY",
+            passed: false,
+            status: "FAIL",
+          },
+        ],
+      });
+
+      // Semesters 2, 3, 4 passed
+      for (let s = 2; s <= 4; s++) {
+        await createSemesterResultFixture({
+          collegeId: ctx.college._id,
+          studentId: ctx.student._id,
+          courseId: ctx.course._id,
+          semester: s,
+          overallResult: "PASS",
+        });
+      }
+
+      // Backlog remains OPEN (unresolved)
+      await Backlog.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        semester: 1,
+        academicYear: "2025-26",
+        original_exam_id: sem1Exam._id,
+        original_result_id: sem1._id,
+        subject_id: sub1Id,
+        subject_code: "SUB101",
+        subject_name: "Programming I",
+        subject_type: "THEORY",
+        original_marks_snapshot: { total: 30 },
+        status: "OPEN",
+        attempt_count: 0,
+      });
+
+      const res = await ctx.studentAgent
+        .get("/api/results/my-consolidated-result")
+        .expect(200);
+
+      expect(res.body.data.isEligible).toBe(false);
+      expect(res.body.data.status).toBe("ACTIVE_BACKLOGS");
+      expect(res.body.data.activeBacklogsCount).toBe(1);
+    });
+
+    it("Regression 3: Partial clearance — 2 subjects failed in Semester 1, only 1 cleared", async () => {
+      const ctx = await setupStudentContext({ durationSemesters: 4 });
+      const sub1Id = new mongoose.Types.ObjectId();
+      const sub2Id = new mongoose.Types.ObjectId();
+
+      const sem1Exam = await createExamFixture({
+        collegeId: ctx.college._id,
+        courseId: ctx.course._id,
+        semester: 1,
+      });
+
+      const sem1 = await createSemesterResultFixture({
+        collegeId: ctx.college._id,
+        studentId: ctx.student._id,
+        courseId: ctx.course._id,
+        semester: 1,
+        examId: sem1Exam._id,
+        overallResult: "FAIL",
+        subjects: [
+          {
+            subject: sub1Id,
+            subjectCode: "SUB101",
+            subjectName: "Programming I",
+            passed: false,
+            status: "FAIL",
+          },
+          {
+            subject: sub2Id,
+            subjectCode: "SUB102",
+            subjectName: "Mathematics I",
+            passed: false,
+            status: "FAIL",
+          },
+        ],
+      });
+
+      const sem2Exam = await createExamFixture({
+        collegeId: ctx.college._id,
+        courseId: ctx.course._id,
+        semester: 2,
+      });
+      for (let s = 2; s <= 4; s++) {
+        await createSemesterResultFixture({
+          collegeId: ctx.college._id,
+          studentId: ctx.student._id,
+          courseId: ctx.course._id,
+          semester: s,
+          examId: s === 2 ? sem2Exam._id : undefined,
+          overallResult: "PASS",
+        });
+      }
+
+      // SUB101 cleared
+      const backlog1 = await Backlog.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        semester: 1,
+        academicYear: "2025-26",
+        original_exam_id: sem1Exam._id,
+        original_result_id: sem1._id,
+        subject_id: sub1Id,
+        subject_code: "SUB101",
+        original_marks_snapshot: { total: 30 },
+        status: "CLEARED",
+      });
+      await BacklogAttempt.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        backlog_id: backlog1._id,
+        subject_id: sub1Id,
+        attempt_number: 1,
+        exam_id: sem2Exam._id,
+        result_status: "PASS",
+        passed: true,
+        cleared: true,
+      });
+
+      // SUB102 not cleared / no clearance record
+      const res = await ctx.studentAgent
+        .get("/api/results/my-consolidated-result")
+        .expect(200);
+
+      expect(res.body.data.isEligible).toBe(false);
+      expect(res.body.data.status).toBe("FAILED_SEMESTERS");
+      expect(res.body.data.failedSemesters).toEqual([1]);
+    });
+
+    it("Regression 4: Invalid/mismatched clearance — clearance from another student/college is rejected", async () => {
+      const ctx = await setupStudentContext({ durationSemesters: 4 });
+      const otherStudent = await createStudent({
+        college_id: ctx.college._id,
+        department_id: ctx.department._id,
+        course_id: ctx.course._id,
+        user_id: new mongoose.Types.ObjectId(),
+      });
+
+      const sub1Id = new mongoose.Types.ObjectId();
+      const sem1Exam = await createExamFixture({
+        collegeId: ctx.college._id,
+        courseId: ctx.course._id,
+        semester: 1,
+      });
+
+      await createSemesterResultFixture({
+        collegeId: ctx.college._id,
+        studentId: ctx.student._id,
+        courseId: ctx.course._id,
+        semester: 1,
+        examId: sem1Exam._id,
+        overallResult: "FAIL",
+        subjects: [
+          {
+            subject: sub1Id,
+            subjectCode: "SUB101",
+            passed: false,
+            status: "FAIL",
+          },
+        ],
+      });
+
+      for (let s = 2; s <= 4; s++) {
+        await createSemesterResultFixture({
+          collegeId: ctx.college._id,
+          studentId: ctx.student._id,
+          courseId: ctx.course._id,
+          semester: s,
+          overallResult: "PASS",
+        });
+      }
+
+      // Backlog belonging to OTHER student
+      const otherBacklog = await Backlog.create({
+        college_id: ctx.college._id,
+        student_id: otherStudent._id,
+        course_id: ctx.course._id,
+        semester: 1,
+        academicYear: "2025-26",
+        original_exam_id: sem1Exam._id,
+        original_result_id: new mongoose.Types.ObjectId(),
+        subject_id: sub1Id,
+        subject_code: "SUB101",
+        original_marks_snapshot: { total: 30 },
+        status: "CLEARED",
+      });
+      await BacklogAttempt.create({
+        college_id: ctx.college._id,
+        student_id: otherStudent._id,
+        course_id: ctx.course._id,
+        backlog_id: otherBacklog._id,
+        subject_id: sub1Id,
+        attempt_number: 1,
+        exam_id: sem1Exam._id,
+        result_status: "PASS",
+        passed: true,
+        cleared: true,
+      });
+
+      const res = await ctx.studentAgent
+        .get("/api/results/my-consolidated-result")
+        .expect(200);
+
+      expect(res.body.data.isEligible).toBe(false);
+      expect(res.body.data.status).toBe("FAILED_SEMESTERS");
+      expect(res.body.data.failedSemesters).toEqual([1]);
+    });
+
+    it("Regression 5: Invalid attempt — failed backlog attempt cannot clear failure", async () => {
+      const ctx = await setupStudentContext({ durationSemesters: 4 });
+      const sub1Id = new mongoose.Types.ObjectId();
+
+      const sem1Exam = await createExamFixture({
+        collegeId: ctx.college._id,
+        courseId: ctx.course._id,
+        semester: 1,
+      });
+
+      const sem1 = await createSemesterResultFixture({
+        collegeId: ctx.college._id,
+        studentId: ctx.student._id,
+        courseId: ctx.course._id,
+        semester: 1,
+        examId: sem1Exam._id,
+        overallResult: "FAIL",
+        subjects: [
+          {
+            subject: sub1Id,
+            subjectCode: "SUB101",
+            passed: false,
+            status: "FAIL",
+          },
+        ],
+      });
+
+      for (let s = 2; s <= 4; s++) {
+        await createSemesterResultFixture({
+          collegeId: ctx.college._id,
+          studentId: ctx.student._id,
+          courseId: ctx.course._id,
+          semester: s,
+          overallResult: "PASS",
+        });
+      }
+
+      const backlog = await Backlog.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        semester: 1,
+        academicYear: "2025-26",
+        original_exam_id: sem1Exam._id,
+        original_result_id: sem1._id,
+        subject_id: sub1Id,
+        subject_code: "SUB101",
+        original_marks_snapshot: { total: 30 },
+        status: "ATTEMPTED",
+      });
+
+      // Failed attempt
+      await BacklogAttempt.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        backlog_id: backlog._id,
+        subject_id: sub1Id,
+        attempt_number: 1,
+        exam_id: sem1Exam._id,
+        result_status: "FAIL",
+        passed: false,
+        cleared: false,
+      });
+
+      const res = await ctx.studentAgent
+        .get("/api/results/my-consolidated-result")
+        .expect(200);
+
+      expect(res.body.data.isEligible).toBe(false);
+      expect(res.body.data.status).toBe("ACTIVE_BACKLOGS");
+    });
+
+    it("Regression 6: Standalone supplementary result does not cause false ambiguity", async () => {
+      const ctx = await setupStudentContext({ durationSemesters: 4 });
+      const sub1Id = new mongoose.Types.ObjectId();
+
+      const sem1RegularExam = await Exam.create({
+        college_id: ctx.college._id,
+        course_id: ctx.course._id,
+        semester: 1,
+        academicYear: "2025-26",
+        name: "Semester 1 Regular Exam",
+        exam_type: "REGULAR",
+        status: "PUBLISHED",
+        createdBy: new mongoose.Types.ObjectId(),
+      });
+
+      const sem1RegularResult = await createSemesterResultFixture({
+        collegeId: ctx.college._id,
+        studentId: ctx.student._id,
+        courseId: ctx.course._id,
+        semester: 1,
+        examId: sem1RegularExam._id,
+        overallResult: "FAIL",
+        totalMarks: 110,
+        totalMaxMarks: 200,
+        subjects: [
+          {
+            subject: sub1Id,
+            subjectCode: "SUB101",
+            passed: false,
+            status: "FAIL",
+          },
+        ],
+      });
+
+      for (let s = 2; s <= 4; s++) {
+        await createSemesterResultFixture({
+          collegeId: ctx.college._id,
+          studentId: ctx.student._id,
+          courseId: ctx.course._id,
+          semester: s,
+          overallResult: "PASS",
+        });
+      }
+
+      // Standalone supplementary exam
+      const suppExam = await Exam.create({
+        college_id: ctx.college._id,
+        course_id: ctx.course._id,
+        semester: 1,
+        academicYear: "2025-26",
+        name: "Semester 1 Supplementary Exam",
+        exam_type: "SUPPLEMENTARY",
+        status: "PUBLISHED",
+        createdBy: new mongoose.Types.ObjectId(),
+      });
+
+      // Supplementary exam creates a SemesterResult document
+      await SemesterResult.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        semester: 1,
+        academicYear: "2025-26",
+        exam_id: suppExam._id,
+        subjects: [
+          {
+            subject: sub1Id,
+            subjectCode: "SUB101",
+            passed: true,
+            status: "PASS",
+            marksRecorded: true,
+          },
+        ],
+        totalSubjects: 1,
+        passedSubjects: 1,
+        failedSubjects: 0,
+        incompleteSubjects: 0,
+        overallResult: "PASS",
+        status: RESULT_STATUS.PUBLISHED,
+        calculatedAt: new Date(),
+        createdBy: new mongoose.Types.ObjectId(),
+      });
+
+      // Backlog is CLEARED
+      const backlog = await Backlog.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        semester: 1,
+        academicYear: "2025-26",
+        original_exam_id: sem1RegularExam._id,
+        original_result_id: sem1RegularResult._id,
+        subject_id: sub1Id,
+        subject_code: "SUB101",
+        original_marks_snapshot: { total: 30 },
+        status: "CLEARED",
+      });
+
+      await BacklogAttempt.create({
+        college_id: ctx.college._id,
+        student_id: ctx.student._id,
+        course_id: ctx.course._id,
+        backlog_id: backlog._id,
+        subject_id: sub1Id,
+        attempt_number: 1,
+        exam_id: suppExam._id,
+        result_status: "PASS",
+        passed: true,
+        cleared: true,
+      });
+
+      const res = await ctx.studentAgent
+        .get("/api/results/my-consolidated-result")
+        .expect(200);
+
+      // Must NOT be blocked with AMBIGUOUS_RESULT; regular result was authoritatively resolved and cleared
+      expect(res.body.data.isEligible).toBe(true);
+      expect(res.body.data.status).toBe("ELIGIBLE");
+      expect(res.body.data.failedSemesters).toEqual([]);
+      expect(res.body.data.completedSemesters).toEqual([1, 2, 3, 4]);
+    });
+  });
 });
+
+
