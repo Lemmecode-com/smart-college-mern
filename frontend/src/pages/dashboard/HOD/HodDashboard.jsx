@@ -11,25 +11,21 @@ import {
   FaClipboardList,
   FaUser,
   FaArrowRight,
-  FaClock,
-  FaBook,
-  FaChalkboardTeacher,
   FaCheckCircle,
   FaEdit,
-  FaEye,
   FaPlus,
   FaBuilding,
   FaGraduationCap,
-  FaListUl,
   FaCalendarDay,
-  FaChartLine,
-  FaBell,
   FaCogs,
   FaIdCard,
   FaRegCalendarPlus,
   FaRegClock,
   FaUniversity,
+  FaCalendarCheck,
+  FaClipboardCheck,
 } from "react-icons/fa";
+/* eslint-disable-next-line no-unused-vars */
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
@@ -123,6 +119,7 @@ const AUTH_ERROR_CODES = new Set([
 // ============================================================
 // SECTION HEADER (reusable)
 // ============================================================
+// eslint-disable-next-line no-unused-vars
 const SectionHeader = ({ icon: Icon, title, subtitle, action }) => (
   <div
     style={{
@@ -164,6 +161,94 @@ const SectionHeader = ({ icon: Icon, title, subtitle, action }) => (
 );
 
 // ============================================================
+// QUICK ACTION CARD (reusable)
+// ============================================================
+// eslint-disable-next-line no-unused-vars
+const QuickActionCard = ({ label, description, icon: Icon, route, color, navigate, index }) => (
+  <motion.button
+    type="button"
+    initial={{ opacity: 0, y: 6 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: index * 0.04 }}
+    whileHover={{ scale: 1.01, y: -1 }}
+    whileTap={{ scale: 0.99 }}
+    onClick={() => navigate(route)}
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.85rem",
+      padding: "0.75rem 1rem",
+      minHeight: 48,
+      background: BRAND.bg,
+      border: `1px solid ${BRAND.border}`,
+      borderRadius: 12,
+      cursor: "pointer",
+      textAlign: "left",
+      transition: "all 0.2s ease",
+      width: "100%",
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.borderColor = color + "60";
+      e.currentTarget.style.background = color + "0a";
+      e.currentTarget.style.boxShadow = `0 3px 10px ${color}18`;
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.borderColor = BRAND.border;
+      e.currentTarget.style.background = BRAND.bg;
+      e.currentTarget.style.boxShadow = "none";
+    }}
+  >
+    <div
+      style={{
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        background: color + "15",
+        color: color,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: "0.95rem",
+        flexShrink: 0,
+      }}
+    >
+      <Icon />
+    </div>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <div
+        style={{
+          fontSize: "0.86rem",
+          fontWeight: 600,
+          color: BRAND.ink,
+          lineHeight: 1.25,
+        }}
+      >
+        {label}
+      </div>
+      {description && (
+        <div
+          style={{
+            fontSize: "0.74rem",
+            color: BRAND.muted,
+            marginTop: 2,
+          }}
+        >
+          {description}
+        </div>
+      )}
+    </div>
+    <FaArrowRight
+      style={{
+        fontSize: "0.72rem",
+        color: BRAND.muted,
+        opacity: 0.5,
+        flexShrink: 0,
+      }}
+    />
+  </motion.button>
+);
+
+// ============================================================
 // MAIN DASHBOARD
 // ============================================================
 const HodDashboard = () => {
@@ -175,7 +260,6 @@ const HodDashboard = () => {
 
   useEffect(() => {
     fetchHodDashboard();
-    // eslint-disable-next-line
   }, []);
 
   const fetchHodDashboard = async () => {
@@ -305,41 +389,35 @@ if (loading) {
     },
   ];
 
-  // Quick actions grouped by domain
-  const actionGroups = [
+  // Quick actions
+  const quickActions = [
     {
-      title: "Teacher Management",
-      icon: FaUserTie,
+      label: "View Department",
+      description: "Department details and programs",
+      icon: FaLayerGroup,
+      route: "/hod/department",
       color: BRAND.primary,
-      items: [
-        { label: "View Teachers", icon: FaUsers, route: "/hod/teachers" },
-      ],
     },
     {
-      title: "Subject Management",
-      icon: FaBook,
+      label: "Manage Teachers",
+      description: "Faculty roster and teaching allocations",
+      icon: FaUsers,
+      route: "/hod/teachers",
       color: BRAND.info,
-      items: [
-        { label: "View Subjects", icon: FaListUl, route: "/hod/subjects" },
-      ],
     },
     {
-      title: "Timetable Management",
-      icon: FaCalendarAlt,
+      label: "Manage Timetable",
+      description: "Class schedules and slot management",
+      icon: FaCalendarCheck,
+      route: "/timetable/list",
       color: BRAND.accent,
-      items: [
-        { label: "Create Timetable", icon: FaPlus, route: "/timetable/create-timetable" },
-        { label: "View All", icon: FaEye, route: "/timetable/list" },
-      ],
     },
     {
-      title: "Department Management",
-      icon: FaBuilding,
-      color: BRAND.success,
-      items: [
-        { label: "Department Info", icon: FaLayerGroup, route: "/hod/department" },
-        { label: "My Profile", icon: FaIdCard, route: "/hod/profile" },
-      ],
+      label: "Exception Approvals",
+      description: "Timetable change and exception reviews",
+      icon: FaClipboardCheck,
+      route: "/hod/exception-approvals",
+      color: BRAND.warning,
     },
   ];
 
@@ -827,102 +905,28 @@ if (loading) {
                 <SectionHeader
                   icon={FaCogs}
                   title="Quick Actions"
-                  subtitle="Jump to common tasks"
+                  subtitle="Key departmental portals"
                 />
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  {actionGroups.map((group) => {
-                    const GroupIcon = group.icon;
-                    return (
-                      <div key={group.title}>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            marginBottom: "0.5rem",
-                            fontSize: "0.75rem",
-                            fontWeight: 700,
-                            color: group.color,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          <GroupIcon style={{ fontSize: "0.7rem" }} />
-                          {group.title}
-                        </div>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(2, 1fr)",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          {group.items.map((item) => {
-                            const ItemIcon = item.icon;
-                            return (
-                              <motion.button
-                                key={item.label}
-                                whileHover={{ scale: 1.03, y: -2 }}
-                                whileTap={{ scale: 0.97 }}
-                                onClick={() => navigate(item.route)}
-                                style={{
-                                  background: BRAND.bg,
-                                  border: `1px solid ${BRAND.border}`,
-                                  borderRadius: 10,
-                                  padding: "0.7rem 0.6rem",
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "0.55rem",
-                                  transition: "all 0.2s",
-                                  textAlign: "left",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.borderColor = group.color;
-                                  e.currentTarget.style.background =
-                                    group.color + "10";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.borderColor = BRAND.border;
-                                  e.currentTarget.style.background = BRAND.bg;
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: 30,
-                                    height: 30,
-                                    borderRadius: 8,
-                                    background: group.color + "18",
-                                    color: group.color,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    fontSize: "0.85rem",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <ItemIcon />
-                                </div>
-                                <span
-                                  style={{
-                                    fontSize: "0.8rem",
-                                    fontWeight: 600,
-                                    color: BRAND.ink,
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                  }}
-                                >
-                                  {item.label}
-                                </span>
-                              </motion.button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.6rem",
+                  }}
+                >
+                  {quickActions.map((action, idx) => (
+                    <QuickActionCard
+                      key={action.label}
+                      label={action.label}
+                      description={action.description}
+                      icon={action.icon}
+                      route={action.route}
+                      color={action.color}
+                      navigate={navigate}
+                      index={idx}
+                    />
+                  ))}
                 </div>
               </div>
             </motion.div>
