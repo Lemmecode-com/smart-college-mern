@@ -20,6 +20,9 @@ export const publishResult = (resultId) =>
 export const getMyResults = () =>
   api.get(`${BASE}/my-results`).then((r) => r.data);
 
+export const getMyConsolidatedResult = () =>
+  api.get(`${BASE}/my-consolidated-result`).then((r) => r.data);
+
 // ── Exam-level Coordinator workflow ──────────────────────────────────────
 
 export const getResultsByExam = (examId) =>

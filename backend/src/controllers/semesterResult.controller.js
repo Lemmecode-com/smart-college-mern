@@ -275,6 +275,30 @@ exports.getMyPromotionStatus = async (req, res, next) => {
 };
 
 /**
+ * GET /api/results/my-consolidated-result
+ *
+ * Student-scoped read. Returns authoritative consolidated academic result
+ * and course completion verification for the authenticated student.
+ * Identity is derived strictly from req.user.id and req.college_id —
+ * never trusted from client parameters or body.
+ */
+exports.getMyConsolidatedResult = async (req, res, next) => {
+  try {
+    const data = await SemesterResultService.getMyConsolidatedResult({
+      collegeId: req.college_id,
+      userId: req.user.id,
+    });
+
+    res.json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * GET /api/results?examId=xxx
  *
  * Exam-level result listing for the Coordinator. Returns a summary
