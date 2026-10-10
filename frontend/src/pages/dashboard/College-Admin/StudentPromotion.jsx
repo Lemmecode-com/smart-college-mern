@@ -2088,15 +2088,17 @@ if (error && !loading && students.length === 0) {
       actions={tableActions}
     />
 
-    {totalPages > 1 && (
-      <div className="erp-pagination">
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          setPage={setPage}
-        />
-      </div>
-    )}
+
+{totalPages > 1 && (
+  <div style={{ marginBottom: "8px" }}>
+    <Pagination
+      page={page}
+      totalPages={totalPages}
+      setPage={setPage}
+    />
+  </div>
+)}
+
   </>
 )}
       

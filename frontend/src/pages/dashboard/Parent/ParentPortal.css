@@ -1218,6 +1218,7 @@ body {
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.04);
   transition: all var(--transition-slow);
+  margin-top: 20px;
 }
 
 .parent-attendance-chart:hover {
@@ -1233,6 +1234,8 @@ body {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--spacing-md);
+  
+  
 }
 
 .parent-chart-title {

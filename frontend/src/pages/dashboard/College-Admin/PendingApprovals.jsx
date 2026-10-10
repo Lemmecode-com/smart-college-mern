@@ -58,6 +58,7 @@ export default function PendingApprovals({ admissionOfficerMode = false }) {
   const [students, setStudents] = useState([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [processingId, setProcessingId] = useState(null);

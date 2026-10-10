@@ -168,7 +168,7 @@ const EmptyState = ({ onRetry }) => (
 const CardSurface = ({ children, style = {} }) => (
   <div
     style={{
-      background: '#0E3746',
+      background: 'white',
       borderRadius: 16,
       border: `1px solid ${BRAND.border}`,
       boxShadow: "0 1px 3px rgba(15,23,42,0.03), 0 6px 16px rgba(15,23,42,0.03)",
@@ -879,6 +879,7 @@ if (loading) {
                       icon={FaBuilding}
                       title="Department Responsibility"
                       subtitle="Your administrative scope"
+                      
                     />
                   </div>
                   <div

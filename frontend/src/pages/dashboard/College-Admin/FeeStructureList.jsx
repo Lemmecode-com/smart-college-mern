@@ -521,7 +521,7 @@ const tableActions = {
 />
 
 {totalPages > 1 && (
-  <div className="card-footer-pagination">
+  <div style={{ marginBottom: "24px" }}>
     <Pagination
       page={currentPage}
       totalPages={totalPages}
@@ -652,14 +652,7 @@ const tableActions = {
           font-weight: 600;
         }
 
-        .card-footer-pagination {
-          padding: 1.25rem 1.75rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-top: 1px solid #e9ecef;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
+
         
         .erp-card-body {
           padding: 0;

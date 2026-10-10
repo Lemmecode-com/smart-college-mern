@@ -2465,37 +2465,36 @@ const tableActions = {
       </div>
 
         {/* ================= STANDARD PAYMENT LIST ================= */}
+        <StandardListView
+          className="payment-history-list"
+          title="Student Payment Records"
+          icon={FaFileInvoiceDollar}
+          count={filteredRecords.length}
+          columns={columns}
+          data={paginatedRecords}
+          loading={false}
+          emptyState={{
+            icon: FaFileInvoiceDollar,
 
-<StandardListView
-  className="payment-history-list"
-  title="Student Payment Records"
-  icon={FaFileInvoiceDollar}
-  count={filteredRecords.length}
-  columns={columns}
-  data={paginatedRecords}
-  loading={false}
-  emptyState={{
-    icon: FaFileInvoiceDollar,
+            title: "No Payment Records Found",
 
-    title: "No Payment Records Found",
+            description:
+              searchQuery || statusFilter
+                ? "No records match your search criteria. Try adjusting your filters."
+                : "There are no payment records to display.",
+          }}
+          actions={tableActions}
+        />
 
-    description:
-      searchQuery || statusFilter
-        ? "No records match your search criteria. Try adjusting your filters."
-        : "There are no payment records to display.",
-  }}
-  actions={tableActions}
-/>
-
-{totalPages > 1 && (
-  <div className="payment-pagination">
-    <Pagination
-      page={currentPage}
-      totalPages={totalPages}
-      setPage={setCurrentPage}
-    />
-  </div>
-)}
-    </div>
-  );
-}
+        {totalPages > 1 && (
+          <div style={{ marginBottom: "8px" }}>
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              setPage={setCurrentPage}
+            />
+          </div>
+        )}
+            </div>
+          );
+        }

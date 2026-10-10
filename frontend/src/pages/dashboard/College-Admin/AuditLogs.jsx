@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Pagination from "../../../components/Pagination";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
@@ -631,74 +632,20 @@ export default function AuditLogs() {
     </AnimatePresence>
   );
 
-  // Render pagination
-  const renderPagination = () => {
-    if (!pagination || pagination.pages <= 1) return null;
+  // Render shared pagination
+const renderPagination = () => {
+  if (!pagination || pagination.pages <= 1) return null;
 
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "0.5rem",
-          marginTop: "2rem",
-        }}
-      >
-        <button
-          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
-          style={{
-            padding: "0.625rem 1rem",
-            background: currentPage === 1 ? "#f1f5f9" : "white",
-            border: `2px solid ${currentPage === 1 ? "#e2e8f0" : "#e2e8f0"}`,
-            borderRadius: "10px",
-            cursor: currentPage === 1 ? "not-allowed" : "pointer",
-            opacity: currentPage === 1 ? 0.5 : 1,
-            fontWeight: "600",
-            fontSize: "0.875rem",
-            color: THEME.text.secondary,
-            transition: "all 0.2s",
-          }}
-        >
-          ← Previous
-        </button>
-
-        <span
-          style={{
-            padding: "0.625rem 1.25rem",
-            color: THEME.text.secondary,
-            fontSize: "0.875rem",
-            fontWeight: "500",
-          }}
-        >
-          Page {currentPage} of {pagination.pages}
-        </span>
-
-        <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(pagination.pages, prev + 1))
-          }
-          disabled={currentPage === pagination.pages}
-          style={{
-            padding: "0.625rem 1rem",
-            background: currentPage === pagination.pages ? "#f1f5f9" : "white",
-            border: `2px solid ${currentPage === pagination.pages ? "#e2e8f0" : "#e2e8f0"}`,
-            borderRadius: "10px",
-            cursor:
-              currentPage === pagination.pages ? "not-allowed" : "pointer",
-            opacity: currentPage === pagination.pages ? 0.5 : 1,
-            fontWeight: "600",
-            fontSize: "0.875rem",
-            color: THEME.text.secondary,
-            transition: "all 0.2s",
-          }}
-        >
-          Next →
-        </button>
-      </div>
-    );
-  };
+  return (
+    <div style={{ marginTop: "2rem", marginBottom: "24px" }}>
+      <Pagination
+        page={currentPage}
+        totalPages={pagination.pages}
+        setPage={setCurrentPage}
+      />
+    </div>
+  );
+};
 
   if (error) {
     return (

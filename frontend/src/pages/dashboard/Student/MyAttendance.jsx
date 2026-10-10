@@ -869,12 +869,14 @@ addToast("Filters reset successfully!", "info");
             initial="hidden"
             animate="visible"
             style={{ marginBottom: '2rem' }}
+            
           >
             <div style={{
               backgroundColor: 'white',
               borderRadius: '20px',
               boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              
             }}>
               <div style={{
                 padding: '1.75rem',
@@ -883,18 +885,19 @@ addToast("Filters reset successfully!", "info");
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '1rem'
+                gap: '1rem',
+                backgroundColor: '#0E3746',
               }}>
                 <h2 style={{
                   margin: 0,
                   fontSize: '1.5rem',
                   fontWeight: 700,
-                  color: '#1e293b',
+                  color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem'
                 }}>
-                  <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main }} /> 
+                  <FaCalendarAlt style={{ color: 'white' }} /> 
                   Today's Attendance
                 </h2>
                 <div style={{ 
@@ -1077,18 +1080,19 @@ addToast("Filters reset successfully!", "info");
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '1rem'
+                gap: '1rem',
+                backgroundColor: '#0E3746',
               }}>
                 <h2 style={{
                   margin: 0,
                   fontSize: '1.5rem',
                   fontWeight: 700,
-                  color: '#1e293b',
+                  color: 'white ',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem'
                 }}>
-                  <FaBook style={{ color: BRAND_COLORS.primary.main }} /> 
+                  <FaBook style={{ color: 'white' }} /> 
                   Subject-wise Attendance
                 </h2>
                 <div style={{ 
@@ -1337,18 +1341,19 @@ addToast("Filters reset successfully!", "info");
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: '1rem'
+                gap: '1rem',
+                backgroundColor: '#0E3746',
               }}>
                 <h2 style={{
                   margin: 0,
                   fontSize: '1.5rem',
                   fontWeight: 700,
-                  color: '#1e293b',
+                  color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem'
                 }}>
-                  <FaClipboardList style={{ color: BRAND_COLORS.primary.main }} /> 
+                  <FaClipboardList style={{ color: 'white' }} /> 
                   Session-wise Report
                 </h2>
                 <div style={{ 

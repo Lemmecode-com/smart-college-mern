@@ -7,6 +7,7 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
 import StandardListView from "../../../components/StandardListView/StandardListView";
+import Pagination from "../../../components/Pagination";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { TableSkeleton } from "../../../components/Skeleton";
 import { showSuccess, showError } from "../../../utils/toast";
@@ -398,6 +399,8 @@ export default function AlumniList({ admissionOfficerMode = false }) {
   const [search, setSearch] = useState("");
   const [yearFilter, setYearFilter] = useState("ALL");
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [certificateModalOpen, setCertificateModalOpen] = useState(false);
@@ -478,6 +481,15 @@ export default function AlumniList({ admissionOfficerMode = false }) {
       alumnus.department_id?.name === departmentFilter;
     return matchesSearch && matchesYear && matchesDepartment;
   });
+
+  const totalPages = Math.ceil(filteredAlumni.length / ITEMS_PER_PAGE);
+  const paginatedAlumni = filteredAlumni.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE
+  );
+  useEffect(() => {
+    setPage(1);
+  }, [search, yearFilter, departmentFilter]);
 
   const getUniqueGraduationYears = () => {
     const years = [
@@ -908,7 +920,7 @@ if (loading) {
             icon={FaUsers}
             count={filteredAlumni.length}
             columns={columns}
-            data={filteredAlumni}
+            data={paginatedAlumni}
             loading={false}
             emptyState={{
               icon: FaGraduationCap,
@@ -936,6 +948,15 @@ if (loading) {
             }}
             actions={tableActions}
           />
+          {totalPages > 1 && (
+          <div style={{ marginBottom: "8px" }}>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              setPage={setPage}
+            />
+          </div>
+        )}
 
       {/* Certificate Modal */}
       <CertificateModal

@@ -964,7 +964,7 @@ export default function PaymentReports() {
           onClick={fetchPaymentSummary}
           title="Refresh data"
         >
-          <FaSyncAlt className="refresh-icon spin" />
+          <FaSyncAlt className="refresh-icon" />
         </button>
       </div>
 
@@ -1866,7 +1866,7 @@ export default function PaymentReports() {
         .refresh-btn {
           background: rgba(33, 150, 243, 0.15);
           border: none;
-          width: 36px;
+          width: 66px;
           height: 36px;
           border-radius: 8px;
           display: flex;
@@ -1880,7 +1880,7 @@ export default function PaymentReports() {
         
         .refresh-btn:hover {
           background: rgba(33, 150, 243, 0.25);
-          transform: rotate(90deg);
+         
         }
         
         .refresh-icon {
