@@ -806,7 +806,7 @@ exports.getMyConsolidatedResult = async ({ collegeId, userId }) => {
     college_id: collegeId,
     student_id: student._id,
   })
-    .populate("exam_id", "name semester academicYear status subjects")
+    .populate("exam_id", "name semester academicYear status subjects exam_type")
     .sort({ semester: 1, createdAt: 1 })
     .lean();
 
@@ -830,49 +830,6 @@ exports.getMyConsolidatedResult = async ({ collegeId, userId }) => {
     );
   }
 
-  // Semester-by-Semester Resolution
-  const resolvedSemesterMap = new Map();
-  const completedSemesters = [];
-  const missingSemesters = [];
-  const unpublishedSemesters = [];
-  const failedSemesters = [];
-  const incompleteSemesters = [];
-  const ambiguousSemesters = [];
-
-  for (const s of requiredSemesters) {
-    const sCandidates = allResults.filter((r) => Number(r.semester) === s);
-    const publishedSCandidates = sCandidates.filter(
-      (r) => r.status === RESULT_STATUS.PUBLISHED
-    );
-
-    if (publishedSCandidates.length === 0) {
-      if (sCandidates.length > 0) {
-        unpublishedSemesters.push(s);
-        reasons.push(`Semester ${s} result is not yet published (status: ${sCandidates[0].status}).`);
-      } else {
-        missingSemesters.push(s);
-        reasons.push(`Semester ${s} has no published result.`);
-      }
-    } else if (publishedSCandidates.length > 1) {
-      ambiguousSemesters.push(s);
-      reasons.push(`Semester ${s} has multiple published result candidates (${publishedSCandidates.length}); cannot select arbitrarily.`);
-    } else {
-      const candidate = publishedSCandidates[0];
-      const outcome = String(candidate.overallResult || "").toUpperCase();
-
-      if (outcome === "PASS") {
-        completedSemesters.push(s);
-        resolvedSemesterMap.set(s, candidate);
-      } else if (outcome === "FAIL") {
-        failedSemesters.push(s);
-        reasons.push(`Semester ${s} result outcome is FAIL.`);
-      } else {
-        incompleteSemesters.push(s);
-        reasons.push(`Semester ${s} result outcome is ${outcome || "INCOMPLETE"}.`);
-      }
-    }
-  }
-
   // Backlog Verification: Active backlogs
   const activeBacklogs = await Backlog.find({
     college_id: collegeId,
@@ -884,6 +841,12 @@ exports.getMyConsolidatedResult = async ({ collegeId, userId }) => {
   if (activeBacklogsCount > 0) {
     reasons.push(`Student has ${activeBacklogsCount} active/uncleared backlog(s). All backlogs must be cleared.`);
   }
+
+  // Backlog Verification: All student backlogs for authoritative clearance matching
+  const allStudentBacklogs = await Backlog.find({
+    college_id: collegeId,
+    student_id: student._id,
+  }).lean();
 
   // Backlog Verification: Cleared backlogs from published exams
   const publishedExamIds = await SemesterResult.distinct("exam_id", {
@@ -921,6 +884,111 @@ exports.getMyConsolidatedResult = async ({ collegeId, userId }) => {
       cleared: true,
       evaluatedAt: a.evaluated_at || null,
     }));
+
+  const clearedBacklogIdSet = new Set(
+    clearedBacklogs
+      .map((a) => String(a.backlogId))
+      .filter(Boolean)
+  );
+
+  // Semester-by-Semester Resolution
+  const resolvedSemesterMap = new Map();
+  const completedSemesters = [];
+  const missingSemesters = [];
+  const unpublishedSemesters = [];
+  const failedSemesters = [];
+  const incompleteSemesters = [];
+  const ambiguousSemesters = [];
+
+  for (const s of requiredSemesters) {
+    const sCandidates = allResults.filter((r) => Number(r.semester) === s);
+    const publishedSCandidates = sCandidates.filter(
+      (r) => r.status === RESULT_STATUS.PUBLISHED
+    );
+
+    // Isolate regular exam candidates from standalone supplementary/re-exam results
+    const regularPublishedCandidates = publishedSCandidates.filter((r) => {
+      const type = r.exam_id?.exam_type;
+      return !type || type === "REGULAR";
+    });
+
+    if (publishedSCandidates.length === 0) {
+      if (sCandidates.length > 0) {
+        unpublishedSemesters.push(s);
+        reasons.push(`Semester ${s} result is not yet published (status: ${sCandidates[0].status}).`);
+      } else {
+        missingSemesters.push(s);
+        reasons.push(`Semester ${s} has no published result.`);
+      }
+    } else if (regularPublishedCandidates.length > 1) {
+      ambiguousSemesters.push(s);
+      reasons.push(`Semester ${s} has multiple published result candidates (${regularPublishedCandidates.length}); cannot select arbitrarily.`);
+    } else if (regularPublishedCandidates.length === 0) {
+      missingSemesters.push(s);
+      reasons.push(`Semester ${s} has no published regular semester result.`);
+    } else {
+      const candidate = regularPublishedCandidates[0];
+      const outcome = String(candidate.overallResult || "").toUpperCase();
+
+      if (outcome === "PASS") {
+        completedSemesters.push(s);
+        resolvedSemesterMap.set(s, candidate);
+      } else if (outcome === "FAIL") {
+        // Evaluate authoritative backlog clearance for all failed subjects in this semester
+        const failedSubjects = (candidate.subjects || []).filter(
+          (sub) => sub.passed === false || String(sub.status).toUpperCase() === "FAIL"
+        );
+
+        const activeBacklogsForSem = activeBacklogs.filter(
+          (b) => Number(b.semester) === s
+        );
+
+        let allFailedSubjectsCleared = false;
+
+        if (failedSubjects.length > 0 && activeBacklogsForSem.length === 0) {
+          allFailedSubjectsCleared = failedSubjects.every((sub) => {
+            const matchingBacklog = allStudentBacklogs.find((b) => {
+              const studentMatch = String(b.student_id) === String(student._id);
+              const collegeMatch = String(b.college_id) === String(collegeId);
+              const courseMatch =
+                String(b.course_id) === String(course._id || student.course_id);
+              const semMatch = Number(b.semester) === s;
+              const subjectMatch =
+                (b.subject_id && sub.subject && String(b.subject_id) === String(sub.subject)) ||
+                (b.subject_code && sub.subjectCode && b.subject_code === sub.subjectCode);
+
+              return (
+                studentMatch &&
+                collegeMatch &&
+                courseMatch &&
+                semMatch &&
+                subjectMatch &&
+                b.status === "CLEARED" &&
+                b.status !== "OPEN" &&
+                b.status !== "ATTEMPTED"
+              );
+            });
+
+            if (!matchingBacklog) return false;
+
+            // Must have a verified passing attempt from a published exam
+            return clearedBacklogIdSet.has(String(matchingBacklog._id));
+          });
+        }
+
+        if (allFailedSubjectsCleared) {
+          completedSemesters.push(s);
+          resolvedSemesterMap.set(s, candidate);
+        } else {
+          failedSemesters.push(s);
+          reasons.push(`Semester ${s} result outcome is FAIL.`);
+        }
+      } else {
+        incompleteSemesters.push(s);
+        reasons.push(`Semester ${s} result outcome is ${outcome || "INCOMPLETE"}.`);
+      }
+    }
+  }
 
   // Map Resolved Semesters Non-Mutatively
   const mappedSemesters = requiredSemesters
