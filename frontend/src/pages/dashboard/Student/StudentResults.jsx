@@ -24,6 +24,7 @@ import {
   FaHistory,
   FaCheckCircle,
   FaTimesCircle,
+  FaTimes,
   FaClock,
   FaChevronDown,
   FaChevronUp,
@@ -799,8 +800,11 @@ ResultsEmptyState.propTypes = {
 
 /**
  * Backlog & Re-Examination Section.
+ * Renders a clean, compact summary card with a single action button:
+ * "View Backlog Subjects Records" which opens the full history and attempt breakdown in a dedicated modal.
  */
-export function BacklogSection({ groupedBacklogs = [] }) {
+export function BacklogSection({ groupedBacklogs = [], defaultOpen = false }) {
+  const [isModalOpen, setIsModalOpen] = useState(defaultOpen);
   const [expandedBacklogIds, setExpandedBacklogIds] = useState(() => new Set());
 
   const toggleExpand = (id) => {
@@ -815,207 +819,391 @@ export function BacklogSection({ groupedBacklogs = [] }) {
     });
   };
 
+  // Close modal on Escape key press
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isModalOpen]);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isModalOpen]);
+
   const summary = calculateBacklogSummary(groupedBacklogs);
+
+  const renderModal = () => (
+    <div
+      className="sr-backlog-modal-backdrop"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setIsModalOpen(false);
+      }}
+      role="presentation"
+    >
+      <div
+        className="sr-backlog-modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sr-backlog-modal-title"
+      >
+        {/* Modal Header */}
+        <div className="sr-backlog-modal-header">
+          <div className="sr-backlog-modal-title-group">
+            <div className="sr-backlog-modal-header-icon" aria-hidden="true">
+              <FaHistory />
+            </div>
+            <div>
+              <h3 id="sr-backlog-modal-title" className="sr-backlog-modal-title">
+                Backlog & Re-Examination Records
+              </h3>
+              <span className="sr-backlog-modal-subtitle">
+                {groupedBacklogs.length} {groupedBacklogs.length === 1 ? "Subject" : "Subjects"} Recorded
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="sr-backlog-modal-close-btn"
+            onClick={() => setIsModalOpen(false)}
+            aria-label="Close backlog records modal"
+          >
+            <FaTimes aria-hidden="true" />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="sr-backlog-modal-body">
+          {groupedBacklogs.length === 0 ? (
+            <div className="sr-backlog-modal-empty">
+              <FaCheckCircle className="sr-backlog-modal-empty-icon" aria-hidden="true" />
+              <h4>No Backlog Records</h4>
+              <p>Great! You currently don't have any backlog subjects in your available academic results.</p>
+            </div>
+          ) : (
+            <>
+              {/* Summary Metrics Strip */}
+              <div className="sr-backlog-summary-strip" aria-label="Backlog summary metrics">
+                <div className="sr-backlog-summary-item">
+                  <span className="sr-backlog-summary-value">{summary.total}</span>
+                  <span className="sr-backlog-summary-label">Total Backlogs</span>
+                </div>
+                <div className="sr-backlog-summary-item" style={{ borderColor: "#bbf7d0" }}>
+                  <span className="sr-backlog-summary-value" style={{ color: "#15803d" }}>
+                    {summary.cleared}
+                  </span>
+                  <span className="sr-backlog-summary-label" style={{ color: "#166534" }}>
+                    Cleared
+                  </span>
+                </div>
+                {summary.reappear > 0 && (
+                  <div className="sr-backlog-summary-item" style={{ borderColor: "#fecaca" }}>
+                    <span className="sr-backlog-summary-value" style={{ color: "#b91c1c" }}>
+                      {summary.reappear}
+                    </span>
+                    <span className="sr-backlog-summary-label" style={{ color: "#991b1b" }}>
+                      Re-appear Required
+                    </span>
+                  </div>
+                )}
+                {summary.pending > 0 && (
+                  <div className="sr-backlog-summary-item" style={{ borderColor: "#bae6fd" }}>
+                    <span className="sr-backlog-summary-value" style={{ color: "#0369a1" }}>
+                      {summary.pending}
+                    </span>
+                    <span className="sr-backlog-summary-label" style={{ color: "#075985" }}>
+                      Evaluation Pending
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Unique Backlog Subject Cards */}
+              <div className="sr-backlog-cards-container" role="list">
+                {groupedBacklogs.map((item) => {
+                  const cardKey = String(item.backlogId || item.subjectId || item.subjectCode);
+                  const isExpanded = expandedBacklogIds.has(cardKey);
+                  const finalTone = item.finalStatusTone;
+
+                  return (
+                    <div
+                      key={cardKey}
+                      className={`sr-backlog-card ${item.isCleared ? "is-cleared" : ""}`}
+                      role="listitem"
+                    >
+                      <div className="sr-backlog-card-header">
+                        <div className="sr-backlog-subject-info">
+                          <div className="sr-backlog-subject-title">
+                            <span>{item.subjectName || "Subject"}</span>
+                            <span className="sr-type-badge">
+                              {formatSubjectType(item.subjectType)}
+                            </span>
+                          </div>
+                          <div className="sr-backlog-meta-tags">
+                            <span>Code: {item.subjectCode || "N/A"}</span>
+                            {item.originalSemester && (
+                              <span>
+                                • Original Term: Sem {item.originalSemester}{" "}
+                                {item.originalAcademicYear ? `(${item.originalAcademicYear})` : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="sr-backlog-action-wrap">
+                          <span className={`sr-status-pill tone-${finalTone.tone}`}>
+                            {item.isCleared ? (
+                              <FaCheckCircle aria-hidden="true" />
+                            ) : item.finalStatus === "ATTEMPTED" ? (
+                              <FaClock aria-hidden="true" />
+                            ) : (
+                              <FaTimesCircle aria-hidden="true" />
+                            )}
+                            <span>{item.finalStatusLabel}</span>
+                          </span>
+
+                          <button
+                            type="button"
+                            className="sr-toggle-history-btn"
+                            onClick={() => toggleExpand(cardKey)}
+                            aria-expanded={isExpanded}
+                            aria-controls={`history-${cardKey}`}
+                          >
+                            <span>
+                              {item.attemptCount} {item.attemptCount === 1 ? "Attempt" : "Attempts"}
+                            </span>
+                            {isExpanded ? (
+                              <FaChevronUp aria-hidden="true" />
+                            ) : (
+                              <FaChevronDown aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expandable Attempt History Drawer */}
+                      {isExpanded && (
+                        <div id={`history-${cardKey}`} className="sr-attempts-history-drawer">
+                          <h4 className="sr-attempts-history-title">
+                            <FaClipboardList aria-hidden="true" />
+                            Complete Attempt History
+                          </h4>
+                          <div style={{ overflowX: "auto" }}>
+                            <table
+                              className="sr-attempts-table"
+                              aria-label={`Attempt history for ${item.subjectName}`}
+                            >
+                              <thead>
+                                <tr>
+                                  <th scope="col" style={{ width: "12%" }}>Attempt</th>
+                                  <th scope="col" style={{ width: "38%" }}>Examination Term</th>
+                                  <th scope="col" style={{ width: "12%", textAlign: "right" }}>Internal</th>
+                                  <th scope="col" style={{ width: "12%", textAlign: "right" }}>External</th>
+                                  <th scope="col" style={{ width: "12%", textAlign: "right" }}>Total</th>
+                                  <th scope="col" style={{ width: "14%", textAlign: "center" }}>Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {item.attempts.map((att, aIdx) => {
+                                  const attLabel = getResultStatusLabel(att.resultStatus);
+                                  const attTone = getResultStatusTone(att.resultStatus);
+
+                                  return (
+                                    <tr key={att.attemptId || aIdx}>
+                                      <td>
+                                        <strong>Attempt #{att.attemptNumber}</strong>
+                                      </td>
+                                      <td>
+                                        <div>
+                                          <span>{att.examName}</span>
+                                          {att.evaluatedAt && (
+                                            <span
+                                              style={{
+                                                display: "block",
+                                                fontSize: "0.72rem",
+                                                color: "#64748b",
+                                              }}
+                                            >
+                                              Evaluated: {formatDate(att.evaluatedAt)}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td style={{ textAlign: "right", fontFamily: "monospace" }}>
+                                        {formatMark(att.internalMarks)}
+                                      </td>
+                                      <td style={{ textAlign: "right", fontFamily: "monospace" }}>
+                                        {att.subjectType === "PRACTICAL"
+                                          ? "—"
+                                          : formatMark(att.externalMarks)}
+                                      </td>
+                                      <td
+                                        style={{
+                                          textAlign: "right",
+                                          fontFamily: "monospace",
+                                          fontWeight: 700,
+                                        }}
+                                      >
+                                        {formatMark(att.totalMarks)}
+                                      </td>
+                                      <td style={{ textAlign: "center" }}>
+                                        <span className={`sr-status-pill tone-${attTone.tone}`}>
+                                          {att.cleared || att.resultStatus === "PASS" ? (
+                                            <FaCheckCircle aria-hidden="true" />
+                                          ) : att.resultStatus === "FAIL" ? (
+                                            <FaTimesCircle aria-hidden="true" />
+                                          ) : (
+                                            <FaClock aria-hidden="true" />
+                                          )}
+                                          <span>{attLabel}</span>
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="sr-backlog-modal-footer">
+          <button
+            type="button"
+            className="sr-backlog-modal-footer-close-btn"
+            onClick={() => setIsModalOpen(false)}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (groupedBacklogs.length === 0) {
     return (
-      <section className="sr-section-card sr-backlog-compact-card" aria-label="Backlog Examination Records">
-        <div className="sr-backlog-compact-content">
-          <div className="sr-backlog-compact-left">
-            <div className="sr-backlog-compact-icon" aria-hidden="true">
-              <FaCheckCircle />
+      <>
+        <section
+          className="sr-section-card sr-backlog-compact-card"
+          aria-label="Backlog & Re-Examination Records"
+        >
+          <div className="sr-backlog-compact-content">
+            <div className="sr-backlog-compact-left">
+              <div className="sr-backlog-compact-icon" aria-hidden="true">
+                <FaCheckCircle />
+              </div>
+              <div>
+                <h4 className="sr-backlog-compact-title">No Active Backlogs</h4>
+                <p className="sr-backlog-compact-desc">
+                  Great! You currently don't have any backlog subjects in your available academic results.
+                </p>
+              </div>
             </div>
-            <div>
-              <h4 className="sr-backlog-compact-title">No Active Backlogs</h4>
-              <p className="sr-backlog-compact-desc">
-                Great! You currently don't have any backlog subjects in your available academic results.
-              </p>
+            <div className="sr-backlog-compact-right">
+              <span className="sr-status-pill tone-success">
+                <FaCheckCircle aria-hidden="true" />
+                <span>0 Backlogs</span>
+              </span>
+              <button
+                type="button"
+                className="sr-backlog-view-btn"
+                onClick={() => setIsModalOpen(true)}
+              >
+                View Backlog Subjects Records
+              </button>
             </div>
           </div>
-          <span className="sr-status-pill tone-success">
-            <FaCheckCircle aria-hidden="true" />
-            <span>0 Backlogs</span>
-          </span>
-        </div>
-      </section>
+        </section>
+        {isModalOpen && renderModal()}
+      </>
     );
   }
 
   return (
-    <section className="sr-section-card" aria-label="Backlog & Re-Examination Records">
-      <div className="sr-section-header">
-        <h3 className="sr-section-title">
-          <FaHistory style={{ color: "#d97706" }} aria-hidden="true" />
-          Backlog & Re-Examination Records
-        </h3>
-        <span className="sr-section-badge">
-          {groupedBacklogs.length} {groupedBacklogs.length === 1 ? "Subject" : "Subjects"} Recorded
-        </span>
-      </div>
-
-      {/* Summary Metrics Strip (Counts UNIQUE Subjects) */}
-      <div className="sr-backlog-summary-strip" aria-label="Backlog summary metrics">
-        <div className="sr-backlog-summary-item">
-          <span className="sr-backlog-summary-value">{summary.total}</span>
-          <span className="sr-backlog-summary-label">Total Backlogs</span>
-        </div>
-        <div className="sr-backlog-summary-item" style={{ borderColor: "#bbf7d0" }}>
-          <span className="sr-backlog-summary-value" style={{ color: "#15803d" }}>
-            {summary.cleared}
-          </span>
-          <span className="sr-backlog-summary-label" style={{ color: "#166534" }}>
-            Cleared
-          </span>
-        </div>
-        {summary.reappear > 0 && (
-          <div className="sr-backlog-summary-item" style={{ borderColor: "#fecaca" }}>
-            <span className="sr-backlog-summary-value" style={{ color: "#b91c1c" }}>
-              {summary.reappear}
-            </span>
-            <span className="sr-backlog-summary-label" style={{ color: "#991b1b" }}>
-              Re-appear Required
-            </span>
-          </div>
-        )}
-        {summary.pending > 0 && (
-          <div className="sr-backlog-summary-item" style={{ borderColor: "#bae6fd" }}>
-            <span className="sr-backlog-summary-value" style={{ color: "#0369a1" }}>
-              {summary.pending}
-            </span>
-            <span className="sr-backlog-summary-label" style={{ color: "#075985" }}>
-              Evaluation Pending
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Unique Backlog Subject Cards */}
-      <div className="sr-backlog-cards-container" role="list">
-        {groupedBacklogs.map((item) => {
-          const cardKey = String(item.backlogId || item.subjectId || item.subjectCode);
-          const isExpanded = expandedBacklogIds.has(cardKey);
-          const finalTone = item.finalStatusTone;
-
-          return (
-            <div
-              key={cardKey}
-              className={`sr-backlog-card ${item.isCleared ? "is-cleared" : ""}`}
-              role="listitem"
-            >
-              <div className="sr-backlog-card-header">
-                <div className="sr-backlog-subject-info">
-                  <div className="sr-backlog-subject-title">
-                    <span>{item.subjectName || "Subject"}</span>
-                    <span className="sr-type-badge">
-                      {formatSubjectType(item.subjectType)}
-                    </span>
-                  </div>
-                  <div className="sr-backlog-meta-tags">
-                    <span>Code: {item.subjectCode || "N/A"}</span>
-                    {item.originalSemester && (
-                      <span>• Original Term: Sem {item.originalSemester} {item.originalAcademicYear ? `(${item.originalAcademicYear})` : ""}</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="sr-backlog-action-wrap">
-                  <span className={`sr-status-pill tone-${finalTone.tone}`}>
-                    {item.isCleared ? (
-                      <FaCheckCircle aria-hidden="true" />
-                    ) : item.finalStatus === "ATTEMPTED" ? (
-                      <FaClock aria-hidden="true" />
-                    ) : (
-                      <FaTimesCircle aria-hidden="true" />
-                    )}
-                    <span>{item.finalStatusLabel}</span>
-                  </span>
-
-                  <button
-                    type="button"
-                    className="sr-toggle-history-btn"
-                    onClick={() => toggleExpand(cardKey)}
-                    aria-expanded={isExpanded}
-                    aria-controls={`history-${cardKey}`}
-                  >
-                    <span>{item.attemptCount} {item.attemptCount === 1 ? "Attempt" : "Attempts"}</span>
-                    {isExpanded ? <FaChevronUp aria-hidden="true" /> : <FaChevronDown aria-hidden="true" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Expandable Attempt History Drawer */}
-              {isExpanded && (
-                <div id={`history-${cardKey}`} className="sr-attempts-history-drawer">
-                  <h4 className="sr-attempts-history-title">
-                    <FaClipboardList aria-hidden="true" />
-                    Complete Attempt History
-                  </h4>
-                  <div style={{ overflowX: "auto" }}>
-                    <table className="sr-attempts-table" aria-label={`Attempt history for ${item.subjectName}`}>
-                      <thead>
-                        <tr>
-                          <th scope="col" style={{ width: "12%" }}>Attempt</th>
-                          <th scope="col" style={{ width: "38%" }}>Examination Term</th>
-                          <th scope="col" style={{ width: "12%", textAlign: "right" }}>Internal</th>
-                          <th scope="col" style={{ width: "12%", textAlign: "right" }}>External</th>
-                          <th scope="col" style={{ width: "12%", textAlign: "right" }}>Total</th>
-                          <th scope="col" style={{ width: "14%", textAlign: "center" }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {item.attempts.map((att, aIdx) => {
-                          const attLabel = getResultStatusLabel(att.resultStatus);
-                          const attTone = getResultStatusTone(att.resultStatus);
-
-                          return (
-                            <tr key={att.attemptId || aIdx}>
-                              <td>
-                                <strong>Attempt #{att.attemptNumber}</strong>
-                              </td>
-                              <td>
-                                <div>
-                                  <span>{att.examName}</span>
-                                  {att.evaluatedAt && (
-                                    <span style={{ display: "block", fontSize: "0.72rem", color: "#64748b" }}>
-                                      Evaluated: {formatDate(att.evaluatedAt)}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td style={{ textAlign: "right", fontFamily: "monospace" }}>
-                                {formatMark(att.internalMarks)}
-                              </td>
-                              <td style={{ textAlign: "right", fontFamily: "monospace" }}>
-                                {att.subjectType === "PRACTICAL" ? "—" : formatMark(att.externalMarks)}
-                              </td>
-                              <td style={{ textAlign: "right", fontFamily: "monospace", fontWeight: 700 }}>
-                                {formatMark(att.totalMarks)}
-                              </td>
-                              <td style={{ textAlign: "center" }}>
-                                <span className={`sr-status-pill tone-${attTone.tone}`}>
-                                  {att.cleared || att.resultStatus === "PASS" ? (
-                                    <FaCheckCircle aria-hidden="true" />
-                                  ) : att.resultStatus === "FAIL" ? (
-                                    <FaTimesCircle aria-hidden="true" />
-                                  ) : (
-                                    <FaClock aria-hidden="true" />
-                                  )}
-                                  <span>{attLabel}</span>
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+    <>
+      <section
+        className="sr-section-card sr-backlog-compact-card has-backlogs"
+        aria-label="Backlog & Re-Examination Records"
+      >
+        <div className="sr-backlog-compact-content">
+          <div className="sr-backlog-compact-left">
+            <div className="sr-backlog-compact-icon is-history" aria-hidden="true">
+              <FaHistory />
             </div>
-          );
-        })}
-      </div>
-    </section>
+            <div>
+              <div className="sr-backlog-compact-title-row">
+                <h4 className="sr-backlog-compact-title">Backlog & Re-Examination Records</h4>
+                <span className="sr-section-badge">
+                  {groupedBacklogs.length} {groupedBacklogs.length === 1 ? "Subject" : "Subjects"} Recorded
+                </span>
+              </div>
+              <p className="sr-backlog-compact-desc">
+                {summary.reappear > 0
+                  ? `${summary.reappear} re-appear ${summary.reappear === 1 ? "subject requires" : "subjects require"} examination registration.`
+                  : summary.pending > 0
+                  ? `${summary.pending} subject re-examination under evaluation.`
+                  : `All ${summary.total} recorded backlog ${summary.total === 1 ? "subject has" : "subjects have"} been cleared.`}
+              </p>
+            </div>
+          </div>
+          <div className="sr-backlog-compact-right">
+            <span
+              className={`sr-status-pill ${
+                summary.reappear > 0
+                  ? "tone-danger"
+                  : summary.pending > 0
+                  ? "tone-info"
+                  : "tone-success"
+              }`}
+            >
+              {summary.reappear > 0 ? (
+                <>
+                  <FaTimesCircle aria-hidden="true" />
+                  <span>{summary.reappear} Re-appear</span>
+                </>
+              ) : summary.pending > 0 ? (
+                <>
+                  <FaClock aria-hidden="true" />
+                  <span>{summary.pending} Pending</span>
+                </>
+              ) : (
+                <>
+                  <FaCheckCircle aria-hidden="true" />
+                  <span>{summary.cleared} Cleared</span>
+                </>
+              )}
+            </span>
+            <button
+              type="button"
+              className="sr-backlog-view-btn"
+              onClick={() => setIsModalOpen(true)}
+            >
+              View Backlog Subjects Records
+            </button>
+          </div>
+        </div>
+      </section>
+      {isModalOpen && renderModal()}
+    </>
   );
 }
 
@@ -1037,4 +1225,5 @@ BacklogSection.propTypes = {
       attempts: PropTypes.array,
     })
   ),
+  defaultOpen: PropTypes.bool,
 };
