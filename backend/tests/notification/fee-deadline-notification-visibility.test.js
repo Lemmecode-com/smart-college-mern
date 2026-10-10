@@ -414,9 +414,9 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
       expect(parentIds(res.body)).not.toContain(notificationId);
     });
 
-    it("TC-1.6: the authoring Admin still sees it in My Notifications (outbox)", async () => {
+    it("TC-1.6: the authoring Admin does NOT see the student fee notice in My Notifications", async () => {
       const res = await adminAgent.get("/api/notifications/admin/read").expect(200);
-      expect(res.body.data.myNotifications.map((n) => n._id)).toContain(notificationId);
+      expect(res.body.data.myNotifications.map((n) => n._id)).not.toContain(notificationId);
     });
 
     it("TC-1.7: the authoring Admin does NOT see it in the Bell", async () => {
@@ -633,7 +633,7 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
         const notificationId = res.body.data.notification._id;
 
         const listRes = await adminAgent.get("/api/notifications/admin/read").expect(200);
-        expect(listRes.body.data.myNotifications.map((n) => n._id)).toContain(notificationId);
+        expect(listRes.body.data.myNotifications.map((n) => n._id)).not.toContain(notificationId);
 
         const bellRes = await adminAgent.get("/api/notifications/unread/bell").expect(200);
         expect(bellIds(bellRes.body)).not.toContain(notificationId);
@@ -674,7 +674,7 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
 
       // The management/outbox view intentionally keeps its previous behaviour.
       const list = await adminAgent.get("/api/notifications/admin/read").expect(200);
-      expect(list.body.data.myNotifications.map((n) => n._id)).toContain(notificationId);
+      expect(list.body.data.myNotifications.map((n) => n._id)).not.toContain(notificationId);
     });
 
     it("TC-5.2: an expired ALL notice is excluded from the admin bell and count", async () => {
@@ -728,7 +728,7 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
       expect(count.body.data.myCount).toBe(0);
       expect(
         (list.body.data.myNotifications || []).map((n) => n._id),
-      ).toContain(notificationId);
+      ).not.toContain(notificationId);
       expect(mongoose.isValidObjectId(notificationId)).toBe(true);
     });
   });
