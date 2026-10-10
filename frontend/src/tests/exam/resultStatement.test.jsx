@@ -8,6 +8,10 @@ import {
   groupSemestersByYear,
   mapResultToStatement,
   generateResultStatementFilename,
+  deriveAcademicYearsForCourse,
+  deriveConsolidatedEligibility,
+  mapConsolidatedStatement,
+  generateConsolidatedStatementFilename,
 } from "../../utils/resultStatementDataMapper";
 import YearSemesterResultCards from "../../pages/dashboard/Student/components/results/YearSemesterResultCards";
 import ResultStatementModal from "../../pages/dashboard/Student/components/results/ResultStatementModal";
@@ -277,6 +281,364 @@ describe("Step 10 — Result Statement Data Mapper & Preview/PDF Components", ()
     it("defaults clearedBacklogs to empty array when no backlogResults are present", () => {
       const statement = mapResultToStatement(mockSemesterResult, mockProfile);
       expect(statement.clearedBacklogs).toEqual([]);
+    });
+
+    describe("deriveAcademicYearsForCourse — Dynamic Course Durations", () => {
+      it("generates exactly 2 academic years for a 2-year PG course via durationYears", () => {
+        const course = { name: "M.Sc. Information Technology", durationYears: 2, durationSemesters: 4 };
+        const years = deriveAcademicYearsForCourse(course);
+        expect(years).toEqual([
+          { yearNumber: 1, label: "First Year" },
+          { yearNumber: 2, label: "Second Year" },
+        ]);
+      });
+
+      it("generates exactly 2 academic years for a 2-year course via durationSemesters when durationYears is omitted", () => {
+        const course = { name: "MBA", durationSemesters: 4 };
+        const years = deriveAcademicYearsForCourse(course);
+        expect(years).toHaveLength(2);
+        expect(years[0].label).toBe("First Year");
+        expect(years[1].label).toBe("Second Year");
+      });
+
+      it("generates exactly 3 academic years for a 3-year UG course", () => {
+        const course = { name: "Bachelor of Science", durationYears: 3, durationSemesters: 6 };
+        const years = deriveAcademicYearsForCourse(course);
+        expect(years).toEqual([
+          { yearNumber: 1, label: "First Year" },
+          { yearNumber: 2, label: "Second Year" },
+          { yearNumber: 3, label: "Third Year" },
+        ]);
+      });
+
+      it("generates exactly 4 academic years for a 4-year Engineering course", () => {
+        const course = { name: "B.Tech Computer Science", durationYears: 4, durationSemesters: 8 };
+        const years = deriveAcademicYearsForCourse(course);
+        expect(years).toEqual([
+          { yearNumber: 1, label: "First Year" },
+          { yearNumber: 2, label: "Second Year" },
+          { yearNumber: 3, label: "Third Year" },
+          { yearNumber: 4, label: "Fourth Year" },
+        ]);
+      });
+
+      it("respects custom yearLabels configured on the course", () => {
+        const course = {
+          name: "Diploma in Architecture",
+          durationYears: 2,
+          durationSemesters: 4,
+          yearLabels: ["Part I", "Part II"],
+        };
+        const years = deriveAcademicYearsForCourse(course);
+        expect(years).toEqual([
+          { yearNumber: 1, label: "Part I" },
+          { yearNumber: 2, label: "Part II" },
+        ]);
+      });
+
+      it("preserves authoritative duration when student has fewer published semester results", () => {
+        const course = { name: "B.Tech", durationYears: 4, durationSemesters: 8 };
+        // Student only has Sem 1 published so far
+        const publishedResults = [{ semester: 1, examName: "Sem 1" }];
+        const years = deriveAcademicYearsForCourse(course, publishedResults);
+        // Should generate all 4 configured years so student can see upcoming years or empty states
+        expect(years).toHaveLength(4);
+      });
+
+      it("safely falls back to observed semester results when course duration metadata is missing", () => {
+        const courseWithoutDuration = { name: "Legacy Course" };
+        const publishedResults = [
+          { semester: 1, examName: "Sem 1" },
+          { semester: 2, examName: "Sem 2" },
+          { semester: 3, examName: "Sem 3" },
+        ];
+        // Sem 3 -> Math.ceil(3 / 2) = 2 years
+        const years = deriveAcademicYearsForCourse(courseWithoutDuration, publishedResults);
+        expect(years).toEqual([
+          { yearNumber: 1, label: "First Year" },
+          { yearNumber: 2, label: "Second Year" },
+        ]);
+      });
+
+      it("safely defaults to a minimum of 1 year floor when both duration and results are absent", () => {
+        const years = deriveAcademicYearsForCourse(null, []);
+        expect(years).toEqual([{ yearNumber: 1, label: "First Year" }]);
+      });
+    });
+
+    describe("deriveConsolidatedEligibility & mapConsolidatedStatement — Phase 3", () => {
+      const mockCourse2Year = { name: "M.Sc. IT", durationYears: 2, durationSemesters: 4 };
+      const mockCourse3Year = { name: "BCA", durationYears: 3, durationSemesters: 6 };
+      const mockCourse4Year = { name: "B.Tech", durationYears: 4, durationSemesters: 8 };
+
+      const createPassingSemester = (semNum, totalMarks = 400, totalMaxMarks = 500) => ({
+        semester: semNum,
+        academicYear: `202${Math.floor((semNum - 1) / 2)}-2${Math.floor((semNum - 1) / 2) + 1}`,
+        examName: `Sem ${semNum} Regular Exam`,
+        status: "PUBLISHED",
+        overallResult: "PASS",
+        totalMarks,
+        totalMaxMarks,
+        percentage: Number(((totalMarks / totalMaxMarks) * 100).toFixed(2)),
+        subjects: [
+          {
+            subjectCode: `CS${semNum}01`,
+            subjectName: `Subject ${semNum}.1`,
+            subjectType: "THEORY",
+            internalMarks: 20,
+            internalMaxMarks: 25,
+            externalMarks: 60,
+            externalMaxMarks: 75,
+            totalMarks: 80,
+            maxMarks: 100,
+            passed: true,
+            status: "PASS",
+          },
+        ],
+      });
+
+      it("evaluates student as ELIGIBLE when all required semesters are published and PASS with no backlogs", () => {
+        const results = [1, 2, 3, 4].map((s) => createPassingSemester(s));
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, []);
+
+        expect(eligibility.isEligible).toBe(true);
+        expect(eligibility.status).toBe("ELIGIBLE");
+        expect(eligibility.requiredSemesters).toEqual([1, 2, 3, 4]);
+        expect(eligibility.completedSemesters).toEqual([1, 2, 3, 4]);
+        expect(eligibility.missingSemesters).toEqual([]);
+        expect(eligibility.activeBacklogsCount).toBe(0);
+      });
+
+      it("detects missing required semesters and returns INELIGIBLE", () => {
+        // Missing Sem 4 in a 4-semester course
+        const results = [1, 2, 3].map((s) => createPassingSemester(s));
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, []);
+
+        expect(eligibility.isEligible).toBe(false);
+        expect(eligibility.status).toBe("MISSING_SEMESTERS");
+        expect(eligibility.missingSemesters).toEqual([4]);
+        expect(eligibility.reasons).toContain("Semester 4 has no published result.");
+      });
+
+      it("returns UNKNOWN_ADMISSION_PATH when published results start after Semester 1", () => {
+        // Results start at Sem 3; Sem 1 and 2 are absent, and admission path cannot be verified
+        const results = [3, 4, 5, 6].map((s) => createPassingSemester(s));
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse3Year, []);
+
+        expect(eligibility.isEligible).toBe(false);
+        expect(eligibility.status).toBe("UNKNOWN_ADMISSION_PATH");
+        expect(eligibility.admissionPathStatus).toBe("UNKNOWN_ADMISSION_PATH");
+        expect(eligibility.missingSemesters).toContain(1);
+        expect(eligibility.missingSemesters).toContain(2);
+      });
+
+      it("flags AMBIGUOUS_RESULT when multiple published candidates exist for the same semester", () => {
+        const results = [
+          createPassingSemester(1),
+          createPassingSemester(2),
+          // Two candidate results for Semester 2
+          { ...createPassingSemester(2), examName: "Sem 2 Retake Exam" },
+          createPassingSemester(3),
+          createPassingSemester(4),
+        ];
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, []);
+
+        expect(eligibility.isEligible).toBe(false);
+        expect(eligibility.status).toBe("AMBIGUOUS_RESULT");
+        expect(eligibility.ambiguousSemesters).toEqual([2]);
+        expect(eligibility.reasons.some((r) => r.includes("multiple published result candidates"))).toBe(true);
+      });
+
+      it("flags FAILED_SEMESTERS when any required semester has FAIL outcome", () => {
+        const results = [
+          createPassingSemester(1),
+          { ...createPassingSemester(2), overallResult: "FAIL" },
+          createPassingSemester(3),
+          createPassingSemester(4),
+        ];
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, []);
+
+        expect(eligibility.isEligible).toBe(false);
+        expect(eligibility.status).toBe("FAILED_SEMESTERS");
+        expect(eligibility.failedSemesters).toEqual([2]);
+      });
+
+      it("flags INCOMPLETE_SEMESTERS when any semester result is incomplete", () => {
+        const results = [
+          createPassingSemester(1),
+          { ...createPassingSemester(2), overallResult: "INCOMPLETE" },
+          createPassingSemester(3),
+          createPassingSemester(4),
+        ];
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, []);
+
+        expect(eligibility.isEligible).toBe(false);
+        expect(eligibility.status).toBe("INCOMPLETE_SEMESTERS");
+        expect(eligibility.incompleteSemesters).toEqual([2]);
+      });
+
+      it("flags UNPUBLISHED_SEMESTERS when a candidate semester result is still DRAFT or LOCKED", () => {
+        const results = [
+          createPassingSemester(1),
+          createPassingSemester(2),
+          createPassingSemester(3),
+          { ...createPassingSemester(4), status: "LOCKED" },
+        ];
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, []);
+
+        expect(eligibility.isEligible).toBe(false);
+        expect(eligibility.status).toBe("UNPUBLISHED_SEMESTERS");
+        expect(eligibility.unpublishedSemesters).toEqual([4]);
+      });
+
+      it("flags ACTIVE_BACKLOGS when an active backlog exists in OPEN status", () => {
+        const results = [1, 2, 3, 4].map((s) => createPassingSemester(s));
+        const rawBacklogs = [
+          {
+            backlogId: "b1",
+            subjectCode: "CS201",
+            status: "OPEN",
+            cleared: false,
+          },
+        ];
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, rawBacklogs);
+
+        expect(eligibility.isEligible).toBe(false);
+        expect(eligibility.status).toBe("ACTIVE_BACKLOGS");
+        expect(eligibility.activeBacklogsCount).toBe(1);
+      });
+
+      it("flags ACTIVE_BACKLOGS when a backlog is in ATTEMPTED status", () => {
+        const results = [1, 2, 3, 4].map((s) => createPassingSemester(s));
+        const rawBacklogs = [
+          {
+            backlogId: "b2",
+            subjectCode: "CS202",
+            status: "ATTEMPTED",
+            cleared: false,
+            resultStatus: "INCOMPLETE",
+          },
+        ];
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, rawBacklogs);
+
+        expect(eligibility.isEligible).toBe(false);
+        expect(eligibility.status).toBe("ACTIVE_BACKLOGS");
+        expect(eligibility.activeBacklogsCount).toBe(1);
+      });
+
+      it("allows eligibility when a backlog has been authoritatively CLEARED and no active backlogs remain", () => {
+        const results = [1, 2, 3, 4].map((s) => createPassingSemester(s));
+        const rawBacklogs = [
+          {
+            backlogId: "b3",
+            subjectCode: "CS101",
+            status: "CLEARED",
+            cleared: true,
+            resultStatus: "PASS",
+          },
+        ];
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, rawBacklogs);
+
+        expect(eligibility.isEligible).toBe(true);
+        expect(eligibility.status).toBe("ELIGIBLE");
+        expect(eligibility.activeBacklogsCount).toBe(0);
+      });
+
+      it("verifies 2-year (4 sems), 3-year (6 sems), and 4-year (8 sems) required semester counts", () => {
+        const el2 = deriveConsolidatedEligibility([], mockCourse2Year);
+        expect(el2.requiredSemesters).toEqual([1, 2, 3, 4]);
+
+        const el3 = deriveConsolidatedEligibility([], mockCourse3Year);
+        expect(el3.requiredSemesters).toEqual([1, 2, 3, 4, 5, 6]);
+
+        const el4 = deriveConsolidatedEligibility([], mockCourse4Year);
+        expect(el4.requiredSemesters).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+      });
+
+      it("does not bypass missing or failed semester results when student has ALUMNI status", () => {
+        const results = [1, 2, 3].map((s) => createPassingSemester(s)); // Missing sem 4
+        const studentProfile = {
+          student: { fullName: "Graduated Student", status: "ALUMNI" },
+        };
+        const eligibility = deriveConsolidatedEligibility(results, mockCourse2Year, [], studentProfile);
+
+        expect(eligibility.isEligible).toBe(false);
+        expect(eligibility.status).toBe("MISSING_SEMESTERS");
+      });
+
+      it("maps consolidated statement with correct grand totals, aggregate percentage, and immutable source results", () => {
+        const results = [
+          createPassingSemester(1, 400, 500),
+          createPassingSemester(2, 450, 500),
+          createPassingSemester(3, 420, 500),
+          createPassingSemester(4, 430, 500),
+        ];
+        const profile = {
+          student: {
+            fullName: "Aarav Sharma",
+            enrollmentNumber: "EN202401892",
+            motherName: "Sunita Sharma",
+            fatherName: "Rajesh Sharma",
+          },
+          college: {
+            name: "Apex Engineering College",
+            code: "AEC",
+            address: "Mumbai, Maharashtra",
+          },
+          course: mockCourse2Year,
+        };
+        const rawBacklogs = [
+          {
+            backlogId: "b1",
+            subjectCode: "CS101",
+            subjectName: "Programming",
+            semester: 1,
+            attemptNumber: 2,
+            cleared: true,
+            resultStatus: "PASS",
+            totalMarks: 75,
+          },
+        ];
+
+        // Deep clone snapshot before mapping to test immutability
+        const resultsBefore = JSON.parse(JSON.stringify(results));
+
+        const statement = mapConsolidatedStatement(results, profile, mockCourse2Year, rawBacklogs);
+
+        // Immutability check
+        expect(results).toEqual(resultsBefore);
+
+        // Verification of student and college details
+        expect(statement.student.name).toBe("Aarav Sharma");
+        expect(statement.student.enrollmentNumber).toBe("EN202401892");
+        expect(statement.college.name).toBe("Apex Engineering College");
+
+        // Verification of grand totals (sum: 400 + 450 + 420 + 430 = 1700 out of 2000)
+        expect(statement.summary.grandTotalMarks).toBe(1700);
+        expect(statement.summary.grandTotalMaxMarks).toBe(2000);
+        expect(statement.summary.aggregatePercentage).toBe(85.0); // (1700 / 2000) * 100 = 85.00%
+        expect(statement.summary.overallResult).toBe("PASS");
+
+        // Verification that cleared backlog marks were NOT added to regular totals
+        expect(statement.clearedBacklogs).toHaveLength(1);
+        expect(statement.clearedBacklogs[0].subjectCode).toBe("CS101");
+        expect(statement.summary.grandTotalMarks).toBe(1700); // Backlog 75 marks must not be added
+
+        // Verification of filename generator
+        const filename = generateConsolidatedStatementFilename(statement);
+        expect(filename).toBe("Consolidated_Marksheet_EN202401892.pdf");
+      });
+
+      it("safely handles zero maximum marks and missing numeric values without emitting NaN or Infinity", () => {
+        const results = [
+          { ...createPassingSemester(1), totalMarks: null, totalMaxMarks: 0 },
+          { ...createPassingSemester(2), totalMarks: undefined, totalMaxMarks: null },
+        ];
+        const statement = mapConsolidatedStatement(results, null, { durationYears: 1, durationSemesters: 2 });
+
+        expect(statement.summary.aggregatePercentage).toBeNull();
+        expect(Number.isNaN(statement.summary.aggregatePercentage)).toBe(false);
+      });
     });
   });
 
