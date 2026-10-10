@@ -1310,12 +1310,6 @@ export const navigationConfig = {
             label: "All Teachers",
             exact: true,
           },
-          {
-            path: "/hod/department",
-            icon: FaLayerGroup,
-            label: "Department Info",
-            exact: true,
-          },
         ],
       },
       {
