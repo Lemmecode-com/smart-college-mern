@@ -72,7 +72,7 @@ export default function YearSemesterResultCards({
               </div>
               <div>
                 <h3 className="sr-year-title">
-                  {yearGroup.yearNumber === 4 ? "Fourth Year" : yearGroup.yearLabel}
+                  {yearGroup.yearLabel || (yearGroup.yearNumber === 4 ? "Fourth Year" : `Year ${yearGroup.yearNumber}`)}
                 </h3>
                 <span className="sr-year-subtitle">
                   Academic Year {yearGroup.yearNumber} • {yearGroup.semesters.length}{" "}

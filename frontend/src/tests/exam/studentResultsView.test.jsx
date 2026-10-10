@@ -2,11 +2,13 @@ import React, { act } from "react";
 import { createRoot } from "react-dom/client";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-import SemesterSelector from "../../pages/dashboard/Student/components/results/SemesterSelector";
-import ResultSummaryHero from "../../pages/dashboard/Student/components/results/ResultSummaryHero";
-import SubjectResultsSection from "../../pages/dashboard/Student/components/results/SubjectResultsSection";
-import BacklogSection from "../../pages/dashboard/Student/components/results/BacklogSection";
-import ResultsEmptyState from "../../pages/dashboard/Student/components/results/ResultsEmptyState";
+import {
+  SemesterSelector,
+  ResultSummaryHero,
+  SubjectResultsSection,
+  BacklogSection,
+  ResultsEmptyState,
+} from "../../pages/dashboard/Student/StudentResults";
 import YearSemesterResultCards from "../../pages/dashboard/Student/components/results/YearSemesterResultCards";
 
 import {
