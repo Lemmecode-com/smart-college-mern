@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useContext, useRef } from "react";
+import React, { useState, useEffect, useCallback, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
@@ -147,6 +147,7 @@ export default function NotificationForm({
   const [loading, setLoading] = useState(mode === "edit");
   const [saving, setSaving] = useState(false);
   const isSubmittingRef = useRef(false);
+  const navigationTimerRef = useRef(null);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -171,6 +172,15 @@ export default function NotificationForm({
     setTitleCount(form.title.length);
     setMessageCount(form.message.length);
   }, [form.title, form.message]);
+
+  /* ================= CLEANUP PENDING NAVIGATION TIMERS ================= */
+  useEffect(() => {
+    return () => {
+      if (navigationTimerRef.current) {
+        clearTimeout(navigationTimerRef.current);
+      }
+    };
+  }, []);
 
   /* ================= FETCH DEPARTMENTS & COURSES ================= */
   useEffect(() => {
@@ -310,7 +320,7 @@ export default function NotificationForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (isSubmittingRef.current) {
+    if (isSubmittingRef.current || saving) {
       return;
     }
 
@@ -378,36 +388,24 @@ export default function NotificationForm({
         await api.post(config.createEndpoint, payload);
         toast.success(config.successMessage);
 
-        setTimeout(() => {
-          setForm({
-            title: "",
-            message: "",
-            type: "GENERAL",
-            priority: "LOW",
-            expiresAt: "",
-            target: "STUDENTS",
-            target_department: "",
-            target_course: "",
-            target_semester: "",
-            target_users: [],
-          });
-        }, 2000);
+        navigationTimerRef.current = setTimeout(() => {
+          navigate(config.listRoute);
+        }, 1200);
       } else {
         await api.put(`${config.editEndpoint}${id}`, payload);
         toast.success(config.editSuccessMessage);
         setOriginalForm({ ...form });
 
-        setTimeout(() => {
+        navigationTimerRef.current = setTimeout(() => {
           navigate(config.listRoute);
-        }, 1500);
+        }, 1200);
       }
     } catch (err) {
+      isSubmittingRef.current = false;
+      setSaving(false);
       const errorMsg =
         err.response?.data?.message || `Failed to ${mode} notification`;
       toast.error(errorMsg);
-    } finally {
-      isSubmittingRef.current = false;
-      setSaving(false);
     }
   };
 
