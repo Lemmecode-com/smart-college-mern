@@ -552,7 +552,9 @@ exports.getMyFullProfile = async (req, res, next) => {
     const department = await Department.findById(student.department_id).select(
       "name code",
     );
-    const course = await Course.findById(student.course_id).select("name code");
+    const course = await Course.findById(student.course_id).select(
+      "name code durationSemesters durationYears yearLabels programLevel",
+    );
 
     // 3️⃣ Document Config (to determine which fields to show)
     const docConfig = await DocumentConfig.findOne({
