@@ -317,7 +317,7 @@ describe("HodTeachers UI/UX Redesign", () => {
     expect(container.textContent).not.toContain("No phone");
   });
 
-  it("navigates back to dashboard when Back to Dashboard button is clicked", async () => {
+  it("confirms Back to Dashboard button is removed from page", async () => {
     mockApi.get.mockResolvedValueOnce({
       data: { data: { teachers: sampleTeachers } },
     });
@@ -327,13 +327,8 @@ describe("HodTeachers UI/UX Redesign", () => {
     const backBtn = Array.from(container.querySelectorAll("button")).find((b) =>
       b.textContent.includes("Back to Dashboard")
     );
-    expect(backBtn).toBeTruthy();
-
-    act(() => {
-      backBtn.click();
-    });
-
-    expect(mockNavigate).toHaveBeenCalledWith("/hod/dashboard");
+    expect(backBtn).toBeUndefined();
+    expect(container.textContent).not.toContain("Back to Dashboard");
   });
 
   it("renders API error state when fetch fails", async () => {
