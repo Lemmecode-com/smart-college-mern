@@ -79,7 +79,7 @@ const setPdfFont = (doc, fontAvailable, style) => {
 const drawPdfHeader = (doc, columns, colWidths, startY, margin, usableWidth, fontAvailable) => {
   const fontSize = 10;
   const cellPaddingX = 3;
-  const cellPaddingY = 3;
+  const _cellPaddingY = 3;
   const headerPaddingY = 4;
   const lineHeightFactor = 1.35;
 
@@ -187,8 +187,6 @@ const drawPdfTable = (doc, columns, rows, startY, pageWidth, fontAvailable) => {
     doc.rect(margin, rowY, usableWidth, rowHeight, 'S');
 
     columns.forEach((col, index) => {
-      const value = row[col.dataKey] ?? row[col.key] ?? '';
-      const text = value === null || value === undefined ? '' : String(value);
       const lines = cellLinesList[index];
       const align = col.align || 'left';
       let x = margin + index * colWidths[index];
@@ -212,7 +210,7 @@ const drawPdfTable = (doc, columns, rows, startY, pageWidth, fontAvailable) => {
  * @param {Array} rows - Table data [{name: 'John', value: 100}]
  * @param {string} filename - Output filename
  */
-export const exportToPDF = async (title, columns, rows, filename = 'report.pdf') => {
+export const exportToPDF = async (title, columns, rows, filename = 'report.pdf', options = {}) => {
   try {
     const doc = new jsPDF({
       orientation: 'landscape',
@@ -234,10 +232,41 @@ export const exportToPDF = async (title, columns, rows, filename = 'report.pdf')
     doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
     setPdfFont(doc, fontAvailable, 'normal');
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, 23);
 
-    const startY = 30;
-    drawPdfTable(doc, columns, rows, startY, pageWidth, fontAvailable);
+    let startY = 23;
+    if (options && options.filterMetadata) {
+      doc.text(String(options.filterMetadata), margin, startY, { maxWidth: usableWidth });
+      startY += 7;
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, startY);
+      startY += 8;
+    } else {
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, margin, startY);
+      startY += 8;
+    }
+
+    if (options && options.sections && Array.isArray(options.sections) && options.sections.length > 0) {
+      let currentY = startY;
+      options.sections.forEach((sec, idx) => {
+        if (idx > 0) {
+          if (currentY + 30 > doc.internal.pageSize.getHeight() - 14) {
+            doc.addPage();
+            currentY = 14;
+          } else {
+            currentY += 8;
+          }
+        }
+        if (sec.title) {
+          doc.setFontSize(13);
+          doc.setTextColor(26, 75, 109);
+          setPdfFont(doc, fontAvailable, 'bold');
+          doc.text(String(sec.title), margin, currentY);
+          currentY += 6;
+        }
+        currentY = drawPdfTable(doc, sec.columns || [], sec.rows || [], currentY, pageWidth, fontAvailable);
+      });
+    } else {
+      drawPdfTable(doc, columns, rows, startY, pageWidth, fontAvailable);
+    }
 
     doc.save(filename);
 
@@ -254,52 +283,112 @@ export const exportToPDF = async (title, columns, rows, filename = 'report.pdf')
  * @param {Array} columns - Table columns [{header: 'Name', key: 'name'}]
  * @param {Array} rows - Table data [{name: 'John', value: 100}]
  * @param {string} filename - Output filename
+ * @param {Object} options - Optional { filterMetadata: string, sheets: [{ name, title, columns, rows }] }
  */
-export const exportToExcel = async (title, columns, rows, filename = 'report.xlsx') => {
+export const exportToExcel = async (title, columns, rows, filename = 'report.xlsx', options = {}) => {
   try {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Report');
+    workbook.creator = 'NOVAA ERP';
+    workbook.created = new Date();
 
-    worksheet.columns = columns.map((col) => ({
-      header: col.header,
-      key: col.key || col.dataKey,
-      width: 20,
-    }));
+    if (options && options.sheets && Array.isArray(options.sheets) && options.sheets.length > 0) {
+      options.sheets.forEach((sheetConfig) => {
+        const worksheet = workbook.addWorksheet(sheetConfig.name || 'Sheet');
+        const sheetCols = sheetConfig.columns || [];
+        const sheetRows = sheetConfig.rows || [];
+        const colCount = Math.max(sheetCols.length, 4);
+        const endLetter = String.fromCharCode(64 + Math.min(colCount, 26));
 
-    worksheet.insertRow(1, [title]);
-    const titleRow = worksheet.getRow(1);
-    titleRow.font = { bold: true, size: 16 };
-    titleRow.alignment = { horizontal: 'center' };
-    worksheet.mergeCells(`A1:${String.fromCharCode(65 + columns.length - 1)}1`);
+        // Row 1: Title
+        worksheet.addRow([sheetConfig.title || title]);
+        worksheet.mergeCells(`A1:${endLetter}1`);
+        const tRow = worksheet.getRow(1);
+        tRow.font = { bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+        tRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1A4B6D' } };
+        tRow.alignment = { horizontal: 'center', vertical: 'middle' };
+        tRow.height = 28;
 
-    worksheet.insertRow(2, [`Generated on: ${new Date().toLocaleString()}`]);
-    const timestampRow = worksheet.getRow(2);
-    timestampRow.font = { italic: true, size: 10 };
-    worksheet.mergeCells(`A2:${String.fromCharCode(65 + columns.length - 1)}2`);
+        // Row 2: Metadata / Filters
+        const metaText = options.filterMetadata
+          ? `${options.filterMetadata} | Generated: ${new Date().toLocaleString()}`
+          : `Generated on: ${new Date().toLocaleString()}`;
+        worksheet.addRow([metaText]);
+        worksheet.mergeCells(`A2:${endLetter}2`);
+        const mRow = worksheet.getRow(2);
+        mRow.font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
+        mRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+        mRow.alignment = { horizontal: 'left', vertical: 'middle' };
+        mRow.height = 20;
 
-    const headerRow = worksheet.getRow(3);
-    headerRow.eachCell((cell) => {
-      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF1A4B6D' },
-      };
-      cell.border = {
-        top: { style: 'thin' },
-        left: { style: 'thin' },
-        bottom: { style: 'thin' },
-        right: { style: 'thin' },
-      };
-    });
+        worksheet.addRow([]); // Blank spacer
 
-    rows.forEach((row, index) => {
-      const worksheetRow = worksheet.getRow(index + 4);
-      columns.forEach((col) => {
-        const cell = worksheetRow.getCell(col.key || col.dataKey);
-        const value = row[col.key || col.dataKey];
-        cell.value = value === null || value === undefined ? '' : value;
+        if (sheetCols.length > 0) {
+          worksheet.columns = sheetCols.map((c) => ({
+            key: c.key || c.dataKey,
+            width: c.width || 22,
+          }));
 
+          const headerRow = worksheet.addRow(sheetCols.map((c) => c.header));
+          headerRow.height = 24;
+          headerRow.eachCell((cell) => {
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0E3746' } };
+            cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+            };
+          });
+
+          sheetRows.forEach((r, rIdx) => {
+            const rValues = sheetCols.map((c) => r[c.key || c.dataKey] ?? '');
+            const dRow = worksheet.addRow(rValues);
+            dRow.height = 20;
+            const isEven = rIdx % 2 === 0;
+            dRow.eachCell((cell) => {
+              cell.font = { size: 9.5 };
+              cell.alignment = { vertical: 'middle' };
+              if (!isEven) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
+              }
+              cell.border = {
+                bottom: { style: 'thin', color: { argb: 'FFF1F5F9' } },
+              };
+            });
+          });
+        }
+      });
+    } else {
+      const worksheet = workbook.addWorksheet('Report');
+
+      worksheet.columns = columns.map((col) => ({
+        header: col.header,
+        key: col.key || col.dataKey,
+        width: 20,
+      }));
+
+      worksheet.insertRow(1, [title]);
+      const titleRow = worksheet.getRow(1);
+      titleRow.font = { bold: true, size: 16 };
+      titleRow.alignment = { horizontal: 'center' };
+      worksheet.mergeCells(`A1:${String.fromCharCode(65 + columns.length - 1)}1`);
+
+      const metaText = options && options.filterMetadata
+        ? `${options.filterMetadata} | Generated: ${new Date().toLocaleString()}`
+        : `Generated on: ${new Date().toLocaleString()}`;
+      worksheet.insertRow(2, [metaText]);
+      const timestampRow = worksheet.getRow(2);
+      timestampRow.font = { italic: true, size: 10 };
+      worksheet.mergeCells(`A2:${String.fromCharCode(65 + columns.length - 1)}2`);
+
+      const headerRow = worksheet.getRow(3);
+      headerRow.eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF1A4B6D' },
+        };
         cell.border = {
           top: { style: 'thin' },
           left: { style: 'thin' },
@@ -307,7 +396,23 @@ export const exportToExcel = async (title, columns, rows, filename = 'report.xls
           right: { style: 'thin' },
         };
       });
-    });
+
+      rows.forEach((row, index) => {
+        const worksheetRow = worksheet.getRow(index + 4);
+        columns.forEach((col) => {
+          const cell = worksheetRow.getCell(col.key || col.dataKey);
+          const value = row[col.key || col.dataKey];
+          cell.value = value === null || value === undefined ? '' : value;
+
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+          };
+        });
+      });
+    }
 
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], {

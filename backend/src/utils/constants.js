@@ -195,6 +195,11 @@ exports.RESULT_STATUS = {
   PUBLISHED: "PUBLISHED",
 };
 
+/**
+ * Default pass mark percentage threshold (40%) when not customized at program/subject level.
+ */
+exports.PASS_MARK_PERCENT = 40;
+
 // ==================== HELPER FUNCTIONS ====================
 
 /**
