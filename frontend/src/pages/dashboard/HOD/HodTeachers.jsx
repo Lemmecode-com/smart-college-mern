@@ -9,7 +9,6 @@ import {
   FaGraduationCap,
   FaBriefcase,
   FaSearch,
-  FaArrowLeft,
   FaTimes,
 } from "react-icons/fa";
 /* eslint-disable-next-line no-unused-vars */
@@ -182,7 +181,7 @@ export default function HodTeachers() {
       }}
     >
       <div className="erp-page-content" style={{ maxWidth: 1200 }}>
-        {/* ================= BREADCRUMB & BACK ================= */}
+        {/* ================= BREADCRUMB ================= */}
         <div
           style={{
             display: "flex",
@@ -199,37 +198,6 @@ export default function HodTeachers() {
               { label: "Department Teachers" },
             ]}
           />
-          <button
-            type="button"
-            onClick={() => navigate("/hod/dashboard")}
-            className="btn btn-sm"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.45rem",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              padding: "0.4rem 0.85rem",
-              borderRadius: "8px",
-              border: `1px solid ${BRAND.border}`,
-              color: BRAND.ink,
-              background: BRAND.card,
-              boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = BRAND.primary;
-              e.currentTarget.style.color = BRAND.primary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = BRAND.border;
-              e.currentTarget.style.color = BRAND.ink;
-            }}
-          >
-            <FaArrowLeft style={{ fontSize: "0.72rem" }} />
-            <span>Back to Dashboard</span>
-          </button>
         </div>
 
         {/* ================= COMPACT PAGE HEADER ================= */}
