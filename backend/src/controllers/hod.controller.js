@@ -1,9 +1,8 @@
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
-const Timetable = require("../models/timetable.model");
-const TimetableSlot = require("../models/timetableSlot.model");
 const ApiResponse = require("../utils/ApiResponse");
 const AppError = require("../utils/AppError");
+const hodDashboardService = require("../services/hodDashboard.service");
 
 /**
  * GET HOD Dashboard Statistics
@@ -18,43 +17,16 @@ const getHodDashboard = async (req, res) => {
       throw new AppError("Department not found for this HOD", 404, "DEPARTMENT_NOT_FOUND");
     }
 
-    // Get counts for dashboard
-    const teachersCount = await Teacher.countDocuments({ department_id: department._id });
-    const timetablesCount = await Timetable.countDocuments({ department_id: department._id });
+    const collegeId = req.user.college_id;
+    const teacher = req.teacher;
 
-    // Get recent timetables
-    const recentTimetables = await Timetable.find({ department_id: department._id })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select("name startDate endDate status createdAt");
+    const data = await hodDashboardService.getHodDashboardData({
+      collegeId,
+      department,
+      teacher,
+    });
 
-    let hodDetails = null;
-    if (department.hod_id) {
-      const hodTeacher = await Teacher.findById(department.hod_id)
-        .select("name employeeId");
-
-      if (hodTeacher) {
-        hodDetails = {
-          id: hodTeacher._id,
-          name: hodTeacher.name,
-          employeeId: hodTeacher.employeeId,
-        };
-      }
-    }
-
-    ApiResponse.success(res, {
-      department: {
-        id: department._id,
-        name: department.name,
-        code: department.code,
-      },
-      hod: hodDetails,
-      stats: {
-        teachers: teachersCount,
-        timetables: timetablesCount,
-      },
-      recentTimetables,
-    }, "HOD dashboard data fetched successfully");
+    ApiResponse.success(res, data, "HOD dashboard data fetched successfully");
   } catch (error) {
     throw error;
   }
