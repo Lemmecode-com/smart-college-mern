@@ -20,8 +20,6 @@ export default function SidebarSection({
   isActive = false,
   isCollapsed = false
 }) {
-  const location = useLocation();
-
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -60,7 +58,9 @@ export default function SidebarSection({
         role="group"
         aria-label={`${title} submenu`}
       >
-        {children}
+        <div className="submenu-inner">
+          {children}
+        </div>
       </div>
     </div>
   );
