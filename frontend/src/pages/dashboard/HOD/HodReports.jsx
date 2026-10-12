@@ -563,81 +563,96 @@ const HodReports = () => {
 
       // Sheet 1: Summary Sheet
       const summaryRows = [
-        { metric: "Total Assigned Teachers", value: totalTeachers },
-        { metric: "Total Enrolled Students", value: totalStudents },
-        { metric: "Total Curriculum Subjects", value: totalSubjects },
-        { metric: "Total Department Programs", value: totalCourses },
-        { metric: "Published Timetables", value: publishedTimetables },
-        { metric: "Draft Timetables", value: draftTimetables },
-        { metric: "Archived Timetables", value: archivedTimetables },
-        { metric: "Sessions Held (Closed)", value: totalSessions },
-        { metric: "Present Attendance Marks", value: presentRecords },
-        { metric: "Absent Attendance Marks", value: absentRecords },
-        { metric: "Total Marks Recorded", value: totalRecords },
-        { metric: "Average Attendance Rate", value: `${avgAttendancePercent}%` },
-        {
-          metric: "Students Below 75% Watchlist",
-          value: lowAttendanceStudents.length,
-        },
+        { metric: "Total Assigned Teachers",      value: totalTeachers },
+        { metric: "Total Enrolled Students",       value: totalStudents },
+        { metric: "Total Curriculum Subjects",     value: totalSubjects },
+        { metric: "Total Department Programs",     value: totalCourses },
+        { metric: "Published Timetables",          value: publishedTimetables },
+        { metric: "Draft Timetables",              value: draftTimetables },
+        { metric: "Archived Timetables",           value: archivedTimetables },
+        { metric: "Sessions Held (Closed)",        value: totalSessions },
+        { metric: "Present Attendance Marks",      value: presentRecords },
+        { metric: "Absent Attendance Marks",       value: absentRecords },
+        { metric: "Total Marks Recorded",          value: totalRecords },
+        // Pre-divide so the Summary Value column can use numFmt '0%' for this one row
+        { metric: "Average Attendance Rate",       value: avgAttendancePercent / 100, _pct: true },
+        { metric: "Students Below 75% Watchlist",  value: lowAttendanceStudents.length },
       ];
 
       const summaryCols = [
-        { header: "Report KPI Metric", key: "metric", width: 32 },
-        { header: "Value", key: "value", width: 22 },
+        { header: "Report KPI Metric", key: "metric", width: 36 },
+        { header: "Value",             key: "value",  width: 18 },
       ];
 
       // Sheet 2: Subject-wise
+
       const subjectCols = [
-        { header: "Code", key: "code", width: 14 },
-        { header: "Subject Name", key: "name", width: 32 },
-        { header: "Assigned Faculty", key: "teacher", width: 24 },
-        { header: "Semester", key: "semester", width: 12 },
-        { header: "Sessions Held", key: "sessions", width: 16 },
-        { header: "Present", key: "present", width: 12 },
-        { header: "Absent", key: "absent", width: 12 },
-        { header: "Avg %", key: "avg", width: 14 },
-        { header: "Status", key: "status", width: 14 },
+        { header: "Code",             key: "code",     width: 18 },
+        { header: "Subject Name",     key: "name",     width: 32 },
+        { header: "Assigned Faculty", key: "teacher",  width: 24 },
+        { header: "Semester",         key: "semester", width: 12 },
+        { header: "Sessions Held",    key: "sessions", width: 16 },
+        { header: "Present",          key: "present",  width: 12 },
+        { header: "Absent",           key: "absent",   width: 12 },
+        { header: "Avg %",            key: "avg",      width: 14, isPercent: true },
+        { header: "Status",           key: "status",   width: 14 },
       ];
 
       // Sheet 3: Low Attendance Watchlist
       const lowAttCols = [
-        { header: "Student Name", key: "name", width: 24 },
-        { header: "PRN / ID", key: "prn", width: 18 },
-        { header: "Roll Number", key: "rollNumber", width: 14 },
-        { header: "Semester", key: "sem", width: 14 },
-        { header: "Attended Sessions", key: "sessionsAttended", width: 18 },
-        { header: "Total Sessions", key: "totalSessions", width: 16 },
-        { header: "Attendance %", key: "attendance", width: 16 },
-        { header: "Status", key: "status", width: 14 },
+        { header: "Student Name",       key: "name",             width: 24 },
+        { header: "PRN / ID",           key: "prn",              width: 18 },
+        { header: "Roll Number",        key: "rollNumber",        width: 14 },
+        { header: "Semester",           key: "sem",              width: 14 },
+        { header: "Attended Sessions",  key: "sessionsAttended", width: 18 },
+        { header: "Total Sessions",     key: "totalSessions",    width: 16 },
+        { header: "Attendance %",       key: "attendance",       width: 16, isPercent: true },
+        { header: "Status",             key: "status",           width: 14 },
       ];
 
-      // Sheet 4: Faculty Workload
-      const facultyCols = [
-        { header: "Faculty Name", key: "name", width: 24 },
-        { header: "Employee ID", key: "empId", width: 16 },
-        { header: "Specialization", key: "subjects", width: 28 },
-        { header: "Sessions Conducted", key: "sessions", width: 20 },
-        { header: "Timely Submissions", key: "timelySessions", width: 20 },
-        { header: "Attendance Timeliness", key: "timelinessPercent", width: 22 },
-        { header: "Compliance Status", key: "status", width: 18 },
-      ];
+      // Sheet 4: Faculty Workload — conditionally include Specialization
+      const facultyCols = hasAnySpecialization
+        ? [
+            { header: "Faculty Name",         key: "name",              width: 24 },
+            { header: "Employee ID",           key: "empId",             width: 16 },
+            { header: "Specialization",        key: "subjects",          width: 28 },
+            { header: "Sessions Conducted",    key: "sessions",          width: 20 },
+            { header: "Timely Submissions",    key: "timelySessions",    width: 20 },
+            { header: "Attendance Timeliness", key: "timelinessPercent", width: 22, isPercent: true },
+            { header: "Compliance Status",     key: "status",            width: 18 },
+          ]
+        : [
+            { header: "Faculty Name",         key: "name",              width: 28 },
+            { header: "Employee ID",           key: "empId",             width: 18 },
+            { header: "Sessions Conducted",    key: "sessions",          width: 22 },
+            { header: "Timely Submissions",    key: "timelySessions",    width: 22 },
+            { header: "Attendance Timeliness", key: "timelinessPercent", width: 24, isPercent: true },
+            { header: "Compliance Status",     key: "status",            width: 20 },
+          ];
 
+      // Faculty rows: store timeliness as raw number (exportHelpers converts to fraction+numFmt)
       const facultyExportRows = facultyOverview.map((f) => ({
         name: f.name,
         empId: f.empId,
-        subjects: f.specialization || "Not set",
+        ...(hasAnySpecialization ? { subjects: f.specialization || "Not set" } : {}),
         sessions: f.sessions,
         timelySessions: f.timelySessions,
-        timelinessPercent: f.sessions === 0 ? "N/A" : `${f.timelinessPercent ?? 100}%`,
+        // Keep as number so isPercent logic applies; "N/A" string is passed when 0 sessions
+        timelinessPercent: f.sessions === 0 ? "N/A" : (f.timelinessPercent ?? 100),
         status: f.sessions === 0 ? "No sessions" : f.status,
       }));
+
 
       const sheets = [
         {
           name: "Summary",
           title: `Department Summary - ${deptTitle}`,
           columns: summaryCols,
-          rows: summaryRows,
+          // Special handling: the "Average Attendance Rate" row uses isPercentValue flag
+          // to signal that the value should be treated as a percent integer
+          rows: summaryRows.map((r) =>
+            r.isPercentValue ? { ...r, value: r.value } : r
+          ),
         },
         {
           name: "Subject-wise",
@@ -650,6 +665,7 @@ const HodReports = () => {
           title: `Students Below 75% Watchlist - ${deptTitle}`,
           columns: lowAttCols,
           rows: lowAttendanceStudents,
+          emptyMessage: "No students below 75% attendance threshold",
         },
         {
           name: "Faculty",
@@ -681,27 +697,59 @@ const HodReports = () => {
       const deptTitle = department.name || "Information Technology";
       const filename = `HOD_Report_${department.code || "IT"}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
+      // Subject-wise table: widths must sum to 100
+      // Code widened to 18 so long codes (e.g. INF-ADMS-S1-3704) fit without wrapping
       const subjectColumns = [
-        { header: "Code", key: "code", width: 14 },
-        { header: "Subject", key: "name", width: 34 },
-        { header: "Teacher", key: "teacher", width: 26 },
-        { header: "Sessions", key: "sessions", width: 16 },
-        { header: "Avg %", key: "avg", width: 14 },
+        { header: "Code",     key: "code",     width: 18, align: 'left' },
+        { header: "Subject",  key: "name",     width: 32, align: 'left' },
+        { header: "Teacher",  key: "teacher",  width: 24, align: 'left' },
+        { header: "Sessions", key: "sessions", width: 12, align: 'center' },
+        { header: "Avg %",    key: "avg",      width: 14, align: 'center' },
+      ]; // total: 18+32+24+12+14 = 100
+
+      // Faculty table: hide Specialization column if no teacher has one (matches screen)
+      // Widths always sum to 100.
+      const facultyColumns = hasAnySpecialization
+        ? [
+            { header: "Faculty Name",  key: "name",              width: 23, align: 'left' },
+            { header: "Employee ID",   key: "empId",             width: 13, align: 'left' },
+            { header: "Specialization",key: "subjects",          width: 20, align: 'left' },
+            { header: "Sessions",      key: "sessions",          width: 11, align: 'center' },
+            { header: "Timeliness",    key: "timelinessPercent", width: 16, align: 'center' },
+            { header: "Status",        key: "status",            width: 17, align: 'left' },
+          ] // 23+13+20+11+16+17 = 100
+        : [
+            { header: "Faculty Name",  key: "name",              width: 30, align: 'left' },
+            { header: "Employee ID",   key: "empId",             width: 17, align: 'left' },
+            { header: "Sessions",      key: "sessions",          width: 14, align: 'center' },
+            { header: "Timeliness",    key: "timelinessPercent", width: 20, align: 'center' },
+            { header: "Status",        key: "status",            width: 19, align: 'left' },
+          ]; // 30+17+14+20+19 = 100
+
+
+      // Summary section rows
+      const summaryPdfColumns = [
+        { header: "Metric",  key: "metric", width: 60, align: 'left' },
+        { header: "Value",   key: "value",  width: 40, align: 'center' },
+      ];
+      const summaryPdfRows = [
+        { metric: "Sessions Held (Closed)",         value: totalSessions },
+        { metric: "Present Attendance Records",      value: presentRecords },
+        { metric: "Absent Attendance Records",       value: absentRecords },
+        { metric: "Average Attendance Rate",         value: `${avgAttendancePercent}%` },
+        { metric: "Students Below 75% Watchlist",   value: lowAttendanceStudents.length },
       ];
 
-      const facultyColumns = [
-        { header: "Faculty Name", key: "name", width: 26 },
-        { header: "Employee ID", key: "empId", width: 16 },
-        { header: "Specialization", key: "subjects", width: 26 },
-        { header: "Sessions", key: "sessions", width: 14 },
-        { header: "Timeliness", key: "timelinessPercent", width: 18 },
-        { header: "Status", key: "status", width: 16 },
-      ];
+      // Format subject rows so avg has % suffix for readability
+      const subjectPdfRows = filteredAndSortedSubjects.map((s) => ({
+        ...s,
+        avg: typeof s.avg === "number" ? `${s.avg}%` : (s.avg ?? "N/A"),
+      }));
 
       const facultyPdfRows = facultyOverview.map((f) => ({
         name: f.name,
         empId: f.empId,
-        subjects: f.specialization || "Not set",
+        ...(hasAnySpecialization ? { subjects: f.specialization || "Not set" } : {}),
         sessions: f.sessions,
         timelinessPercent: f.sessions === 0 ? "N/A" : `${f.timelinessPercent ?? 100}%`,
         status: f.sessions === 0 ? "No sessions" : f.status,
@@ -709,16 +757,21 @@ const HodReports = () => {
 
       await exportToPDF(
         `Department Report - ${deptTitle} (${department.code || "IT"})`,
-        subjectColumns,
-        filteredAndSortedSubjects,
+        summaryPdfColumns,
+        summaryPdfRows,
         filename,
         {
           filterMetadata: `Department: ${deptTitle} (${department.code || "IT"}) | ${activeFilterSummary}`,
           sections: [
             {
+              title: "Attendance Summary",
+              columns: summaryPdfColumns,
+              rows: summaryPdfRows,
+            },
+            {
               title: "Subject-wise Attendance Breakdown",
               columns: subjectColumns,
-              rows: filteredAndSortedSubjects,
+              rows: subjectPdfRows,
             },
             {
               title: "Faculty Workload & Timeliness Overview",
