@@ -6,18 +6,25 @@ const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
 const FeeStructure = require("../models/feeStructure.model");
 const Course = require("../models/course.model");
-const PromotionPolicy = require("../models/promotionPolicy.model");
 const Backlog = require("../models/backlog.model");
 const Notification = require("../models/notification.model");
 const AuditLog = require("../models/auditLog.model");
 const AppError = require("../utils/AppError");
-const { ROLE, RESULT_STATUS } = require("../utils/constants");
+const { RESULT_STATUS } = require("../utils/constants");
 const {
   academicYearRepresentations,
 } = require("../utils/academicYear.util");
 const { PROMOTION_WORKFLOW_ROLES } = require("./promotionWorkflow.service");
 const { calculateKTCount, isWithinKTLimit } = require("./atkt.service");
-const { resolveMaxAllowedKTs, resolveKTLimitForSemester, resolveSubjectTypeLimits, requiresPreviousYearClearance, resolveMinimumFeePaidPercentage, DEFAULT_MIN_FEE_PAID_PERCENTAGE } = require("../utils/promotionPolicy.util");
+const {
+  resolveKTLimitForSemester,
+  resolveSubjectTypeLimits,
+  requiresPreviousYearClearance,
+  resolveMinimumFeePaidPercentage,
+  resolveAuthoritativePolicy,
+  DEFAULT_MIN_FEE_PAID_PERCENTAGE,
+  normalizeKtRules,
+} = require("../utils/promotionPolicy.util");
 const { calculatePreviousAcademicYear } = require("./promotionDecision.service");
 const {
   calculateFeeClearanceData,
@@ -77,27 +84,6 @@ const sameIds = (left = [], right = []) => {
   return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
 };
 
-/**
- * Reduce a KT rule to its semantic values.
- * Mongoose serializes the policy's rule subdocuments (auto `_id`, declaration
- * order) differently from the decision's `_id`-less snapshot, so raw
- * `JSON.stringify` comparison always reports a change. Only the fields that
- * actually affect the outcome are compared here.
- */
-const normalizeKtRules = (rules = []) =>
-  rules
-    .map((rule) => ({
-      fromSemester: rule.fromSemester ?? null,
-      toSemester: rule.toSemester ?? null,
-      maxAllowedKTs: rule.maxAllowedKTs ?? null,
-      requirePreviousYearClearance: !!rule.requirePreviousYearClearance,
-      subjectTypeLimits: {
-        THEORY: rule.subjectTypeLimits?.THEORY ?? null,
-        PRACTICAL: rule.subjectTypeLimits?.PRACTICAL ?? null,
-        COMPOSITE: rule.subjectTypeLimits?.COMPOSITE ?? null,
-      },
-    }))
-    .sort((left, right) => left.fromSemester - right.fromSemester);
 
 // The decision's top-level course_id is the authoritative course context.
 // The snapshot course_id is used only as a fallback for records created
@@ -111,34 +97,7 @@ const resolveDecisionCourseId = (decision) =>
  * Never resolves a policy belonging to a different course.
  */
 const getCurrentPolicy = async (collegeId, courseId, session) => {
-  let policy = null;
-
-  if (courseId) {
-    policy = await PromotionPolicy.findOne({
-      collegeId,
-      course_id: courseId,
-      isActive: true,
-    })
-      .session(session)
-      .exec();
-  }
-
-  if (!policy) {
-    policy = await PromotionPolicy.findOne({
-      collegeId,
-      course_id: null,
-      isActive: true,
-    })
-      .session(session)
-      .exec();
-  }
-
-  return {
-    minAttendancePercentage: policy?.minAttendancePercentage ?? 75,
-    maxAllowedKTs: resolveMaxAllowedKTs(policy),
-    minimumFeePaidPercentage: resolveMinimumFeePaidPercentage(policy),
-    ktRules: policy?.ktRules || [],
-  };
+  return resolveAuthoritativePolicy(collegeId, courseId, session);
 };
 
 const loadAuthoritativeResult = async (decision, session) => {
