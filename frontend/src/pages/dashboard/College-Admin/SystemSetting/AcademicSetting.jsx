@@ -398,6 +398,16 @@ const AcademicSetting = () => {
           color: var(--as-text-primary);
         }
 
+        .form-row-aligned .form-label {
+          min-height: 4.2em;
+        }
+
+        .form-row-aligned .form-input,
+        .form-row-aligned .form-select {
+          box-sizing: border-box;
+          height: 40px;
+        }
+
         .info-icon {
           color: var(--as-cyan-primary);
           cursor: help;
@@ -1655,7 +1665,7 @@ const AcademicSetting = () => {
                 </div>
               </div>
 
-              <div className="form-row">
+              <div className="form-row form-row-aligned">
                 <div className="form-group">
                   <label className="form-label" htmlFor="lateAttendanceTime">
                     <span>Late Attendance Time</span>
@@ -1906,7 +1916,7 @@ const AcademicSetting = () => {
                 </div>
               </div>
 
-              <div className="form-row">
+              <div className="form-row form-row-aligned">
                 <div className="form-group">
                   <label className="form-label" htmlFor="teacherSessionEdit">
                     <span>Teacher Session Edit</span>
