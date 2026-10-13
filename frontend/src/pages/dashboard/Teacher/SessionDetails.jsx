@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
@@ -27,8 +27,11 @@ import {
   FaUniversity,
   FaBook,
   FaEnvelope,
+  FaEdit,
+  FaTimes,
 } from "react-icons/fa";
-import { motion, AnimatePresence, styleEffect } from "framer-motion";
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from "framer-motion";
 
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
@@ -120,6 +123,33 @@ export default function SessionDetails() {
   const [closing, setClosing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  const hasSavedRecords = records.length > 0;
+
+  /* ================= PRELOAD ATTENDANCE HELPER ================= */
+  const getAttendanceFromRecords = (studentList, recordList) => {
+    const recordMap = new Map();
+    (recordList || []).forEach((r) => {
+      const sId = r.student_id?._id
+        ? r.student_id._id.toString()
+        : r.student_id
+        ? r.student_id.toString()
+        : null;
+      if (sId && r.status) {
+        recordMap.set(sId, r.status);
+      }
+    });
+
+    const attendanceMap = {};
+    (studentList || []).forEach((student) => {
+      const sId = student._id?.toString() || student._id;
+      if (sId) {
+        attendanceMap[sId] = recordMap.get(sId) || "PRESENT";
+      }
+    });
+    return attendanceMap;
+  };
 
   /* ================= FETCH SESSION ================= */
   const fetchSession = async () => {
@@ -139,13 +169,16 @@ export default function SessionDetails() {
   const fetchRecords = async () => {
     try {
       const res = await api.get(`/attendance/sessions/${sessionId}/records`);
-      setRecords(res.data || []);
+      const recordList = res.data || [];
+      setRecords(recordList);
+      return recordList;
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
         "Failed to load attendance records. Please try again.";
       const statusCode = err.response?.status;
       setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
+      return [];
     }
   };
 
@@ -155,22 +188,41 @@ export default function SessionDetails() {
       const res = await api.get(`/attendance/sessions/${sessionId}/students`);
       const studentList = res.data || [];
       setStudents(studentList);
-      // Auto-mark all students as PRESENT by default
-      const defaultAttendance = {};
-      studentList.forEach((student) => {
-        defaultAttendance[student._id] = "PRESENT";
-      });
-      setAttendance((prev) => ({
-        ...defaultAttendance,
-        ...prev, // Preserve any manually changed values
-      }));
+      return studentList;
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
         "Failed to load student list. Please try again.";
       const statusCode = err.response?.status;
       setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
+      return [];
     }
+  };
+
+  useEffect(() => {
+    if (students.length === 0) return;
+
+    if (hasSavedRecords) {
+      if (!isEditMode) {
+        setAttendance(getAttendanceFromRecords(students, records));
+      }
+    } else {
+      setAttendance((prev) => {
+        const initial = {};
+        students.forEach((student) => {
+          const sId = student._id?.toString() || student._id;
+          if (sId) {
+            initial[sId] = prev[sId] || "PRESENT";
+          }
+        });
+        return initial;
+      });
+    }
+  }, [students, records, isEditMode, hasSavedRecords]);
+
+  const handleCancelEdit = () => {
+    setAttendance(getAttendanceFromRecords(students, records));
+    setIsEditMode(false);
   };
 
   // Handle retry action
@@ -257,7 +309,7 @@ export default function SessionDetails() {
     }
   };
 
-  /* ================= MARK ATTENDANCE ================= */
+  /* ================= MARK / EDIT ATTENDANCE ================= */
   const saveAttendance = async () => {
     if (Object.keys(attendance).length === 0) {
       toast.warning(
@@ -280,23 +332,63 @@ export default function SessionDetails() {
         })),
       };
 
-      await api.post(`/attendance/sessions/${sessionId}/mark`, payload);
-      toast.success("Attendance saved successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />,
-      });
-      fetchRecords();
-      setAttendance({});
+      if (hasSavedRecords) {
+        const res = await api.put(`/attendance/sessions/${sessionId}/edit`, payload);
+        toast.success(res.data?.message || "Attendance updated successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />,
+        });
+        await fetchRecords();
+        setIsEditMode(false);
+      } else {
+        const res = await api.post(`/attendance/sessions/${sessionId}/mark`, payload);
+        toast.success(res.data?.message || "Attendance saved successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />,
+        });
+        await fetchRecords();
+        setIsEditMode(false);
+      }
     } catch (err) {
       const statusCode = err.response?.status;
-      const errorCode = err.response?.data?.code;
+      const errorCode =
+        err.response?.data?.code || err.response?.data?.error?.code;
+      const errorMessage =
+        err.response?.data?.message || err.response?.data?.error?.message;
       const isAuthError =
         statusCode === 401 ||
         (errorCode && AUTH_ERROR_CODES.has(errorCode));
-      if (!isAuthError) {
+
+      if (errorCode === "SESSION_CLOSED") {
+        toast.warning(
+          errorMessage ||
+            "This session is closed, so attendance can no longer be edited.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaInfoCircle />,
+          },
+        );
+        setSession((prev) => (prev ? { ...prev, status: "CLOSED" } : prev));
+        await fetchSession();
+        await fetchRecords();
+        setIsEditMode(false);
+      } else if (errorCode === "ATTENDANCE_ALREADY_SAVED" || statusCode === 409) {
+        toast.info(
+          "Attendance already saved for this session. Loaded saved records. Use Edit Attendance to modify.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaInfoCircle />,
+          },
+        );
+        await fetchRecords();
+        setIsEditMode(false);
+      } else if (!isAuthError) {
         toast.error(
-          err.response?.data?.message ||
+          errorMessage ||
             "Failed to save attendance. Please try again.",
           {
             position: "top-right",
@@ -1088,20 +1180,51 @@ if (loading) {
                     justifyContent: "center",
                   }}
                 >
-                  <ActionButton
-                    icon={<FaSave />}
-                    label="Save Attendance"
-                    color={BRAND_COLORS.success.main}
-                    onClick={saveAttendance}
-                    loading={saving}
-                    disabled={Object.keys(attendance).length === 0}
-                  />
+                  {!hasSavedRecords && (
+                    <ActionButton
+                      icon={<FaSave />}
+                      label="Save Attendance"
+                      color={BRAND_COLORS.success.main}
+                      onClick={saveAttendance}
+                      loading={saving}
+                      disabled={Object.keys(attendance).length === 0 || saving}
+                    />
+                  )}
+                  {hasSavedRecords && !isEditMode && (
+                    <ActionButton
+                      icon={<FaEdit />}
+                      label="Edit Attendance"
+                      color={BRAND_COLORS.warning.main}
+                      onClick={() => setIsEditMode(true)}
+                      disabled={saving}
+                    />
+                  )}
+                  {hasSavedRecords && isEditMode && (
+                    <>
+                      <ActionButton
+                        icon={<FaSave />}
+                        label="Save Changes"
+                        color={BRAND_COLORS.success.main}
+                        onClick={saveAttendance}
+                        loading={saving}
+                        disabled={saving}
+                      />
+                      <ActionButton
+                        icon={<FaTimes />}
+                        label="Cancel"
+                        color={BRAND_COLORS.secondary.main}
+                        onClick={handleCancelEdit}
+                        disabled={saving}
+                      />
+                    </>
+                  )}
                   <ActionButton
                     icon={<FaDoorClosed />}
                     label="Close Session"
                     color={BRAND_COLORS.warning.main}
                     onClick={() => setShowCloseConfirm(true)}
                     loading={closing}
+                    disabled={saving}
                   />
                   <ActionButton
                     icon={<FaTrash />}
@@ -1109,6 +1232,7 @@ if (loading) {
                     color={BRAND_COLORS.danger.main}
                     onClick={() => setShowDeleteConfirm(true)}
                     loading={deleting}
+                    disabled={saving}
                   />
                 </div>
               </div>
@@ -1143,8 +1267,8 @@ if (loading) {
                   Session Closed
                 </strong>
                 <p style={{ margin: "0.25rem 0 0 0", color: "#4a5568" }}>
-                  This session is closed. Attendance records are finalized and
-                  cannot be modified.
+                  This session is closed, so attendance can no longer be edited.
+                  Attendance records are finalized.
                 </p>
               </div>
             </motion.div>
@@ -1190,7 +1314,11 @@ if (loading) {
                     <FaUserGraduate
                       style={{ color: BRAND_COLORS.primary.main }}
                     />{" "}
-                    Mark Attendance
+                    {hasSavedRecords && !isEditMode
+                      ? "Saved Attendance"
+                      : isEditMode
+                      ? "Edit Attendance"
+                      : "Mark Attendance"}
                   </>
                 ) : (
                   <>
@@ -1204,8 +1332,16 @@ if (loading) {
                   display: "flex",
                   alignItems: "center",
                   gap: "0.5rem",
-                  backgroundColor: isSessionOpen ? "#ffedd5" : "#dcfce7",
-                  color: isSessionOpen ? "#c2410c" : "#166534",
+                  backgroundColor: !isSessionOpen
+                    ? "#dcfce7"
+                    : hasSavedRecords
+                    ? "#e0f2fe"
+                    : "#ffedd5",
+                  color: !isSessionOpen
+                    ? "#166534"
+                    : hasSavedRecords
+                    ? "#0369a1"
+                    : "#c2410c",
                   padding: "0.5rem 1rem",
                   borderRadius: "20px",
                   fontSize: "0.9rem",
@@ -1213,9 +1349,11 @@ if (loading) {
                 }}
               >
                 <FaInfoCircle />{" "}
-                {isSessionOpen ? students.length : records.length}{" "}
-                {isSessionOpen ? "students" : "records"}{" "}
-                {isSessionOpen ? "to mark" : "found"}
+                {!isSessionOpen
+                  ? `${records.length} records found`
+                  : hasSavedRecords
+                  ? `Attendance saved (${students.length} students)`
+                  : `${students.length} students to mark`}
               </div>
             </div>
 
@@ -1255,6 +1393,7 @@ if (loading) {
                             }))
                           }
                           delay={idx * 0.03}
+                          disabled={hasSavedRecords && !isEditMode}
                         />
                       ))}
                     </tbody>
@@ -1334,17 +1473,64 @@ if (loading) {
                     fontSize: "1.1rem",
                   }}
                 >
-                  Students to mark: <strong>{students.length}</strong>
+                  {hasSavedRecords ? (
+                    isEditMode ? (
+                      <>
+                        Editing attendance: <strong>{students.length} students</strong>
+                      </>
+                    ) : (
+                      <>
+                        Attendance saved (<strong>{students.length}</strong> students)
+                      </>
+                    )
+                  ) : (
+                    <>
+                      Students to mark: <strong>{students.length}</strong>
+                    </>
+                  )}
                 </div>
-                <ActionButton
-                  icon={<FaSave />}
-                  label="Save All Attendance"
-                  color={BRAND_COLORS.primary.main}
-                  onClick={saveAttendance}
-                  loading={saving}
-                  disabled={Object.keys(attendance).length === 0}
-                  large
-                />
+                {!hasSavedRecords && (
+                  <ActionButton
+                    icon={<FaSave />}
+                    label="Save All Attendance"
+                    color={BRAND_COLORS.primary.main}
+                    onClick={saveAttendance}
+                    loading={saving}
+                    disabled={Object.keys(attendance).length === 0 || saving}
+                    large
+                  />
+                )}
+                {hasSavedRecords && !isEditMode && (
+                  <ActionButton
+                    icon={<FaEdit />}
+                    label="Edit Attendance"
+                    color={BRAND_COLORS.warning.main}
+                    onClick={() => setIsEditMode(true)}
+                    disabled={saving}
+                    large
+                  />
+                )}
+                {hasSavedRecords && isEditMode && (
+                  <>
+                    <ActionButton
+                      icon={<FaSave />}
+                      label="Save Changes"
+                      color={BRAND_COLORS.success.main}
+                      onClick={saveAttendance}
+                      loading={saving}
+                      disabled={saving}
+                      large
+                    />
+                    <ActionButton
+                      icon={<FaTimes />}
+                      label="Cancel"
+                      color={BRAND_COLORS.secondary.main}
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                      large
+                    />
+                  </>
+                )}
               </div>
             )}
           </motion.div>
@@ -1556,7 +1742,7 @@ function ActionInfo({ children }) {
 }
 
 /* ================= STUDENT ROW (OPEN SESSION) ================= */
-function StudentRow({ student, attendance, onChange, delay = 0 }) {
+function StudentRow({ student, attendance, onChange, delay = 0, disabled = false }) {
   return (
     <motion.tr
       initial={{ opacity: 0, x: -20 }}
@@ -1591,6 +1777,7 @@ function StudentRow({ student, attendance, onChange, delay = 0 }) {
         <select
           value={attendance || "PRESENT"}
           onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
           style={{
             width: "100%",
             padding: "0.625rem 1rem",
@@ -1598,9 +1785,10 @@ function StudentRow({ student, attendance, onChange, delay = 0 }) {
             border: "1px solid #e2e8f0",
             fontSize: "0.95rem",
             fontWeight: 500,
-            backgroundColor: "white",
-            color: "#1e293b",
-            cursor: "pointer",
+            backgroundColor: disabled ? "#f8fafc" : "white",
+            color: disabled ? "#64748b" : "#1e293b",
+            cursor: disabled ? "not-allowed" : "pointer",
+            opacity: disabled ? 0.85 : 1,
             appearance: "none",
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
             backgroundRepeat: "no-repeat",
