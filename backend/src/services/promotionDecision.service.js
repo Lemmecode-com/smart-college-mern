@@ -1,6 +1,5 @@
 const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
-const PromotionPolicy = require("../models/promotionPolicy.model");
 const PromotionDecision = require("../models/promotionDecision.model");
 const Backlog = require("../models/backlog.model");
 const BacklogAttempt = require("../models/backlogAttempt.model");
@@ -20,9 +19,10 @@ const {
   resolveMinimumFeePaidPercentage,
   resolveKTLimitForSemester,
   requiresPreviousYearClearance,
+  resolveAuthoritativePolicy,
+  DEFAULT_ATTENDANCE_THRESHOLD,
 } = require("../utils/promotionPolicy.util");
 
-const DEFAULT_ATTENDANCE_THRESHOLD = 75;
 const ATTENDANCE_STATUS = {
   ELIGIBLE: "ELIGIBLE",
   NOT_ELIGIBLE: "NOT_ELIGIBLE",
@@ -38,25 +38,19 @@ const calculatePreviousAcademicYear = (academicYear) => {
 };
 
 const resolvePromotionPolicy = async (collegeId, courseId) => {
-  const policy = await PromotionPolicy.getActivePolicy(collegeId, courseId);
-  const minAttendancePercentage =
-    policy?.minAttendancePercentage ?? DEFAULT_ATTENDANCE_THRESHOLD;
-  const maxAllowedKTs = resolveMaxAllowedKTs(policy);
-  const minimumFeePaidPercentage = resolveMinimumFeePaidPercentage(policy);
-
+  const resolved = await resolveAuthoritativePolicy(collegeId, courseId);
   return {
-    policyId: policy?._id || null,
-    policyVersion: policy?.updatedAt?.toISOString() || "DEFAULT-v1",
-    snapshot: {
-      // Always the student's course context, even when the resolved policy
-      // came from the college-level fallback.
-      course_id: courseId || null,
-      minAttendancePercentage,
-      maxAllowedKTs,
-      minimumFeePaidPercentage,
-      scopedSemesters: policy?.scopedSemesters || [],
-      ktRules: policy?.ktRules || [],
-    },
+    policyId: resolved.policyId,
+    policyVersion: resolved.policyVersion,
+    snapshot: resolved.snapshot,
+    minAttendancePercentage: resolved.minAttendancePercentage,
+    maxAllowedKTs: resolved.maxAllowedKTs,
+    minimumFeePaidPercentage: resolved.minimumFeePaidPercentage,
+    scopedSemesters: resolved.scopedSemesters,
+    ktRules: resolved.ktRules,
+    course_id: resolved.course_id,
+    isDefault: resolved.isDefault,
+    rawPolicy: resolved.rawPolicy,
   };
 };
 
