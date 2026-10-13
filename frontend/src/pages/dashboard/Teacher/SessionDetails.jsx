@@ -566,30 +566,23 @@ if (loading) {
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: "1.5rem",
-              backgroundColor: "#0E3746",
-              borderRadius: "1.5rem",
+              minHeight: "104px",
+              borderRadius: "15px",
               overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1.5rem",
-              
+              boxShadow: "0 8px 25px rgba(0, 0, 0, 0.12)",
+              backgroundColor: "#0E3746", 
+              marginBottom: "1.5rem",
             }}
           >
             <div
               style={{
-                background: "#0E3746",
-                borderRadius: "15px",
-                padding: "1.5rem 1.75rem",
-                marginBottom: "1.25rem",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "1rem",
-                boxShadow: "0 8px 24px rgba(15, 69, 83, 0.18)",
-                color: "white",
-                height: "70px",
+                    minHeight: "70px",
+                    padding: "22px 28px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "24px",
+                    color: "white",
               }}
             >
               <div
