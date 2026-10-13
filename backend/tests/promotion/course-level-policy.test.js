@@ -1164,7 +1164,7 @@ describe("Phase 6 - course-level promotion policy matrix", () => {
         courseId: courseA._id,
         specs: [{ name: "Switch S3", code: "SWS3" }],
       });
-      const result = await seedResult({
+      await seedResult({
         collegeId,
         courseId: courseA._id,
         studentId: student._id,
@@ -1342,6 +1342,393 @@ describe("Phase 6 - course-level promotion policy matrix", () => {
           isActive: true,
         }),
       ).toBe(1);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // SCENARIO 12 - cross-course policy isolation & stale-decision regression
+  // ---------------------------------------------------------------------------
+
+  describe("Scenario 12 - cross-course policy isolation & stale-decision regression", () => {
+    it("evaluates, approves and executes a Course B student with system defaults when college only has Course A policy", async () => {
+      const { collegeId, departmentId } = await seedCollege();
+      const courseA = await seedCourse({
+        collegeId,
+        departmentId,
+        name: "Course A",
+        code: "CA12",
+        durationSemesters: 6,
+      });
+      const courseB = await seedCourse({
+        collegeId,
+        departmentId,
+        name: "Course B",
+        code: "CB12",
+        durationSemesters: 6,
+      });
+
+      // College only has a policy for Course A
+      await PromotionPolicy.create({
+        collegeId,
+        course_id: courseA._id,
+        minAttendancePercentage: 90,
+        maxAllowedKTs: 1,
+        minimumFeePaidPercentage: 60,
+        ktRules: [
+          {
+            fromSemester: 3,
+            toSemester: 4,
+            maxAllowedKTs: 1,
+            requirePreviousYearClearance: false,
+          },
+        ],
+        isActive: true,
+      });
+
+      const studentB = await seedStudent({
+        collegeId,
+        departmentId,
+        courseId: courseB._id,
+      });
+      await seedPaidFee({ collegeId, courseId: courseB._id, studentId: studentB._id });
+      const subjectsB = await seedSubjects({
+        collegeId,
+        departmentId,
+        courseId: courseB._id,
+        specs: [{ name: "Subject B1", code: "SB1" }],
+      });
+      await seedResult({
+        collegeId,
+        courseId: courseB._id,
+        studentId: studentB._id,
+        subjects: subjectsB,
+        overallResult: "PASS",
+      });
+
+      // Evaluation for Course B
+      const decision = await createPromotionDecision({
+        studentId: studentB._id,
+        collegeId,
+        userId: new mongoose.Types.ObjectId(),
+      });
+
+      // Snapshot holds system defaults, NOT Course A's values
+      expect(String(decision.policy_snapshot.course_id)).toBe(String(courseB._id));
+      expect(decision.policy_snapshot.minAttendancePercentage).toBe(75);
+      expect(decision.policy_snapshot.maxAllowedKTs).toBe(3);
+      expect(decision.policy_snapshot.minimumFeePaidPercentage).toBe(100);
+      expect(decision.policy_snapshot.ktRules).toEqual([]);
+
+      // Approve and execute
+      await approve(decision._id);
+      const execution = await runExecution(decision._id, collegeId);
+
+      expect(execution.executionStatus).toBe("PROMOTED");
+      expect((await Student.findById(studentB._id)).currentSemester).toBe(4);
+    });
+
+    it("ensures a Course B student never sees Course A fee/attendance/KT values in eligibility output", async () => {
+      const { collegeId, departmentId } = await seedCollege();
+      const courseA = await seedCourse({
+        collegeId,
+        departmentId,
+        name: "Course A",
+        code: "CA_ELIG",
+        durationSemesters: 6,
+      });
+      const courseB = await seedCourse({
+        collegeId,
+        departmentId,
+        name: "Course B",
+        code: "CB_ELIG",
+        durationSemesters: 6,
+      });
+
+      await PromotionPolicy.create({
+        collegeId,
+        course_id: courseA._id,
+        minAttendancePercentage: 85,
+        maxAllowedKTs: 1,
+        minimumFeePaidPercentage: 50,
+        isActive: true,
+      });
+
+      const studentB = await seedStudent({
+        collegeId,
+        departmentId,
+        courseId: courseB._id,
+      });
+      await seedPaidFee({ collegeId, courseId: courseB._id, studentId: studentB._id });
+      const subjectsB = await seedSubjects({
+        collegeId,
+        departmentId,
+        courseId: courseB._id,
+        specs: [{ name: "Sub B", code: "SB_E" }],
+      });
+      await seedResult({
+        collegeId,
+        courseId: courseB._id,
+        studentId: studentB._id,
+        subjects: subjectsB,
+        overallResult: "PASS",
+      });
+
+      const decision = await createPromotionDecision({
+        studentId: studentB._id,
+        collegeId,
+        userId: new mongoose.Types.ObjectId(),
+      });
+
+      // Verifies defaults are present in eligibility snapshots, not Course A's overrides
+      expect(decision.attendance_snapshot.requiredPercentage).toBe(75);
+      expect(decision.fee_clearance_snapshot.requiredPaidPercentage).toBe(100);
+      expect(decision.policy_snapshot.maxAllowedKTs).toBe(3);
+    });
+
+    it("course-specific policy wins over college-wide policy, and college-wide wins over defaults", async () => {
+      const { collegeId, departmentId } = await seedCollege();
+      const courseA = await seedCourse({
+        collegeId,
+        departmentId,
+        name: "Course Specific",
+        code: "CS_WIN",
+        durationSemesters: 6,
+      });
+      const courseB = await seedCourse({
+        collegeId,
+        departmentId,
+        name: "College Wide Fallback",
+        code: "CW_FALL",
+        durationSemesters: 6,
+      });
+
+      // 1. College-wide policy
+      await PromotionPolicy.create({
+        collegeId,
+        course_id: null,
+        minAttendancePercentage: 80,
+        maxAllowedKTs: 2,
+        minimumFeePaidPercentage: 70,
+        isActive: true,
+      });
+
+      // 2. Course-specific policy for Course A
+      await PromotionPolicy.create({
+        collegeId,
+        course_id: courseA._id,
+        minAttendancePercentage: 95,
+        maxAllowedKTs: 1,
+        minimumFeePaidPercentage: 90,
+        isActive: true,
+      });
+
+      // Course A resolves its course-specific policy
+      const resolvedA = await resolvePromotionPolicy(collegeId, courseA._id);
+      expect(resolvedA.snapshot.minAttendancePercentage).toBe(95);
+      expect(resolvedA.snapshot.maxAllowedKTs).toBe(1);
+      expect(resolvedA.snapshot.minimumFeePaidPercentage).toBe(90);
+
+      // Course B resolves the college-wide policy (not defaults)
+      const resolvedB = await resolvePromotionPolicy(collegeId, courseB._id);
+      expect(resolvedB.snapshot.minAttendancePercentage).toBe(80);
+      expect(resolvedB.snapshot.maxAllowedKTs).toBe(2);
+      expect(resolvedB.snapshot.minimumFeePaidPercentage).toBe(70);
+
+      // In an unconfigured college with no policies at all, defaults win
+      const otherCollegeId = new mongoose.Types.ObjectId();
+      const resolvedDefaults = await resolvePromotionPolicy(otherCollegeId, courseB._id);
+      expect(resolvedDefaults.snapshot.minAttendancePercentage).toBe(75);
+      expect(resolvedDefaults.snapshot.maxAllowedKTs).toBe(3);
+      expect(resolvedDefaults.snapshot.minimumFeePaidPercentage).toBe(100);
+    });
+
+    it("editing the course's own policy after approval still triggers STALE_DECISION", async () => {
+      const { collegeId, departmentId } = await seedCollege();
+      const course = await seedCourse({
+        collegeId,
+        departmentId,
+        name: "Stale Guard Course",
+        code: "STALE_G",
+        durationSemesters: 6,
+      });
+
+      const policy = await PromotionPolicy.create({
+        collegeId,
+        course_id: course._id,
+        minAttendancePercentage: 75,
+        maxAllowedKTs: 3,
+        minimumFeePaidPercentage: 100,
+        isActive: true,
+      });
+
+      const student = await seedStudent({ collegeId, departmentId, courseId: course._id });
+      await seedPaidFee({ collegeId, courseId: course._id, studentId: student._id });
+      const subjects = await seedSubjects({
+        collegeId,
+        departmentId,
+        courseId: course._id,
+        specs: [{ name: "Subject Stale", code: "S_STALE" }],
+      });
+      const result = await seedResult({
+        collegeId,
+        courseId: course._id,
+        studentId: student._id,
+        subjects,
+        overallResult: "PASS",
+      });
+
+      const decision = await buildApprovedDecision({
+        collegeId,
+        course,
+        student,
+        result,
+        subjects,
+        outcome: "PASS",
+        ktCount: 0,
+        resolvedMaxAllowedKTs: 3,
+      });
+
+      // Admin modifies policy after approval
+      await PromotionPolicy.updateOne(
+        { _id: policy._id },
+        { $set: { maxAllowedKTs: 1 } },
+      );
+
+      await expect(runExecution(decision._id, collegeId)).rejects.toMatchObject({
+        code: "STALE_DECISION",
+      });
+    });
+
+    it("re-evaluating a pre-fix decision with a wrong snapshot allows it to execute successfully", async () => {
+      const { collegeId, departmentId } = await seedCollege();
+      const courseA = await seedCourse({
+        collegeId,
+        departmentId,
+        name: "Course A",
+        code: "CA_RE_EVAL",
+        durationSemesters: 6,
+      });
+      const courseB = await seedCourse({
+        collegeId,
+        departmentId,
+        name: "Course B",
+        code: "CB_RE_EVAL",
+        durationSemesters: 6,
+      });
+
+      const policyA = await PromotionPolicy.create({
+        collegeId,
+        course_id: courseA._id,
+        minAttendancePercentage: 90,
+        maxAllowedKTs: 1,
+        minimumFeePaidPercentage: 60,
+        ktRules: [
+          {
+            fromSemester: 3,
+            toSemester: 4,
+            maxAllowedKTs: 1,
+            requirePreviousYearClearance: false,
+          },
+        ],
+        isActive: true,
+      });
+
+      const studentB = await seedStudent({
+        collegeId,
+        departmentId,
+        courseId: courseB._id,
+      });
+      await seedPaidFee({ collegeId, courseId: courseB._id, studentId: studentB._id });
+      const subjectsB = await seedSubjects({
+        collegeId,
+        departmentId,
+        courseId: courseB._id,
+        specs: [{ name: "Subject B Old", code: "SB_OLD" }],
+      });
+      const resultB = await seedResult({
+        collegeId,
+        courseId: courseB._id,
+        studentId: studentB._id,
+        subjects: subjectsB,
+        overallResult: "PASS",
+      });
+
+      // Simulate a pre-fix decision that erroneously stored Course A's snapshot
+      const preFixDecision = await PromotionDecision.create({
+        student_id: studentB._id,
+        college_id: collegeId,
+        course_id: courseB._id,
+        semester: 3,
+        academicYear: "2026-27",
+        source_result_id: resultB._id,
+        source_exam_id: resultB.exam_id,
+        result_status: "PUBLISHED",
+        failed_subject_ids: [],
+        failed_subject_count: 0,
+        kt_count: 0,
+        promotion_outcome: "PASS",
+        decision_reason: "ELIGIBLE",
+        workflow_status: "APPROVED",
+        attendance_snapshot: {
+          percentage: 80,
+          requiredPercentage: 90,
+          totalSessions: 10,
+          status: "ELIGIBLE",
+          passed: true,
+          overridden: false,
+        },
+        fee_clearance_snapshot: {
+          status: "FULLY_PAID",
+          totalFee: 1000,
+          paidAmount: 1000,
+          pendingAmount: 0,
+          requiredPaidPercentage: 60,
+          requiredClearance: true,
+          cleared: true,
+          passed: true,
+          overridden: false,
+        },
+        policy_id: policyA._id,
+        policy_version: policyA.updatedAt.toISOString(),
+        policy_snapshot: {
+          course_id: courseB._id,
+          minAttendancePercentage: 90, // from Course A
+          maxAllowedKTs: 1,           // from Course A
+          minimumFeePaidPercentage: 60,// from Course A
+          scopedSemesters: [],
+          ktRules: policyA.ktRules,   // from Course A
+          resolvedMaxAllowedKTs: 1,
+          previousYearClearanceRequired: false,
+          previousYearClearancePassed: true,
+        },
+        createdBy: new mongoose.Types.ObjectId(),
+      });
+
+      // Before re-evaluation: execution fails with STALE_DECISION
+      await expect(runExecution(preFixDecision._id, collegeId)).rejects.toMatchObject({
+        code: "STALE_DECISION",
+      });
+
+      // Admin/User re-evaluates via getPromotionEligibility / createPromotionDecision
+      const refreshed = await createPromotionDecision({
+        studentId: studentB._id,
+        collegeId,
+        userId: new mongoose.Types.ObjectId(),
+      });
+
+      // Snapshot is updated with correct system defaults
+      expect(refreshed.policy_snapshot.minAttendancePercentage).toBe(75);
+      expect(refreshed.policy_snapshot.maxAllowedKTs).toBe(3);
+      expect(refreshed.policy_snapshot.minimumFeePaidPercentage).toBe(100);
+      expect(refreshed.policy_snapshot.ktRules).toEqual([]);
+
+      // Status is preserved as APPROVED (academic outcome remained PASS)
+      expect(refreshed.workflow_status).toBe("APPROVED");
+
+      // Now execution succeeds without STALE_DECISION!
+      const execution = await runExecution(preFixDecision._id, collegeId);
+      expect(execution.executionStatus).toBe("PROMOTED");
+      expect((await Student.findById(studentB._id)).currentSemester).toBe(4);
     });
   });
 });
