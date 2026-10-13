@@ -18,7 +18,8 @@ export default function SidebarSection({
   children,
   ariaLabel,
   isActive = false,
-  isCollapsed = false
+  isCollapsed = false,
+
 }) {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -74,7 +75,15 @@ export default function SidebarSection({
  * - Visible focus state
  * - Consistent indentation
  */
-export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick, exact = false }) {
+export function SidebarSubItem({
+  to,
+  icon: Icon,
+  label,
+  ariaLabel,
+  onClick,
+  exact = false,
+  className = "",
+}) {
   const location = useLocation();
 
   // Check if current route matches or is a child of the target path
@@ -84,9 +93,11 @@ export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick, exac
     <NavLink
       to={to}
       end={exact}
-      className={({ isActive: linkIsActive }) =>
-        `sub-link ${linkIsActive || isActive ? "active-sublink" : ""}`
-      }
+className={({ isActive: linkIsActive }) =>
+  `sub-link ${className} ${
+    linkIsActive || isActive ? "active-sublink" : ""
+  }`.trim()
+}
       role="menuitem"
       aria-label={ariaLabel || label}
       aria-current={isActive ? "page" : undefined}

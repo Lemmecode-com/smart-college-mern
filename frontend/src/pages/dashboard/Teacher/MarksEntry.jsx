@@ -580,7 +580,7 @@ export default function MarksEntry() {
                 <table className="table">
                    <thead>
                       <tr>
-                        <th>#</th>
+                        <th>Sr. No.</th>
                         <th>Student Name</th>
                         <th>Enrollment No.</th>
                         <th>Internal Marks</th>
