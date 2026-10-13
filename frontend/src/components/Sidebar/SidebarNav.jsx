@@ -103,29 +103,51 @@ export default function SidebarNav({
       </NavLink>
 
       {/* DYNAMIC SECTIONS BASED ON ROLE */}
-      {sections.map((section) => (
-        <SidebarSection
-          key={section.id}
-          title={section.title}
-          icon={section.icon}
-          isOpen={openSections[section.id]}
-          onToggle={() => toggleSection(section.id)}
-          sectionId={section.id}
-          isActive={checkSectionActive(section, location.pathname)}
-          isCollapsed={isCollapsed}
-        >
-           {section.items.map((item, index) => (
-             <SidebarSubItem
-               key={index}
-               to={resolvePath(item)}
-               icon={item.icon}
-               label={item.label}
-               exact={item.exact}
-               onClick={handleNavClick}
-             />
-           ))}
-        </SidebarSection>
+
+{sections.map((section) => {
+  const hasSingleItem = section.items?.length === 1;
+
+if (hasSingleItem) {
+  const item = section.items[0];
+
+  return (
+    <SidebarSubItem
+      key={section.id}
+      to={resolvePath(item)}
+      icon={item.icon}
+      label={item.label}
+      exact={item.exact}
+      onClick={handleNavClick}
+      className="sidebar-direct-link"
+    />
+  );
+}
+
+  return (
+    <SidebarSection
+      key={section.id}
+      title={section.title}
+      icon={section.icon}
+      isOpen={openSections[section.id]}
+      onToggle={() => toggleSection(section.id)}
+      sectionId={section.id}
+      isActive={checkSectionActive(section, location.pathname)}
+      isCollapsed={isCollapsed}
+    >
+      {section.items.map((item, index) => (
+        <SidebarSubItem
+          key={index}
+          to={resolvePath(item)}
+          icon={item.icon}
+          label={item.label}
+          exact={item.exact}
+          onClick={handleNavClick}
+        />
       ))}
+    </SidebarSection>
+  );
+})}
+
     </nav>
   );
 }
