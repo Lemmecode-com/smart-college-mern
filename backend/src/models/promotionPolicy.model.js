@@ -132,43 +132,52 @@ promotionPolicySchema.pre("save", async function () {
 });
 
 promotionPolicySchema.statics.getActivePolicy = async function (collegeId, courseId) {
+  let policy = null;
+
   if (courseId) {
-    // First try to find course-specific policy
-    const coursePolicy = await this.findOne({
+    // 1. Try course-specific policy
+    policy = await this.findOne({
       collegeId,
       course_id: courseId,
       isActive: true,
     });
-    if (coursePolicy) {
-      if (coursePolicy.maxAllowedKTs === undefined) {
-        coursePolicy.maxAllowedKTs = DEFAULT_MAX_ALLOWED_KTS;
-      }
-      if (coursePolicy.minimumFeePaidPercentage === undefined) {
-        coursePolicy.minimumFeePaidPercentage =
-          DEFAULT_MIN_FEE_PAID_PERCENTAGE;
-      }
-      return coursePolicy;
+
+    // 2. Fallback to college-level policy (course_id: null) ONLY
+    if (!policy) {
+      policy = await this.findOne({
+        collegeId,
+        course_id: null,
+        isActive: true,
+      });
     }
-  }
-  // Fallback to college-level policy (course_id: null)
-  let collegePolicy = await this.findOne({
-    collegeId,
-    course_id: null,
-    isActive: true,
-  });
-  if (!collegePolicy) {
-    collegePolicy = await this.findOne({
+  } else {
+    // When no courseId is provided (e.g. college-wide lookup / settings update):
+    // 1. College-level policy (course_id: null)
+    policy = await this.findOne({
       collegeId,
+      course_id: null,
       isActive: true,
     });
+
+    // 2. Fallback: Any active policy for this college (handles legacy records with missing/undefined course_id)
+    if (!policy) {
+      policy = await this.findOne({
+        collegeId,
+        isActive: true,
+      });
+    }
   }
-  if (collegePolicy && collegePolicy.maxAllowedKTs === undefined) {
-    collegePolicy.maxAllowedKTs = DEFAULT_MAX_ALLOWED_KTS;
+
+  if (policy) {
+    if (policy.maxAllowedKTs === undefined) {
+      policy.maxAllowedKTs = DEFAULT_MAX_ALLOWED_KTS;
+    }
+    if (policy.minimumFeePaidPercentage === undefined) {
+      policy.minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE;
+    }
   }
-  if (collegePolicy && collegePolicy.minimumFeePaidPercentage === undefined) {
-    collegePolicy.minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE;
-  }
-  return collegePolicy;
+
+  return policy;
 };
 
 module.exports = mongoose.model("PromotionPolicy", promotionPolicySchema);
