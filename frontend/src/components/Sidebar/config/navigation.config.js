@@ -1246,6 +1246,35 @@ export const navigationConfig = {
           },
         ],
       },
+
+            {
+        id: "hod-teachers",
+        title: "Department Teachers",
+        icon: FaUsers,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/hod/teachers",
+            icon: FaUsers,
+            label: "All Teachers",
+            exact: true,
+          },
+        ],
+      },
+      {
+        id: "hod-reports",
+        title: "Reports",
+        icon: FaChartPie,
+        defaultOpen: true,
+        items: [
+          {
+            path: "/hod/reports",
+            icon: FaChartPie,
+            label: "Department Reports",
+            exact: true,
+          },
+        ],
+      },
       {
         id: "hod-timetable",
         title: "Timetable",
@@ -1298,34 +1327,7 @@ export const navigationConfig = {
           },
         ],
       },
-      {
-        id: "hod-teachers",
-        title: "Department Teachers",
-        icon: FaUsers,
-        defaultOpen: true,
-        items: [
-          {
-            path: "/hod/teachers",
-            icon: FaUsers,
-            label: "All Teachers",
-            exact: true,
-          },
-        ],
-      },
-      {
-        id: "hod-reports",
-        title: "Reports",
-        icon: FaChartPie,
-        defaultOpen: true,
-        items: [
-          {
-            path: "/hod/reports",
-            icon: FaChartPie,
-            label: "Department Reports",
-            exact: true,
-          },
-        ],
-      },
+
       {
         id: "hod-notifications",
         title: "Notifications",
