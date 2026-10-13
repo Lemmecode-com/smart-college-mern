@@ -5229,46 +5229,38 @@ if (error && !loading && students.length === 0) {
 
           /* Outcome Banner Styles - Improved */
           .outcome-banner {
-            min-height: 104px;
-            border-radius: 15px;
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            border: none;
             overflow: hidden;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-            line-height: 1;
-            
           }
 
           .outcome-banner-content {
-    min-height: 85px;
-    padding: 22px 28px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    height: 85px;
-    line-height: 1.9;
-    
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 20px 24px;
           }
 
           .outcome-icon {
             font-size: 40px;
             flex-shrink: 0;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-            
           }
 
           .outcome-text {
             flex: 1;
             min-width: 200px;
-            
           }
 
           .outcome-label {
-            font-size: 20px;
-            font-weight: 650;
+            font-size: 22px;
+            font-weight: 700;
             text-transform: none;
             letter-spacing: -0.5px;
-            line-height: 1;
-            
+            line-height: 1.3;
           }
 
           .outcome-reason {
