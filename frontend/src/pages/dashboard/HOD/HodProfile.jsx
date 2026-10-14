@@ -910,7 +910,7 @@ export default function HodProfile() {
                   </div>
                   <div
                     style={{
-                      padding: "0 1.25rem 1.1rem",
+                      padding: "0 1.25rem 1.10rem",
                       display: "flex",
                       flexDirection: "column",
                       gap: "0.6rem",
