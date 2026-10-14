@@ -1,0 +1,28 @@
+# Environment files (all subdirectories)
+.env
+.env.*
+.env.local
+.env.*.local
+
+# Whitelist safe example templates and deployment configs
+!.env.example
+!.env.*.example
+!frontend/.env.production
+
+# Dependencies
+node_modules/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+
+# Root-level logs
+logs/
+*.log
