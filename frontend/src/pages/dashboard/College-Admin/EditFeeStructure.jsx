@@ -211,13 +211,13 @@ export default function EditFeeStructure() {
   }
 
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid pt-2 pb-4">
       {/* ================= BREADCRUMB ================= */}
     <div
       style={{
         width: "100%",
-        margin: "10px auto",
-        paddingTop: "5px",
+        margin: "0 auto",
+        paddingTop: 0,
       }}
     >
       <div style={{ width: "100%" }}>

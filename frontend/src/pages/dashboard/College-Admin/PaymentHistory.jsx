@@ -7,6 +7,7 @@ import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import Pagination from "../../../components/Pagination";
 import StandardListView from "../../../components/StandardListView/StandardListView";
 import { showSuccess, showError } from "../../../utils/toast";
 import { logger } from "../../../utils/logger";

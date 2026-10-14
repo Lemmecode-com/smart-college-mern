@@ -158,7 +158,7 @@ export default function AttendanceSessionsList() {
         className="erp-page erp-viewport-min-100"
         style={{
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '1.5rem',
+          paddingTop: '0.5rem',
           paddingBottom: '2rem',
           paddingLeft: '1rem',
           paddingRight: '1rem'

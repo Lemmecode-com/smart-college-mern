@@ -427,7 +427,7 @@ if (loadingDepartments) {
         className="erp-page erp-viewport-min-100 add-subject-page"
         style={{
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-          paddingTop: "1.5rem",
+          paddingTop: "0.5rem",
           paddingBottom: "2rem",
           paddingLeft: "1rem",
           paddingRight: "1rem",
@@ -447,9 +447,9 @@ if (loadingDepartments) {
           <div
             style={{
               width: "100%",
-              margin: "10px auto",
-              paddingTop: "2px",
-              height: "60px",
+              margin: "0 auto",
+              paddingTop: 0,
+              height: "auto",
             }}
           >
             <div style={{ width: "100%" }}>

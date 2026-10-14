@@ -208,13 +208,13 @@ export default function EditSubject() {
   }
 
   return (
-    <div className="container-fluid">
+    <div className="container-fluid pt-2">
        <div
       className="edit-subject-breadcrumb"
       style={{
         width: "100%",
-        margin: "10px auto",
-        paddingTop: "5px",
+        margin: "0 auto",
+        paddingTop: 0,
       }}
     >
       <div style={{ width: "100%" }}>

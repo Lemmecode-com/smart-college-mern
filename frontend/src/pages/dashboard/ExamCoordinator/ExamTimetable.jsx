@@ -645,7 +645,7 @@ export default function ExamTimetable() {
   }
 
   return (
-    <div className="exam-timetable-page exam-form container-fluid p-4">
+    <div className="exam-timetable-page exam-form container-fluid px-4 pb-4 pt-2">
       <style>{pageStyles}</style>
       <Breadcrumb
         items={[

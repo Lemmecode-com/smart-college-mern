@@ -94,7 +94,9 @@ export default function SidebarNav({
             <span className="nav-link-icon" aria-hidden="true">
               <dashboard.icon />
             </span>
-            <span className="nav-link-text">{dashboard.label}</span>
+            <span className="nav-link-text">
+              <span>{dashboard.label}</span>
+            </span>
             <span className="sr-only">
               {isActive ? "(current page)" : ""}
             </span>

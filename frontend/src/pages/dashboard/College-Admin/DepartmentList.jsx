@@ -753,14 +753,14 @@ const tableActions = {
         transition: "opacity 0.4s ease, transform 0.4s ease",
       }}
     >
-      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0.5rem 1.5rem 1.5rem" }}>
 
         {/* ================= BREADCRUMB ================= */}
           <div
             style={{
               width: "100%",
-              margin: "10px auto",
-              paddingTop: "5px",
+              margin: "0 auto",
+              paddingTop: 0,
             }}
           >
             <div style={{ width: "100%" }}>

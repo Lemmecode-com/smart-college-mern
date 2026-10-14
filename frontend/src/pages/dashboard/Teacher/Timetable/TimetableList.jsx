@@ -434,7 +434,7 @@ if (
         style={{
           minHeight: '100vh',
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '1.5rem',
+          paddingTop: '0.5rem',
           paddingBottom: '2rem',
           paddingLeft: '1rem',
           paddingRight: '1rem'
@@ -445,9 +445,9 @@ if (
               <div
                 style={{
                   width: "100%",
-                  margin: "10px auto",
-                  paddingBottom: "70px",
-                  height: "40px",
+                  margin: "0 auto",
+                  paddingBottom: 0,
+                  height: "auto",
                 }}
               >
                 <div style={{ width: "100%" }}>

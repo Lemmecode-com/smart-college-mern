@@ -547,7 +547,7 @@ if (loading) {
         style={{
           minHeight: "100vh",
           background: "#f5f7fa",
-          paddingTop: "1.5rem",
+          paddingTop: "0.5rem",
           paddingBottom: "2rem",
           paddingLeft: "1rem",
           paddingRight: "1rem",

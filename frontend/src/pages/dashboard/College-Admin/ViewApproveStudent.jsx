@@ -1751,7 +1751,7 @@ export default function ViewApproveStudent() {
    };
 
    return (
-     <div className="erp-container print-area">
+     <div className="erp-container print-area" style={{ paddingTop: "0.5rem" }}>
        {/* BREADCRUMBS */}
        <Breadcrumb
          items={[

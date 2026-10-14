@@ -226,6 +226,7 @@ export default function NotificationDetails() {
       style={{
         minHeight: "100vh",
         background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+        paddingTop: "0.5rem",
         paddingBottom: "3rem",
       }}
     >
@@ -267,8 +268,8 @@ export default function NotificationDetails() {
           borderRadius: "20px",
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
           overflow: "hidden",
-          marginBottom: "2rem",
-          margin: "0 auto 2rem",
+          marginBottom: "1.25rem",
+          margin: "0 auto 1.25rem",
           maxWidth: "1000px",
         }}
       >

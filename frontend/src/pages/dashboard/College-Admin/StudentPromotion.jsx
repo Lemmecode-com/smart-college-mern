@@ -1708,7 +1708,7 @@ if (error && !loading && students.length === 0) {
   }
 
   return (
-    <div className="page-container">
+    <div className="page-container" style={{ paddingTop: "0.5rem" }}>
        {/* Breadcrumb */}
        <Breadcrumb
          items={admissionOfficerMode

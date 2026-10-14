@@ -228,7 +228,7 @@ if (loadingDeps) {
   );
 }
   return (
-    <div className="container-fluid py-4">
+    <div className="container-fluid pt-2 pb-4">
       {error && typeof error === 'object' && !loading && (
         <ApiError
           title="Course Creation Error"
@@ -242,9 +242,9 @@ if (loadingDeps) {
       <div
         style={{
           width: "100%",
-          margin: "10px auto",
-          paddingTop: "2px",
-          height: "60px",
+          margin: "0 auto",
+          paddingTop: 0,
+          height: "auto",
         }}
       >
         <div style={{ width: "100%" }}>

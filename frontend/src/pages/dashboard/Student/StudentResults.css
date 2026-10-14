@@ -4,7 +4,7 @@
    ========================================================================== */
 
 .student-results-page {
-  padding: 1.5rem;
+  padding: 0.5rem 1.5rem 1.5rem;
   max-width: 1280px;
   margin: 0 auto;
   min-height: calc(100vh - 80px);
@@ -1069,7 +1069,7 @@
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
   .student-results-page {
-    padding: 1rem 0.85rem;
+    padding: 0.5rem 0.85rem 1rem;
   }
 
   .sr-hero-header {

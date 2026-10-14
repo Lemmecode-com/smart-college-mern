@@ -106,7 +106,7 @@ if (loading) {
         message={error.message}
         statusCode={error.statusCode}
         errorCode={error.errorCode}
-        onRetry={fetchSubject}
+        onRetry={() => window.location.reload()}
         onGoBack={() => navigate('/subjects')}
       />
     );
@@ -126,7 +126,7 @@ if (loading) {
   const coursePath = subject.course_id?._id || subject.course_id;
 
   return (
-    <div className="view-subject-container">
+    <div className="view-subject-container" style={{ paddingTop: "0.5rem" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[

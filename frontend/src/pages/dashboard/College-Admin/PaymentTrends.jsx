@@ -179,7 +179,7 @@ export default function PaymentTrends() {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%)',
-      padding: '1.5rem',
+      padding: '0.5rem 1.5rem 1.5rem',
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
       <style>{`

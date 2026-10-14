@@ -43,7 +43,9 @@ export default function SidebarSection({
       >
         <div className="section-title-content">
           {Icon && <span className="section-icon"><Icon aria-hidden="true" /></span>}
-          <span className="section-title-text">{title}</span>
+          <span className="section-title-text">
+            <span>{title}</span>
+          </span>
         </div>
         <span 
           className={`section-caret ${isOpen ? "caret-open" : ""}`} 
@@ -104,7 +106,9 @@ className={({ isActive: linkIsActive }) =>
       onClick={onClick}
     >
       {Icon && <span className="sub-link-icon"><Icon aria-hidden="true" /></span>}
-      <span className="sub-link-text">{label}</span>
+      <span className="sub-link-text">
+        <span>{label}</span>
+      </span>
     </NavLink>
   );
 }
