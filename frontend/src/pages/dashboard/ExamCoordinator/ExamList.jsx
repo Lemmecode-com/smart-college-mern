@@ -481,7 +481,7 @@ export default function ExamList() {
   }
 
   return (
-    <div className="exam-list-page container-fluid p-4">
+    <div className="exam-list-page container-fluid px-4 pb-4 pt-2">
       <style>{listStyles}</style>
 
       <Breadcrumb

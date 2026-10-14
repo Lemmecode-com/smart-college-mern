@@ -566,14 +566,14 @@ export default function ReportDashboard() {
   }
 
   return (
-    <div className="report-dashboard-container">
+    <div className="report-dashboard-container" style={{ paddingTop: "0.5rem" }}>
       {/* ================= BREADCRUMB ================= */}
       <div
         style={{
           width: "100%",
-          margin: "10px auto",
-          paddingTop: "0px",
-          height: "60px",
+          margin: "0 auto",
+          paddingTop: 0,
+          height: "auto",
         }}
       >
         <div style={{ width: "100%" }}>

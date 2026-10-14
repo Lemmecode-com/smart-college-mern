@@ -146,7 +146,7 @@ export default function StudentReports() {
   };
 
   return (
-    <div className="student-reports-page">
+    <div className="student-reports-page" style={{ paddingTop: "0.5rem" }}>
       <style>{`
         .student-reports-page {
           min-height: 100vh;

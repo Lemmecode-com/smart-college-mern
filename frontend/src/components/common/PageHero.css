@@ -16,7 +16,7 @@
    ===================================================== */
 
 .erp-page-hero {
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   width: 100%;
   box-sizing: border-box;
   border-radius: 14px;
@@ -164,7 +164,7 @@
 */
 @media (min-width: 768px) and (max-width: 1024px) {
   .erp-page-hero {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
   }
 
   .erp-page-hero__inner {

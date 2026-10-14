@@ -170,7 +170,7 @@ export default function AlumniSetting() {
   };
 
   return (
-    <div className="alumni-setting-page">
+    <div className="alumni-setting-page" style={{ paddingTop: "0.5rem" }}>
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/college-admin/dashboard" },

@@ -958,7 +958,7 @@ export default function CreateExam() {
   }
 
   return (
-    <div className="exam-form create-exam container-fluid p-4">
+    <div className="exam-form create-exam container-fluid px-4 pb-4 pt-2">
       <Breadcrumb
         items={[
           { label: "Home", path: "/dashboard/exam" },

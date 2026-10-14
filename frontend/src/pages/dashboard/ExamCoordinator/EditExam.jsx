@@ -746,7 +746,7 @@ export default function EditExam() {
   }
 
   return (
-    <div className="exam-form container-fluid p-4">
+    <div className="exam-form container-fluid px-4 pb-4 pt-2">
       <style>{formStyles}</style>
 
       <Breadcrumb

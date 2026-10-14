@@ -813,7 +813,7 @@ export default function ResultGeneration() {
     selectedExamSummary.byStatus?.PUBLISHED === selectedExamSummary.totalStudents;
 
   return (
-    <div className="rgen container-fluid p-4">
+    <div className="rgen container-fluid px-4 pb-4 pt-2">
       <style>{styles}</style>
 
       <ConfirmModal

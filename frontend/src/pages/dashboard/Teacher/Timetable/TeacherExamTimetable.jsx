@@ -221,13 +221,13 @@ export default function TeacherExamTimetable() {
 
       <style>{`
         .teacher-exam-timetable-page {
-          padding: 1.5rem;
+          padding: 0.5rem 1.5rem 1.5rem;
           max-width: 1200px;
           margin: 0 auto;
         }
 
         .teacher-exam-timetable-header {
-          margin-bottom: 1.25rem;
+          margin-bottom: 0;
         }
 
         .teacher-exam-timetable-content {
@@ -344,7 +344,7 @@ export default function TeacherExamTimetable() {
 
         @media (max-width: 768px) {
           .teacher-exam-timetable-page {
-            padding: 1rem;
+            padding: 0.5rem 1rem 1rem;
           }
 
           .teacher-exam-timetable-title {

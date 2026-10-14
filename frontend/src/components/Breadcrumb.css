@@ -24,7 +24,7 @@
   box-sizing: border-box;
 
   /* Space between breadcrumb and page heading/content */
-  margin-bottom: 32px;
+  margin-bottom: 12px;
 }
 
 /* =====================================================
@@ -226,7 +226,7 @@
 
 @media (max-width: 575.98px) {
   .erp-breadcrumb {
-    margin-bottom: 24px;
+    margin-bottom: 12px;
   }
 
   .erp-breadcrumb-list {
@@ -264,4 +264,28 @@
   .erp-breadcrumb-icon {
     font-size: 0.75rem;
   }
+}
+
+/* Uniform gap between the top bar and the breadcrumb on every page */
+.erp-page:has(.erp-breadcrumb:first-child),
+.erp-page-content:has(.erp-breadcrumb:first-child) {
+  padding-top: 0.5rem !important;
+}
+
+.erp-page:has(.erp-breadcrumb:first-child) .erp-page-content:has(.erp-breadcrumb:first-child) {
+  padding-top: 0 !important;
+}
+
+/* Page-specific breadcrumb wrappers/margins must not change the standard spacing */
+[class*="breadcrumb-wrapper"],
+.edit-course-breadcrumb,
+.edit-subject-breadcrumb,
+.edit-profile-breadcrumb {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100%;
+}
+
+nav.erp-breadcrumb:not(.erp-breadcrumb--inline) {
+  margin-bottom: 12px !important;
 }

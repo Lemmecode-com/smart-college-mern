@@ -403,9 +403,9 @@ if (loading) {
         <div
           style={{
             width: "100%",
-            margin: "10px auto",
-            paddingTop: "17px",
-            height: "75px",
+            margin: "0 auto",
+            paddingTop: 0,
+            height: "auto",
           }}
         >
           <div style={{ width: "100%" }}>

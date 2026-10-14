@@ -293,13 +293,13 @@ export default function EditDepartment() {
   }
 
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in">
+    <div className="container-fluid pt-2 pb-3 pb-md-4 animate-fade-in">
       {/* ================= BREADCRUMB ================= */}
       <div
         style={{
           width: "100%",
-          margin: "10px auto",
-          paddingTop: "5px",
+          margin: "0 auto",
+          paddingTop: 0,
         }}
       >
         <div style={{ width: "100%" }}>

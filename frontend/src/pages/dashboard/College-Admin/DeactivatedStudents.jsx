@@ -249,7 +249,7 @@ const tableActions = {
   }
 
    return (
-     <div className="erp-container">
+     <div className="erp-container" style={{ paddingTop: "0.5rem" }}>
        <Breadcrumb items={admissionOfficerMode
          ? [
              { label: "Dashboard", path: "/dashboard/admission" },
