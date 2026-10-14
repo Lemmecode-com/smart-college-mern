@@ -118,8 +118,8 @@ export default function ViewParent() {
                 <div
                   style={{
                         width: "100%",
-                        margin: "10px auto",
-                        paddingTop: "5px",
+                        margin: "0 auto",
+                        paddingTop: 0,
                   }}
                 >
                   <div style={{ width: "100%" }}>

@@ -176,7 +176,7 @@ if (loading) {
   }
 
   return (
-    <div className="student-payment-report">
+    <div className="student-payment-report" style={{ paddingTop: "0.5rem" }}>
       <style>{`
         .student-payment-report {
           min-height: 100vh;

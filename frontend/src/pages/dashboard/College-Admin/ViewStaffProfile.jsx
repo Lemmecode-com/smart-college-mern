@@ -185,15 +185,15 @@ export default function ViewStaffProfile() {
 
   return (
     <div className="dashboard-wrapper erp-viewport-min-100">
-      <Container fluid className="py-4">
+      <Container fluid className="pt-0 pb-4">
 
     {/* ================= BREADCRUMB ================= */}
         <div
           style={{
                 width: "100%",
                 // margin: "10px auto",
-                paddingTop: "-1rem",
-                height: "60px",
+                paddingTop: 0,
+                height: "auto",
           }}
         >
           <div style={{ width: "100%" }}>

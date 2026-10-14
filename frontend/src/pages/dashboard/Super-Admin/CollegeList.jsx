@@ -306,7 +306,7 @@ export default function CollegeList() {
   }
 
   return (
-    <div className="erp-container">
+    <div className="erp-container" style={{ paddingTop: "0.5rem" }}>
       {/* CONFIRM MODAL */}
       <ConfirmModal
         isOpen={showConfirmModal}

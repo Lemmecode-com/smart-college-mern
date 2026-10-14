@@ -188,7 +188,7 @@ export default function CreateFeeStructure() {
   };
 
   return (
-    <div className="erp-container">
+    <div className="erp-container" style={{ paddingTop: "0.5rem" }}>
       {error && typeof error === 'object' && !loading && (
         <ApiError
           title="Fee Structure Creation Error"

@@ -233,13 +233,13 @@ export default function HodExamTimetable() {
 
       <style>{`
         .hod-exam-timetable-page {
-          padding: 1.5rem;
+          padding: 0.5rem 1.5rem 1.5rem;
           max-width: 1200px;
           margin: 0 auto;
         }
 
         .hod-exam-timetable-header {
-          margin-bottom: 1.25rem;
+          margin-bottom: 0;
         }
 
         .hod-exam-timetable-content {

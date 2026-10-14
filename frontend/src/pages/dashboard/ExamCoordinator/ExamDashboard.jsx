@@ -1231,7 +1231,7 @@ export default function ExamDashboard() {
   }
 
   return (
-    <div className="exam-dashboard container-fluid p-4">
+    <div className="exam-dashboard container-fluid px-4 pb-4 pt-2">
       <style>{dashboardStyles}</style>
 
       <Breadcrumb

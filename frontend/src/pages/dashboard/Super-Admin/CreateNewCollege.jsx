@@ -409,7 +409,7 @@ export default function CreateNewCollege() {
 
 
   return (
-    <div className="erp-container">
+    <div className="erp-container" style={{ paddingTop: "0.5rem" }}>
       {/* CONFIRMATION MODAL */}
       <ConfirmModal
         isOpen={showConfirm}

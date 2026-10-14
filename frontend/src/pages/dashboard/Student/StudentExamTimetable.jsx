@@ -251,13 +251,13 @@ export default function StudentExamTimetable() {
 
       <style>{`
         .student-exam-timetable-page {
-          padding: 1.5rem;
+          padding: 0.5rem 1.5rem 1.5rem;
           max-width: 1200px;
           margin: 0 auto;
         }
 
         .student-exam-timetable-header {
-          margin-bottom: 1.25rem;
+          margin-bottom: 0;
         }
 
         .student-exam-timetable-content {
@@ -379,7 +379,7 @@ export default function StudentExamTimetable() {
 
         @media (max-width: 768px) {
           .student-exam-timetable-page {
-            padding: 1rem;
+            padding: 0.5rem 1rem 1rem;
           }
         }
       `}</style>

@@ -282,7 +282,7 @@ export default function EditTeacherProfile() {
       style={{
         minHeight: "100vh",
         background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-        padding: "2rem 1rem",
+        padding: "0.5rem 1rem 2rem",
       }}
     >
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
@@ -290,8 +290,8 @@ export default function EditTeacherProfile() {
         <div
           style={{
             width: "100%",
-            margin: "10px auto",
-            paddingTop: "5px",
+            margin: "0 auto",
+            paddingTop: 0,
           }}
         >
           <div style={{ width: "100%" }}>

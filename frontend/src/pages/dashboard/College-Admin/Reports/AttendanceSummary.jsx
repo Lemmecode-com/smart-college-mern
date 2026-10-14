@@ -208,7 +208,7 @@ if (loading) {
 }
 
   return (
-    <div className="erp-container">
+    <div className="erp-container" style={{ paddingTop: "0.5rem" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[

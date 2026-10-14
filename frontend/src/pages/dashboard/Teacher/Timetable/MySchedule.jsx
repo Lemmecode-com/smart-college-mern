@@ -136,7 +136,7 @@ const componentStyles = `
 .schedule-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
-  padding: 1.5rem;
+  padding: 0.5rem 1.5rem 1.5rem;
 }
 .schedule-content {
   width: 100%;
@@ -736,7 +736,7 @@ const componentStyles = `
 }
 @media (max-width: 1024px) {
   .schedule-container {
-    padding: 1rem;
+    padding: 0.5rem 1rem 1rem;
   }
   .header-top {
     padding: 1.25rem;
@@ -1375,8 +1375,8 @@ if (loading || !sessionsLoaded) {
             <div
               style={{
                 width: "100%",
-                margin: "10px auto",
-                paddingTop: "5px",
+                margin: "0 auto",
+                paddingTop: 0,
               }}
             >
               <div style={{ width: "100%" }}>

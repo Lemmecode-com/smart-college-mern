@@ -947,7 +947,7 @@ export default function ExamResultsDashboard() {
   }
 
   return (
-    <div className="erd container-fluid p-4">
+    <div className="erd container-fluid px-4 pb-4 pt-2">
       <style>{styles}</style>
 
       {/* Lock Confirmation Modal */}

@@ -456,7 +456,7 @@ export default function HodProfile() {
       className="erp-page erp-viewport-min-100"
       style={{
         background: `linear-gradient(180deg, ${BRAND.bg} 0%, #eef4fb 100%)`,
-        padding: "1.25rem 1rem 2.5rem",
+        padding: "0.5rem 1rem 2.5rem",
       }}
     >
       <style>{`
@@ -482,7 +482,7 @@ export default function HodProfile() {
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: "0.75rem",
-            marginBottom: "1rem",
+            marginBottom: 0,
           }}
         >
           <Breadcrumb
@@ -491,37 +491,7 @@ export default function HodProfile() {
               { label: "My Profile" },
             ]}
           />
-          <button
-            type="button"
-            onClick={handleGoBack}
-            className="btn btn-sm"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.45rem",
-              fontSize: "0.82rem",
-              fontWeight: 600,
-              padding: "0.4rem 0.85rem",
-              borderRadius: "8px",
-              border: `1px solid ${BRAND.border}`,
-              color: BRAND.ink,
-              background: BRAND.card,
-              boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = BRAND.primary;
-              e.currentTarget.style.color = BRAND.primary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = BRAND.border;
-              e.currentTarget.style.color = BRAND.ink;
-            }}
-          >
-            <FaArrowLeft style={{ fontSize: "0.72rem" }} />
-            <span>Back to Dashboard</span>
-          </button>
+
         </div>
 
         {/* ==================================================
@@ -733,7 +703,9 @@ export default function HodProfile() {
             </div>
 
             {/* Right: Contact Information */}
+            
             <div className="col-12 col-md-4 text-md-end">
+              
               <div
                 className="hod-header-contact"
                 style={{
@@ -774,6 +746,7 @@ export default function HodProfile() {
                       borderRadius: 8,
                       fontSize: "0.8rem",
                       color: "rgba(255,255,255,0.92)",
+                      
                     }}
                   >
                     <FaPhone style={{ opacity: 0.8, fontSize: "0.72rem" }} />
@@ -781,8 +754,47 @@ export default function HodProfile() {
                   </span>
                 )}
               </div>
+              <button
+                  type="button"
+                  onClick={() => navigate("/dashboard")}
+                  aria-label="Back to Dashboard"
+                  style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",   
+                    marginLeft: "0.8rem",    
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.boxShadow =
+            "0 4px 10px rgba(0, 0, 0, 0.15)";
+          e.currentTarget.style.background =
+            "rgba(255, 255, 255, 0.18)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "none";
+          e.currentTarget.style.background =
+            "rgba(255, 255, 255, 0.12)";
+        }}
+      >
+        <FaArrowLeft size={16} />
+        <span>Back</span>
+      </button>
             </div>
           </div>
+          
         </motion.div>
 
         {/* ==================================================
