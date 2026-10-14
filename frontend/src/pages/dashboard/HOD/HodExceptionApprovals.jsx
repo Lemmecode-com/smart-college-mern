@@ -770,6 +770,7 @@ if (
       className="container-fluid p-0"
       style={{
         minHeight: "100vh",
+        paddingTop: "0.5rem",
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
       }}
     >
@@ -777,9 +778,9 @@ if (
             <div
               style={{
                 width: "96%",
-                margin: "10px auto",
-                paddingTop: "20px",
-                height: "80px",
+                margin: "0 auto",
+                paddingTop: 0,
+                height: "auto",
               }}
             >
               <div style={{ width: "100%" }}>

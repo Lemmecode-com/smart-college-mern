@@ -2003,15 +2003,15 @@ export default function DocumentSettings() {
         }
       `}</style>
 
-      <div className="document-settings-page">
+      <div className="document-settings-page" style={{ paddingTop: "0.5rem" }}>
 
         {/* ================= BREADCRUMB ================= */}
         <div
           style={{
             width: "100%",
-            margin: "10px auto",
-            paddingTop: "2px",
-            height: "60px",
+            margin: "0 auto",
+            paddingTop: 0,
+            height: "auto",
           }}
         >
           <div style={{ width: "100%" }}>

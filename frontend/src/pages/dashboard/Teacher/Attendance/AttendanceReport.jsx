@@ -445,7 +445,7 @@ if (loading && !report) {
         style={{
           minHeight: "100vh",
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-          paddingTop: "1rem",
+          paddingTop: "0.5rem",
           paddingBottom: "1.25rem",
           paddingLeft: "1rem",
           paddingRight: "1rem",

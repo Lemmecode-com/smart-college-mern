@@ -388,7 +388,7 @@ if (loading) {
 
   return (
     <div style={s.page}>
-      <Container fluid className="p-4 erp-viewport-min-100">
+      <Container fluid className="px-4 pb-4 pt-2 erp-viewport-min-100">
         <Breadcrumb
           items={[
             { label: "Dashboard", path: "/dashboard" },

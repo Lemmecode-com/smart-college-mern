@@ -590,14 +590,14 @@ export default function EditCollegeProfile() {
   }
 
   return (
-    <div className="edit-college-profile-container">
+    <div className="edit-college-profile-container" style={{ paddingTop: "0.5rem" }}>
 {/* ================= BREADCRUMB ================= */}
     <div
       style={{
         width: "100%",
-        margin: "10px auto",
-        paddingTop: "5px",
-        height: "60px",
+        margin: "0 auto",
+        paddingTop: 0,
+        height: "auto",
       }}
     >
       <div style={{ width: "100%" }}>

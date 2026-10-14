@@ -108,7 +108,7 @@ if (loading) {
         message={error.message}
         statusCode={error.statusCode}
         errorCode={error.errorCode}
-        onRetry={fetchCourse}
+        onRetry={() => window.location.reload()}
         onGoBack={() => navigate('/courses')}
       />
     );
@@ -158,13 +158,13 @@ if (loading) {
   };
 
   return (
-    <div className="view-course-page">
+    <div className="view-course-page" style={{ paddingTop: "0.5rem" }}>
       {/* ================= BREADCRUMB ================= */}
     <div
       style={{
         width: "100%",
-        margin: "10px auto",
-        paddingTop: "5px",
+        margin: "0 auto",
+        paddingTop: 0,
       }}
     >
       <div style={{ width: "100%" }}>

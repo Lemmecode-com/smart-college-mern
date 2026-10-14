@@ -507,9 +507,21 @@
 }
 
 .section-title-text {
-  white-space: nowrap;
+  display: block;
+  flex: 1 1 0%;
+  min-width: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
+  container-type: inline-size;
+}
+
+.section-title-text > span,
+.nav-link-text > span,
+.sub-link-text > span {
+  display: inline-block;
+  width: max-content;
+  white-space: nowrap;
+  transform: translateX(0);
+  transition: transform 0.25s ease-out;
 }
 
 /* ================= CARET ROTATION ANIMATION ================= */
@@ -574,13 +586,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  flex: 0 0 auto;
   width: 20px;
 }
 
 .nav-link-text {
-  flex: 1;
+  display: block;
+  flex: 1 1 0%;
+  min-width: 0;
   text-align: left;
+  overflow: hidden;
+  container-type: inline-size;
 }
 
 /* ================= SUB LINKS ================= */
@@ -631,17 +647,45 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  flex: 0 0 auto;
   width: 16px;
   font-size: 0.75rem;
 }
 
 .sub-link-text {
-  flex: 1;
+  display: block;
+  flex: 1 1 0%;
+  min-width: 0;
   text-align: left;
-  white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
+  container-type: inline-size;
+}
+
+.section-icon,
+.nav-link-icon,
+.sub-link-icon {
+  flex-shrink: 0;
+}
+
+.sidebar-section-title:hover .section-title-text > span,
+.sidebar-section-title:focus-visible .section-title-text > span,
+.nav-link:hover .nav-link-text > span,
+.nav-link:focus-visible .nav-link-text > span,
+.sub-link:hover .sub-link-text > span,
+.sub-link:focus-visible .sub-link-text > span {
+  transform: translateX(min(0px, calc(100cqw - 100%)));
+  transition: transform 0.5s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-section-title:hover .section-title-text > span,
+  .sidebar-section-title:focus-visible .section-title-text > span,
+  .nav-link:hover .nav-link-text > span,
+  .nav-link:focus-visible .nav-link-text > span,
+  .sub-link:hover .sub-link-text > span,
+  .sub-link:focus-visible .sub-link-text > span {
+    transform: none;
+  }
 }
 
 /* ================= SUBMENU ================= */

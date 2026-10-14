@@ -214,14 +214,14 @@ export default function AddDepartment() {
   };
 
   return (
-    <div className="container-fluid py-3 py-md-4 animate-fade-in">
+    <div className="container-fluid pt-2 pb-3 pb-md-4 animate-fade-in">
       {/* ================= BREADCRUMB ================= */}
       <div
         style={{
           width: "100%",
-          margin: "10px auto",
-          paddingTop: "2px",
-          height: "60px",
+          margin: "0 auto",
+          paddingTop: 0,
+          height: "auto",
         }}
       >
         <div style={{ width: "100%" }}>

@@ -760,7 +760,7 @@ export default function ViewExam() {
   }
 
   return (
-    <div className="exam-view container-fluid p-4">
+    <div className="exam-view container-fluid px-4 pb-4 pt-2">
       <style>{viewStyles}</style>
 
       <ConfirmModal

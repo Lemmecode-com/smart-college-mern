@@ -664,7 +664,7 @@ const renderPagination = () => {
       style={{
         minHeight: "100vh",
         background: THEME.background.light,
-        padding: "1.5rem",
+        padding: "0.5rem 1.5rem 1.5rem",
       }}
     >
       {/* Breadcrumb */}
@@ -672,9 +672,9 @@ const renderPagination = () => {
       className="audit-breadcrumb-wrapper"
         style={{
           width: "100%",
-          margin: "10px auto",
-          paddingTop: "2px",
-          height: "60px",
+          margin: "0 auto",
+          paddingTop: 0,
+          height: "auto",
         }}
       >
         <div style={{ width: "100%" }}>
@@ -1037,7 +1037,7 @@ const renderPagination = () => {
                           transition={{ delay: index * 0.05 }}
                           style={{ transition: "all 0.2s" }}
                           onClick={() =>
-                            setExpandedLog(isExpanded ? null : log._id)
+                            setExpandedLog(expandedLog === log._id ? null : log._id)
                           }
                         >
                           <td
@@ -1169,10 +1169,7 @@ const renderPagination = () => {
 
     /* Main page spacing */
     .audit-responsive-container {
-      padding: 1.25rem !important;
-    }
-
-    /* Header */
+      padding: 0.5rem 1.25rem 1.25rem !important;
     .audit-responsive-container .audit-header {
       padding: 1.5rem !important;
     }
@@ -1246,7 +1243,7 @@ const renderPagination = () => {
 
     /* Main page */
     .audit-responsive-container {
-      padding: 0.75rem !important;
+      padding: 0.5rem 0.75rem 0.75rem !important;
       width: 100% !important;
       box-sizing: border-box !important;
       overflow-x: hidden !important;

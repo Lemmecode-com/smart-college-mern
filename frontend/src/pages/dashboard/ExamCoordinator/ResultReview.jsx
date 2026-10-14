@@ -741,7 +741,7 @@ export default function ResultReview() {
   breadcrumbItems.push({ label: `${studentName} Result` });
 
   return (
-    <div className="rrev container-fluid p-4">
+    <div className="rrev container-fluid px-4 pb-4 pt-2">
       <style>{styles}</style>
 
       <Breadcrumb items={breadcrumbItems} />

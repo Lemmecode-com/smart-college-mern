@@ -177,7 +177,7 @@ export default function HodTeachers() {
       className="erp-page erp-viewport-min-100"
       style={{
         background: `linear-gradient(180deg, ${BRAND.bg} 0%, #eef4fb 100%)`,
-        padding: "1.25rem 1rem 2.5rem",
+        padding: "0.5rem 1rem 2.5rem",
       }}
     >
       <div className="erp-page-content" style={{ maxWidth: 1200 }}>
@@ -189,7 +189,7 @@ export default function HodTeachers() {
             justifyContent: "space-between",
             flexWrap: "wrap",
             gap: "0.75rem",
-            marginBottom: "1rem",
+            marginBottom: 0,
           }}
         >
           <Breadcrumb
@@ -207,7 +207,7 @@ export default function HodTeachers() {
           animate="visible"
           style={{
             background: "linear-gradient(135deg, #0e3746 0%, #164e63 100%)",
-            borderRadius: 16,
+            borderRadius: 14,
             padding: "1.25rem 1.5rem",
             color: "#fff",
             boxShadow: "0 10px 30px -10px rgba(14, 55, 70, 0.4)",

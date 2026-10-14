@@ -431,7 +431,7 @@ export default function MarksEntry() {
 
   if (error) {
     return (
-      <div className="marks-entry container-fluid p-4">
+      <div className="marks-entry container-fluid px-4 pb-4 pt-2">
         <style>{styles}</style>
         <Breadcrumb items={[{ label: "Marks Entry", path: "/teacher/marks-entry" }]} />
         <div className="fallback-wrap" style={{ maxWidth: 560, margin: "2rem auto" }}>
@@ -449,7 +449,7 @@ export default function MarksEntry() {
   }
 
   return (
-    <div className="marks-entry container-fluid p-4">
+    <div className="marks-entry container-fluid px-4 pb-4 pt-2">
       <style>{styles}</style>
 
       <Breadcrumb items={[{ label: "Teacher Dashboard", path: "/teacher/dashboard" }, { label: "Marks Entry" }]} />

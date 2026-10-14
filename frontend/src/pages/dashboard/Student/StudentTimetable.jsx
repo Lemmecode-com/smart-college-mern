@@ -1632,7 +1632,7 @@ const componentStyles = `
   .st-container {
     min-height: 100vh;
     background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
-    padding: 1.5rem;
+    padding: 0.5rem 1.5rem 1.5rem;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   }
 
@@ -2639,7 +2639,7 @@ const componentStyles = `
 
   @media (max-width: 768px) {
     .st-container {
-      padding: 1rem;
+      padding: 0.5rem 1rem 1rem;
     }
 
     .st-header {

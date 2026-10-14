@@ -363,6 +363,7 @@ if (loading) {
       className="container-fluid p-0"
       style={{
         minHeight: "100vh",
+        paddingTop: "0.5rem",
         background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
         maxWidth: "100%",
       }}
@@ -372,9 +373,9 @@ if (loading) {
                       <div
                   style={{
                     // width: "100%",
-                    margin: "10px auto",
-                    marginBottom: "-0.5rem",
-                    paddingTop: "30px",
+                    margin: "0 auto",
+                    marginBottom: 0,
+                    paddingTop: 0,
                     transform: "scale(0.95)",
                     transformOrigin: "top center",
                   }}

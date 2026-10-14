@@ -198,13 +198,12 @@ if (loading) {
         className="erp-page erp-viewport-min-100"
         style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)' }}
       >
-        <div className="container-fluid px-3 px-md-4 py-3 py-md-4">
+        <div className="container-fluid px-3 px-md-4 pt-2 pb-3 pb-md-4">
           {/* ================= BREADCRUMB ================= */}
         <motion.div
           variants={slideDownVariants}
           initial="hidden"
           animate="visible"
-          className="mb-4"
         >
           <Breadcrumb
             items={[

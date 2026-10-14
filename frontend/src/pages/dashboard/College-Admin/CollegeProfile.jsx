@@ -328,7 +328,7 @@ export default function CollegeProfile() {
         className="erp-viewport-min-100 college-profile-responsive"
         style={{
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-          paddingTop: "1.5rem",
+          paddingTop: "0.5rem",
           paddingBottom: "1.5rem",
           paddingLeft: "1rem",
           paddingRight: "1rem",
@@ -368,9 +368,9 @@ export default function CollegeProfile() {
           <div
             style={{
               width: "100%",
-              margin: "10px auto",
-              paddingTop: "2px",
-              height: "60px",
+              margin: "0 auto",
+              paddingTop: 0,
+              height: "auto",
             }}
           >
             <div style={{ width: "100%" }}>
@@ -928,7 +928,7 @@ export default function CollegeProfile() {
     min-height: 100vh !important;
     height: auto !important;
 
-    padding: 1.25rem !important;
+    padding: 0.5rem 1.25rem 1.25rem !important;
 
     box-sizing: border-box !important;
 
