@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 /**
+=======
+﻿/**
+>>>>>>> 38ea9f90 (Fixed Security Issues)
  * jest.config.js — Test Runner Configuration
  *
  * SECURITY NOTE:
