@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { Container, Row, Col, Card, Badge, Button } from "react-bootstrap";
@@ -125,7 +126,22 @@ export default function ViewStaffProfile() {
     if (actualUserId) fetchProfile();
   }, [actualUserId, fetchProfile]);
 
-  if (loading) return <Loading />;
+  if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Staff Profile..."
+        />
+      </div>
+    </div>
+  );
+}
   if (error) return (
     <ApiError
       title="Staff Profile Loading Error"
@@ -171,78 +187,172 @@ export default function ViewStaffProfile() {
     <div className="dashboard-wrapper erp-viewport-min-100">
       <Container fluid className="py-4">
 
-        {/* Header */}
-        <Row className="mb-4">
-          <Col>
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-              <div style={{
-                width: 80,
-                height: 80,
-                borderRadius: "50%",
-                background: BRAND_COLORS.primary.gradient,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "white",
-                fontSize: "2rem"
-              }}>
-                <FaUser />
-              </div>
-              <div>
-                <h2 style={{ color: BRAND_COLORS.primary.main, margin: 0 }}>
-                  {userName}
-                </h2>
-                <p className="text-muted mb-0">
-                  {userRole} • {collegeName}
-                  {collegeCode && <span className="text-muted"> ({collegeCode})</span>}
-                </p>
-                <Badge bg={statusVariant} className="mt-1">
-                  <FaCheckCircle size={12} className="me-1" />
-                  {statusLabel}
-                </Badge>
-              </div>
-            </div>
-          </Col>
+    {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+                width: "100%",
+                // margin: "10px auto",
+                paddingTop: "-1rem",
+                height: "60px",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Staff Management", path: "/college/staff" },
+                { label: "Staff Profile" },
+              ]}
+            />
+          </div>
+        </div>
 
-          <Col xs="auto">
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <button
-                onClick={() => navigate("/college/staff")}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: BRAND_COLORS.primary.main,
-                  cursor: "pointer",
-                  padding: "0.5rem",
-                  borderRadius: "8px",
-                  transition: "all 0.3s ease",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  fontSize: "1rem",
-                  fontWeight: 500,
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f1f5f9"}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-              >
-                <FaArrowLeft /> Back
-              </button>
-              {canEdit && (
-                <Button
-                  variant="primary"
-                  onClick={() => navigate(`/staff/profile/edit/${actualUserId}`)}
-                  style={{
-                    background: BRAND_COLORS.primary.gradient,
-                    border: "none",
-                    padding: "0.75rem 1.5rem",
-                  }}
-                >
-                  Edit Profile
-                </Button>
-              )}
-            </div>
-          </Col>
-        </Row>
+        {/* Header */}
+{/* ================= STAFF PROFILE HEADER ================= */}
+<div
+  style={{
+    background: "#0E3746",
+    borderRadius: "1.25rem",
+    padding: "1.5rem 1.75rem",
+    marginBottom: "1.5rem",
+    color: "white",
+    boxShadow: "0 10px 25px rgba(15, 58, 74, 0.18)",
+  }}
+>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: "1.5rem",
+      flexWrap: "wrap",
+    }}
+  >
+    {/* Left: Profile Information */}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "1.25rem",
+        minWidth: 0,
+      }}
+    >
+      {/* Profile Icon */}
+      <div
+        style={{
+          width: 76,
+          height: 76,
+          minWidth: 76,
+          borderRadius: "50%",
+          background: "rgba(255, 255, 255, 0.14)",
+          border: "1px solid rgba(255, 255, 255, 0.18)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          fontSize: "2rem",
+        }}
+      >
+        <FaUser />
+      </div>
+
+      {/* Name + Details */}
+      <div style={{ minWidth: 0 }}>
+        <h2
+          style={{
+            margin: 0,
+            color: "white",
+            fontSize: "2rem",
+            fontWeight: 700,
+            lineHeight: 1.2,
+          }}
+        >
+          {userName}
+        </h2>
+
+        <p
+          style={{
+            margin: "0.35rem 0 0",
+            color: "rgba(255, 255, 255, 0.82)",
+            fontSize: "1rem",
+            lineHeight: 1.5,
+          }}
+        >
+          {userRole} • {collegeName}
+          {collegeCode && ` (${collegeCode})`}
+        </p>
+
+        <Badge
+          bg={statusVariant}
+          style={{
+            marginTop: "0.6rem",
+            padding: "0.45rem 0.8rem",
+            fontSize: "0.8rem",
+            borderRadius: "999px",
+          }}
+        >
+          <FaCheckCircle size={12} className="me-1" />
+          {statusLabel}
+        </Badge>
+      </div>
+    </div>
+
+    {/* Right: Actions */}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.75rem",
+        flexShrink: 0,
+      }}
+    >
+      <button
+        onClick={() => navigate("/college/staff")}
+        style={{
+          background: "rgba(255, 255, 255, 0.12)",
+          border: "1px solid rgba(255, 255, 255, 0.25)",
+          color: "white",
+          cursor: "pointer",
+          padding: "0.75rem 1.25rem",
+          borderRadius: "0.75rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          fontSize: "0.95rem",
+          fontWeight: 600,
+          transition: "all 0.2s ease",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.2)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+        }}
+      >
+        <FaArrowLeft />
+        Back
+      </button>
+
+      {canEdit && (
+        <Button
+          onClick={() => navigate(`/staff/profile/edit/${actualUserId}`)}
+          style={{
+            background: "white",
+            border: "none",
+            color: BRAND_COLORS.primary.main,
+            padding: "0.75rem 1.35rem",
+            borderRadius: "0.75rem",
+            fontSize: "0.95rem",
+            fontWeight: 600,
+            boxShadow: "0 4px 10px rgba(0, 0, 0, 0.12)",
+          }}
+        >
+          Edit Profile
+        </Button>
+      )}
+    </div>
+  </div>
+</div>
 
         {/* Personal Information */}
         <div className="mb-3">

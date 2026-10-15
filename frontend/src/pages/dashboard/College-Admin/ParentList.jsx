@@ -2,6 +2,9 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import Pagination from "../../../components/Pagination";
 import {
   FaUser,
@@ -363,6 +366,270 @@ export default function ParentList() {
     });
   }, [fetchParents]);
 
+/* ================= STANDARD LIST COLUMNS ================= */
+
+const columns = [
+  {
+    key: "name",
+    label: "Parent",
+    sortable: true,
+    width: "220px",
+
+    render: (parent) => (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
+        <div
+          style={{
+            width: "40px",
+            height: "40px",
+            minWidth: "40px",
+            borderRadius: "50%",
+            backgroundColor: `${BRAND_COLORS.primary.light}20`,
+            color: BRAND_COLORS.primary.main,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: "700",
+            fontSize: "1rem",
+          }}
+        >
+          {parent.name?.charAt(0)?.toUpperCase() || "P"}
+        </div>
+
+        <div>
+          <div
+            style={{
+              fontWeight: "700",
+              color: BRAND_COLORS.text.primary,
+              fontSize: "0.8rem",
+            }}
+          >
+            {parent.name || "Unnamed Parent"}
+          </div>
+
+          <div
+            style={{
+              fontSize: "0.75rem",
+              color: BRAND_COLORS.text.muted,
+              textTransform: "capitalize",
+            }}
+          >
+            {parent.relation?.replace("_", " ") || "Parent"}
+          </div>
+        </div>
+      </div>
+    ),
+  },
+
+  {
+    key: "email",
+    label: "Email",
+    sortable: true,
+    width: "220px",
+
+    render: (parent) => (
+      <span
+        style={{
+          color: BRAND_COLORS.text.secondary,
+          fontSize: "0.8rem",
+        }}
+      >
+        {parent.email || "Not Provided"}
+      </span>
+    ),
+  },
+
+  {
+    key: "relation",
+    label: "Relationship",
+    sortable: true,
+    width: "100px",
+
+    render: (parent) => (
+      <span
+        style={{
+          padding: "4px 10px",
+          borderRadius: "6px",
+          fontSize: "0.7rem",
+          fontWeight: "600",
+          backgroundColor: "#f8f9fa",
+          color: BRAND_COLORS.text.secondary,
+          textTransform: "capitalize",
+        }}
+      >
+        {parent.relation?.replace("_", " ") || "Not Provided"}
+      </span>
+    ),
+  },
+
+  {
+    key: "linkedStudents",
+    label: "Linked Students",
+    sortable: false,
+    width: "120px",
+
+    render: (parent) => (
+      <div>
+        <div
+          style={{
+            fontWeight: "600",
+            color: BRAND_COLORS.text.primary,
+            fontSize: "0.75rem",
+          }}
+        >
+          {parent.linkedStudents?.length || 0} student(s)
+        </div>
+
+        <small
+          style={{
+            color: BRAND_COLORS.text.muted,
+            fontSize: "0.7rem",
+          }}
+        >
+          {parent.linkedStudents?.length > 0
+            ? parent.linkedStudents
+                .map((student) => student.fullName)
+                .join(", ")
+            : "Not linked"}
+        </small>
+      </div>
+    ),
+  },
+
+  {
+    key: "isActive",
+    label: "Status",
+    sortable: true,
+    width: "100px",
+
+    render: (parent) => (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+          padding: "6px 12px",
+          borderRadius: "20px",
+          fontSize: "0.7rem",
+          fontWeight: "700",
+          backgroundColor: parent.isActive
+            ? BRAND_COLORS.success.light
+            : BRAND_COLORS.danger.light,
+          color: parent.isActive
+            ? BRAND_COLORS.success.dark
+            : BRAND_COLORS.danger.dark,
+          border: `1px solid ${
+            parent.isActive
+              ? BRAND_COLORS.success.main
+              : BRAND_COLORS.danger.main
+          }30`,
+        }}
+      >
+        {parent.isActive ? <FaCheckCircle /> : <FaTimesCircle />}
+
+        {parent.isActive ? "Active" : "Inactive"}
+      </span>
+    ),
+  },
+
+  {
+    key: "mustChangePassword",
+    label: "Account",
+    sortable: true,
+    width: "160px",
+
+    render: (parent) =>
+      parent.mustChangePassword ? (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "6px 12px",
+            borderRadius: "20px",
+            fontSize: "0.7rem",
+            fontWeight: "600",
+            backgroundColor: BRAND_COLORS.warning.light,
+            color: BRAND_COLORS.warning.dark,
+          }}
+        >
+          <FaKey />
+          Temp password
+        </span>
+      ) : (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            padding: "6px 12px",
+            borderRadius: "20px",
+            fontSize: "0.8rem",
+            fontWeight: "600",
+            backgroundColor: BRAND_COLORS.success.light,
+            color: BRAND_COLORS.success.dark,
+          }}
+        >
+          <FaCheckCircle />
+          Set
+        </span>
+      ),
+  },
+];
+
+/* ================= STANDARD LIST ACTIONS ================= */
+
+const tableActions = {
+  label: "Actions",
+  width: "200px",
+
+  items: [
+    {
+      key: "view",
+      label: "View",
+      icon: FaEye,
+      className: "view-btn",
+      style: {  },
+
+      onClick: (parent) => {
+        navigate(`/college/parents/${parent.id}`);
+      },
+    },
+
+    {
+      key: "edit",
+      label: "Edit",
+      icon: FaEdit,
+      className: "edit-btn",
+      
+
+      onClick: (parent) => {
+        navigate(`/college/parents/edit/${parent.id}`);
+      },
+    },
+
+    {
+      key: "toggle-status",
+      text: "x",
+      style: { backgroundColor: "#c82121", fontWeight: "bold", fontSize: "1.8rem" },
+      label: (parent) =>
+        parent.isActive ? "Deactivate" : "Activate",
+      icon: (parent) =>
+        parent.isActive ? FaTimesCircle : FaCheckCircle,
+      className: "danger-btn",
+
+      onClick: (parent) => {
+        handleToggleStatus(parent);
+      },
+    },
+  ],
+};
+
   if (error && !loading) {
     return (
       <ApiError
@@ -377,7 +644,20 @@ export default function ParentList() {
   }
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading parent data..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading parent data..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -386,68 +666,48 @@ export default function ParentList() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="erp-page-content erp-viewport-min-100"
+        className="erp-page-content erp-viewport-min-100 parent-management-page"
       >
-        {/* Header Section */}
-        <motion.div
-          variants={slideDownVariants}
-          initial="hidden"
-          animate="visible"
+        {/* ================= BREADCRUMB ================= */}
+        <div
           style={{
-            marginBottom: "32px",
-            padding: "24px",
-            backgroundColor: "#ffffff",
-            borderRadius: "16px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
-            borderLeft: `5px solid ${BRAND_COLORS.accent.main}`,
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "2px",
+            height: "60px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-            <motion.div
-              variants={pulseVariants}
-              initial="initial"
-              animate="pulse"
-              style={{
-                width: "56px",
-                height: "56px",
-                borderRadius: "12px",
-                background: BRAND_COLORS.primary.gradient,
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "1.5rem",
-                boxShadow: `0 4px 12px ${BRAND_COLORS.primary.main}50`,
-              }}
-            >
-              <FaUserFriends />
-            </motion.div>
-            <div>
-              <h1 style={{
-                margin: 0,
-                fontSize: "1.75rem",
-                fontWeight: "800",
-                color: BRAND_COLORS.text.primary,
-                letterSpacing: "-0.02em",
-              }}>
-                Parent / Guardian Management
-              </h1>
-              <p style={{ margin: "4px 0 0 0", fontSize: "0.95rem", color: BRAND_COLORS.text.secondary }}>
-                Manage parent and guardian accounts linked to students
-              </p>
-            </div>
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "Parent Management" },
+              ]}
+            />
           </div>
-        </motion.div>
+        </div>
+
+        
+  
+        {/* ================= PAGE HEADER ================= */}
+        <PageHeader
+          icon={FaUserFriends}
+          title="Parent / Guardian Management"
+          subtitle="Manage parent and guardian accounts linked to students"
+        />
 
         {/* Filters Section */}
         <motion.div
+          className="parent-management-filters"
           variants={fadeInVariants}
           custom={0}
           initial="hidden"
           animate="visible"
           style={{ marginBottom: "24px" }}
         >
-          <div style={{
+          <div 
+            className="parent-management-filter-grid"
+            style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
             gap: "16px",
@@ -529,7 +789,7 @@ export default function ParentList() {
 
             <motion.button
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => {
                 setSearchTerm("");
                 setStatusFilter("");
@@ -556,124 +816,509 @@ export default function ParentList() {
               Clear Filters
             </motion.button>
           </div>
+               <style>{`
+
+/* =========================================================
+   PARENT / GUARDIAN MANAGEMENT
+   MOBILE + TABLET RESPONSIVE
+   DESKTOP UNCHANGED
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   768px - 1199px
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+
+  .parent-management-page {
+    padding: 1rem !important;
+    box-sizing: border-box;
+  }
+
+  /* Breadcrumb */
+  .parent-management-page > div:first-child {
+    height: auto !important;
+    min-height: 48px !important;
+    margin: 4px auto 14px !important;
+    padding-top: 0 !important;
+  }
+
+
+  /* ================= HEADER ================= */
+
+  .parent-management-header {
+    margin-bottom: 1.25rem !important;
+    padding: 1.4rem !important;
+    border-radius: 14px !important;
+  }
+
+  .parent-management-header-content {
+    gap: 0.9rem !important;
+  }
+
+  .parent-management-header-icon {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    font-size: 1.35rem !important;
+  }
+
+  .parent-management-title {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .parent-management-subtitle {
+    font-size: 0.88rem !important;
+    line-height: 1.4 !important;
+  }
+
+
+  /* ================= FILTERS ================= */
+
+  .parent-management-filters {
+    margin-bottom: 1.15rem !important;
+  }
+
+  .parent-management-filter-grid {
+    grid-template-columns: minmax(0, 1fr) 220px auto !important;
+    gap: 0.75rem !important;
+  }
+
+  .parent-management-filter-grid input,
+  .parent-management-filter-grid select {
+    min-height: 42px !important;
+    font-size: 0.88rem !important;
+  }
+
+  .parent-management-filter-grid button {
+    min-height: 42px !important;
+    padding: 10px 16px !important;
+    white-space: nowrap;
+  }
+
+
+  /* ================= TABLE ================= */
+
+  .parent-management-table-card {
+    padding: 1.15rem !important;
+    border-radius: 14px !important;
+  }
+
+  .parent-management-table-wrapper {
+    width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .parent-management-table-wrapper table {
+    min-width: 900px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   <= 767px
+   ========================================================= */
+
+@media (max-width: 767.98px) {
+
+  /* ================= PAGE ================= */
+
+  .parent-management-page {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.5rem !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+
+  /* ================= BREADCRUMB ================= */
+
+  .parent-management-page > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 40px !important;
+
+    margin: 0 auto 0.7rem !important;
+    padding-top: 0 !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    scrollbar-width: none;
+  }
+
+  .parent-management-page > div:first-child::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ================= HEADER ================= */
+
+  .parent-management-header {
+    width: 100% !important;
+    box-sizing: border-box !important;
+
+    margin-bottom: 1rem !important;
+    padding: 1rem !important;
+
+    border-radius: 13px !important;
+  }
+
+  .parent-management-header-content {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+
+    gap: 0.7rem !important;
+  }
+
+  .parent-management-header-icon {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+
+    border-radius: 10px !important;
+    font-size: 1.25rem !important;
+  }
+
+  .parent-management-title {
+    font-size: 1.35rem !important;
+    line-height: 1.2 !important;
+
+    letter-spacing: -0.02em !important;
+  }
+
+  .parent-management-subtitle {
+    margin-top: 0.3rem !important;
+
+    font-size: 0.82rem !important;
+    line-height: 1.4 !important;
+  }
+
+
+  /* ================= FILTERS ================= */
+
+  .parent-management-filters {
+    width: 100% !important;
+
+    margin-bottom: 1rem !important;
+  }
+
+  .parent-management-filter-grid {
+    display: flex !important;
+    flex-direction: column !important;
+
+    width: 100% !important;
+
+    gap: 0.7rem !important;
+  }
+
+  .parent-management-filter-grid > div {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+
+  /* Search */
+
+  .parent-management-filter-grid input {
+    width: 100% !important;
+    min-height: 44px !important;
+
+    box-sizing: border-box !important;
+
+    padding: 10px 12px 10px 38px !important;
+
+    font-size: 0.85rem !important;
+    border-radius: 9px !important;
+  }
+
+
+  /* Search icon */
+
+  .parent-management-filter-grid input + * {
+    font-size: 0.9rem !important;
+  }
+
+
+  /* Labels */
+
+  .parent-management-filter-grid label {
+    margin-bottom: 5px !important;
+
+    font-size: 0.8rem !important;
+  }
+
+
+  /* Status select */
+
+  .parent-management-filter-grid select {
+    width: 100% !important;
+    min-height: 44px !important;
+
+    box-sizing: border-box !important;
+
+    padding: 10px 12px !important;
+
+    font-size: 0.85rem !important;
+    border-radius: 9px !important;
+  }
+
+
+  /* Clear button */
+
+  .parent-management-filter-grid button {
+    width: 100% !important;
+
+    min-height: 44px !important;
+
+    padding: 10px !important;
+
+    font-size: 0.85rem !important;
+
+    border-radius: 9px !important;
+  }
+
+
+  /* ================= TABLE CARD ================= */
+
+  .parent-management-table-section {
+    width: 100% !important;
+  }
+
+  .parent-management-table-card {
+    width: 100% !important;
+
+    box-sizing: border-box !important;
+
+    padding: 0.85rem !important;
+
+    border-radius: 13px !important;
+  }
+
+
+  /* ================= TABLE HEADER ================= */
+
+  .parent-management-table-card > div:first-child {
+    display: flex !important;
+
+    flex-direction: column !important;
+
+    align-items: flex-start !important;
+
+    gap: 0.55rem !important;
+
+    margin-bottom: 0.9rem !important;
+  }
+
+  .parent-management-table-card h3 {
+    font-size: 1rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .parent-management-table-card h3 svg {
+    font-size: 0.9rem !important;
+  }
+
+
+  /* Showing count */
+
+  .parent-management-table-card > div:first-child > div {
+    font-size: 0.75rem !important;
+
+    padding: 5px 10px !important;
+
+    border-radius: 16px !important;
+  }
+
+
+  /* ================= TABLE ================= */
+
+  .parent-management-table-wrapper {
+    width: 100% !important;
+
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+
+    -webkit-overflow-scrolling: touch;
+
+    scrollbar-width: thin;
+  }
+
+  .parent-management-table-wrapper table {
+    width: 900px !important;
+    min-width: 900px !important;
+  }
+
+  .parent-management-table-wrapper th {
+    padding: 10px 12px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .parent-management-table-wrapper td {
+    padding: 11px 12px !important;
+  }
+
+
+  /* ================= PAGINATION ================= */
+
+  .parent-management-table-card > div:last-child {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   <= 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .parent-management-page {
+    padding: 0.35rem !important;
+  }
+
+
+  /* Header */
+
+  .parent-management-header {
+    padding: 0.85rem !important;
+    margin-bottom: 0.8rem !important;
+  }
+
+  .parent-management-header-icon {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  .parent-management-title {
+    font-size: 1.2rem !important;
+  }
+
+  .parent-management-subtitle {
+    font-size: 0.76rem !important;
+  }
+
+
+  /* Filters */
+
+  .parent-management-filter-grid {
+    gap: 0.6rem !important;
+  }
+
+  .parent-management-filter-grid input,
+  .parent-management-filter-grid select {
+    min-height: 42px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .parent-management-filter-grid button {
+    min-height: 42px !important;
+    font-size: 0.82rem !important;
+  }
+
+
+  /* Table */
+
+  .parent-management-table-card {
+    padding: 0.7rem !important;
+  }
+
+  .parent-management-table-card h3 {
+    font-size: 0.92rem !important;
+  }
+
+  .parent-management-table-card > div:first-child > div {
+    font-size: 0.7rem !important;
+  }
+
+  .parent-management-table-wrapper table {
+    width: 850px !important;
+    min-width: 850px !important;
+  }
+}
+     `}</style>
+
+
+
+
+
+
+
+
+
         </motion.div>
 
-        {/* Table Section */}
-        <motion.div
-          variants={fadeInVariants}
-          custom={1}
-          initial="hidden"
-          animate="visible"
-        >
-          <div style={{
-            backgroundColor: "#f8f9fa",
-            borderRadius: "16px",
-            padding: "24px",
-            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.03)",
-          }}>
-            <div style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "20px",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}>
-              <h3 style={{
-                margin: 0,
-                fontSize: "1.1rem",
-                fontWeight: "700",
-                color: BRAND_COLORS.text.primary,
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}>
-                <FaUser style={{ color: BRAND_COLORS.accent.main }} />
-                Parent/Guardian Overview
-              </h3>
-              <div style={{
-                fontSize: "0.9rem",
-                fontWeight: "600",
-                color: BRAND_COLORS.text.secondary,
-                backgroundColor: "#ffffff",
-                padding: "6px 14px",
-                borderRadius: "20px",
-                border: "1px solid #e2e8f0",
-              }}>
-                 Showing: <span style={{ color: BRAND_COLORS.accent.main }}>{Math.min(indexOfLastItem, filteredParents.length)}</span> of {filteredParents.length} parents
-              </div>
-            </div>
+<motion.div
+  className="parent-management-table-section"
+  variants={fadeInVariants}
+  custom={1}
+  initial="hidden"
+  animate="visible"
+>
 
-            {currentItems.length === 0 ? (
-              <EmptyState
-                icon={<FaUserFriends />}
-                title="No Parents Found"
-                message={parents.length === 0 ? "No parent accounts have been created yet." : "No parents match your search criteria."}
-                success={false}
-              />
-            ) : (
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 10px" }}>
-                  <thead>
-                    <tr>
-                      {["Parent", "Email", "Relationship", "Linked Students", "Status", "Account", "Actions"].map((header) => (
-                        <th
-                          key={header}
-                          style={{
-                            padding: "12px 20px",
-                            textAlign: "left",
-                            fontSize: "0.8rem",
-                            fontWeight: "700",
-                            color: BRAND_COLORS.text.primary,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.05em",
-                            borderBottom: `2px solid ${BRAND_COLORS.accent.main}`,
-                          }}
-                        >
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentItems.map((p, idx) => (
-                      <ParentTableRow
-                        key={p.id}
-                        p={p}
-                        idx={idx}
-                        onNavigate={navigate}
-                        onToggleStatus={handleToggleStatus}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {filteredParents.length > 0 && (
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: "12px",
-                marginTop: "20px",
-              }}>
-                <div style={{
-                  fontSize: "0.85rem",
-                  color: BRAND_COLORS.text.secondary,
-                  fontWeight: "600",
-                }}>
-                  Showing <strong>{Math.min(indexOfLastItem, filteredParents.length)}</strong> of{" "}
-                  <strong>{filteredParents.length}</strong> parents
-                </div>
-                <Pagination
-                  page={currentPage}
-                  totalPages={totalPages}
-                  setPage={setCurrentPage}
-                />
-              </div>
-            )}
-          </div>
-        </motion.div>
+  <StandardListView
+  className="parent-management-list"
+  title="Parent/Guardian Overview"
+  icon={FaUserFriends}
+  count={filteredParents.length}
+  columns={columns}
+  data={currentItems}
+  loading={false}
+  emptyState={{
+    icon: FaUserFriends,
+
+    title: "No Parents Found",
+
+    description:
+      parents.length === 0
+        ? "No parent accounts have been created yet."
+        : "No parents match your search criteria.",
+
+    action:
+      searchTerm || statusFilter
+        ? {
+            label: "Clear Filters",
+            icon: FaSyncAlt,
+            onClick: () => {
+              setSearchTerm("");
+              setStatusFilter("");
+            },
+          }
+        : undefined,
+  }}
+  actions={tableActions}
+/>
+
+{filteredParents.length > 0 && totalPages > 1 && (
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "12px",
+      marginTop: "20px",
+    }}
+  >
+  
+
+    <Pagination
+      page={currentPage}
+      totalPages={totalPages}
+      setPage={setCurrentPage}
+    />
+  </div>
+)}
+</motion.div>
 
         <ConfirmModal
           isOpen={confirmModal.isOpen}

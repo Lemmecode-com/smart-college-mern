@@ -1,8 +1,12 @@
+const mongoose = require('mongoose');
 const College = require('../../src/models/college.model');
 const User = require('../../src/models/user.model');
 const Teacher = require('../../src/models/teacher.model');
 const Student = require('../../src/models/student.model');
 const ParentGuardian = require('../../src/models/parentGuardian.model');
+const Department = require('../../src/models/department.model');
+const Course = require('../../src/models/course.model');
+const Subject = require('../../src/models/subject.model');
 const { CATEGORY, GENDER, STUDENT_STATUS } = require('../../src/utils/constants');
 
 // Real fields only � do NOT invent fields like "phone", "website", etc.
@@ -90,12 +94,13 @@ const createUser = async (overrides = {}) => {
 const createTeacher = async (overrides = {}) => {
   const now = new Date();
   const birthYear = now.getFullYear() - 30; // 30 years old
+  const rand = `${Date.now()}.${Math.floor(Math.random() * 1000000)}`;
   const payload = {
     name: 'Test Teacher',
-    email: 'teacher@test.com',
+    email: overrides.email || `teacher.${rand}@test.com`,
     college_id: null,
     department_id: null,
-    employeeId: 'EMP-001',
+    employeeId: overrides.employeeId || `EMP-${rand}`,
     designation: 'Teacher',
     qualification: 'MSc',
     experienceYears: 5,
@@ -117,7 +122,7 @@ const createStudent = async (overrides = {}) => {
   const birthYear = now.getFullYear() - 20; // 20 years old
   const payload = {
     fullName: 'Test Student',
-    email: 'student@test.com',
+    email: overrides.email || `student.${Date.now()}.${Math.floor(Math.random() * 1000000)}@test.com`,
     college_id: null,
     department_id: null,
     course_id: null,
@@ -181,4 +186,48 @@ const createStaffProfile = async (overrides = {}) => {
   return StaffProfile.create(payload);
 };
 
-module.exports = { createCollege, createUser, createTeacher, createStudent, createParentGuardian, createStaffProfile };
+const createDepartment = async (overrides = {}) => {
+  const payload = {
+    name: 'Test Department',
+    code: 'DEPT',
+    type: 'ACADEMIC',
+    status: 'ACTIVE',
+    programsOffered: ['UG'],
+    startYear: 2020,
+    sanctionedFacultyCount: 10,
+    sanctionedStudentIntake: 60,
+    ...overrides,
+  };
+  return Department.create(payload);
+};
+
+const createCourse = async (overrides = {}) => {
+  const payload = {
+    name: 'Test Course',
+    code: 'COURSE',
+    type: 'THEORY',
+    programLevel: 'UG',
+    durationSemesters: 8,
+    credits: 120,
+    maxStudents: 60,
+    status: 'ACTIVE',
+    createdBy: new mongoose.Types.ObjectId(),
+    ...overrides,
+  };
+  return Course.create(payload);
+};
+
+const createSubject = async (overrides = {}) => {
+  const payload = {
+    name: 'Test Subject',
+    code: 'SUBJ',
+    semester: 1,
+    credits: 3,
+    status: 'ACTIVE',
+    createdBy: new mongoose.Types.ObjectId(),
+    ...overrides,
+  };
+  return Subject.create(payload);
+};
+
+module.exports = { createCollege, createUser, createTeacher, createStudent, createParentGuardian, createStaffProfile, createDepartment, createCourse, createSubject };

@@ -3,6 +3,8 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -29,6 +31,7 @@ import {
   FaCheck,
   FaUndo
 } from "react-icons/fa";
+import { px } from "framer-motion";
 
 export default function EditDepartment() {
   const { user } = useContext(AuthContext);
@@ -291,57 +294,70 @@ export default function EditDepartment() {
 
   return (
     <div className="container-fluid py-3 py-md-4 animate-fade-in">
-      {/* ================= TOP NAVIGATION ================= */}
-      <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3 mb-md-4 animate-slide-down">
-        <div className="d-flex align-items-center gap-3 mb-3 mb-md-0">
-          <button 
-            onClick={() => navigate("/departments")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Back to Departments"
-          >
-            <FaArrowLeft size={16} /> Back
-          </button>
-          
-          <div className="d-flex align-items-center gap-3">
-            <div className="form-logo-container bg-gradient-primary text-white rounded-circle d-flex align-items-center justify-content-center pulse-icon">
-              <FaBuilding size={28} />
-            </div>
-            <div>
-              <h1 className="h4 h3-md fw-bold mb-1 text-dark">Edit Department</h1>
-              <p className="text-muted mb-0 small">
-                <FaGraduationCap className="me-1" />
-                Update department configuration and details
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="d-flex align-items-center gap-2 flex-wrap">
-          <button 
-            onClick={() => setShowHelp(!showHelp)}
-            className="btn btn-outline-info d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Department Edit Help"
-          >
-            <FaInfoCircle size={16} /> Help
-          </button>
-          
-          <button 
-            onClick={resetForm}
-            className="btn btn-outline-warning d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-            title="Reset to Original Values"
-          >
-            <FaUndo size={16} /> Reset
-          </button>
-          
-          <button 
-            onClick={() => navigate("/departments")}
-            className="btn btn-outline-secondary d-flex align-items-center gap-2 px-3 py-2 hover-lift"
-          >
-            <FaTimes size={16} /> Cancel
-          </button>
+      {/* ================= BREADCRUMB ================= */}
+      <div
+        style={{
+          width: "100%",
+          margin: "10px auto",
+          paddingTop: "5px",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Department Management", path: "/departments" },
+              { label: "Edit Department" },
+            ]}
+          />
         </div>
       </div>
 
+        {/* ================= PAGE HEADER ================= */}
+
+        <PageHeader
+          icon={FaBuilding}
+          title="Edit Department"
+          subtitle={
+            <>
+              <FaGraduationCap style={{ gap: "8px", marginRight: "4px" }} />
+              Update department configuration and details
+            </>
+          }
+          actions={
+            <>
+              <button
+                type="button"
+                className="edit-page-header-btn edit-page-header-help"
+                onClick={() => setShowHelp(!showHelp)}
+                title="Department Edit Help"
+              >
+                <FaInfoCircle size={17} />
+                <span>Help</span>
+              </button>
+
+              <button
+                type="button"
+                className="edit-page-header-btn edit-page-header-reset"
+                onClick={resetForm}
+                title="Reset to Original Values"
+              >
+                <FaUndo size={17} />
+                <span>Reset</span>
+              </button>
+
+              <button
+                type="button"
+                className="edit-page-header-btn edit-page-header-cancel"
+                onClick={() => navigate("/departments")}
+                title="Cancel and go back to the department list"
+              >
+                <FaTimes size={17} />
+                <span>Cancel</span>
+              </button>
+            </>
+          }
+        />
       {/* ================= HELP SECTION ================= */}
       {showHelp && (
         <div className="alert alert-info border-0 bg-info bg-opacity-10 rounded-4 mb-3 mb-md-4 animate-fade-in">
@@ -392,7 +408,7 @@ export default function EditDepartment() {
 
       {/* ================= FORM CARD ================= */}
       <div className="card border-0 shadow-lg rounded-4 overflow-hidden animate-fade-in-up">
-        <div className="card-header bg-gradient-primary text-white py-3 py-md-4">
+        <div className="card-header bg-gradient-primary text-white py-3 py-md-4" style={{ background: "#0E3746" }}>
           <h2 className="h5 h6-md fw-bold mb-0 d-flex align-items-center gap-2">
             <FaBuilding /> Department Configuration
           </h2>
@@ -776,6 +792,41 @@ export default function EditDepartment() {
 
       {/* ================= STYLES ================= */}
       <style>{`
+.edit-page-header-btn {
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-page-header-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.12);
+}
+
+.edit-page-header-help {
+  color: #0ea5c6;
+  border: 1px solid #0ea5c6;
+
+}
+
+.edit-page-header-reset {
+  color: #f2a900;
+  border: 1px solid #f2a900;
+}
+
+.edit-page-header-cancel {
+  color: #66727a;
+  border: 1px solid #9aa4aa;
+}
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
@@ -962,7 +1013,26 @@ export default function EditDepartment() {
             justify-content: flex-end;
             margin-top: 0.5rem;
           }
+          .edit-department-header {
+            flex-direction: column;
+            align-items: stretch;
+            padding: 20px;
+          }
+
+          .edit-header-left {
+            flex-wrap: wrap;
+          }
+
+          .edit-header-actions {
+            width: 100%;
+            justify-content: flex-end;
+          }
+
+          .edit-header-text h1 {
+            font-size: 1.6rem;
+          }
         }
+
 
         @media (max-width: 576px) {
           .programs-grid {
@@ -975,6 +1045,40 @@ export default function EditDepartment() {
           .input-group .form-control {
             font-size: 0.9rem;
           }
+            .edit-department-header {
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.edit-header-left {
+  gap: 16px;
+}
+
+.edit-header-content {
+  gap: 12px;
+}
+
+.edit-header-icon {
+  width: 60px;
+  height: 60px;
+}
+
+.edit-header-text h1 {
+  font-size: 1.35rem;
+}
+
+.edit-header-text p {
+  font-size: 0.85rem;
+}
+
+.edit-header-actions {
+  justify-content: stretch;
+}
+
+.edit-header-action {
+  flex: 1;
+  padding: 10px 12px;
+}
         }
       `}</style>
     </div>

@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaCalendarAlt,
   FaChalkboardTeacher,
@@ -26,7 +27,10 @@ import {
   FaUniversity,
   FaBook,
   FaEnvelope,
+  FaEdit,
+  FaTimes,
 } from "react-icons/fa";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 
 const AUTH_ERROR_CODES = new Set([
@@ -119,6 +123,33 @@ export default function SessionDetails() {
   const [closing, setClosing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  const hasSavedRecords = records.length > 0;
+
+  /* ================= PRELOAD ATTENDANCE HELPER ================= */
+  const getAttendanceFromRecords = (studentList, recordList) => {
+    const recordMap = new Map();
+    (recordList || []).forEach((r) => {
+      const sId = r.student_id?._id
+        ? r.student_id._id.toString()
+        : r.student_id
+        ? r.student_id.toString()
+        : null;
+      if (sId && r.status) {
+        recordMap.set(sId, r.status);
+      }
+    });
+
+    const attendanceMap = {};
+    (studentList || []).forEach((student) => {
+      const sId = student._id?.toString() || student._id;
+      if (sId) {
+        attendanceMap[sId] = recordMap.get(sId) || "PRESENT";
+      }
+    });
+    return attendanceMap;
+  };
 
   /* ================= FETCH SESSION ================= */
   const fetchSession = async () => {
@@ -138,13 +169,16 @@ export default function SessionDetails() {
   const fetchRecords = async () => {
     try {
       const res = await api.get(`/attendance/sessions/${sessionId}/records`);
-      setRecords(res.data || []);
+      const recordList = res.data || [];
+      setRecords(recordList);
+      return recordList;
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
         "Failed to load attendance records. Please try again.";
       const statusCode = err.response?.status;
       setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
+      return [];
     }
   };
 
@@ -154,22 +188,41 @@ export default function SessionDetails() {
       const res = await api.get(`/attendance/sessions/${sessionId}/students`);
       const studentList = res.data || [];
       setStudents(studentList);
-      // Auto-mark all students as PRESENT by default
-      const defaultAttendance = {};
-      studentList.forEach((student) => {
-        defaultAttendance[student._id] = "PRESENT";
-      });
-      setAttendance((prev) => ({
-        ...defaultAttendance,
-        ...prev, // Preserve any manually changed values
-      }));
+      return studentList;
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
         "Failed to load student list. Please try again.";
       const statusCode = err.response?.status;
       setError({ message: errorMessage, statusCode, errorCode: err.response?.data?.code });
+      return [];
     }
+  };
+
+  useEffect(() => {
+    if (students.length === 0) return;
+
+    if (hasSavedRecords) {
+      if (!isEditMode) {
+        setAttendance(getAttendanceFromRecords(students, records));
+      }
+    } else {
+      setAttendance((prev) => {
+        const initial = {};
+        students.forEach((student) => {
+          const sId = student._id?.toString() || student._id;
+          if (sId) {
+            initial[sId] = prev[sId] || "PRESENT";
+          }
+        });
+        return initial;
+      });
+    }
+  }, [students, records, isEditMode, hasSavedRecords]);
+
+  const handleCancelEdit = () => {
+    setAttendance(getAttendanceFromRecords(students, records));
+    setIsEditMode(false);
   };
 
   // Handle retry action
@@ -256,7 +309,7 @@ export default function SessionDetails() {
     }
   };
 
-  /* ================= MARK ATTENDANCE ================= */
+  /* ================= MARK / EDIT ATTENDANCE ================= */
   const saveAttendance = async () => {
     if (Object.keys(attendance).length === 0) {
       toast.warning(
@@ -279,23 +332,63 @@ export default function SessionDetails() {
         })),
       };
 
-      await api.post(`/attendance/sessions/${sessionId}/mark`, payload);
-      toast.success("Attendance saved successfully!", {
-        position: "top-right",
-        autoClose: 3000,
-        icon: <FaCheckCircle />,
-      });
-      fetchRecords();
-      setAttendance({});
+      if (hasSavedRecords) {
+        const res = await api.put(`/attendance/sessions/${sessionId}/edit`, payload);
+        toast.success(res.data?.message || "Attendance updated successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />,
+        });
+        await fetchRecords();
+        setIsEditMode(false);
+      } else {
+        const res = await api.post(`/attendance/sessions/${sessionId}/mark`, payload);
+        toast.success(res.data?.message || "Attendance saved successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+          icon: <FaCheckCircle />,
+        });
+        await fetchRecords();
+        setIsEditMode(false);
+      }
     } catch (err) {
       const statusCode = err.response?.status;
-      const errorCode = err.response?.data?.code;
+      const errorCode =
+        err.response?.data?.code || err.response?.data?.error?.code;
+      const errorMessage =
+        err.response?.data?.message || err.response?.data?.error?.message;
       const isAuthError =
         statusCode === 401 ||
         (errorCode && AUTH_ERROR_CODES.has(errorCode));
-      if (!isAuthError) {
+
+      if (errorCode === "SESSION_CLOSED") {
+        toast.warning(
+          errorMessage ||
+            "This session is closed, so attendance can no longer be edited.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaInfoCircle />,
+          },
+        );
+        setSession((prev) => (prev ? { ...prev, status: "CLOSED" } : prev));
+        await fetchSession();
+        await fetchRecords();
+        setIsEditMode(false);
+      } else if (errorCode === "ATTENDANCE_ALREADY_SAVED" || statusCode === 409) {
+        toast.info(
+          "Attendance already saved for this session. Loaded saved records. Use Edit Attendance to modify.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaInfoCircle />,
+          },
+        );
+        await fetchRecords();
+        setIsEditMode(false);
+      } else if (!isAuthError) {
         toast.error(
-          err.response?.data?.message ||
+          errorMessage ||
             "Failed to save attendance. Please try again.",
           {
             position: "top-right",
@@ -345,9 +438,22 @@ export default function SessionDetails() {
     }
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Session Details..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Session Details..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -432,6 +538,7 @@ export default function SessionDetails() {
   return (
     <AnimatePresence mode="wait">
       <motion.div
+        className="session-details-page"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -446,52 +553,12 @@ export default function SessionDetails() {
       >
         <div style={{ maxWidth: "100%", margin: "0 auto" }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: "1.5rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5, backgroundColor: "#f1f5f9" }}
-              whileTap={{ x: -2 }}
-              onClick={() => navigate("/attendance/sessions")}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                color: BRAND_COLORS.primary.main,
-                background: "none",
-                border: "none",
-                fontSize: "0.95rem",
-                fontWeight: 500,
-                cursor: "pointer",
-                padding: "0.5rem",
-                borderRadius: "8px",
-                transition: "all 0.3s ease",
-                willChange: "transform, background-color",
-                backfaceVisibility: "hidden",
-              }}
-            >
-              <FaArrowLeft /> Back to Sessions
-            </motion.button>
-            <span style={{ color: "#94a3b8" }}>›</span>
-            <span
-              style={{
-                color: BRAND_COLORS.primary.main,
-                fontWeight: 600,
-                fontSize: "1rem",
-              }}
-            >
-              Session Details
-            </span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "Session Details" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -499,26 +566,23 @@ export default function SessionDetails() {
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: "1.5rem",
-              backgroundColor: "white",
-              borderRadius: "1.5rem",
+              minHeight: "104px",
+              borderRadius: "15px",
               overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "1.5rem",
+              boxShadow: "0 8px 25px rgba(0, 0, 0, 0.12)",
+              backgroundColor: "#0E3746", 
+              marginBottom: "1.5rem",
             }}
           >
             <div
               style={{
-                padding: "1.75rem 2rem",
-                background: BRAND_COLORS.primary.gradient,
-                color: "white",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1.5rem",
+                    minHeight: "70px",
+                    padding: "22px 28px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "24px",
+                    color: "white",
               }}
             >
               <div
@@ -529,16 +593,16 @@ export default function SessionDetails() {
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: "72px",
-                    height: "72px",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
+                    width: "52px",
+                    height: "52px",
+                    minWidth: "52px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    border: "1px solid rgba(255, 255, 255, 0.18)",
                     borderRadius: "50%",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "2rem",
-                    flexShrink: 0,
-                    boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
+                    fontSize: "1.7rem",
                   }}
                 >
                   <FaUserGraduate />
@@ -547,24 +611,400 @@ export default function SessionDetails() {
                   <h1
                     style={{
                       margin: 0,
-                      fontSize: "2rem",
+                      fontSize: "1.625rem",
                       fontWeight: 700,
-                      lineHeight: 1.2,
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.25,
                     }}
                   >
                     Attendance Session Details
                   </h1>
                   <p
                     style={{
-                      margin: "0.5rem 0 0 0",
-                      opacity: 0.9,
-                      fontSize: "1.1rem",
+                      margin: 0,
+                      opacity: 0.8,
+                      fontSize: "0.9rem",
+                      fontWeight: 400,
+                      lineHeight: 1.5,
                     }}
                   >
                     {session.subject_id?.name} • Lecture #
                     {session.lectureNumber}
                   </p>
                 </div>
+
+                <style>
+                    {`
+                    /* =========================================================
+                      SESSION DETAILS - MOBILE & TABLET RESPONSIVE
+                      Desktop remains unchanged
+                      ========================================================= */
+
+                    /* ================= TABLET ================= */
+
+                    @media (min-width: 768px) and (max-width: 1023.98px) {
+                      .session-details-page {
+                        padding: 1rem 1.25rem !important;
+                      }
+
+                      .session-details-page > div {
+                        max-width: 900px !important;
+                        width: 100% !important;
+                      }
+
+                     
+
+                      /* Main session header */
+                      .session-details-page > div > div:nth-child(2) {
+                        border-radius: 1.25rem !important;
+                        margin-bottom: 1rem !important;
+                      }
+
+                      /* Header blue section */
+                      .session-details-page > div > div:nth-child(2) > div:first-child {
+                        padding: 1.5rem !important;
+                        gap: 1rem !important;
+                      }
+
+                      /* Header content */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child {
+                        gap: 1rem !important;
+                        min-width: 0 !important;
+                      }
+
+                      /* Header icon */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child > div:first-child {
+                        width: 64px !important;
+                        height: 64px !important;
+                        font-size: 1.75rem !important;
+                      }
+
+                      /* Header title */
+                      .session-details-page h1 {
+                        font-size: 1.8rem !important;
+                        line-height: 1.15 !important;
+                      }
+
+                      /* Subject */
+                      .session-details-page h1 + p {
+                        font-size: 1rem !important;
+                        margin-top: 0.4rem !important;
+                      }
+
+                      /* Status */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:last-child {
+                        font-size: 0.95rem !important;
+                        padding: 0.45rem 1rem !important;
+                      }
+
+                      /* Session information */
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) {
+                        padding: 0.9rem 1.5rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) > div {
+                        gap: 1.25rem !important;
+                      }
+
+                      /* Stats */
+                      .session-details-page > div > div:nth-child(3) > div {
+                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                        gap: 0.9rem !important;
+                        padding: 1rem !important;
+                        border-radius: 1.25rem !important;
+                      }
+
+                      /* Stat item */
+                      .session-details-page > div > div:nth-child(3) > div > div {
+                        padding: 0.85rem !important;
+                      }
+
+                      /* Attendance section */
+                      .session-details-page > div > div:last-child {
+                        border-radius: 1.25rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:first-child {
+                        padding: 1.1rem 1.25rem !important;
+                      }
+                    }
+
+
+                    /* ================= MOBILE ================= */
+
+                    @media (max-width: 767.98px) {
+                      .session-details-page {
+                        min-height: 100vh !important;
+                        padding: 0.65rem 0.6rem 1.25rem !important;
+                      }
+
+                      .session-details-page > div {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        margin: 0 auto !important;
+                      }
+
+                   
+                      /* ---------------------------------------------------------
+                        SESSION HEADER
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:nth-child(2) {
+                        margin-bottom: 0.9rem !important;
+                        border-radius: 1rem !important;
+                        box-shadow: 0 5px 20px rgba(26, 75, 109, 0.12) !important;
+                      }
+
+                      /* Blue header */
+                      .session-details-page > div > div:nth-child(2) > div:first-child {
+                        padding: 1.15rem !important;
+                        gap: 0.9rem !important;
+                        align-items: flex-start !important;
+                      }
+
+                      /* Header content */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child {
+                        width: 100% !important;
+                        gap: 0.8rem !important;
+                        align-items: center !important;
+                      }
+
+                      /* Icon */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child > div:first-child {
+                        width: 58px !important;
+                        height: 58px !important;
+                        min-width: 58px !important;
+                        font-size: 1.5rem !important;
+                        box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2) !important;
+                      }
+
+                      /* Title */
+                      .session-details-page h1 {
+                        font-size: 1.45rem !important;
+                        line-height: 1.15 !important;
+                        word-break: normal !important;
+                        overflow-wrap: normal !important;
+                      }
+
+                      /* Subject / lecture */
+                      .session-details-page h1 + p {
+                        font-size: 0.9rem !important;
+                        line-height: 1.35 !important;
+                        margin: 0.35rem 0 0 !important;
+                      }
+
+                      /* Status */
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:last-child {
+                        align-self: flex-start !important;
+                        font-size: 0.8rem !important;
+                        padding: 0.4rem 0.8rem !important;
+                        border-radius: 999px !important;
+                      }
+
+                      /* Session info */
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) {
+                        padding: 0.8rem 1rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) > div {
+                        width: 100% !important;
+                        flex-direction: column !important;
+                        align-items: flex-start !important;
+                        gap: 0.6rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:nth-child(2) > div > div {
+                        width: 100% !important;
+                        gap: 0.45rem !important;
+                        font-size: 0.9rem !important;
+                      }
+
+                      /* ---------------------------------------------------------
+                        SESSION STATS
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:nth-child(3) {
+                        margin-bottom: 0.9rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(3) > div {
+                        grid-template-columns: 1fr !important;
+                        gap: 0.65rem !important;
+                        padding: 0.8rem !important;
+                        border-radius: 1rem !important;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06) !important;
+                      }
+
+                      /* Individual stat */
+                      .session-details-page > div > div:nth-child(3) > div > div {
+                        min-height: 72px !important;
+                        padding: 0.75rem !important;
+                        border-radius: 12px !important;
+                        gap: 0.75rem !important;
+                      }
+
+                      /* Stat icon */
+                      .session-details-page > div > div:nth-child(3) > div > div > div:first-child {
+                        width: 46px !important;
+                        height: 46px !important;
+                        min-width: 46px !important;
+                        border-radius: 12px !important;
+                        font-size: 1.35rem !important;
+                      }
+
+                      /* Stat label */
+                      .session-details-page > div > div:nth-child(3) > div > div > div:last-child > div:first-child {
+                        font-size: 0.75rem !important;
+                        margin-bottom: 0.15rem !important;
+                      }
+
+                      /* Stat value */
+                      .session-details-page > div > div:nth-child(3) > div > div > div:last-child > div:nth-child(2) {
+                        font-size: 1.45rem !important;
+                      }
+
+                      /* Stat subtitle */
+                      .session-details-page > div > div:nth-child(3) > div > div > div:last-child > div:nth-child(3) {
+                        font-size: 0.75rem !important;
+                        margin-top: 0.15rem !important;
+                      }
+
+                      /* ---------------------------------------------------------
+                        ACTION BUTTONS
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:nth-child(4) > div {
+                        padding: 0.9rem !important;
+                        border-radius: 1rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(4) > div > div {
+                        width: 100% !important;
+                        flex-direction: column !important;
+                        gap: 0.6rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(4) button {
+                        width: 100% !important;
+                        min-height: 44px !important;
+                      }
+
+                      /* ---------------------------------------------------------
+                        CLOSED SESSION BANNER
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:nth-child(4) {
+                        margin-bottom: 0.9rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(4) {
+                        padding: 0.9rem !important;
+                      }
+
+                      /* ---------------------------------------------------------
+                        ATTENDANCE TABLE
+                        --------------------------------------------------------- */
+
+                      .session-details-page > div > div:last-child {
+                        border-radius: 1rem !important;
+                        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.07) !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:first-child {
+                        padding: 0.9rem 1rem !important;
+                        gap: 0.65rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child h2 {
+                        font-size: 1.15rem !important;
+                        line-height: 1.3 !important;
+                      }
+
+                      .session-details-page > div > div:last-child h2 svg {
+                        font-size: 1rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:first-child > div:last-child {
+                        font-size: 0.75rem !important;
+                        padding: 0.4rem 0.7rem !important;
+                      }
+
+                      /* Keep table scrollable */
+                      .session-details-page table {
+                        min-width: 600px !important;
+                      }
+
+                      .session-details-page th {
+                        padding: 0.75rem !important;
+                        font-size: 0.75rem !important;
+                      }
+
+                      .session-details-page td {
+                        padding: 0.75rem !important;
+                        font-size: 0.85rem !important;
+                      }
+
+                      /* Footer */
+                      .session-details-page > div > div:last-child > div:last-child {
+                        padding: 0.9rem !important;
+                        gap: 0.65rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:last-child > div {
+                        font-size: 0.85rem !important;
+                        padding: 0.65rem 0.9rem !important;
+                      }
+
+                      .session-details-page > div > div:last-child > div:last-child button {
+                        width: 100% !important;
+                      }
+                    }
+
+
+                    /* ================= SMALL MOBILE ================= */
+
+                    @media (max-width: 479.98px) {
+                      .session-details-page {
+                        padding-left: 0.5rem !important;
+                        padding-right: 0.5rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:first-child {
+                        padding: 1rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child {
+                        gap: 0.65rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(2) > div:first-child > div:first-child > div:first-child {
+                        width: 52px !important;
+                        height: 52px !important;
+                        min-width: 52px !important;
+                        font-size: 1.35rem !important;
+                      }
+
+                      .session-details-page h1 {
+                        font-size: 1.3rem !important;
+                      }
+
+                      .session-details-page h1 + p {
+                        font-size: 0.82rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(3) > div {
+                        padding: 0.65rem !important;
+                      }
+
+                      .session-details-page > div > div:nth-child(3) > div > div {
+                        min-height: 68px !important;
+                        padding: 0.65rem !important;
+                      }
+                    }
+
+                    `}
+
+                    </style>
               </div>
               <motion.div
                 style={{
@@ -733,20 +1173,51 @@ export default function SessionDetails() {
                     justifyContent: "center",
                   }}
                 >
-                  <ActionButton
-                    icon={<FaSave />}
-                    label="Save Attendance"
-                    color={BRAND_COLORS.success.main}
-                    onClick={saveAttendance}
-                    loading={saving}
-                    disabled={Object.keys(attendance).length === 0}
-                  />
+                  {!hasSavedRecords && (
+                    <ActionButton
+                      icon={<FaSave />}
+                      label="Save Attendance"
+                      color={BRAND_COLORS.success.main}
+                      onClick={saveAttendance}
+                      loading={saving}
+                      disabled={Object.keys(attendance).length === 0 || saving}
+                    />
+                  )}
+                  {hasSavedRecords && !isEditMode && (
+                    <ActionButton
+                      icon={<FaEdit />}
+                      label="Edit Attendance"
+                      color={BRAND_COLORS.warning.main}
+                      onClick={() => setIsEditMode(true)}
+                      disabled={saving}
+                    />
+                  )}
+                  {hasSavedRecords && isEditMode && (
+                    <>
+                      <ActionButton
+                        icon={<FaSave />}
+                        label="Save Changes"
+                        color={BRAND_COLORS.success.main}
+                        onClick={saveAttendance}
+                        loading={saving}
+                        disabled={saving}
+                      />
+                      <ActionButton
+                        icon={<FaTimes />}
+                        label="Cancel"
+                        color={BRAND_COLORS.secondary.main}
+                        onClick={handleCancelEdit}
+                        disabled={saving}
+                      />
+                    </>
+                  )}
                   <ActionButton
                     icon={<FaDoorClosed />}
                     label="Close Session"
                     color={BRAND_COLORS.warning.main}
                     onClick={() => setShowCloseConfirm(true)}
                     loading={closing}
+                    disabled={saving}
                   />
                   <ActionButton
                     icon={<FaTrash />}
@@ -754,6 +1225,7 @@ export default function SessionDetails() {
                     color={BRAND_COLORS.danger.main}
                     onClick={() => setShowDeleteConfirm(true)}
                     loading={deleting}
+                    disabled={saving}
                   />
                 </div>
               </div>
@@ -788,8 +1260,8 @@ export default function SessionDetails() {
                   Session Closed
                 </strong>
                 <p style={{ margin: "0.25rem 0 0 0", color: "#4a5568" }}>
-                  This session is closed. Attendance records are finalized and
-                  cannot be modified.
+                  This session is closed, so attendance can no longer be edited.
+                  Attendance records are finalized.
                 </p>
               </div>
             </motion.div>
@@ -835,7 +1307,11 @@ export default function SessionDetails() {
                     <FaUserGraduate
                       style={{ color: BRAND_COLORS.primary.main }}
                     />{" "}
-                    Mark Attendance
+                    {hasSavedRecords && !isEditMode
+                      ? "Saved Attendance"
+                      : isEditMode
+                      ? "Edit Attendance"
+                      : "Mark Attendance"}
                   </>
                 ) : (
                   <>
@@ -849,8 +1325,16 @@ export default function SessionDetails() {
                   display: "flex",
                   alignItems: "center",
                   gap: "0.5rem",
-                  backgroundColor: isSessionOpen ? "#ffedd5" : "#dcfce7",
-                  color: isSessionOpen ? "#c2410c" : "#166534",
+                  backgroundColor: !isSessionOpen
+                    ? "#dcfce7"
+                    : hasSavedRecords
+                    ? "#e0f2fe"
+                    : "#ffedd5",
+                  color: !isSessionOpen
+                    ? "#166534"
+                    : hasSavedRecords
+                    ? "#0369a1"
+                    : "#c2410c",
                   padding: "0.5rem 1rem",
                   borderRadius: "20px",
                   fontSize: "0.9rem",
@@ -858,9 +1342,11 @@ export default function SessionDetails() {
                 }}
               >
                 <FaInfoCircle />{" "}
-                {isSessionOpen ? students.length : records.length}{" "}
-                {isSessionOpen ? "students" : "records"}{" "}
-                {isSessionOpen ? "to mark" : "found"}
+                {!isSessionOpen
+                  ? `${records.length} records found`
+                  : hasSavedRecords
+                  ? `Attendance saved (${students.length} students)`
+                  : `${students.length} students to mark`}
               </div>
             </div>
 
@@ -900,6 +1386,7 @@ export default function SessionDetails() {
                             }))
                           }
                           delay={idx * 0.03}
+                          disabled={hasSavedRecords && !isEditMode}
                         />
                       ))}
                     </tbody>
@@ -979,17 +1466,64 @@ export default function SessionDetails() {
                     fontSize: "1.1rem",
                   }}
                 >
-                  Students to mark: <strong>{students.length}</strong>
+                  {hasSavedRecords ? (
+                    isEditMode ? (
+                      <>
+                        Editing attendance: <strong>{students.length} students</strong>
+                      </>
+                    ) : (
+                      <>
+                        Attendance saved (<strong>{students.length}</strong> students)
+                      </>
+                    )
+                  ) : (
+                    <>
+                      Students to mark: <strong>{students.length}</strong>
+                    </>
+                  )}
                 </div>
-                <ActionButton
-                  icon={<FaSave />}
-                  label="Save All Attendance"
-                  color={BRAND_COLORS.primary.main}
-                  onClick={saveAttendance}
-                  loading={saving}
-                  disabled={Object.keys(attendance).length === 0}
-                  large
-                />
+                {!hasSavedRecords && (
+                  <ActionButton
+                    icon={<FaSave />}
+                    label="Save All Attendance"
+                    color={BRAND_COLORS.primary.main}
+                    onClick={saveAttendance}
+                    loading={saving}
+                    disabled={Object.keys(attendance).length === 0 || saving}
+                    large
+                  />
+                )}
+                {hasSavedRecords && !isEditMode && (
+                  <ActionButton
+                    icon={<FaEdit />}
+                    label="Edit Attendance"
+                    color={BRAND_COLORS.warning.main}
+                    onClick={() => setIsEditMode(true)}
+                    disabled={saving}
+                    large
+                  />
+                )}
+                {hasSavedRecords && isEditMode && (
+                  <>
+                    <ActionButton
+                      icon={<FaSave />}
+                      label="Save Changes"
+                      color={BRAND_COLORS.success.main}
+                      onClick={saveAttendance}
+                      loading={saving}
+                      disabled={saving}
+                      large
+                    />
+                    <ActionButton
+                      icon={<FaTimes />}
+                      label="Cancel"
+                      color={BRAND_COLORS.secondary.main}
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                      large
+                    />
+                  </>
+                )}
               </div>
             )}
           </motion.div>
@@ -1201,7 +1735,7 @@ function ActionInfo({ children }) {
 }
 
 /* ================= STUDENT ROW (OPEN SESSION) ================= */
-function StudentRow({ student, attendance, onChange, delay = 0 }) {
+function StudentRow({ student, attendance, onChange, delay = 0, disabled = false }) {
   return (
     <motion.tr
       initial={{ opacity: 0, x: -20 }}
@@ -1236,6 +1770,7 @@ function StudentRow({ student, attendance, onChange, delay = 0 }) {
         <select
           value={attendance || "PRESENT"}
           onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
           style={{
             width: "100%",
             padding: "0.625rem 1rem",
@@ -1243,9 +1778,10 @@ function StudentRow({ student, attendance, onChange, delay = 0 }) {
             border: "1px solid #e2e8f0",
             fontSize: "0.95rem",
             fontWeight: 500,
-            backgroundColor: "white",
-            color: "#1e293b",
-            cursor: "pointer",
+            backgroundColor: disabled ? "#f8fafc" : "white",
+            color: disabled ? "#64748b" : "#1e293b",
+            cursor: disabled ? "not-allowed" : "pointer",
+            opacity: disabled ? 0.85 : 1,
             appearance: "none",
             backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
             backgroundRepeat: "no-repeat",

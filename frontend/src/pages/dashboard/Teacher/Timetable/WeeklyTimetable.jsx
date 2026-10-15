@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../../../api/axios";
 import { AuthContext } from "../../../../auth/AuthContext";
 import Loading from "../../../../components/Loading";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import ApiError from "../../../../components/ApiError";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -283,15 +284,15 @@ export default function WeeklyTimetable() {
           setTimetable(res.data?.timetable);
           setWeekly(res.data?.weekly || {});
 
-         if (res.data?.timetable) {
-           setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
-           
-           // ✅ FIXED: Only fetch subjects/teachers if user has management permissions
-           if (canManageTimetable) {
-             try {
-               const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}`);
-               setSubjects(subRes.data || []);
-             } catch (subErr) {
+            if (res.data?.timetable) {
+            setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
+            
+            // ✅ FIXED: Only fetch subjects/teachers if user has management permissions
+            if (canManageTimetable) {
+              try {
+                const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}?semester=${res.data.timetable.semester}`);
+                setSubjects(subRes.data || []);
+              } catch (subErr) {
                logger.warn("Failed to load subjects:", subErr.response?.status);
                setSubjects([]);
              }
@@ -338,23 +339,23 @@ export default function WeeklyTimetable() {
           if (res.data?.timetable && !isReadOnly) {
             setForm((f) => ({ ...f, timetable_id: res.data.timetable._id }));
 
-            if (canManageTimetable) {
-             try {
-               const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}`);
-               setSubjects(subRes.data || []);
-             } catch (subErr) {
-               setSubjects([]);
-             }
+             if (canManageTimetable) {
+              try {
+                const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}?semester=${res.data.timetable.semester}`);
+                setSubjects(subRes.data || []);
+              } catch (subErr) {
+                setSubjects([]);
+              }
 
-             try {
-               const teachRes = await api.get(`/teachers/department/${res.data.timetable.department_id}`);
-               setTeachers(teachRes.data || []);
-             } catch (teachErr) {
-               setTeachers([]);
-             }
-           }
-         }
-       }
+              try {
+                const teachRes = await api.get(`/teachers/department/${res.data.timetable.department_id}`);
+                setTeachers(teachRes.data || []);
+              } catch (teachErr) {
+                setTeachers([]);
+              }
+            }
+          }
+        }
        setError(null);
      } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to load weekly timetable. Please try again.";
@@ -388,7 +389,7 @@ export default function WeeklyTimetable() {
 
         if (res.data?.timetable && canManageTimetable) {
           try {
-            const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}`);
+            const subRes = await api.get(`/subjects/course/${res.data.timetable.course_id}?semester=${res.data.timetable.semester}`);
             setSubjects(subRes.data || []);
           } catch (subErr) {
             setSubjects([]);
@@ -673,6 +674,7 @@ export default function WeeklyTimetable() {
       <AnimatePresence mode="wait">
         <>
           <motion.div
+            className="weekly-timetable-page"
             key="weekly-timetable-main"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -687,65 +689,89 @@ export default function WeeklyTimetable() {
             }}
           >
         <div style={{ maxWidth: "100%", margin: "0 auto" }}>
-          {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{ marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(-1)}
-              style={{
-                display: "flex", alignItems: "center", gap: "0.5rem", color: BRAND_COLORS.primary.main,
-                background: "none", border: "none", fontSize: "0.95rem", fontWeight: 500, cursor: "pointer",
-                padding: "0.5rem", borderRadius: "8px", transition: "all 0.3s ease",
-              }}
-              onMouseEnter={(e) => (e.target.style.backgroundColor = "#f1f5f9")}
-              onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: "#94a3b8" }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: "1rem" }}>
-              Weekly Timetable
-            </span>
-          </motion.div>
-
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: "1.5rem", backgroundColor: "white", borderRadius: "1.5rem", overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)", display: "flex", flexDirection: "column", gap: "1.5rem",
-            }}
-          >
             <div
               style={{
-                padding: "1.75rem 2rem", background: BRAND_COLORS.primary.gradient, color: "white",
-                display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1.5rem",
+                width: "100%",
+                margin: "10px auto",
+                paddingTop: "5px",
+                height: "60px",
               }}
             >
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "View Timetable" },
+                  ]}
+                />
+              </div>
+            </div>
+          {/* ================= HEADER ================= */}
+              <motion.div
+                variants={slideDownVariants}
+                initial="hidden"
+                animate="visible"
+                style={{
+                  marginBottom: "1.5rem",
+                  backgroundColor: "#0E3746",
+                  borderRadius: "15px",
+                  overflow: "hidden",
+                  boxShadow: "0 10px 30px rgba(14, 55, 70, 0.18)",
+                }}
+              >
+                        
+                          <div
+                style={{
+                  minHeight: "104px",
+                  padding: "1.5rem 2rem",
+                  background: "#0E3746",
+                  color: "white",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "1.5rem",
+                }}
+              >
               <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                <motion.div
-                  variants={pulseVariants} initial="initial" animate="pulse"
-                  style={{
-                    width: "72px", height: "72px", backgroundColor: "rgba(255, 255, 255, 0.15)", borderRadius: "50%",
-                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem", flexShrink: 0,
-                    boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
-                  }}
-                >
+              <motion.div
+                variants={pulseVariants}
+                initial="initial"
+                animate="pulse"
+                style={{
+                  width: "62px",
+                  height: "62px",
+                  minWidth: "52px",
+                  backgroundColor: "rgba(255, 255, 255, 0.12)",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.45rem",
+                  flexShrink: 0,
+                  border: "1px solid rgba(255, 255, 255, 0.18)",
+                  boxShadow: "none",
+                }}
+              >
                   <FaCalendarAlt />
                 </motion.div>
                 <div>
-                  <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: 700, lineHeight: 1.2 }}>
+                  <h1 style={{
+                    margin: 0,
+                    fontSize: "1.65rem",
+                    fontWeight: 700,
+                    lineHeight: 1.25,
+                    letterSpacing: "-0.02em",
+                  }}>
                     {timetable?.name || "Weekly Timetable"}
                   </h1>
-                  <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "1rem",
+                    flexWrap: "wrap",
+                    marginTop: "0.35rem",
+                    fontSize: "0.9rem",
+                  }}>
                     {timetable?.yearLabel && (
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <FaBook />
@@ -801,22 +827,390 @@ export default function WeeklyTimetable() {
                       {timetable?.status}
                     </motion.div>
                   </div>
+          <style>
+
+            {`
+            /* =========================================================
+            WEEKLY TIMETABLE RESPONSIVE
+            Mobile + Tablet only
+            Desktop remains unchanged
+            ========================================================= */
+
+          @media (max-width: 991.98px) {
+
+            .weekly-timetable-page {
+              padding-left: 0.75rem !important;
+              padding-right: 0.75rem !important;
+            }
+
+            /* Main timetable header */
+            .weekly-timetable-page .rounded-4 {
+              border-radius: 18px !important;
+            }
+
+            /* Header content */
+            .weekly-timetable-page .rounded-4 > .p-4 {
+              padding: 1.25rem !important;
+            }
+
+            /* Title + calendar */
+            .weekly-timetable-page .rounded-4 > .p-4 > .d-flex {
+              gap: 1rem !important;
+            }
+
+            /* Calendar icon */
+            .weekly-timetable-page .rounded-4 > .p-4 > .d-flex > .d-flex:first-child {
+              min-width: 0;
+            }
+
+            /* Header title */
+            .weekly-timetable-page h1,
+            .weekly-timetable-page h2,
+            .weekly-timetable-page h3 {
+              overflow-wrap: anywhere;
+            }
+
+            /* Timetable title */
+            .weekly-timetable-page h1 {
+              font-size: 1.6rem !important;
+              line-height: 1.25 !important;
+            }
+
+            /* Header information */
+            .weekly-timetable-page .rounded-4 > .p-4 > .d-flex:first-child {
+              flex-wrap: wrap !important;
+            }
+
+            /* Create button */
+            .weekly-timetable-page .rounded-4 button {
+              max-width: 100%;
+            }
+
+            /* Timetable table */
+            .weekly-timetable-page .erp-timetable-responsive {
+              width: 100%;
+              overflow-x: auto !important;
+              overflow-y: hidden !important;
+              -webkit-overflow-scrolling: touch;
+            }
+
+            .weekly-timetable-page .erp-timetable-responsive table {
+              min-width: 1100px !important;
+            }
+          }
+
+
+          /* =========================================================
+            MOBILE
+            ========================================================= */
+
+          @media (max-width: 767.98px) {
+
+            .weekly-timetable-page {
+              padding: 0.6rem !important;
+            }
+
+            /* ================= HEADER ================= */
+
+            .weekly-timetable-page .rounded-4 > .p-4 {
+              padding: 1rem !important;
+            }
+
+            /*
+              Stack header vertically on mobile.
+              Prevents the timetable title from becoming
+              extremely narrow.
+            */
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex {
+
+              flex-direction: column !important;
+              align-items: stretch !important;
+              gap: 1rem !important;
+            }
+
+            /* Title section */
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex
+              > div:first-child {
+
+              width: 100% !important;
+              min-width: 0 !important;
+            }
+
+            /* Calendar + title row */
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex
+              > div:first-child
+              > div {
+
+              min-width: 0 !important;
+            }
+
+            /* Calendar icon */
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex
+              > div:first-child
+              > div:first-child {
+
+              width: 50px !important;
+              height: 50px !important;
+              min-width: 50px !important;
+
+              font-size: 1.35rem !important;
+            }
+
+            /* Timetable title */
+            .weekly-timetable-page h1 {
+              font-size: 1.35rem !important;
+              line-height: 1.25 !important;
+            }
+
+            /* Header details */
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex
+              > div:first-child
+              > div:last-child
+              > div {
+
+              gap: 0.5rem !important;
+              margin-top: 0.5rem !important;
+            }
+
+            /* Metadata */
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex
+              > div:first-child
+              > div:last-child
+              > div
+              > div {
+
+              font-size: 0.8rem !important;
+            }
+
+            /* Create timetable button */
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex
+              > div:last-child {
+
+              width: 100% !important;
+            }
+
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex
+              > div:last-child
+              button {
+
+              width: 100% !important;
+              justify-content: center !important;
+
+              padding: 0.75rem 1rem !important;
+
+              font-size: 0.9rem !important;
+            }
+
+
+            /* ================= INFO BANNER ================= */
+
+            .weekly-timetable-page
+              .rounded-4
+              > div:last-child {
+
+              padding: 0.9rem 1rem !important;
+            }
+
+            .weekly-timetable-page
+              .rounded-4
+              > div:last-child
+              span {
+
+              font-size: 0.8rem !important;
+              line-height: 1.45 !important;
+            }
+
+
+            /* ================= WEEKLY SCHEDULE ================= */
+
+            .weekly-timetable-page
+              .erp-timetable-responsive
+              + div {
+
+              overflow-x: auto;
+            }
+
+            /* Schedule heading area */
+            .weekly-timetable-page
+              .erp-timetable-responsive
+              ~ div {
+
+              max-width: 100%;
+            }
+
+            /* Keep timetable horizontally scrollable */
+            .weekly-timetable-page .erp-timetable-responsive {
+              border-radius: 0;
+            }
+
+            .weekly-timetable-page
+              .erp-timetable-responsive
+              table {
+
+              min-width: 1050px !important;
+            }
+
+            .weekly-timetable-page
+              .erp-timetable-responsive
+              th {
+
+              font-size: 0.75rem !important;
+              padding: 0.65rem 0.5rem !important;
+            }
+
+            .weekly-timetable-page
+              .erp-timetable-responsive
+              td {
+
+              font-size: 0.75rem !important;
+              padding: 0.5rem !important;
+            }
+
+            /* Time column */
+            .weekly-timetable-page
+              .erp-timetable-responsive
+              .erp-timetable-time {
+
+              min-width: 105px !important;
+              width: 105px !important;
+            }
+
+            /* Day columns */
+            .weekly-timetable-page
+              .erp-timetable-responsive
+              .erp-timetable-day {
+
+              min-width: 155px !important;
+            }
+
+
+            /* ================= MODALS ================= */
+
+            .weekly-timetable-page + * .modal-box {
+              width: calc(100% - 1rem) !important;
+              max-width: calc(100% - 1rem) !important;
+            }
+          }
+
+
+          /* =========================================================
+            SMALL MOBILE
+            ========================================================= */
+
+          @media (max-width: 480px) {
+
+            .weekly-timetable-page {
+              padding: 0.45rem !important;
+            }
+
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4 {
+
+              padding: 0.9rem !important;
+            }
+
+            .weekly-timetable-page h1 {
+              font-size: 1.15rem !important;
+            }
+
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex
+              > div:first-child
+              > div:first-child {
+
+              width: 44px !important;
+              height: 44px !important;
+              min-width: 44px !important;
+
+              font-size: 1.1rem !important;
+            }
+
+            .weekly-timetable-page
+              .rounded-4
+              > .p-4
+              > .d-flex
+              > div:first-child {
+
+              gap: 0.7rem !important;
+            }
+
+            .weekly-timetable-page
+              .erp-timetable-responsive
+              table {
+
+              min-width: 1000px !important;
+            }
+
+            .weekly-timetable-page
+              .erp-timetable-responsive
+              .erp-timetable-day {
+
+              min-width: 145px !important;
+            }
+          }
+            `}
+</style>
+
                 </div>
               </div>
               {canManageTimetable && (
-                <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: "0 8px 20px rgba(26, 75, 109, 0.4)" }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate(`/timetable/create-timetable`)}
-                  style={{
-                    backgroundColor: "white", color: BRAND_COLORS.primary.main, border: "2px solid white",
-                    padding: "0.75rem 1.5rem", borderRadius: "12px", fontSize: "0.95rem", fontWeight: 600,
-                    cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem",
-                    transition: "all 0.3s ease", boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
-                  }}
-                >
-                  <FaPlus /> Create New Timetable
-                </motion.button>
+              <motion.button
+                whileHover={{
+                  y: -2,
+                  boxShadow: "0 6px 16px rgba(0, 0, 0, 0.18)"
+                }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate(`/timetable/create-timetable`)}
+                style={{
+                  backgroundColor: "white",
+                  color: "#0E3746",
+                  border: "1px solid rgba(255, 255, 255, 0.8)",
+                  padding: "0 1rem",
+                  height: "42px",
+                  borderRadius: "12px",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.3rem",
+                  transition: "all 0.25s ease",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.12)",
+                }}
+              >
+                <FaPlus />
+                Create New Timetable
+              </motion.button>
               )}
             </div>
 
@@ -848,10 +1242,10 @@ export default function WeeklyTimetable() {
                   <FaInfoCircle
                     style={{
                       color: timetable?.status === "PUBLISHED" ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main,
-                      fontSize: "1.25rem",
+                      fontSize: "1.2rem",
                     }}
                   />
-                  <span style={{ color: "#1e293b", fontWeight: 500 }}>
+                  <span style={{ color: "#1e293b", fontWeight: 500, fontSize: "0.9rem" }}>
                     {timetable?.status === "PUBLISHED"
                       ? "This timetable is published and visible to students. Only HOD can modify it."
                       : "This timetable is in draft mode. Complete it and publish when ready."}

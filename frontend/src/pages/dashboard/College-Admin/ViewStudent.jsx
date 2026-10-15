@@ -9,6 +9,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
+import Loading from "../../../components/Loading";
 import { logger } from "../../../utils/logger";
 import {
   FaUniversity,
@@ -330,32 +331,6 @@ function DocumentCard({
   );
 }
 
-// Skeleton Loader Component
-function SkeletonLoader() {
-  return (
-    <div className="view-student-page">
-      <div className="page-header-enterprise">
-        <div className="skeleton skeleton-title" style={{ width: '280px', height: '36px' }}></div>
-        <div className="skeleton skeleton-subtitle" style={{ width: '200px', height: '18px', marginTop: '10px' }}></div>
-      </div>
-
-      <div className="stats-grid-enterprise">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="skeleton-card" style={{ height: '120px' }}></div>
-        ))}
-      </div>
-
-      <div className="content-grid-enterprise">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="content-card-enterprise">
-            <div className="skeleton" style={{ width: '200px', height: '24px', margin: '1.5rem' }}></div>
-            <div className="skeleton" style={{ width: 'calc(100% - 3rem)', height: '160px', margin: '0 1.5rem 1.5rem' }}></div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // Error Display Component
 function ErrorDisplay({ error, onRetry }) {
@@ -858,9 +833,22 @@ export default function ViewStudent() {
   if (shouldRedirectRole) {
     return <Navigate to="/dashboard" replace />;
   }
-  if (loading) {
-    return <SkeletonLoader />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Student Profile..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -1138,7 +1126,7 @@ export default function ViewStudent() {
                 <FaBook className="card-title-icon" />
                 <h3 className="card-title">Academic Information</h3>
               </div>
-              {isCollegeAdmin && (
+              {isCollegeAdmin && ["APPROVED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(student.status) && (
                 <button
                   className="btn-assign-division"
                   onClick={handleOpenDivisionModal}
@@ -1287,31 +1275,16 @@ export default function ViewStudent() {
              <p className="action-card-subtitle">Review and approve or reject this student's registration</p>
            </div>
             
-             <div className="action-card-body">
-              {!student.division && (
-                <div className="doc-verification-gate-warning">
-                  <FaExclamationTriangle className="doc-verification-gate-icon" />
-                  <span>
-                    Please assign division to student before approving.
-                    <button
-                      type="button"
-                      className="inline-assign-division-btn"
-                      onClick={handleOpenDivisionModal}
-                    >
-                      Assign Division
-                    </button>
-                  </span>
-                </div>
-              )}
-              {requiredDocTypes.length > 0 && !allRequiredDocsVerified && (
-                <div className="doc-verification-gate-warning">
-                  <FaExclamationTriangle className="doc-verification-gate-icon" />
-                  <span>
-                    Verify all required documents before approving. Backend enforcement is active.
-                  </span>
-                </div>
-              )}
-              <div className="action-card-buttons">
+              <div className="action-card-body">
+               {requiredDocTypes.length > 0 && !allRequiredDocsVerified && (
+                 <div className="doc-verification-gate-warning">
+                   <FaExclamationTriangle className="doc-verification-gate-icon" />
+                   <span>
+                     Verify all required documents before approving. Backend enforcement is active.
+                   </span>
+                 </div>
+               )}
+               <div className="action-card-buttons">
                 <button
                   className="btn-approve-enterprise"
                   onClick={handleApproveClick}
@@ -1647,7 +1620,7 @@ export default function ViewStudent() {
         /* Page Header */
         .page-header-enterprise {
           position: relative;
-          background: linear-gradient(135deg, #0f3a4a 0%, #134952 50%, #1a5a6a 100%);
+          background: #0E3746;
           border-radius: 20px;
           padding: 1.85rem 2rem;
           margin-bottom: 1.5rem;

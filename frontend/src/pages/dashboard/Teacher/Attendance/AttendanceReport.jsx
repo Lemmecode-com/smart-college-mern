@@ -14,7 +14,6 @@ import {
   FaDownload,
   FaPrint,
   FaInfoCircle,
-  FaArrowLeft,
   FaSearch,
   FaEye,
   FaFileExport,
@@ -25,6 +24,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import Pagination from "../../../../components/Pagination";
+import Breadcrumb from "../../../../components/Breadcrumb";
+import Loading from "../../../../components/Loading";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -410,47 +411,22 @@ export default function AttendanceReport() {
     printWindow.document.close();
   };
 
-  if (loading && !report) {
-    return (
+if (loading && !report) {
+  return (
+    <div className="parent-portal-wrapper">
       <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-          padding: "2rem",
-        }}
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
       >
-        <div style={{ textAlign: "center" }}>
-          <motion.div
-            variants={spinVariants}
-            animate="animate"
-            style={{
-              marginBottom: "1.5rem",
-              color: BRAND_COLORS.primary.main,
-              fontSize: "4rem",
-            }}
-          >
-            <FaSyncAlt />
-          </motion.div>
-          <h3
-            style={{
-              margin: "0 0 0.5rem 0",
-              color: "#1e293b",
-              fontWeight: 700,
-              fontSize: "1.5rem",
-            }}
-          >
-            Loading Attendance Report...
-          </h3>
-          <p style={{ color: "#64748b", margin: 0 }}>
-            Preparing your comprehensive attendance analytics
-          </p>
-        </div>
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Attendance Report..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   const { summary = {}, sessions = [] } = report || {};
 
@@ -469,62 +445,20 @@ export default function AttendanceReport() {
         style={{
           minHeight: "100vh",
           background: "linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)",
-          paddingTop: "1.5rem",
-          paddingBottom: "2rem",
+          paddingTop: "1rem",
+          paddingBottom: "1.25rem",
           paddingLeft: "1rem",
           paddingRight: "1rem",
         }}
       >
         <div style={{ maxWidth: "100%", margin: "0 auto" }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: "1.5rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              flexWrap: "wrap",
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => window.history.back()}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                color: BRAND_COLORS.primary.main,
-                background: "none",
-                border: "none",
-                fontSize: "0.95rem",
-                fontWeight: 500,
-                cursor: "pointer",
-                padding: "0.5rem",
-                borderRadius: "8px",
-                transition: "all 0.3s ease",
-              }}
-              onMouseEnter={(e) => (e.target.style.backgroundColor = "#f1f5f9")}
-              onMouseLeave={(e) =>
-                (e.target.style.backgroundColor = "transparent")
-              }
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: "#94a3b8" }}>›</span>
-            <span
-              style={{
-                color: BRAND_COLORS.primary.main,
-                fontWeight: 600,
-                fontSize: "1rem",
-              }}
-            >
-              Attendance Report
-            </span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "Attendance Report" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -532,66 +466,79 @@ export default function AttendanceReport() {
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: "1.5rem",
-              backgroundColor: "white",
-              borderRadius: "1.5rem",
+              marginBottom: "1rem",
+              backgroundColor: "#0E3746",
+              borderRadius: "15px",
               overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
+              boxShadow: "0 6px 20px rgba(26, 75, 109, 0.12)",
               display: "flex",
               flexDirection: "column",
-              gap: "1.5rem",
+              gap: "0rem",
             }}
           >
             <div
+            className="attendance-report-banner"
               style={{
-                padding: "1.75rem 2rem",
-                background: BRAND_COLORS.primary.gradient,
-                color: "white",
+                background: "#0E3746",
+                borderRadius: "15px",
+                padding: "1rem 1.5rem",
+                marginBottom: 0,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1.5rem",
+                gap: "1rem",
+                boxShadow: "0 8px 24px rgba(15, 69, 83, 0.18)",
+                color: "white",
+                height: "auto",
+                marginTop: "30px",
+              
               }}
             >
               <div
+                className="attendance-report-banner-content"
                 style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
               >
                 <motion.div
+                  className="attendance-report-banner-icon"
                   variants={pulseVariants}
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: "72px",
-                    height: "72px",
-                    backgroundColor: "rgba(255, 255, 255, 0.15)",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "2rem",
-                    flexShrink: 0,
-                    boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
+                    width: '52px',
+                    height: '52px',
+                    minWidth: '52px',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.7rem',
                   }}
                 >
                   <FaChartBar />
                 </motion.div>
                 <div>
                   <h1
+                    className="attendance-report-banner-title"
                     style={{
                       margin: 0,
-                      fontSize: "2rem",
+                      fontSize: "1.625rem",
                       fontWeight: 700,
-                      lineHeight: 1.2,
+                      letterSpacing: "-0.02em",
+                      lineHeight: 1.25,
                     }}
                   >
                     Attendance Analytics Report
                   </h1>
                   <p
+                    className="attendance-report-banner-description"
                     style={{
-                      margin: "0.5rem 0 0 0",
-                      opacity: 0.9,
-                      fontSize: "1.1rem",
+                      margin: 0,
+                      opacity: 0.8,
+                      fontSize: "0.9rem",
+                      fontWeight: 400,
+                      lineHeight: 1.5,
                     }}
                   >
                     Comprehensive insights into student attendance patterns
@@ -725,6 +672,127 @@ export default function AttendanceReport() {
               </motion.button>
             </div>
           </motion.div>
+          
+          <style>{`
+  /* =========================================
+     ATTENDANCE REPORT BANNER
+     MOBILE + TABLET ONLY
+     ========================================= */
+
+  @media (max-width: 991px) {
+
+    .attendance-report-banner {
+      padding: 1.25rem !important;
+      gap: 0 !important;
+      min-height: auto !important;
+    }
+
+    .attendance-report-banner-content {
+      gap: 1rem !important;
+      align-items: center !important;
+    }
+
+    .attendance-report-banner-icon {
+      width: 64px !important;
+      height: 64px !important;
+      min-width: 64px !important;
+      font-size: 1.6rem !important;
+      border-radius: 18px !important;
+      box-shadow: 0 6px 18px rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .attendance-report-banner-title {
+      font-size: 1.65rem !important;
+      line-height: 1.15 !important;
+      margin: 0 !important;
+    }
+
+    .attendance-report-banner-description {
+      font-size: 0.9rem !important;
+      line-height: 1.35 !important;
+      margin: 0.4rem 0 0 0 !important;
+    }
+
+    /* Info section below banner */
+    .attendance-report-banner + div {
+      padding: 0.85rem 1.25rem !important;
+      gap: 0.75rem !important;
+    }
+
+    .attendance-report-banner + div > div {
+      gap: 0.4rem !important;
+    }
+
+    .attendance-report-banner + div span {
+      font-size: 0.82rem !important;
+      line-height: 1.4 !important;
+    }
+
+    .attendance-report-banner + div svg {
+      font-size: 1rem !important;
+      flex-shrink: 0 !important;
+    }
+
+    .attendance-report-banner + div button {
+      padding: 0.5rem 1rem !important;
+      font-size: 0.8rem !important;
+      border-radius: 8px !important;
+    }
+  }
+
+
+  /* =========================================
+     SMALL MOBILE
+     ========================================= */
+
+  @media (max-width: 575px) {
+
+    .attendance-report-banner {
+      padding: 1rem !important;
+    }
+
+    .attendance-report-banner-content {
+      gap: 0.75rem !important;
+    }
+
+    .attendance-report-banner-icon {
+      width: 54px !important;
+      height: 54px !important;
+      min-width: 54px !important;
+      font-size: 1.35rem !important;
+      border-radius: 15px !important;
+    }
+
+    .attendance-report-banner-title {
+      font-size: 1.3rem !important;
+      line-height: 1.15 !important;
+    }
+
+    .attendance-report-banner-description {
+      font-size: 0.76rem !important;
+      line-height: 1.35 !important;
+      margin-top: 0.3rem !important;
+    }
+
+    .attendance-report-banner + div {
+      padding: 0.75rem 1rem !important;
+      gap: 0.6rem !important;
+    }
+
+    .attendance-report-banner + div span {
+      font-size: 0.72rem !important;
+      line-height: 1.35 !important;
+    }
+
+    .attendance-report-banner + div button {
+      padding: 0.45rem 0.8rem !important;
+      font-size: 0.72rem !important;
+      white-space: nowrap !important;
+    }
+  }
+`}</style>
+
+
 
           {/* ================= FILTER SECTION ================= */}
           <motion.div
@@ -801,9 +869,9 @@ export default function AttendanceReport() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                gap: "1.25rem",
-                marginBottom: "1.5rem",
+                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
+                gap: "0.85rem",
+                marginBottom: "0",
               }}
             >
               {/* Course Filter */}
@@ -920,7 +988,7 @@ export default function AttendanceReport() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
                 gap: "1.25rem",
               }}
             >

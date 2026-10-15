@@ -13,11 +13,14 @@ const StudentFee = require("../models/studentFee.model");
 const DocumentConfig = require("../models/documentConfig.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const { STUDENT_STATUS } = require("../utils/constants");
 const { sendRegistrationSuccessEmail } = require("../services/email.service");
 const collegeService = require("../services/college.service");
 const logger = require("../utils/logger");
 const auditLogService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
+const { createPromotionDecision } = require("../services/promotionDecision.service");
+const { checkAlumniEligibility } = require("../services/alumniEligibility.service");
 
 const {
   processUploadsWithStorage,
@@ -549,7 +552,9 @@ exports.getMyFullProfile = async (req, res, next) => {
     const department = await Department.findById(student.department_id).select(
       "name code",
     );
-    const course = await Course.findById(student.course_id).select("name code");
+    const course = await Course.findById(student.course_id).select(
+      "name code durationSemesters durationYears yearLabels programLevel",
+    );
 
     // 3️⃣ Document Config (to determine which fields to show)
     const docConfig = await DocumentConfig.findOne({
@@ -705,8 +710,9 @@ exports.getMyFullProfile = async (req, res, next) => {
 
       const timetableFilters = {
         college_id: student.college_id,
-        status: { $in: ["PUBLISHED", "DRAFT"] },
+        status: "PUBLISHED",
         semester,
+        academicYear: student.currentAcademicYear,
       };
 
       if (student.course_id) {
@@ -807,6 +813,7 @@ hscPassingYear: student.hscPassingYear,
         department,
         course,
         attendance: attendanceSummary,
+        todaysTimetable,
         documentConfig: (docConfig?.documents || []).map((doc) => {
           const docObj = doc.toObject ? doc.toObject() : doc;
           return {
@@ -960,6 +967,22 @@ exports.updateStudentByAdmin = async (req, res, next) => {
       }
     }
 
+    // 🔐 WORKFLOW: Division can only be assigned/changed for APPROVED, OFFER_MADE, or SEAT_CONFIRMED students
+    if (req.body.division !== undefined) {
+      const DIVISION_ASSIGNABLE_STATUSES = [
+        STUDENT_STATUS.APPROVED,
+        STUDENT_STATUS.OFFER_MADE,
+        STUDENT_STATUS.SEAT_CONFIRMED,
+      ];
+
+      if (!DIVISION_ASSIGNABLE_STATUSES.includes(student.status)) {
+        return res.status(400).json({
+          message: `Division can only be assigned or changed for students with status: ${DIVISION_ASSIGNABLE_STATUSES.join(", ")}. Current student status: ${student.status}. Please approve the student first.`,
+          code: "INVALID_STATUS_FOR_DIVISION_CHANGE",
+        });
+      }
+    }
+
     // 🔐 SCOPE: Validate division is valid for student's academic context
     if (req.body.division !== undefined) {
       const divisionValue = req.body.division?.toString().trim().toUpperCase() || null;
@@ -1045,6 +1068,19 @@ exports.getValidDivisionsForStudent = async (req, res, next) => {
 
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
+    }
+
+    const DIVISION_ASSIGNABLE_STATUSES = [
+      STUDENT_STATUS.APPROVED,
+      STUDENT_STATUS.OFFER_MADE,
+      STUDENT_STATUS.SEAT_CONFIRMED,
+    ];
+
+    if (!DIVISION_ASSIGNABLE_STATUSES.includes(student.status)) {
+      return res.status(400).json({
+        message: `Valid divisions can only be fetched for students with status: ${DIVISION_ASSIGNABLE_STATUSES.join(", ")}. Current student status: ${student.status}.`,
+        code: "INVALID_STATUS_FOR_DIVISION_QUERY",
+      });
     }
 
     // Get distinct non-null, non-empty divisions from timetables
@@ -1437,7 +1473,7 @@ exports.moveToAlumni = async (req, res, next) => {
     const student = await Student.findOne({
       _id: studentId,
       college_id: req.college_id,
-      status: "APPROVED",
+      status: { $in: ["APPROVED", "ENROLLED"] },
     }).populate("course_id", "name code durationSemesters");
 
     if (!student) {
@@ -1455,6 +1491,20 @@ exports.moveToAlumni = async (req, res, next) => {
         "Student has not completed the course yet. Cannot move to Alumni.",
         400,
         "NOT_ELIGIBLE_FOR_ALUMNI",
+      );
+    }
+
+    // Revalidate authoritative Alumni Eligibility using dedicated service
+    const eligibility = await checkAlumniEligibility(student._id, req.college_id);
+    if (!eligibility.eligible) {
+      const reasonMsg =
+        eligibility.blockers?.map((b) => b.message).join("; ") ||
+        eligibility.message ||
+        "Student is not eligible for Alumni status.";
+      throw new AppError(
+        `Student not eligible for Alumni: ${reasonMsg}`,
+        409,
+        "ALUMNI_ELIGIBILITY_FAILED",
       );
     }
 

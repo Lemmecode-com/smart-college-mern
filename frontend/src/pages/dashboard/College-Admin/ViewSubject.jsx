@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import useRole from "../../../hooks/useRole";
@@ -19,7 +20,11 @@ import {
   FaCalendarAlt,
   FaCheckCircle,
   FaInfoCircle,
-  FaLayerGroup
+  FaLayerGroup,
+  FaClipboardList,
+  FaUniversity,
+  FaCreditCard,
+  FaBookOpen,
 } from "react-icons/fa";
 
 export default function ViewSubject() {
@@ -76,9 +81,22 @@ export default function ViewSubject() {
   }, [id]);
 
   /* ================= LOADING ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading subject details..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Subject Details..."
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR ================= */
   if (error) {
@@ -118,43 +136,141 @@ export default function ViewSubject() {
         ]}
       />
 
-      {/* HEADER */}
-      <div className="view-subject-header">
-        <div className="header-content">
-          <div className="header-icon-wrapper">
-            <FaBook className="header-icon" />
-          </div>
-          <div className="header-text">
-            <h1 className="subject-title">{subject.name}</h1>
-            <div className="subject-meta">
-              <span className="subject-code">{subject.code}</span>
-              <span className={`status-badge status-${subject.status?.toLowerCase()}`}>
-                <FaCheckCircle className="status-icon" />
-                {subject.status}
-              </span>
-            </div>
-          </div>
-        </div>
+ {/* HEADER */}
+<PageHeader
+  icon={FaBook}
+  title={subject.name}
+  subtitle={
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.75rem",
+        flexWrap: "wrap",
+      }}
+    >
+      <span
+        style={{
+          background: "rgba(255, 255, 255, 0.15)",
+          padding: "0.3rem 0.75rem",
+          borderRadius: "8px",
+          fontSize: "0.8rem",
+          fontWeight: 600,
+          border: "1px solid rgba(255, 255, 255, 0.2)",
+        }}
+      >
+        {subject.code}
+      </span>
 
-        <div className="header-actions">
-          <button
-            className="erp-btn erp-btn-outline"
-            onClick={() => navigate("/subjects")}
-          >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.35rem",
+          padding: "0.3rem 0.75rem",
+          borderRadius: "20px",
+          fontSize: "0.75rem",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          background:
+            subject.status?.toLowerCase() === "active"
+              ? "rgba(76, 175, 80, 0.2)"
+              : "rgba(158, 158, 158, 0.2)",
+          color:
+            subject.status?.toLowerCase() === "active"
+              ? "#81c784"
+              : "#bdbdbd",
+          border:
+            subject.status?.toLowerCase() === "active"
+              ? "1px solid rgba(76, 175, 80, 0.3)"
+              : "1px solid rgba(158, 158, 158, 0.3)",
+        }}
+      >
+        <FaCheckCircle size={11} />
+        {subject.status}
+      </span>
+    </div>
+  }
+  actions={
+    <>
+      <button
+        type="button"
+        onClick={() => navigate("/subjects")}
+        aria-label="Back to Subjects"
+        title="Back to Subjects"
+        style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",   
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.boxShadow =
+            "0 4px 10px rgba(0, 0, 0, 0.15)";
+          e.currentTarget.style.background =
+            "rgba(255, 255, 255, 0.18)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "none";
+          e.currentTarget.style.background =
+            "rgba(255, 255, 255, 0.12)";
+        }}
+      >
+        <FaArrowLeft size={15} />
+        <span>Back to Subjects</span>
+      </button>
 
-            <FaArrowLeft /> <span>Back to Subjects</span>
-          </button>
-
-          {canEdit('subjects') && (
-            <button
-              className="erp-btn erp-btn-primary"
-              onClick={() => navigate(`/subjects/edit/${subject._id}`)}
-            >
-              <FaEdit /> <span>Edit Subject</span>
-            </button>
-          )}
-        </div>
-      </div>
+      {canEdit("subjects") && (
+        <button
+          type="button"
+          onClick={() => navigate(`/subjects/edit/${subject._id}`)}
+          aria-label="Edit Subject"
+          title="Edit Subject"
+          style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "white",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 10px rgba(0, 0, 0, 0.15)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+          }}
+        >
+          <FaEdit size={15} />
+          <span>Edit Subject</span>
+        </button>
+      )}
+    </>
+  }
+/>
 
       {/* MAIN CONTENT GRID */}
       <div className="view-subject-grid">
@@ -224,6 +340,89 @@ export default function ViewSubject() {
           </div>
         </div>
 
+        {/* EXAM / MARKS CONFIGURATION CARD */}
+        <div className="info-card exam-config-card">
+          <div className="card-header">
+            <FaClipboardList className="card-header-icon" />
+            <h3>Exam / Marks Configuration</h3>
+          </div>
+          <div className="card-body">
+            {subject.subjectType ? (
+              <div className="info-grid">
+                <InfoItem
+                  icon={<FaLayerGroup />}
+                  label="Subject Type"
+                  value={subject.subjectType}
+                />
+
+                {subject.subjectType === "THEORY" && (
+                  <>
+                    <InfoItem
+                      icon={<FaBookOpen />}
+                      label="Internal Max Marks"
+                      value={subject.internalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaUniversity />}
+                      label="External Max Marks"
+                      value={subject.externalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="Internal Pass Marks"
+                      value={subject.internalPassMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="External Pass Marks"
+                      value={subject.externalPassMarks}
+                    />
+                  </>
+                )}
+
+                {subject.subjectType === "PRACTICAL" && (
+                  <>
+                    <InfoItem
+                      icon={<FaBookOpen />}
+                      label="Applicable Maximum Marks"
+                      value={subject.internalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="Pass Marks"
+                      value={subject.passMarks}
+                    />
+                  </>
+                )}
+
+                {subject.subjectType === "COMPOSITE" && (
+                  <>
+                    <InfoItem
+                      icon={<FaBookOpen />}
+                      label="Internal Max Marks"
+                      value={subject.internalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaUniversity />}
+                      label="External Max Marks"
+                      value={subject.externalMaxMarks}
+                    />
+                    <InfoItem
+                      icon={<FaCreditCard />}
+                      label="Pass Marks"
+                      value={subject.passMarks}
+                    />
+                  </>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted mb-0">
+                No exam / marks configuration set for this subject.
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* TIMELINE CARD */}
         <div className="info-card timeline-card">
           <div className="card-header">
@@ -282,165 +481,6 @@ export default function ViewSubject() {
             transform: translateY(0);
           }
         }
-
-        /* ================= HEADER ================= */
-        .view-subject-header {
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 50%, #3db5e6 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.4);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .view-subject-header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(45deg, rgba(61, 181, 230, 0.1) 0%, transparent 50%);
-          pointer-events: none;
-        }
-
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .header-icon-wrapper {
-          width: 64px;
-          height: 64px;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.25) 0%, rgba(79, 195, 247, 0.15) 100%);
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .header-icon {
-          color: white;
-        }
-
-        .subject-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-          color: white;
-        }
-
-        .subject-meta {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          margin-top: 0.5rem;
-        }
-
-        .subject-code {
-          background: rgba(255, 255, 255, 0.15);
-          padding: 0.375rem 0.875rem;
-          border-radius: 8px;
-          font-size: 0.875rem;
-          font-weight: 600;
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .status-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.375rem;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          font-weight: 700;
-          text-transform: uppercase;
-        }
-
-        .status-active {
-          background: rgba(76, 175, 80, 0.2);
-          color: #81c784;
-          border: 1px solid rgba(76, 175, 80, 0.3);
-        }
-
-        .status-inactive {
-          background: rgba(158, 158, 158, 0.2);
-          color: #bdbdbd;
-          border: 1px solid rgba(158, 158, 158, 0.3);
-        }
-
-        .status-icon {
-          font-size: 0.75rem;
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 0.75rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .erp-btn {
-          padding: 0.75rem 1.25rem;
-          border-radius: 10px;
-          border: none;
-          cursor: pointer;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          font-size: 0.9375rem;
-        }
-
-        .erp-btn-primary {
-          background: linear-gradient(135deg, #3db5e6 0%, #4fc3f7 100%);
-          color: white;
-          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
-        }
-
-        .erp-btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(61, 181, 230, 0.5);
-        }
-
-        .erp-btn-secondary {
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-          backdrop-filter: blur(10px);
-        }
-
-        .erp-btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.25);
-          transform: translateY(-2px);
-        }
-
         /* ================= MAIN GRID ================= */
         .view-subject-grid {
           display: grid;
@@ -467,8 +507,14 @@ export default function ViewSubject() {
           grid-column: 1 / 3;
         }
 
+        .exam-config-card {
+          grid-column: 1 / 3;
+          grid-row: 2;
+        }
+
         .timeline-card {
-          grid-column: 3 / 4;
+          grid-column: 3;
+          grid-row: 2;
         }
 
         .card-header {

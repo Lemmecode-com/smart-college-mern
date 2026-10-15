@@ -4,6 +4,10 @@ import { AuthContext } from "../../../auth/AuthContext";
 import { getAlumni } from "../../../api/alumni";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import StandardListView from "../../../components/StandardListView/StandardListView";
+import Pagination from "../../../components/Pagination";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { TableSkeleton } from "../../../components/Skeleton";
 import { showSuccess, showError } from "../../../utils/toast";
@@ -395,6 +399,8 @@ export default function AlumniList({ admissionOfficerMode = false }) {
   const [search, setSearch] = useState("");
   const [yearFilter, setYearFilter] = useState("ALL");
   const [departmentFilter, setDepartmentFilter] = useState("ALL");
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [certificateModalOpen, setCertificateModalOpen] = useState(false);
@@ -476,6 +482,15 @@ export default function AlumniList({ admissionOfficerMode = false }) {
     return matchesSearch && matchesYear && matchesDepartment;
   });
 
+  const totalPages = Math.ceil(filteredAlumni.length / ITEMS_PER_PAGE);
+  const paginatedAlumni = filteredAlumni.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE
+  );
+  useEffect(() => {
+    setPage(1);
+  }, [search, yearFilter, departmentFilter]);
+
   const getUniqueGraduationYears = () => {
     const years = [
       ...new Set(alumni.map((a) => a.graduationYear).filter(Boolean)),
@@ -539,6 +554,108 @@ export default function AlumniList({ admissionOfficerMode = false }) {
     setSelectedAlumnus(alumnus);
     setDetailsModalOpen(true);
   };
+
+  const columns = [
+  {
+    key: "student",
+    label: "Student",
+    sortable: true,
+    width: "250px",
+    render: (alumnus) => (
+      <div className="student-info">
+        <span className="student-name-cell">
+          {alumnus.fullName}
+        </span>
+
+        <span className="student-email">
+          {alumnus.email}
+        </span>
+      </div>
+    ),
+  },
+
+  {
+    key: "course",
+    label: "Course",
+    sortable: true,
+    width: "180px",
+    render: (alumnus) => (
+      <span className="badge badge-course">
+        {alumnus.course_id?.name || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "department",
+    label: "Department",
+    sortable: true,
+    width: "210px",
+    render: (alumnus) => (
+      <span className="department-name">
+        {alumnus.department_id?.name ||
+          alumnus.course_id?.name ||
+          "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "graduationYear",
+    label: "Graduation Year",
+    sortable: true,
+    width: "150px",
+    render: (alumnus) => (
+      <span className="badge badge-graduation-year">
+        <FaGraduationCap className="badge-icon" />
+        {alumnus.graduationYear || "N/A"}
+      </span>
+    ),
+  },
+
+  {
+    key: "alumniDate",
+    label: "Alumni Since",
+    sortable: true,
+    width: "160px",
+    render: (alumnus) => {
+      const formattedDate = alumnus.alumniDate
+        ? new Date(alumnus.alumniDate).toLocaleDateString(
+            "en-GB",
+            {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }
+          )
+        : "N/A";
+
+      return (
+        <span className="alumni-date">
+          <FaCalendarAlt className="date-icon" />
+          {formattedDate}
+        </span>
+      );
+    },
+  },
+];
+
+const tableActions = {
+  label: "Actions",
+  width: "170px",
+  items: [
+    {
+      key: "certificate",
+      label: "Certificate",
+      icon: FaCertificate,
+      className: "view-btn",
+      text: "Certificate",
+      style: { minWidth: "100px", minHeight: "30px", gap: "5px", fontWeight: "500" },
+      onClick: (alumnus) =>
+        handleGenerateCertificate(alumnus),
+    },
+  ],
+};
 
   const handleDownloadPDF = async (alumnusData, collegeData) => {
     try {
@@ -641,20 +758,22 @@ export default function AlumniList({ admissionOfficerMode = false }) {
   };
 
   // Loading state
-  if (loading) {
-    return (
-      <div className="page-container alumni-page">
-        <div className="page-header-skeleton" />
-        <div className="stats-grid-skeleton">
-          <div className="stat-card-skeleton" />
-          <div className="stat-card-skeleton" />
-          <div className="stat-card-skeleton" />
-          <div className="stat-card-skeleton" />
-        </div>
-        <TableSkeleton rows={8} />
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Alumni Records..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -671,20 +790,35 @@ export default function AlumniList({ admissionOfficerMode = false }) {
 
   return (
     <div className="page-container alumni-page">
-      {/* Page Header */}
-      <div className="page-header">
-        <div className="header-content">
-          <div className="header-icon-wrapper">
-            <FaGraduationCap className="header-icon" />
-          </div>
-          <div className="header-text">
-            <h2 className="page-title">Alumni Records</h2>
-            <p className="page-subtitle">
-              Manage and generate certificates for alumni members
-            </p>
-          </div>
-        </div>
+
+    {/* ================= BREADCRUMB ================= */}
+    <div
+      style={{
+        width: "100%",
+        margin: "10px auto",
+        paddingTop: "2px",
+        height: "60px",
+      
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard" },
+            { label: "Students",},
+            { label: "Alumni Records" },
+          ]}
+        />
       </div>
+    </div>
+
+
+      {/* Page Header */}
+      <PageHeader
+        icon={FaGraduationCap}
+        title="Alumni Records"
+        subtitle="Manage and generate certificates for alumni members"
+      />
 
       {/* Stats Cards */}
       <div className="stats-grid">
@@ -779,55 +913,50 @@ export default function AlumniList({ admissionOfficerMode = false }) {
         </div>
       </div>
 
-      {/* Alumni Table Card */}
-      <div className="card table-card">
-        <div className="card-header">
-          <div className="card-title-wrapper">
-            <FaUsers className="card-icon" />
-            <h3 className="card-title">
-              Alumni Members ({filteredAlumni.length})
-            </h3>
+          {/* Alumni List */}
+          <StandardListView
+            className="alumni-list"
+            title="Alumni Members"
+            icon={FaUsers}
+            count={filteredAlumni.length}
+            columns={columns}
+            data={paginatedAlumni}
+            loading={false}
+            emptyState={{
+              icon: FaGraduationCap,
+              title: "No Alumni Found",
+              description:
+                search ||
+                yearFilter !== "ALL" ||
+                departmentFilter !== "ALL"
+                  ? "Try adjusting your search or filters."
+                  : "Move students to Alumni to see them here.",
+              action:
+                search ||
+                yearFilter !== "ALL" ||
+                departmentFilter !== "ALL"
+                  ? {
+                      label: "Clear Filters",
+                      icon: FaTimes,
+                      onClick: () => {
+                        setSearch("");
+                        setYearFilter("ALL");
+                        setDepartmentFilter("ALL");
+                      },
+                    }
+                  : undefined,
+            }}
+            actions={tableActions}
+          />
+          {totalPages > 1 && (
+          <div style={{ marginBottom: "8px" }}>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              setPage={setPage}
+            />
           </div>
-        </div>
-        <div className="card-body">
-          {filteredAlumni.length === 0 ? (
-            <div className="empty-state">
-              <FaGraduationCap className="empty-icon" />
-              <h4 className="empty-title">No alumni found</h4>
-              <p className="empty-text">
-                {search || yearFilter !== "ALL" || departmentFilter !== "ALL"
-                  ? "Try adjusting your search or filters"
-                  : "Move students to Alumni to see them here"}
-              </p>
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="data-table alumni-table">
-                <thead>
-                  <tr>
-                    <th className="th-student">Student</th>
-                    <th className="th-course">Course</th>
-                    <th className="th-department">Department</th>
-                    <th className="th-year">Graduation Year</th>
-                    <th className="th-date">Alumni Since</th>
-                    <th className="th-actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredAlumni.map((alumnus) => (
-                    <AlumniTableRow
-                      key={alumnus._id}
-                      alumnus={alumnus}
-                      onGenerateCertificate={handleGenerateCertificate}
-                      onViewDetails={handleViewDetails}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </div>
+        )}
 
       {/* Certificate Modal */}
       <CertificateModal

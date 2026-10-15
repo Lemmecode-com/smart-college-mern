@@ -2,13 +2,142 @@ const Subject = require("../models/subject.model");
 const Course = require("../models/course.model");
 const Teacher = require("../models/teacher.model");
 const AppError = require("../utils/AppError");
+const teacherSubjectAssignmentService = require("../services/teacherSubjectAssignment.service");
+
+const SUBJECT_TYPES = ["THEORY", "PRACTICAL", "COMPOSITE"];
+
+/**
+ * Validate the optional exam / marks configuration block.
+ *
+ * Rules:
+ * - If no exam configuration keys are supplied at all, validation is skipped
+ *   (backward compatibility with legacy subjects that have no exam config).
+ * - subjectType must be one of THEORY / PRACTICAL / COMPOSITE.
+ * - THEORY requires internalMaxMarks, externalMaxMarks, internalPassMarks,
+ *   externalPassMarks; internal pass <= internal max; external pass <= external max.
+ * - PRACTICAL requires internalMaxMarks (applicable maximum) and passMarks;
+ *   passMarks <= internalMaxMarks. External/internalPass/externalPass not required.
+ * - COMPOSITE requires internalMaxMarks, externalMaxMarks, passMarks (overall);
+ *   passMarks <= internalMaxMarks + externalMaxMarks.
+ * - No marks value may be negative.
+ *
+ * This is configuration-only validation; no student pass/fail calculation.
+ */
+const validateExamMarksConfig = (body = {}) => {
+  const {
+    subjectType,
+    internalMaxMarks,
+    externalMaxMarks,
+    internalPassMarks,
+    externalPassMarks,
+    passMarks,
+  } = body;
+
+  const hasExamConfig =
+    subjectType !== undefined ||
+    internalMaxMarks !== undefined ||
+    externalMaxMarks !== undefined ||
+    internalPassMarks !== undefined ||
+    externalPassMarks !== undefined ||
+    passMarks !== undefined;
+
+  if (!hasExamConfig) return;
+
+  if (!subjectType || !SUBJECT_TYPES.includes(subjectType)) {
+    throw new AppError(
+      "subjectType must be one of THEORY, PRACTICAL, or COMPOSITE",
+      400,
+      "INVALID_SUBJECT_TYPE",
+    );
+  }
+
+  const requireNonNegative = (fieldName, value) => {
+    const num =
+      value === "" || value === null || value === undefined
+        ? undefined
+        : Number(value);
+
+    if (num === undefined || Number.isNaN(num)) {
+      throw new AppError(
+        `${fieldName} is required for ${subjectType} subject configuration`,
+        400,
+        "MISSING_EXAM_CONFIG",
+      );
+    }
+    if (num < 0) {
+      throw new AppError(`${fieldName} cannot be negative`, 400, "NEGATIVE_MARKS");
+    }
+    return num;
+  };
+
+  if (subjectType === "THEORY") {
+    const internalMax = requireNonNegative("internalMaxMarks", internalMaxMarks);
+    const externalMax = requireNonNegative("externalMaxMarks", externalMaxMarks);
+    const internalPass = requireNonNegative("internalPassMarks", internalPassMarks);
+    const externalPass = requireNonNegative("externalPassMarks", externalPassMarks);
+
+    if (internalPass > internalMax) {
+      throw new AppError(
+        "internalPassMarks cannot exceed internalMaxMarks",
+        400,
+        "PASS_EXCEEDS_MAX",
+      );
+    }
+    if (externalPass > externalMax) {
+      throw new AppError(
+        "externalPassMarks cannot exceed externalMaxMarks",
+        400,
+        "PASS_EXCEEDS_MAX",
+      );
+    }
+  } else if (subjectType === "PRACTICAL") {
+    const internalMax = requireNonNegative("internalMaxMarks", internalMaxMarks);
+    const pass = requireNonNegative("passMarks", passMarks);
+
+    if (pass > internalMax) {
+      throw new AppError(
+        "passMarks cannot exceed the applicable maximum marks",
+        400,
+        "PASS_EXCEEDS_MAX",
+      );
+    }
+  } else if (subjectType === "COMPOSITE") {
+    const internalMax = requireNonNegative("internalMaxMarks", internalMaxMarks);
+    const externalMax = requireNonNegative("externalMaxMarks", externalMaxMarks);
+    const pass = requireNonNegative("passMarks", passMarks);
+
+    if (pass > internalMax + externalMax) {
+      throw new AppError(
+        "passMarks cannot exceed total (internal + external) maximum marks",
+        400,
+        "PASS_EXCEEDS_MAX",
+      );
+    }
+  }
+};
 
 /**
  * CREATE SUBJECT
  * UPDATED: Validate semester is within course duration
  */
 exports.createSubject = async (req, res, next) => {
-  const { course_id, name, code, semester, credits, teacher_id } = req.body;
+  const {
+    course_id,
+    name,
+    code,
+    semester,
+    credits,
+    teacher_id,
+    subjectType,
+    internalMaxMarks,
+    externalMaxMarks,
+    internalPassMarks,
+    externalPassMarks,
+    passMarks,
+  } = req.body;
+
+  // Validate exam / marks configuration (if supplied)
+  validateExamMarksConfig(req.body);
 
   // Validate course
   const course = await Course.findOne({
@@ -31,8 +160,11 @@ exports.createSubject = async (req, res, next) => {
     );
   }
 
+  const hasTeacherAssignment =
+    teacher_id !== undefined && teacher_id !== null && teacher_id !== "";
+
   // Validate teacher only when provided
-  if (teacher_id) {
+  if (hasTeacherAssignment) {
     const teacher = await Teacher.findOne({
       _id: teacher_id,
       college_id: req.college_id,
@@ -63,14 +195,35 @@ exports.createSubject = async (req, res, next) => {
     code,
     semester,
     credits,
-    teacher_id,
+    teacher_id: null,
+    subjectType,
+    internalMaxMarks,
+    externalMaxMarks,
+    internalPassMarks,
+    externalPassMarks,
+    passMarks,
     createdBy: req.user.id,
   });
+
+  let responseSubject = subject;
+  if (hasTeacherAssignment) {
+    try {
+      const assignment = await teacherSubjectAssignmentService.assignSubjectToTeacher(
+        teacher_id,
+        subject._id,
+        req.college_id,
+      );
+      responseSubject = assignment.subject;
+    } catch (error) {
+      await Subject.findByIdAndDelete(subject._id);
+      throw error;
+    }
+  }
 
   res.status(201).json({
     success: true,
     message: "Subject created successfully",
-    subject
+    subject: responseSubject
   });
 };
 
@@ -79,10 +232,17 @@ exports.createSubject = async (req, res, next) => {
  */
 exports.getSubjectsByCourse = async (req, res, next) => {
   try {
-    const subjects = await Subject.find({
+    const semester = Number.parseInt(req.query.semester, 10);
+    const filter = {
       course_id: req.params.courseId,
       college_id: req.college_id,
-    }).populate("teacher_id", "name designation")
+    };
+
+    if (Number.isInteger(semester) && semester >= 1 && semester <= 8) {
+      filter.semester = semester;
+    }
+
+    const subjects = await Subject.find(filter).populate("teacher_id", "name designation")
       .populate("course_id", "name code");
 
     res.json(subjects);
@@ -96,8 +256,19 @@ exports.getSubjectsByCourse = async (req, res, next) => {
  */
 exports.updateSubject = async (req, res, next) => {
   try {
+    // Validate exam / marks configuration (if supplied)
+    validateExamMarksConfig(req.body);
+
+    const hasTeacherAssignment = Object.prototype.hasOwnProperty.call(
+      req.body,
+      "teacher_id",
+    );
+    const requestedTeacherId = req.body.teacher_id;
+    let assignmentResult;
+    let existingSubjectForUnassign;
+
     // ✅ Validate teacher_id if being updated
-    if (req.body.teacher_id) {
+    if (hasTeacherAssignment && requestedTeacherId) {
       // Fetch subject to get course_id and its department
       const existingSubject = await Subject.findOne({
         _id: req.params.id,
@@ -151,14 +322,59 @@ exports.updateSubject = async (req, res, next) => {
       }
     }
 
-    const subject = await Subject.findOneAndUpdate(
-      {
+    if (hasTeacherAssignment && requestedTeacherId) {
+      assignmentResult = await teacherSubjectAssignmentService.assignSubjectToTeacher(
+        requestedTeacherId,
+        req.params.id,
+        req.college_id,
+      );
+    } else if (hasTeacherAssignment && requestedTeacherId === null) {
+      existingSubjectForUnassign = await Subject.findOne({
         _id: req.params.id,
         college_id: req.college_id,
-      },
-      req.body,
-      { new: true },
-    );
+      });
+
+      if (!existingSubjectForUnassign) {
+        throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");
+      }
+
+      if (existingSubjectForUnassign.teacher_id) {
+        assignmentResult = await teacherSubjectAssignmentService.unassignSubjectFromTeacher(
+          existingSubjectForUnassign.teacher_id,
+          req.params.id,
+          req.college_id,
+        );
+      } else {
+        assignmentResult = { subject: existingSubjectForUnassign };
+      }
+    }
+
+    const subjectUpdate = { ...req.body };
+    if (hasTeacherAssignment && requestedTeacherId === null) {
+      subjectUpdate.teacher_id = null;
+    } else {
+      delete subjectUpdate.teacher_id;
+    }
+
+    let subject;
+    if (Object.keys(subjectUpdate).length > 0) {
+      subject = await Subject.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          college_id: req.college_id,
+        },
+        subjectUpdate,
+        { new: true },
+      );
+    } else {
+      subject = assignmentResult?.subject;
+      if (!subject) {
+        subject = await Subject.findOne({
+          _id: req.params.id,
+          college_id: req.college_id,
+        });
+      }
+    }
 
     if (!subject) {
       throw new AppError("Subject not found", 404, "SUBJECT_NOT_FOUND");

@@ -4,6 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -608,16 +609,22 @@ export default function MyTimetable() {
   };
 
   /* ================= LOADING ================= */
-  if (loading) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text="Loading My Timetable..."
-        color="primary"
-      />
-    );
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading My Timetable..."
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR STATE ================= */
   if (error) {
@@ -651,66 +658,47 @@ export default function MyTimetable() {
         padding: "1.5rem",
       }}
     >
+      {/* ================= BREADCRUMB ================= */}   
+                <div
+            style={{
+              width: "100%",
+              margin: "10px auto",
+              paddingTop: "5px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/teacher/dashboard" },
+                  { label: "My Timetable" },
+                ]}
+              />
+            </div>
+          </div>
       {/* ================= HEADER ================= */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-4 shadow-lg mb-4 overflow-hidden"
+      <div
+        className="my-timetable-header mb-4"
         style={{
-          background: BRAND_COLORS.primary.gradient,
+          background: "#0E3746",
         }}
       >
-        <div className="p-4 text-white">
-          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div className="d-flex align-items-center gap-3">
-              <motion.div
-                animate={{
-                  scale: [1, 1.1, 1],
-                  rotate: [0, 5, -5, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="d-flex align-items-center justify-content-center"
-                style={{
-                  width: "64px",
-                  height: "64px",
-                  backgroundColor: "rgba(255, 255, 255, 0.15)",
-                  borderRadius: "50%",
-                  fontSize: "1.75rem",
-                  boxShadow: "0 8px 25px rgba(255, 255, 255, 0.3)",
-                }}
-              >
-                <FaCalendarAlt />
-              </motion.div>
-              <div>
-                <h3 className="fw-bold mb-1">My Timetable</h3>
-                <p className="mb-0 opacity-75">
-                  Weekly lecture schedule assigned to you
-                </p>
-              </div>
-            </div>
-            <div className="d-flex align-items-center gap-2">
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="px-3 py-2 rounded-3"
-                style={{
-                  backgroundColor: "rgba(255, 255, 255, 0.15)",
-                  backdropFilter: "blur(10px)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                }}
-              >
-                <div className="d-flex align-items-center gap-2 text-white">
-                  <FaCheckCircle size={16} />
-                  <span className="fw-semibold">{totalSlots} Total Slots</span>
-                </div>
-              </motion.div>
-            </div>
+              <div className="my-timetable-header-content text-white">
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="my-timetable-header-icon">
+        <FaCalendarAlt />
+      </div>
+        <div>
+        <h3 className="my-timetable-title">My Timetable</h3>
+        <p className="my-timetable-subtitle">
+          Weekly lecture schedule assigned to you
+        </p>
+      </div>
+                  </div>
+                  <div className="my-timetable-slot-badge">
+        <FaCheckCircle size={16} />
+        <span>{totalSlots} Total Slots</span>
+      </div>
           </div>
         </div>
 
@@ -722,8 +710,8 @@ export default function MyTimetable() {
             borderTop: "1px solid rgba(255, 255, 255, 0.3)",
           }}
         >
-          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 timetable-week-navigation">
+            <div className="d-flex align-items-center gap-2 timetable-week-controls">
               <button
                 onClick={goToPreviousWeek}
                 className="btn btn-sm btn-outline-primary"
@@ -744,7 +732,7 @@ export default function MyTimetable() {
               >
                 <FaChevronRight />
               </button>
-              <span className="text-muted fw-medium">
+              <span className="text-muted fw-medium timetable-week-date">
                 {new Date(dateRange.startDate).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -757,7 +745,7 @@ export default function MyTimetable() {
                 })}
               </span>
             </div>
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center gap-2 timetable-slot-summary ms-auto">
               <FaCheckCircle className="text-success" size={14} />
               <span className="text-muted small fw-medium">
                 {totalSlots} Total Slots
@@ -785,7 +773,97 @@ export default function MyTimetable() {
             </span>
           </div>
         </div>
-      </motion.div>
+        <style>{`
+  .my-timetable-header {
+    min-height: 104px;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  }
+
+  .my-timetable-header-content {
+    min-height: 104px;
+    padding: 22px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .my-timetable-header-icon {
+    width: 52px;
+    height: 52px;
+    flex: 0 0 52px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #ffffff;
+  }
+
+  .my-timetable-title {
+    margin: 0 0 4px;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .my-timetable-subtitle {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .my-timetable-slot-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: 35rem;
+  }
+
+  .my-timetable-navigation {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  .my-timetable-info {
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  }
+
+  @media (max-width: 768px) {
+    .my-timetable-header-content {
+      padding: 18px 20px;
+      flex-wrap: wrap;
+    }
+
+    .my-timetable-title {
+      font-size: 24px;
+    }
+
+    .my-timetable-slot-badge {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+`}</style>
+      </div>
 
       {/* ================= EMPTY STATE ================= */}
       {totalSlots === 0 && (
@@ -1602,21 +1680,197 @@ export default function MyTimetable() {
           </motion.div>
         </motion.div>
       )}
-      <style>{`
-        .card {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+<style>{`
+  .card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 
-        .badge {
-          transition: all 0.2s ease;
-        }
+  .badge {
+    transition: all 0.2s ease;
+  }
 
-        @media (max-width: 768px) {
-          .container-fluid {
-            padding: 1rem;
-          }
-        }
-      `}</style>
+  @media (max-width: 768px) {
+    .container-fluid {
+      padding: 1rem;
+    }
+  }
+
+  /* =========================================
+     MOBILE + TABLET TIMETABLE NAVIGATION
+     ========================================= */
+
+  @media (max-width: 991px) {
+
+    .timetable-week-navigation {
+      display: grid !important;
+      grid-template-columns: repeat(6, 1fr) !important;
+      gap: 10px !important;
+      align-items: center !important;
+    }
+
+    .timetable-week-controls {
+      display: contents !important;
+    }
+
+    /* ===============================
+       PREVIOUS ARROW
+       =============================== */
+
+    .timetable-week-controls button:nth-child(1) {
+      grid-column: 1 / 2 !important;
+      grid-row: 1 !important;
+
+      width: 100% !important;
+      height: 44px !important;
+      padding: 0 !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    /* ===============================
+       CURRENT WEEK
+       =============================== */
+
+    .timetable-week-controls button:nth-child(2) {
+      grid-column: 2 / 6 !important;
+      grid-row: 1 !important;
+
+      width: 100% !important;
+      height: 44px !important;
+
+      padding: 0.5rem 0.75rem !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+
+      white-space: nowrap !important;
+    }
+
+    /* ===============================
+       NEXT ARROW
+       =============================== */
+
+    .timetable-week-controls button:nth-child(3) {
+      grid-column: 6 / 7 !important;
+      grid-row: 1 !important;
+
+      width: 100% !important;
+      height: 44px !important;
+      padding: 0 !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+
+    /* ===============================
+       DATE BOX
+       =============================== */
+
+    .timetable-week-date {
+      grid-column: 1 / 4 !important;
+      grid-row: 2 !important;
+
+      min-width: 0 !important;
+      width: 100% !important;
+      height: 44px !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      box-sizing: border-box !important;
+      padding: 0 6px !important;
+
+      border: 1px solid #dee2e6 !important;
+      border-radius: 8px !important;
+      background: #fff !important;
+
+      font-size: 0.82rem !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+    }
+
+    /* ===============================
+       TOTAL SLOTS BOX
+       =============================== */
+
+    .timetable-slot-summary {
+      grid-column: 4 / 7 !important;
+      grid-row: 2 !important;
+
+      min-width: 0 !important;
+      width: 100% !important;
+      height: 44px !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      box-sizing: border-box !important;
+      padding: 0 6px !important;
+
+      border: 1px solid #dee2e6 !important;
+      border-radius: 8px !important;
+      background: #fff !important;
+
+      gap: 5px !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+    }
+
+    .timetable-slot-summary .small {
+      font-size: 0.9rem !important;
+    }
+  }
+
+  /* =========================================
+     SMALL MOBILE
+     ========================================= */
+
+  @media (max-width: 575px) {
+
+    .timetable-week-navigation {
+      gap: 8px !important;
+    }
+
+    /* Smaller arrows */
+    .timetable-week-controls button:nth-child(1),
+    .timetable-week-controls button:nth-child(3) {
+      height: 42px !important;
+      font-size: 1rem !important;
+    }
+
+    /* Large Current Week button */
+    .timetable-week-controls button:nth-child(2) {
+      height: 42px !important;
+      font-size: 0.82rem !important;
+      padding: 0.5rem !important;
+    }
+
+    /* Date box */
+    .timetable-week-date {
+      height: 42px !important;
+      font-size: 0.74rem !important;
+      padding: 0 4px !important;
+    }
+
+    /* Total slots box */
+    .timetable-slot-summary {
+      height: 42px !important;
+      padding: 0 4px !important;
+      gap: 5px !important;
+    }
+
+    .timetable-slot-summary .small {
+      font-size: 0.78rem !important;
+    }
+  }
+`}</style>
     </motion.div>
   );
 }

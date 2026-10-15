@@ -3,6 +3,7 @@ import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ApiError from "../../../components/ApiError";
+import Breadcrumb from "../../../components/Breadcrumb";
 import { logger } from "../../../utils/logger";
 import {
   FaUniversity,
@@ -590,6 +591,26 @@ export default function EditCollegeProfile() {
 
   return (
     <div className="edit-college-profile-container">
+{/* ================= BREADCRUMB ================= */}
+    <div
+      style={{
+        width: "100%",
+        margin: "10px auto",
+        paddingTop: "5px",
+        height: "60px",
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard/college-admin" },
+            { label: "College Profile", path: "/college/profile" },
+            { label: "Edit Institute Profile" },
+          ]}
+        />
+      </div>
+    </div>
+
       {/* HEADER */}
       <header className="glass-header mb-4">
         <div className="header-content">
@@ -1935,6 +1956,911 @@ export default function EditCollegeProfile() {
           border-color: #dc3545;
           transform: scale(1.1);
         }
+/* =========================================================
+   EDIT COLLEGE PROFILE
+   RESPONSIVE + DESKTOP UI IMPROVEMENTS
+   Banner/header intentionally kept unchanged
+   ========================================================= */
+
+
+/* =========================================================
+   LARGE DESKTOP
+   ========================================================= */
+
+@media (min-width: 1200px) {
+
+  .edit-college-profile-container {
+    padding: 1.5rem 2rem 3rem;
+  }
+
+  .form-wrapper {
+    padding: 0 0.75rem;
+  }
+
+  .form-wrapper .col-lg-8 {
+    max-width: 850px;
+  }
+
+  .glass-card {
+    padding: 2rem 2.25rem;
+    border-radius: 22px;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-label {
+    font-size: 0.96rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .form-control {
+    min-height: 52px;
+    padding: 0.8rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  textarea.form-control {
+    min-height: 125px;
+  }
+
+  .form-hint {
+    font-size: 0.8rem;
+  }
+
+  .form-actions {
+    margin-top: 2rem;
+  }
+}
+
+
+/* =========================================================
+   DESKTOP
+   ========================================================= */
+
+@media (min-width: 769px) {
+
+  /* Keep the form visually centered and controlled */
+  .form-wrapper {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .form-wrapper .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .form-wrapper .col-lg-8 {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .glass-card {
+    padding: 2rem;
+    border-radius: 20px;
+  }
+
+  /* Better field spacing */
+  .form-group {
+    margin-bottom: 1.45rem;
+  }
+
+  .form-label {
+    margin-bottom: 0.55rem;
+    font-size: 0.95rem;
+  }
+
+  .form-control {
+    min-height: 50px;
+    padding: 0.75rem 1rem;
+  }
+
+  textarea.form-control {
+    min-height: 120px;
+  }
+
+
+  /* =====================================================
+     OFFICIAL EMAIL - DESKTOP
+     Keep button beside the input, but reserve space for it.
+     ===================================================== */
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper {
+    position: relative;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper .form-control {
+    padding-right: 220px !important;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper > button {
+    position: absolute !important;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%) !important;
+
+    width: 205px;
+    min-height: 40px;
+
+    margin: 0 !important;
+    padding: 0.45rem 0.75rem;
+
+    border-radius: 22px;
+    z-index: 3;
+
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  /*
+     Move the shield slightly left so it doesn't sit underneath
+     the Change Official Email button.
+  */
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper .validation-icon {
+    right: 220px;
+    z-index: 4;
+  }
+
+
+  /* Better action buttons */
+  .form-actions {
+    align-items: center;
+  }
+
+  .form-actions .btn {
+    min-height: 46px;
+  }
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .edit-college-profile-container {
+    padding: 1.25rem;
+  }
+
+  .form-wrapper {
+    padding: 0 0.5rem;
+  }
+
+  .glass-card {
+    padding: 1.5rem;
+    border-radius: 18px;
+  }
+
+  .form-group {
+    margin-bottom: 1.3rem;
+  }
+
+  .form-control {
+    min-height: 48px;
+  }
+
+  .form-label {
+    font-size: 0.92rem;
+  }
+
+
+  /* Email */
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper .form-control {
+    padding-right: 185px !important;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper > button {
+    position: absolute !important;
+    top: 50%;
+    right: 7px;
+    transform: translateY(-50%) !important;
+
+    width: 170px;
+    min-height: 38px;
+
+    padding: 0.4rem 0.6rem;
+    font-size: 0.78rem;
+    line-height: 1.2;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper .validation-icon {
+    right: 180px;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .edit-college-profile-container {
+    padding: 0.75rem;
+  }
+
+  /*
+     Don't touch the banner design.
+     Only adjust its spacing around the page.
+  */
+  .glass-header {
+    margin-bottom: 1rem !important;
+  }
+
+  .form-wrapper {
+    padding: 0;
+  }
+
+  .form-wrapper .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .form-wrapper .col-lg-8 {
+    width: 100%;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+
+  /* Form card */
+  .glass-card {
+    width: 100%;
+    padding: 1.15rem;
+    border-radius: 16px;
+    box-shadow: 0 7px 25px rgba(0, 0, 0, 0.07);
+  }
+
+
+  /* Fields */
+  .form-group {
+    margin-bottom: 1.2rem;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+    line-height: 1.35;
+    margin-bottom: 0.45rem;
+  }
+
+  .form-control {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.92rem;
+    border-radius: 10px;
+  }
+
+  textarea.form-control {
+    min-height: 110px;
+  }
+
+  .form-hint {
+    font-size: 0.76rem;
+    line-height: 1.4;
+  }
+
+
+  /* =====================================================
+     EMAIL - MOBILE
+     Stack the button BELOW the input.
+     ===================================================== */
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper .form-control {
+    padding-right: 2.5rem !important;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper > button {
+    position: static !important;
+    transform: none !important;
+
+    width: 100%;
+    min-height: 44px;
+
+    margin: 0 !important;
+
+    border-radius: 10px;
+    padding: 0.65rem 0.75rem;
+
+    font-size: 0.88rem;
+    line-height: 1.25;
+
+    z-index: auto !important;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper .validation-icon {
+    top: 23px;
+    right: 10px;
+    transform: translateY(-50%);
+    z-index: 2;
+  }
+
+
+  /* Address */
+  #address {
+    min-height: 110px;
+    resize: vertical;
+  }
+
+
+  /* Logo */
+  .logo-upload-area {
+    padding: 1rem;
+  }
+
+  .logo-upload-placeholder {
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+  }
+
+  .logo-upload-placeholder span {
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
+  .logo-preview-container {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+
+
+  /* Buttons */
+  .form-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    max-width: none;
+    min-height: 46px;
+  }
+
+
+  /* Email modal */
+  .email-modal-overlay {
+    padding: 0.75rem;
+  }
+
+  .email-modal-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+
+  .email-modal-header {
+    padding: 1rem;
+  }
+
+  .email-modal-body {
+    padding: 1rem;
+  }
+
+  .email-modal-title {
+    font-size: 1rem;
+  }
+
+  .email-modal-body .form-actions {
+    flex-direction: column;
+  }
+
+  .email-modal-body .form-actions .btn {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .edit-college-profile-container {
+    padding: 0.5rem;
+  }
+
+  .glass-card {
+    padding: 1rem;
+    border-radius: 14px;
+  }
+
+  .form-label {
+    font-size: 0.86rem;
+  }
+
+  .form-control {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  textarea.form-control {
+    min-height: 105px;
+  }
+
+  .form-group {
+    margin-bottom: 1.1rem;
+  }
+
+  .form-actions .btn {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  .email-modal-header {
+    padding: 0.9rem;
+  }
+
+  .email-modal-body {
+    padding: 0.9rem;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 360px) {
+
+  .edit-college-profile-container {
+    padding: 0.35rem;
+  }
+
+  .glass-card {
+    padding: 0.85rem;
+  }
+
+  .form-label {
+    font-size: 0.82rem;
+  }
+
+  .form-control {
+    font-size: 0.86rem;
+  }
+
+  .form-hint {
+    font-size: 0.7rem;
+  }
+}
+        /* =========================================================
+   MOBILE & TABLET RESPONSIVE IMPROVEMENTS
+   Desktop layout remains unchanged
+   ========================================================= */
+
+/* ---------- TABLET ---------- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .edit-college-profile-container {
+    padding: 1.25rem;
+  }
+
+  .form-wrapper {
+    padding: 0 0.5rem;
+  }
+
+  .glass-header {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .glass-card {
+    padding: 1.75rem;
+  }
+
+  .header-title {
+    font-size: 1.35rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.35rem;
+  }
+
+  .form-control {
+    min-height: 46px;
+  }
+
+  .email-modal-content {
+    max-width: 90vw;
+  }
+}
+
+
+/* ---------- MOBILE ---------- */
+@media (max-width: 768px) {
+
+  .edit-college-profile-container {
+    padding: 0.75rem;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .glass-header {
+    padding: 1rem;
+    margin-bottom: 1rem !important;
+    border-radius: 14px;
+  }
+
+  .header-content {
+    gap: 0.75rem;
+  }
+
+  .header-left {
+    width: 100%;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .btn-back {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+  }
+
+  .header-title {
+    font-size: 1.2rem;
+    line-height: 1.3;
+    gap: 0.5rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.82rem;
+    line-height: 1.4;
+    margin-top: 0.2rem;
+  }
+
+  .unsaved-badge {
+    width: 100%;
+    justify-content: center;
+    font-size: 0.78rem;
+    padding: 0.45rem 0.75rem;
+  }
+
+
+  /* Form wrapper */
+  .form-wrapper {
+    padding: 0;
+  }
+
+  .form-wrapper .row {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .form-wrapper .col-lg-8 {
+    padding-left: 0;
+    padding-right: 0;
+    width: 100%;
+  }
+
+
+  /* Main card */
+  .glass-card {
+    width: 100%;
+    padding: 1.15rem;
+    border-radius: 16px;
+  }
+
+
+  /* Form fields */
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+    margin-bottom: 0.45rem;
+    line-height: 1.35;
+  }
+
+  .form-control {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.92rem;
+    border-radius: 10px;
+  }
+
+  textarea.form-control {
+    min-height: 110px;
+  }
+
+  .form-hint {
+    font-size: 0.76rem;
+    line-height: 1.4;
+  }
+
+  .invalid-feedback {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+
+  /* Validation icon */
+  .validation-icon {
+    right: 10px;
+    font-size: 1rem;
+  }
+
+
+  /* =====================================================
+     OFFICIAL EMAIL
+     Prevent Change Official Email button from overlapping
+     the input on mobile.
+     ===================================================== */
+
+  .edit-college-profile-container
+  .form-group:has(#email) .input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email) .input-wrapper .form-control {
+    padding-right: 2.5rem;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper > button {
+    position: static !important;
+    transform: none !important;
+    width: 100%;
+    margin: 0 !important;
+    min-height: 44px;
+    border-radius: 10px;
+    z-index: auto !important;
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email)
+  .input-wrapper .validation-icon {
+    top: 23px;
+    transform: translateY(-50%);
+  }
+
+  .edit-college-profile-container
+  .form-group:has(#email) .form-hint {
+    line-height: 1.45;
+  }
+
+
+  /* Address */
+  #address {
+    min-height: 115px;
+    resize: vertical;
+  }
+
+
+  /* Logo upload */
+  .logo-upload-area {
+    padding: 1rem;
+  }
+
+  .logo-upload-placeholder {
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+  }
+
+  .logo-upload-placeholder span {
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+
+  .logo-upload-hint {
+    font-size: 0.72rem !important;
+  }
+
+  .logo-preview-container {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+
+
+  /* Buttons */
+  .form-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    padding-top: 1.25rem;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    max-width: none;
+    min-height: 46px;
+  }
+
+
+  /* Email modal */
+  .email-modal-overlay {
+    padding: 0.75rem;
+  }
+
+  .email-modal-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+
+  .email-modal-header {
+    padding: 1rem;
+  }
+
+  .email-modal-title {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .email-modal-body {
+    padding: 1rem;
+  }
+
+  .email-modal-intro {
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .email-modal-body .form-actions {
+    flex-direction: column;
+  }
+
+  .email-modal-body .form-actions .btn {
+    width: 100%;
+    max-width: none;
+  }
+
+  .otp-input {
+    font-size: 1.25rem;
+    letter-spacing: 0.35rem;
+  }
+}
+
+
+/* ---------- SMALL PHONES ---------- */
+@media (max-width: 480px) {
+
+  .edit-college-profile-container {
+    padding: 0.5rem;
+  }
+
+  .glass-header {
+    padding: 0.85rem;
+    border-radius: 12px;
+  }
+
+  .btn-back {
+    width: 38px;
+    height: 38px;
+  }
+
+  .header-title {
+    font-size: 1.05rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.76rem;
+  }
+
+  .glass-card {
+    padding: 1rem;
+    border-radius: 14px;
+  }
+
+  .form-label {
+    font-size: 0.86rem;
+  }
+
+  .form-control {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  textarea.form-control {
+    min-height: 105px;
+  }
+
+  .form-group {
+    margin-bottom: 1.15rem;
+  }
+
+  .form-actions {
+    margin-top: 1.75rem;
+  }
+
+  .form-actions .btn {
+    min-height: 44px;
+    font-size: 0.9rem;
+  }
+
+  .email-modal-title {
+    font-size: 0.95rem;
+  }
+
+  .email-modal-body {
+    padding: 0.9rem;
+  }
+
+  .email-modal-header {
+    padding: 0.9rem;
+  }
+}
+
+
+/* ---------- VERY SMALL PHONES ---------- */
+@media (max-width: 360px) {
+
+  .edit-college-profile-container {
+    padding: 0.35rem;
+  }
+
+  .glass-card {
+    padding: 0.85rem;
+  }
+
+  .header-title {
+    font-size: 0.98rem;
+  }
+
+  .header-subtitle {
+    font-size: 0.72rem;
+  }
+
+  .form-control {
+    font-size: 0.86rem;
+  }
+
+  .form-label {
+    font-size: 0.82rem;
+  }
+
+  .form-hint {
+    font-size: 0.7rem;
+  }
+}
       `}</style>
     </div>
   );

@@ -1,617 +1,1247 @@
 import { useContext, useEffect, useState } from "react";
+
 import { Navigate, useNavigate } from "react-router-dom";
+
 import { AuthContext } from "../../../auth/AuthContext";
+
 import api from "../../../api/axios";
+
 import Loading from "../../../components/Loading";
+import StandardListView from "../../../components/StandardListView/StandardListView";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Pagination from "../../../components/Pagination";
+import PageHeader from "../../../components/PageHeader";
 import useRole from "../../../hooks/useRole";
+
 import ApiError from "../../../components/ApiError";
+
 import { toast } from "react-toastify";
+
 import { logger } from "../../../utils/logger";
 
+
+
 import {
+
   FaBook,
+
   FaTrash,
+
   FaEdit,
+
   FaLayerGroup,
+
   FaAward,
+
   FaChalkboardTeacher,
+
   FaSearch,
+
   FaFilter,
+
   FaPlus,
+
   FaArrowLeft,
+
   FaCheckCircle,
+
   FaExclamationTriangle,
+
   FaClock,
+
   FaUsers,
+
   FaGraduationCap,
+
   FaChevronDown,
+
   FaChevronUp,
+
   FaEye
+
 } from "react-icons/fa";
 
+
+
+const AUTH_ERROR_CODES = new Set([
+
+  "TOKEN_MISSING",
+
+  "TOKEN_EXPIRED",
+
+  "INVALID_TOKEN",
+
+  "TOKEN_BLACKLISTED",
+
+  "TOKEN_INVALIDATED",
+
+  "USER_NOT_FOUND",
+
+  "ACCOUNT_DEACTIVATED",
+
+  "UNAUTHORIZED",
+
+]);
+
+
+
 export default function SubjectList() {
+
   const { user } = useContext(AuthContext);
+
   const navigate = useNavigate();
+
   const { canCreate, canEdit, canDelete } = useRole();
 
-  const AUTH_ERROR_CODES = new Set([
-    "TOKEN_MISSING",
-    "TOKEN_EXPIRED",
-    "INVALID_TOKEN",
-    "TOKEN_BLACKLISTED",
-    "TOKEN_INVALIDATED",
-    "USER_NOT_FOUND",
-    "ACCOUNT_DEACTIVATED",
-    "UNAUTHORIZED",
-  ]);
+
 
   const [departments, setDepartments] = useState([]);
+
   const [courses, setCourses] = useState([]);
+
   const [subjects, setSubjects] = useState([]);
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [selectedCourse, setSelectedCourse] = useState("");
+
+  const savedSubjectFilters = JSON.parse(
+    sessionStorage.getItem("subjectListFilters") || "null"
+  );
+
+  const [selectedDepartment, setSelectedDepartment] = useState(
+    savedSubjectFilters?.department || ""
+  );
+
+  const [selectedCourse, setSelectedCourse] = useState(
+    savedSubjectFilters?.course || ""
+  );
+
+  const [selectedSemester, setSelectedSemester] = useState(
+    savedSubjectFilters?.semester || ""
+  );
+
   const [loading, setLoading] = useState(true);
+
   const [loadingSubjects, setLoadingSubjects] = useState(false);
+
   const [error, setError] = useState(null);
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const [subjectToDelete, setSubjectToDelete] = useState(null);
-  const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
+
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
-  /* ================= SECURITY ================= */
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
-    return <Navigate to="/dashboard" replace />;
 
-  /* ================= FETCH DEPARTMENTS ================= */
   useEffect(() => {
+
+    if (!user || (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")) {
+
+      return;
+
+    }
+
+
+
     const fetchDepartments = async () => {
+
       try {
+
         const res = await api.get("/departments");
+
         const departmentsData = Array.isArray(res.data) ? res.data :
+
                                 Array.isArray(res.data.departments) ? res.data.departments :
+
                                 Array.isArray(res.data.data) ? res.data.data : [];
+
         setDepartments(departmentsData);
+
       } catch (err) {
+
         const statusCode = err.response?.status;
+
         const errorCode = err.response?.data?.code;
+
         const backendMessage = err.response?.data?.message;
+
         const errorMessage = backendMessage || "Failed to load departments.";
+
+
 
         logger.error("Error fetching departments:", statusCode, errorCode);
 
+
+
         setError({
+
           message: errorMessage,
+
           statusCode,
+
           errorCode,
+
         });
 
+
+
         const isAuthError =
+
           statusCode === 401 ||
+
           (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
+
+
         if (!isAuthError) {
+
           toast.error(errorMessage);
+
         }
+
       } finally {
+
         setLoading(false);
+
       }
+
     };
 
+
+
     fetchDepartments();
-  }, []);
+
+  }, [user]);
+
+
+
+  if (!user) return <Navigate to="/login" />;
+
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "PRINCIPAL")
+
+    return <Navigate to="/dashboard" replace />;
+
+
 
   /* ================= FETCH COURSES BY DEPARTMENT ================= */
-  const fetchCourses = async (deptId) => {
+
+  const fetchCourses = async (deptId, preserveSelection = false) => {
+
     try {
+
       const res = await api.get(`/courses/department/${deptId}`);
+
       const coursesData = Array.isArray(res.data) ? res.data :
+
                           Array.isArray(res.data.courses) ? res.data.courses :
+
                           Array.isArray(res.data.data) ? res.data.data : [];
+
       setCourses(coursesData);
-      setSelectedCourse("");
-      setSubjects([]);
+
+
+
+      if (!preserveSelection) {
+
+
+        setSelectedCourse("");
+
+
+        setSelectedSemester("");
+
+
+        setSubjects([]);
+
+
+      }
+
+
+
+      return coursesData;
+
     } catch (err) {
+
       const statusCode = err.response?.status;
+
       const errorCode = err.response?.data?.code;
+
       const backendMessage = err.response?.data?.message;
+
       const errorMessage = backendMessage || "Failed to load courses.";
+
+
 
       logger.error("Error fetching courses:", statusCode, errorCode);
 
+
+
       setError({
+
         message: errorMessage,
+
         statusCode,
+
         errorCode,
+
       });
 
+
+
       const isAuthError =
+
         statusCode === 401 ||
+
         (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
+
+
       if (!isAuthError) {
+
         toast.error(errorMessage);
+
       }
+
       setCourses([]);
+
+      setSelectedSemester("");
+
     }
+
   };
 
+
+
   /* ================= FETCH SUBJECTS BY COURSE ================= */
-  const fetchSubjects = async (courseId) => {
+
+  const fetchSubjects = async (courseId, semester = "") => {
+
     setLoadingSubjects(true);
+
     setError(null);
+
     try {
-      const res = await api.get(`/subjects/course/${courseId}`);
+
+      const res = await api.get(`/subjects/course/${courseId}`, {
+
+        params: semester ? { semester } : undefined,
+
+      });
+
       const subjectsData = Array.isArray(res.data) ? res.data :
+
                            Array.isArray(res.data.subjects) ? res.data.subjects :
+
                            Array.isArray(res.data.data) ? res.data.data : [];
+
       setSubjects(subjectsData);
+
     } catch (err) {
+
       const statusCode = err.response?.status;
+
       const errorCode = err.response?.data?.code;
+
       const backendMessage = err.response?.data?.message;
+
       const errorMessage = backendMessage || "Failed to load subjects.";
+
+
 
       logger.error("Error fetching subjects:", statusCode, errorCode);
 
+
+
       setError({
+
         message: errorMessage,
+
         statusCode,
+
         errorCode,
+
       });
 
+
+
       const isAuthError =
+
         statusCode === 401 ||
+
         (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
+
+
       if (!isAuthError) {
+
         toast.error(errorMessage);
+
       }
+
       setSubjects([]);
+
     } finally {
+
       setLoadingSubjects(false);
+
     }
+
   };
 
-  /* ================= SORTING ================= */
-  const handleSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
 
-    const sorted = [...subjects].sort((a, b) => {
-      if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
-      if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
-      return 0;
-    });
-    setSubjects(sorted);
-  };
+
+  /* ================= RESTORE SUBJECT LIST FILTERS ================= */
+
+  useEffect(() => {
+    const savedFilters = JSON.parse(
+      sessionStorage.getItem("subjectListFilters") || "null"
+    );
+
+    if (!savedFilters?.department || !savedFilters?.course) return;
+
+    const restoreFilters = async () => {
+      try {
+        setSelectedDepartment(savedFilters.department);
+
+        const coursesData = await fetchCourses(
+          savedFilters.department,
+          true
+        );
+
+        const savedCourseExists = coursesData?.some(
+          (course) => course._id === savedFilters.course
+        );
+
+        if (!savedCourseExists) {
+          sessionStorage.removeItem("subjectListFilters");
+          setSelectedDepartment("");
+          setSelectedCourse("");
+          setSelectedSemester("");
+          setSubjects([]);
+          return;
+        }
+
+        setSelectedCourse(savedFilters.course);
+        setSelectedSemester(savedFilters.semester || "");
+
+        await fetchSubjects(
+          savedFilters.course,
+          savedFilters.semester || ""
+        );
+      } catch (err) {
+        console.error("Error restoring subject list filters:", err);
+      }
+    };
+
+    restoreFilters();
+  }, [user]);
+
+  useEffect(() => {
+  setPage(1);
+}, [
+  searchTerm,
+  selectedDepartment,
+  selectedCourse,
+  selectedSemester,
+]);
+
 
   /* ================= FILTERING ================= */
+
   const getFilteredSubjects = () => {
+
     return subjects.filter(subject => 
+
       subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+
       subject.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+
       (subject.teacher_id?.name && subject.teacher_id.name.toLowerCase().includes(searchTerm.toLowerCase()))
+
     );
+
   };
+
+
 
   /* ================= DELETE SUBJECT ================= */
+
   const handleDeleteClick = (subject) => {
+
     setSubjectToDelete(subject);
+
     setShowDeleteModal(true);
+
   };
+
+
 
   const confirmDelete = async () => {
+
     if (!subjectToDelete) return;
 
+
+
     try {
+
       await api.delete(`/subjects/${subjectToDelete._id}`);
+
       setSubjects(subjects.filter(s => s._id !== subjectToDelete._id));
+
       setShowDeleteModal(false);
+
       setSubjectToDelete(null);
+
       setError(null);
-    } catch (err) {
+
+    } catch {
+
       setError("Failed to delete subject. Please try again.");
+
     }
+
   };
-
-  /* ================= LOADING SKELETON ================= */
-  const renderSkeleton = () => (
-    <div className="skeleton-table">
-      {[...Array(5)].map((_, i) => (
-        <div key={i} className="skeleton-row">
-          <div className="skeleton-cell skeleton-text long"></div>
-          <div className="skeleton-cell skeleton-text short"></div>
-          <div className="skeleton-cell skeleton-text short"></div>
-          <div className="skeleton-cell skeleton-text short"></div>
-          <div className="skeleton-cell skeleton-text medium"></div>
-          <div className="skeleton-cell skeleton-badge"></div>
-          <div className="skeleton-cell skeleton-actions">
-            <div className="skeleton-action"></div>
-            <div className="skeleton-action"></div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-
   /* ================= ERROR STATE ================= */
+
   if (error && !loading) {
+
     return (
+
       <ApiError
+
         title="Subject Loading Error"
+
         message={error.message}
+
         statusCode={error.statusCode}
+
         errorCode={error.errorCode}
+
         onRetry={() => {
+
           setError(null);
+
           if (selectedDepartment) fetchCourses(selectedDepartment);
-          if (selectedCourse) fetchSubjects(selectedCourse);
+
+          if (selectedCourse) fetchSubjects(selectedCourse, selectedSemester);
+
         }}
+
         onGoBack={() => navigate(-1)}
+
       />
+
     );
+
   }
+
+
 
   /* ================= LOADING STATE ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading departments..." />;
-  }
+
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Subject List..."
+        />
+      </div>
+    </div>
+  );
+}
+
+
 
   const filteredSubjects = getFilteredSubjects();
-  const selectedDeptName = Array.isArray(departments) ? departments.find(d => d._id === selectedDepartment)?.name || "Select Department" : "Select Department";
-  const selectedCourseName = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse)?.name || "Select Course" : "Select Course";
 
-  return (
-    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)" }}>
-      {/* BREADCRUMBS */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Subject Management" }
-        ]}
-      />
+  const totalPages = Math.ceil(
+    filteredSubjects.length / ITEMS_PER_PAGE
+  );
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon">
-            <FaBook />
+  const paginatedSubjects = filteredSubjects.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE
+  );
+
+  const columns = [
+    {
+      key: "name",
+      label: "Subject Name",
+      sortable: true,
+      width: "30%",
+      render: (subject) => (
+        <div className="subject-name">
+          <div className="subject-icon">
+            <FaGraduationCap />
           </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Subject Management</h1>
-            <p className="erp-page-subtitle">
-              Manage academic subjects by department and course
-            </p>
-          </div>
-        </div>
-        <div className="erp-header-actions">
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => navigate("/dashboard")}
-          >
-            <FaArrowLeft className="erp-btn-icon" />
-            <span>Back to Dashboard</span>
-          </button>
-        </div>
-      </div>
 
-      {/* FILTERS CARD */}
-      <div className="erp-card animate-fade-in">
-        <div className="erp-card-header">
-          <h3>
-            <FaFilter className="erp-card-icon" />
-            Filter Subjects
-          </h3>
-        </div>
-        <div className="erp-card-body">
-          <div className="filter-grid">
-            <div className="filter-group">
-              <label className="filter-label">
-                <FaLayerGroup className="filter-icon" />
-                <span>Department</span>
-              </label>
-              <div className="filter-select-wrapper">
-                <select
-                  className="filter-select"
-                  value={selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedDepartment(e.target.value);
-                    setSelectedCourse("");
-                    setSubjects([]);
-                    if (e.target.value) fetchCourses(e.target.value);
-                  }}
-                >
-                  <option value="">-- Select Department --</option>
-                  {departments.map((dept) => (
-                    <option key={dept._id} value={dept._id}>
-                      {dept.name} {dept.code && `(${dept.code})`}
-                    </option>
-                  ))}
-                </select>
-                <div className="filter-select-arrow">
-                  <FaChevronDown />
-                </div>
-              </div>
+          <div className="subject-details">
+            <div className="subject-title">
+              {subject.name}
             </div>
 
-            <div className="filter-group">
-              <label className="filter-label">
-                <FaAward className="filter-icon" />
-                <span>Course</span>
-              </label>
-              <div className="filter-select-wrapper">
-                <select
-                  className="filter-select"
-                  value={selectedCourse}
-                  disabled={!selectedDepartment}
-                  onChange={(e) => {
-                    setSelectedCourse(e.target.value);
-                    if (e.target.value) fetchSubjects(e.target.value);
-                  }}
-                >
-                  <option value="">-- Select Course --</option>
-                  {courses.map((course) => (
-                    <option key={course._id} value={course._id}>
-                      {course.name} ({course.code})
-                    </option>
-                  ))}
-                </select>
-                <div className="filter-select-arrow">
-                  <FaChevronDown />
-                </div>
-              </div>
-            </div>
+            <div className="subject-meta">
+              <div className="subject-main-badges">
+                {subject.course_id?.name && (
+                  <>
+                    <span className="course-badge">
+                      {subject.course_id.name}
+                    </span>
 
-            {selectedCourse && (
-              <div className="filter-actions">
-                {canCreate('subjects') && (
-                  <button
-                    className="add-subject-btn"
-                    onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
-                  >
-                    <FaPlus className="erp-btn-icon" />
-                    <span>Add Subject</span>
-                  </button>
+                    <span className="dept-badge">
+                      {selectedDeptName}
+                    </span>
+                  </>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* SUBJECTS SECTION */}
-      {selectedCourse && (
-        <div className="erp-card animate-fade-in">
-          <div className="erp-card-header">
-            <div className="header-left">
-              <h3>
-                <FaBook className="erp-card-icon" />
-                {selectedCourseName} Subjects
-              </h3>
-              <span className="subject-count">
-                {filteredSubjects.length} {filteredSubjects.length === 1 ? "Subject" : "Subjects"}
-              </span>
-            </div>
-            <div className="header-right">
-              <div className="search-box">
-                <FaSearch className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search subjects..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="erp-card-body">
-            {/* TABLE */}
-            <div className="erp-table-responsive table-container">
-              {loadingSubjects ? (
-                renderSkeleton()
-              ) : filteredSubjects.length === 0 ? (
-                <div className="empty-state">
-                  <div className="empty-icon">
-                    <FaBook />
-                  </div>
-                  <h3>No Subjects Found</h3>
-                  <p className="empty-description">
-                    {searchTerm 
-                      ? "No subjects match your search criteria." 
-                      : `No subjects found for ${selectedCourseName}.`}
-                  </p>
-                   {!searchTerm && canCreate('subjects') && (
-                     <button
-                       className="add-subject-btn large"
-                       onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
-                     >
-                       <FaPlus className="erp-btn-icon" />
-                       Add Your First Subject
-                     </button>
-                   )}
+              {subject.subjectType && (
+                <div className="subject-type-row">
+                  <span className="subject-type-badge">
+                    {subject.subjectType}
+                  </span>
                 </div>
-              ) : (
-                <table className="erp-table">
-                  <thead>
-                    <tr>
-                      <th onClick={() => handleSort('name')}>
-                        Subject Name {sortConfig.key === 'name' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-                      </th>
-                      <th onClick={() => handleSort('code')}>
-                        Code {sortConfig.key === 'code' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-                      </th>
-                      <th onClick={() => handleSort('semester')}>
-                        Semester {sortConfig.key === 'semester' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-                      </th>
-                      <th onClick={() => handleSort('credits')}>
-                        Credits {sortConfig.key === 'credits' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-                      </th>
-                      <th>Teacher</th>
-                      <th onClick={() => handleSort('status')}>
-                        Status {sortConfig.key === 'status' && (sortConfig.direction === 'asc' ? <FaChevronUp /> : <FaChevronDown />)}
-                      </th>
-                      <th className="text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredSubjects.map((subject) => (
-                      <tr key={subject._id} className="table-row">
-                        <td>
-                          <div className="subject-name">
-                            <div className="subject-icon">
-                              <FaGraduationCap />
-                            </div>
-                            <div className="subject-details">
-                              <div className="subject-title">{subject.name}</div>
-                              <div className="subject-meta">
-                                {subject.course_id?.name && (
-                                  <>
-                                    <span className="course-badge">{subject.course_id.name}</span>
-                                    <span className="dept-badge">{selectedDeptName}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span className="subject-code-badge">{subject.code}</span>
-                        </td>
-                        <td>
-                          <span className="semester-badge">
-                            <FaClock className="semester-icon" />
-                            Sem {subject.semester}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="credits-badge">
-                            <FaAward className="credits-icon" />
-                            {subject.credits}
-                          </span>
-                        </td>
-                        <td>
-                          {subject.teacher_id?.name ? (
-                            <div className="teacher-info">
-                              <div className="teacher-avatar">
-                                {subject.teacher_id.name.charAt(0).toUpperCase()}
-                              </div>
-                              <div className="teacher-details">
-                                <div className="teacher-name">{subject.teacher_id.name}</div>
-                                <div className="teacher-role">{subject.teacher_id.designation || "Faculty"}</div>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="not-assigned">Not Assigned</span>
-                          )}
-                        </td>
-                        <td>
-                          <span className={`status-badge status-${subject.status?.toLowerCase() || 'inactive'}`}>
-                            {subject.status || "INACTIVE"}
-                          </span>
-                        </td>
-                        <td className="action-cell">
-                          <div className="action-buttons">
-                            <button 
-                              className="action-btn view-btn"
-                              title="View Details"
-                              onClick={() => navigate(`/subjects/view/${subject._id}`)}
-                            >
-                              <FaEye />
-                            </button>
-                            {canEdit('subjects') && (
-                              <button 
-                                className="action-btn edit-btn"
-                                title="Edit Subject"
-                                onClick={() => navigate(`/subjects/edit/${subject._id}`)}
-                              >
-                                <FaEdit />
-                              </button>
-                            )}
-                            {canDelete('subjects') && (
-                              <button 
-                                className="action-btn delete-btn"
-                                title="Delete Subject"
-                                onClick={() => handleDeleteClick(subject)}
-                              >
-                                <FaTrash />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
               )}
             </div>
           </div>
         </div>
-      )}
+      ),
+    },
 
-      {/* DELETE MODAL */}
-      {showDeleteModal && subjectToDelete && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Delete Subject</h3>
-              <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
-                <FaTimes />
-              </button>
+    {
+      key: "code",
+      label: "Code",
+      sortable: true,
+      width: "13%",
+      render: (subject) => (
+        <span className="subject-code-badge">
+          {subject.code}
+        </span>
+      ),
+    },
+
+    {
+      key: "semester",
+      label: "Semester",
+      sortable: true,
+      width: "10%",
+      render: (subject) => (
+        <span className="semester-badge">
+          <FaClock className="semester-icon" />
+          Sem {subject.semester}
+        </span>
+      ),
+    },
+
+    {
+      key: "credits",
+      label: "Credits",
+      sortable: true,
+      width: "8%",
+      render: (subject) => (
+        <span className="credits-badge">
+          <FaAward className="credits-icon" />
+          {subject.credits}
+        </span>
+      ),
+    },
+
+    {
+      key: "teacher",
+      label: "Teacher",
+      sortable: false,
+      width: "16%",
+      render: (subject) => (
+        subject.teacher_id?.name ? (
+          <div className="teacher-info">
+            <div className="teacher-avatar">
+              {subject.teacher_id.name.charAt(0).toUpperCase()}
             </div>
-            <div className="modal-body">
-              <div className="modal-warning">
-                <FaExclamationTriangle className="warning-icon" />
-                <div className="warning-text">
-                  <h4>Are you sure you want to delete this subject?</h4>
-                  <p>This action cannot be undone. All related data will be permanently deleted.</p>
-                </div>
+
+            <div className="teacher-details">
+              <div className="teacher-name">
+                {subject.teacher_id.name}
               </div>
-              <div className="subject-preview">
-                <div className="preview-item">
-                  <span className="preview-label">Subject Name:</span>
-                  <span className="preview-value">{subjectToDelete.name}</span>
-                </div>
-                <div className="preview-item">
-                  <span className="preview-label">Subject Code:</span>
-                  <span className="preview-value">{subjectToDelete.code}</span>
-                </div>
-                <div className="preview-item">
-                  <span className="preview-label">Course:</span>
-                  <span className="preview-value">{selectedCourseName}</span>
-                </div>
-                <div className="preview-item">
-                  <span className="preview-label">Department:</span>
-                  <span className="preview-value">{selectedDeptName}</span>
-                </div>
+
+              <div className="teacher-role">
+                {subject.teacher_id.designation || "Faculty"}
               </div>
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="erp-btn erp-btn-secondary"
-                onClick={() => setShowDeleteModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="erp-btn erp-btn-danger"
-                onClick={confirmDelete}
-              >
-                <FaTrash className="erp-btn-icon" />
-                Delete Permanently
-              </button>
             </div>
           </div>
+        ) : (
+          <span className="not-assigned">
+            Not Assigned
+          </span>
+        )
+      ),
+    },
+
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      width: "9%",
+      render: (subject) => (
+        <span
+          className={`status-badge status-${
+            subject.status?.toLowerCase() || "inactive"
+          }`}
+        >
+          {subject.status || "INACTIVE"}
+        </span>
+      ),
+    },
+  ];
+
+  const tableActions = {
+    label: "Actions",
+    width: "14%",
+    items: [
+      {
+        key: "view",
+        label: "View Details",
+        icon: FaEye,
+        className: "view-btn",
+        onClick: (subject) => {
+          sessionStorage.setItem(
+            "subjectListFilters",
+            JSON.stringify({
+              department: selectedDepartment,
+              course: selectedCourse,
+              semester: selectedSemester,
+            })
+          );
+
+          navigate(`/subjects/view/${subject._id}`);
+        },
+      },
+
+      {
+        key: "edit",
+        label: "Edit Subject",
+        icon: FaEdit,
+        className: "edit-btn",
+        show: () => canEdit("subjects"),
+        onClick: (subject) => {
+          navigate(`/subjects/edit/${subject._id}`);
+        },
+      },
+
+      {
+        key: "delete",
+        label: "Delete Subject",
+        icon: FaTrash,
+        className: "delete-btn",
+        show: () => canDelete("subjects"),
+        onClick: handleDeleteClick,
+      },
+    ],
+  };
+
+  const selectedDeptName = Array.isArray(departments) ? departments.find(d => d._id === selectedDepartment)?.name || "Select Department" : "Select Department";
+
+  const selectedCourseData = Array.isArray(courses) ? courses.find(c => c._id === selectedCourse) : undefined;
+
+  const selectedCourseName = selectedCourseData?.name || "Select Course";
+
+  const semesterOptions = Array.from(
+
+    { length: selectedCourseData?.durationSemesters || 8 },
+
+    (_, index) => index + 1
+
+  );
+
+
+
+  return (
+
+    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(180deg, #f0f4f8 0%, #e8eef5 100%)", paddingBottom: "4px" }}>
+
+      {/* BREADCRUMBS */}
+
+      <div className="course-breadcrumb-wrapper">
+
+      <Breadcrumb
+
+        items={[
+
+          { label: "Dashboard", path: "/dashboard" },
+
+          { label: "Courses" },
+
+          { label: "Subject Management" }
+
+        ]}
+
+      />
+
+      </div>
+
+
+
+{/* PAGE HEADER */}
+
+<PageHeader
+  icon={FaBook}
+  title="Subject Management"
+  subtitle="Manage academic subjects by department and course"
+  actions={
+    <button
+      type="button"
+      onClick={() => navigate("/dashboard")}
+      aria-label="Back to Dashboard"
+      title="Back to Dashboard"
+      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow =
+          "0 4px 10px rgba(0, 0, 0, 0.15)";
+        e.currentTarget.style.background =
+          "rgba(255, 255, 255, 0.18)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.background =
+          "rgba(255, 255, 255, 0.12)";
+      }}
+    >
+      <FaArrowLeft size={15} />
+      <span>Back to Dashboard</span>
+    </button>
+  }
+/>
+
+
+
+      {/* FILTERS CARD */}
+
+      <div className="erp-card animate-fade-in">
+
+        <div className="erp-card-header">
+
+          <h3>
+
+            <FaFilter className="erp-card-icon" />
+
+            Filter Subjects
+
+          </h3>
+
         </div>
+
+        <div className="erp-card-body">
+
+          <div className="filter-grid">
+
+            <div className="filter-group">
+
+              <label className="filter-label">
+
+                <FaLayerGroup className="filter-icon" />
+
+                <span>Department</span>
+
+              </label>
+
+              <div className="filter-select-wrapper">
+
+                <select
+
+                  className="filter-select"
+
+                  value={selectedDepartment}
+
+                  onChange={(e) => {
+                    const departmentId = e.target.value;
+
+                    setSelectedDepartment(departmentId);
+                    setSelectedCourse("");
+                    setSelectedSemester("");
+                    setSubjects([]);
+
+                    if (departmentId) {
+                      sessionStorage.setItem(
+                        "subjectListFilters",
+                        JSON.stringify({
+                          department: departmentId,
+                          course: "",
+                          semester: "",
+                        })
+                      );
+
+                      fetchCourses(departmentId);
+                    } else {
+                      sessionStorage.removeItem("subjectListFilters");
+                    }
+                  }}
+
+                >
+
+                  <option value="">-- Select Department --</option>
+
+                  {departments.map((dept) => (
+
+                    <option key={dept._id} value={dept._id}>
+
+                      {dept.name} {dept.code && `(${dept.code})`}
+
+                    </option>
+
+                  ))}
+
+                </select>
+
+                <div className="filter-select-arrow">
+
+                  <FaChevronDown />
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+
+            <div className="filter-group">
+
+              <label className="filter-label">
+
+                <FaAward className="filter-icon" />
+
+                <span>Course</span>
+
+              </label>
+
+              <div className="filter-select-wrapper">
+
+                <select
+
+                  className="filter-select"
+
+                  value={selectedCourse}
+
+                  disabled={!selectedDepartment}
+
+                  onChange={(e) => {
+                    const courseId = e.target.value;
+
+                    setSelectedCourse(courseId);
+                    setSelectedSemester("");
+
+                    if (courseId) {
+                      sessionStorage.setItem(
+                        "subjectListFilters",
+                        JSON.stringify({
+                          department: selectedDepartment,
+                          course: courseId,
+                          semester: "",
+                        })
+                      );
+
+                      fetchSubjects(courseId);
+                    }
+                  }}
+
+                >
+
+                  <option value="">-- Select Course --</option>
+
+                  {courses.map((course) => (
+
+                    <option key={course._id} value={course._id}>
+
+                      {course.name} ({course.code})
+
+                    </option>
+
+                  ))}
+
+                </select>
+
+                <div className="filter-select-arrow">
+
+                  <FaChevronDown />
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+
+            <div className="filter-group">
+
+              <label className="filter-label">
+
+                <FaClock className="filter-icon" />
+
+                <span>Semester</span>
+
+              </label>
+
+              <div className="filter-select-wrapper">
+
+                <select
+
+                  className="filter-select"
+
+                  value={selectedSemester}
+
+                  disabled={!selectedCourse}
+
+                  onChange={(e) => {
+                    const semester = e.target.value;
+
+                    setSelectedSemester(semester);
+
+                    if (selectedCourse) {
+                      sessionStorage.setItem(
+                        "subjectListFilters",
+                        JSON.stringify({
+                          department: selectedDepartment,
+                          course: selectedCourse,
+                          semester,
+                        })
+                      );
+
+                      fetchSubjects(selectedCourse, semester);
+                    }
+                  }}
+
+                >
+
+                  <option value="">-- Select Semester --</option>
+
+                  {semesterOptions.map((semester) => (
+
+                    <option key={semester} value={semester}>
+
+                      Semester {semester}
+
+                    </option>
+
+                  ))}
+
+                </select>
+
+                <div className="filter-select-arrow">
+
+                  <FaChevronDown />
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+
+            {selectedCourse && (
+
+              <div className="filter-actions">
+
+                {canCreate('subjects') && (
+
+                  <button
+
+                    className="add-subject-btn"
+
+                    onClick={() => navigate(`/subjects/add?courseId=${selectedCourse}`)}
+
+                  >
+
+                    <FaPlus className="erp-btn-icon" />
+
+                    <span>Add Subject</span>
+
+                  </button>
+
+                )}
+
+              </div>
+
+            )}
+
+          </div>
+
+        </div>
+
+      </div>
+      {/* SUBJECTS SECTION */}
+
+      {/* SUBJECTS LIST */}
+
+  {selectedCourse && (
+  <>
+    <StandardListView
+      title={`${selectedCourseName} Subjects`}
+      icon={FaBook}
+      count={filteredSubjects.length}
+      search={{
+        value: searchTerm,
+        onChange: setSearchTerm,
+        placeholder: "Search subjects...",
+      }}
+      columns={columns}
+      data={paginatedSubjects}
+      loading={loadingSubjects}
+      emptyState={{
+        // Keep your existing emptyState configuration.
+      }}
+      actions={tableActions}
+    />
+
+    {totalPages > 1 && (
+      
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          setPage={setPage}
+        />
+    
+    )}
+  </>
+)}
+
+
+      {/* DELETE MODAL */}
+
+      {showDeleteModal && subjectToDelete && (
+
+        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+
+            <div className="modal-header">
+
+              <h3>Delete Subject</h3>
+
+              <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
+
+                <FaTimes />
+
+              </button>
+
+            </div>
+
+            <div className="modal-body">
+
+              <div className="modal-warning">
+
+                <FaExclamationTriangle className="warning-icon" />
+
+                <div className="warning-text">
+
+                  <h4>Are you sure you want to delete this subject?</h4>
+
+                  <p>This action cannot be undone. All related data will be permanently deleted.</p>
+
+                </div>
+
+              </div>
+
+              <div className="subject-preview">
+
+                <div className="preview-item">
+
+                  <span className="preview-label">Subject Name:</span>
+
+                  <span className="preview-value">{subjectToDelete.name}</span>
+
+                </div>
+
+                <div className="preview-item">
+
+                  <span className="preview-label">Subject Code:</span>
+
+                  <span className="preview-value">{subjectToDelete.code}</span>
+
+                </div>
+
+                <div className="preview-item">
+
+                  <span className="preview-label">Course:</span>
+
+                  <span className="preview-value">{selectedCourseName}</span>
+
+                </div>
+
+                <div className="preview-item">
+
+                  <span className="preview-label">Department:</span>
+
+                  <span className="preview-value">{selectedDeptName}</span>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="modal-footer">
+
+              <button 
+
+                className="erp-btn erp-btn-secondary"
+
+                onClick={() => setShowDeleteModal(false)}
+
+              >
+
+                Cancel
+
+              </button>
+
+              <button 
+
+                className="erp-btn erp-btn-danger"
+
+                onClick={confirmDelete}
+
+              >
+
+                <FaTrash className="erp-btn-icon" />
+
+                Delete Permanently
+
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
       )}
 
+
+
       {/* STYLES */}
-      <style>{`
+
+            <style>{`
         /* CSS Custom Properties for consistent theming */
         :root {
           --sidebar-primary: #0f3a4a;
@@ -624,118 +1254,40 @@ export default function SubjectList() {
           --card-shadow: 0 4px 20px rgba(15, 58, 74, 0.08);
           --card-hover-shadow: 0 8px 30px rgba(15, 58, 74, 0.12);
         }
-
-        .erp-page-header {
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 50%, #3db5e6 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.4);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-          position: relative;
-          overflow: hidden;
+      /* BREADCRUMBS */
+        .course-breadcrumb-wrapper {
+          width: 100%;
+          margin-top: 20px;
+          padding-top: 25px;
         }
 
-        .erp-page-header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(45deg, rgba(61, 181, 230, 0.1) 0%, transparent 50%);
-          pointer-events: none;
-        }
-        
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.25) 0%, rgba(79, 195, 247, 0.15) 100%);
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.75rem;
-          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.3);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.9;
-          font-size: 1rem;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-        }
-
-        .erp-header-actions .erp-btn {
-          background: linear-gradient(135deg, #3db5e6 0%, #4fc3f7 100%);
-          color: white;
-          border: none;
-          padding: 0.75rem 1.5rem;
-          font-weight: 600;
-          border-radius: 10px;
-          box-shadow: 0 4px 15px rgba(61, 181, 230, 0.4);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          z-index: 1;
-        }
-
-        .erp-header-actions .erp-btn:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 8px 25px rgba(61, 181, 230, 0.5);
-        }
-
-        .erp-header-actions .erp-btn:active {
-          transform: translateY(-1px);
-        }
-        
         .erp-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: var(--card-shadow);
-          margin-bottom: 1.5rem;
-          overflow: hidden;
-          animation: fadeIn 0.6s ease;
-          border: 1px solid rgba(15, 58, 74, 0.08);
-          transition: all 0.3s ease;
-        }
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  animation: fadeIn 0.6s ease;
+  border: 1px solid rgba(15, 58, 74, 0.08);
+  transition: box-shadow 0.3s ease;
+      }
 
-        .erp-card:hover {
-          box-shadow: var(--card-hover-shadow);
-          transform: translateY(-2px);
-        }
+      .erp-card:hover {
+        box-shadow: var(--card-hover-shadow);
+      }
 
         .erp-card-header {
-          padding: 1.5rem 1.75rem;
-          background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
-          border-bottom: 2px solid rgba(61, 181, 230, 0.15);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+  padding: 0.765rem 1.4rem;
+  background: linear-gradient(135deg, #f5f8fa 0%, #edf2f6 100%);
+  border-bottom: 1px solid rgba(61, 181, 230, 0.18);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
         }
 
         .erp-card-header h3 {
           margin: 0;
-          font-size: 1.375rem;
+          font-size: 1.275rem;
           font-weight: 700;
           color: #0f3a4a;
           display: flex;
@@ -749,35 +1301,37 @@ export default function SubjectList() {
         }
 
         .erp-card-body {
-          padding: 1.75rem;
+          padding: 1.15rem 1.4rem;
         }
         
         /* FILTERS */
-        .filter-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-          align-items: end;
-        }
+.filter-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 1.15rem;
+  align-items: end;
+}
 
-        .filter-group {
-          display: flex;
-          flex-direction: column;
-          gap: 0.625rem;
-          position: relative;
-        }
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  position: relative;
+  min-width: 0;
+}
 
-        .filter-label {
-          font-weight: 600;
-          color: #0f3a4a;
-          font-size: 0.95rem;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.625rem;
-          padding: 0.25rem 0;
-          white-space: nowrap;
-        }
-
+.filter-label {
+  font-weight: 600;
+  color: #0f3a4a;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  margin-bottom: 0.1rem;
+  white-space: nowrap;
+  padding-left: 20px !important;
+}
         .filter-icon {
           color: #3db5e6;
           font-size: 1rem;
@@ -787,7 +1341,7 @@ export default function SubjectList() {
           justify-content: center;
           line-height: 1;
           position: absolute;
-          left: -18px;
+          left: 0px;
         }
 
         .filter-select-wrapper {
@@ -795,20 +1349,23 @@ export default function SubjectList() {
           width: 100%;
         }
 
-        .filter-select {
-          width: 100%;
-          padding: 0.875rem 1.25rem;
-          padding-right: 2.5rem;
-          border: 2px solid #e0e8f0;
-          border-radius: 10px;
-          font-size: 1rem;
-          font-weight: 500;
-          color: #2c3e50;
-          background: white;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          outline: none;
-          appearance: none;
-        }
+        
+.filter-select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 50px;
+  padding: 0.7rem 1rem;
+  padding-right: 2.5rem;
+  border: 1.5px solid #dce6ed;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #2c3e50;
+  background: white;
+  transition: all 0.25s ease;
+  outline: none;
+  appearance: none;
+}
 
         .filter-select:hover {
           border-color: #3db5e6;
@@ -826,18 +1383,17 @@ export default function SubjectList() {
           border-color: #e9ecef;
         }
 
-        .filter-select-arrow {
-          position: absolute;
-          right: 1rem;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #3db5e6;
-          pointer-events: none;
-          font-size: 0.875rem;
-          transition: transform 0.3s ease, color 0.3s ease;
-          z-index: 1;
-        }
-
+.filter-select-arrow {
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #3db5e6;
+  pointer-events: none;
+  font-size: 0.8rem;
+  transition: transform 0.25s ease, color 0.25s ease;
+  z-index: 1;
+}
         .filter-select-wrapper:hover .filter-select-arrow {
           transform: translateY(-50%) scale(1.1);
           color: #0f3a4a;
@@ -846,6 +1402,7 @@ export default function SubjectList() {
         .filter-actions {
           display: flex;
           align-items: center;
+          justify-content: flex-end;
         }
 
         /* ADD SUBJECT BUTTON - Enhanced Design */
@@ -853,12 +1410,13 @@ export default function SubjectList() {
           display: inline-flex;
           align-items: center;
           gap: 0.75rem;
-          padding: 0.875rem 1.75rem;
+          padding: 0.7rem 1.25rem;
+          min-height: 50px;
           background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
           color: white;
           border: none;
-          border-radius: 12px;
-          font-size: 1rem;
+          border-radius: 10px;
+          font-size: 0.9rem;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -934,9 +1492,11 @@ export default function SubjectList() {
           gap: 1rem;
         }
 
+        /* SEARCH BOX */
         .search-box {
           position: relative;
-          min-width: 280px;
+          width: 250px;
+          min-width: 380px;
         }
 
         .search-icon {
@@ -973,24 +1533,76 @@ export default function SubjectList() {
         }
         
         /* TABLE */
-        .table-container {
-          overflow-x: auto;
-          border-radius: 12px;
-          box-shadow: 0 2px 12px rgba(15, 58, 74, 0.08);
-          background: white;
-        }
+        
+.table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e4ebef;
+  box-shadow: 0 2px 10px rgba(15, 58, 74, 0.05);
+  background: white;
+}
+  .erp-table thead th:first-child {
+  border-top-left-radius: 11px;
+}
 
-        .erp-table {
-          width: 100%;
-          border-collapse: collapse;
-          min-width: 900px;
-        }
+.erp-table thead th:last-child {
+  border-top-right-radius: 11px;
+}
 
-        .erp-table thead {
-          background: linear-gradient(135deg, #0f3a4a 0%, #0c2d3a 100%);
-          color: white;
-          position: relative;
-        }
+.erp-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Subject Name */
+.erp-table th:nth-child(1),
+.erp-table td:nth-child(1) {
+  width: 30%;
+}
+
+/* Code */
+.erp-table th:nth-child(2),
+.erp-table td:nth-child(2) {
+  width: 13%;
+}
+
+/* Semester */
+.erp-table th:nth-child(3),
+.erp-table td:nth-child(3) {
+  width: 10%;
+}
+
+/* Credits */
+.erp-table th:nth-child(4),
+.erp-table td:nth-child(4) {
+  width: 8%;
+}
+
+/* Teacher */
+.erp-table th:nth-child(5),
+.erp-table td:nth-child(5) {
+  width: 16%;
+}
+
+/* Status */
+.erp-table th:nth-child(6),
+.erp-table td:nth-child(6) {
+  width: 9%;
+}
+
+/* Actions */
+.erp-table th:nth-child(7),
+.erp-table td:nth-child(7) {
+  width: 14%;
+}
+        
+.erp-table thead {
+  background: linear-gradient(135deg, #103f50 0%, #0d3442 100%);
+  color: white;
+}
 
         .erp-table thead::after {
           content: '';
@@ -1002,16 +1614,18 @@ export default function SubjectList() {
           background: linear-gradient(90deg, #3db5e6 0%, transparent 100%);
         }
 
-        .erp-table th {
-          padding: 1rem 1.25rem;
-          text-align: left;
-          font-weight: 600;
-          font-size: 0.95rem;
-          cursor: pointer;
-          user-select: none;
-          position: relative;
-          transition: all 0.3s ease;
-        }
+.erp-table th {
+  padding: 0.8rem 0.9rem;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background 0.2s ease;
+}
 
         .erp-table th:hover {
           background: rgba(61, 181, 230, 0.15);
@@ -1029,152 +1643,228 @@ export default function SubjectList() {
           border-right: 5px solid transparent;
         }
 
-        .erp-table tbody tr {
-          border-bottom: 1px solid #f0f4f8;
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+.erp-table tbody tr {
+  border-bottom: 1px solid #edf2f5;
+  transition: background 0.2s ease;
+}
 
-        .erp-table tbody tr:hover {
-          background: linear-gradient(90deg, rgba(61, 181, 230, 0.08) 0%, rgba(79, 195, 247, 0.05) 100%);
-          transform: scale(1.005);
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.1);
-        }
+.erp-table tbody tr:nth-child(even) {
+  background: #fbfdfe;
+}
 
-        .erp-table td {
-          padding: 1rem 1.25rem;
-          color: #2c3e50;
-          font-weight: 500;
-        }
+.erp-table tbody tr:hover {
+  background: rgba(61, 181, 230, 0.055);
+}
+
+ .erp-table td {
+  padding: 0.75rem 0.9rem;
+  color: #2c3e50;
+  font-weight: 500;
+  font-size: 0.82rem;
+  vertical-align: middle;
+}
         
-        .subject-name {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
+.subject-name {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
 
-        .subject-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 10px;
-          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
-        }
+.subject-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 6px rgba(61, 181, 230, 0.25);
+}
 
         .subject-details {
           flex: 1;
+          min-width: 0;
         }
 
-        .subject-title {
-          font-weight: 700;
-          color: #0f3a4a;
-          margin-bottom: 0.25rem;
-        }
+.subject-title {
+  font-weight: 700;
+  color: #123f52;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  margin-bottom: 0.3rem;
+}
 
-        .subject-meta {
-          display: flex;
-          gap: 0.5rem;
-          flex-wrap: wrap;
-        }
+.subject-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
 
+.subject-main-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+  .subject-main-badges .course-badge,
+.subject-main-badges .dept-badge {
+  white-space: nowrap;
+}
+
+.subject-type-row {
+  display: flex;
+  align-items: center;
+}
         .course-badge,
-        .dept-badge {
-          font-size: 0.75rem;
-          color: #0f3a4a;
-          background: rgba(61, 181, 230, 0.1);
-          padding: 0.125rem 0.5rem;
-          border-radius: 4px;
-          font-weight: 600;
-        }
+.dept-badge {
+  font-size: 0.62rem;
+  color: #0f3a4a;
+  background: rgba(61, 181, 230, 0.1);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 700;
+  line-height: 1.2;
+}
 
-        .dept-badge {
-          background: rgba(15, 58, 74, 0.08);
-          color: #0f3a4a;
-        }
+.dept-badge {
+  background: rgba(15, 58, 74, 0.07);
+  color: #0f3a4a;
+}
 
-        .subject-code-badge {
-          display: inline-block;
-          background: linear-gradient(135deg, rgba(61, 181, 230, 0.15) 0%, rgba(79, 195, 247, 0.1) 100%);
-          color: #0f3a4a;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-weight: 700;
-          font-size: 0.9rem;
-          border: 1px solid rgba(61, 181, 230, 0.2);
-        }
+.subject-type-badge {
+  display: inline-flex;
+  align-items: center;
 
-        .semester-badge,
-        .credits-badge {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
-          padding: 0.375rem 0.875rem;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.95rem;
-          border: 1px solid rgba(61, 181, 230, 0.15);
-        }
+  font-size: 0.58rem;
+  line-height: 1;
+  color: #0f3a4a;
+
+  background: rgba(61, 181, 230, 0.1);
+  border: 1px solid rgba(61, 181, 230, 0.16);
+
+  padding: 0.22rem 0.45rem;
+  border-radius: 4px;
+
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.subject-code-badge {
+  display: inline-flex;
+  align-items: center;
+
+  max-width: 100%;
+
+  background: rgba(61, 181, 230, 0.08);
+  color: #0f3a4a;
+
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+
+  font-weight: 700;
+  font-size: 0.72rem;
+
+  border: 1px solid rgba(61, 181, 230, 0.16);
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.25;
+}
+
+.semester-badge,
+.credits-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+
+  background: #f3f7fa;
+  padding: 0.35rem 0.55rem;
+
+  border-radius: 7px;
+
+  font-weight: 700;
+  font-size: 0.72rem;
+
+  border: 1px solid #e0eaf0;
+  white-space: nowrap;
+}
 
         .semester-icon,
         .credits-icon {
-          font-size: 0.9rem;
+          font-size: 0.65rem;
           color: #3db5e6;
         }
 
-        .teacher-info {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
+.teacher-info {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
 
-        .teacher-avatar {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 600;
-          font-size: 0.9rem;
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(61, 181, 230, 0.3);
-        }
+.teacher-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
 
-        .teacher-details {
-          flex: 1;
-        }
+  background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
+  color: white;
 
-        .teacher-name {
-          font-weight: 700;
-          color: #0f3a4a;
-          font-size: 0.95rem;
-        }
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-        .teacher-role {
-          font-size: 0.85rem;
-          color: #666;
-        }
+  font-weight: 700;
+  font-size: 0.72rem;
+
+  flex-shrink: 0;
+}
+
+.teacher-details {
+  min-width: 0;
+  flex: 1;
+}
+
+.teacher-name {
+  font-weight: 700;
+  color: #0f3a4a;
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.teacher-role {
+  font-size: 0.68rem;
+  color: #77838c;
+  line-height: 1.25;
+}
 
         .not-assigned {
           color: #9e9e9e;
           font-style: italic;
         }
 
-        .status-badge {
-          display: inline-block;
-          padding: 0.375rem 0.875rem;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: 700;
-          border: 1px solid;
-        }
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+
+  border: 1px solid;
+  white-space: nowrap;
+}
 
         .status-active {
           background: linear-gradient(135deg, rgba(76, 175, 80, 0.15) 0%, rgba(56, 142, 60, 0.1) 100%);
@@ -1188,31 +1878,39 @@ export default function SubjectList() {
           border-color: rgba(158, 158, 158, 0.2);
         }
         
-        .action-cell {
-          text-align: center;
-          min-width: 150px;
-        }
+.action-cell {
+  text-align: center;
+  min-width: 0;
+}
 
-        .action-buttons {
-          display: flex;
-          justify-content: center;
-          gap: 0.5rem;
-        }
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.35rem;
+}
 
-        .action-btn {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: none;
-          cursor: pointer;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          color: white;
-          font-size: 0.9rem;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
+.action-btn {
+  width: 31px;
+  height: 31px;
+  border-radius: 8px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  color: white;
+  font-size: 0.75rem;
+
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+}
 
         .view-btn {
           background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
@@ -1227,9 +1925,9 @@ export default function SubjectList() {
         }
 
         .action-btn:hover {
-          transform: translateY(-3px) scale(1.05);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
-          filter: brightness(1.1);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+          filter: brightness(1.05);
         }
 
         .action-btn:active {
@@ -1574,111 +2272,946 @@ export default function SubjectList() {
           animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .filter-grid {
-            grid-template-columns: 1fr;
-          }
-          
-          .filter-actions {
-            width: 100%;
-          }
-          
-          .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-          
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .erp-card-body {
-            padding: 1.25rem;
-          }
-          
-          .erp-card-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .header-right {
-            width: 100%;
-          }
-          
-          .search-box {
-            width: 100%;
-            min-width: auto;
-          }
-          
-          .erp-table {
-            min-width: 700px;
-          }
-          
-          .action-buttons {
-            flex-direction: column;
-            align-items: center;
-          }
-          
-          .action-btn {
-            width: 100%;
-            margin-bottom: 0.5rem;
-          }
-          
-          .modal-content {
-            width: 95%;
-            margin: 1rem;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .erp-table {
-            min-width: 600px;
-          }
-          
-          .subject-name {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .subject-meta {
-            margin-left: 2.5rem;
-          }
-          
-          .erp-card-header h3 {
-            font-size: 1.25rem;
-          }
-        }
-      `}</style>
-    </div>
-  );
+       /* =========================================================
+   RESPONSIVE DESIGN
+   Desktop remains unchanged
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   769px - 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  /* Page spacing */
+  .erp-page {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    overflow-x: hidden;
+  }
+
+
+  /* ---------------- Breadcrumb ---------------- */
+
+  .course-breadcrumb-wrapper {
+    width: 100%;
+    overflow: hidden;
+    margin-top: 15px;
+    padding-top: 15px;
+  }
+
+  .course-breadcrumb-wrapper > * {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .course-breadcrumb-wrapper > *::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------------- Header ---------------- */
+
+  .erp-page-header {
+    padding: 1.25rem 1.4rem;
+
+    display: flex;
+    flex-direction: row;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    border-radius: 14px;
+  }
+
+  .erp-header-content {
+    min-width: 0;
+    gap: 0.9rem;
+  }
+
+  .erp-header-icon {
+    width: 50px;
+    height: 50px;
+
+    min-width: 50px;
+
+    font-size: 1.45rem;
+    border-radius: 12px;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+  }
+
+  .erp-page-title {
+    font-size: 1.45rem;
+    line-height: 1.2;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .erp-header-actions {
+    flex-shrink: 0;
+    width: auto;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: auto;
+    min-width: 160px;
+
+    padding: 0.65rem 1rem;
+
+    font-size: 0.82rem;
+
+    justify-content: center;
+  }
+
+
+  /* ---------------- Filter Card ---------------- */
+
+  .erp-card {
+    margin-bottom: 1.15rem;
+    border-radius: 14px;
+  }
+
+  .erp-card-header {
+    padding: 1.15rem 1.35rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.15rem;
+  }
+
+  .erp-card-body {
+    padding: 1.25rem;
+  }
+
+
+  /* Two-column filters on tablet */
+
+  .filter-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+    gap: 1rem;
+
+    align-items: end;
+  }
+
+  .filter-group {
+    min-width: 0;
+  }
+
+  .filter-label {
+    font-size: 0.85rem;
+  }
+
+  .filter-select {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 0.75rem 1rem;
+
+    font-size: 0.9rem;
+  }
+
+  .filter-actions {
+    grid-column: 1 / -1;
+
+    width: 100%;
+
+    display: flex;
+    justify-content: flex-end;
+
+    margin-top: 0.15rem;
+  }
+
+  .add-subject-btn {
+    width: auto;
+
+    padding: 0.7rem 1.3rem;
+
+    font-size: 0.85rem;
+  }
+
+
+  /* ---------------- Subjects Header ---------------- */
+
+  .erp-card-header .header-left {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .erp-card-header .header-left h3 {
+    min-width: 0;
+
+    font-size: 1.1rem;
+  }
+
+  .subject-count {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.7rem;
+  }
+
+  .header-right {
+    flex-shrink: 0;
+  }
+
+  .search-box {
+    min-width: 220px;
+  }
+
+  .search-box input {
+    padding: 0.65rem 0.8rem 0.65rem 2.25rem;
+    font-size: 0.82rem;
+  }
+
+
+  /* ---------------- Table ---------------- */
+
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .erp-table {
+    min-width: 850px;
+  }
+
+  .erp-table th,
+  .erp-table td {
+    padding: 0.8rem 1rem;
+  }
+
+  .action-buttons {
+    flex-direction: row;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .action-btn {
+    width: 34px;
+    height: 34px;
+
+    margin-bottom: 0;
+
+    flex-shrink: 0;
+  }
 }
 
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .erp-page {
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
+
+    overflow-x: hidden;
+  }
+
+
+  /* ---------------- Breadcrumb ---------------- */
+
+  .course-breadcrumb-wrapper {
+    width: 100%;
+
+    margin-top: 10px;
+    padding-top: 10px;
+
+    overflow: hidden;
+  }
+
+  .course-breadcrumb-wrapper > * {
+    width: 100%;
+    max-width: 100%;
+
+    overflow-x: auto;
+
+    scrollbar-width: none;
+  }
+
+  .course-breadcrumb-wrapper > *::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------------- Header ---------------- */
+
+  .erp-page-header {
+    padding: 1rem;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 0.85rem;
+
+    margin-bottom: 1rem;
+
+    border-radius: 14px;
+
+    text-align: center;
+  }
+
+  .erp-header-content {
+    width: 100%;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 0.55rem;
+
+    text-align: center;
+  }
+
+  .erp-header-icon {
+    width: 52px;
+    height: 52px;
+
+    min-width: 52px;
+
+    font-size: 1.35rem;
+
+    border-radius: 12px;
+  }
+
+  .erp-header-text {
+    width: 100%;
+  }
+
+  .erp-page-title {
+    font-size: 1.4rem;
+
+    line-height: 1.2;
+
+    word-break: normal;
+  }
+
+  .erp-page-subtitle {
+    margin-top: 0.35rem;
+
+    font-size: 0.78rem;
+
+    line-height: 1.45;
+  }
+
+  .erp-header-actions {
+    width: 100%;
+
+    margin-top: 0.15rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding: 0.65rem 1rem;
+
+    font-size: 0.8rem;
+
+    justify-content: center;
+  }
+
+
+  /* ---------------- Cards ---------------- */
+
+  .erp-card {
+    margin-bottom: 0.9rem;
+
+    border-radius: 12px;
+  }
+
+  .erp-card-header {
+    padding: 0.9rem 1rem;
+
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 0.7rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.05rem;
+
+    gap: 0.55rem;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+
+  /* ---------------- Filter ---------------- */
+
+  .filter-grid {
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.9rem;
+
+    align-items: stretch;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-label {
+    font-size: 0.82rem;
+
+    gap: 0.5rem;
+
+    padding-left: 20px !important;
+  }
+
+  .filter-select {
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 44px;
+
+    padding: 0.65rem 0.85rem;
+
+    padding-right: 2.5rem;
+
+    font-size: 0.82rem;
+
+    border-radius: 9px;
+  }
+
+  .filter-select-arrow {
+    right: 0.8rem;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* Add Subject */
+
+  .filter-actions {
+    width: 100%;
+
+    display: flex;
+
+    justify-content: stretch;
+
+    margin-top: 0.1rem;
+  }
+
+  .add-subject-btn {
+    width: 100%;
+
+    min-height: 42px;
+
+    padding: 0.65rem 1rem;
+
+    font-size: 0.8rem;
+
+    border-radius: 10px;
+
+    justify-content: center;
+  }
+
+
+  /* ---------------- Subject List Header ---------------- */
+
+  .erp-card-header .header-left {
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 0.5rem;
+
+    flex-wrap: nowrap;
+  }
+
+  .erp-card-header .header-left h3 {
+    min-width: 0;
+
+    font-size: 0.95rem;
+
+    line-height: 1.3;
+  }
+
+  .subject-count {
+    flex-shrink: 0;
+
+    padding: 0.25rem 0.55rem;
+
+    font-size: 0.68rem;
+  }
+
+
+  /* Search */
+
+  .header-right {
+    width: 100%;
+  }
+
+  .search-box {
+    width: 100%;
+
+    min-width: 0;
+  }
+
+  .search-box input {
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 40px;
+
+    padding: 0.6rem 0.75rem 0.6rem 2.2rem;
+
+    font-size: 0.78rem;
+
+    border-radius: 9px;
+  }
+
+  .search-icon {
+    left: 0.8rem;
+
+    font-size: 0.85rem;
+  }
+
+
+  /* ---------------- Table ---------------- */
+
+  .table-container {
+    width: 100%;
+
+    overflow-x: auto;
+
+    -webkit-overflow-scrolling: touch;
+
+    border-radius: 9px;
+  }
+
+  .erp-table {
+    min-width: 700px;
+  }
+
+  .erp-table th {
+    padding: 0.7rem 0.8rem;
+
+    font-size: 0.75rem;
+  }
+
+  .erp-table td {
+    padding: 0.7rem 0.8rem;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* Keep action buttons horizontal */
+
+  .action-buttons {
+    flex-direction: row;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 0.35rem;
+  }
+
+  .action-btn {
+    width: 32px;
+    height: 32px;
+
+    min-width: 32px;
+
+    margin-bottom: 0;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* ---------------- Subject Details ---------------- */
+
+  .subject-name {
+    gap: 0.65rem;
+  }
+
+  .subject-icon {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+
+    border-radius: 8px;
+  }
+
+  .subject-title {
+    font-size: 0.78rem;
+  }
+
+  .course-badge,
+  .dept-badge {
+    font-size: 0.62rem;
+
+    padding: 0.1rem 0.35rem;
+  }
+
+  .subject-code-badge {
+    padding: 0.3rem 0.6rem;
+
+    font-size: 0.7rem;
+  }
+
+  .semester-badge,
+  .credits-badge {
+    padding: 0.3rem 0.6rem;
+
+    font-size: 0.7rem;
+  }
+
+  .teacher-info {
+    gap: 0.5rem;
+  }
+
+  .teacher-avatar {
+    width: 30px;
+    height: 30px;
+
+    min-width: 30px;
+
+    font-size: 0.75rem;
+  }
+
+  .teacher-name {
+    font-size: 0.75rem;
+  }
+
+  .teacher-role {
+    font-size: 0.68rem;
+  }
+
+  .status-badge {
+    padding: 0.3rem 0.6rem;
+
+    font-size: 0.68rem;
+  }
+
+
+  /* ---------------- Empty State ---------------- */
+
+  .empty-state {
+    padding: 2.5rem 1rem;
+  }
+
+  .empty-icon {
+    width: 70px;
+    height: 70px;
+
+    margin-bottom: 1rem;
+
+    font-size: 2rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.25rem;
+  }
+
+  .empty-description {
+    font-size: 0.85rem;
+
+    line-height: 1.5;
+  }
+
+
+  /* ---------------- Modal ---------------- */
+
+  .modal-content {
+    width: calc(100% - 1.5rem);
+
+    max-width: none;
+
+    margin: 0.75rem;
+
+    border-radius: 14px;
+  }
+
+  .modal-header {
+    padding: 1rem;
+
+    border-radius: 14px 14px 0 0;
+  }
+
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .modal-warning {
+    padding: 0.9rem;
+
+    gap: 0.7rem;
+  }
+
+  .warning-icon {
+    font-size: 1.5rem;
+  }
+
+  .warning-text h4 {
+    font-size: 0.95rem;
+  }
+
+  .warning-text p {
+    font-size: 0.75rem;
+
+    line-height: 1.5;
+  }
+
+  .subject-preview {
+    padding: 0.9rem;
+  }
+
+  .preview-item {
+    gap: 0.75rem;
+
+    flex-wrap: wrap;
+
+    padding: 0.6rem 0;
+  }
+
+  .preview-label,
+  .preview-value {
+    font-size: 0.75rem;
+  }
+
+  .modal-footer {
+    padding: 0.9rem;
+
+    gap: 0.6rem;
+
+    flex-direction: column;
+  }
+
+  .modal-footer .erp-btn {
+    width: 100%;
+
+    justify-content: center;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 480px
+   ========================================================= */
+
+@media (max-width: 480px) {
+
+  .erp-page {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+
+  /* Header */
+
+  .erp-page-header {
+    padding: 0.85rem;
+
+    border-radius: 12px;
+  }
+
+  .erp-header-icon {
+    width: 46px;
+    height: 46px;
+
+    min-width: 46px;
+
+    font-size: 1.15rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.2rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.7rem;
+  }
+
+
+  /* Cards */
+
+  .erp-card {
+    border-radius: 10px;
+  }
+
+  .erp-card-header {
+    padding: 0.75rem 0.8rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 0.92rem;
+  }
+
+  .erp-card-body {
+    padding: 0.8rem;
+  }
+
+
+  /* Filter */
+
+  .filter-grid {
+    gap: 0.75rem;
+  }
+
+  .filter-label {
+    font-size: 0.75rem;
+  }
+
+  .filter-select {
+    min-height: 42px;
+
+    font-size: 0.75rem;
+  }
+
+  .add-subject-btn {
+    min-height: 40px;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* Subject header */
+
+  .erp-card-header .header-left h3 {
+    font-size: 0.85rem;
+  }
+
+  .subject-count {
+    font-size: 0.62rem;
+
+    padding: 0.22rem 0.45rem;
+  }
+
+
+  /* Table */
+
+  .erp-table {
+    min-width: 650px;
+  }
+
+  .erp-table th,
+  .erp-table td {
+    padding: 0.6rem 0.7rem;
+  }
+
+  .erp-table th {
+    font-size: 0.7rem;
+  }
+
+  .erp-table td {
+    font-size: 0.7rem;
+  }
+
+
+  /* Empty state */
+
+  .empty-state {
+    padding: 2rem 0.75rem;
+  }
+
+  .empty-state h3 {
+    font-size: 1.1rem;
+  }
+
+  .empty-description {
+    font-size: 0.75rem;
+  }
+}
+
+/* =========================================================
+   MOBILE / TABLET JITTER FIX
+   Disable hover transforms on touch-sized screens
+   ========================================================= */
+
+@media (max-width: 1024px) {
+
+  .erp-card,
+  .erp-table tbody tr {
+    transition: none !important;
+  }
+
+  .erp-card:hover {
+    transform: none !important;
+    box-shadow: var(--card-shadow) !important;
+  }
+
+  .erp-table tbody tr:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    background: inherit !important;
+  }
+
+  /* Prevent entrance animations from causing visual jumps */
+  .animate-fade-in {
+    animation: none !important;
+  }
+
+  .erp-page-header {
+    animation: none !important;
+  }
+}
+      `}</style>
+
+    </div>
+
+  );
+
+}
+
+
+
 /* CUSTOM ICONS */
+
 const FaTimes = ({ size = 20, color = "#666" }) => (
+
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+
   </svg>
+
 );
 
+
+
 const FaSyncAlt = ({ size = 16, color = "#3db5e6" }) => (
+
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+
     <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+
   </svg>
+
 );

@@ -1,0 +1,969 @@
+/* ============================================================
+   HOD DASHBOARD STYLES — NOVAA ERP
+   Curated palette: Teal/Blue (#1a4b6d, #0891b2), Orange accent (#f97316)
+   Status-only colors: Green (#16a34a), Amber (#f59e0b), Red (#dc2626)
+   ============================================================ */
+
+.hod-dashboard-root {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #edf4fa 100%);
+  padding: 1.5rem 1.25rem 3.5rem;
+  font-family: inherit;
+  color: #0f172a;
+}
+
+.hod-dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ================= HEADER BANNER ================= */
+.hod-header-banner {
+  background: linear-gradient(120deg, #1a4b6d 0%, #0f3a4a 60%, #0a2733 100%);
+  border-radius: 20px;
+  padding: 1.75rem 2rem;
+  color: #ffffff;
+  box-shadow: 0 16px 40px -16px rgba(15, 58, 74, 0.45);
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hod-header-accent {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 260px;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(249, 115, 22, 0.22));
+  border-top-right-radius: 20px;
+  pointer-events: none;
+}
+
+.hod-header-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.hod-header-user-info {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.hod-header-avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.65rem;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.hod-header-greeting {
+  margin: 0;
+  font-size: 0.88rem;
+  opacity: 0.88;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+}
+
+.hod-header-name {
+  margin: 0.15rem 0 0.35rem;
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.hod-header-dept-line {
+  margin: 0;
+  font-size: 0.92rem;
+  opacity: 0.92;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hod-header-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+.hod-header-meta {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 0.84rem;
+  backdrop-filter: blur(8px);
+}
+
+.hod-header-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hod-header-updated-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 0.78rem;
+}
+
+.hod-header-updated-text {
+  opacity: 0.9;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.hod-header-refresh-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  cursor: pointer;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hod-header-refresh-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.26);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+.hod-header-refresh-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.hod-header-refresh-btn:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.hod-header-refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.hod-spin {
+  animation: hodSpin 0.9s linear infinite;
+}
+
+@keyframes hodSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ================= KPI GRID ================= */
+.hod-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.hod-kpi-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 140px;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  color: inherit;
+}
+
+.hod-kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
+}
+
+.hod-kpi-card:focus-visible {
+  outline: 2px solid #1a4b6d;
+  outline-offset: 2px;
+}
+
+.hod-kpi-top-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.hod-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.hod-kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.hod-kpi-value {
+  font-size: clamp(1.5rem, 2.8vw, 1.95rem);
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-bottom: 0.25rem;
+}
+
+.hod-kpi-label {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 0.2rem;
+}
+
+.hod-kpi-subtext {
+  font-size: 0.76rem;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+/* ================= 2-COLUMN MAIN LAYOUT ================= */
+.hod-main-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  align-items: stretch;
+}
+
+.hod-column-left,
+.hod-column-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ================= CARD CONTAINER ================= */
+.hod-section-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 1.35rem 1.45rem;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.hod-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hod-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.hod-section-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #e8f1f8;
+  color: #1a4b6d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.hod-section-title {
+  margin: 0;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 1.02rem;
+  line-height: 1.2;
+}
+
+.hod-section-subtitle {
+  margin: 0.15rem 0 0;
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+/* ================= ACTION REQUIRED ================= */
+.hod-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.hod-action-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.95rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  gap: 0.75rem;
+  transition: border-color 0.18s ease;
+}
+
+.hod-action-item:hover {
+  border-color: #cbd5e1;
+}
+
+.hod-action-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.hod-action-pill {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hod-action-pill.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.hod-action-pill.danger {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.hod-action-text {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.hod-action-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #1a4b6d;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.hod-action-btn:hover {
+  background: #1a4b6d;
+  color: #ffffff;
+  border-color: #1a4b6d;
+}
+
+.hod-all-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  color: #166534;
+}
+
+.hod-all-clear-icon {
+  font-size: 1.35rem;
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.hod-all-clear-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.hod-all-clear-sub {
+  font-size: 0.76rem;
+  margin: 0.15rem 0 0;
+  color: #15803d;
+}
+
+/* ================= TODAY'S SCHEDULE ================= */
+.hod-schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.hod-schedule-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0.95rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  gap: 0.75rem;
+}
+
+.hod-schedule-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.hod-schedule-time {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #1a4b6d;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+
+.hod-schedule-subject {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hod-schedule-meta {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Compact empty state for today's schedule */
+.hod-schedule-compact-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.hod-schedule-compact-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.hod-schedule-compact-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e8f1f8;
+  color: #1a4b6d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.hod-schedule-compact-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.hod-schedule-compact-title {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.hod-schedule-compact-next {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.hod-schedule-compact-next strong {
+  color: #1a4b6d;
+}
+
+.hod-schedule-compact-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.76rem;
+  color: #94a3b8;
+}
+
+.hod-schedule-compact-link {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: #0891b2;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.15s ease;
+}
+
+.hod-schedule-compact-link:hover {
+  color: #0e7490;
+  text-decoration: underline;
+}
+
+.hod-schedule-compact-link:focus-visible {
+  outline: 2px solid #0891b2;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ================= QUICK ACTIONS ================= */
+.hod-quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.hod-quick-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+.hod-quick-card:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.hod-quick-card:focus-visible {
+  outline: 2px solid #1a4b6d;
+  outline-offset: 2px;
+}
+
+.hod-quick-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.hod-quick-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.hod-quick-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.hod-quick-desc {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ================= RECENT ACTIVITY ================= */
+.hod-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.hod-activity-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.hod-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.hod-activity-item--grouped {
+  cursor: pointer;
+  user-select: none;
+}
+
+.hod-activity-item--grouped:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.hod-activity-item--grouped:focus-visible {
+  outline: 2px solid #1a4b6d;
+  outline-offset: 1px;
+}
+
+.hod-activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0891b2;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.hod-activity-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.hod-activity-text {
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.hod-activity-time {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.hod-activity-expand-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.04);
+  color: #64748b;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.hod-activity-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  margin-left: 1.5rem;
+  padding-left: 0.75rem;
+  border-left: 2px solid #e2e8f0;
+}
+
+.hod-activity-subitem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  color: #475569;
+  line-height: 1.35;
+}
+
+.hod-activity-subbullet {
+  color: #0891b2;
+  font-size: 0.9rem;
+}
+
+.hod-activity-subitem-content {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.hod-activity-subitem-title {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.hod-activity-subitem-meta {
+  color: #64748b;
+  margin-left: 2px;
+}
+
+/* ================= RECENT TIMETABLES SLIM TABLE ================= */
+.hod-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hod-slim-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.86rem;
+  min-width: 640px;
+}
+
+.hod-slim-table th {
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.hod-slim-table th:first-child {
+  border-top-left-radius: 10px;
+}
+.hod-slim-table th:last-child {
+  border-top-right-radius: 10px;
+  text-align: right;
+}
+
+.hod-slim-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+  vertical-align: middle;
+}
+
+.hod-slim-table tr:last-child td {
+  border-bottom: none;
+}
+
+.hod-slim-table tr:hover td {
+  background: #f8fafc;
+}
+
+.hod-table-name {
+  font-weight: 600;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.hod-table-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+/* ================= STATUS BADGES (Green/Amber/Red/Muted only) ================= */
+.hod-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.hod-badge-success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.hod-badge-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.hod-badge-danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.hod-badge-muted {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* ================= EMPTY STATES ================= */
+.hod-empty-state {
+  text-align: center;
+  padding: 2.25rem 1rem;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.hod-empty-icon {
+  font-size: 2rem;
+  opacity: 0.35;
+  margin-bottom: 0.6rem;
+}
+
+.hod-empty-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #475569;
+  margin: 0;
+}
+
+.hod-empty-sub {
+  font-size: 0.76rem;
+  color: #94a3b8;
+  margin: 0.25rem 0 0;
+}
+
+/* ================= SKELETON LOADERS ================= */
+.hod-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: hodSkeletonShimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes hodSkeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ================= RESPONSIVE DESIGN ================= */
+@media (max-width: 1024px) {
+  .hod-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hod-main-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .hod-dashboard-root {
+    padding: 1rem 0.75rem 2.5rem;
+  }
+
+  .hod-header-banner {
+    padding: 1.25rem 1.25rem;
+    border-radius: 16px;
+  }
+
+  .hod-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hod-header-meta {
+    width: 100%;
+  }
+
+  .hod-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hod-quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hod-section-card {
+    padding: 1.15rem 1.1rem;
+    border-radius: 14px;
+  }
+}

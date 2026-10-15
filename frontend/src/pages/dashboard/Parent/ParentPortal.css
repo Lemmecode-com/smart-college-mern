@@ -337,8 +337,8 @@ body {
 }
 
 .parent-profile-item:hover {
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.02) 0%, transparent 100%);
-  margin: 0 -1.5rem;
+  background: linear-gradient(90deg, rgba(251, 71, 11, 0.02) 0%, transparent 100%);
+  margin: 0 -0.75rem;
   padding-left: 1.5rem;
   padding-right: 1.5rem;
   border-radius: var(--border-radius-md);
@@ -941,7 +941,7 @@ body {
 
 .parent-profile-header {
   padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, var(--parent-primary) 0%, var(--parent-secondary) 100%);
+  background: #0E3746;
   color: white;
   display: flex;
   align-items: center;
@@ -979,6 +979,8 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.04);
   transition: all var(--transition-slow);
   height: 100%;
+  margin-bottom: 20px;
+  margin-top: 20px;
 }
 
 .parent-fee-card:hover {
@@ -987,7 +989,7 @@ body {
 
 .parent-fee-header {
   padding: var(--spacing-md) var(--spacing-lg);
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: #0E3746;
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
@@ -995,14 +997,17 @@ body {
 }
 
 .parent-fee-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--border-radius-md);
+  width: 35px;
+  height: 35px;
+  min-width: 35px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.14);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
+  color: #ffffff;
+  font-size: 24px;
 }
 
 .parent-fee-title {
@@ -1213,6 +1218,7 @@ body {
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.04);
   transition: all var(--transition-slow);
+  margin-top: 20px;
 }
 
 .parent-attendance-chart:hover {
@@ -1221,20 +1227,22 @@ body {
 
 .parent-chart-header {
   padding: var(--spacing-lg) var(--spacing-xl);
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: #0E3746;
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--spacing-md);
+  
+  
 }
 
 .parent-chart-title {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1e293b;
+  color: white;
   letter-spacing: -0.2px;
 }
 
@@ -1242,6 +1250,7 @@ body {
   display: flex;
   gap: var(--spacing-lg);
   flex-wrap: wrap;
+  
 }
 
 .parent-chart-stat {
@@ -1251,7 +1260,7 @@ body {
 .parent-chart-value {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #fafafb;
 }
 
 .parent-chart-label {

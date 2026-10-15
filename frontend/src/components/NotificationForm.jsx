@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useContext } from "react";
+import React, { useState, useEffect, useCallback, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
@@ -146,6 +146,8 @@ export default function NotificationForm({
   const [originalForm, setOriginalForm] = useState({ ...form });
   const [loading, setLoading] = useState(mode === "edit");
   const [saving, setSaving] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const navigationTimerRef = useRef(null);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -170,6 +172,15 @@ export default function NotificationForm({
     setTitleCount(form.title.length);
     setMessageCount(form.message.length);
   }, [form.title, form.message]);
+
+  /* ================= CLEANUP PENDING NAVIGATION TIMERS ================= */
+  useEffect(() => {
+    return () => {
+      if (navigationTimerRef.current) {
+        clearTimeout(navigationTimerRef.current);
+      }
+    };
+  }, []);
 
   /* ================= FETCH DEPARTMENTS & COURSES ================= */
   useEffect(() => {
@@ -309,6 +320,10 @@ export default function NotificationForm({
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (isSubmittingRef.current || saving) {
+      return;
+    }
+
     // Validation
     if (!form.title.trim() || !form.message.trim()) {
       toast.error("Title and Message are required");
@@ -352,6 +367,7 @@ export default function NotificationForm({
       return;
     }
 
+    isSubmittingRef.current = true;
     setSaving(true);
 
     try {
@@ -372,35 +388,24 @@ export default function NotificationForm({
         await api.post(config.createEndpoint, payload);
         toast.success(config.successMessage);
 
-        setTimeout(() => {
-          setForm({
-            title: "",
-            message: "",
-            type: "GENERAL",
-            priority: "LOW",
-            expiresAt: "",
-            target: "STUDENTS",
-            target_department: "",
-            target_course: "",
-            target_semester: "",
-            target_users: [],
-          });
-        }, 2000);
+        navigationTimerRef.current = setTimeout(() => {
+          navigate(config.listRoute);
+        }, 1200);
       } else {
         await api.put(`${config.editEndpoint}${id}`, payload);
         toast.success(config.editSuccessMessage);
         setOriginalForm({ ...form });
 
-        setTimeout(() => {
+        navigationTimerRef.current = setTimeout(() => {
           navigate(config.listRoute);
-        }, 1500);
+        }, 1200);
       }
     } catch (err) {
+      isSubmittingRef.current = false;
+      setSaving(false);
       const errorMsg =
         err.response?.data?.message || `Failed to ${mode} notification`;
       toast.error(errorMsg);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -492,16 +497,28 @@ export default function NotificationForm({
     BRAND_COLORS.priorities[form.priority] || BRAND_COLORS.priorities.NORMAL;
   const TypeIcon = typeConfig.icon;
 
-  /* ================= LOADING STATE ================= */
-  if (loading) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text={mode === "edit" ? "Loading notification..." : "Preparing form..."}
-      />
-    );
-  }
+
+/* ================= LOADING STATE ================= */
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text={
+            mode === "edit"
+              ? "Loading Notification..."
+              : "Preparing Notification Form..."
+          }
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR STATE ================= */
   if (error && mode === "edit") {
@@ -576,9 +593,10 @@ export default function NotificationForm({
                       backgroundColor: "rgba(255, 255, 255, 0.2)",
                       color: "white",
                       border: "2px solid rgba(255, 255, 255, 0.4)",
-                      padding: "0.75rem 1.5rem",
+                      padding: "0 18px",
+                      height: "42px",
                       borderRadius: "12px",
-                      fontSize: "1rem",
+                      fontSize: "0.9rem",
                       fontWeight: 600,
                       cursor: "pointer",
                       display: "flex",
@@ -598,9 +616,10 @@ export default function NotificationForm({
                     backgroundColor: "rgba(255, 255, 255, 0.2)",
                     color: "white",
                     border: "2px solid rgba(255, 255, 255, 0.4)",
-                    padding: "0.75rem 1.5rem",
+                    padding: "0 18px",
+                    height: "42px",
                     borderRadius: "12px",
-                    fontSize: "1rem",
+                    fontSize: "0.9rem",
                     fontWeight: 600,
                     cursor: "pointer",
                     display: "flex",

@@ -3,6 +3,8 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
@@ -32,6 +34,7 @@ export default function EditSubject() {
   const [formData, setFormData] = useState(null);
   const [courses, setCourses] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [departmentId, setDepartmentId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -47,16 +50,26 @@ export default function EditSubject() {
         return;
       }
 
-      const departmentId = subject.department_id?._id || subject.department_id;
+      const departmentId =
+        subject.department_id?._id || subject.department_id;
+
+      setDepartmentId(departmentId || null);
 
       const [courseRes, teacherRes] = await Promise.all([
         departmentId
           ? api.get(`/courses/department/${departmentId}`)
           : Promise.resolve({ data: [] }),
-        api.get("/teachers"),
+        departmentId
+          ? api.get(`/teachers/department/${departmentId}`)
+          : Promise.resolve({ data: { teachers: [] } }),
       ]);
 
-      const teachersData = teacherRes.data.data || teacherRes.data || [];
+      const coursesData = Array.isArray(courseRes.data)
+        ? courseRes.data
+        : courseRes.data?.courses || [];
+
+      const teachersData =
+        teacherRes.data?.teachers || teacherRes.data || [];
 
       setFormData({
         course_id: subject.course_id?._id || subject.course_id,
@@ -65,9 +78,15 @@ export default function EditSubject() {
         semester: subject.semester || "",
         credits: subject.credits || "",
         teacher_id: subject.teacher_id?._id || subject.teacher_id || "",
+        subjectType: subject.subjectType || "",
+        internalMaxMarks: subject.internalMaxMarks ?? "",
+        externalMaxMarks: subject.externalMaxMarks ?? "",
+        internalPassMarks: subject.internalPassMarks ?? "",
+        externalPassMarks: subject.externalPassMarks ?? "",
+        passMarks: subject.passMarks ?? "",
       });
 
-      setCourses(courseRes.data || []);
+      setCourses(coursesData);
       setTeachers(teachersData);
     } catch (err) {
       const statusCode = err.response?.status;
@@ -107,11 +126,32 @@ export default function EditSubject() {
     setError("");
 
     try {
-      await api.put(`/subjects/${id}`, {
-        ...formData,
+      const payload = {
+        course_id: formData.course_id,
+        name: formData.name,
+        code: formData.code,
         semester: Number(formData.semester),
         credits: Number(formData.credits),
-      });
+        teacher_id: formData.teacher_id || undefined,
+      };
+
+      // Only include exam / marks configuration when a subjectType is set,
+      // so subjects without config keep their existing (empty) state.
+      if (formData.subjectType) {
+        payload.subjectType = formData.subjectType;
+        if (formData.internalMaxMarks !== "")
+          payload.internalMaxMarks = Number(formData.internalMaxMarks);
+        if (formData.externalMaxMarks !== "")
+          payload.externalMaxMarks = Number(formData.externalMaxMarks);
+        if (formData.internalPassMarks !== "")
+          payload.internalPassMarks = Number(formData.internalPassMarks);
+        if (formData.externalPassMarks !== "")
+          payload.externalPassMarks = Number(formData.externalPassMarks);
+        if (formData.passMarks !== "")
+          payload.passMarks = Number(formData.passMarks);
+      }
+
+      await api.put(`/subjects/${id}`, payload);
 
       navigate(`/subjects/view/${id}`);
     } catch (err) {
@@ -134,7 +174,20 @@ export default function EditSubject() {
 
   /* ================= LOADING ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading subject details..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Subject Details..."
+          />
+        </div>
+      </div>
+    );
   }
 
   if (error && typeof error === 'object') {
@@ -156,16 +209,37 @@ export default function EditSubject() {
 
   return (
     <div className="container-fluid">
-      {/* HEADER */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow mb-4">
-        <h3 className="fw-bold">
-          <FaBookOpen className="me-2" />
-          Edit Subject
-        </h3>
-        <p className="opacity-75 mb-0">Update subject details</p>
+       <div
+      className="edit-subject-breadcrumb"
+      style={{
+        width: "100%",
+        margin: "10px auto",
+        paddingTop: "5px",
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard/college-admin" },
+            { label: "Subjects", path: "/subjects" },
+            { label: "Edit Subject" },
+          ]}
+        />
       </div>
+    </div>
 
-      {error && typeof error === 'string' && <div className="alert alert-danger">{error}</div>}
+
+{/* HEADER */}
+
+
+<PageHeader
+  icon={FaBookOpen}
+  title="Edit Subject"
+  subtitle="Update subject details"
+/>
+
+      {error && typeof error === 'string' && 
+      <div className="alert alert-danger">{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="card shadow-lg border-0 rounded-4">
@@ -217,11 +291,96 @@ export default function EditSubject() {
                 name="teacher_id"
                 value={formData.teacher_id}
                 onChange={handleChange}
-                options={teachers.map((t) => ({
-                  value: t._id,
-                  label: `${t.name} (${t.designation})`,
-                }))}
+                options={(() => {
+                  const list = Array.isArray(teachers) ? teachers : [];
+                  const assignedId = formData.teacher_id;
+                  const assignedTeacher = list.find((t) => t._id === assignedId);
+                  const missingAssigned =
+                    assignedId && !assignedTeacher
+                      ? { _id: assignedId, name: "Currently Assigned Teacher", designation: "" }
+                      : null;
+                  return [
+                    ...list,
+                    ...(missingAssigned ? [missingAssigned] : []),
+                  ].map((t) => ({
+                    value: t._id,
+                    label: `${t.name} (${t.designation})`,
+                  }));
+                })()}
               />
+
+              {/* ============ EXAM / MARKS CONFIGURATION ============ */}
+              <div className="col-12">
+                <hr />
+                <h5 className="mt-2 mb-3">Exam / Marks Configuration</h5>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold">Subject Type</label>
+                    <select
+                      className="form-control"
+                      name="subjectType"
+                      value={formData.subjectType}
+                      onChange={handleChange}
+                    >
+                      <option value="">Not configured</option>
+                      <option value="THEORY">THEORY</option>
+                      <option value="PRACTICAL">PRACTICAL</option>
+                      <option value="COMPOSITE">COMPOSITE</option>
+                    </select>
+                  </div>
+
+                  {formData.subjectType === "THEORY" && (
+                    <>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Internal Max Marks</label>
+                        <input className="form-control" type="number" min="0" name="internalMaxMarks" value={formData.internalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">External Max Marks</label>
+                        <input className="form-control" type="number" min="0" name="externalMaxMarks" value={formData.externalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Internal Pass Marks</label>
+                        <input className="form-control" type="number" min="0" name="internalPassMarks" value={formData.internalPassMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">External Pass Marks</label>
+                        <input className="form-control" type="number" min="0" name="externalPassMarks" value={formData.externalPassMarks} onChange={handleChange} />
+                      </div>
+                    </>
+                  )}
+
+                  {formData.subjectType === "PRACTICAL" && (
+                    <>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Applicable Maximum Marks</label>
+                        <input className="form-control" type="number" min="0" name="internalMaxMarks" value={formData.internalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Pass Marks</label>
+                        <input className="form-control" type="number" min="0" name="passMarks" value={formData.passMarks} onChange={handleChange} />
+                      </div>
+                    </>
+                  )}
+
+                  {formData.subjectType === "COMPOSITE" && (
+                    <>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Internal Max Marks</label>
+                        <input className="form-control" type="number" min="0" name="internalMaxMarks" value={formData.internalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">External Max Marks</label>
+                        <input className="form-control" type="number" min="0" name="externalMaxMarks" value={formData.externalMaxMarks} onChange={handleChange} />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold">Pass Marks</label>
+                        <input className="form-control" type="number" min="0" name="passMarks" value={formData.passMarks} onChange={handleChange} />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -247,6 +406,7 @@ export default function EditSubject() {
         .gradient-header {
           background: linear-gradient(180deg, #0f3a4a, #134952);
         }
+
       `}</style>
     </div>
   );
@@ -264,11 +424,19 @@ function Input({ label, ...props }) {
 
 /* SELECT */
 function Select({ label, options, ...props }) {
+  const isEmpty = options.length === 0;
   return (
     <div className="col-md-6">
       <label className="form-label fw-semibold">{label}</label>
-      <select className="form-control" {...props} required>
-        <option value="">Select {label}</option>
+      <select
+        className="form-control"
+        {...props}
+        disabled={isEmpty}
+        required
+      >
+        <option value="">
+          {isEmpty ? "No teachers available" : `Select ${label}`}
+        </option>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}

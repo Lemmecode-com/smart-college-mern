@@ -18,10 +18,9 @@ export default function SidebarSection({
   children,
   ariaLabel,
   isActive = false,
-  isCollapsed = false
-}) {
-  const location = useLocation();
+  isCollapsed = false,
 
+}) {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -60,7 +59,9 @@ export default function SidebarSection({
         role="group"
         aria-label={`${title} submenu`}
       >
-        {children}
+        <div className="submenu-inner">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -74,7 +75,15 @@ export default function SidebarSection({
  * - Visible focus state
  * - Consistent indentation
  */
-export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick, exact = false }) {
+export function SidebarSubItem({
+  to,
+  icon: Icon,
+  label,
+  ariaLabel,
+  onClick,
+  exact = false,
+  className = "",
+}) {
   const location = useLocation();
 
   // Check if current route matches or is a child of the target path
@@ -83,9 +92,12 @@ export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick, exac
   return (
     <NavLink
       to={to}
-      className={({ isActive: linkIsActive }) =>
-        `sub-link ${linkIsActive || isActive ? "active-sublink" : ""}`
-      }
+      end={exact}
+className={({ isActive: linkIsActive }) =>
+  `sub-link ${className} ${
+    linkIsActive || isActive ? "active-sublink" : ""
+  }`.trim()
+}
       role="menuitem"
       aria-label={ariaLabel || label}
       aria-current={isActive ? "page" : undefined}

@@ -7,6 +7,7 @@ const AppError = require("../utils/AppError");
 const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
 const { isValidSlotType } = require("../utils/constants");
 const { cache: scheduleCache } = require("../services/scheduleCache.service");
+const { findTeacherConflictSlot } = require("../services/exceptionValidation.service");
 
 /**
  * ADD SLOT (HOD ONLY)
@@ -82,6 +83,17 @@ exports.addSlot = async (req, res, next) => {
       throw new AppError("Subject does not belong to this course", 404, "SUBJECT_NOT_FOUND");
     }
 
+    /* ================= SEMESTER VALIDATION ================= */
+    // The subject's semester must match the timetable's semester.
+    // Prevents assigning Semester 1 subjects to a Semester 2 timetable.
+    if (Number(subject.semester) !== Number(timetable.semester)) {
+      throw new AppError(
+        `Subject "${subject.name}" belongs to semester ${subject.semester}, but the timetable is for semester ${timetable.semester}. Only subjects from semester ${timetable.semester} can be assigned.`,
+        400,
+        "SUBJECT_SEMESTER_MISMATCH"
+      );
+    }
+
     /* ================= TEACHER VALIDATION ================= */
     const teacher = await Teacher.findOne({
       _id: teacher_id,
@@ -136,16 +148,17 @@ exports.addSlot = async (req, res, next) => {
     }
 
     /* ================= TEACHER DOUBLE BOOKING ================= */
-    const teacherConflict = await TimetableSlot.findOne({
-      college_id: collegeId,
-      teacher_id,
+    // Scoped to the target timetable's active academic context (semester +
+    // academicYear, DRAFT/PUBLISHED only) so that ARCHIVED or different-
+    // semester/academic-year timetables do NOT produce false conflicts.
+    const teacherConflict = await findTeacherConflictSlot({
+      collegeId: collegeId,
+      teacherId: teacher_id,
       day,
-      $expr: {
-        $and: [
-          { $lt: ["$startTime", endTime] },
-          { $gt: ["$endTime", startTime] },
-        ],
-      },
+      startTime,
+      endTime,
+      academicYear: timetable.academicYear,
+      semester: timetable.semester,
     });
 
     if (teacherConflict) {
@@ -252,6 +265,27 @@ exports.updateSlot = async (req, res, next) => {
       updateData.division = timetable.division;
     }
 
+    /* ================= SEMESTER VALIDATION ON SUBJECT CHANGE ================= */
+    // If the subject is being changed, validate that the new subject's
+    // semester matches the timetable's semester.
+    if (req.body.subject_id && req.body.subject_id !== slot.subject_id.toString()) {
+      const newSubject = await Subject.findOne({
+        _id: req.body.subject_id,
+        course_id: timetable.course_id,
+        college_id: req.college_id,
+      });
+      if (!newSubject) {
+        throw new AppError("Subject does not belong to this course", 404, "SUBJECT_NOT_FOUND");
+      }
+      if (Number(newSubject.semester) !== Number(timetable.semester)) {
+        throw new AppError(
+          `Subject "${newSubject.name}" belongs to semester ${newSubject.semester}, but the timetable is for semester ${timetable.semester}. Only subjects from semester ${timetable.semester} can be assigned.`,
+          400,
+          "SUBJECT_SEMESTER_MISMATCH"
+        );
+      }
+    }
+
     /* ================= SLOT TYPE VALIDATION ================= */
     // Explicit validation so invalid values return a clear HTTP 400
     // instead of relying on the Mongoose enum ValidationError.
@@ -283,6 +317,34 @@ exports.updateSlot = async (req, res, next) => {
       }
 
       console.log(`✅ Teacher update validated: ${newTeacher.name} is assigned to ${subject.name}`);
+    }
+
+    /* ================= TEACHER DOUBLE BOOKING ON UPDATE ================= */
+    // Effective values: use the incoming value if provided, else the slot's
+    // current value. Scoped to the target timetable's active academic context
+    // (semester + academicYear, DRAFT/PUBLISHED) so ARCHIVED or different-
+    // semester/academic-year timetables do not produce false conflicts.
+    // Exclude the slot being updated so it never conflicts with itself.
+    const effectiveTeacherId = req.body.teacher_id || slot.teacher_id;
+    const effectiveDay = req.body.day || slot.day;
+    const effectiveStartTime = req.body.startTime || slot.startTime;
+    const effectiveEndTime = req.body.endTime || slot.endTime;
+
+    const teacherConflict = await findTeacherConflictSlot({
+      collegeId: req.college_id,
+      teacherId: effectiveTeacherId,
+      day: effectiveDay,
+      startTime: effectiveStartTime,
+      endTime: effectiveEndTime,
+      academicYear: timetable.academicYear,
+      semester: timetable.semester,
+      excludeSlotId: slotId,
+    });
+
+    if (teacherConflict) {
+      return res.status(409).json({
+        message: "Teacher already assigned at this time",
+      });
     }
 
     /* STEP 6: Update slot (NO publish restriction now) */

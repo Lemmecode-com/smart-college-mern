@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
@@ -179,7 +180,22 @@ export default function EditParent() {
     }
   };
 
-  if (loading) return <Loading fullScreen size="lg" text="Loading parent profile..." />;
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading parent profile..."
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (error && typeof error === "object") {
     return (
@@ -203,6 +219,25 @@ export default function EditParent() {
         className="dashboard-wrapper"
       >
         <div className="dashboard-container-inner">
+          {/* ================= BREADCRUMB ================= */}
+          <div
+            style={{
+              width: "100%",
+              margin: "10px auto",
+              paddingTop: "5px",
+            }}
+          >
+            <div style={{ width: "100%" }}>
+              <Breadcrumb
+                items={[
+                  { label: "Dashboard", path: "/dashboard" },
+                  { label: "Parent Management", path: "/college/parents" },
+                  { label: "Edit Profile" },
+                ]}
+              />
+            </div>
+          </div>
+
           <motion.div
             variants={slideDownVariants}
             initial="hidden"

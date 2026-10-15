@@ -3,6 +3,8 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ChangeEmailModal from "../../../components/ChangeEmailModal";
 import {
@@ -256,7 +258,20 @@ export default function EditTeacherProfile() {
   };
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Profile..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Teacher Profile..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -271,94 +286,73 @@ export default function EditTeacherProfile() {
       }}
     >
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-        {/* Header */}
-        <motion.div
-          initial={{ y: -20 }}
-          animate={{ y: 0 }}
+         {/* ================= BREADCRUMB ================= */}
+        <div
           style={{
-            marginBottom: "1.5rem",
-            backgroundColor: "white",
-            borderRadius: "12px",
-            padding: "1rem 1.5rem",
-            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "1rem",
+            width: "100%",
+            margin: "10px auto",
+            paddingTop: "5px",
           }}
         >
-          <div
-            style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}
-          >
-            <button
-              onClick={handleBack}
-              disabled={saving}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: "1.25rem",
-                color: BRAND_COLORS.primary.main,
-                cursor: saving ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <FaArrowLeft />
-            </button>
-            <div>
-              <h2
-                style={{
-                  margin: 0,
-                  fontSize: "1.5rem",
-                  fontWeight: 700,
-                  color: "#1e293b",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                }}
-              >
-                <FaUserTie style={{ color: BRAND_COLORS.primary.main }} />
-                Edit My Profile
-              </h2>
-              <p
-                style={{
-                  margin: "0.25rem 0 0 0",
-                  color: "#64748b",
-                  fontSize: "0.9rem",
-                }}
-              >
-                Update your personal and professional details
-              </p>
-            </div>
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/teacher/dashboard" },
+                { label: "My Profile", path: "/profile/my-profile" },
+                { label: "Edit Profile" },
+              ]}
+            />
           </div>
-          {unsavedChanges && (
-            <div
-              style={{
-                padding: "0.5rem 1rem",
-                backgroundColor: `${BRAND_COLORS.warning.main}15`,
-                color: BRAND_COLORS.warning.main,
-                borderRadius: "20px",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-              }}
-            >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  backgroundColor: "currentColor",
-                  display: "inline-block",
-                }}
-              />
-              Unsaved Changes
-            </div>
-          )}
-        </motion.div>
+        </div>
+     
+{/* ================= PAGE HEADER ================= */}
+
+<PageHeader
+  icon={FaUserTie}
+  title="Edit My Profile"
+  subtitle="Update your personal and professional details"
+  actions={
+    <>
+      {unsavedChanges && (
+        <div
+          style={{
+            padding: "0.7rem 1rem",
+            backgroundColor: "rgba(255, 193, 7, 0.12)",
+            color: "#ffc107",
+            border: "1px solid rgba(255, 193, 7, 0.25)",
+            borderRadius: "10px",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: "currentColor",
+            }}
+          />
+          Unsaved Changes
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={handleBack}
+        disabled={saving}
+        className="erp-standard-back-btn"
+      >
+        <FaArrowLeft style={{ marginRight: "0.55rem", marginBottom: "3px" }} />
+        Back
+      </button>
+    </>
+  }
+/>
 
         {/* Form */}
         <motion.div
@@ -1017,6 +1011,38 @@ export default function EditTeacherProfile() {
       />
 
       <style>{`
+      .erp-standard-back-btn {
+      
+  background: rgba(255, 255, 255, 0.10);
+  color: #ffffff;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  padding: 0.7rem 1rem;
+  height: 44px;
+  font-weight: 600;
+  border-radius: 10px;
+  box-shadow: none;
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+  
+}
+
+.erp-standard-back-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+}
+
+.erp-standard-back-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 767.98px) {
+  .erp-standard-back-btn {
+    min-width: 105px;
+    height: 48px;
+    padding: 0 1rem;
+  }
+}
         .spin {
           animation: spin 1s linear infinite;
         }

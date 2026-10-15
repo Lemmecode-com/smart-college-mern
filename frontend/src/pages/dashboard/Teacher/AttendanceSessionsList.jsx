@@ -3,6 +3,7 @@ import api from "../../../api/axios";
 import CreateSessionModal from "./CreateSessionModal";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
 import {
   FaClipboardList,
   FaCheckCircle,
@@ -13,7 +14,6 @@ import {
   FaUsers,
   FaSyncAlt,
   FaPlus,
-  FaArrowLeft,
   FaInfoCircle,
   FaBell,
   FaQrcode,
@@ -133,7 +133,20 @@ export default function AttendanceSessionsList() {
   const totalStudents = sessions.reduce((sum, s) => sum + (s.totalStudents || 0), 0);
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Attendance Sessions..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Attendance Sessions..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -153,44 +166,12 @@ export default function AttendanceSessionsList() {
       >
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/teacher/dashboard')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back to Dashboard
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>Attendance Sessions</span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "Attendance Sessions" },
+            ]}
+          />
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -199,8 +180,8 @@ export default function AttendanceSessionsList() {
             animate="visible"
             style={{
               marginBottom: '1.5rem',
-              backgroundColor: 'white',
-              borderRadius: '1.5rem',
+              backgroundColor: '#0E3746',
+              borderRadius: '12px',
               overflow: 'hidden',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
@@ -208,15 +189,16 @@ export default function AttendanceSessionsList() {
               gap: '1.5rem'
             }}
           >
-            <div style={{
-              padding: '1.75rem 2rem',
-              background: BRAND_COLORS.primary.gradient,
+            <div className="attendance-banner-content" style={{
+              padding: '1.2rem 1.75rem',
+              background: '#0E3746',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '1.5rem'
+              gap: '1.5rem',
+              height: '80px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div
@@ -224,16 +206,16 @@ export default function AttendanceSessionsList() {
                   initial="initial"
                   animate="pulse"
                   style={{
-                    width: '72px',
-                    height: '72px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                    width: '52px',
+                    height: '52px',
+                    minWidth: '52px',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.18)',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2rem',
-                    flexShrink: 0,
-                    boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3)'
+                    fontSize: '1.7rem',
                   }}
                 >
                   <FaClipboardList />
@@ -241,31 +223,35 @@ export default function AttendanceSessionsList() {
                 <div>
                   <h1 style={{
                     margin: 0,
-                    fontSize: '2rem',
+                    fontSize: '1.625rem',
                     fontWeight: 700,
-                    lineHeight: 1.2
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.25,
                   }}>
                     Attendance Sessions
                   </h1>
                   <p style={{
-                    margin: '0.5rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '1.1rem'
+                    margin: 0,
+                    opacity: 0.8,
+                    fontSize: '0.9rem',
+                    fontWeight: 400,
+                    lineHeight: 1.5,
                   }}>
                     Manage and monitor all your attendance sessions
                   </p>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <div className="attendance-banner-actions" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(40, 167, 69, 0.4)' }}
+                  whileHover={{ transform: 'translateY(-2px)' }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowModal(true)}
                   style={{
-                    backgroundColor: BRAND_COLORS.success.main,
-                    color: 'white',
+                    backgroundColor: 'white',
+                    color: '#0E3746',
                     border: 'none',
-                    padding: '0.75rem 1.5rem',
+                    padding: '0 1.5rem',
+                    height: '42px',
                     borderRadius: '12px',
                     fontSize: '0.95rem',
                     fontWeight: 600,
@@ -273,21 +259,21 @@ export default function AttendanceSessionsList() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
+                   
                   }}
                 >
                   <FaPlus /> Create Session
                 </motion.button>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
+                  whileHover={{ transform: 'translateY(-2px)' }}
                   whileTap={{ scale: 0.95 }}
                   onClick={fetchSessions}
                   style={{
                     backgroundColor: 'rgba(255, 255, 255, 0.2)',
                     color: 'white',
                     border: '2px solid rgba(255, 255, 255, 0.4)',
-                    padding: '0.75rem 1.5rem',
+                    padding: '0 1.5rem',
+                    height: '42px',
                     borderRadius: '12px',
                     fontSize: '0.95rem',
                     fontWeight: 600,
@@ -295,7 +281,7 @@ export default function AttendanceSessionsList() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    transition: 'all 0.3s ease'
+                    
                   }}
                 >
                   <FaSyncAlt /> Refresh
@@ -314,7 +300,7 @@ export default function AttendanceSessionsList() {
               flexWrap: 'wrap',
               gap: '1.5rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
+              <div className="attendance-stats-grid" style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
                 <StatItem
                   icon={<FaClipboardList />}
                   label="Total Sessions"
@@ -356,6 +342,152 @@ export default function AttendanceSessionsList() {
               </div>
             </div>
           </motion.div>
+
+
+
+<style>{`
+  @media (max-width: 991px) {
+
+  /* =========================================
+   ATTENDANCE STATISTICS - 2 x 2
+   ========================================= */
+
+.attendance-stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 1.5rem !important;
+  width: 100% !important;
+}
+
+.attendance-stats-grid > div {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+    .attendance-banner-content {
+      padding: 1.25rem !important;
+      gap: 1.25rem !important;
+    }
+
+    .attendance-banner-content > div:first-child {
+      width: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 1rem !important;
+    }
+
+    .attendance-banner-content > div:first-child > div:first-child {
+      width: 60px !important;
+      height: 60px !important;
+      min-width: 60px !important;
+      font-size: 1.5rem !important;
+      border-radius: 14px !important;
+    }
+
+    .attendance-banner-content h1 {
+      font-size: 1.6rem !important;
+      line-height: 1.2 !important;
+      margin: 0 !important;
+    }
+
+    .attendance-banner-content p {
+      font-size: 0.9rem !important;
+      line-height: 1.4 !important;
+      margin-top: 0.4rem !important;
+    }
+
+    .attendance-banner-actions {
+      width: 100% !important;
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 10px !important;
+    }
+
+    .attendance-banner-actions button {
+      flex: 1 !important;
+      width: 50% !important;
+      min-width: 0 !important;
+      height: 48px !important;
+      padding: 0 8px !important;
+
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+
+      font-size: 0.9rem !important;
+      white-space: nowrap !important;
+      border-radius: 10px !important;
+    }
+  }
+
+  @media (max-width: 575px) {
+
+    .attendance-stats-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 1.25rem !important;
+}
+
+.attendance-stats-grid > div {
+  gap: 0.65rem !important;
+}
+
+.attendance-stats-grid > div > div:first-child {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+}
+
+.attendance-stats-grid > div > div:last-child {
+  min-width: 0 !important;
+}
+
+.attendance-stats-grid > div > div:last-child > div:first-child {
+  font-size: 0.85rem !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+}
+
+.attendance-stats-grid > div > div:last-child > div:last-child {
+  font-size: 1.5rem !important;
+}
+
+    .attendance-banner-content {
+      padding: 1rem !important;
+      gap: 1rem !important;
+    }
+
+    .attendance-banner-content > div:first-child {
+      gap: 0.75rem !important;
+    }
+
+    .attendance-banner-content > div:first-child > div:first-child {
+      width: 52px !important;
+      height: 52px !important;
+      min-width: 52px !important;
+      font-size: 1.3rem !important;
+    }
+
+    .attendance-banner-content h1 {
+      font-size: 1.3rem !important;
+    }
+
+    .attendance-banner-content p {
+      font-size: 0.78rem !important;
+      line-height: 1.35 !important;
+    }
+
+    .attendance-banner-actions {
+      gap: 8px !important;
+    }
+
+    .attendance-banner-actions button {
+      height: 44px !important;
+      font-size: 0.76rem !important;
+      padding: 0 5px !important;
+    }
+  }
+`}</style>
+
 
           {/* ================= ERROR STATE ================= */}
           {error && (

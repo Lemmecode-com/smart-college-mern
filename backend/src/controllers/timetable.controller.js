@@ -5,6 +5,8 @@ const AttendanceSession = require("../models/attendanceSession.model");
 const AuditLog = require("../models/auditLog.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
+const Student = require("../models/student.model");
+const Notification = require("../models/notification.model");
 const mongoose = require("mongoose");
 const AppError = require("../utils/AppError");
 const {
@@ -16,6 +18,7 @@ const teacherService = require("../services/teacher.service");
 const timetableScheduleService = require("../services/timetableSchedule.service");
 const ApiResponse = require("../utils/ApiResponse");
 const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
+const logger = require("../utils/logger");
 
 /* =========================================================
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
@@ -51,17 +54,23 @@ exports.createTimetable = async (req, res) => {
           });
         }
 
-       const exists = await Timetable.findOne({
-         college_id: req.college_id,
-         department_id,
-         course_id,
-         semester,
-         academicYear,
-         division: normalizedDivision,
-       });
+        const exists = await Timetable.findOne({
+          college_id: req.college_id,
+          department_id,
+          course_id,
+          semester,
+          academicYear,
+          division: normalizedDivision,
+          // Only an active (DRAFT/PUBLISHED) timetable blocks creation.
+          // ARCHIVED timetables are historical records and must NOT prevent
+          // a new timetable for the same academic context.
+          status: { $in: ["DRAFT", "PUBLISHED"] },
+        });
 
       if (exists) {
-        return res.status(400).json({ message: "Timetable already exists" });
+        return res.status(400).json({
+          message: "An active timetable already exists for this course, semester, academic year, and division.",
+        });
       }
 
       const course = await Course.findById(course_id).select("name yearLabels");
@@ -161,6 +170,59 @@ exports.publishTimetable = async (req, res) => {
       console.error("Audit log failed for timetable publication:", err.message),
     );
 
+    // Fire-and-forget student notification
+    (async () => {
+      try {
+        const activeStudentStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
+        const studentQuery = {
+          college_id: req.college_id,
+          department_id: timetable.department_id,
+          course_id: timetable.course_id,
+          currentSemester: timetable.semester,
+          currentAcademicYear: timetable.academicYear,
+          status: { $in: activeStudentStatuses },
+        };
+
+        if (timetable.division) {
+          studentQuery.division = timetable.division;
+        }
+
+        const affectedStudents = await Student.find(studentQuery)
+          .select("user_id")
+          .lean();
+
+        const userIds = affectedStudents
+          .map((s) => s.user_id)
+          .filter(Boolean);
+
+        if (userIds.length > 0) {
+          await Notification.create({
+            college_id: req.college_id,
+            createdBy: req.user.id,
+            createdByRole: "HOD",
+            createdByDepartment: teacher.department_id,
+            target: "INDIVIDUAL",
+            target_users: userIds,
+            title: "📅 Exam Timetable Published",
+            message: `Exam timetable for ${timetable.name} has been published.`,
+            type: "EXAM",
+            priority: "HIGH",
+            actionUrl: "/student/timetable",
+          });
+          logger.logInfo("Exam timetable notification sent", {
+            collegeId: req.college_id,
+            timetableId: timetable._id,
+            recipientCount: userIds.length,
+          });
+        }
+      } catch (notifErr) {
+        logger.logError("Failed to send exam timetable notification", {
+          error: notifErr.message,
+          timetableId: timetable._id,
+        });
+      }
+    })();
+
     ApiResponse.success(
       res,
       {
@@ -251,6 +313,109 @@ exports.archiveTimetable = async (req, res) => {
   } catch (error) {
     console.error("Archive Timetable Error:", error);
     res.status(500).json({ message: "Failed to archive timetable" });
+  }
+};
+
+/* =========================================================
+    UNARCHIVE TIMETABLE (HOD only)
+    — Restores an ARCHIVED timetable to DRAFT so it can be edited/re-published.
+    — Blocks unarchive if an active (DRAFT/PUBLISHED) timetable already exists
+      for the same academic context (would violate the one-active rule).
+    — Audit log: TIMETABLE_UNARCHIVED
+ ========================================================= */
+exports.unarchiveTimetable = async (req, res) => {
+  try {
+    const timetable = await Timetable.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    });
+
+    if (!timetable) {
+      return res.status(404).json({ message: "Timetable not found" });
+    }
+
+    if (timetable.status !== "ARCHIVED") {
+      return res.status(400).json({
+        message: "Only archived timetables can be unarchived.",
+      });
+    }
+
+    // 🔒 SECURITY: Verify HOD department ownership (defense-in-depth)
+    const teacher = await teacherService.getTeacherWithValidation(
+      req.user.id,
+      req.college_id,
+    );
+    const { isHOD } = await teacherService.getHODStatus(teacher);
+
+    if (!isHOD) {
+      return res.status(403).json({
+        message: "Access denied: Only HOD can unarchive timetable",
+      });
+    }
+
+    if (timetable.department_id.toString() !== teacher.department_id.toString()) {
+      return res.status(403).json({
+        message: "Access denied: You can only unarchive timetables for your own department",
+      });
+    }
+
+    // CONFLICT CHECK: block unarchive if an active timetable already exists
+    // for the same academic context (would violate the one-active rule).
+    const activeConflict = await Timetable.findOne({
+      college_id: req.college_id,
+      department_id: timetable.department_id,
+      course_id: timetable.course_id,
+      semester: timetable.semester,
+      academicYear: timetable.academicYear,
+      division: timetable.division,
+      status: { $in: ["DRAFT", "PUBLISHED"] },
+      _id: { $ne: timetable._id },
+    });
+
+    if (activeConflict) {
+      return res.status(409).json({
+        message:
+          "An active timetable already exists for this course, semester, academic year, and division. Archive or modify the active timetable before unarchiving this timetable.",
+      });
+    }
+
+    timetable.status = "DRAFT";
+    await timetable.save();
+
+    // Fire-and-forget audit log
+    AuditLog.create({
+      collegeId: req.college_id,
+      userId: req.user.id,
+      userEmail: req.user.email,
+      userRole: req.user.role,
+      action: "TIMETABLE_UNARCHIVED",
+      resourceType: "Timetable",
+      resourceId: timetable._id,
+      ipAddress: req.ip || req.connection.remoteAddress || "unknown",
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        status: "ARCHIVED",
+      },
+      newValues: {
+        status: "DRAFT",
+      },
+    }).catch((err) =>
+      console.error("Audit log failed for timetable unarchival:", err.message),
+    );
+
+    ApiResponse.success(
+      res,
+      {
+        timetable,
+      },
+      "Timetable unarchived successfully",
+    );
+  } catch (error) {
+    console.error("Unarchive Timetable Error:", error);
+    res.status(500).json({ message: "Failed to unarchive timetable" });
   }
 };
 
@@ -800,6 +965,8 @@ exports.getStudentTimetable = async (req, res) => {
 
     const filteredSlots = slots.filter((slot) => {
       if (!slot.timetable_id) return false;
+      if (slot.timetable_id.semester !== student.currentSemester) return false;
+      if (slot.timetable_id.academicYear !== student.currentAcademicYear) return false;
       if (slot.timetable_id.division) {
         return student.division && slot.timetable_id.division === student.division;
       }
@@ -925,10 +1092,14 @@ exports.getStudentTodayTimetable = async (req, res) => {
     const todayDayName = getDayName(today);
     const todayStr = today.toISOString().split("T")[0];
 
-    // Find all PUBLISHED timetables for student's course and division
+    // Find all PUBLISHED timetables matching student's course, current
+    // semester, current academic year, and division.
     const timetableQuery = {
       college_id: req.college_id,
+      department_id: student.department_id,
       course_id: student.course_id,
+      semester: student.currentSemester,
+      academicYear: student.currentAcademicYear,
       status: "PUBLISHED",
     };
     if (student.division) {

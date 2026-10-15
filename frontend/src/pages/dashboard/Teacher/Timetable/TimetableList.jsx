@@ -4,6 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
 import { logger } from "../../../../utils/logger";
@@ -89,6 +90,7 @@ export default function TimetableList() {
   const [deletingId, setDeletingId] = useState(null);
   const [publishingId, setPublishingId] = useState(null);
   const [archivingId, setArchivingId] = useState(null);
+  const [unarchivingId, setUnarchivingId] = useState(null);
   const [activeTab, setActiveTab] = useState("active");
   const [stats, setStats] = useState({ total: 0, published: 0, draft: 0, archived: 0 });
   const [confirmModal, setConfirmModal] = useState({
@@ -301,36 +303,79 @@ export default function TimetableList() {
      }
    };
 
-   /* ================= ARCHIVE TIMETABLE ================= */
-    const confirmArchiveTimetable = async () => {
-      setArchivingId(confirmModal.id);
+    /* ================= ARCHIVE TIMETABLE ================= */
+     const confirmArchiveTimetable = async () => {
+       setArchivingId(confirmModal.id);
+       try {
+         await api.put(`/timetable/${confirmModal.id}/archive`);
+         fetchTimetables();
+         fetchStats();
+         toast.success("Timetable archived successfully!", {
+           position: "top-right",
+           autoClose: 3000,
+           icon: <FaArchive />
+         });
+      } catch (err) {
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        if (!isAuthError) {
+          const errorMsg = err.response?.data?.message || "Failed to archive timetable. Please try again.";
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />
+          });
+        }
+      } finally {
+        setArchivingId(null);
+        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+      }
+     };
+
+    /* ================= UNARCHIVE TIMETABLE ================= */
+    const showUnarchiveConfirm = (id) => {
+      setConfirmModal({
+        isOpen: true,
+        action: "unarchive",
+        id: id,
+        title: "Unarchive Timetable?",
+        message: "Are you sure you want to unarchive this timetable? It will be restored to DRAFT status and can be edited and published again.",
+        type: "info"
+      });
+    };
+
+    const confirmUnarchiveTimetable = async () => {
+      setUnarchivingId(confirmModal.id);
       try {
-        await api.put(`/timetable/${confirmModal.id}/archive`);
-        fetchTimetables();
+        await api.put(`/timetable/${confirmModal.id}/unarchive`);
+        fetchArchivedTimetables();
         fetchStats();
-        toast.success("Timetable archived successfully!", {
+        toast.success("Timetable unarchived successfully!", {
           position: "top-right",
           autoClose: 3000,
-          icon: <FaArchive />
+          icon: <FaUnlock />
         });
-     } catch (err) {
-       const statusCode = err.response?.status;
-       const errorCode = err.response?.data?.code;
-       const isAuthError =
-         statusCode === 401 ||
-         (errorCode && AUTH_ERROR_CODES.has(errorCode));
-       if (!isAuthError) {
-         const errorMsg = err.response?.data?.message || "Failed to archive timetable. Please try again.";
-         toast.error(errorMsg, {
-           position: "top-right",
-           autoClose: 5000,
-           icon: <FaExclamationTriangle />
-         });
-       }
-     } finally {
-       setArchivingId(null);
-       setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
-     }
+      } catch (err) {
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const isAuthError =
+          statusCode === 401 ||
+          (errorCode && AUTH_ERROR_CODES.has(errorCode));
+        if (!isAuthError) {
+          const errorMsg = err.response?.data?.message || "Failed to unarchive timetable. Please try again.";
+          toast.error(errorMsg, {
+            position: "top-right",
+            autoClose: 5000,
+            icon: <FaExclamationTriangle />
+          });
+        }
+      } finally {
+        setUnarchivingId(null);
+        setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" });
+      }
     };
 
     const handleGoBack = () => {
@@ -345,9 +390,27 @@ export default function TimetableList() {
      }
    };
 
-   if (initialLoading && timetables.length === 0 && archivedTimetables.length === 0) {
-     return <Loading fullScreen size="lg" text="Loading Timetables..." />;
-   }
+  // Loading State
+if (
+  initialLoading &&
+  timetables.length === 0 &&
+  archivedTimetables.length === 0
+) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Timetables..."
+        />
+      </div>
+    </div>
+  );
+}
 
    if (error) {
      return (
@@ -379,46 +442,23 @@ export default function TimetableList() {
       >
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(-1)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>
-              Timetable Management
-            </span>
-          </motion.div>
+              <div
+                style={{
+                  width: "100%",
+                  margin: "10px auto",
+                  paddingBottom: "70px",
+                  height: "40px",
+                }}
+              >
+                <div style={{ width: "100%" }}>
+                  <Breadcrumb
+                    items={[
+                      { label: "Dashboard", path: "/hod/dashboard" },
+                      { label: "Timetable Management" },
+                    ]}
+                  />
+                </div>
+              </div>
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -428,23 +468,28 @@ export default function TimetableList() {
             style={{
               marginBottom: '2rem',
               backgroundColor: 'white',
-              borderRadius: '1.5rem',
+              borderRadius: '14px',
               overflow: 'hidden',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.5rem'
+              // padding: '1.5rem 2rem',
+              // gap: '1.5rem',
+              // paddingBottom: '2rem',
+              height: '165px',
+   
             }}
           >
             <div className="erp-timetable-hero-inner" style={{
-              padding: '2rem',
-              background: BRAND_COLORS.primary.gradient,
+              padding: '1.5rem 2rem',
+              background: '#0E3746',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '1.5rem'
+              gap: '1.5rem',
+              height: '92px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div
@@ -453,14 +498,14 @@ export default function TimetableList() {
                   animate="pulse"
                   className="erp-timetable-hero-icon"
                   style={{
-                    width: '80px',
-                    height: '80px',
+                    width: '52px',
+                    height: '52px',
                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '20px',
+                    borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2.5rem',
+                    fontSize: '1.6rem',
                     flexShrink: 0,
                     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
                   }}
@@ -470,16 +515,19 @@ export default function TimetableList() {
                 <div className="erp-timetable-hero-text">
                   <h1 className="erp-timetable-hero-title" style={{
                     margin: 0,
-                    fontSize: '2.25rem',
+                    fontSize: '1.625rem',
                     fontWeight: 700,
-                    lineHeight: 1.1
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.25,
                   }}>
                     Timetable Management
                   </h1>
                   <p className="erp-timetable-hero-desc" style={{
-                    margin: '0.75rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '1.25rem'
+                    margin: 0,
+                    opacity: 0.8,
+                    fontSize: '0.9rem',
+                    fontWeight: 400,
+                    lineHeight: 1.5,
                   }}>
                     View, manage, and publish academic schedules
                   </p>
@@ -491,21 +539,31 @@ export default function TimetableList() {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate('/timetable/create-timetable')}
                   className="erp-timetable-hero-cta"
-                  style={{
-                    backgroundColor: 'white',
-                    color: BRAND_COLORS.primary.main,
-                    border: '2px solid white',
-                    padding: '0.875rem 1.75rem',
-                    borderRadius: '14px',
-                    fontSize: '1.1rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
-                  }}
+                      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgb(255, 255, 255)",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
                 >
                   <FaPlus /> Create Timetable
                 </motion.button>
@@ -813,9 +871,44 @@ export default function TimetableList() {
                                   transition: 'all 0.2s ease'
                                 }}
                               >
-                                <FaEye size={14} /> View
-                              </motion.button>
-                              
+                                 <FaEye size={14} /> View
+                               </motion.button>
+
+                               {/* UNARCHIVE BUTTON (HOD ONLY) — shown for archived timetables */}
+                               {activeTab === "archived" && isHOD && t.status === "ARCHIVED" && (
+                                 <motion.button
+                                   whileHover={{ scale: 1.05 }}
+                                   whileTap={{ scale: 0.95 }}
+                                   onClick={() => showUnarchiveConfirm(t._id)}
+                                   disabled={unarchivingId === t._id}
+                                   title="Unarchive Timetable"
+                                   style={{
+                                     padding: '0.5rem 0.875rem',
+                                     borderRadius: '10px',
+                                     border: '1px solid #cbd5e1',
+                                     backgroundColor: unarchivingId === t._id ? '#94a3b8' : BRAND_COLORS.info.main,
+                                     color: 'white',
+                                     fontSize: '0.875rem',
+                                     fontWeight: 600,
+                                     cursor: unarchivingId === t._id ? 'not-allowed' : 'pointer',
+                                     display: 'flex',
+                                     alignItems: 'center',
+                                     gap: '0.375rem',
+                                     transition: 'all 0.2s ease',
+                                     boxShadow: unarchivingId === t._id ? 'none' : '0 2px 8px rgba(23, 162, 184, 0.3)'
+                                   }}
+                                 >
+                                   {unarchivingId === t._id ? (
+                                     <motion.div variants={spinVariants} animate="animate">
+                                       <FaSyncAlt size={14} />
+                                     </motion.div>
+                                   ) : (
+                                     <FaUnlock size={14} />
+                                   )}
+                                   {unarchivingId === t._id ? 'Unarchiving...' : 'Unarchive'}
+                                 </motion.button>
+                               )
+}
                               {/* PUBLISH BUTTON (HOD ONLY) — hidden for archived */}
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
                                 <motion.button
@@ -963,28 +1056,34 @@ export default function TimetableList() {
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, action: null, id: null, title: "", message: "", type: "warning" })}
         onConfirm={
-          confirmModal.action === "publish" 
-            ? confirmPublishTimetable 
-            : confirmModal.action === "archive" 
-              ? confirmArchiveTimetable 
-              : confirmDeleteTimetable
+          confirmModal.action === "publish"
+            ? confirmPublishTimetable
+            : confirmModal.action === "archive"
+              ? confirmArchiveTimetable
+              : confirmModal.action === "unarchive"
+                ? confirmUnarchiveTimetable
+                : confirmDeleteTimetable
         }
         title={confirmModal.title}
         message={confirmModal.message}
         type={confirmModal.type}
         confirmText={
-          confirmModal.action === "publish" 
-            ? "Publish" 
-            : confirmModal.action === "archive" 
-              ? "Archive" 
-              : "Delete"
+          confirmModal.action === "publish"
+            ? "Publish"
+            : confirmModal.action === "archive"
+              ? "Archive"
+              : confirmModal.action === "unarchive"
+                ? "Unarchive"
+                : "Delete"
         }
         isLoading={
-          confirmModal.action === "publish" 
-            ? publishingId === confirmModal.id 
-            : confirmModal.action === "archive" 
-              ? archivingId === confirmModal.id 
-              : deletingId === confirmModal.id
+          confirmModal.action === "publish"
+            ? publishingId === confirmModal.id
+            : confirmModal.action === "archive"
+              ? archivingId === confirmModal.id
+              : confirmModal.action === "unarchive"
+                ? unarchivingId === confirmModal.id
+                : deletingId === confirmModal.id
         }
       />
     </AnimatePresence>

@@ -190,16 +190,22 @@ export default function AttendanceSummary() {
   }
 
   /* ================= LOADING STATE ================= */
-  if (loading) {
-    return (
-      <Loading
-        size="lg"
-        color="primary"
-        text="Loading attendance summary reports..."
-        fullScreen={true}
-      />
-    );
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Attendance Summary Reports..."
+        />
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="erp-container">
@@ -207,7 +213,7 @@ export default function AttendanceSummary() {
       <Breadcrumb
         items={[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Reports", path: "/college-admin/reports-dashboard" },
+          { label: "Reports & Analytics",},
           { label: "Attendance Summary" },
         ]}
       />
@@ -323,12 +329,17 @@ export default function AttendanceSummary() {
 
       {/* VISUAL SUMMARY SECTION */}
       <div className="erp-card animate-fade-in">
-        <div className="erp-card-header">
-          <h3>
-            <FaChartPie className="erp-card-icon" />
-            Attendance Visualization
-          </h3>
-        </div>
+<div className="erp-card-header visualization-header">
+  <div>
+    <h3>
+      <FaChartPie className="erp-card-icon" />
+      Attendance Visualization
+    </h3>
+    <p className="erp-card-subtitle">
+      Attendance performance across recorded sessions
+    </p>
+  </div>
+</div>
         <div className="erp-card-body">
           <div className="visual-container">
             {/* CIRCULAR PROGRESS */}
@@ -500,7 +511,7 @@ export default function AttendanceSummary() {
           </div>
 
           <div className="analysis-footer">
-            <div className="footer-note">
+            <div className="analysis-footer-note">
               <FaInfoCircle className="note-icon" />
               <span>
                 * Attendance rate calculated based on estimated class size of 50
@@ -544,46 +555,53 @@ export default function AttendanceSummary() {
         }
         
         .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
+  background: #0E3746;
+  border-radius: 15px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(15, 69, 83, 0.18);
+  color: white;
         }
         
         .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  min-width: 0;
         }
         
         .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.75rem;
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
         }
         
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-        }
+       .erp-page-title {
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
+                }
         
         .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
+          margin: 0;
+          opacity: 0.8;
+          font-size: 0.9rem;
+          font-weight: 400;
+          line-height: 1.5;
+                }
         
         .erp-header-actions {
           display: flex;
@@ -693,6 +711,19 @@ export default function AttendanceSummary() {
           align-items: center;
           gap: 0.5rem;
         }
+          .erp-btn.erp-btn-secondary {
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          border: 0.001rem white solid;
+          height: 2.4rem;
+          border-radius: 8px;
+        }
+
+        .erp-btn.erp-btn-secondary:hover {
+          background: rgba(255, 255, 255, 0.25);
+          transform: translateY(-2px);
+          
+        }
 
         .erp-header-actions .erp-btn:hover {
           transform: translateY(-2px);
@@ -764,23 +795,44 @@ export default function AttendanceSummary() {
         }
         
         .stat-card {
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+          position: relative;
+          background: #ffffff;
+          border: 1px solid #e7edf1;
+          border-radius: 14px;
+          box-shadow: 0 4px 16px rgba(26, 75, 109, 0.06);
           overflow: hidden;
-          transition: all 0.3s ease;
+
           display: flex;
           flex-direction: column;
-          animation: fadeIn 0.5s ease forwards;
+
+          transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            border-color 0.2s ease;
         }
-        
+
+        .stat-card::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 3px;
+        }
+
+        .stat-card:nth-child(1)::before {
+          background: #667eea;
+        }
+
+        .stat-card:nth-child(2)::before {
+          background: #4caf50;
+        }
+
         .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(26, 75, 109, 0.1);
+          border-color: #dbe5eb;
         }
-        
-        .stat-card:nth-child(1) { animation-delay: 0.1s; }
-        .stat-card:nth-child(2) { animation-delay: 0.2s; }
         
         .stat-card-header {
           padding: 1.25rem 1.5rem;
@@ -815,21 +867,22 @@ export default function AttendanceSummary() {
           font-size: 1.05rem;
         }
         
-        .stat-card-body {
-          padding: 1.5rem;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
+.stat-card-body {
+  padding: 1.25rem 1.5rem 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
         
-        .stat-value {
-          font-size: 2.25rem;
-          font-weight: 800;
-          color: #1a4b6d;
-          line-height: 1;
-          margin-bottom: 0.5rem;
-        }
+.stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1a4b6d;
+  line-height: 1;
+  margin: 0.5rem 0 0.65rem;
+  letter-spacing: -0.03em;
+}
         
         .stat-value.attendance { color: #4CAF50; }
         
@@ -851,29 +904,28 @@ export default function AttendanceSummary() {
           font-size: 0.95rem;
         }
         
-        .stat-card-footer {
-          padding: 0.75rem 1.5rem;
-          background: #f8f9fa;
-          border-top: 1px solid #e9ecef;
-          font-size: 0.875rem;
-        }
+.stat-card-footer {
+  padding: 0.8rem 1.5rem;
+  background: #f8fafb;
+  border-top: 1px solid #edf1f3;
+  font-size: 0.78rem;
+}
         
-        .stat-footer-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        
-        .footer-label {
-          color: #6c757d;
-        }
-        
-        .footer-value {
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.375rem;
-        }
+.stat-footer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.footer-label {
+  color: #7a8790;
+}
+
+.footer-value {
+  font-weight: 700;
+  color: #334e60;
+}
         
         .footer-value.excellent { color: #4CAF50; }
         .footer-value.good { color: #8BC34A; }
@@ -895,6 +947,11 @@ export default function AttendanceSummary() {
           background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
           border-bottom: 1px solid #e9ecef;
         }
+          .erp-card-subtitle {
+  margin: 0.25rem 0 0 2rem;
+  font-size: 0.78rem;
+  color: #7b8790;
+}
         
         .erp-card-header h3 {
           margin: 0;
@@ -912,7 +969,7 @@ export default function AttendanceSummary() {
         }
         
         .erp-card-body {
-          padding: 2rem;
+          padding: 1.5rem;
         }
         
         .visual-container {
@@ -931,8 +988,8 @@ export default function AttendanceSummary() {
         }
         
         .progress-circle {
-          width: 200px;
-          height: 200px;
+          width: 180px;
+          height: 180px;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -944,29 +1001,38 @@ export default function AttendanceSummary() {
         .progress-circle::before {
           content: "";
           position: absolute;
-          width: 180px;
-          height: 180px;
+          width: 160px;
+          height: 160px;
           border-radius: 50%;
           background: white;
         }
         
         .progress-center {
-          position: relative;
-          z-index: 1;
-          text-align: center;
-        }
-        
-        .progress-value {
-          font-size: 2.5rem;
-          font-weight: 800;
-          color: #1a4b6d;
-        }
-        
-        .progress-label {
-          font-size: 1.1rem;
-          color: #6c757d;
-          margin-top: 0.25rem;
-        }
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        width: 100%;
+        max-width: 150px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .progress-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1a4b6d;
+        line-height: 1;
+      }
+
+      .progress-label {
+        font-size: 1.1rem;
+        color: #6c757d;
+        margin-top: 0.35rem;
+        line-height: 1.2;
+        white-space: nowrap;
+      }
         
         .progress-legend {
           display: flex;
@@ -1012,20 +1078,28 @@ export default function AttendanceSummary() {
           gap: 1.5rem;
         }
         
-        .metric-item {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.25rem;
-          background: #f8f9fa;
-          border-radius: 12px;
-          transition: all 0.3s ease;
-        }
-        
-        .metric-item:hover {
-          background: #f0f5ff;
-          transform: translateX(5px);
-        }
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+
+  padding: 1rem;
+
+  background: #f8fafb;
+  border: 1px solid #edf1f3;
+  border-radius: 12px;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.metric-item:hover {
+  background: #ffffff;
+  border-color: #dce7ed;
+  transform: translateY(-2px);
+}
         
         .metric-icon {
           width: 40px;
@@ -1054,11 +1128,12 @@ export default function AttendanceSummary() {
           font-weight: 500;
         }
         
-        .metric-value {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1a4b6d;
-        }
+.metric-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #1a4b6d;
+  line-height: 1.1;
+}
         
         .metric-description {
           font-size: 0.85rem;
@@ -1178,8 +1253,8 @@ export default function AttendanceSummary() {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          font-size: 0.875rem;
-          color: #6c757d;
+          font-size: 0.8rem;
+          color: #66727d;
         }
         
         .footer-disclaimer {
@@ -1189,19 +1264,24 @@ export default function AttendanceSummary() {
         }
         
         /* FOOTER NOTE */
-        .footer-note {
-          background: #e8f5e9;
-          border-radius: 12px;
-          padding: 1rem 1.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 1rem;
-          margin-top: 1rem;
-          border-left: 4px solid #4CAF50;
-          font-size: 0.9rem;
-          color: #1b5e20;
-        }
+.footer-note {
+  background: #f7fafb;
+  border: 1px solid #e4ebef;
+  border-left: 3px solid #4CAF50;
+
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  margin-top: 0.5rem;
+
+  font-size: 0.78rem;
+  color: #62717b;
+}
         
         .note-icon {
           font-size: 1.25rem;
@@ -1485,151 +1565,569 @@ export default function AttendanceSummary() {
           animation: fadeIn 0.6s ease;
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 992px) {
-          .visual-container {
-            grid-template-columns: 1fr;
-            text-align: center;
-          }
+/* ================= RESPONSIVE DESIGN ================= */
 
-          .metrics-grid {
-            grid-template-columns: 1fr;
-          }
+/* TABLET */
+@media (min-width: 769px) and (max-width: 992px) {
 
-          .erp-header-actions {
-            flex-direction: column;
-            width: 100%;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+  .erp-container {
+    padding: 1.25rem;
+  }
 
-          .export-actions-group {
-            width: 100%;
-            justify-content: flex-start;
-          }
+  /* HEADER */
+  .erp-page-header {
+    padding: 1.5rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
 
-          .export-buttons {
-            flex-wrap: wrap;
-          }
+  .erp-header-content {
+    justify-content: flex-start;
+  }
 
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
+  .erp-header-actions {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
 
-          .info-banner {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
-        }
+  .export-actions-group {
+    width: auto;
+  }
 
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
+  .export-buttons {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+  }
 
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
+  .btn-export {
+    min-width: 90px;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.8rem;
+  }
 
-          .erp-header-actions {
-            width: 100%;
-            flex-direction: column;
-            align-items: stretch;
-          }
+  .erp-header-actions .erp-btn {
+    width: auto;
+    min-width: 130px;
+    justify-content: center;
+  }
 
-          .export-actions-group {
-            width: 100%;
-            justify-content: center;
-          }
+  /* INFO BANNER */
+  .info-banner {
+    padding: 1rem 1.25rem;
+    gap: 0.85rem;
+  }
 
-          .export-buttons {
-            justify-content: center;
-            gap: 0.5rem;
-          }
+  .info-content {
+    font-size: 0.9rem;
+  }
 
-          .btn-export {
-            min-width: 90px;
-            padding: 0.5rem 1rem;
-            font-size: 0.8rem;
-          }
+  /* STATS */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
 
-          .erp-header-actions .erp-btn {
-            flex: 1;
-            justify-content: center;
-          }
+  .stat-card-header {
+    padding: 1rem 1.25rem;
+  }
 
-          .stats-grid {
-            grid-template-columns: 1fr;
-          }
+  .stat-card-body {
+    padding: 1.25rem;
+  }
 
-          .footer-note {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.75rem;
-          }
+  .stat-value {
+    font-size: 2rem;
+  }
 
-          .refresh-btn {
-            align-self: center;
-          }
+  /* VISUAL SECTION */
+  .erp-card-body {
+    padding: 1.5rem;
+  }
 
-          .visual-container {
-            gap: 1rem;
-          }
+  .visual-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 
-          .progress-circle {
-            width: 160px;
-            height: 160px;
-          }
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
 
-          .progress-value {
-            font-size: 2rem;
-          }
+  /* ANALYSIS */
+  .analysis-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
 
-          .metrics-grid,
-          .analysis-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .stat-value {
-            font-size: 1.75rem;
-          }
-          
-          .erp-card-header h3 {
-            font-size: 1.25rem;
-          }
-          
-          .erp-page-title {
-            font-size: 1.5rem;
-          }
-          
-          .progress-circle {
-            width: 140px;
-            height: 140px;
-          }
-          
-          .progress-value {
-            font-size: 1.75rem;
-          }
-          
-          .progress-label {
-            font-size: 1rem;
-          }
-          
-          .metric-value {
-            font-size: 1.25rem;
-          }
-          
-          .analysis-value {
-            font-size: 1.25rem;
-          }
-        }
+  .analysis-card {
+    padding: 1.25rem;
+  }
+
+  .analysis-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
+/* MOBILE */
+@media (max-width: 768px) {
+
+  .erp-container {
+    padding: 0.75rem;
+  }
+
+  /* BREADCRUMB */
+  .erp-container > nav {
+    margin-bottom: 0.9rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .erp-container > nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* HEADER */
+  .erp-page-header {
+    padding: 1.25rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.15rem;
+    border-radius: 14px;
+  }
+
+  .erp-header-content {
+    gap: 0.85rem;
+    align-items: center;
+  }
+
+  .erp-header-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 1.35rem;
+    border-radius: 10px;
+  }
+
+  .erp-page-title {
+    font-size: 1.45rem;
+    line-height: 1.25;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    margin-top: 0.3rem;
+  }
+
+  /* HEADER ACTIONS */
+  .erp-header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .export-actions-group {
+    width: 100%;
+  }
+
+  .export-buttons {
+    width: 100%;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-export {
+    flex: 1;
+    min-width: 0;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.65rem 1rem;
+  }
+
+  /* INFO BANNER */
+  .info-banner {
+    padding: 1rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .info-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .info-content {
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  /* STATS */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card-header {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 42px;
+    height: 42px;
+    font-size: 1.25rem;
+  }
+
+  .stat-title {
+    font-size: 0.95rem;
+  }
+
+  .stat-card-body {
+    padding: 1.15rem;
+  }
+
+  .stat-value {
+    font-size: 1.85rem;
+  }
+
+  .stat-trend {
+    font-size: 0.8rem;
+  }
+
+  .stat-card-footer {
+    padding: 0.65rem 1rem;
+  }
+
+  /* CARDS */
+  .erp-card {
+    border-radius: 14px;
+    margin-bottom: 1rem;
+  }
+
+  .erp-card-header {
+    padding: 1rem 1.15rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.15rem;
+  }
+
+  .erp-card-body {
+    padding: 1.15rem;
+  }
+
+  /* VISUAL SECTION */
+  .visual-container {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .progress-circle {
+    width: 150px;
+    height: 150px;
+  }
+
+  .progress-circle::before {
+    width: 134px;
+    height: 134px;
+  }
+
+  .progress-value {
+    font-size: 1.8rem;
+  }
+
+  .progress-label {
+    font-size: 0.55rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  }
+
+  .progress-legend {
+    gap: 0.6rem;
+  }
+
+  .legend-item {
+    font-size: 0.85rem;
+  }
+
+  .progress-note {
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  /* METRICS */
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .metric-item {
+    padding: 0.9rem;
+    gap: 0.75rem;
+  }
+
+  .metric-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 1.1rem;
+  }
+
+  .metric-label {
+    font-size: 0.8rem;
+  }
+
+  .metric-value {
+    font-size: 1.25rem;
+  }
+
+  .metric-description {
+    font-size: 0.75rem;
+  }
+
+  /* ANALYSIS */
+  .analysis-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .analysis-card {
+    padding: 1rem;
+    gap: 0.85rem;
+  }
+
+  .analysis-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+    border-radius: 10px;
+  }
+
+  .analysis-title {
+    font-size: 0.9rem;
+  }
+
+  .analysis-value {
+    font-size: 1.2rem;
+  }
+
+  .analysis-description {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .analysis-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding-top: 1rem;
+  }
+
+  .footer-note {
+    font-size: 0.78rem;
+  }
+
+  .footer-disclaimer {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  /* FOOTER */
+  .erp-container > .footer-note {
+    padding: 0.85rem 1rem;
+    font-size: 0.78rem;
+    text-align: center;
+  }
+
+  .refresh-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+
+/* SMALL MOBILE */
+@media (max-width: 480px) {
+
+  .erp-container {
+    padding: 0.6rem;
+  }
+
+  .erp-page-header {
+    padding: 1rem;
+  }
+
+  .erp-header-content {
+    align-items: flex-start;
+  }
+
+  .erp-header-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
+  }
+
+  .erp-page-title {
+    font-size: 1.3rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.8rem;
+  }
+
+  /* EXPORT BUTTONS */
+  .btn-export {
+    padding: 0.55rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .btn-export svg {
+    font-size: 0.85rem;
+  }
+
+  /* INFO */
+  .info-banner {
+    padding: 0.9rem;
+  }
+
+  .info-content {
+    font-size: 0.82rem;
+  }
+
+  /* CARDS */
+  .erp-card-header {
+    padding: 0.9rem 1rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.05rem;
+  }
+
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+  /* PROGRESS */
+  .progress-circle {
+    width: 135px;
+    height: 135px;
+  }
+
+  .progress-circle::before {
+    width: 120px;
+    height: 120px;
+  }
+
+  .progress-value {
+    font-size: 1.65rem;
+  }
+
+  .progress-label {
+    font-size: 0.55rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  }
+
+  /* METRICS */
+  .metric-item {
+    padding: 0.8rem;
+  }
+
+  .metric-icon {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+
+  .metric-value {
+    font-size: 1.15rem;
+  }
+
+  /* ANALYSIS */
+  .analysis-card {
+    padding: 0.85rem;
+  }
+
+  .analysis-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  .analysis-title {
+    font-size: 0.85rem;
+  }
+
+  .analysis-value {
+    font-size: 1.1rem;
+  }
+
+  .analysis-description {
+    font-size: 0.72rem;
+  }
+
+  .erp-container > .footer-note {
+    padding: 0.75rem;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 1100px) {
+  .analysis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .erp-card-body {
+    padding: 1rem;
+  }
+
+  .erp-card-header {
+    padding: 1rem;
+  }
+
+  .erp-card-header h3 {
+    font-size: 1.05rem;
+  }
+
+  .erp-card-subtitle {
+    margin-left: 1.7rem;
+    font-size: 0.72rem;
+  }
+
+  .analysis-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .analysis-card {
+    padding: 1rem;
+  }
+
+  .metric-item {
+    padding: 0.85rem;
+  }
+
+  .footer-note {
+    align-items: flex-start;
+  }
+}
       `}</style>
     </div>
   );
