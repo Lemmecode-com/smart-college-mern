@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 'use strict';
+=======
+﻿'use strict';
+>>>>>>> 38ea9f90 (Fixed Security Issues)
 
 /**
  * testDb.js — Hardened Test Database Setup
@@ -294,4 +298,8 @@ module.exports = {
   // Exported for unit-testing the guards in isolation (no network required):
   _validateTestUri: validateTestUri,
   _verifyConnectedInstance: verifyConnectedInstance,
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> 38ea9f90 (Fixed Security Issues)
