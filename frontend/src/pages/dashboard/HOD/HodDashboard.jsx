@@ -23,6 +23,7 @@ import {
   FaSyncAlt,
   FaChevronDown,
   FaChevronUp,
+  FaEye,
 } from "react-icons/fa";
 /* eslint-disable-next-line no-unused-vars */
 import { motion, AnimatePresence } from "framer-motion";
@@ -355,73 +356,93 @@ const HodDashboard = () => {
             1. HEADER BANNER
             Greeting + Department Info + Meta + Updated Time
         ================================================== */}
-        <motion.div
-          initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-          className="hod-header-banner"
-        >
-          <div className="hod-header-accent" />
-          <div className="hod-header-content">
-            <div className="hod-header-user-info">
-              <div className="hod-header-avatar">
-                <FaUserTie />
-              </div>
-              <div>
-                <p className="hod-header-greeting">{greetingText} 👋</p>
-                <h1 className="hod-header-name">{hodFullName}</h1>
-                <div className="hod-header-dept-line">
-                  <span>
-                    Head of Department ·{" "}
-                    <strong>{department.name || "Department"}</strong>
-                  </span>
-                  {department.code && (
-                    <span className="hod-header-badge">{department.code}</span>
-                  )}
-                  {hod?.employeeId && (
-                    <span
-                      className="hod-header-badge"
-                      style={{ background: "rgba(255,255,255,0.12)" }}
-                    >
-                      <FaIdCard style={{ marginRight: 5, fontSize: "0.75rem" }} />
-                      ID: {hod.employeeId}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+<motion.div
+  initial={{ opacity: 0, y: -16 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.45, ease: "easeOut" }}
+  className="hod-header-banner"
+>
+  {/* Dark upper section */}
+  <div className="hod-header-main">
+    <div className="hod-header-user-info">
+      <div className="hod-header-avatar">
+        <FaUserTie />
+      </div>
 
-            <div className="hod-header-meta">
-              <div className="hod-header-meta-item">
-                <FaCalendarDay style={{ opacity: 0.8 }} />
-                <span>{formatDateLong()}</span>
-              </div>
-              <div className="hod-header-meta-item">
-                <FaGraduationCap style={{ opacity: 0.8 }} />
-                <span>AY {academicYear}</span>
-              </div>
-              <div className="hod-header-updated-row">
-                <span className="hod-header-updated-text">
-                  Updated {lastUpdated ? formatTimeShort(lastUpdated) : "just now"}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleRefresh}
-                  disabled={refreshing || loading}
-                  className="hod-header-refresh-btn"
-                  title="Refresh Dashboard"
-                  aria-label="Refresh Dashboard"
-                >
-                  <FaSyncAlt
-                    className={refreshing ? "hod-spin" : ""}
-                    style={{ fontSize: "0.8rem" }}
-                  />
-                  <span>Refresh</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+      <div className="hod-header-identity">
+        <p className="hod-header-greeting">
+          {getGreetingIST()}, {hodFullName} 👋
+        </p>
+
+        <h1 className="hod-header-name">{hodFullName}</h1>
+
+        <p className="hod-header-subtitle">
+          Head of Department ·{" "}
+          <strong>{department.name || "Department"}</strong>
+        </p>
+      </div>
+    </div>
+
+    {/* Right-side time and refresh */}
+    <div className="hod-header-actions">
+      <div className="hod-header-time-box">
+        <span className="hod-header-time-label">Updated</span>
+        <strong>
+          {formatTimeShort(lastUpdated || new Date())}
+        </strong>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => navigate("/hod/profile")}
+        disabled={refreshing || loading}
+        className="hod-header-refresh-btn"
+        title="Refresh Dashboard"
+        aria-label="Refresh Dashboard"
+      >
+        <FaEye className={refreshing ? "hod-spin" : ""} />
+        <span>{refreshing ? "Refreshing..." : "View Profile"}</span>
+      </button>
+    </div>
+  </div>
+
+  {/* Light information strip */}
+  <div className="hod-header-footer">
+    <div className="hod-header-footer-item">
+      <FaCalendarDay />
+      <div>
+        <span className="hod-footer-label">Date</span>
+        <strong>{formatDateLong()}</strong>
+      </div>
+    </div>
+
+    <div className="hod-header-footer-item">
+      <FaGraduationCap />
+      <div>
+        <span className="hod-footer-label">Academic Year</span>
+        <strong>AY {academicYear}</strong>
+      </div>
+    </div>
+
+    <div className="hod-header-footer-item">
+      <FaUsers />
+      <div>
+        <span className="hod-footer-label">Department</span>
+        <strong>{department.name || "Department"}</strong>
+      </div>
+    </div>
+
+    {hod?.employeeId && (
+      <div className="hod-header-footer-item hod-header-employee">
+        <FaIdCard />
+        <div>
+          <span className="hod-footer-label">Employee ID</span>
+          <strong>{hod.employeeId}</strong>
+        </div>
+      </div>
+    )}
+  </div>
+</motion.div>
 
         {/* ==================================================
             2. 4 COMPACT KPI CARDS (Entire Card Clickable)
