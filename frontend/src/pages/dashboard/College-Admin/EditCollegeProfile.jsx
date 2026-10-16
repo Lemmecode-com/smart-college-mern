@@ -641,8 +641,8 @@ export default function EditCollegeProfile() {
 
       {/* FORM */}
       <main className="form-wrapper">
-        <div className="row justify-content-center">
-          <div className="col-lg-8">
+        <div className="row">
+          <div className="col-12">
             <div className="glass-card">
               <form ref={formRef} onSubmit={handleSubmit} noValidate>
                 {/* NAME */}
@@ -2860,6 +2860,30 @@ export default function EditCollegeProfile() {
   .form-hint {
     font-size: 0.7rem;
   }
+}
+
+
+/* Align the form card with the page header and breadcrumb */
+.edit-college-profile-container .form-wrapper {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.edit-college-profile-container .form-wrapper > .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.edit-college-profile-container .form-wrapper > .row > .col-12 {
+  width: 100%;
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.edit-college-profile-container .form-wrapper .glass-card {
+  width: 100%;
+  box-sizing: border-box;
 }
       `}</style>
     </div>

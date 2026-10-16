@@ -348,8 +348,4 @@ describe('ISO-08: Automatic in-memory fallback', () => {
       if (savedUri !== undefined) process.env.MONGO_URI = savedUri;
     }
   }, 30000); // MongoMemoryServer can take time to start
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 38ea9f90 (Fixed Security Issues)

@@ -133,7 +133,7 @@ const viewStyles = `
   overflow: hidden;
 }
 .exam-view .exam-card-header {
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  background: #0e3746;
   padding: 1.25rem 1.5rem;
   display: flex;
   justify-content: space-between;
@@ -732,7 +732,7 @@ export default function ViewExam() {
             <FaExclamationTriangle />
             {error.message}
           </div>
-          <button className="btn-edx-primary" onClick={() => navigate("/dashboard/exam")}>
+          <button className="btn-edx-primary" onClick={() => navigate("/dashboard/exam/list")}>
             <FaArrowLeft />
             Back to Exams
           </button>
@@ -750,7 +750,7 @@ export default function ViewExam() {
             <FaExclamationTriangle />
             Exam not found.
           </div>
-          <button className="btn-edx-primary" onClick={() => navigate("/dashboard/exam")}>
+          <button className="btn-edx-primary" onClick={() => navigate("/dashboard/exam/list")}>
             <FaArrowLeft />
             Back to Exams
           </button>
@@ -783,7 +783,7 @@ export default function ViewExam() {
       />
 
       <div className="row justify-content-center">
-        <div className="col-lg-10">
+        <div className="col-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -861,7 +861,7 @@ export default function ViewExam() {
               <div className="d-flex justify-content-between mt-4">
                 <button
                   className="btn-edx-outline"
-                  onClick={() => navigate("/dashboard/exam")}
+                  onClick={() => navigate("/dashboard/exam/list")}
                 >
                   <FaArrowLeft />
                   Back to Exams
