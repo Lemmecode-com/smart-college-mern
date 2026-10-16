@@ -82,7 +82,7 @@ const styles = `
   overflow: hidden;
 }
 .marks-entry .me-card-header {
-  background: linear-gradient(135deg, var(--me-navy-900), var(--me-navy-700));
+  background: #0E3746;
   padding: 1.25rem 1.5rem;
   display: flex;
   justify-content: space-between;
@@ -357,7 +357,9 @@ export default function MarksEntry() {
       }
     }
   };
-
+  const handleBackClick = () => {
+    navigate(-1);
+  };
   const handleSubjectChange = async (e) => {
     const subjectId = e.target.value;
     setSelectedSubjectId(subjectId);
@@ -467,6 +469,37 @@ export default function MarksEntry() {
             </div>
             <h4 className="me-card-title">Marks Entry</h4>
           </div>
+                <button
+                onClick={() => navigate("/teacher/dashboard")}
+style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    marginRight: "15px",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <FaArrowLeft size={12} /> Back
+              </button>
         </div>
         <div className="me-card-body">
           <div className="row g-3 mb-4">
@@ -650,6 +683,7 @@ export default function MarksEntry() {
                        </tr>
                     ))}
                   </tbody>
+                  
                 </table>
               </div>
 
@@ -683,7 +717,9 @@ export default function MarksEntry() {
             </div>
           )}
         </div>
+        
       </motion.div>
+
     </div>
   );
 }

@@ -637,23 +637,25 @@ if (loading) {
           {/* Info Banner */}
           <div
             style={{
-              padding: "1rem 2rem",
+              padding: "0.8rem 2rem",
               backgroundColor: "#dbeafe",
               borderTop: "1px solid #bfdbfe",
               display: "flex",
               alignItems: "center",
               gap: "1rem",
               flexWrap: "wrap",
+              borderRadius: "12px",
+              marginBottom: "1.2rem",
             }}
           >
             <FaInfoCircle
               style={{
                 color: BRAND_COLORS.primary.main,
-                fontSize: "1.5rem",
+                fontSize: "1rem",
                 flexShrink: 0,
               }}
             />
-            <div style={{ color: "#1e293b", fontWeight: 500 }}>
+            <div style={{ color: "#1e293b", fontWeight: 500, fontSize: "0.9rem" }}>
               {mode === "create" ? (
                 <>
                   Notifications will be sent to all {config.placeholder}.

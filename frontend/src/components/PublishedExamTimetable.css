@@ -84,7 +84,7 @@
 }
 
 .published-exam-card-header {
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  background: #0e3746;
   padding: 1.25rem 1.5rem;
   display: flex;
   justify-content: space-between;

@@ -46,7 +46,7 @@ import "./CreateExam.css";
 
 const BRAND_COLORS = {
   primary: {
-    main: "#1a4b6d",
+    main: "#0E3746",
     gradient: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
   },
   success: {
@@ -958,7 +958,16 @@ export default function CreateExam() {
   }
 
   return (
-    <div className="exam-form create-exam container-fluid px-4 pb-4 pt-2">
+    
+<div
+  className="exam-form create-exam container-fluid pb-4 pt-2"
+  style={{
+    paddingLeft: "24px",
+    paddingRight: "24px",
+    boxSizing: "border-box",
+  }}
+>
+
       <Breadcrumb
         items={[
           { label: "Home", path: "/dashboard/exam" },
@@ -980,14 +989,14 @@ export default function CreateExam() {
       </div>
 
       <div className="row justify-content-center">
-        <div className="col-lg-8">
+        <div className="col-">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="exam-card mt-3"
+            className="exam-card"
           >
-            <div className="exam-card-header">
+            <div className="exam-card-header" >
               <div className="exam-card-header-icon">
                 <FaBookOpen />
               </div>

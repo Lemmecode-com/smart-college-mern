@@ -61,7 +61,7 @@ const styles = `
 }
 
 .rrev .rrev-card-header {
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  background: #0e3746;
   padding: 1.25rem 1.75rem;
   display: flex;
   justify-content: space-between;
@@ -858,7 +858,7 @@ export default function ResultReview() {
       </AnimatePresence>
 
       <div className="row justify-content-center">
-        <div className="col-xl-11 col-lg-12">
+        <div className="col-12">
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
