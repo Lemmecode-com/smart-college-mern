@@ -272,8 +272,8 @@ describe("HodProfile UI/UX Redesign", () => {
     await renderComponent();
 
     // 1. Back to Dashboard button
-    const backBtn = Array.from(container.querySelectorAll("button")).find((btn) =>
-      btn.textContent.includes("Back to Dashboard")
+    const backBtn = container.querySelector(
+      'button[aria-label="Back to Dashboard"]'
     );
     expect(backBtn).toBeTruthy();
     act(() => {
