@@ -102,7 +102,7 @@ const formStyles = `
   overflow: hidden;
 }
 .exam-form .exam-card-header {
-  background: linear-gradient(135deg, var(--edx-navy-900), var(--edx-navy-700));
+  background: #0e3746;
   padding: 1.25rem 1.5rem;
   display: flex;
   align-items: center;
@@ -758,7 +758,7 @@ export default function EditExam() {
       />
 
       <div className="row justify-content-center">
-        <div className="col-lg-8">
+        <div className="col-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1066,7 +1066,7 @@ export default function EditExam() {
                   <button
                     type="button"
                     className="btn-edx-outline"
-                    onClick={() => navigate("/dashboard/exam")}
+                    onClick={() => navigate("/dashboard/exam/list")}
                     disabled={loading}
                   >
                     <FaArrowLeft />

@@ -285,7 +285,7 @@ export default function EditTeacherProfile() {
         padding: "0.5rem 1rem 2rem",
       }}
     >
-      <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+      <div style={{ maxWidth: "100%", margin: "0 auto" }}>
          {/* ================= BREADCRUMB ================= */}
         <div
           style={{

@@ -7,6 +7,7 @@ import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
 import { logger } from "../../../../utils/logger";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import PublishedExamTimetable from "../../../../components/PublishedExamTimetable";
 import {
   FaCalendarAlt,
@@ -166,11 +167,58 @@ export default function HodExamTimetable() {
     );
   }
 
-  return (
-    <div className="hod-exam-timetable-page">
-      <div className="hod-exam-timetable-header">
-        <Breadcrumb items={breadcrumbItems} />
-      </div>
+return (
+  <div className="hod-exam-timetable-page">
+    <div className="hod-exam-timetable-header">
+      <Breadcrumb items={breadcrumbItems} />
+    </div>
+
+    <PageHeader
+      icon={FaCalendarAlt}
+      title={selectedExam ? "Exam Timetable" : "Published Exam Timetable"}
+      subtitle={
+        selectedExam
+          ? "View the published examination schedule."
+          : "View published exam schedules for your department courses."
+      }
+      actions={
+        selectedExam && (
+          <button
+            type="button"
+            onClick={handleBackToList}
+                            style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                       onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+
+          >
+            <FaArrowLeft />
+            <span>Back to Exams</span>
+          </button>
+        )
+      }
+    />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -180,26 +228,12 @@ export default function HodExamTimetable() {
       >
         {!selectedExam ? (
           <>
-            <div className="hod-exam-timetable-title-row">
-              <div>
-                <h2 className="hod-exam-timetable-title">Published Exam Timetable</h2>
-                <p className="hod-exam-timetable-subtitle">
-                  View published exam schedules for your department courses.
-                </p>
-              </div>
-            </div>
 
             <PublishedExamTimetable exams={exams} onExamClick={handleViewTimetable} />
           </>
         ) : (
           <div className="hod-exam-timetable-detail">
-            <button
-              type="button"
-              className="hod-exam-timetable-back"
-              onClick={handleBackToList}
-            >
-              <FaArrowLeft /> Back to Exams
-            </button>
+
 
             {scheduleLoading && <Loading text="Loading schedule..." />}
 
