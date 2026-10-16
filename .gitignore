@@ -26,3 +26,7 @@ Thumbs.db
 # Root-level logs
 logs/
 *.log
+
+# Uploaded user documents and storage
+uploads/
+backend/uploads/
