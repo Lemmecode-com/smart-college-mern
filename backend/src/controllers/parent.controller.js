@@ -13,6 +13,7 @@ const {
   sendPaymentReceiptEmail,
 } = require("../services/email.service");
 const logger = require("../utils/logger");
+const { buildFrontendUrl } = require("../utils/urlBuilder");
 
 function normalizeStatus(status) {
   return String(status || "").toUpperCase();
@@ -316,11 +317,10 @@ exports.createParentPaymentOrder = async (req, res, next) => {
     }
 
     const stripe = await getStripeInstance(collegeId);
-    const frontendUrl = process.env.FRONTEND_URL;
-
-    if (!frontendUrl) {
-      throw new Error("FRONTEND_URL is required for Stripe payment redirects.");
-    }
+    const successUrl = buildFrontendUrl(
+      "/parent/payment-success?session_id={CHECKOUT_SESSION_ID}",
+    );
+    const cancelUrl = buildFrontendUrl("/parent/payment-cancel");
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -337,8 +337,8 @@ exports.createParentPaymentOrder = async (req, res, next) => {
           quantity: 1,
         },
       ],
-      success_url: `${frontendUrl}/parent/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${frontendUrl}/parent/payment-cancel`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: {
         studentId: student._id.toString(),
         collegeId: collegeId.toString(),
