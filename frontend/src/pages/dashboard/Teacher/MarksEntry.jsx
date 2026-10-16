@@ -358,7 +358,7 @@ export default function MarksEntry() {
     }
   };
   const handleBackClick = () => {
-    navigate(-1);
+    navigate("/teacher/dashboard");
   };
   const handleSubjectChange = async (e) => {
     const subjectId = e.target.value;
@@ -470,7 +470,7 @@ export default function MarksEntry() {
             <h4 className="me-card-title">Marks Entry</h4>
           </div>
                 <button
-                onClick={() => navigate("/teacher/dashboard")}
+                onClick={handleBackClick}
 style={{
                     minHeight: "48px",
                     padding: "0 20px",
