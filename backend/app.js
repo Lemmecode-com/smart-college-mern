@@ -17,6 +17,7 @@ const {
   webhookLimiter,
 } = require("./src/middlewares/rateLimit.middleware");
 const logger = require("./src/utils/logger");
+const { isLoopbackOrLocalhost } = require("./src/utils/validateUrlConfig");
 
 const app = express();
 
@@ -25,13 +26,34 @@ const app = express();
 app.set("trust proxy", 1);
 
 /* ================= CORS CONFIGURATION ================= */
-const corsOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",")
+const rawCorsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
   : [];
+
+const isProduction = process.env.NODE_ENV === "production";
+const corsOrigins = isProduction
+  ? rawCorsOrigins.filter((origin) => {
+      try {
+        const parsed = new URL(origin);
+        const isLocal = isLoopbackOrLocalhost(parsed.hostname);
+        const isInsecure = parsed.protocol !== "https:";
+        if (isLocal || isInsecure) {
+          logger.error(
+            `🚨 BLOCKED: Insecure or localhost origin in production CORS configuration: ${origin}`,
+          );
+          return false;
+        }
+        return true;
+      } catch (err) {
+        logger.error(`🚨 BLOCKED: Malformed origin in CORS configuration: ${origin}`);
+        return false;
+      }
+    })
+  : rawCorsOrigins;
 
 if (corsOrigins.length === 0) {
   logger.warn(
-    "CORS_ORIGINS environment variable is not set. No origins will be allowed.",
+    "CORS_ORIGINS environment variable is not set or contains no valid origins. No origins will be allowed.",
   );
 }
 
