@@ -756,7 +756,7 @@ export default function HodProfile() {
               </div>
               <button
                   type="button"
-                  onClick={() => navigate("/dashboard")}
+                  onClick={handleGoBack}
                   aria-label="Back to Dashboard"
                   style={{
                     minHeight: "48px",
