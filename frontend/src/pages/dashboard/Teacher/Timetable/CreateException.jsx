@@ -359,15 +359,19 @@ if (loading) {
   }
 
   return (
-    <div
-      className="container-fluid p-0"
-      style={{
-        minHeight: "100vh",
-        paddingTop: "0.5rem",
-        background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
-        maxWidth: "100%",
-      }}
-    >
+  
+<div
+  className="container-fluid"
+  style={{
+    minHeight: "100vh",
+    padding: "8px 24px 32px",
+    background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
+    width: "100%",
+    maxWidth: "100%",
+    boxSizing: "border-box",
+  }}
+>
+
 
             {/* ================= BREADCRUMB ================= */}   
                       <div
@@ -376,8 +380,6 @@ if (loading) {
                     margin: "0 auto",
                     marginBottom: 0,
                     paddingTop: 0,
-                    transform: "scale(0.95)",
-                    transformOrigin: "top center",
                   }}
                 >
                   <div style={{ width: "100%" }}>
@@ -478,17 +480,15 @@ if (loading) {
 />
 <style>{`
 .create-exception-page-header {
-  transform: scale(0.95);
-  transform-origin: top center;
-  margin-bottom: -1.5rem;
+  margin-bottom: 0;
 }
 `}</style>
 </div>
 
       {/* Form */}
-      <div className="p-4">
+      <div className="pt-3 pb-4">
         <div className="row justify-content-center">
-          <div className="col-lg-9 col-xl-9">
+          <div className="col-12">
             <MotionDiv
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}

@@ -86,8 +86,8 @@ const styles = `
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: #0E3746;
-  color: #ffffff;
+  background: white;
+  color: #0E3746;
   border: none;
   border-radius: 10px;
   padding: 0.65rem 1.3rem;
@@ -100,8 +100,8 @@ const styles = `
 .erd .btn-edx-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-  background: #123a5e;
-  color: #fff;
+  background: white;
+  color: #0E3746;
 }
 
 .erd .btn-edx-outline {
@@ -1277,7 +1277,7 @@ export default function ExamResultsDashboard() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th style={{ width: "42px" }}>#</th>
+                    <th style={{ width: "42px" }}>Sr. No.</th>
                     <th>Exam &amp; Category</th>
                     <th>Course &amp; Academic Session</th>
                     <th>Result Lifecycle</th>
