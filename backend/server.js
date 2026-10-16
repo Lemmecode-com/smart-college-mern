@@ -1,4 +1,9 @@
 require("dotenv").config();
+const validateUrlConfig = require("./src/utils/validateUrlConfig");
+
+// Validate production URL and CORS configuration before starting server
+validateUrlConfig();
+
 require("./src/cron/paymentReminder.cron");
 require("./src/cron/lowAttendanceAlert.cron");
 require("./src/cron/paymentCleanup.cron");
