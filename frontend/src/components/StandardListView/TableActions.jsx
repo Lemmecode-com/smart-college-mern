@@ -24,6 +24,15 @@ const TableActions = ({ item, actions = [] }) => {
             ? action.title(item)
             : action.title || action.label;
 
+        
+        if (typeof action.render === "function") {
+          return (
+            <React.Fragment key={action.key}>
+              {action.render(item)}
+            </React.Fragment>
+          );
+        }
+
         return (
           <button
             key={action.key}
@@ -45,6 +54,7 @@ const TableActions = ({ item, actions = [] }) => {
             <span>{action.text}</span>
           </button>
         );
+
       })}
     </div>
   );

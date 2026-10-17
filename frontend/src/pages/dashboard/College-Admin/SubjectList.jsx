@@ -2150,15 +2150,74 @@ if (loading) {
           border-radius: 0 0 20px 20px;
         }
 
-        .erp-btn-danger {
-          background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
-          border: none;
+
+        /* Delete modal footer buttons */
+        .modal-footer .erp-btn {
+          min-height: 42px;
+          padding: 0.7rem 1.2rem;
+          border-radius: 10px;
+          border: 1px solid transparent;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.55rem;
+          font-family: inherit;
+          font-size: 0.9rem;
+          font-weight: 600;
+          line-height: 1.2;
+          cursor: pointer;
+          transition:
+            background-color 0.2s ease,
+            color 0.2s ease,
+            box-shadow 0.2s ease,
+            transform 0.2s ease;
         }
 
-        .erp-btn-danger:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 8px 25px rgba(239, 83, 80, 0.4);
+        /* Cancel — text-only, like the reference screenshot */
+        .modal-footer .erp-btn-secondary {
+          background: transparent;
+          color: #243047;
+          border-color: transparent;
+          box-shadow: none;
         }
+
+        .modal-footer .erp-btn-secondary:hover {
+          background: #e9eef5;
+          color: #0f3a4a;
+        }
+
+        /* Delete Permanently — solid red button */
+        .modal-footer .erp-btn-danger {
+          background: #ef3737;
+          color: #ffffff;
+          border-color: #ef3737;
+          box-shadow: 0 3px 8px rgba(239, 55, 55, 0.18);
+        }
+
+        .modal-footer .erp-btn-danger:hover {
+          background: #dc2929;
+          border-color: #dc2929;
+          box-shadow: 0 5px 12px rgba(239, 55, 55, 0.25);
+          transform: translateY(-1px);
+        }
+
+        .modal-footer .erp-btn-danger .erp-btn-icon {
+          font-size: 0.95rem;
+          flex-shrink: 0;
+        }
+
+        .modal-footer .erp-btn:focus-visible {
+          outline: 3px solid rgba(61, 181, 230, 0.45);
+          outline-offset: 3px;
+        }
+
+        .modal-footer .erp-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+
 
         /* ERROR CONTAINER */
         .erp-error-container {

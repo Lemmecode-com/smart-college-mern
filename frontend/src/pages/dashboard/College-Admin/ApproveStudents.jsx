@@ -55,6 +55,9 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
     byYear: {},
   });
   const [processingId, setProcessingId] = useState(null);
+  const [showToggleActiveModal, setShowToggleActiveModal] = useState(false);
+const [selectedActiveStudent, setSelectedActiveStudent] = useState(null);
+const [togglingActive, setTogglingActive] = useState(false);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollStudentId, setEnrollStudentId] = useState(null);
   const [parentCreds, setParentCreds] = useState(null);
@@ -237,41 +240,55 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
     );
   }, [students, search]);
 
-  /* ================= DEACTIVATE / REACTIVATE ================= */
-  const handleToggleActive = async (student) => {
-    if (student.status === STUDENT_STATUS.DEACTIVATED) {
-      if (!window.confirm(`Reactivate "${student.fullName}"?`)) return;
-      try {
-        await api.put(`/users/${student.user_id}/reactivate`);
-        toast.success(`${student.fullName} reactivated`, {
-          position: "top-right",
-        });
-        principalMode ? fetchAllStudents() : fetchApprovedStudents();
-      } catch (e) {
-        toast.error(e.response?.data?.message || "Failed to reactivate", {
-          position: "top-right",
-        });
-      }
+
+/* ================= DEACTIVATE / REACTIVATE ================= */
+
+// Open the custom confirmation modal
+const handleToggleActive = (student) => {
+  setSelectedActiveStudent(student);
+  setShowToggleActiveModal(true);
+};
+
+// Execute the action only after confirmation
+const executeToggleActive = async () => {
+  if (!selectedActiveStudent?.user_id) return;
+
+  const student = selectedActiveStudent;
+  const isDeactivated =
+    student.status === STUDENT_STATUS.DEACTIVATED;
+
+  setTogglingActive(true);
+
+  try {
+    if (isDeactivated) {
+      await api.put(`/users/${student.user_id}/reactivate`);
+
+      toast.success(`${student.fullName} reactivated`, {
+        position: "top-right",
+      });
     } else {
-      if (
-        !window.confirm(
-          `Deactivate "${student.fullName}"? They will lose access.`,
-        )
-      )
-        return;
-      try {
-        await api.put(`/users/${student.user_id}/deactivate`);
-        toast.success(`${student.fullName} deactivated`, {
-          position: "top-right",
-        });
-        principalMode ? fetchAllStudents() : fetchApprovedStudents();
-      } catch (e) {
-        toast.error(e.response?.data?.message || "Failed to deactivate", {
-          position: "top-right",
-        });
-      }
+      await api.put(`/users/${student.user_id}/deactivate`);
+
+      toast.success(`${student.fullName} deactivated`, {
+        position: "top-right",
+      });
     }
-  };
+
+    setShowToggleActiveModal(false);
+    setSelectedActiveStudent(null);
+
+    principalMode ? fetchAllStudents() : fetchApprovedStudents();
+  } catch (e) {
+    toast.error(
+      e.response?.data?.message ||
+        `Failed to ${isDeactivated ? "reactivate" : "deactivate"} student`,
+      { position: "top-right" }
+    );
+  } finally {
+    setTogglingActive(false);
+  }
+};
+
 
   /* ================= CONFIRM ENROLLMENT ================= */
   const handleConfirmEnrollment = (studentId) => {
@@ -1844,6 +1861,40 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
         cancelText="Cancel"
         isLoading={processingId === enrollStudentId}
       />
+
+{/* DEACTIVATE / REACTIVATE CONFIRMATION MODAL */}
+<ConfirmModal
+  isOpen={showToggleActiveModal && !!selectedActiveStudent}
+  onClose={() => {
+    if (togglingActive) return;
+
+    setShowToggleActiveModal(false);
+    setSelectedActiveStudent(null);
+  }}
+  onConfirm={executeToggleActive}
+  title={
+    selectedActiveStudent?.status === STUDENT_STATUS.DEACTIVATED
+      ? "Reactivate Student"
+      : "Deactivate Student"
+  }
+  message={
+    selectedActiveStudent?.status === STUDENT_STATUS.DEACTIVATED
+      ? `Are you sure you want to reactivate "${selectedActiveStudent?.fullName}"? They will regain access.`
+      : `Are you sure you want to deactivate "${selectedActiveStudent?.fullName}"? They will lose access.`
+  }
+  type={
+    selectedActiveStudent?.status === STUDENT_STATUS.DEACTIVATED
+      ? "success"
+      : "danger"
+  }
+  confirmText={
+    selectedActiveStudent?.status === STUDENT_STATUS.DEACTIVATED
+      ? "Reactivate Student"
+      : "Deactivate Student"
+  }
+  cancelText="Cancel"
+  isLoading={togglingActive}
+/>
 
       {/* ASSIGN DIVISION MODAL */}
       {showDivisionModal && (

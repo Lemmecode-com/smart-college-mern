@@ -633,7 +633,8 @@ export default function CollegeProfile() {
                   custom={1}
                   initial="hidden"
                   animate="visible"
-                  style={{ gridColumn: "1 / -1" }}
+                  style={{ gridColumn: "1 / -1", marginTop: "-0.2rem" }}
+                  
                 >
                   <div
                     style={{
