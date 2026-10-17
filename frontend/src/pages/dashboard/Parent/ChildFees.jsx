@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Loading from "../../../components/Loading";
+import PageHeader from "../../../components/PageHeader";
 import {
   FaArrowLeft,
   FaMoneyBillWave,
@@ -130,25 +132,22 @@ export default function ChildFees() {
     fetchFees();
   }, [childId]);
 
-  if (loading) {
-    return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
-          <div className="parent-loading-state">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="parent-loading-spinner"
-              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Fee Details...</h4>
-          </div>
-        </div>
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Fee Details..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -245,37 +244,11 @@ export default function ChildFees() {
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            {/* Hero Section */}
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaMoneyBillWave />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    Fee Details & Payments
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    Track your child's fee payments and outstanding amounts
-                  </p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-              </div>
-            </div>
-          </motion.div>
+            <PageHeader
+  icon={FaMoneyBillWave}
+  title="Fee Details & Payments"
+  subtitle="Track your child's fee payments and outstanding amounts"
+/>
 
           {/* ================= FEE SUMMARY CARDS ================= */}
           <motion.div
@@ -327,10 +300,10 @@ export default function ChildFees() {
             <div className="parent-fee-card">
               <div className="parent-fee-header">
                 <div className="parent-fee-icon" style={{ background: `linear-gradient(135deg, ${BRAND_COLORS.primary.main}20, ${BRAND_COLORS.primary.main}10)` }}>
-                  <FaCreditCard style={{ color: BRAND_COLORS.primary.main }} />
+                  <FaCreditCard  />
                 </div>
                 <div>
-                  <h3 className="parent-fee-title">Payment Progress</h3>
+                  <h3 className="parent-fee-title" style={{color: 'white' }}>Payment Progress</h3>
                 </div>
               </div>
               <div className="parent-fee-card-body">
@@ -387,7 +360,7 @@ export default function ChildFees() {
                   <FaCalendarAlt style={{ color: BRAND_COLORS.success.main }} />
                 </div>
                 <div>
-                  <h3 className="parent-fee-title">Installment History</h3>
+                  <h3 className="parent-fee-title" style={{color: 'white' }}>Installment History</h3>
                 </div>
               </div>
               <div className="parent-fee-card-body">

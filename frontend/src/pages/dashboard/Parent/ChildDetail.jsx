@@ -6,6 +6,7 @@ import api from "../../../api/axios";
 import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
@@ -256,9 +257,22 @@ export default function ChildDetail() {
     return Math.round((presentCount / attendance.length) * 100);
   };
 
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading child information..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Child Information..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (!child) {
     return (
@@ -308,37 +322,11 @@ export default function ChildDetail() {
             ]}
           />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="parent-dashboard-header"
-          >
-            {/* Hero Section */}
-            <div className="parent-dashboard-header-hero">
-              <div className="parent-header-content">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="parent-header-icon-wrapper"
-                >
-                  <FaUserGraduate />
-                </motion.div>
-                <div className="parent-header-title-section">
-                  <h1 className="parent-header-title">
-                    {child.fullName}
-                  </h1>
-                  <p className="parent-header-subtitle">
-                    {child.course_id?.name} • Semester {child.currentSemester} • {getStatusLabel(child.status)}
-                  </p>
-                </div>
-              </div>
-              <div className="parent-header-meta">
-              </div>
-            </div>
-          </motion.div>
+<PageHeader
+  icon={FaUserGraduate}
+  title={child.fullName}
+  subtitle={`${child.course_id?.name} • Semester ${child.currentSemester} • ${getStatusLabel(child.status)}`}
+/>
 
           {/* ================= QUICK STATS ================= */}
           <motion.div
@@ -719,12 +707,12 @@ export default function ChildDetail() {
                       ) : (
                         <div className="parent-two-col-grid">
                           <div className="parent-fee-card">
-                            <div className="parent-fee-header">
+                            <div className="parent-fee-header" style={{  background: '#0E3746' }}>
                               <div className="parent-fee-icon" style={{ background: `linear-gradient(135deg, ${BRAND_COLORS.primary.main}20, ${BRAND_COLORS.primary.main}10)` }}>
-                                <FaRupeeSign style={{ color: BRAND_COLORS.primary.main }} />
+                                <FaRupeeSign />
                               </div>
-                              <div>
-                                <h3 className="parent-fee-title">Fee Summary</h3>
+                              <div >
+                                <h3 className="parent-fee-title" style={{color: 'white' }}>Fee Summary</h3>
                               </div>
                             </div>
                             <div className="parent-fee-card-body">
@@ -766,7 +754,7 @@ export default function ChildDetail() {
                                 <FaCreditCard style={{ color: BRAND_COLORS.info.main }} />
                               </div>
                               <div>
-                                <h3 className="parent-fee-title">Payment Installments</h3>
+                                <h3 className="parent-fee-title" style={{color: 'white' }}>Payment Installments</h3>
                               </div>
                             </div>
                             <div className="parent-fee-card-body">

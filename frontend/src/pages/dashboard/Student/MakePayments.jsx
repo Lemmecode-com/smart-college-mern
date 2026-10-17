@@ -96,10 +96,22 @@ export default function MakePayments() {
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
-  if (authLoading) {
-    return <Loading fullScreen text="Verifying your session..." />;
-  }
-
+if (authLoading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Verifying your session..."
+        />
+      </div>
+    </div>
+  );
+}
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "STUDENT")
     return <Navigate to="/student/dashboard" replace />;
@@ -877,8 +889,9 @@ export default function MakePayments() {
           <div className="text-muted small">
             Due on{" "}
             <strong>
-                ? formatDate(installmentDetails.dueDate)
-                : "N/A"}
+                {installmentDetails.dueDate
+                  ? formatDate(installmentDetails.dueDate)
+                  : "N/A"}
             </strong>
           </div>
         </div>
@@ -912,10 +925,11 @@ export default function MakePayments() {
 
           {/* ====== GATEWAYS LOADING OR AUTO-REDIRECT ====== */}
           {gatewaysLoading ? (
-            <div className="text-center py-4">
-              <FaSpinner className="spin fa-2x text-primary" />
-              <p className="text-muted mt-2">Loading payment options...</p>
-            </div>
+            <Loading
+              size="md"
+              color="primary"
+              text="Loading Payment Options..."
+            />
           ) : availableGateways.length > 0 ? (
             // Show a Pay button for each available gateway (single or multiple)
             <>
@@ -1099,7 +1113,6 @@ export default function MakePayments() {
                   <p className="mb-3">
                     <strong>Paid At:</strong>{" "}
                     {formatDateTime(result.installment.paidAt)}
-                    )}
                   </p>
                 </div>
 

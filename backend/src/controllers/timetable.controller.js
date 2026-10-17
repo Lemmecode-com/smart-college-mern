@@ -5,6 +5,8 @@ const AttendanceSession = require("../models/attendanceSession.model");
 const AuditLog = require("../models/auditLog.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
+const Student = require("../models/student.model");
+const Notification = require("../models/notification.model");
 const mongoose = require("mongoose");
 const AppError = require("../utils/AppError");
 const {
@@ -16,6 +18,7 @@ const teacherService = require("../services/teacher.service");
 const timetableScheduleService = require("../services/timetableSchedule.service");
 const ApiResponse = require("../utils/ApiResponse");
 const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
+const logger = require("../utils/logger");
 
 /* =========================================================
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
@@ -166,6 +169,59 @@ exports.publishTimetable = async (req, res) => {
     }).catch((err) =>
       console.error("Audit log failed for timetable publication:", err.message),
     );
+
+    // Fire-and-forget student notification
+    (async () => {
+      try {
+        const activeStudentStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
+        const studentQuery = {
+          college_id: req.college_id,
+          department_id: timetable.department_id,
+          course_id: timetable.course_id,
+          currentSemester: timetable.semester,
+          currentAcademicYear: timetable.academicYear,
+          status: { $in: activeStudentStatuses },
+        };
+
+        if (timetable.division) {
+          studentQuery.division = timetable.division;
+        }
+
+        const affectedStudents = await Student.find(studentQuery)
+          .select("user_id")
+          .lean();
+
+        const userIds = affectedStudents
+          .map((s) => s.user_id)
+          .filter(Boolean);
+
+        if (userIds.length > 0) {
+          await Notification.create({
+            college_id: req.college_id,
+            createdBy: req.user.id,
+            createdByRole: "HOD",
+            createdByDepartment: teacher.department_id,
+            target: "INDIVIDUAL",
+            target_users: userIds,
+            title: "📅 Exam Timetable Published",
+            message: `Exam timetable for ${timetable.name} has been published.`,
+            type: "EXAM",
+            priority: "HIGH",
+            actionUrl: "/student/timetable",
+          });
+          logger.logInfo("Exam timetable notification sent", {
+            collegeId: req.college_id,
+            timetableId: timetable._id,
+            recipientCount: userIds.length,
+          });
+        }
+      } catch (notifErr) {
+        logger.logError("Failed to send exam timetable notification", {
+          error: notifErr.message,
+          timetableId: timetable._id,
+        });
+      }
+    })();
 
     ApiResponse.success(
       res,
@@ -909,6 +965,8 @@ exports.getStudentTimetable = async (req, res) => {
 
     const filteredSlots = slots.filter((slot) => {
       if (!slot.timetable_id) return false;
+      if (slot.timetable_id.semester !== student.currentSemester) return false;
+      if (slot.timetable_id.academicYear !== student.currentAcademicYear) return false;
       if (slot.timetable_id.division) {
         return student.division && slot.timetable_id.division === student.division;
       }
@@ -1034,10 +1092,14 @@ exports.getStudentTodayTimetable = async (req, res) => {
     const todayDayName = getDayName(today);
     const todayStr = today.toISOString().split("T")[0];
 
-    // Find all PUBLISHED timetables for student's course and division
+    // Find all PUBLISHED timetables matching student's course, current
+    // semester, current academic year, and division.
     const timetableQuery = {
       college_id: req.college_id,
+      department_id: student.department_id,
       course_id: student.course_id,
+      semester: student.currentSemester,
+      academicYear: student.currentAcademicYear,
       status: "PUBLISHED",
     };
     if (student.division) {

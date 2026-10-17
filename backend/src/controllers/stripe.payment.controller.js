@@ -13,6 +13,7 @@ const {
 const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 const { randomUUID } = require("crypto");
+const { buildFrontendUrl } = require("../utils/urlBuilder");
 
 /**
  * Create Stripe checkout session using college-specific Stripe configuration
@@ -149,14 +150,11 @@ exports.createCheckoutSession = async (req, res, next) => {
     // ✅ Step 4: Get college-specific Stripe instance
     const stripe = await getStripeInstance(collegeId);
 
-    // ✅ Step 4.5: Validate FRONTEND_URL for payment redirects
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (!frontendUrl) {
-      throw new Error(
-        "FRONTEND_URL is required for Stripe payment redirects. " +
-          "Set it in your .env file before processing payments.",
-      );
-    }
+    // ✅ Step 4.5: Generate and validate redirect URLs for Stripe Checkout
+    const successUrl = buildFrontendUrl(
+      "/student/payment-success?session_id={CHECKOUT_SESSION_ID}",
+    );
+    const cancelUrl = buildFrontendUrl("/student/payment-cancel");
 
     // 🔒 IDEMPOTENCY: Generate unique key to prevent duplicate sessions
     // Format: stripe_checkout_{studentId}_{installmentId}_{uniqueId}
@@ -187,8 +185,8 @@ exports.createCheckoutSession = async (req, res, next) => {
             quantity: 1,
           },
         ],
-        success_url: `${frontendUrl}/student/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${frontendUrl}/student/payment-cancel`,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
         metadata: {
           studentId: student._id.toString(),
           collegeId: collegeId.toString(),

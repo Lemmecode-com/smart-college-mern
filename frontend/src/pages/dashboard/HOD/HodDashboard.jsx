@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import { AuthContext } from "../../../auth/AuthContext";
@@ -6,46 +6,46 @@ import {
   FaUserTie,
   FaUsers,
   FaCalendarAlt,
-  FaLayerGroup,
-  FaClipboardList,
-  FaUser,
-  FaArrowRight,
-  FaClock,
-  FaBook,
-  FaChalkboardTeacher,
-  FaCheckCircle,
-  FaEdit,
-  FaEye,
-  FaPlus,
-  FaBuilding,
   FaGraduationCap,
-  FaListUl,
   FaCalendarDay,
-  FaChartLine,
-  FaBell,
   FaCogs,
   FaIdCard,
-  FaRegCalendarPlus,
-  FaRegClock,
-  FaUniversity,
+  FaArrowRight,
+  FaCheckCircle,
+  FaEdit,
+  FaPlus,
+  FaClipboardCheck,
+  FaExclamationTriangle,
+  FaClock,
+  FaHistory,
+  FaChartBar,
+  FaBell,
+  FaSyncAlt,
+  FaChevronDown,
+  FaChevronUp,
+  FaEye,
 } from "react-icons/fa";
+/* eslint-disable-next-line no-unused-vars */
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
 import ApiError from "../../../components/ApiError";
+import Loading from "../../../components/Loading";
 import { logger } from "../../../utils/logger";
+import "./HodDashboard.css";
 
 // ============================================================
-// BRAND PALETTE — Blue primary + Orange accent (per user pref)
+// BRAND PALETTE — Teal/Blue primary + Orange accent
+// Status colors: Green, Amber, Red only
 // ============================================================
 const BRAND = {
   primary: "#1a4b6d",
   primaryDark: "#0f3a4a",
   primaryLight: "#e8f1f8",
-  accent: "#f97316",       // Orange accent
+  accent: "#f97316",
   accentLight: "#fff7ed",
   success: "#16a34a",
   successLight: "#dcfce7",
-  warning: "#f59e0b",
+  warning: "#d97706",
   warningLight: "#fef3c7",
   danger: "#dc2626",
   dangerLight: "#fee2e2",
@@ -59,29 +59,30 @@ const BRAND = {
 };
 
 // ============================================================
-// ANIMATION VARIANTS
+// ANIMATIONS
 // ============================================================
 const fadeUp = {
-  hidden: { opacity: 0, y: 18 },
+  hidden: { opacity: 0, y: 14 },
   visible: (i = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.07, duration: 0.5, ease: "easeOut" },
+    transition: { delay: i * 0.05, duration: 0.4, ease: "easeOut" },
   }),
-};
-
-const slideDown = {
-  hidden: { opacity: 0, y: -20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
 };
 
 // ============================================================
 // HELPERS
 // ============================================================
-const getGreeting = () => {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
+// eslint-disable-next-line react-refresh/only-export-components
+export const getGreetingIST = (date = new Date()) => {
+  const istHourStr = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    hour: "numeric",
+    hour12: false,
+  }).format(date);
+  const hour = parseInt(istHourStr, 10);
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
   return "Good evening";
 };
 
@@ -94,123 +95,74 @@ const formatDateLong = () => {
   });
 };
 
+const formatTimeShort = (date = new Date()) => {
+  return new Date(date).toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const formatDateShort = (dateString) => {
+  if (!dateString) return "—";
+  const d = new Date(dateString);
+  if (Number.isNaN(d.getTime())) return dateString;
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 const getCurrentAcademicYear = () => {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
-  // Indian academic year typically starts in June/July
-  const start = m >= 6 ? y : y - 1;
-  return `${start}-${String(start + 1).slice(-2)}`;
+  const start = m >= 5 ? y : y - 1;
+  return `${start}-${start + 1}`;
 };
 
 const AUTH_ERROR_CODES = new Set([
-    "TOKEN_MISSING",
-    "TOKEN_EXPIRED",
-    "INVALID_TOKEN",
-    "TOKEN_BLACKLISTED",
-    "TOKEN_INVALIDATED",
-    "USER_NOT_FOUND",
-    "ACCOUNT_DEACTIVATED",
-    "UNAUTHORIZED",
-  ]);
+  "TOKEN_MISSING",
+  "TOKEN_EXPIRED",
+  "INVALID_TOKEN",
+  "TOKEN_BLACKLISTED",
+  "TOKEN_INVALIDATED",
+  "USER_NOT_FOUND",
+  "ACCOUNT_DEACTIVATED",
+  "UNAUTHORIZED",
+]);
 
 // ============================================================
-// LOADING STATE
-// ============================================================
-const LoadingState = () => (
-  <div
-    style={{
-      minHeight: "70vh",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: `linear-gradient(135deg, ${BRAND.bg} 0%, ${BRAND.primaryLight} 100%)`,
-    }}
-  >
-    <div style={{ textAlign: "center" }}>
-      <div
-        style={{
-          width: 64,
-          height: 64,
-          margin: "0 auto 1rem",
-          border: `4px solid ${BRAND.border}`,
-          borderTopColor: BRAND.accent,
-          borderRadius: "50%",
-          animation: "novaa-spin 0.9s linear infinite",
-        }}
-      />
-      <p style={{ color: BRAND.muted, fontWeight: 500, margin: 0 }}>
-        Preparing your command center…
-      </p>
-<style>{`@keyframes novaa-spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-    </div>
-   );
-
-// ============================================================
-// SECTION HEADER (reusable)
-// ============================================================
-const SectionHeader = ({ icon: Icon, title, subtitle, action }) => (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: "1rem",
-      flexWrap: "wrap",
-      gap: "0.5rem",
-    }}
-  >
-    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 10,
-          background: BRAND.primaryLight,
-          color: BRAND.primary,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "1rem",
-        }}
-      >
-        <Icon />
-      </div>
-      <div>
-        <h5 style={{ margin: 0, fontWeight: 700, color: BRAND.ink, fontSize: "1.05rem" }}>
-          {title}
-        </h5>
-        {subtitle && (
-          <p style={{ margin: 0, color: BRAND.muted, fontSize: "0.8rem" }}>{subtitle}</p>
-        )}
-      </div>
-    </div>
-    {action}
-  </div>
-);
-
-// ============================================================
-// MAIN DASHBOARD
+// COMPONENT
 // ============================================================
 const HodDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [expandedActivities, setExpandedActivities] = useState({});
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchHodDashboard();
-    // eslint-disable-next-line
-  }, []);
+  const toggleActivityExpand = (id) => {
+    setExpandedActivities((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
-  const fetchHodDashboard = async () => {
+  const fetchHodDashboard = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       const response = await api.get("/hod/dashboard");
       setDashboardData(response.data);
+      setLastUpdated(new Date());
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -234,11 +186,42 @@ const HodDashboard = () => {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  }, []);
+
+  const handleRefresh = () => {
+    fetchHodDashboard(true);
   };
 
-  if (loading) return <LoadingState />;
+  useEffect(() => {
+    fetchHodDashboard();
+  }, [fetchHodDashboard]);
 
+  // Loading State
+  if (loading) {
+    return (
+      <div className="hod-dashboard-root">
+        <div
+          className="hod-dashboard-container"
+          style={{
+            minHeight: "70vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading HOD Dashboard..."
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Error State
   if (error) {
     return (
       <ApiError
@@ -252,1037 +235,929 @@ const HodDashboard = () => {
     );
   }
 
-  const handleGoBack = () => {
-    navigate("/hod/profile");
-  };
-
   if (!dashboardData) {
     return (
       <ApiError
         title="Dashboard Loading Error"
         message="Unable to load dashboard data"
         onRetry={fetchHodDashboard}
-        onGoBack={handleGoBack}
+        onGoBack={() => navigate("/hod/profile")}
       />
     );
   }
 
+  // ============================================================
+  // EXTRACT REAL DATA
+  // ============================================================
   const stats = dashboardData.stats || {};
   const department = dashboardData.department || {};
   const hod = dashboardData.hod || null;
   const recentTimetables = dashboardData.recentTimetables || [];
+  const actionRequired = dashboardData.actionRequired || {};
+  const todaySchedule = dashboardData.todaySchedule || [];
+  const recentActivity = dashboardData.recentActivity || [];
+  const academicYear = dashboardData.academicYear || getCurrentAcademicYear();
 
-  // Derive meaningful KPIs
+  // Full Name & Greeting with Title
+  // e.g. "Good afternoon, Dr. Vishal Kore"
+  const hodFullName = hod?.name || user?.name || "HOD";
+  const greetingText = `${getGreetingIST()}, ${hodFullName}`;
+
+  // KPI Metrics (Must agree with Reports page)
   const totalTeachers = stats.teachers || 0;
-  const totalTimetables = stats.timetables || 0;
+  const totalStudents = stats.students || 0;
+  const totalSubjects = stats.subjects || 0;
+  const totalPrograms = stats.programs || 0;
+
+  // Timetables Breakdown (Merge Published & Drafts into 1 card)
+  const tb = stats.timetablesBreakdown || {};
   const publishedCount =
+    tb.published ?? stats.publishedTimetables ??
     recentTimetables.filter((t) => t.status === "PUBLISHED").length;
   const draftCount =
+    tb.draft ?? stats.draftTimetables ??
     recentTimetables.filter((t) => t.status === "DRAFT").length;
+  const archivedCount =
+    tb.archived ?? stats.archivedTimetables ??
+    recentTimetables.filter((t) => t.status === "ARCHIVED").length;
+  const totalTimetables = tb.total ?? stats.timetables ?? (publishedCount + draftCount + archivedCount);
 
-  // KPI definitions
-  const kpis = [
+  // Attendance Today
+  const attendanceTodayRate =
+    stats.attendanceToday !== null && stats.attendanceToday !== undefined
+      ? stats.attendanceToday
+      : null;
+  const todaySessionsCount = stats.todayClosedSessionsCount || 0;
+
+  // Action Required Data
+  const pendingExceptions = actionRequired.pendingExceptions || 0;
+  const draftTimetables = actionRequired.draftTimetables ?? draftCount;
+  const lowAttendanceStudents = actionRequired.lowAttendanceStudents || 0;
+  const unmarkedSessions = actionRequired.unmarkedSessions || 0;
+  const totalActionItems =
+    pendingExceptions + draftTimetables + lowAttendanceStudents + unmarkedSessions;
+
+  // Quick Actions (6 key portals)
+  const quickActions = [
     {
-      label: "Total Teachers",
-      value: totalTeachers,
+      label: "Manage Teachers",
+      description: "Faculty roster & allocations",
       icon: FaUsers,
+      route: "/hod/teachers",
       color: BRAND.primary,
       bg: BRAND.primaryLight,
-      hint: "Active faculty",
     },
     {
-      label: "Total Timetables",
-      value: totalTimetables,
+      label: "Manage Timetable",
+      description: "Schedules & slot management",
       icon: FaCalendarAlt,
-      color: BRAND.info,
-      bg: BRAND.infoLight,
-      hint: "All schedules",
-    },
-    {
-      label: "Published",
-      value: publishedCount,
-      icon: FaCheckCircle,
-      color: BRAND.success,
-      bg: BRAND.successLight,
-      hint: "Live this semester",
-    },
-    {
-      label: "Drafts Pending",
-      value: draftCount,
-      icon: FaEdit,
+      route: "/timetable/list",
       color: BRAND.accent,
       bg: BRAND.accentLight,
-      hint: "Needs review",
-    },
-  ];
-
-  // Quick actions grouped by domain
-  const actionGroups = [
-    {
-      title: "Teacher Management",
-      icon: FaUserTie,
-      color: BRAND.primary,
-      items: [
-        { label: "View Teachers", icon: FaUsers, route: "/hod/teachers" },
-      ],
     },
     {
-      title: "Subject Management",
-      icon: FaBook,
+      label: "Exception Approvals",
+      description: "Timetable change reviews",
+      icon: FaClipboardCheck,
+      route: "/hod/exception-approvals",
+      color: BRAND.warning,
+      bg: BRAND.warningLight,
+    },
+    {
+      label: "Department Reports",
+      description: "Attendance analytics & export",
+      icon: FaChartBar,
+      route: "/hod/reports",
       color: BRAND.info,
-      items: [
-        { label: "View Subjects", icon: FaListUl, route: "/hod/subjects" },
-      ],
+      bg: BRAND.infoLight,
     },
     {
-      title: "Timetable Management",
-      icon: FaCalendarAlt,
+      label: "Send Notification",
+      description: "Broadcast announcements",
+      icon: FaBell,
+      route: "/hod/notifications/create",
+      color: BRAND.primary,
+      bg: BRAND.primaryLight,
+    },
+    {
+      label: "Enter Marks",
+      description: "Academic grades & evaluation",
+      icon: FaEdit,
+      route: "/teacher/marks-entry",
       color: BRAND.accent,
-      items: [
-        { label: "Create Timetable", icon: FaPlus, route: "/timetable/create" },
-        { label: "View All", icon: FaEye, route: "/timetable/list" },
-      ],
-    },
-    {
-      title: "Department Management",
-      icon: FaBuilding,
-      color: BRAND.success,
-      items: [
-        { label: "Department Info", icon: FaLayerGroup, route: "/hod/department" },
-        { label: "My Profile", icon: FaIdCard, route: "/hod/profile" },
-      ],
+      bg: BRAND.accentLight,
     },
   ];
 
-  // Today's snapshot — derive from recent timetables (since backend doesn't give classes)
-  const todaysClasses = recentTimetables.slice(0, 4);
-
-  // ============================================================
-  // RENDER
-  // ============================================================
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="erp-page erp-viewport-min-100"
-        style={{
-          background: `linear-gradient(135deg, ${BRAND.bg} 0%, #eef4fb 100%)`,
-          padding: "1.5rem 1rem 3rem",
-        }}
-      >
-        <div style={{ maxWidth: 1400, margin: "0 auto" }}>
+    <div className="hod-dashboard-root">
+      <div className="hod-dashboard-container">
+        {/* ==================================================
+            1. HEADER BANNER
+            Greeting + Department Info + Meta + Updated Time
+        ================================================== */}
+<motion.div
+  initial={{ opacity: 0, y: -16 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.45, ease: "easeOut" }}
+  className="hod-header-banner"
+>
+  {/* Dark upper section */}
+  <div className="hod-header-main">
+    <div className="hod-header-user-info">
+      <div className="hod-header-avatar">
+        <FaUserTie />
+      </div>
 
-          {/* ==================================================
-              1. WELCOME BANNER
-          ================================================== */}
+      <div className="hod-header-identity">
+        <p className="hod-header-greeting">
+          {getGreetingIST()}, {hodFullName} 👋
+        </p>
+
+        <h1 className="hod-header-name">{hodFullName}</h1>
+
+        <p className="hod-header-subtitle">
+          Head of Department ·{" "}
+          <strong>{department.name || "Department"}</strong>
+        </p>
+      </div>
+    </div>
+
+    {/* Right-side time and refresh */}
+    <div className="hod-header-actions">
+      <div className="hod-header-time-box">
+        <span className="hod-header-time-label">Updated</span>
+        <strong>
+          {formatTimeShort(lastUpdated || new Date())}
+        </strong>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => navigate("/hod/profile")}
+        disabled={refreshing || loading}
+        className="hod-header-refresh-btn"
+        title="Refresh Dashboard"
+        aria-label="Refresh Dashboard"
+      >
+        <FaEye className={refreshing ? "hod-spin" : ""} />
+        <span>{refreshing ? "Refreshing..." : "View Profile"}</span>
+      </button>
+    </div>
+  </div>
+
+  {/* Light information strip */}
+  <div className="hod-header-footer">
+    <div className="hod-header-footer-item">
+      <FaCalendarDay />
+      <div>
+        <span className="hod-footer-label">Date</span>
+        <strong>{formatDateLong()}</strong>
+      </div>
+    </div>
+
+    <div className="hod-header-footer-item">
+      <FaGraduationCap />
+      <div>
+        <span className="hod-footer-label">Academic Year</span>
+        <strong>AY {academicYear}</strong>
+      </div>
+    </div>
+
+    <div className="hod-header-footer-item">
+      <FaUsers />
+      <div>
+        <span className="hod-footer-label">Department</span>
+        <strong>{department.name || "Department"}</strong>
+      </div>
+    </div>
+
+    {hod?.employeeId && (
+      <div className="hod-header-footer-item hod-header-employee">
+        <FaIdCard />
+        <div>
+          <span className="hod-footer-label">Employee ID</span>
+          <strong>{hod.employeeId}</strong>
+        </div>
+      </div>
+    )}
+  </div>
+</motion.div>
+
+        {/* ==================================================
+            2. 4 COMPACT KPI CARDS (Entire Card Clickable)
+        ================================================== */}
+        <div className="hod-kpi-grid">
+          {/* Card 1: Total Teachers */}
           <motion.div
-            variants={slideDown}
+            variants={fadeUp}
+            custom={0}
             initial="hidden"
             animate="visible"
-            style={{
-              background: `linear-gradient(120deg, ${BRAND.primary} 0%, ${BRAND.primaryDark} 60%, #0a2a38 100%)`,
-              borderRadius: 20,
-              padding: "1.75rem 2rem",
-              color: "#fff",
-              boxShadow: "0 20px 50px -20px rgba(15, 58, 74, 0.5)",
-              marginBottom: "1.5rem",
-              position: "relative",
-              overflow: "hidden",
+            className="hod-kpi-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate("/hod/teachers")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/hod/teachers");
+              }
             }}
+            aria-label="Total Teachers, navigate to teachers roster"
           >
-            {/* Decorative accent bar */}
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                width: 220,
-                height: "100%",
-                background: `linear-gradient(120deg, transparent, ${BRAND.accent}30)`,
-                borderTopRightRadius: 20,
-                pointerEvents: "none",
-              }}
-            />
-
-            <div
-              className="row align-items-center g-3"
-              style={{ position: "relative", zIndex: 1 }}
-            >
-              <div className="col-md-8">
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "1rem",
-                    marginBottom: "0.75rem",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 14,
-                      background: "rgba(255,255,255,0.15)",
-                      backdropFilter: "blur(10px)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "1.6rem",
-                      border: "1px solid rgba(255,255,255,0.2)",
-                    }}
-                  >
-                    <FaUserTie />
-                  </div>
-                  <div>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "0.85rem",
-                        opacity: 0.85,
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      {getGreeting()} 👋
-                    </p>
-                    <h2
-                      style={{
-                        margin: 0,
-                        fontSize: "clamp(1.3rem, 2.5vw, 1.85rem)",
-                        fontWeight: 700,
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {user?.name || "HOD"}
-                    </h2>
-                  </div>
-                </div>
-                <p
-                  style={{
-                    margin: 0,
-                    opacity: 0.9,
-                    fontSize: "0.95rem",
-                  }}
-                >
-                  Head of Department,{" "}
-                  <strong>{department.name || "Department"}</strong>
-                  {department.code && (
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        padding: "2px 10px",
-                        background: "rgba(255,255,255,0.18)",
-                        borderRadius: 20,
-                        fontSize: "0.78rem",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {department.code}
-                    </span>
-                  )}
-                </p>
+            <div className="hod-kpi-top-bar" style={{ background: BRAND.primary }} />
+            <div className="hod-kpi-header">
+              <div
+                className="hod-kpi-icon"
+                style={{ background: BRAND.primaryLight, color: BRAND.primary }}
+              >
+                <FaUsers />
               </div>
+              <FaArrowRight style={{ fontSize: "0.75rem", color: BRAND.muted, opacity: 0.6 }} />
+            </div>
+            <div>
+              <div className="hod-kpi-value">{totalTeachers}</div>
+              <div className="hod-kpi-label">Total Teachers</div>
+              <div className="hod-kpi-subtext">Active faculty roster</div>
+            </div>
+          </motion.div>
 
-              <div className="col-md-4 text-md-end">
-                <div
-                  style={{
-                    display: "inline-flex",
-                    flexDirection: "column",
-                    gap: "0.4rem",
-                    background: "rgba(255,255,255,0.1)",
-                    padding: "0.75rem 1.1rem",
-                    borderRadius: 12,
-                    border: "1px solid rgba(255,255,255,0.15)",
-                    fontSize: "0.85rem",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <FaCalendarDay style={{ opacity: 0.8 }} />
-                    <span>{formatDateLong()}</span>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <FaGraduationCap style={{ opacity: 0.8 }} />
-                    <span>AY {getCurrentAcademicYear()}</span>
-                  </div>
-                </div>
+          {/* Card 2: Total Students */}
+          <motion.div
+            variants={fadeUp}
+            custom={1}
+            initial="hidden"
+            animate="visible"
+            className="hod-kpi-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate("/hod/reports")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/hod/reports");
+              }
+            }}
+            aria-label="Total Students, view department reports"
+          >
+            <div className="hod-kpi-top-bar" style={{ background: BRAND.info }} />
+            <div className="hod-kpi-header">
+              <div
+                className="hod-kpi-icon"
+                style={{ background: BRAND.infoLight, color: BRAND.info }}
+              >
+                <FaGraduationCap />
+              </div>
+              <FaArrowRight style={{ fontSize: "0.75rem", color: BRAND.muted, opacity: 0.6 }} />
+            </div>
+            <div>
+              <div className="hod-kpi-value">{totalStudents}</div>
+              <div className="hod-kpi-label">Total Students</div>
+              <div className="hod-kpi-subtext">
+                {totalSubjects} subjects · {totalPrograms} programs
               </div>
             </div>
           </motion.div>
 
-          {/* ==================================================
-              2. KPI GRID
-          ================================================== */}
-          <div className="row g-3 mb-4">
-            {kpis.map((kpi, idx) => {
-              const Icon = kpi.icon;
-              return (
-                <motion.div
-                  key={kpi.label}
-                  variants={fadeUp}
-                  custom={idx}
-                  initial="hidden"
-                  animate="visible"
-                  className="col-6 col-lg-3"
-                >
-                  <div
-                    style={{
-                      background: BRAND.card,
-                      borderRadius: 16,
-                      padding: "1.25rem",
-                      boxShadow: "0 4px 20px rgba(15, 23, 42, 0.05)",
-                      border: `1px solid ${BRAND.border}`,
-                      height: "100%",
-                      position: "relative",
-                      overflow: "hidden",
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-3px)";
-                      e.currentTarget.style.boxShadow =
-                        "0 10px 30px rgba(15, 23, 42, 0.1)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.boxShadow =
-                        "0 4px 20px rgba(15, 23, 42, 0.05)";
-                    }}
-                  >
-                    {/* Top accent line */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: 3,
-                        background: kpi.color,
-                      }}
-                    />
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        marginBottom: "0.85rem",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 12,
-                          background: kpi.bg,
-                          color: kpi.color,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "1.15rem",
-                        }}
-                      >
-                        <Icon />
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "clamp(1.5rem, 3vw, 2rem)",
-                        fontWeight: 700,
-                        color: BRAND.ink,
-                        lineHeight: 1,
-                        marginBottom: "0.3rem",
-                      }}
-                    >
-                      {kpi.value}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.85rem",
-                        fontWeight: 600,
-                        color: BRAND.ink,
-                        marginBottom: "0.15rem",
-                      }}
-                    >
-                      {kpi.label}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: BRAND.muted,
-                      }}
-                    >
-                      {kpi.hint}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+          {/* Card 3: Timetables (Merged Published · Draft · Archived) */}
+          <motion.div
+            variants={fadeUp}
+            custom={2}
+            initial="hidden"
+            animate="visible"
+            className="hod-kpi-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate("/timetable/list")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/timetable/list");
+              }
+            }}
+            aria-label="Timetables, navigate to timetable list"
+          >
+            <div className="hod-kpi-top-bar" style={{ background: BRAND.accent }} />
+            <div className="hod-kpi-header">
+              <div
+                className="hod-kpi-icon"
+                style={{ background: BRAND.accentLight, color: BRAND.accent }}
+              >
+                <FaCalendarAlt />
+              </div>
+              <FaArrowRight style={{ fontSize: "0.75rem", color: BRAND.muted, opacity: 0.6 }} />
+            </div>
+            <div>
+              <div className="hod-kpi-value">{totalTimetables}</div>
+              <div className="hod-kpi-label">Timetables</div>
+              <div className="hod-kpi-subtext">
+                {publishedCount} Published · {draftCount} Draft · {archivedCount} Archived
+              </div>
+            </div>
+          </motion.div>
 
-          {/* ==================================================
-              3. OPERATIONAL GRID (Today's Overview + Quick Actions)
-          ================================================== */}
-          <div className="row g-3 mb-4">
-            {/* TODAY'S OVERVIEW */}
+          {/* Card 4: Attendance Today */}
+          <motion.div
+            variants={fadeUp}
+            custom={3}
+            initial="hidden"
+            animate="visible"
+            className="hod-kpi-card"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate("/hod/reports")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                navigate("/hod/reports");
+              }
+            }}
+            aria-label="Attendance Today, view reports"
+          >
+            <div className="hod-kpi-top-bar" style={{ background: BRAND.success }} />
+            <div className="hod-kpi-header">
+              <div
+                className="hod-kpi-icon"
+                style={{ background: BRAND.successLight, color: BRAND.success }}
+              >
+                <FaClipboardCheck />
+              </div>
+              <FaArrowRight style={{ fontSize: "0.75rem", color: BRAND.muted, opacity: 0.6 }} />
+            </div>
+            <div>
+              <div className="hod-kpi-value">
+                {attendanceTodayRate !== null ? `${attendanceTodayRate}%` : "N/A"}
+              </div>
+              <div className="hod-kpi-label">Attendance Today</div>
+              <div className="hod-kpi-subtext">
+                {attendanceTodayRate !== null
+                  ? `${todaySessionsCount} sessions today`
+                  : stats.lastSession
+                  ? `Last session: ${stats.lastSession.rate}% · ${stats.lastSession.timeAgo}`
+                  : "N/A"}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* ==================================================
+            3. TWO-COLUMN MAIN LAYOUT
+            Left: Action Required + Today's Schedule
+            Right: Quick Actions + Recent Activity
+        ================================================== */}
+        <div className="hod-main-columns">
+          {/* ================= LEFT COLUMN ================= */}
+          <div className="hod-column-left">
+            {/* SECTION: Action Required */}
             <motion.div
               variants={fadeUp}
               custom={4}
               initial="hidden"
               animate="visible"
-              className="col-lg-7"
+              className="hod-section-card"
             >
-              <div
-                style={{
-                  background: BRAND.card,
-                  borderRadius: 16,
-                  padding: "1.5rem",
-                  boxShadow: "0 4px 20px rgba(15, 23, 42, 0.05)",
-                  border: `1px solid ${BRAND.border}`,
-                  height: "100%",
-                }}
-              >
-                <SectionHeader
-                  icon={FaCalendarDay}
-                  title="Today's Department Snapshot"
-                  subtitle="Operational overview for today"
-                  action={
-                    <span
-                      style={{
-                        fontSize: "0.78rem",
-                        color: BRAND.accent,
-                        fontWeight: 600,
-                        background: BRAND.accentLight,
-                        padding: "4px 10px",
-                        borderRadius: 20,
-                      }}
-                    >
-                      <FaRegClock style={{ marginRight: 4 }} />
-                      Live
-                    </span>
-                  }
-                />
-
-                {/* Mini stats row */}
-                <div
-                  className="row g-2 mb-3"
-                  style={{
-                    padding: "0.85rem",
-                    background: BRAND.bg,
-                    borderRadius: 12,
-                  }}
-                >
-                  <div className="col-4 text-center">
-                    <div
-                      style={{
-                        fontSize: "1.35rem",
-                        fontWeight: 700,
-                        color: BRAND.primary,
-                      }}
-                    >
-                      {totalTeachers}
-                    </div>
-                    <div style={{ fontSize: "0.72rem", color: BRAND.muted }}>
-                      Faculty
-                    </div>
-                  </div>
+              <div className="hod-section-header">
+                <div className="hod-section-title-wrap">
                   <div
-                    className="col-4 text-center"
+                    className="hod-section-icon"
                     style={{
-                      borderLeft: `1px solid ${BRAND.border}`,
-                      borderRight: `1px solid ${BRAND.border}`,
+                      background: totalActionItems > 0 ? BRAND.warningLight : BRAND.successLight,
+                      color: totalActionItems > 0 ? BRAND.warning : BRAND.success,
                     }}
                   >
-                    <div
-                      style={{
-                        fontSize: "1.35rem",
-                        fontWeight: 700,
-                        color: BRAND.success,
-                      }}
-                    >
-                      {publishedCount}
-                    </div>
-                    <div style={{ fontSize: "0.72rem", color: BRAND.muted }}>
-                      Active Schedules
-                    </div>
+                    {totalActionItems > 0 ? <FaExclamationTriangle /> : <FaCheckCircle />}
                   </div>
-                  <div className="col-4 text-center">
-                    <div
-                      style={{
-                        fontSize: "1.35rem",
-                        fontWeight: 700,
-                        color: BRAND.accent,
-                      }}
-                    >
-                      {draftCount}
-                    </div>
-                    <div style={{ fontSize: "0.72rem", color: BRAND.muted }}>
-                      Pending Review
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recent activity list */}
-                <div style={{ fontSize: "0.85rem", fontWeight: 600, color: BRAND.ink, marginBottom: "0.6rem" }}>
-                  Recent Timetable Activity
-                </div>
-                {todaysClasses.length > 0 ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
-                    {todaysClasses.map((t, i) => (
-                      <motion.div
-                        key={t._id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "0.7rem 0.85rem",
-                          background: BRAND.bg,
-                          borderRadius: 10,
-                          borderLeft: `3px solid ${
-                            t.status === "PUBLISHED"
-                              ? BRAND.success
-                              : t.status === "DRAFT"
-                              ? BRAND.warning
-                              : BRAND.muted
-                          }`,
-                          gap: "0.5rem",
-                        }}
-                      >
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div
-                            style={{
-                              fontWeight: 600,
-                              color: BRAND.ink,
-                              fontSize: "0.88rem",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {t.name}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "0.73rem",
-                              color: BRAND.muted,
-                              marginTop: 2,
-                            }}
-                          >
-                            Sem {t.semester} • {t.academicYear}
-                          </div>
-                        </div>
-                        <span
-                          style={{
-                            fontSize: "0.68rem",
-                            fontWeight: 700,
-                            padding: "3px 9px",
-                            borderRadius: 20,
-                            background:
-                              t.status === "PUBLISHED"
-                                ? BRAND.successLight
-                                : t.status === "DRAFT"
-                                ? BRAND.warningLight
-                                : "#f1f5f9",
-                            color:
-                              t.status === "PUBLISHED"
-                                ? BRAND.success
-                                : t.status === "DRAFT"
-                                ? BRAND.warning
-                                : BRAND.muted,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {t.status}
-                        </span>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      textAlign: "center",
-                      padding: "2rem 1rem",
-                      color: BRAND.muted,
-                    }}
-                  >
-                    <FaCalendarAlt
-                      style={{ fontSize: "2rem", opacity: 0.3, marginBottom: "0.5rem" }}
-                    />
-                    <p style={{ margin: 0, fontSize: "0.85rem" }}>
-                      No recent timetable activity
+                  <div>
+                    <h2 className="hod-section-title">Action Required</h2>
+                    <p className="hod-section-subtitle">
+                      {totalActionItems > 0
+                        ? `${totalActionItems} pending items require attention`
+                        : "Department tasks & compliance"}
                     </p>
                   </div>
-                )}
+                </div>
               </div>
+
+              {totalActionItems === 0 ? (
+                <div className="hod-all-clear">
+                  <FaCheckCircle className="hod-all-clear-icon" />
+                  <div>
+                    <p className="hod-all-clear-title">All clear</p>
+                    <p className="hod-all-clear-sub">
+                      No pending actions or timetable exceptions requiring review.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="hod-action-list">
+                  {/* Pending Exceptions */}
+                  {pendingExceptions > 0 && (
+                    <div className="hod-action-item">
+                      <div className="hod-action-item-left">
+                        <span className="hod-action-pill warning">{pendingExceptions}</span>
+                        <span className="hod-action-text">Pending timetable exceptions</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="hod-action-btn"
+                        onClick={() => navigate("/hod/exception-approvals")}
+                      >
+                        Review <FaArrowRight style={{ fontSize: "0.65rem" }} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Draft Timetables Awaiting Review */}
+                  {draftTimetables > 0 && (
+                    <div className="hod-action-item">
+                      <div className="hod-action-item-left">
+                        <span className="hod-action-pill warning">{draftTimetables}</span>
+                        <span className="hod-action-text">Draft timetables awaiting review</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="hod-action-btn"
+                        onClick={() => navigate("/timetable/list")}
+                      >
+                        Review <FaArrowRight style={{ fontSize: "0.65rem" }} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Low Attendance Students */}
+                  {lowAttendanceStudents > 0 && (
+                    <div className="hod-action-item">
+                      <div className="hod-action-item-left">
+                        <span className="hod-action-pill danger">{lowAttendanceStudents}</span>
+                        <span className="hod-action-text">Students below 75% attendance</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="hod-action-btn"
+                        onClick={() => navigate("/hod/reports")}
+                      >
+                        View <FaArrowRight style={{ fontSize: "0.65rem" }} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Unmarked Attendance Sessions */}
+                  {unmarkedSessions > 0 && (
+                    <div className="hod-action-item">
+                      <div className="hod-action-item-left">
+                        <span className="hod-action-pill warning">{unmarkedSessions}</span>
+                        <span className="hod-action-text">Sessions with attendance not yet marked</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="hod-action-btn"
+                        onClick={() => navigate("/timetable/list")}
+                      >
+                        View <FaArrowRight style={{ fontSize: "0.65rem" }} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
 
-            {/* QUICK ACTIONS */}
+            {/* SECTION: Today's Schedule */}
             <motion.div
               variants={fadeUp}
               custom={5}
               initial="hidden"
               animate="visible"
-              className="col-lg-5"
+              className="hod-section-card"
             >
-              <div
-                style={{
-                  background: BRAND.card,
-                  borderRadius: 16,
-                  padding: "1.5rem",
-                  boxShadow: "0 4px 20px rgba(15, 23, 42, 0.05)",
-                  border: `1px solid ${BRAND.border}`,
-                  height: "100%",
-                }}
-              >
-                <SectionHeader
-                  icon={FaCogs}
-                  title="Quick Actions"
-                  subtitle="Jump to common tasks"
-                />
+              <div className="hod-section-header">
+                <div className="hod-section-title-wrap">
+                  <div
+                    className="hod-section-icon"
+                    style={{ background: BRAND.primaryLight, color: BRAND.primary }}
+                  >
+                    <FaClock />
+                  </div>
+                  <div>
+                    <h2 className="hod-section-title">Today's Schedule</h2>
+                    <p className="hod-section-subtitle">Department lectures happening today</p>
+                  </div>
+                </div>
+              </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                  {actionGroups.map((group) => {
-                    const GroupIcon = group.icon;
+              {todaySchedule.length > 0 ? (
+                <div className="hod-schedule-list">
+                  {todaySchedule.map((lecture) => (
+                    <div key={lecture.id} className="hod-schedule-item">
+                      <div className="hod-schedule-info">
+                        <div className="hod-schedule-time">{lecture.time}</div>
+                        <div className="hod-schedule-subject">
+                          {lecture.subjectName}
+                          {lecture.subjectCode ? ` (${lecture.subjectCode})` : ""}
+                        </div>
+                        <div className="hod-schedule-meta">
+                          {lecture.teacherName} · {lecture.room || "Classroom"}
+                        </div>
+                      </div>
+                      <span
+                        className={`hod-badge ${
+                          lecture.isMarked ? "hod-badge-success" : "hod-badge-warning"
+                        }`}
+                      >
+                        {lecture.isMarked ? (
+                          <>
+                            <FaCheckCircle style={{ fontSize: "0.65rem" }} /> Marked
+                          </>
+                        ) : (
+                          <>
+                            <FaClock style={{ fontSize: "0.65rem" }} /> Not Marked
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="hod-schedule-compact-empty">
+                  <div className="hod-schedule-compact-main">
+                    <div className="hod-schedule-compact-icon-wrap">
+                      <FaCalendarDay className="hod-schedule-compact-icon" />
+                    </div>
+                    <div className="hod-schedule-compact-text">
+                      <p className="hod-schedule-compact-title">No lectures scheduled today</p>
+                      {dashboardData.nextLecture ? (
+                        <p className="hod-schedule-compact-next">
+                          Next lecture: <strong>{dashboardData.nextLecture.formattedDateTime || `${dashboardData.nextLecture.date || dashboardData.nextLecture.day}, ${dashboardData.nextLecture.time}`}</strong> · {dashboardData.nextLecture.subject}
+                        </p>
+                      ) : (
+                        <p className="hod-schedule-compact-sub">No upcoming lectures scheduled this week.</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="hod-schedule-compact-link"
+                    onClick={() => navigate("/timetable/weekly-timetable")}
+                  >
+                    View weekly schedule <FaArrowRight style={{ fontSize: "0.68rem" }} />
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+
+          {/* ================= RIGHT COLUMN ================= */}
+          <div className="hod-column-right">
+            {/* SECTION: Quick Actions */}
+            <motion.div
+              variants={fadeUp}
+              custom={4}
+              initial="hidden"
+              animate="visible"
+              className="hod-section-card"
+            >
+              <div className="hod-section-header">
+                <div className="hod-section-title-wrap">
+                  <div
+                    className="hod-section-icon"
+                    style={{ background: BRAND.accentLight, color: BRAND.accent }}
+                  >
+                    <FaCogs />
+                  </div>
+                  <div>
+                    <h2 className="hod-section-title">Quick Actions</h2>
+                    <p className="hod-section-subtitle">Key departmental portals</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="hod-quick-grid">
+                {quickActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.label}
+                      type="button"
+                      className="hod-quick-card"
+                      onClick={() => navigate(action.route)}
+                    >
+                      <div
+                        className="hod-quick-icon"
+                        style={{ background: action.bg, color: action.color }}
+                      >
+                        <Icon />
+                      </div>
+                      <div className="hod-quick-info">
+                        <div className="hod-quick-label">{action.label}</div>
+                        <div className="hod-quick-desc">{action.description}</div>
+                      </div>
+                      <FaArrowRight
+                        style={{
+                          fontSize: "0.68rem",
+                          color: BRAND.muted,
+                          opacity: 0.5,
+                          flexShrink: 0,
+                        }}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+
+            {/* SECTION: Recent Activity */}
+            <motion.div
+              variants={fadeUp}
+              custom={5}
+              initial="hidden"
+              animate="visible"
+              className="hod-section-card"
+            >
+              <div className="hod-section-header">
+                <div className="hod-section-title-wrap">
+                  <div
+                    className="hod-section-icon"
+                    style={{ background: BRAND.infoLight, color: BRAND.info }}
+                  >
+                    <FaHistory />
+                  </div>
+                  <div>
+                    <h2 className="hod-section-title">Recent Activity</h2>
+                    <p className="hod-section-subtitle">Department audit log & events</p>
+                  </div>
+                </div>
+              </div>
+
+              {recentActivity.length > 0 ? (
+                <div className="hod-activity-list">
+                  {recentActivity.map((act) => {
+                    const isExpanded = Boolean(expandedActivities[act.id]);
+                    const subItems = act.detailsList || act.subItems || [];
                     return (
-                      <div key={group.title}>
+                      <div key={act.id} className="hod-activity-card">
                         <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            marginBottom: "0.5rem",
-                            fontSize: "0.75rem",
-                            fontWeight: 700,
-                            color: group.color,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
+                          className={`hod-activity-item ${act.isGrouped ? "hod-activity-item--grouped" : ""}`}
+                          onClick={act.isGrouped ? () => toggleActivityExpand(act.id) : undefined}
+                          role={act.isGrouped ? "button" : undefined}
+                          tabIndex={act.isGrouped ? 0 : undefined}
+                          onKeyDown={
+                            act.isGrouped
+                              ? (e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault();
+                                    toggleActivityExpand(act.id);
+                                  }
+                                }
+                              : undefined
+                          }
+                          aria-expanded={act.isGrouped ? isExpanded : undefined}
                         >
-                          <GroupIcon style={{ fontSize: "0.7rem" }} />
-                          {group.title}
+                          <div className="hod-activity-dot" />
+                          <div className="hod-activity-content">
+                            <div className="hod-activity-text">{act.readableText}</div>
+                            <div className="hod-activity-time">{act.timeAgo}</div>
+                          </div>
+                          {act.isGrouped && (
+                            <span
+                              className="hod-activity-expand-icon"
+                              title={isExpanded ? "Collapse" : "Expand"}
+                            >
+                              {isExpanded ? (
+                                <FaChevronUp style={{ fontSize: "0.7rem" }} />
+                              ) : (
+                                <FaChevronDown style={{ fontSize: "0.7rem" }} />
+                              )}
+                            </span>
+                          )}
                         </div>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "repeat(2, 1fr)",
-                            gap: "0.5rem",
-                          }}
-                        >
-                          {group.items.map((item) => {
-                            const ItemIcon = item.icon;
-                            return (
-                              <motion.button
-                                key={item.label}
-                                whileHover={{ scale: 1.03, y: -2 }}
-                                whileTap={{ scale: 0.97 }}
-                                onClick={() => navigate(item.route)}
-                                style={{
-                                  background: BRAND.bg,
-                                  border: `1px solid ${BRAND.border}`,
-                                  borderRadius: 10,
-                                  padding: "0.7rem 0.6rem",
-                                  cursor: "pointer",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: "0.55rem",
-                                  transition: "all 0.2s",
-                                  textAlign: "left",
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.borderColor = group.color;
-                                  e.currentTarget.style.background =
-                                    group.color + "10";
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.borderColor = BRAND.border;
-                                  e.currentTarget.style.background = BRAND.bg;
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    width: 30,
-                                    height: 30,
-                                    borderRadius: 8,
-                                    background: group.color + "18",
-                                    color: group.color,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    fontSize: "0.85rem",
-                                    flexShrink: 0,
-                                  }}
-                                >
-                                  <ItemIcon />
+
+                        {act.isGrouped && isExpanded && subItems.length > 0 && (
+                          <div className="hod-activity-sublist">
+                            {subItems.map((sub, idx) => (
+                              <div key={sub?.id || idx} className="hod-activity-subitem">
+                                <span className="hod-activity-subbullet">•</span>
+                                <div className="hod-activity-subitem-content">
+                                  <span className="hod-activity-subitem-title">
+                                    {typeof sub === "string"
+                                      ? sub
+                                      : sub.subjectName || sub.name || "Subject"}
+                                    {typeof sub === "object" && sub.courseName
+                                      ? ` (${sub.courseName})`
+                                      : ""}
+                                  </span>
+                                  {typeof sub === "object" && (sub.whoDidIt || sub.teacher) && (
+                                    <span className="hod-activity-subitem-meta">
+                                      · {sub.whoDidIt || sub.teacher}
+                                    </span>
+                                  )}
                                 </div>
-                                <span
-                                  style={{
-                                    fontSize: "0.8rem",
-                                    fontWeight: 600,
-                                    color: BRAND.ink,
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                  }}
-                                >
-                                  {item.label}
-                                </span>
-                              </motion.button>
-                            );
-                          })}
-                        </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              ) : (
+                <div className="hod-empty-state">
+                  <FaHistory className="hod-empty-icon" />
+                  <p className="hod-empty-title">No recent activity</p>
+                  <p className="hod-empty-sub">
+                    No departmental events recorded recently.
+                  </p>
+                </div>
+              )}
             </motion.div>
           </div>
+        </div>
 
-          {/* ==================================================
-              4. RECENT TIMETABLES (Card-based list)
-          ================================================== */}
-          <motion.div
-            variants={fadeUp}
-            custom={6}
-            initial="hidden"
-            animate="visible"
-            className="mb-4"
-          >
-            <div
+        {/* ==================================================
+            4. RECENT TIMETABLES (Slim Table, max 3-5 rows)
+        ================================================== */}
+        <motion.div
+          variants={fadeUp}
+          custom={6}
+          initial="hidden"
+          animate="visible"
+          className="hod-section-card"
+          style={{ marginBottom: "1.5rem" }}
+        >
+          <div className="hod-section-header">
+            <div className="hod-section-title-wrap">
+              <div
+                className="hod-section-icon"
+                style={{ background: BRAND.accentLight, color: BRAND.accent }}
+              >
+                <FaCalendarAlt />
+              </div>
+              <div>
+                <h2 className="hod-section-title">Recent Timetables</h2>
+                <p className="hod-section-subtitle">
+                  Latest schedules created in your department (Published and Draft first)
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate("/timetable/list")}
               style={{
-                background: BRAND.card,
-                borderRadius: 16,
-                padding: "1.5rem",
-                boxShadow: "0 4px 20px rgba(15, 23, 42, 0.05)",
-                border: `1px solid ${BRAND.border}`,
+                background: "transparent",
+                border: `1px solid ${BRAND.primary}`,
+                color: BRAND.primary,
+                padding: "0.45rem 1rem",
+                borderRadius: 8,
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                transition: "all 0.18s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = BRAND.primary;
+                e.currentTarget.style.color = "#ffffff";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = BRAND.primary;
               }}
             >
-              <SectionHeader
-                icon={FaRegCalendarPlus}
-                title="Recent Timetables"
-                subtitle="Latest schedules created in your department"
-                action={
-                  <motion.button
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => navigate("/timetable/list")}
-                    style={{
-                      background: "transparent",
-                      border: `1px solid ${BRAND.primary}`,
-                      color: BRAND.primary,
-                      padding: "0.4rem 0.95rem",
-                      borderRadius: 8,
-                      fontSize: "0.8rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    View All <FaArrowRight style={{ fontSize: "0.7rem" }} />
-                  </motion.button>
-                }
-              />
+              View All <FaArrowRight style={{ fontSize: "0.7rem" }} />
+            </button>
+          </div>
 
-              {recentTimetables.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-                  {recentTimetables.map((t, i) => (
-                    <motion.div
-                      key={t._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="row g-2 align-items-center"
-                      style={{
-                        padding: "0.95rem 1rem",
-                        background: BRAND.bg,
-                        borderRadius: 12,
-                        border: `1px solid ${BRAND.border}`,
-                        transition: "all 0.2s",
-                        cursor: "pointer",
-                      }}
-                      onClick={() =>
-                        navigate(
-                          `/timetable/${t._id}/weekly${
-                            t.status === "ARCHIVED"
-                              ? "?includeArchived=true"
-                              : ""
-                          }`
-                        )
-                      }
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = BRAND.accent;
-                        e.currentTarget.style.boxShadow =
-                          "0 4px 15px rgba(249, 115, 22, 0.12)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = BRAND.border;
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
-                    >
-                      <div className="col-12 col-md-5">
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "0.75rem",
-                          }}
-                        >
+          {recentTimetables.length > 0 ? (
+            <div className="hod-table-wrapper">
+              <table className="hod-slim-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Semester</th>
+                    <th>Academic Year</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th style={{ textAlign: "right" }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentTimetables.slice(0, 5).map((tt) => (
+                    <tr key={tt._id}>
+                      <td>
+                        <div className="hod-table-name">
                           <div
+                            className="hod-table-icon"
                             style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 10,
                               background:
-                                t.status === "PUBLISHED"
+                                tt.status === "PUBLISHED"
                                   ? BRAND.successLight
-                                  : BRAND.accentLight,
+                                  : tt.status === "DRAFT"
+                                  ? BRAND.warningLight
+                                  : "#f1f5f9",
                               color:
-                                t.status === "PUBLISHED"
+                                tt.status === "PUBLISHED"
                                   ? BRAND.success
-                                  : BRAND.accent,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: "1rem",
-                              flexShrink: 0,
+                                  : tt.status === "DRAFT"
+                                  ? BRAND.warning
+                                  : BRAND.muted,
                             }}
                           >
                             <FaCalendarAlt />
                           </div>
-                          <div style={{ minWidth: 0 }}>
-                            <div
-                              style={{
-                                fontWeight: 700,
-                                color: BRAND.ink,
-                                fontSize: "0.95rem",
-                                whiteSpace: "nowrap",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                              }}
-                            >
-                              {t.name}
-                            </div>
-                            <div
-                              style={{
-                                fontSize: "0.75rem",
-                                color: BRAND.muted,
-                                marginTop: 2,
-                              }}
-                            >
-                              Academic Year {t.academicYear}
-                            </div>
-                          </div>
+                          <span>{tt.name}</span>
                         </div>
-                      </div>
-
-                      <div className="col-6 col-md-3">
-                        <div style={{ fontSize: "0.72rem", color: BRAND.muted }}>
-                          Semester
-                        </div>
-                        <div
-                          style={{
-                            fontWeight: 600,
-                            color: BRAND.ink,
-                            fontSize: "0.88rem",
-                          }}
-                        >
-                          Semester {t.semester}
-                        </div>
-                      </div>
-
-                      <div className="col-6 col-md-2">
+                      </td>
+                      <td>Semester {tt.semester || "—"}</td>
+                      <td>{tt.academicYear || "—"}</td>
+                      <td>
                         <span
-                          style={{
-                            display: "inline-block",
-                            fontSize: "0.72rem",
-                            fontWeight: 700,
-                            padding: "4px 11px",
-                            borderRadius: 20,
-                            background:
-                              t.status === "PUBLISHED"
-                                ? BRAND.successLight
-                                : t.status === "DRAFT"
-                                ? BRAND.warningLight
-                                : "#f1f5f9",
-                            color:
-                              t.status === "PUBLISHED"
-                                ? BRAND.success
-                                : t.status === "DRAFT"
-                                ? BRAND.warning
-                                : BRAND.muted,
-                            letterSpacing: 0.3,
-                          }}
+                          className={`hod-badge ${
+                            tt.status === "PUBLISHED"
+                              ? "hod-badge-success"
+                              : tt.status === "DRAFT"
+                              ? "hod-badge-warning"
+                              : "hod-badge-muted"
+                          }`}
                         >
-                          {t.status}
+                          {tt.status}
                         </span>
-                      </div>
-
-                      <div className="col-12 col-md-2 text-md-end">
-                        <span
+                      </td>
+                      <td>{formatDateShort(tt.updatedAt || tt.createdAt)}</td>
+                      <td style={{ textAlign: "right" }}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/timetable/${tt._id}/weekly${
+                                tt.status === "ARCHIVED" ? "?includeArchived=true" : ""
+                              }`
+                            )
+                          }
                           style={{
-                            fontSize: "0.78rem",
-                            fontWeight: 600,
+                            background: "transparent",
+                            border: `1px solid ${BRAND.border}`,
                             color: BRAND.accent,
+                            padding: "0.3rem 0.75rem",
+                            borderRadius: 6,
+                            fontSize: "0.76rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
                             display: "inline-flex",
                             alignItems: "center",
                             gap: 4,
+                            transition: "all 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = BRAND.accent;
+                            e.currentTarget.style.background = BRAND.accentLight;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = BRAND.border;
+                            e.currentTarget.style.background = "transparent";
                           }}
                         >
-                          Open <FaArrowRight style={{ fontSize: "0.68rem" }} />
-                        </span>
-                      </div>
-                    </motion.div>
+                          Open <FaArrowRight style={{ fontSize: "0.65rem" }} />
+                        </button>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              ) : (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "3rem 1rem",
-                    background: BRAND.bg,
-                    borderRadius: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 72,
-                      height: 72,
-                      margin: "0 auto 1rem",
-                      background: BRAND.accentLight,
-                      borderRadius: "50%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: "1.75rem",
-                      color: BRAND.accent,
-                    }}
-                  >
-                    <FaRegCalendarPlus />
-                  </div>
-                  <h6
-                    style={{
-                      color: BRAND.ink,
-                      fontWeight: 700,
-                      marginBottom: "0.35rem",
-                    }}
-                  >
-                    No timetables yet
-                  </h6>
-                  <p
-                    style={{
-                      color: BRAND.muted,
-                      fontSize: "0.85rem",
-                      marginBottom: "1rem",
-                    }}
-                  >
-                    Create your first timetable to get started.
-                  </p>
-                  <motion.button
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                    onClick={() => navigate("/timetable/create")}
-                    style={{
-                      background: BRAND.accent,
-                      color: "#fff",
-                      border: "none",
-                      padding: "0.6rem 1.25rem",
-                      borderRadius: 10,
-                      fontWeight: 600,
-                      fontSize: "0.85rem",
-                      cursor: "pointer",
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <FaPlus /> Create Timetable
-                  </motion.button>
-                </div>
-              )}
+                </tbody>
+              </table>
             </div>
-          </motion.div>
-
-          {/* ==================================================
-              5. DEPARTMENT INFO
-          ================================================== */}
-          <motion.div
-            variants={fadeUp}
-            custom={7}
-            initial="hidden"
-            animate="visible"
-          >
-            <div
-              style={{
-                background: BRAND.card,
-                borderRadius: 16,
-                padding: "1.5rem",
-                boxShadow: "0 4px 20px rgba(15, 23, 42, 0.05)",
-                border: `1px solid ${BRAND.border}`,
-              }}
-            >
-              <SectionHeader
-                icon={FaBuilding}
-                title="Department Information"
-                subtitle="Official department details"
-              />
-
-              <div className="row g-3">
-                {[
-                  { label: "Department Name", value: department.name, icon: FaUniversity },
-                  { label: "Department Code", value: department.code,  icon: FaIdCard },
-                  { label: "Head of Department", value: hod?.name ?? null, icon: FaUserTie },
-                  { label: "Employee ID", value: hod?.employeeId ?? null, icon: FaClipboardList },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <div key={item.label} className="col-6 col-md-3">
-                      <div
-                        style={{
-                          padding: "1rem",
-                          background: BRAND.bg,
-                          borderRadius: 12,
-                          height: "100%",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 6,
-                            fontSize: "0.72rem",
-                            color: BRAND.muted,
-                            fontWeight: 600,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                            marginBottom: "0.5rem",
-                          }}
-                        >
-                          <Icon style={{ fontSize: "0.75rem" }} />
-                          {item.label}
-                        </div>
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            color: item.value ? BRAND.ink : BRAND.muted,
-                            fontSize: "0.98rem",
-                            wordBreak: "break-word",
-                          }}
-                        >
-                          {item.value || "—"}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          ) : (
+            <div className="hod-empty-state">
+              <FaCalendarAlt className="hod-empty-icon" />
+              <p className="hod-empty-title">No timetables yet</p>
+              <p className="hod-empty-sub">
+                Create your first department timetable to get started.
+              </p>
+              <button
+                type="button"
+                onClick={() => navigate("/timetable/create-timetable")}
+                style={{
+                  marginTop: "1rem",
+                  background: BRAND.accent,
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "0.55rem 1.15rem",
+                  borderRadius: 10,
+                  fontWeight: 600,
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <FaPlus /> Create Timetable
+              </button>
             </div>
-          </motion.div>
-        </div>
-      </motion.div>
-    </AnimatePresence>
+          )}
+        </motion.div>
+      </div>
+    </div>
   );
 };
 

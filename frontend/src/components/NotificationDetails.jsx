@@ -222,13 +222,17 @@ export default function NotificationDetails() {
   const TypeIcon = typeInfo.icon;
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
-        paddingBottom: "3rem",
-      }}
-    >
+
+<div
+  className="notification-details-page"
+  style={{
+    minHeight: "100vh",
+    background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+    padding: "8px 24px 48px",
+    boxSizing: "border-box",
+  }}
+>
+
       {/* Breadcrumb */}
       <Breadcrumb
         items={[
@@ -237,15 +241,23 @@ export default function NotificationDetails() {
             path:
               user?.role === "TEACHER" ? "/teacher/dashboard" : "/dashboard",
           },
-          {
-            label: "Notifications",
-            path:
-              user?.role === "TEACHER"
-                ? "/teacher/notifications/list"
-                : user?.role === "STUDENT"
-                  ? "/notification/student"
+
+
+                {
+        label: "Notifications",
+        path:
+          user?.role === "TEACHER"
+            ? "/teacher/notifications/list"
+            : user?.role === "STUDENT"
+              ? "/notification/student"
+              : user?.role === "HOD"
+                ? "/hod/notifications/list"
+                : user?.role === "PARENT_GUARDIAN"
+                  ? "/parent/notifications"
                   : "/notification/list",
-          },
+      },
+
+
           { label: notification.title?.substring(0, 30) || "Details" },
         ]}
       />
@@ -254,15 +266,19 @@ export default function NotificationDetails() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{
-          backgroundColor: "white",
-          borderRadius: "20px",
-          boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-          overflow: "hidden",
-          marginBottom: "2rem",
-          margin: "0 auto 2rem",
-          maxWidth: "1000px",
-        }}
+
+style={{
+  backgroundColor: "#ffffff",
+  borderRadius: "16px",
+  border: "1px solid #e2e8f0",
+  boxShadow: "0 3px 12px rgba(15, 23, 42, 0.04)",
+  overflow: "hidden",
+  width: "100%",
+  maxWidth: "none",
+  boxSizing: "border-box",
+  margin: "0 0 20px",
+}}
+
       >
         {/* Header Gradient Bar */}
         <div
@@ -284,34 +300,7 @@ export default function NotificationDetails() {
           >
             {/* Left: Back button + Title */}
             <div style={{ flex: 1, minWidth: "280px" }}>
-              <button
-                onClick={handleBackClick}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.5rem 1rem",
-                  borderRadius: "10px",
-                  border: "1px solid #e2e8f0",
-                  backgroundColor: "white",
-                  color: "#64748b",
-                  fontSize: "0.9rem",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  marginBottom: "1rem",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#f8fafc";
-                  e.target.style.color = "#1e293b";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "white";
-                  e.target.style.color = "#64748b";
-                }}
-              >
-                <FaArrowLeft size={12} /> Back
-              </button>
+
 
               <h1
                 style={{
@@ -351,6 +340,7 @@ export default function NotificationDetails() {
                   <TypeIcon size={14} />
                   {typeInfo.label}
                 </div>
+                
 
                 {/* Priority Badge */}
                 <div
@@ -369,9 +359,39 @@ export default function NotificationDetails() {
                   {priority === "URGENT" && <FaExclamationTriangle size={12} />}
                   {priorityInfo.label}
                 </div>
+                
               </div>
+              
             </div>
-
+              <button
+                onClick={handleBackClick}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.5rem 1rem",
+                  borderRadius: "10px",
+                  border: "1px solid #e2e8f0",
+                  backgroundColor: "white",
+                  color: "#64748b",
+                  fontSize: "0.9rem",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  marginBottom: "1rem",
+                  transition: "all 0.2s ease",
+                  marginTop: "1rem",
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = "#f8fafc";
+                  e.target.style.color = "#1e293b";
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = "white";
+                  e.target.style.color = "#64748b";
+                }}
+              >
+                <FaArrowLeft size={12} /> Back
+              </button>
             {/* Right: Action Buttons */}
             {isOwner && (
               <div style={{ display: "flex", gap: "0.75rem" }}>
@@ -418,6 +438,7 @@ export default function NotificationDetails() {
                   {deleting ? <FaSpinner className="spin" /> : <FaTrash />}{" "}
                   Delete
                 </motion.button>
+                
               </div>
             )}
           </div>
@@ -425,47 +446,67 @@ export default function NotificationDetails() {
       </motion.div>
 
       {/* Main Content */}
-      <div style={{ maxWidth: "1000px", margin: "0 auto", padding: "0 1rem" }}>
+     
+<div
+  className="notification-details-content"
+  style={{
+    width: "100%",
+    maxWidth: "none",
+    margin: "0 auto",
+    padding: "0",
+    boxSizing: "border-box",
+  }}
+>
+
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 320px",
-            gap: "1.5rem",
-          }}
+className="notification-details-grid"
+style={{
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) 320px",
+  gap: "24px",
+  alignItems: "start",
+}}
         >
           {/* Content Column */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            style={{
-              backgroundColor: "white",
-              borderRadius: "20px",
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-              overflow: "hidden",
-            }}
-          >
+
+<motion.div
+  className="notification-message-card"
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.1 }}
+  style={{
+    backgroundColor: "#ffffff",
+    border: "1px solid #e2e8f0",
+    borderRadius: "16px",
+    boxShadow: "0 3px 12px rgba(15, 23, 42, 0.04)",
+    overflow: "hidden",
+    minWidth: 0,
+    minHeight: "220px",
+  }}
+>
+
             {/* Message Content */}
-            <div style={{ padding: "2rem" }}>
+            <div style={{ padding: "24px" }}>
               <h3
-                style={{
-                  margin: "0 0 1rem",
-                  fontSize: "0.85rem",
-                  fontWeight: 600,
-                  color: "#64748b",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.5px",
-                }}
+style={{
+  margin: "0 0 14px",
+  fontSize: "0.8rem",
+  fontWeight: 700,
+  color: "#64748b",
+  textTransform: "uppercase",
+  letterSpacing: "0.7px",
+}}
               >
                 Message
               </h3>
               <div
-                style={{
-                  fontSize: "1.05rem",
-                  lineHeight: 1.8,
-                  color: "#334155",
-                  whiteSpace: "pre-wrap",
-                }}
+style={{
+  fontSize: "1rem",
+  lineHeight: 1.75,
+  color: "#334155",
+  whiteSpace: "pre-wrap",
+  overflowWrap: "anywhere",
+}}
               >
                 {notification.message}
               </div>
@@ -722,63 +763,45 @@ export default function NotificationDetails() {
       />
 
       {/* Styles */}
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .spin {
-          animation: spin 1s linear infinite;
-        }
+ 
+<style>{`
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-        /* Responsive layout - collapse grid on mobile */
-        @media (max-width: 1023.98px) {
-          div[style*="grid-template-columns"] {
-            grid-template-columns: 1fr !important;
-          }
-        }
+  .spin {
+    animation: spin 1s linear infinite;
+  }
 
-        @media (max-width: 767.98px) {
-          /* Reduce padding on mobile */
-          div[style*="padding: 2rem"] {
-            padding: 1.25rem !important;
-          }
+  .notification-details-grid {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+  }
 
-          div[style*="padding: 1.5rem"] {
-            padding: 1rem !important;
-          }
+  .notification-message-card {
+    min-height: 220px;
+  }
 
-          /* Reduce icon and button sizes */
-          div[style*="width: 80px"][style*="height: 80px"] {
-            width: 60px !important;
-            height: 60px !important;
-          }
+  @media (max-width: 1024px) {
+    .notification-details-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 
-          /* Reduce title font size */
-          h1[style*="fontSize: 1.75rem"] {
-            font-size: 1.5rem !important;
-          }
+  @media (max-width: 767px) {
+    .notification-details-page {
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
 
-          /* Stack action buttons vertically */
-          div[style*="justify-content: flex-end"] {
-            flex-direction: column !important;
-          }
+    .notification-message-card {
+      min-height: 160px;
+    }
+  }
+`}</style>
 
-          div[style*="justify-content: flex-end"] button {
-            width: 100% !important;
-          }
-        }
-
-        @media (max-width: 479.98px) {
-          /* Further reduce sizes for small screens */
-          div[style*="padding: 1.25rem"] {
-            padding: 1rem !important;
-          }
-
-          h1[style*="fontSize: 1.5rem"] {
-            font-size: 1.25rem !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }

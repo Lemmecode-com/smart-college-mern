@@ -7,7 +7,12 @@ const mongoose = require('mongoose');
 const User = require('../models/user.model');
 
 async function migrate() {
-  await mongoose.connect(process.env.MONGODB_URI);
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  if (!mongoUri) {
+    console.error('Error: MONGO_URI or MONGODB_URI is not set in environment.');
+    process.exit(1);
+  }
+  await mongoose.connect(mongoUri);
   console.log('Connected to MongoDB\n');
 
   const result = await User.updateMany(

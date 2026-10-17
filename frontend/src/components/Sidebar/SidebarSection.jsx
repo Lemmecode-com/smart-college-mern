@@ -18,10 +18,9 @@ export default function SidebarSection({
   children,
   ariaLabel,
   isActive = false,
-  isCollapsed = false
-}) {
-  const location = useLocation();
+  isCollapsed = false,
 
+}) {
   const handleKeyDown = (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -44,7 +43,9 @@ export default function SidebarSection({
       >
         <div className="section-title-content">
           {Icon && <span className="section-icon"><Icon aria-hidden="true" /></span>}
-          <span className="section-title-text">{title}</span>
+          <span className="section-title-text">
+            <span>{title}</span>
+          </span>
         </div>
         <span 
           className={`section-caret ${isOpen ? "caret-open" : ""}`} 
@@ -60,7 +61,9 @@ export default function SidebarSection({
         role="group"
         aria-label={`${title} submenu`}
       >
-        {children}
+        <div className="submenu-inner">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -74,7 +77,15 @@ export default function SidebarSection({
  * - Visible focus state
  * - Consistent indentation
  */
-export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick, exact = false }) {
+export function SidebarSubItem({
+  to,
+  icon: Icon,
+  label,
+  ariaLabel,
+  onClick,
+  exact = false,
+  className = "",
+}) {
   const location = useLocation();
 
   // Check if current route matches or is a child of the target path
@@ -83,16 +94,21 @@ export function SidebarSubItem({ to, icon: Icon, label, ariaLabel, onClick, exac
   return (
     <NavLink
       to={to}
-      className={({ isActive: linkIsActive }) =>
-        `sub-link ${linkIsActive || isActive ? "active-sublink" : ""}`
-      }
+      end={exact}
+className={({ isActive: linkIsActive }) =>
+  `sub-link ${className} ${
+    linkIsActive || isActive ? "active-sublink" : ""
+  }`.trim()
+}
       role="menuitem"
       aria-label={ariaLabel || label}
       aria-current={isActive ? "page" : undefined}
       onClick={onClick}
     >
       {Icon && <span className="sub-link-icon"><Icon aria-hidden="true" /></span>}
-      <span className="sub-link-text">{label}</span>
+      <span className="sub-link-text">
+        <span>{label}</span>
+      </span>
     </NavLink>
   );
 }

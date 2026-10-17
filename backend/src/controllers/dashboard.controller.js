@@ -13,6 +13,7 @@ const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { getNotificationVisibilityQuery } = require("../services/notificationVisibility.service");
+const { parseLocalDateSafe, getDayName } = require("../utils/date.utils");
 
 /**
  * 👨‍🎓 STUDENT DASHBOARD
@@ -41,7 +42,7 @@ exports.studentDashboard = async (req, res, next) => {
     })
       .populate("course_id", "name")
       .populate("department_id", "name")
-      .select("user_id college_id department_id course_id currentSemester approvedAt createdAt");
+      .select("user_id college_id department_id course_id currentSemester currentAcademicYear approvedAt createdAt fullName enrollmentNumber division");
 
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
@@ -111,31 +112,58 @@ exports.studentDashboard = async (req, res, next) => {
     }));
 
     /* =====================================================
-       4️⃣ TODAY TIMETABLE (FILTERED BY COURSE + SEMESTER)
+       4️⃣ TODAY TIMETABLE (FILTERED BY COURSE + SEMESTER + ACADEMIC YEAR + STATUS)
+       — Mirrors GET /api/timetable/student/today logic
     ===================================================== */
 
-    const todayDate = new Date();
-    const dayName = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][todayDate.getDay()];
+    // Use client-provided date if available (timezone-safe), otherwise fall back to server date
+    let todayDate;
+    if (req.query.date) {
+      // Validate YYYY-MM-DD format
+      const dateStr = req.query.date;
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(dateStr)) {
+        // Parse using timezone-safe utility (treats YYYY-MM-DD as local date)
+        todayDate = parseLocalDateSafe(dateStr);
+      }
+    }
+    // Fallback to server date if no valid client date provided
+    if (!todayDate) {
+      todayDate = new Date();
+    }
+    const dayName = getDayName(todayDate);
 
     let todaysTimetable = [];
     try {
       const semester = Number(student.currentSemester);
+      const academicYear = student.currentAcademicYear;
 
-      const timetableFilters = {
+      // Build timetable query matching student's context
+      // Only PUBLISHED timetables are visible to students
+      const timetableQuery = {
         college_id: collegeId,
-        status: { $in: ["PUBLISHED", "DRAFT"] },
+        department_id: student.department_id,
+        course_id: student.course_id,
         semester,
+        academicYear,
+        status: "PUBLISHED",
       };
 
-      if (student.course_id) {
-        timetableFilters.course_id = student.course_id;
+      // Division filtering with null fallback (same as getStudentTodayTimetable)
+      if (student.division) {
+        timetableQuery.$or = [
+          { division: student.division },
+          { division: null },
+        ];
+      } else {
+        timetableQuery.division = null;
       }
 
-      const timetables = await Timetable.find(timetableFilters)
-        .select("_id semester")
-        .limit(20);
+      const matchingTimetables = await Timetable.find(timetableQuery)
+        .select("_id semester academicYear division")
+        .lean();
 
-      const timetableIds = timetables.map((t) => t._id);
+      const timetableIds = matchingTimetables.map((t) => t._id);
 
       if (timetableIds.length > 0) {
         const todaySlots = await TimetableSlot.find({
