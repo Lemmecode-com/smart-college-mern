@@ -20,21 +20,36 @@ vi.mock("react-toastify", () => ({
   },
 }));
 
-vi.mock("framer-motion", () => ({
-  motion: {
-    div: ({ children, className, style, ...props }) => (
-      <div className={className} style={style} {...props}>
+vi.mock("framer-motion", () => {
+  const MotionDiv = ({ children, className, style, ...props }) => (
+    <div className={className} style={style} {...props}>
+      {children}
+    </div>
+  );
+  const MotionSpan = ({ children, className, ...props }) => (
+    <span className={className} {...props}>
+      {children}
+    </span>
+  );
+  const MotionButton = ({ children, className, style, ...props }) => {
+    delete props.whileHover;
+    delete props.whileTap;
+    return (
+      <button className={className} style={style} {...props}>
         {children}
-      </div>
-    ),
-    span: ({ children, className, ...props }) => (
-      <span className={className} {...props}>
-        {children}
-      </span>
-    ),
-  },
-  AnimatePresence: ({ children }) => <>{children}</>,
-}));
+      </button>
+    );
+  };
+
+  return {
+    motion: {
+      div: MotionDiv,
+      span: MotionSpan,
+      button: MotionButton,
+    },
+    AnimatePresence: ({ children }) => <>{children}</>,
+  };
+});
 
 const mockApi = {
   get: vi.fn(),
@@ -65,7 +80,12 @@ vi.mock("../../components/ConfirmModal", () => ({
 }));
 
 vi.mock("../../components/common/PageHero", () => ({
-  default: ({ title }) => <header><h1>{title}</h1></header>,
+  default: ({ title, primaryAction }) => (
+    <header>
+      <h1>{title}</h1>
+      {primaryAction}
+    </header>
+  ),
 }));
 
 import NotificationForm from "../../components/NotificationForm";
@@ -101,6 +121,14 @@ describe("NotificationForm Component", () => {
               priority: "NORMAL",
               target: "ALL",
             },
+          },
+        });
+      }
+      if (url.includes("/hod/profile")) {
+        return Promise.resolve({
+          data: {
+            department_id: "dept-cs-123",
+            teacher: { department_id: "dept-cs-123" },
           },
         });
       }
@@ -305,5 +333,150 @@ describe("NotificationForm Component", () => {
 
     // navigate must NOT be called after unmount
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("renders without error when clicking Individual directly as first action", async () => {
+    await renderComponent({ role: "hod", mode: "create" });
+    const individualRadio = container.querySelector('input[type="radio"][value="INDIVIDUAL"]');
+    expect(individualRadio).not.toBeNull();
+
+    await act(async () => {
+      individualRadio.click();
+    });
+
+    expect(individualRadio.checked).toBe(true);
+    expect(container.querySelector('input[placeholder="Search by name or email..."]')).not.toBeNull();
+  });
+
+  it("handles loading sample notification and directly switching to INDIVIDUAL without crashing (reproduction scenario)", async () => {
+    await renderComponent({ role: "hod", mode: "create" });
+
+    // Click Load Sample
+    const buttons = Array.from(container.querySelectorAll("button"));
+    const loadSampleBtn = buttons.find((b) => b.textContent.includes("Load Sample"));
+    expect(loadSampleBtn).not.toBeNull();
+
+    await act(async () => {
+      loadSampleBtn.click();
+    });
+
+    const titleInput = container.querySelector('input[name="title"]');
+    expect(titleInput.value).toBe("Fee Payment Deadline Extended");
+
+    // Directly click INDIVIDUAL
+    const individualRadio = container.querySelector('input[type="radio"][value="INDIVIDUAL"]');
+    expect(individualRadio).not.toBeNull();
+
+    await act(async () => {
+      individualRadio.click();
+    });
+
+    expect(individualRadio.checked).toBe(true);
+    expect(container.querySelector('input[placeholder="Search by name or email..."]')).not.toBeNull();
+  });
+
+  it("switches repeatedly between all recipient types without crashing", async () => {
+    await renderComponent({ role: "hod", mode: "create" });
+
+    const targets = ["STUDENTS", "TEACHERS", "HOD", "DEPARTMENT", "INDIVIDUAL", "STUDENTS", "INDIVIDUAL"];
+    for (const target of targets) {
+      const radio = container.querySelector(`input[type="radio"][value="${target}"]`);
+      if (radio) {
+        await act(async () => {
+          radio.click();
+        });
+        expect(radio.checked).toBe(true);
+      }
+    }
+    expect(container.querySelector('input[type="radio"][value="INDIVIDUAL"]').checked).toBe(true);
+  });
+
+  it("validates that at least one recipient must be selected when target is INDIVIDUAL", async () => {
+    await renderComponent({ role: "college-admin", mode: "create" });
+
+    const individualRadio = container.querySelector('input[type="radio"][value="INDIVIDUAL"]');
+    await act(async () => {
+      individualRadio.click();
+    });
+
+    const titleInput = container.querySelector('input[name="title"]');
+    const messageInput = container.querySelector('textarea[name="message"]');
+    const submitBtn = container.querySelector('button[type="submit"]');
+
+    await act(async () => {
+      setInputValue(titleInput, "Individual Notice");
+      setInputValue(messageInput, "Notice for selected users.");
+    });
+
+    await act(async () => {
+      submitBtn.click();
+    });
+
+    expect(mockApi.post).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith("Please select at least one recipient.");
+  });
+
+  it("preserves HOD department and clean defaults after loading sample notification", async () => {
+    await renderComponent({ role: "hod", mode: "create" });
+
+    // Allow fetchHodDept effect to settle
+    await act(async () => {
+      vi.runAllTimers();
+    });
+
+    const buttons = Array.from(container.querySelectorAll("button"));
+    const loadSampleBtn = buttons.find((b) => b.textContent.includes("Load Sample"));
+
+    await act(async () => {
+      loadSampleBtn.click();
+    });
+
+    // Switch to DEPARTMENT
+    const deptRadio = container.querySelector('input[type="radio"][value="DEPARTMENT"]');
+    expect(deptRadio).not.toBeNull();
+    await act(async () => {
+      deptRadio.click();
+    });
+    expect(deptRadio.checked).toBe(true);
+
+    // Hidden input target_department should preserve HOD's deptId
+    const hiddenDeptInput = container.querySelector('input[name="target_department"]');
+    expect(hiddenDeptInput).not.toBeNull();
+    expect(hiddenDeptInput.value).toBe("dept-cs-123");
+
+    // Switch to individual
+    const individualRadio = container.querySelector('input[type="radio"][value="INDIVIDUAL"]');
+    await act(async () => {
+      individualRadio.click();
+    });
+    expect(container.querySelector('input[placeholder="Search by name or email..."]')).not.toBeNull();
+  });
+
+  it("supports college-admin switching to COURSE, SEMESTER, and INDIVIDUAL", async () => {
+    await renderComponent({ role: "college-admin", mode: "create" });
+
+    const courseRadio = container.querySelector('input[type="radio"][value="COURSE"]');
+    expect(courseRadio).not.toBeNull();
+    await act(async () => {
+      courseRadio.click();
+    });
+    expect(courseRadio.checked).toBe(true);
+    expect(container.querySelector('select[name="target_course"]')).not.toBeNull();
+
+    const semRadio = container.querySelector('input[type="radio"][value="SEMESTER"]');
+    expect(semRadio).not.toBeNull();
+    await act(async () => {
+      semRadio.click();
+    });
+    expect(semRadio.checked).toBe(true);
+    expect(container.querySelector('select[name="target_semester"]')).not.toBeNull();
+
+    const individualRadio = container.querySelector('input[type="radio"][value="INDIVIDUAL"]');
+    expect(individualRadio).not.toBeNull();
+    await act(async () => {
+      individualRadio.click();
+    });
+    expect(individualRadio.checked).toBe(true);
+    expect(container.querySelector('input[placeholder="Search by name or email..."]')).not.toBeNull();
   });
 });

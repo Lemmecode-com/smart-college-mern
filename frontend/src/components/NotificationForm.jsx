@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useContext, useRef } from "rea
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
+const _motion = motion;
 import api from "../api/axios";
 import Loading from "../components/Loading";
 import ApiError from "../components/ApiError";
@@ -126,7 +127,7 @@ export default function NotificationForm({
   mode = "create",
 }) {
   const config = ROLE_CONFIG[role] || ROLE_CONFIG["college-admin"];
-  const { user } = useContext(AuthContext);
+  const { user: _user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -188,10 +189,24 @@ export default function NotificationForm({
       const fetchData = async () => {
         try {
           const deptRes = await api.get("/departments");
-          setDepartments(deptRes.data || []);
+          const deptData = Array.isArray(deptRes.data)
+            ? deptRes.data
+            : Array.isArray(deptRes.data?.data)
+            ? deptRes.data.data
+            : Array.isArray(deptRes.data?.departments)
+            ? deptRes.data.departments
+            : [];
+          setDepartments(deptData);
 
           const courseRes = await api.get("/courses");
-          setCourses(courseRes.data || []);
+          const courseData = Array.isArray(courseRes.data)
+            ? courseRes.data
+            : Array.isArray(courseRes.data?.data)
+            ? courseRes.data.data
+            : Array.isArray(courseRes.data?.courses)
+            ? courseRes.data.courses
+            : [];
+          setCourses(courseData);
         } catch (err) {
           logger.error("Error fetching departments/courses:", err);
         }
@@ -309,9 +324,13 @@ export default function NotificationForm({
     const { name, value, type, checked } = e.target;
     setError(null);
     const updated = { ...form, [name]: type === "checkbox" ? checked : value };
-    if (name === "target" && value !== "INDIVIDUAL") {
-      updated.target_users = [];
-      setRecipientSearch("");
+    if (name === "target") {
+      if (value !== "INDIVIDUAL") {
+        updated.target_users = [];
+        setRecipientSearch("");
+      } else if (!Array.isArray(updated.target_users)) {
+        updated.target_users = [];
+      }
     }
     setForm(updated);
   };
@@ -362,7 +381,10 @@ export default function NotificationForm({
       return;
     }
 
-    if (form.target === "INDIVIDUAL" && form.target_users.length === 0) {
+    if (
+      form.target === "INDIVIDUAL" &&
+      (!Array.isArray(form.target_users) || form.target_users.length === 0)
+    ) {
       toast.error("Please select at least one recipient.");
       return;
     }
@@ -380,7 +402,12 @@ export default function NotificationForm({
         target_department: form.target_department || undefined,
         target_course: form.target === "COURSE" ? form.target_course || undefined : undefined,
         target_semester: form.target === "SEMESTER" ? form.target_semester || undefined : undefined,
-        target_users: form.target === "INDIVIDUAL" ? form.target_users : undefined,
+        target_users:
+          form.target === "INDIVIDUAL"
+            ? Array.isArray(form.target_users)
+              ? form.target_users
+              : []
+            : undefined,
         expiresAt: form.expiresAt || null,
       };
 
@@ -438,7 +465,18 @@ export default function NotificationForm({
             target_department: "",
           };
 
-    setForm(sample);
+    setForm((prev) => ({
+      ...prev,
+      ...sample,
+      target_department:
+        role === "hod" && hodDepartment
+          ? hodDepartment
+          : sample.target_department || "",
+      target_course: "",
+      target_semester: "",
+      target_users: [],
+    }));
+    setRecipientSearch("");
     setTitleCount(sample.title.length);
     setMessageCount(sample.message.length);
     toast.info("Sample notification loaded");
@@ -453,7 +491,7 @@ export default function NotificationForm({
       form.priority !== originalForm.priority ||
       form.expiresAt !== originalForm.expiresAt ||
       form.target !== originalForm.target ||
-      JSON.stringify(form.target_users) !== JSON.stringify(originalForm.target_users) ||
+      JSON.stringify(form.target_users || []) !== JSON.stringify(originalForm.target_users || []) ||
       form.target_department !== originalForm.target_department ||
       form.target_course !== originalForm.target_course ||
       form.target_semester !== originalForm.target_semester
@@ -586,6 +624,7 @@ if (loading) {
               <>
                 {mode === "create" && (
                   <motion.button
+                    type="button"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={loadSample}
@@ -609,6 +648,7 @@ if (loading) {
                   </motion.button>
                 )}
                 <motion.button
+                  type="button"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowPreview(!showPreview)}
@@ -1276,7 +1316,7 @@ if (loading) {
                                   fontWeight: 500,
                                 }}
                               >
-                                {departments.find((d) => d._id === hodDepartment)?.name ||
+                                {departments && Array.isArray(departments) && departments.find((d) => d._id === hodDepartment)?.name ||
                                   "Your Department (auto-assigned)"}
                                 <input type="hidden" name="target_department" value={hodDepartment || ""} />
                               </div>
@@ -1294,7 +1334,7 @@ if (loading) {
                                 }}
                               >
                                 <option value="">Select Department</option>
-                                {departments.map((dept) => (
+                                {(Array.isArray(departments) ? departments : []).map((dept) => (
                                   <option key={dept._id} value={dept._id}>
                                     {dept.name} ({dept.code})
                                   </option>
@@ -1324,7 +1364,7 @@ if (loading) {
                                 }}
                               >
                                 <option value="">Select Course</option>
-                                {courses.map((course) => (
+                                {(Array.isArray(courses) ? courses : []).map((course) => (
                                   <option key={course._id} value={course._id}>
                                     {course.name} ({course.code})
                                   </option>
@@ -1356,7 +1396,7 @@ if (loading) {
                                 {Array.from(
                                   {
                                     length:
-                                      courses.find(
+                                      (Array.isArray(courses) ? courses : []).find(
                                         (c) => c._id === form.target_course
                                       )?.durationSemesters || 8,
                                   },
@@ -1524,7 +1564,7 @@ if (loading) {
                                   {recipientOptions
                                     .filter(
                                       (opt) =>
-                                        !form.target_users.includes(opt._id)
+                                        !(form.target_users || []).includes(opt._id)
                                     )
                                     .map((opt) => (
                                       <div
@@ -1533,7 +1573,7 @@ if (loading) {
                                           setForm((prev) => ({
                                             ...prev,
                                             target_users: [
-                                              ...prev.target_users,
+                                              ...(prev.target_users || []),
                                               opt._id,
                                             ],
                                           }));
@@ -1584,7 +1624,7 @@ if (loading) {
                               {!recipientLoading &&
                                 recipientSearch &&
                                 recipientOptions.filter(
-                                  (opt) => !form.target_users.includes(opt._id)
+                                  (opt) => !(form.target_users || []).includes(opt._id)
                                 ).length === 0 && (
                                   <div
                                     style={{
@@ -1597,7 +1637,7 @@ if (loading) {
                                     No eligible recipients found
                                   </div>
                               )}
-                              {form.target_users.length > 0 && (
+                              {(form.target_users?.length || 0) > 0 && (
                                 <div
                                   style={{
                                     display: "flex",
@@ -1606,7 +1646,7 @@ if (loading) {
                                     marginTop: "0.75rem",
                                   }}
                                 >
-                                  {form.target_users.map((userId) => {
+                                  {(form.target_users || []).map((userId) => {
                                     const user = recipientOptions.find(
                                       (opt) => opt._id === userId
                                     );
@@ -1631,7 +1671,7 @@ if (loading) {
                                           onClick={() => {
                                             setForm((prev) => ({
                                               ...prev,
-                                              target_users: prev.target_users.filter(
+                                              target_users: (prev.target_users || []).filter(
                                                 (id) => id !== userId
                                               ),
                                             }));
