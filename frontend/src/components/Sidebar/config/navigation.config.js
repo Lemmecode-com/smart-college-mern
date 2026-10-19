@@ -352,6 +352,12 @@ export const navigationConfig = {
             exact: true,
           },
           {
+            path: "/teachers",
+            icon: FaChalkboardTeacher,
+            label: "Teachers",
+            exact: true,
+          },
+          {
             path: "/college/staff/create",
             icon: FaUserPlus,
             label: "Create Staff Account",
@@ -1257,6 +1263,12 @@ export const navigationConfig = {
             path: "/hod/teachers",
             icon: FaUsers,
             label: "All Teachers",
+            exact: true,
+          },
+          {
+            path: "/hod/department",
+            icon: FaLayerGroup,
+            label: "Department Info",
             exact: true,
           },
         ],

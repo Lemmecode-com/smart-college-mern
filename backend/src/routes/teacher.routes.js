@@ -9,10 +9,12 @@ const { uploadTeacherDocuments } = require("../middlewares/upload.middleware");
 const { ROLE } = require("../utils/constants");
 
 const {
+  validateTeacherCreation,
   validateTeacherProfileUpdate,
 } = require("../middlewares/validators/teacher.validator");
 
 const {
+  createTeacher,
   getTeachers,
   getTeacherById,
   updateTeacher,
@@ -49,7 +51,16 @@ router.put(
 
 /* =========================================================
    CRUD
-   ========================================================= */
+========================================================= */
+router.post(
+  "/",
+  auth,
+  role(ROLE.COLLEGE_ADMIN),
+  collegeMiddleware,
+  uploadTeacherDocuments,
+  validateTeacherCreation,
+  createTeacher,
+);
 router.get(
   "/",
   auth,

@@ -437,7 +437,6 @@ export default function CollegeProfile() {
                     letterSpacing: "-0.02em",
                     color: "#ffffff",
                     lineHeight: 1.2,
-                    fontWeight: 600,
                   }}
                 >
                   {college.name}
