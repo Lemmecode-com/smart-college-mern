@@ -208,7 +208,10 @@ class AuditLogService {
       resourceType: "FeeStructure",
       resourceId: feeStructure._id,
       ipAddress: this.getClientIP(req),
-      userAgent: req.get("user-agent"),
+      userAgent:
+        typeof req?.get === "function"
+          ? req.get("user-agent")
+          : (req?.headers?.["user-agent"] || "unknown"),
       endpoint: req.originalUrl,
       method: req.method,
       statusCode: 201,
@@ -234,7 +237,10 @@ class AuditLogService {
       resourceType: "FeeStructure",
       resourceId: newFeeStructure._id,
       ipAddress: this.getClientIP(req),
-      userAgent: req.get("user-agent"),
+      userAgent:
+        typeof req?.get === "function"
+          ? req.get("user-agent")
+          : (req?.headers?.["user-agent"] || "unknown"),
       endpoint: req.originalUrl,
       method: req.method,
       statusCode: 200,
@@ -806,10 +812,11 @@ class AuditLogService {
    * Get client IP (handles proxies)
    */
   getClientIP(req) {
+    if (!req) return "unknown";
     return (
       req.ip ||
-      req.headers["x-forwarded-for"] ||
-      req.connection.remoteAddress ||
+      req.headers?.["x-forwarded-for"] ||
+      req.connection?.remoteAddress ||
       "unknown"
     );
   }

@@ -245,6 +245,7 @@ async function handlePaymentCaptured(payload, collegeId) {
         const student = await Student.findById(studentFee.student_id).select(
           "email fullName",
         );
+        const college = await College.findById(collegeId).select("gstin");
 
         if (student) {
           await sendPaymentReceiptEmail({
@@ -253,6 +254,9 @@ async function handlePaymentCaptured(payload, collegeId) {
             installment: {
               name: installment.name,
               amount: installment.amount,
+              baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : (installment.taxBreakdown?.taxableBase || installment.amount),
+              gstAmount: installment.gstAmount !== undefined ? installment.gstAmount : (installment.taxBreakdown?.totalTax || 0),
+              taxBreakdown: installment.taxBreakdown || null,
               paidAt: installment.paidAt,
               transactionId: installment.transactionId,
             },
@@ -260,6 +264,7 @@ async function handlePaymentCaptured(payload, collegeId) {
             paidAmount: studentFee.paidAmount,
             remainingAmount: studentFee.totalFee - studentFee.paidAmount,
             collegeId,
+            collegeGstin: college?.gstin || null,
           });
 
           // Mark email as sent
@@ -373,6 +378,7 @@ async function handlePaymentCaptured(payload, collegeId) {
     const student = await Student.findById(studentFee.student_id).select(
       "email fullName",
     );
+    const college = await College.findById(collegeId).select("gstin");
 
     if (student && !installment.receiptEmailSentAt) {
       await sendPaymentReceiptEmail({
@@ -381,6 +387,9 @@ async function handlePaymentCaptured(payload, collegeId) {
         installment: {
           name: installment.name,
           amount: installment.amount,
+          baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : (installment.taxBreakdown?.taxableBase || installment.amount),
+          gstAmount: installment.gstAmount !== undefined ? installment.gstAmount : (installment.taxBreakdown?.totalTax || 0),
+          taxBreakdown: installment.taxBreakdown || null,
           paidAt: new Date(),
           transactionId: payment.entity.id,
         },
@@ -388,6 +397,7 @@ async function handlePaymentCaptured(payload, collegeId) {
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
         collegeId,
+        collegeGstin: college?.gstin || null,
       });
 
       // Mark email as sent in database
@@ -542,6 +552,7 @@ async function handleOrderPaid(payload, collegeId) {
     const student = await Student.findById(studentFee.student_id).select(
       "email fullName",
     );
+    const college = await College.findById(collegeId).select("gstin");
 
     if (student) {
       await sendPaymentReceiptEmail({
@@ -550,6 +561,9 @@ async function handleOrderPaid(payload, collegeId) {
         installment: {
           name: installment.name,
           amount: installment.amount,
+          baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : (installment.taxBreakdown?.taxableBase || installment.amount),
+          gstAmount: installment.gstAmount !== undefined ? installment.gstAmount : (installment.taxBreakdown?.totalTax || 0),
+          taxBreakdown: installment.taxBreakdown || null,
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
         },
@@ -557,6 +571,7 @@ async function handleOrderPaid(payload, collegeId) {
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
         collegeId,
+        collegeGstin: college?.gstin || null,
       });
       logger.logInfo("Receipt email sent successfully (order.paid)", {
         to: student.email,

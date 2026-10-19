@@ -394,14 +394,14 @@ const HodDashboard = () => {
 
       <button
         type="button"
-        onClick={() => navigate("/hod/profile")}
+        onClick={() => fetchHodDashboard(true)}
         disabled={refreshing || loading}
         className="hod-header-refresh-btn"
         title="Refresh Dashboard"
         aria-label="Refresh Dashboard"
       >
-        <FaEye className={refreshing ? "hod-spin" : ""} />
-        <span>{refreshing ? "Refreshing..." : "View Profile"}</span>
+        <FaSyncAlt className={refreshing ? "hod-spin" : ""} />
+        <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
       </button>
     </div>
   </div>
