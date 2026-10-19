@@ -183,7 +183,7 @@ async function processPaymentVerification(
     (async () => {
       try {
         const college = await College.findById(student.college_id).select(
-          "name email",
+          "name email gstin state",
         );
         const course = await Course.findById(student.course_id).select("name");
 
@@ -193,6 +193,9 @@ async function processPaymentVerification(
           installment: {
             name: installment.name,
             amount: installment.amount,
+            baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : (installment.taxBreakdown?.taxableBase || installment.amount),
+            gstAmount: installment.gstAmount !== undefined ? installment.gstAmount : (installment.taxBreakdown?.totalTax || 0),
+            taxBreakdown: installment.taxBreakdown || null,
             paidAt: new Date(),
             transactionId: razorpay_payment_id,
           },
@@ -200,6 +203,7 @@ async function processPaymentVerification(
           paidAmount: paidAmount,
           remainingAmount: updatedStudentFee.totalFee - paidAmount,
           collegeId: student.college_id,
+          collegeGstin: college?.gstin || null,
         });
         logger.logInfo("✅ Payment receipt email sent", {
           studentId: student._id,

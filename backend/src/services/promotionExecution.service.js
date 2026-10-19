@@ -344,6 +344,8 @@ const assignNewSemesterFee = async ({
         college_id: collegeId,
         course_id: courseId,
         totalFee: feeStructure.totalFee,
+        baseFee: feeStructure.baseFee !== undefined ? feeStructure.baseFee : feeStructure.totalFee,
+        totalTax: feeStructure.totalTax !== undefined ? feeStructure.totalTax : 0,
         paidAmount: 0,
         installments: feeStructure.installments.map((inst) => ({
           name: inst.name,
@@ -351,6 +353,9 @@ const assignNewSemesterFee = async ({
           order: inst.order,
           dueDate: inst.dueDate,
           status: "PENDING",
+          baseAmount: inst.baseAmount !== undefined ? inst.baseAmount : inst.amount,
+          gstAmount: inst.gstAmount !== undefined ? inst.gstAmount : 0,
+          taxBreakdown: inst.taxBreakdown ? { ...inst.taxBreakdown } : null,
         })),
       },
     ],
