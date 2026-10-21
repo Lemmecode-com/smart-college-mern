@@ -77,8 +77,18 @@ class DocumentService {
     return document;
   }
 
-  static async downloadDocument(documentId) {
-    const document = await Document.findOne({ documentId, status: "ACTIVE" });
+  static async downloadDocument(documentId, existingDoc = null) {
+    let document = existingDoc;
+
+    // Backward compatibility: handle case where caller passed document object as first argument
+    if (!document && typeof documentId === "object" && documentId !== null && documentId.storageKey) {
+      document = documentId;
+      documentId = document.documentId;
+    }
+
+    if (!document) {
+      document = await Document.findOne({ documentId, status: "ACTIVE" });
+    }
     if (!document) {
       throw new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND");
     }

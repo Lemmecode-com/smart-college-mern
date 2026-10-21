@@ -7,7 +7,7 @@ import { Container, Row, Col, Card, Button, Badge } from "react-bootstrap";
 import { toast } from "react-toastify";
 import "./Dashboard.css";
 import { getFrontendRegistrationUrl } from "../../../utils/urlHelpers";
-import LogoImage from "../../../components/common/LogoImage";
+import LogoImage, { preloadLogo } from "../../../components/common/LogoImage";
 
 import {
   FaUsers,
@@ -249,8 +249,11 @@ export default function CollegeAdminDashboard() {
         const res = await api.get("/dashboard/college-admin");
         const data = res.data;
 
-        // Set college data
+        // Set college data and preload logo immediately
         setCollege(data.college);
+        if (data.college?.logoDocumentId) {
+          preloadLogo(data.college.logoDocumentId);
+        }
 
         // Check if setup is incomplete
         if (data.college && data.college.setupCompleted === false) {

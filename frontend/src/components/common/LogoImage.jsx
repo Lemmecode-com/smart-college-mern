@@ -7,13 +7,85 @@ import { getDocumentViewUrl } from "../../utils/documentUrl";
 const logoCache = new Map();
 const logoRequestCache = new Map();
 
-function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
-  const [blobUrl, setBlobUrl] = useState(
-    documentId ? logoCache.get(documentId) || null : null
-  );
+/**
+ * Safely retrieve a cached logo data URL from sessionStorage
+ */
+export const getSessionLogo = (docId) => {
+  if (!docId || typeof window === "undefined") return null;
+  try {
+    return window.sessionStorage.getItem(`college_logo_${docId}`);
+  } catch {
+    return null;
+  }
+};
 
+/**
+ * Safely persist a logo data URL to sessionStorage (small footprint)
+ */
+export const setSessionLogo = (docId, dataUrl) => {
+  if (!docId || typeof window === "undefined" || !dataUrl) return;
+  try {
+    window.sessionStorage.setItem(`college_logo_${docId}`, dataUrl);
+  } catch {
+    // Quota exceeded or disabled, fail silently
+  }
+};
+
+/**
+ * Helper to fetch and cache a logo early
+ */
+export const preloadLogo = (documentId) => {
+  if (!documentId) return;
+  if (logoCache.has(documentId) || getSessionLogo(documentId)) return;
+
+  const url = getDocumentViewUrl(documentId);
+  if (!url) return;
+
+  let request = logoRequestCache.get(documentId);
+  if (!request) {
+    request = api
+      .get(url, { responseType: "blob" })
+      .then((response) => {
+        if (!response || !response.data) return null;
+        const blob = response.data;
+        if (!(blob instanceof Blob) || blob.size === 0) return null;
+
+        const newBlobUrl = URL.createObjectURL(blob);
+        logoCache.set(documentId, newBlobUrl);
+
+        try {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (reader.result && typeof reader.result === "string") {
+              setSessionLogo(documentId, reader.result);
+            }
+          };
+          reader.readAsDataURL(blob);
+        } catch {
+          // Ignore
+        }
+
+        return newBlobUrl;
+      })
+      .catch(() => null)
+      .finally(() => {
+        logoRequestCache.delete(documentId);
+      });
+
+    logoRequestCache.set(documentId, request);
+  }
+};
+
+function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
+  const getInitialLogo = (id) => {
+    if (!id) return null;
+    return logoCache.get(id) || getSessionLogo(id) || null;
+  };
+
+  const initialLogo = getInitialLogo(documentId);
+  const [blobUrl, setBlobUrl] = useState(initialLogo);
   const [loadError, setLoadError] = useState(false);
-  const [isLoading, setIsLoading] = useState(!!documentId);
+  const [isLoading, setIsLoading] = useState(Boolean(documentId && !initialLogo));
 
   useEffect(() => {
     let isMounted = true;
@@ -26,9 +98,19 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
       return;
     }
 
-    /* Already loaded in cache */
+    /* Already loaded in in-memory cache */
     if (logoCache.has(documentId)) {
       setBlobUrl(logoCache.get(documentId));
+      setLoadError(false);
+      setIsLoading(false);
+      return;
+    }
+
+    /* Already in sessionStorage */
+    const sessionCached = getSessionLogo(documentId);
+    if (sessionCached) {
+      logoCache.set(documentId, sessionCached);
+      setBlobUrl(sessionCached);
       setLoadError(false);
       setIsLoading(false);
       return;
@@ -109,6 +191,19 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
 
               logoCache.set(documentId, newBlobUrl);
 
+              /* Persist to sessionStorage as data URL for instant reloads */
+              try {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                  if (reader.result && typeof reader.result === "string") {
+                    setSessionLogo(documentId, reader.result);
+                  }
+                };
+                reader.readAsDataURL(blob);
+              } catch {
+                // Ignore storage encoding errors
+              }
+
               return newBlobUrl;
             })
             .finally(() => {
@@ -126,20 +221,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
           setIsLoading(false);
         }
       } catch (error) {
-        console.error("====================================");
-        console.error("Failed to load college logo");
-        console.error("Document ID:", documentId);
-        console.error("Logo URL:", getDocumentViewUrl(documentId));
-        console.error("Status:", error?.response?.status);
-        console.error(
-          "Content-Type:",
-          error?.response?.headers?.["content-type"]
-        );
-        console.error("Response:", error?.response?.data);
-        console.error("Message:", error?.message);
-        console.error("Full error:", error);
-        console.error("====================================");
-
         if (isMounted) {
           setBlobUrl(null);
           setLoadError(true);
@@ -181,9 +262,38 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
         position: "relative",
       }}
     >
-      {/* Placeholder */}
+      {/* Pulse Skeleton / Fallback while loading */}
+      {isLoading && !blobUrl && (
+        <div
+          data-testid="logo-skeleton"
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background:
+              "linear-gradient(90deg, rgba(226, 232, 240, 0.35) 0%, rgba(203, 213, 225, 0.6) 50%, rgba(226, 232, 240, 0.35) 100%)",
+            backgroundSize: "200% 100%",
+            animation: "logoSkeletonPulse 1.5s ease-in-out infinite",
+            borderRadius: "inherit",
+            zIndex: 1,
+          }}
+        >
+          <FaUniversity
+            size={iconSize}
+            style={{
+              color: "#94a3b8",
+              opacity: 0.6,
+            }}
+          />
+        </div>
+      )}
+
+      {/* Fallback / Error Placeholder */}
       {showPlaceholder && (
         <div
+          data-testid="logo-placeholder"
           style={{
             position: "absolute",
             inset: 0,
@@ -218,11 +328,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
             zIndex: 2,
           }}
           onError={() => {
-            console.error("College logo image failed to render:", {
-              documentId,
-              blobUrl,
-            });
-
             setLoadError(true);
             setBlobUrl(null);
           }}
