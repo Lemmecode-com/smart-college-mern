@@ -306,6 +306,9 @@ exports.registerStudent = async (req, res, next) => {
     if (!department) {
       throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
     }
+    if (department.status === "INACTIVE" || department.isActive === false) {
+      throw new AppError("Department is inactive and not accepting registrations", 400, "DEPARTMENT_INACTIVE");
+    }
 
     // Validate course
     const course = await Course.findOne({

@@ -527,6 +527,29 @@
   box-shadow: 0 3px 8px rgba(20, 27, 41, 0.08);
 }
 
+.standard-action-btn.deactivate-btn {
+  background: #e67e22 !important;
+  color: #ffffff !important;
+}
+
+.standard-action-btn.deactivate-btn:hover:not(:disabled) {
+  background: #d35400 !important;
+}
+
+.standard-action-btn.reactivate-btn {
+  background: #28a745 !important;
+  color: #ffffff !important;
+}
+
+.standard-action-btn.reactivate-btn:hover:not(:disabled) {
+  background: #218838 !important;
+}
+
+/* ================= INACTIVE ROW VISUAL MUTING ================= */
+.standard-table tbody tr:has(.department-status.inactive) {
+  opacity: 0.72;
+}
+
 /* =========================================================
    EMPTY STATE
    ========================================================= */

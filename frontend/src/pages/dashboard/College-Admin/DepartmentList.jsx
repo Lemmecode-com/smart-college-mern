@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -12,7 +12,6 @@ import useRole from "../../../hooks/useRole";
 import {
   FaBuilding,
   FaEdit,
-  FaTrash,
   FaUserTie,
   FaUserSlash,
   FaSearch,
@@ -33,6 +32,7 @@ import {
 } from "react-icons/fa";
 
 import ConfirmModal from "../../../components/ConfirmModal";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import HodSubjectReassign from "../../../components/HodSubjectReassign";
 import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
@@ -285,9 +285,12 @@ export default function DepartmentList() {
   const [removingHod, setRemovingHod] = useState(false);
   const [hodSubjectCount, setHodSubjectCount] = useState(null);
   const [showReassignSubjectsModal, setShowReassignSubjectsModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [departmentToDelete, setDepartmentToDelete] = useState(null);
-  const [deletingDepartment, setDeletingDepartment] = useState(false);
+  const [lifecycleModal, setLifecycleModal] = useState({
+    isOpen: false,
+    department: null,
+    type: null, // "deactivate" | "reactivate"
+    loading: false,
+  });
 
   const [hoveredRow, setHoveredRow] = useState(null);
   const [mounted, setMounted] = useState(false);
@@ -301,9 +304,12 @@ export default function DepartmentList() {
   const fetchDepartments = async () => {
     try {
       logger.info('Fetching departments...');
-      const res = await api.get("/departments");
+      const res = await api.get("/departments?includeInactive=true");
       logger.info('Departments API response received');
-      setDepartments(res.data || []);
+      const list = Array.isArray(res.data)
+        ? res.data
+        : res.data?.departments || res.data?.data?.departments || [];
+      setDepartments(list);
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -342,33 +348,69 @@ export default function DepartmentList() {
     return () => clearTimeout(t);
   }, []);
 
-  /* ================= DELETE ================= */
-  const handleDeleteClick = (department) => {
-    setDepartmentToDelete(department);
-    setShowDeleteModal(true);
+  /* ================= DEACTIVATE / REACTIVATE LIFECYCLE ================= */
+  const handleOpenDeactivateModal = (department) => {
+    setLifecycleModal({
+      isOpen: true,
+      department,
+      type: "deactivate",
+      loading: false,
+    });
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!departmentToDelete) return;
+  const handleOpenReactivateModal = (department) => {
+    setLifecycleModal({
+      isOpen: true,
+      department,
+      type: "reactivate",
+      loading: false,
+    });
+  };
 
-    setDeletingDepartment(true);
+  const handleLifecycleConfirm = async () => {
+    const { department, type } = lifecycleModal;
+    if (!department) return;
+
+    setLifecycleModal((prev) => ({ ...prev, loading: true }));
     try {
-      await api.delete(`/departments/${departmentToDelete._id}`);
+      const endpoint = `/departments/${department._id}/${type}`;
+      const res = await api.put(endpoint);
+      const updatedDepartment = res.data?.data?.department;
+
       toast.success(
-        `Department "${departmentToDelete.name}" deleted successfully.`,
-        { position: "top-right", autoClose: 5000 },
+        res.data?.message ||
+          (type === "deactivate"
+            ? `"${department.name}" deactivated successfully`
+            : `"${department.name}" reactivated successfully`)
       );
-      setShowDeleteModal(false);
-      setDepartmentToDelete(null);
-      fetchDepartments();
+
+      // In-place update without full reload
+      setDepartments((prev) =>
+        prev.map((d) =>
+          d._id === department._id
+            ? {
+                ...d,
+                ...(updatedDepartment || {}),
+                status: type === "deactivate" ? "INACTIVE" : "ACTIVE",
+                isActive: type !== "deactivate",
+              }
+            : d
+        )
+      );
+
+      setLifecycleModal({
+        isOpen: false,
+        department: null,
+        type: null,
+        loading: false,
+      });
     } catch (err) {
-      const errorMessage =
+      logger.error(`Error during department ${type}:`, err);
+      const serverMessage =
         err.response?.data?.message ||
-        "Failed to delete department. Please try again.";
-      logger.error("Error deleting department:", err.response?.status, err.response?.data?.code);
-      toast.error(errorMessage, { position: "top-right", autoClose: 5000 });
-    } finally {
-      setDeletingDepartment(false);
+        `Failed to ${type} department. Please try again.`;
+      toast.error(serverMessage);
+      setLifecycleModal((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -455,8 +497,11 @@ export default function DepartmentList() {
       d.code?.toLowerCase().includes(search.toLowerCase()) ||
       d.type?.toLowerCase().includes(search.toLowerCase());
 
+    const isDeptActive = d.status === "ACTIVE" && d.isActive !== false;
     const matchesStatus =
-      statusFilter === "All" || d.status === statusFilter.toUpperCase();
+      statusFilter === "All" ||
+      (statusFilter === "ACTIVE" && isDeptActive) ||
+      (statusFilter === "INACTIVE" && !isDeptActive);
 
     const matchesType = typeFilter === "All" || d.type === typeFilter;
 
@@ -537,7 +582,7 @@ export default function DepartmentList() {
     sortable: true,
     width: "105px",
     render: (department) => {
-      const isActive = department.status === "ACTIVE";
+      const isActive = department.status === "ACTIVE" && department.isActive !== false;
 
       return (
         <span
@@ -546,7 +591,7 @@ export default function DepartmentList() {
           }`}
         >
           <span className="status-dot" />
-          {department.status}
+          {isActive ? "Active" : "Inactive"}
         </span>
       );
     },
@@ -614,53 +659,72 @@ export default function DepartmentList() {
       </div>
     ),
   },
-];
 
-const tableActions = {
-  label: "Actions",
-  width: "170px",
-  items: [
-    {
-      key: "view",
-      label: "View Department",
-      icon: FaEye,
-      className: "view-btn",
-      show: () =>
-        hasAccess("departments") ||
-        hasAccess("departments-view"),
-      onClick: (department) =>
-        navigate(`/departments/view/${department._id}`),
+  {
+    key: "actions",
+    label: "Actions",
+    sortable: false,
+    width: "170px",
+    render: (department) => {
+      const isDeptActive = department.status === "ACTIVE" && department.isActive !== false;
+      const canManage = canEdit("departments");
+
+      return (
+        <div className="standard-table-actions erp-staff-actions erp-dept-actions">
+          {(hasAccess("departments") || hasAccess("departments-view")) && (
+            <ActionIconButton
+              icon={FaEye}
+              className="view-btn"
+              ariaLabel={`View details of ${department.name}`}
+              tooltip={`View details of ${department.name}`}
+              onClick={() => navigate(`/departments/view/${department._id}`)}
+            />
+          )}
+
+          {canManage && (
+            <ActionIconButton
+              icon={FaEdit}
+              className="edit-btn"
+              ariaLabel={`Edit ${department.name}`}
+              tooltip={`Edit ${department.name}`}
+              onClick={() => navigate(`/departments/edit/${department._id}`)}
+            />
+          )}
+
+          {canManage && !!department.hod_id && (
+            <ActionIconButton
+              icon={FaUserSlash}
+              className="remove-btn"
+              ariaLabel={`Remove HOD of ${department.name}`}
+              tooltip={`Remove HOD of ${department.name}`}
+              onClick={() => handleRemoveHodClick(department)}
+            />
+          )}
+
+          {canManage && isDeptActive && (
+            <ActionIconButton
+              icon={FaTimesCircle}
+              className="deactivate-btn"
+              ariaLabel={`Deactivate ${department.name}`}
+              tooltip={`Deactivate ${department.name}. It will no longer be available for new students, courses or teachers.`}
+              onClick={() => handleOpenDeactivateModal(department)}
+            />
+          )}
+
+          {canManage && !isDeptActive && (
+            <ActionIconButton
+              icon={FaCheckCircle}
+              className="reactivate-btn"
+              ariaLabel={`Reactivate ${department.name}`}
+              tooltip={`Reactivate ${department.name}. Makes it available again.`}
+              onClick={() => handleOpenReactivateModal(department)}
+            />
+          )}
+        </div>
+      );
     },
-    {
-      key: "edit",
-      label: "Edit Department",
-      icon: FaEdit,
-      className: "edit-btn",
-      show: () => canEdit("departments"),
-      onClick: (department) =>
-        navigate(`/departments/edit/${department._id}`),
-    },
-    {
-      key: "remove-hod",
-      label: "Remove HOD",
-      icon: FaUserSlash,
-      className: "remove-btn",
-      show: (department) =>
-        canEdit("departments") && !!department.hod_id,
-      onClick: (department) =>
-        handleRemoveHodClick(department),
-    },
-    {
-      key: "delete",
-      label: "Delete Department",
-      icon: FaTrash,
-      className: "delete-btn",
-      show: () => canDelete("departments"),
-      onClick: (department) =>
-        handleDeleteClick(department),
-    },
-  ],
-};
+  },
+];
 
 
 
@@ -1012,7 +1076,6 @@ const tableActions = {
         }
       : null,
   }}
-  actions={tableActions}
 />
 
 {filteredDepartments.length > 0 && (
@@ -1108,22 +1171,37 @@ const tableActions = {
       />
 
       <ConfirmModal
-        isOpen={showDeleteModal}
-        onClose={() => {
-          setShowDeleteModal(false);
-          setDepartmentToDelete(null);
-        }}
-        onConfirm={handleDeleteConfirm}
-        title="Delete Department"
+        isOpen={lifecycleModal.isOpen}
+        onClose={() =>
+          !lifecycleModal.loading &&
+          setLifecycleModal({
+            isOpen: false,
+            department: null,
+            type: null,
+            loading: false,
+          })
+        }
+        onConfirm={handleLifecycleConfirm}
+        title={
+          lifecycleModal.type === "deactivate"
+            ? "Deactivate Department"
+            : "Reactivate Department"
+        }
         message={
-          departmentToDelete
-            ? `Are you sure you want to delete "${departmentToDelete.name}"? This action cannot be undone.`
+          lifecycleModal.department
+            ? lifecycleModal.type === "deactivate"
+              ? `Are you sure you want to deactivate "${lifecycleModal.department.name}"? It will no longer be available for new students, courses or teachers.`
+              : `Are you sure you want to reactivate "${lifecycleModal.department.name}"? This will make the department available again for new courses, teachers, and student admissions.`
             : ""
         }
-        type="danger"
-        confirmText="Delete Department"
+        type={lifecycleModal.type === "deactivate" ? "warning" : "primary"}
+        confirmText={
+          lifecycleModal.type === "deactivate"
+            ? "Deactivate Department"
+            : "Reactivate Department"
+        }
         cancelText="Cancel"
-        isLoading={deletingDepartment}
+        isLoading={lifecycleModal.loading}
       />
     </div>
   );

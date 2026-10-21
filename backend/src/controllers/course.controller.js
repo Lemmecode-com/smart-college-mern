@@ -34,6 +34,10 @@ exports.createCourse = async (req, res, next) => {
     throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
   }
 
+  if (department.status === "INACTIVE" || department.isActive === false) {
+    throw new AppError("Cannot create a course under an inactive department", 400, "DEPARTMENT_INACTIVE");
+  }
+
   // ✅ Validate duration
   if (!durationSemesters || durationSemesters < 1 || durationSemesters > 8) {
     throw new AppError("Program duration must be 1-8 semesters", 400, "INVALID_DURATION");
