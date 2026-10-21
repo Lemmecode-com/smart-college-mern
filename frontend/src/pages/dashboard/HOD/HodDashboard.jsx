@@ -81,9 +81,9 @@ export const getGreetingIST = (date = new Date()) => {
     hour12: false,
   }).format(date);
   const hour = parseInt(istHourStr, 10);
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
 };
 
 const formatDateLong = () => {
@@ -371,7 +371,7 @@ const HodDashboard = () => {
 
       <div className="hod-header-identity">
         <p className="hod-header-greeting">
-          {getGreetingIST()}, {hodFullName} 👋
+          {getGreetingIST()}, 👋
         </p>
 
         <h1 className="hod-header-name">{hodFullName}</h1>

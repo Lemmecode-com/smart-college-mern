@@ -28,6 +28,38 @@ export default function SidebarSection({
     }
   };
 
+  const handleSubmenuTransitionEnd = (event) => {
+    if (!isOpen || event.target !== event.currentTarget || event.propertyName !== "grid-template-rows") {
+      return;
+    }
+
+    const submenu = event.currentTarget;
+    const submenuBounds = submenu.getBoundingClientRect();
+    let scrollContainer = submenu.parentElement;
+
+    while (scrollContainer) {
+      const overflowY = window.getComputedStyle(scrollContainer).overflowY;
+      if (
+        (overflowY === "auto" || overflowY === "scroll") &&
+        scrollContainer.scrollHeight > scrollContainer.clientHeight
+      ) {
+        const containerBounds = scrollContainer.getBoundingClientRect();
+        const scrollOffset =
+          submenuBounds.bottom > containerBounds.bottom
+            ? submenuBounds.bottom - containerBounds.bottom
+            : submenuBounds.top < containerBounds.top
+              ? submenuBounds.top - containerBounds.top
+              : 0;
+
+        if (scrollOffset) {
+          scrollContainer.scrollBy({ top: scrollOffset, behavior: "smooth" });
+        }
+        return;
+      }
+      scrollContainer = scrollContainer.parentElement;
+    }
+  };
+
   return (
     <div className={`sidebar-section-wrapper ${isActive ? 'section-active' : ''}`}>
       {/* Full row clickable button */}
@@ -60,6 +92,7 @@ export default function SidebarSection({
         className={`submenu ${isOpen ? "open" : ""}`}
         role="group"
         aria-label={`${title} submenu`}
+        onTransitionEnd={handleSubmenuTransitionEnd}
       >
         <div className="submenu-inner">
           {children}

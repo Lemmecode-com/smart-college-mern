@@ -459,6 +459,7 @@ if (loading && exceptions.length === 0) {
                   color: "white",
                   boxShadow: "0 2px 8px rgba(61, 181, 230, 0.3)",
                   transition: "all 0.2s ease",
+                  borderRadius: "12px",
                 }}
               >
                 <FaPlus className="me-1" /> Add Exception
