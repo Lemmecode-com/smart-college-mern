@@ -1455,3 +1455,174 @@
     transform: none !important;
   }
 }
+
+/* ================= ACTION BUTTONS (COMPACT ICON-ONLY & TOOLTIPS) ================= */
+.standard-table td[data-label="Actions"] {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.erp-staff-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.erp-staff-actions .standard-action-btn {
+  width: 35px;
+  height: 35px;
+  min-width: 35px;
+  min-height: 35px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.erp-staff-actions .standard-action-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.18);
+  filter: brightness(1.08);
+}
+
+.erp-staff-actions .standard-action-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
+}
+
+.erp-staff-actions .standard-action-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.96);
+}
+
+.erp-staff-actions .standard-action-btn.view-btn {
+  background: #1b5bb5 !important;
+}
+
+.erp-staff-actions .standard-action-btn.view-btn:hover:not(:disabled) {
+  background: #154a94 !important;
+}
+
+.erp-staff-actions .standard-action-btn.edit-btn {
+  background: #f0ad4e !important;
+}
+
+.erp-staff-actions .standard-action-btn.edit-btn:hover:not(:disabled) {
+  background: #ec971f !important;
+}
+
+.erp-staff-actions .standard-action-btn.deactivate-btn {
+  background: #e67e22 !important;
+}
+
+.erp-staff-actions .standard-action-btn.deactivate-btn:hover:not(:disabled) {
+  background: #d35400 !important;
+}
+
+.erp-staff-actions .standard-action-btn.reactivate-btn {
+  background: #28a745 !important;
+}
+
+.erp-staff-actions .standard-action-btn.reactivate-btn:hover:not(:disabled) {
+  background: #218838 !important;
+}
+
+/* ================= ACTION BUTTON TOOLTIPS ================= */
+.erp-staff-tooltip {
+  position: fixed;
+  z-index: 99999;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 6px 11px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: normal;
+  max-width: 260px;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
+  transform: translate(-50%, -100%);
+  animation: erpStaffTooltipFade 0.15s ease-out;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.erp-staff-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: #0f172a transparent transparent transparent;
+}
+
+.erp-staff-tooltip.erp-staff-tooltip--bottom {
+  transform: translate(-50%, 0);
+  animation: erpStaffTooltipFadeBottom 0.15s ease-out;
+}
+
+.erp-staff-tooltip.erp-staff-tooltip--bottom::after {
+  top: -10px;
+  border-color: transparent transparent #0f172a transparent;
+}
+
+@keyframes erpStaffTooltipFade {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -90%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
+}
+
+@keyframes erpStaffTooltipFadeBottom {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ================= INACTIVE ROW VISUAL MUTING ================= */
+.standard-table tbody tr:has(.erp-staff-status--inactive) {
+  opacity: 0.72;
+}
+
+.standard-table tbody tr:has(.erp-staff-status--inactive):hover {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+@media (max-width: 768px) {
+  .erp-staff-actions {
+    justify-content: flex-start;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .erp-staff-actions .standard-action-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+

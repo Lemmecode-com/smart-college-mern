@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import api from "../../../api/axios";
@@ -8,6 +9,8 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
 import StandardListView from "../../../components/StandardListView/StandardListView";
 import Pagination from "../../../components/Pagination";
+import ConfirmModal from "../../../components/ConfirmModal";
+import { AuthContext } from "../../../auth/AuthContext";
 import { logger } from "../../../utils/logger";
 import "./StaffList.css";
 
@@ -142,6 +145,129 @@ function StatSkeleton() {
   );
 }
 
+function ActionIconButton({
+  icon: Icon,
+  className = "",
+  style,
+  ariaLabel,
+  tooltip,
+  onClick,
+  disabled = false,
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0, isBottom: false });
+  const buttonRef = useRef(null);
+  const tooltipId = useMemo(
+    () => `tip-${Math.random().toString(36).substring(2, 9)}`,
+    []
+  );
+
+  const updateCoords = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const isNearTop = rect.top < 65;
+    const top = isNearTop ? rect.bottom + 8 : rect.top - 8;
+    let left = rect.left + rect.width / 2;
+
+    const windowWidth =
+      typeof window !== "undefined" ? window.innerWidth : 800;
+    const minLeft = 130;
+    const maxLeft = windowWidth - 130;
+    left = Math.max(minLeft, Math.min(left, maxLeft));
+
+    setCoords({
+      top: Math.round(top),
+      left: Math.round(left),
+      isBottom: isNearTop,
+    });
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (disabled) return;
+    updateCoords();
+    setShowTooltip(true);
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+  };
+
+  const handleFocus = () => {
+    if (disabled) return;
+    updateCoords();
+    setShowTooltip(true);
+  };
+
+  const handleBlur = () => {
+    setShowTooltip(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") {
+      setShowTooltip(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showTooltip) return;
+    const handleScrollOrResize = () => {
+      setShowTooltip(false);
+    };
+    window.addEventListener("scroll", handleScrollOrResize, true);
+    window.addEventListener("resize", handleScrollOrResize);
+    return () => {
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+      window.removeEventListener("resize", handleScrollOrResize);
+    };
+  }, [showTooltip]);
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        className={`standard-action-btn ${className}`}
+        style={style}
+        onClick={onClick}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-describedby={showTooltip ? tooltipId : undefined}
+        onMouseEnter={handleMouseEnter}
+        onMouseOver={handleMouseEnter}
+        onPointerEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onMouseOut={handleMouseLeave}
+        onPointerLeave={handleMouseLeave}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+      >
+        {Icon && <Icon aria-hidden="true" />}
+      </button>
+
+      {showTooltip &&
+        !disabled &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            role="tooltip"
+            id={tooltipId}
+            className={`erp-staff-tooltip ${
+              coords.isBottom ? "erp-staff-tooltip--bottom" : ""
+            }`}
+            style={{
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+            }}
+          >
+            {tooltip}
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
 function EmptyState({ title, message, actionLabel, onAction }) {
   return (
     <div className="erp-staff-empty">
@@ -167,6 +293,7 @@ function EmptyState({ title, message, actionLabel, onAction }) {
 
 export default function StaffList() {
   const navigate = useNavigate();
+  const { user: currentUser } = useContext(AuthContext);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -187,6 +314,95 @@ export default function StaffList() {
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    staff: null,
+    action: null,
+  });
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const isSelf = useCallback(
+    (item) => {
+      if (!currentUser || !item) return false;
+      const currentId = currentUser.id || currentUser._id;
+      const targetId = item.id || item._id;
+      return Boolean(currentId && String(targetId) === String(currentId));
+    },
+    [currentUser]
+  );
+
+  const canManageUser = useCallback(
+    (item) => {
+      const isAllowedRole = ["COLLEGE_ADMIN", "ADMISSION_OFFICER"].includes(
+        currentUser?.role
+      );
+      return isAllowedRole && !isSelf(item);
+    },
+    [currentUser, isSelf]
+  );
+
+  const handleOpenModal = useCallback((staffMember, action) => {
+    setConfirmModal({
+      isOpen: true,
+      staff: staffMember,
+      action,
+    });
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    if (!actionLoading) {
+      setConfirmModal({ isOpen: false, staff: null, action: null });
+    }
+  }, [actionLoading]);
+
+  const handleConfirmAction = useCallback(async () => {
+    const { staff: targetStaff, action } = confirmModal;
+    if (!targetStaff || !action) return;
+
+    const staffId = targetStaff.id || targetStaff._id;
+    if (!staffId) return;
+
+    setActionLoading(true);
+    try {
+      const res = await api.put(`/users/${staffId}/${action}`);
+      const successMessage =
+        res.data?.message ||
+        (action === "deactivate"
+          ? `"${targetStaff.name}" has been deactivated successfully`
+          : `"${targetStaff.name}" has been reactivated successfully`);
+
+      toast.success(successMessage);
+
+      const updatedIsActive = action === "reactivate";
+      setStaff((prev) =>
+        prev.map((s) => {
+          const sId = s.id || s._id;
+          return String(sId) === String(staffId)
+            ? { ...s, isActive: updatedIsActive }
+            : s;
+        })
+      );
+      setFilteredStaff((prev) =>
+        prev.map((s) => {
+          const sId = s.id || s._id;
+          return String(sId) === String(staffId)
+            ? { ...s, isActive: updatedIsActive }
+            : s;
+        })
+      );
+
+      setConfirmModal({ isOpen: false, staff: null, action: null });
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message ||
+        `Failed to ${action} staff member`;
+      logger.error(`Error during staff ${action}:`, err);
+      toast.error(errorMessage);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [confirmModal]);
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -287,7 +503,7 @@ export default function StaffList() {
 
   /* ================= STANDARD LIST COLUMNS ================= */
 
-const columns = [
+const columns = useMemo(() => [
   {
     key: "name",
     label: "Staff Member",
@@ -445,51 +661,65 @@ const columns = [
       </span>
     ),
   },
-];
 
-/* ================= STANDARD LIST ACTIONS ================= */
+  {
+    key: "actions",
+    label: "Actions",
+    sortable: false,
+    width: "130px",
+    render: (staffMember) => (
+      <div className="standard-table-actions erp-staff-actions">
+        <ActionIconButton
+          icon={FaEye}
+          className="view-btn"
+          ariaLabel={`View profile of ${staffMember.name || "Staff"}`}
+          tooltip={`View profile of ${staffMember.name || "Staff"}`}
+          onClick={() => {
+            logger.info(
+              "[StaffList] View profile for id:",
+              staffMember.id
+            );
+            navigate(`/staff/profile/${staffMember.id}`);
+          }}
+        />
 
-const tableActions = {
-  label: "Actions",
-  width: "200px",
+        <ActionIconButton
+          icon={FaEdit}
+          className="edit-btn"
+          ariaLabel={`Edit details of ${staffMember.name || "Staff"}`}
+          tooltip={`Edit details of ${staffMember.name || "Staff"}`}
+          onClick={() => {
+            logger.info(
+              "[StaffList] Edit profile for id:",
+              staffMember.id
+            );
+            navigate(`/staff/profile/edit/${staffMember.id}`);
+          }}
+        />
 
-  items: [
-    {
-      key: "view",
-      label: "View",
-      icon: FaEye,
-      className: "view-btn",
-      text: "View",
-      style: { background: "#1b5bb5", width: "70px", gap: "5px" },
+        {Boolean(staffMember.isActive) && canManageUser(staffMember) && (
+          <ActionIconButton
+            icon={FaUserTimes}
+            className="deactivate-btn"
+            ariaLabel={`Deactivate ${staffMember.name || "Staff"}`}
+            tooltip={`Deactivate ${staffMember.name || "Staff"}. They will be logged out and cannot log in until reactivated.`}
+            onClick={() => handleOpenModal(staffMember, "deactivate")}
+          />
+        )}
 
-      onClick: (staffMember) => {
-        logger.info(
-          "[StaffList] View profile for id:",
-          staffMember.id
-        );
-
-        navigate(`/staff/profile/${staffMember.id}`);
-      },
-    },
-
-    {
-      key: "edit",
-      label: "Edit",
-      icon: FaEdit,
-      className: "edit-btn",
-      text: "Edit",
-      style: { background: "#f0ad4e", width: "70px", gap: "5px" },
-      onClick: (staffMember) => {
-        logger.info(
-          "[StaffList] Edit profile for id:",
-          staffMember.id
-        );
-
-        navigate(`/staff/profile/edit/${staffMember.id}`);
-      },
-    },
-  ],
-};
+        {!staffMember.isActive && canManageUser(staffMember) && (
+          <ActionIconButton
+            icon={FaUserCheck}
+            className="reactivate-btn"
+            ariaLabel={`Reactivate ${staffMember.name || "Staff"}`}
+            tooltip={`Reactivate ${staffMember.name || "Staff"}. Restores login and system access.`}
+            onClick={() => handleOpenModal(staffMember, "reactivate")}
+          />
+        )}
+      </div>
+    ),
+  },
+], [canManageUser, handleOpenModal, navigate]);
   if (error && !loading) {
     return (
       <ApiError
@@ -689,7 +919,6 @@ const tableActions = {
           }
         : undefined,
     }}
-    actions={tableActions}
   />
 
   {showPagination && (
@@ -701,6 +930,30 @@ const tableActions = {
   )}
 </motion.div>
       </div>
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmAction}
+        title={
+          confirmModal.action === "deactivate"
+            ? "Deactivate Staff Member"
+            : "Reactivate Staff Member"
+        }
+        message={
+          confirmModal.staff
+            ? confirmModal.action === "deactivate"
+              ? `Are you sure you want to deactivate ${confirmModal.staff.name} (${formatRole(confirmModal.staff.role)})?\n\nWarning: The user will be immediately logged out and unable to access the system until reactivated.`
+              : `Are you sure you want to reactivate ${confirmModal.staff.name} (${formatRole(confirmModal.staff.role)})?\n\nThe user will be able to log in and access their account again.`
+            : ""
+        }
+        type={confirmModal.action === "deactivate" ? "danger" : "success"}
+        confirmText={
+          confirmModal.action === "deactivate" ? "Deactivate" : "Reactivate"
+        }
+        cancelText="Cancel"
+        isLoading={actionLoading}
+      />
     </motion.div>
   );
 }
