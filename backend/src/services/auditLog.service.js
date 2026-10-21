@@ -627,6 +627,70 @@ class AuditLogService {
   }
 
   /**
+   * Log department deactivation
+   */
+  async logDepartmentDeactivated(user, department, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "DEPARTMENT_DEACTIVATED",
+      resourceType: "Department",
+      resourceId: department._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        isActive: true,
+        status: "ACTIVE",
+      },
+      newValues: {
+        isActive: false,
+        status: "INACTIVE",
+      },
+      metadata: {
+        departmentName: department.name,
+        departmentCode: department.code,
+      },
+    });
+  }
+
+  /**
+   * Log department reactivation
+   */
+  async logDepartmentReactivated(user, department, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "DEPARTMENT_REACTIVATED",
+      resourceType: "Department",
+      resourceId: department._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        isActive: false,
+        status: "INACTIVE",
+      },
+      newValues: {
+        isActive: true,
+        status: "ACTIVE",
+      },
+      metadata: {
+        departmentName: department.name,
+        departmentCode: department.code,
+      },
+    });
+  }
+
+  /**
    * Log HOD assignment
    */
   async logHODAssigned(user, departmentId, departmentName, teacherId, teacherName, previousHodId, previousUserRole, newHodId, req) {

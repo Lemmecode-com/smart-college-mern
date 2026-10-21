@@ -96,6 +96,7 @@ const createTeacher = async (overrides = {}) => {
   const birthYear = now.getFullYear() - 30; // 30 years old
   const rand = `${Date.now()}.${Math.floor(Math.random() * 1000000)}`;
   const payload = {
+    user_id: overrides.user_id || new mongoose.Types.ObjectId(),
     name: 'Test Teacher',
     email: overrides.email || `teacher.${rand}@test.com`,
     college_id: null,
@@ -187,15 +188,19 @@ const createStaffProfile = async (overrides = {}) => {
 };
 
 const createDepartment = async (overrides = {}) => {
+  const rand = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const payload = {
-    name: 'Test Department',
-    code: 'DEPT',
+    college_id: overrides.college_id || new mongoose.Types.ObjectId(),
+    name: overrides.name || `Department ${rand}`,
+    code: overrides.code || `D${Math.floor(Math.random() * 9000 + 1000)}`,
     type: 'ACADEMIC',
     status: 'ACTIVE',
+    isActive: overrides.isActive !== undefined ? overrides.isActive : true,
     programsOffered: ['UG'],
     startYear: 2020,
     sanctionedFacultyCount: 10,
     sanctionedStudentIntake: 60,
+    createdBy: overrides.createdBy || new mongoose.Types.ObjectId(),
     ...overrides,
   };
   return Department.create(payload);
