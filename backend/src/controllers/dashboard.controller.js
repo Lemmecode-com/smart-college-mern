@@ -458,6 +458,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
           establishedYear: college.establishedYear,
           logo: college.logo,
           logoDocumentId: college.logoDocumentId,
+          logoUrl: college.logoDocumentId ? `/api/documents/${college.logoDocumentId}` : null,
           registrationUrl: college.registrationUrl,
         },
 
@@ -519,7 +520,7 @@ exports.principalDashboard = async (req, res, next) => {
       throw new AppError("College ID missing", 403, "COLLEGE_ID_MISSING");
     }
 
-    const college = await College.findById(collegeId).select("name code email establishedYear logo address contactNumber");
+    const college = await College.findById(collegeId).select("name code email establishedYear logo address contactNumber logoDocumentId");
 
     if (!college) {
       throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
@@ -559,6 +560,8 @@ exports.principalDashboard = async (req, res, next) => {
           email: college.email,
           establishedYear: college.establishedYear,
           logo: college.logo,
+          logoDocumentId: college.logoDocumentId,
+          logoUrl: college.logoDocumentId ? `/api/documents/${college.logoDocumentId}` : null,
           address: college.address,
           contactNumber: college.contactNumber,
         },

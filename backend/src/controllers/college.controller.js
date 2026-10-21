@@ -8,6 +8,7 @@ const CollegeEmailConfig = require("../models/collegeEmailConfig.model");
 const ApiResponse = require("../utils/ApiResponse");
 const { getStorageProvider } = require("../services/storage");
 const DocumentService = require("../services/document.service");
+const { processCollegeLogo } = require("../utils/logoProcessor");
 
 /**
  * GET ALL COLLEGES (SUPER ADMIN ONLY)
@@ -42,10 +43,12 @@ exports.getMyCollege = async (req, res, next) => {
     }
 
     const responseData = college.toObject();
+    responseData.logoUrl = college.logoDocumentId ? `/api/documents/${college.logoDocumentId}` : null;
     responseData.documentRefs = {
       logo: college.logoDocumentId ? {
         documentId: college.logoDocumentId,
         documentType: "logo",
+        url: `/api/documents/${college.logoDocumentId}`,
         downloadUrl: `/api/documents/${college.logoDocumentId}/download`,
       } : null,
       registrationQr: college.registrationQrDocumentId ? {
@@ -107,15 +110,20 @@ exports.updateMyCollegeProfile = async (req, res) => {
     });
 
     if (req.file) {
-      const storageService = getStorageProvider().getAdapter();
-      const uploadResult = await storageService.uploadFile(
+      const processedLogo = await processCollegeLogo(
         req.file.buffer,
         req.file.originalname,
+        req.file.mimetype
+      );
+      const storageService = getStorageProvider().getAdapter();
+      const uploadResult = await storageService.uploadFile(
+        processedLogo.buffer,
+        processedLogo.originalName,
         "college-logo",
         {
-          originalName: req.file.originalname,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
+          originalName: processedLogo.originalName,
+          mimetype: processedLogo.mimeType,
+          size: processedLogo.size,
         }
       );
 
@@ -138,10 +146,10 @@ exports.updateMyCollegeProfile = async (req, res) => {
         ownerType: "College",
         ownerId: collegeId,
         documentType: "logo",
-        fileBuffer: req.file.buffer,
-        originalFileName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        size: req.file.size,
+        fileBuffer: processedLogo.buffer,
+        originalFileName: processedLogo.originalName,
+        mimeType: processedLogo.mimeType,
+        size: processedLogo.size,
         uploadedBy: req.user.id,
         category: "college-logo",
         storageKey: uploadResult.storagePath,
