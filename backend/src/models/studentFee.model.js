@@ -156,6 +156,11 @@ const studentFeeSchema = new mongoose.Schema({
         trim: true,
       },
 
+      receiptEmailSentAt: {
+        type: Date,
+        default: null,
+      },
+
       // Reminder tracking (original field)
       reminderSent: {
         type: Boolean,

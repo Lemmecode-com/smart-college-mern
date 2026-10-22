@@ -1,5 +1,9 @@
 // Test setup file for Vitest
 // Shared mocks and configuration for frontend tests
+import React from 'react';
+if (typeof globalThis.React === 'undefined') {
+  globalThis.React = React;
+}
 
 // BroadcastChannel mock (used by authSync.js)
 if (typeof globalThis.BroadcastChannel === 'undefined') {

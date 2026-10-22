@@ -25,7 +25,14 @@ import {
   FaCalendarAlt,
   FaToggleOn,
   FaToggleOff,
+  FaCopy,
+  FaCheck,
 } from "react-icons/fa";
+import {
+  buildWebhookUrl,
+  isInsecureOrLocalWebhookUrl,
+  WEBHOOK_LOCALHOST_WARNING_MESSAGE,
+} from "../../../../utils/webhookUrl";
 import "react-toastify/dist/ReactToastify.css";
 
 const RazorpayConfiguration = () => {
@@ -53,6 +60,9 @@ const RazorpayConfiguration = () => {
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [isModified, setIsModified] = useState(false);
   const [isGatewayActive, setIsGatewayActive] = useState(false);
+  const [copiedHeader, setCopiedHeader] = useState(false);
+  const [copiedCard, setCopiedCard] = useState(false);
+  const [backendWebhookUrl, setBackendWebhookUrl] = useState(null);
 
   const [formData, setFormData] = useState({
     keyId: "",
@@ -72,6 +82,12 @@ const RazorpayConfiguration = () => {
 
       const isActive = response.data.isActive || false;
       setIsGatewayActive(isActive);
+
+      const incomingWebhookUrl =
+        response.data?.webhookUrl || response.data?.config?.webhookUrl;
+      if (incomingWebhookUrl) {
+        setBackendWebhookUrl(incomingWebhookUrl);
+      }
 
       if (response.data.configured && response.data.config) {
         setConfig(response.data.config);
@@ -105,6 +121,36 @@ const RazorpayConfiguration = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const webhookUrl = buildWebhookUrl(backendWebhookUrl || api.defaults.baseURL);
+  const showWebhookWarning = isInsecureOrLocalWebhookUrl(webhookUrl);
+
+  const copyToClipboard = async (text, type) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      if (type === "header") {
+        setCopiedHeader(true);
+        setTimeout(() => setCopiedHeader(false), 2000);
+      } else {
+        setCopiedCard(true);
+        setTimeout(() => setCopiedCard(false), 2000);
+      }
+      toast.success("Webhook URL copied to clipboard");
+    } catch {
+      toast.error("Failed to copy URL");
     }
   };
 
@@ -341,13 +387,32 @@ const RazorpayConfiguration = () => {
               <FaCreditCard className="me-2 text-primary" />
               Razorpay Configuration
             </h2>
-                   <p className="text-muted mb-0">
-                     Configure this webhook URL in your Razorpay dashboard:
-                   </p>
-                    <div className="bg-light p-3 rounded font-monospace">
-                      {api.defaults.baseURL}/razorpay/webhook
-                    </div>
-        </div>
+            <p className="text-muted mb-0">
+              Configure this webhook URL in your Razorpay dashboard:
+            </p>
+            <div className="bg-light p-2 px-3 rounded font-monospace d-flex align-items-center justify-content-between gap-2 mt-1">
+              <span className="text-break">{webhookUrl}</span>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 flex-shrink-0"
+                onClick={() => copyToClipboard(webhookUrl, "header")}
+                title="Copy webhook URL"
+                aria-label="Copy webhook URL"
+              >
+                {copiedHeader ? <FaCheck className="text-success" /> : <FaCopy />}
+                <span className="small">{copiedHeader ? "Copied" : "Copy"}</span>
+              </button>
+            </div>
+            {showWebhookWarning && (
+              <div
+                className="alert alert-warning py-1 px-2 mt-2 mb-0 small d-flex align-items-center gap-2"
+                data-testid="webhook-warning-header"
+              >
+                <FaExclamationTriangle className="flex-shrink-0" />
+                <span>{WEBHOOK_LOCALHOST_WARNING_MESSAGE}</span>
+              </div>
+            )}
+          </div>
 
         <button
           className={`btn ${isGatewayActive ? "btn-danger" : "btn-success"}`}
@@ -648,12 +713,31 @@ const RazorpayConfiguration = () => {
                     <FaInfoCircle className="me-2" />
                     Webhook Configuration
                   </h5>
-                   <p className="mb-2">
-                     Configure this webhook URL in your Razorpay dashboard:
-                   </p>
-                   <div className="bg-light p-3 rounded font-monospace">
-                     {api.defaults.baseURL}/razorpay/webhook
-                   </div>
+                  <p className="mb-2">
+                    Configure this webhook URL in your Razorpay dashboard:
+                  </p>
+                  <div className="bg-light p-3 rounded font-monospace d-flex align-items-center justify-content-between gap-2">
+                    <span className="text-break">{webhookUrl}</span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 flex-shrink-0"
+                      onClick={() => copyToClipboard(webhookUrl, "card")}
+                      title="Copy webhook URL"
+                      aria-label="Copy webhook URL"
+                    >
+                      {copiedCard ? <FaCheck className="text-success" /> : <FaCopy />}
+                      <span className="small">{copiedCard ? "Copied" : "Copy"}</span>
+                    </button>
+                  </div>
+                  {showWebhookWarning && (
+                    <div
+                      className="alert alert-warning py-2 px-3 mt-2 mb-0 small d-flex align-items-center gap-2"
+                      data-testid="webhook-warning-card"
+                    >
+                      <FaExclamationTriangle className="flex-shrink-0" />
+                      <span>{WEBHOOK_LOCALHOST_WARNING_MESSAGE}</span>
+                    </div>
+                  )}
                   <p className="text-muted small mt-2 mb-0">
                     This allows Razorpay to send payment notifications to your
                     application.

@@ -86,8 +86,14 @@ app.use(
   require("./src/webhooks/stripe.webhook").handleStripeWebhook,
 );
 
-/* ================= JSON PARSER (EXCLUDES WEBHOOK) ================= */
-app.use(express.json());
+/* ================= JSON PARSER (EXCLUDES STRIPE RAW WEBHOOK) ================= */
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 
 /* ================= SECURITY MIDDLEWARE ================= */
 app.use(securityMiddleware);
