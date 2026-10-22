@@ -124,6 +124,14 @@ const resolveExamSubjects = async (
       );
     }
 
+    if (sub.status === "INACTIVE" || sub.isActive === false) {
+      throw new AppError(
+        `Cannot schedule inactive subject "${sub.name}" in an exam`,
+        400,
+        "SUBJECT_INACTIVE",
+      );
+    }
+
     if (item.category === "REGULAR") {
       if (Number(sub.semester) !== Number(semester)) {
         throw new AppError(
@@ -203,6 +211,10 @@ exports.createExam = async (req, res, next) => {
     });
     if (!course) {
       throw new AppError("Course not found", 404, "COURSE_NOT_FOUND");
+    }
+
+    if (course.status === "INACTIVE" || course.isActive === false) {
+      throw new AppError("Cannot create an exam for an inactive course", 400, "COURSE_INACTIVE");
     }
 
     const semNum = Number(semester);

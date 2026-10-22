@@ -13,6 +13,9 @@ import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+import ConfirmModal from "../../../components/ConfirmModal";
+import ActionIconButton from "../../../components/common/ActionIconButton";
+
 import {
   FaBookOpen,
   FaEdit,
@@ -23,6 +26,7 @@ import {
   FaSyncAlt,
   FaEye,
   FaCheckCircle,
+  FaTimesCircle,
   FaExclamationTriangle,
   FaTimes,
   FaChevronDown,
@@ -57,114 +61,10 @@ const StatCard = ({ icon: Icon, label, value, color, subValue }) => (
 
 
 
-// Delete Modal Component
-const DeleteModal = ({
-  course,
-  departmentName,
-  onConfirm,
-  onCancel,
-  isDeleting,
-}) => {
-  if (!course) return null;
-
-  return (
-    <div className="modal-backdrop" onClick={onCancel}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <div className="modal-icon-wrapper">
-            <div className="modal-icon-bg">
-              <FaExclamationTriangle />
-            </div>
-          </div>
-          <button
-            className="modal-close-btn"
-            onClick={onCancel}
-            disabled={isDeleting}
-            aria-label="Close modal"
-          >
-            <FaTimes />
-          </button>
-        </div>
-        <div className="modal-body">
-          <h3 className="modal-title">Delete Course</h3>
-          <p className="modal-description">
-            Are you sure you want to delete this course? This action cannot be
-            undone.
-          </p>
-
-          <div className="course-info-card">
-            <div className="info-row">
-              <FaBookOpen className="info-icon" />
-              <div className="info-content">
-                <span className="info-label">Course Name</span>
-                <span className="info-value">{course.name}</span>
-              </div>
-            </div>
-            <div className="info-divider" />
-            <div className="info-row">
-              <FaGraduationCap className="info-icon" />
-              <div className="info-content">
-                <span className="info-label">Course Code</span>
-                <span className="info-value">{course.code}</span>
-              </div>
-            </div>
-            <div className="info-divider" />
-            <div className="info-row">
-              <FaUniversity className="info-icon" />
-              <div className="info-content">
-                <span className="info-label">Department</span>
-                <span className="info-value">{departmentName}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="warning-box">
-            <FaExclamationTriangle className="warning-icon" />
-            <div className="warning-content">
-              <strong>Warning:</strong> All related data including enrollments,
-              assessments, and records will be permanently deleted.
-            </div>
-          </div>
-        </div>
-        <div className="modal-footer">
-          <button
-            className="btn btn-secondary"
-            onClick={onCancel}
-            disabled={isDeleting}
-          >
-            Cancel
-          </button>
-          <button
-            className="btn btn-danger"
-            onClick={onConfirm}
-            disabled={isDeleting}
-          >
-            {isDeleting ? (
-              <>
-                <FaSyncAlt className="btn-icon spinning" />
-                <span>Deleting...</span>
-              </>
-            ) : (
-              <>
-                <FaTrash className="btn-icon" />
-                <span>Delete Permanently</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-
-
-
 export default function CourseList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const { canCreate, canEdit, canDelete } = useRole();
+  const { canCreate, canEdit, canDelete, hasAccess } = useRole();
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -188,15 +88,18 @@ export default function CourseList() {
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingCourses, setLoadingCourses] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [coursesError, setCoursesError] = useState(null);
   const [departmentsError, setDepartmentsError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [courseToDelete, setCourseToDelete] = useState(null);
+  const [lifecycleModal, setLifecycleModal] = useState({
+    isOpen: false,
+    item: null,
+    type: null, // "deactivate" | "reactivate"
+    loading: false,
+  });
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
@@ -277,7 +180,7 @@ export default function CourseList() {
       setLoadingCourses(true);
       setCoursesError(null);
       try {
-        const res = await api.get(`/courses/department/${selectedDepartment}`, {
+        const res = await api.get(`/courses/department/${selectedDepartment}?includeInactive=true`, {
           signal: abortController.signal,
         });
         const coursesData =
@@ -326,7 +229,7 @@ export default function CourseList() {
   /* ================= STATS CALCULATION ================= */
   const calculateStats = useCallback((courseList) => {
     const total = courseList.length;
-    const active = courseList.filter((c) => c.status === "ACTIVE").length;
+    const active = courseList.filter((c) => c.status === "ACTIVE" && c.isActive !== false).length;
     const inactive = total - active;
     const totalCredits = courseList.reduce(
       (sum, c) => sum + (c.credits || 0),
@@ -469,33 +372,16 @@ const columns = [
     sortable: true,
     width: "110px",
     render: (course) => {
-      const isActive = course.status === "ACTIVE";
+      const isActive = course.status === "ACTIVE" && course.isActive !== false;
 
       return (
         <span
-          className="status-indicator"
-          style={{
-            background: isActive
-              ? "rgba(34, 197, 94, 0.1)"
-              : "rgba(156, 163, 175, 0.1)",
-            color: isActive
-              ? "#22C55E"
-              : "#9CA3AF",
-            borderColor: isActive
-              ? "rgba(34, 197, 94, 0.2)"
-              : "rgba(156, 163, 175, 0.2)",
-          }}
+          className={`department-status ${
+            isActive ? "active" : "inactive"
+          }`}
         >
-          <span
-            className="status-dot"
-            style={{
-              background: isActive
-                ? "#22C55E"
-                : "#9CA3AF",
-            }}
-          />
-
-          {course.status}
+          <span className="status-dot" />
+          {isActive ? "Active" : "Inactive"}
         </span>
       );
     },
@@ -574,30 +460,127 @@ const columns = [
       );
     },
   },
+  {
+    key: "actions",
+    label: "Actions",
+    sortable: false,
+    width: "170px",
+    render: (course) => {
+      const isCourseActive = course.status === "ACTIVE" && course.isActive !== false;
+      const canManage = canEdit("courses");
+
+      return (
+        <div className="standard-table-actions erp-staff-actions erp-dept-actions">
+          {(hasAccess("courses") || hasAccess("courses-view")) && (
+            <ActionIconButton
+              icon={FaEye}
+              className="view-btn"
+              ariaLabel={`View details of ${course.name}`}
+              tooltip={`View details of ${course.name}`}
+              onClick={() => handleViewCourse(course._id)}
+            />
+          )}
+
+          {canManage && (
+            <ActionIconButton
+              icon={FaEdit}
+              className="edit-btn"
+              ariaLabel={`Edit ${course.name}`}
+              tooltip={`Edit ${course.name}`}
+              onClick={() => handleEditCourse(course._id)}
+            />
+          )}
+
+          {canManage && isCourseActive && (
+            <ActionIconButton
+              icon={FaTimesCircle}
+              className="deactivate-btn"
+              ariaLabel={`Deactivate ${course.name}`}
+              tooltip={`Deactivate ${course.name}. It will no longer be available for new students, subjects, timetables or exams.`}
+              onClick={() => handleOpenDeactivateModal(course)}
+            />
+          )}
+
+          {canManage && !isCourseActive && (
+            <ActionIconButton
+              icon={FaCheckCircle}
+              className="reactivate-btn"
+              ariaLabel={`Reactivate ${course.name}`}
+              tooltip={`Reactivate ${course.name}. Makes it available again.`}
+              onClick={() => handleOpenReactivateModal(course)}
+            />
+          )}
+        </div>
+      );
+    },
+  },
 ];
 
 
 
-  /* ================= DELETE HANDLER ================= */
-  const handleDeleteClick = (course) => {
-    setCourseToDelete(course);
-    setShowDeleteModal(true);
+  /* ================= DEACTIVATE / REACTIVATE LIFECYCLE ================= */
+  const handleOpenDeactivateModal = (course) => {
+    setLifecycleModal({
+      isOpen: true,
+      item: course,
+      type: "deactivate",
+      loading: false,
+    });
   };
 
-  const confirmDelete = async () => {
-    if (!courseToDelete) return;
+  const handleOpenReactivateModal = (course) => {
+    setLifecycleModal({
+      isOpen: true,
+      item: course,
+      type: "reactivate",
+      loading: false,
+    });
+  };
 
-    setDeleting(true);
+  const handleLifecycleConfirm = async () => {
+    const { item, type } = lifecycleModal;
+    if (!item) return;
+
+    setLifecycleModal((prev) => ({ ...prev, loading: true }));
     try {
-      await api.delete(`/courses/${courseToDelete._id}`);
-      setCourses((prev) => prev.filter((c) => c._id !== courseToDelete._id));
-      setShowDeleteModal(false);
-      setCourseToDelete(null);
-      toast.success("Course deleted successfully!");
+      const endpoint = `/courses/${item._id}/${type}`;
+      const res = await api.put(endpoint);
+      const updatedCourse = res.data?.data?.course;
+
+      toast.success(
+        res.data?.message ||
+          (type === "deactivate"
+            ? `"${item.name}" deactivated successfully`
+            : `"${item.name}" reactivated successfully`)
+      );
+
+      // In-place update without full reload
+      setCourses((prev) =>
+        prev.map((c) =>
+          c._id === item._id
+            ? {
+                ...c,
+                ...(updatedCourse || {}),
+                status: type === "deactivate" ? "INACTIVE" : "ACTIVE",
+                isActive: type !== "deactivate",
+              }
+            : c
+        )
+      );
+
+      setLifecycleModal({
+        isOpen: false,
+        item: null,
+        type: null,
+        loading: false,
+      });
     } catch (err) {
-      toast.error("Failed to delete course. Please try again.");
-    } finally {
-      setDeleting(false);
+      logger.error(`Error during course ${type}:`, err);
+      const serverMessage =
+        err.response?.data?.message ||
+        `Failed to ${type} course. Please try again.`;
+      toast.error(serverMessage);
+      setLifecycleModal((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -662,39 +645,7 @@ const columns = [
     [navigate],
   );
 
-  /* ================= TABLE ACTIONS ================= */
 
-const tableActions = {
-  label: "Actions",
-  width: "140px",
-  items: [
-    {
-      key: "view",
-      label: "View Details",
-      icon: FaEye,
-      className: "action-view",
-      onClick: (course) => handleViewCourse(course._id),
-    },
-
-    {
-      key: "edit",
-      label: "Edit Course",
-      icon: FaEdit,
-      className: "action-edit",
-      show: () => canEdit("courses"),
-      onClick: (course) => handleEditCourse(course._id),
-    },
-
-    {
-      key: "delete",
-      label: "Delete Course",
-      icon: FaTrash,
-      className: "action-delete",
-      show: () => canDelete("courses"),
-      onClick: handleDeleteClick,
-    },
-  ],
-};
 
   /* ================= RETRY HANDLER ================= */
   const handleRetry = useCallback(() => {
@@ -1011,7 +962,6 @@ if (loading) {
         }
       : null,
   }}
-  actions={tableActions}
 />
 {totalPages > 1 && (
   <div style={{ marginBottom: "24px" }}>
@@ -1028,18 +978,39 @@ if (loading) {
       )}
 
 
-{/* DELETE MODAL */}
-<DeleteModal
-  course={showDeleteModal ? courseToDelete : null}
-  departmentName={selectedDeptName}
-  onConfirm={confirmDelete}
-  onCancel={() => {
-    if (deleting) return;
-
-    setShowDeleteModal(false);
-    setCourseToDelete(null);
-  }}
-  isDeleting={deleting}
+{/* LIFECYCLE MODAL */}
+<ConfirmModal
+  isOpen={lifecycleModal.isOpen}
+  onClose={() =>
+    !lifecycleModal.loading &&
+    setLifecycleModal({
+      isOpen: false,
+      item: null,
+      type: null,
+      loading: false,
+    })
+  }
+  onConfirm={handleLifecycleConfirm}
+  title={
+    lifecycleModal.type === "deactivate"
+      ? "Deactivate Course"
+      : "Reactivate Course"
+  }
+  message={
+    lifecycleModal.item
+      ? lifecycleModal.type === "deactivate"
+        ? `Are you sure you want to deactivate "${lifecycleModal.item.name}"? It will no longer be available for new students, subjects, timetables or exams.`
+        : `Are you sure you want to reactivate "${lifecycleModal.item.name}"? This will make the course available again for new subjects, student admissions, and scheduling.`
+      : ""
+  }
+  type={lifecycleModal.type === "deactivate" ? "warning" : "primary"}
+  confirmText={
+    lifecycleModal.type === "deactivate"
+      ? "Deactivate Course"
+      : "Reactivate Course"
+  }
+  cancelText="Cancel"
+  isLoading={lifecycleModal.loading}
 />
 
 

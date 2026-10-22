@@ -11,7 +11,9 @@ const {
   getSubjectsByCourse,
   updateSubject,
   getSubjectById,
-  deleteSubject
+  deleteSubject,
+  deactivateSubject,
+  reactivateSubject,
 } = require("../controllers/subject.controller");
 
 router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, createSubject);
@@ -24,6 +26,8 @@ router.get(
 );
 router.put("/:id", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, updateSubject);
 router.delete("/:id", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, deleteSubject);
+router.put("/:id/deactivate", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, deactivateSubject);
+router.put("/:id/reactivate", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, reactivateSubject);
 router.get(
   "/:id",
   auth,

@@ -319,6 +319,9 @@ exports.registerStudent = async (req, res, next) => {
     if (!course) {
       throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
     }
+    if (course.status === "INACTIVE" || course.isActive === false) {
+      throw new AppError("Course is inactive and not accepting registrations", 400, "COURSE_INACTIVE");
+    }
 
     // 3️⃣ Prevent duplicate
     const existingUser = await User.findOne({ email });

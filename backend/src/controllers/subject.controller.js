@@ -1,7 +1,15 @@
 const Subject = require("../models/subject.model");
 const Course = require("../models/course.model");
+const Department = require("../models/department.model");
 const Teacher = require("../models/teacher.model");
+const Timetable = require("../models/timetable.model");
+const TimetableSlot = require("../models/timetableSlot.model");
+const Exam = require("../models/exam.model");
+const SemesterResult = require("../models/semesterResult.model");
 const AppError = require("../utils/AppError");
+const ApiResponse = require("../utils/ApiResponse");
+const AuditService = require("../services/auditLog.service");
+const { RESULT_STATUS } = require("../utils/constants");
 const teacherSubjectAssignmentService = require("../services/teacherSubjectAssignment.service");
 
 const SUBJECT_TYPES = ["THEORY", "PRACTICAL", "COMPOSITE"];
@@ -149,6 +157,10 @@ exports.createSubject = async (req, res, next) => {
     throw new AppError("Invalid course", 404, "COURSE_NOT_FOUND");
   }
 
+  if (course.status === "INACTIVE" || course.isActive === false) {
+    throw new AppError("Cannot create a subject under an inactive course", 400, "COURSE_INACTIVE");
+  }
+
   // ✅ UPDATED: Validate subject semester is within course duration
   // Subject can be for ANY semester within the program (1 to durationSemesters)
   if (!semester || semester < 1 || semester > course.durationSemesters) {
@@ -232,6 +244,7 @@ exports.createSubject = async (req, res, next) => {
  */
 exports.getSubjectsByCourse = async (req, res, next) => {
   try {
+    const { includeInactive, status } = req.query;
     const semester = Number.parseInt(req.query.semester, 10);
     const filter = {
       course_id: req.params.courseId,
@@ -242,7 +255,20 @@ exports.getSubjectsByCourse = async (req, res, next) => {
       filter.semester = semester;
     }
 
-    const subjects = await Subject.find(filter).populate("teacher_id", "name designation")
+    if (status) {
+      filter.status = status.toUpperCase();
+      if (filter.status === "ACTIVE") {
+        filter.isActive = { $ne: false };
+      } else if (filter.status === "INACTIVE") {
+        filter.isActive = { $ne: true };
+      }
+    } else if (includeInactive !== "true") {
+      filter.status = "ACTIVE";
+      filter.isActive = { $ne: false };
+    }
+
+    const subjects = await Subject.find(filter)
+      .populate("teacher_id", "name designation")
       .populate("course_id", "name code");
 
     res.json(subjects);
@@ -422,4 +448,184 @@ exports.deleteSubject = async (req, res) => {
   }
 
   res.json({ message: "Subject deleted successfully" });
+};
+
+/**
+ * DEACTIVATE Subject
+ * PUT /api/subjects/:id/deactivate
+ */
+exports.deactivateSubject = async (req, res, next) => {
+  try {
+    const subject = await Subject.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    });
+
+    if (!subject) {
+      return ApiResponse.error(res, "Subject not found", "SUBJECT_NOT_FOUND", 404);
+    }
+
+    if (subject.isActive === false || subject.status === "INACTIVE") {
+      return ApiResponse.error(
+        res,
+        "Subject is already inactive",
+        "SUBJECT_ALREADY_INACTIVE",
+        400
+      );
+    }
+
+    // 1. Guard against assigned active teacher
+    if (subject.teacher_id) {
+      const activeTeacher = await Teacher.findOne({
+        _id: subject.teacher_id,
+        college_id: req.college_id,
+        status: "ACTIVE",
+      });
+      if (activeTeacher) {
+        return ApiResponse.error(
+          res,
+          `Cannot deactivate subject while assigned to active teacher "${activeTeacher.name}". Please unassign the teacher first.`,
+          "SUBJECT_HAS_ASSIGNED_TEACHER",
+          400,
+          { teacherId: activeTeacher._id, teacherName: activeTeacher.name }
+        );
+      }
+    }
+
+    // 2. Guard against active timetable slots (in PUBLISHED timetables)
+    const publishedTimetables = await Timetable.find({
+      college_id: req.college_id,
+      status: "PUBLISHED",
+    }).select("_id");
+    const publishedTimetableIds = publishedTimetables.map((t) => t._id);
+
+    if (publishedTimetableIds.length > 0) {
+      const activeSlotCount = await TimetableSlot.countDocuments({
+        college_id: req.college_id,
+        subject_id: subject._id,
+        timetable_id: { $in: publishedTimetableIds },
+      });
+      if (activeSlotCount > 0) {
+        return ApiResponse.error(
+          res,
+          `Cannot deactivate subject while scheduled in ${activeSlotCount} active timetable slot(s). Please remove or update the timetable first.`,
+          "SUBJECT_IN_ACTIVE_TIMETABLE",
+          400,
+          { activeSlotCount }
+        );
+      }
+    }
+
+    // 3. Guard against active exams in progress (PUBLISHED exams)
+    const activeExamsCount = await Exam.countDocuments({
+      college_id: req.college_id,
+      "subjects.subject": subject._id,
+      status: "PUBLISHED",
+    });
+    if (activeExamsCount > 0) {
+      return ApiResponse.error(
+        res,
+        `Cannot deactivate subject with ${activeExamsCount} active or published exam(s). Please unpublish or complete them first.`,
+        "SUBJECT_HAS_ACTIVE_EXAMS",
+        400,
+        { activeExamsCount }
+      );
+    }
+
+    // 4. Guard against pending marks entry / results in progress (DRAFT results for this subject)
+    const draftResultsCount = await SemesterResult.countDocuments({
+      college_id: req.college_id,
+      "subjects.subject": subject._id,
+      status: RESULT_STATUS.DRAFT,
+    });
+    if (draftResultsCount > 0) {
+      return ApiResponse.error(
+        res,
+        `Cannot deactivate subject with ${draftResultsCount} pending marks entry or draft result(s). Please finalize or discard results first.`,
+        "SUBJECT_HAS_PENDING_RESULTS",
+        400,
+        { draftResultsCount }
+      );
+    }
+
+    subject.isActive = false;
+    subject.status = "INACTIVE";
+    await subject.save();
+
+    AuditService.logSubjectDeactivated(req.user, subject, req).catch((err) =>
+      console.error("Audit log failed:", err.message)
+    );
+
+    ApiResponse.success(res, { subject }, "Subject deactivated successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * REACTIVATE Subject
+ * PUT /api/subjects/:id/reactivate
+ */
+exports.reactivateSubject = async (req, res, next) => {
+  try {
+    const subject = await Subject.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    });
+
+    if (!subject) {
+      return ApiResponse.error(res, "Subject not found", "SUBJECT_NOT_FOUND", 404);
+    }
+
+    if (subject.isActive === true && subject.status === "ACTIVE") {
+      return ApiResponse.error(
+        res,
+        "Subject is already active",
+        "SUBJECT_ALREADY_ACTIVE",
+        400
+      );
+    }
+
+    // 1. Guard against inactive parent course
+    const course = await Course.findOne({
+      _id: subject.course_id,
+      college_id: req.college_id,
+    });
+
+    if (!course || course.status === "INACTIVE" || course.isActive === false) {
+      return ApiResponse.error(
+        res,
+        "Cannot reactivate subject because its course is inactive. Please reactivate the course first.",
+        "COURSE_INACTIVE",
+        400
+      );
+    }
+
+    // 2. Guard against inactive parent department
+    const department = await Department.findOne({
+      _id: course.department_id,
+      college_id: req.college_id,
+    });
+
+    if (!department || department.status === "INACTIVE" || department.isActive === false) {
+      return ApiResponse.error(
+        res,
+        "Cannot reactivate subject because its department is inactive. Please reactivate the department first.",
+        "DEPARTMENT_INACTIVE",
+        400
+      );
+    }
+
+    subject.isActive = true;
+    subject.status = "ACTIVE";
+    await subject.save();
+
+    AuditService.logSubjectReactivated(req.user, subject, req).catch((err) =>
+      console.error("Audit log failed:", err.message)
+    );
+
+    ApiResponse.success(res, { subject }, "Subject reactivated successfully");
+  } catch (error) {
+    next(error);
+  }
 };

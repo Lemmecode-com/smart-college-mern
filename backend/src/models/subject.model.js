@@ -99,6 +99,12 @@ const subjectSchema = new mongoose.Schema(
       default: "ACTIVE",
     },
 
+    isActive: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

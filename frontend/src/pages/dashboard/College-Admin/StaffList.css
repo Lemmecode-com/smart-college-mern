@@ -1540,7 +1540,7 @@
 .erp-staff-tooltip {
   position: fixed;
   z-index: 99999;
-  background: #0f172a;
+  background: #0f3a4a;
   color: #f8fafc;
   padding: 6px 11px;
   border-radius: 6px;
@@ -1565,7 +1565,7 @@
   transform: translateX(-50%);
   border-width: 5px;
   border-style: solid;
-  border-color: #0f172a transparent transparent transparent;
+  border-color: #0f3a4a transparent transparent transparent;
 }
 
 .erp-staff-tooltip.erp-staff-tooltip--bottom {
@@ -1575,7 +1575,7 @@
 
 .erp-staff-tooltip.erp-staff-tooltip--bottom::after {
   top: -10px;
-  border-color: transparent transparent #0f172a transparent;
+  border-color: transparent transparent #0f3a4a transparent;
 }
 
 @keyframes erpStaffTooltipFade {

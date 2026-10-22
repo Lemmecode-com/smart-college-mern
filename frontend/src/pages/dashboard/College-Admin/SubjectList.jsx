@@ -13,52 +13,32 @@ import Pagination from "../../../components/Pagination";
 import PageHeader from "../../../components/PageHeader";
 import useRole from "../../../hooks/useRole";
 
-import ApiError from "../../../components/ApiError";
-
-import { toast } from "react-toastify";
-
+import ConfirmModal from "../../../components/ConfirmModal";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import { logger } from "../../../utils/logger";
-
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import {
-
   FaBook,
-
   FaTrash,
-
   FaEdit,
-
   FaLayerGroup,
-
   FaAward,
-
   FaChalkboardTeacher,
-
   FaSearch,
-
   FaFilter,
-
   FaPlus,
-
   FaArrowLeft,
-
   FaCheckCircle,
-
+  FaTimesCircle,
   FaExclamationTriangle,
-
   FaClock,
-
   FaUsers,
-
   FaGraduationCap,
-
   FaChevronDown,
-
   FaChevronUp,
-
-  FaEye
-
+  FaEye,
 } from "react-icons/fa";
 
 
@@ -86,12 +66,9 @@ const AUTH_ERROR_CODES = new Set([
 
 
 export default function SubjectList() {
-
   const { user } = useContext(AuthContext);
-
   const navigate = useNavigate();
-
-  const { canCreate, canEdit, canDelete } = useRole();
+  const { canCreate, canEdit, canDelete, hasAccess } = useRole();
 
 
 
@@ -118,14 +95,14 @@ export default function SubjectList() {
   );
 
   const [loading, setLoading] = useState(true);
-
   const [loadingSubjects, setLoadingSubjects] = useState(false);
-
   const [error, setError] = useState(null);
-
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  const [subjectToDelete, setSubjectToDelete] = useState(null);
+  const [lifecycleModal, setLifecycleModal] = useState({
+    isOpen: false,
+    item: null,
+    type: null, // "deactivate" | "reactivate"
+    loading: false,
+  });
 
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
@@ -228,7 +205,7 @@ export default function SubjectList() {
 
     try {
 
-      const res = await api.get(`/courses/department/${deptId}`);
+      const res = await api.get(`/courses/department/${deptId}?includeInactive=true`);
 
       const coursesData = Array.isArray(res.data) ? res.data :
 
@@ -321,9 +298,10 @@ export default function SubjectList() {
     try {
 
       const res = await api.get(`/subjects/course/${courseId}`, {
-
-        params: semester ? { semester } : undefined,
-
+        params: {
+          ...(semester ? { semester } : {}),
+          includeInactive: true,
+        },
       });
 
       const subjectsData = Array.isArray(res.data) ? res.data :
@@ -462,42 +440,70 @@ export default function SubjectList() {
 
 
 
-  /* ================= DELETE SUBJECT ================= */
-
-  const handleDeleteClick = (subject) => {
-
-    setSubjectToDelete(subject);
-
-    setShowDeleteModal(true);
-
+  /* ================= DEACTIVATE / REACTIVATE LIFECYCLE ================= */
+  const handleOpenDeactivateModal = (subject) => {
+    setLifecycleModal({
+      isOpen: true,
+      item: subject,
+      type: "deactivate",
+      loading: false,
+    });
   };
 
+  const handleOpenReactivateModal = (subject) => {
+    setLifecycleModal({
+      isOpen: true,
+      item: subject,
+      type: "reactivate",
+      loading: false,
+    });
+  };
 
+  const handleLifecycleConfirm = async () => {
+    const { item, type } = lifecycleModal;
+    if (!item) return;
 
-  const confirmDelete = async () => {
-
-    if (!subjectToDelete) return;
-
-
-
+    setLifecycleModal((prev) => ({ ...prev, loading: true }));
     try {
+      const endpoint = `/subjects/${item._id}/${type}`;
+      const res = await api.put(endpoint);
+      const updatedSubject = res.data?.data?.subject;
 
-      await api.delete(`/subjects/${subjectToDelete._id}`);
+      toast.success(
+        res.data?.message ||
+          (type === "deactivate"
+            ? `"${item.name}" deactivated successfully`
+            : `"${item.name}" reactivated successfully`)
+      );
 
-      setSubjects(subjects.filter(s => s._id !== subjectToDelete._id));
+      // In-place update without full reload
+      setSubjects((prev) =>
+        prev.map((s) =>
+          s._id === item._id
+            ? {
+                ...s,
+                ...(updatedSubject || {}),
+                status: type === "deactivate" ? "INACTIVE" : "ACTIVE",
+                isActive: type !== "deactivate",
+              }
+            : s
+        )
+      );
 
-      setShowDeleteModal(false);
-
-      setSubjectToDelete(null);
-
-      setError(null);
-
-    } catch {
-
-      setError("Failed to delete subject. Please try again.");
-
+      setLifecycleModal({
+        isOpen: false,
+        item: null,
+        type: null,
+        loading: false,
+      });
+    } catch (err) {
+      logger.error(`Error during subject ${type}:`, err);
+      const serverMessage =
+        err.response?.data?.message ||
+        `Failed to ${type} subject. Please try again.`;
+      toast.error(serverMessage);
+      setLifecycleModal((prev) => ({ ...prev, loading: false }));
     }
-
   };
   /* ================= ERROR STATE ================= */
 
@@ -684,63 +690,88 @@ if (loading) {
       key: "status",
       label: "Status",
       sortable: true,
-      width: "9%",
-      render: (subject) => (
-        <span
-          className={`status-badge status-${
-            subject.status?.toLowerCase() || "inactive"
-          }`}
-        >
-          {subject.status || "INACTIVE"}
-        </span>
-      ),
+      width: "105px",
+      render: (subject) => {
+        const isActive = subject.status === "ACTIVE" && subject.isActive !== false;
+
+        return (
+          <span
+            className={`department-status ${
+              isActive ? "active" : "inactive"
+            }`}
+          >
+            <span className="status-dot" />
+            {isActive ? "Active" : "Inactive"}
+          </span>
+        );
+      },
+    },
+
+    {
+      key: "actions",
+      label: "Actions",
+      sortable: false,
+      width: "170px",
+      render: (subject) => {
+        const isSubjectActive = subject.status === "ACTIVE" && subject.isActive !== false;
+        const canManage = canEdit("subjects");
+
+        return (
+          <div className="standard-table-actions erp-staff-actions erp-dept-actions">
+            {(hasAccess("subjects") || hasAccess("subjects-view")) && (
+              <ActionIconButton
+                icon={FaEye}
+                className="view-btn"
+                ariaLabel={`View details of ${subject.name}`}
+                tooltip={`View details of ${subject.name}`}
+                onClick={() => {
+                  sessionStorage.setItem(
+                    "subjectListFilters",
+                    JSON.stringify({
+                      department: selectedDepartment,
+                      course: selectedCourse,
+                      semester: selectedSemester,
+                    })
+                  );
+                  navigate(`/subjects/view/${subject._id}`);
+                }}
+              />
+            )}
+
+            {canManage && (
+              <ActionIconButton
+                icon={FaEdit}
+                className="edit-btn"
+                ariaLabel={`Edit ${subject.name}`}
+                tooltip={`Edit ${subject.name}`}
+                onClick={() => navigate(`/subjects/edit/${subject._id}`)}
+              />
+            )}
+
+            {canManage && isSubjectActive && (
+              <ActionIconButton
+                icon={FaTimesCircle}
+                className="deactivate-btn"
+                ariaLabel={`Deactivate ${subject.name}`}
+                tooltip={`Deactivate ${subject.name}. It will no longer be available for new timetable slots, exams or marks entry.`}
+                onClick={() => handleOpenDeactivateModal(subject)}
+              />
+            )}
+
+            {canManage && !isSubjectActive && (
+              <ActionIconButton
+                icon={FaCheckCircle}
+                className="reactivate-btn"
+                ariaLabel={`Reactivate ${subject.name}`}
+                tooltip={`Reactivate ${subject.name}. Makes it available again.`}
+                onClick={() => handleOpenReactivateModal(subject)}
+              />
+            )}
+          </div>
+        );
+      },
     },
   ];
-
-  const tableActions = {
-    label: "Actions",
-    width: "14%",
-    items: [
-      {
-        key: "view",
-        label: "View Details",
-        icon: FaEye,
-        className: "view-btn",
-        onClick: (subject) => {
-          sessionStorage.setItem(
-            "subjectListFilters",
-            JSON.stringify({
-              department: selectedDepartment,
-              course: selectedCourse,
-              semester: selectedSemester,
-            })
-          );
-
-          navigate(`/subjects/view/${subject._id}`);
-        },
-      },
-
-      {
-        key: "edit",
-        label: "Edit Subject",
-        icon: FaEdit,
-        className: "edit-btn",
-        show: () => canEdit("subjects"),
-        onClick: (subject) => {
-          navigate(`/subjects/edit/${subject._id}`);
-        },
-      },
-
-      {
-        key: "delete",
-        label: "Delete Subject",
-        icon: FaTrash,
-        className: "delete-btn",
-        show: () => canDelete("subjects"),
-        onClick: handleDeleteClick,
-      },
-    ],
-  };
 
   const selectedDeptName = Array.isArray(departments) ? departments.find(d => d._id === selectedDepartment)?.name || "Select Department" : "Select Department";
 
@@ -1111,7 +1142,6 @@ if (loading) {
       emptyState={{
         // Keep your existing emptyState configuration.
       }}
-      actions={tableActions}
     />
 
     {totalPages > 1 && (
@@ -1127,115 +1157,40 @@ if (loading) {
 )}
 
 
-      {/* DELETE MODAL */}
-
-      {showDeleteModal && subjectToDelete && (
-
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-
-            <div className="modal-header">
-
-              <h3>Delete Subject</h3>
-
-              <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
-
-                <FaTimes />
-
-              </button>
-
-            </div>
-
-            <div className="modal-body">
-
-              <div className="modal-warning">
-
-                <FaExclamationTriangle className="warning-icon" />
-
-                <div className="warning-text">
-
-                  <h4>Are you sure you want to delete this subject?</h4>
-
-                  <p>This action cannot be undone. All related data will be permanently deleted.</p>
-
-                </div>
-
-              </div>
-
-              <div className="subject-preview">
-
-                <div className="preview-item">
-
-                  <span className="preview-label">Subject Name:</span>
-
-                  <span className="preview-value">{subjectToDelete.name}</span>
-
-                </div>
-
-                <div className="preview-item">
-
-                  <span className="preview-label">Subject Code:</span>
-
-                  <span className="preview-value">{subjectToDelete.code}</span>
-
-                </div>
-
-                <div className="preview-item">
-
-                  <span className="preview-label">Course:</span>
-
-                  <span className="preview-value">{selectedCourseName}</span>
-
-                </div>
-
-                <div className="preview-item">
-
-                  <span className="preview-label">Department:</span>
-
-                  <span className="preview-value">{selectedDeptName}</span>
-
-                </div>
-
-              </div>
-
-            </div>
-
-            <div className="modal-footer">
-
-              <button 
-
-                className="erp-btn erp-btn-secondary"
-
-                onClick={() => setShowDeleteModal(false)}
-
-              >
-
-                Cancel
-
-              </button>
-
-              <button 
-
-                className="erp-btn erp-btn-danger"
-
-                onClick={confirmDelete}
-
-              >
-
-                <FaTrash className="erp-btn-icon" />
-
-                Delete Permanently
-
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      )}
+      {/* LIFECYCLE MODAL */}
+      <ConfirmModal
+        isOpen={lifecycleModal.isOpen}
+        onClose={() =>
+          !lifecycleModal.loading &&
+          setLifecycleModal({
+            isOpen: false,
+            item: null,
+            type: null,
+            loading: false,
+          })
+        }
+        onConfirm={handleLifecycleConfirm}
+        title={
+          lifecycleModal.type === "deactivate"
+            ? "Deactivate Subject"
+            : "Reactivate Subject"
+        }
+        message={
+          lifecycleModal.item
+            ? lifecycleModal.type === "deactivate"
+              ? `Are you sure you want to deactivate "${lifecycleModal.item.name}"? It will no longer be available for new timetable slots, exams or marks entry.`
+              : `Are you sure you want to reactivate "${lifecycleModal.item.name}"? This will make the subject available again for teaching, timetable scheduling, and exams.`
+            : ""
+        }
+        type={lifecycleModal.type === "deactivate" ? "warning" : "primary"}
+        confirmText={
+          lifecycleModal.type === "deactivate"
+            ? "Deactivate Subject"
+            : "Reactivate Subject"
+        }
+        cancelText="Cancel"
+        isLoading={lifecycleModal.loading}
+      />
 
 
 

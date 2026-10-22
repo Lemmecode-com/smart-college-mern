@@ -691,6 +691,134 @@ class AuditLogService {
   }
 
   /**
+   * Log course deactivation
+   */
+  async logCourseDeactivated(user, course, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "COURSE_DEACTIVATED",
+      resourceType: "Course",
+      resourceId: course._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        isActive: true,
+        status: "ACTIVE",
+      },
+      newValues: {
+        isActive: false,
+        status: "INACTIVE",
+      },
+      metadata: {
+        courseName: course.name,
+        courseCode: course.code,
+      },
+    });
+  }
+
+  /**
+   * Log course reactivation
+   */
+  async logCourseReactivated(user, course, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "COURSE_REACTIVATED",
+      resourceType: "Course",
+      resourceId: course._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        isActive: false,
+        status: "INACTIVE",
+      },
+      newValues: {
+        isActive: true,
+        status: "ACTIVE",
+      },
+      metadata: {
+        courseName: course.name,
+        courseCode: course.code,
+      },
+    });
+  }
+
+  /**
+   * Log subject deactivation
+   */
+  async logSubjectDeactivated(user, subject, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "SUBJECT_DEACTIVATED",
+      resourceType: "Subject",
+      resourceId: subject._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        isActive: true,
+        status: "ACTIVE",
+      },
+      newValues: {
+        isActive: false,
+        status: "INACTIVE",
+      },
+      metadata: {
+        subjectName: subject.name,
+        subjectCode: subject.code,
+      },
+    });
+  }
+
+  /**
+   * Log subject reactivation
+   */
+  async logSubjectReactivated(user, subject, req) {
+    return await this.logAudit({
+      collegeId: user.college_id,
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      action: "SUBJECT_REACTIVATED",
+      resourceType: "Subject",
+      resourceId: subject._id,
+      ipAddress: this.getClientIP(req),
+      userAgent: req.get("user-agent"),
+      endpoint: req.originalUrl,
+      method: req.method,
+      statusCode: 200,
+      oldValues: {
+        isActive: false,
+        status: "INACTIVE",
+      },
+      newValues: {
+        isActive: true,
+        status: "ACTIVE",
+      },
+      metadata: {
+        subjectName: subject.name,
+        subjectCode: subject.code,
+      },
+    });
+  }
+
+  /**
    * Log HOD assignment
    */
   async logHODAssigned(user, departmentId, departmentName, teacherId, teacherName, previousHodId, previousUserRole, newHodId, req) {

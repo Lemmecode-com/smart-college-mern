@@ -73,7 +73,23 @@ exports.createTimetable = async (req, res) => {
         });
       }
 
-      const course = await Course.findById(course_id).select("name yearLabels");
+      const course = await Course.findOne({
+        _id: course_id,
+        college_id: req.college_id,
+        department_id,
+      });
+
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      if (course.status === "INACTIVE" || course.isActive === false) {
+        return res.status(400).json({
+          code: "COURSE_INACTIVE",
+          message: "Cannot create a timetable for an inactive course",
+        });
+      }
+
       const yearLabel = course?.yearLabels?.length
         ? require("../utils/yearLabels").getYearLabelForSemester(semester, course.yearLabels)
         : null;
