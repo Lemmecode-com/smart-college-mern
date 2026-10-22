@@ -341,7 +341,7 @@ const columns = [
 
 const tableActions = {
   label: "Actions",
-  width: "210px",
+  width: "280px",
   icon: FaReceipt,
   items: [
 
@@ -350,7 +350,7 @@ const tableActions = {
     label: "Receipts",
     sortable: false,
     icon: FaReceipt,
-    width: "230px",
+    width: "210px",
     text: "Receipts",
     style: { background: "#427ed3", width: "230px", gap: "5px" },
     render: (record) => {
@@ -2209,6 +2209,280 @@ const tableActions = {
     flex: 0 0 22px;
   }
 }
+
+/* =========================================
+   PAYMENT HISTORY — ACTION BUTTONS
+   ========================================= */
+
+.payment-history-container .receipt-dropdown-btn,
+.payment-history-container .standard-action-btn.report-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  min-height: 40px;
+  width: auto !important;
+  padding: 9px 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border-radius: 9px !important;
+  color: #fff !important;
+  font-family: inherit;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(15, 58, 74, 0.12) !important;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease !important;
+}
+
+/* Receipts button */
+.payment-history-container .receipt-dropdown-btn {
+  background: #2458a6 !important;
+  border-color: #2458a6 !important;
+}
+
+.payment-history-container .receipt-dropdown-btn:hover {
+  background: #1d4789 !important;
+  border-color: #1d4789 !important;
+  box-shadow: 0 4px 10px rgba(36, 88, 166, 0.22) !important;
+  transform: translateY(-1px);
+}
+
+.payment-history-container .receipt-dropdown-btn:focus-visible,
+.payment-history-container .standard-action-btn.report-btn:focus-visible {
+  outline: 3px solid rgba(56, 189, 248, 0.45);
+  outline-offset: 2px;
+}
+
+.payment-history-container .receipt-icon {
+  font-size: 14px;
+}
+
+.payment-history-container .receipt-count-badge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 11px;
+  box-shadow: none;
+}
+
+.payment-history-container .dropdown-arrow {
+  margin-left: 2px;
+  font-size: 11px;
+}
+
+/* Report button */
+.payment-history-container .standard-action-btn.report-btn {
+  background: #0e5965 !important;
+  border-color: #0e5965 !important;
+  box-shadow: 0 2px 5px rgba(14, 89, 101, 0.15) !important;
+}
+
+.payment-history-container .standard-action-btn.report-btn:hover {
+  background: #094650 !important;
+  border-color: #094650 !important;
+  box-shadow: 0 4px 10px rgba(14, 89, 101, 0.22) !important;
+  transform: translateY(-1px);
+}
+
+/* Keep both actions aligned and spaced */
+.payment-history-container .standard-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.payment-history-container .receipt-dropdown-wrapper {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.payment-history-container .receipt-dropdown-wrapper.active {
+  z-index: 10001;
+}
+
+/* =========================================
+   RECEIPT DROPDOWN MENU
+   ========================================= */
+
+.payment-history-container .receipt-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 350px;
+  min-width: 300px;
+  max-width: min(350px, calc(100vw - 32px));
+  padding: 5px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  box-shadow:
+    0 14px 35px rgba(15, 42, 65, 0.16),
+    0 3px 8px rgba(15, 42, 65, 0.06);
+  overflow: hidden;
+  transform-origin: top right;
+  animation: receiptMenuEnter 0.18s ease-out;
+  z-index: 100000;
+}
+
+@keyframes receiptMenuEnter {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.985);
+  }
+
+to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.payment-history-container .dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  margin: -5px -5px 5px;
+  background: #f0f5f8;
+  color: #0e3746;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.payment-history-container .dropdown-icon {
+  font-size: 15px;
+  color: #2458a6;
+}
+
+.payment-history-container .dropdown-divider {
+  display: none;
+}
+
+/* Each receipt */
+.payment-history-container .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;
+  margin: 2px 0;
+  color: #334155;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
+  border-radius: 8px;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.payment-history-container .dropdown-item:not(:last-child) {
+  border-bottom: 1px solid #edf1f5;
+}
+
+.payment-history-container .dropdown-item:hover {
+  background: #f1f6fb;
+  border-left-color: #2458a6;
+}
+
+.payment-history-container .dropdown-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 9px;
+  background: #e8f0fa;
+  color: #2458a6;
+  font-size: 14px;
+}
+
+.payment-history-container .dropdown-item-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.payment-history-container .dropdown-item-name {
+  color: #183b50;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.payment-history-container .dropdown-item-date {
+  color: #718096;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.payment-history-container .dropdown-item-amount {
+  flex-shrink: 0;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.payment-history-container .dropdown-item-arrow {
+  flex-shrink: 0;
+  color: #94a3b8;
+  font-size: 11px;
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
+.payment-history-container .dropdown-item:hover .dropdown-item-arrow {
+  color: #2458a6;
+  transform: translateX(2px);
+}
+
+.payment-history-container .no-receipts-text {
+  color: #718096;
+  font-size: 12px;
+  font-style: normal;
+}
+
+/* Smaller screens */
+@media (max-width: 768px) {
+  .payment-history-container .receipt-dropdown-menu {
+    position: fixed !important;
+    top: 50% !important;
+    right: 16px !important;
+    left: 16px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: 75vh;
+    overflow-y: auto;
+    transform: translateY(-50%);
+    border-radius: 12px;
+  }
+
+.payment-history-container .standard-table-actions {
+    gap: 6px;
+  }
+
+.payment-history-container .receipt-dropdown-btn,
+  .payment-history-container .standard-action-btn.report-btn {
+    min-height: 36px;
+    padding: 8px 10px !important;
+    font-size: 12px !important;
+  }
+}
+
       `}</style>
 
       {/* ================= BREADCRUMB ================= */}

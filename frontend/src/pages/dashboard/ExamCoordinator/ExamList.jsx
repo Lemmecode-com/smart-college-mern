@@ -288,6 +288,59 @@ const listStyles = `
 @media (prefers-reduced-motion: reduce) {
   .exam-list-page * { animation: none !important; transition: none !important; }
 }
+
+/* Empty-state: Create Your First Exam button */
+.create-first-exam-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 22px;
+  margin-top: 8px;
+
+  background: #0e3746;
+  color: #ffffff;
+  border: 1px solid #0e3746;
+  border-radius: 9px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+
+  box-shadow: 0 3px 8px rgba(14, 55, 70, 0.15);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.create-first-exam-btn:hover {
+  background: #164b5d;
+  border-color: #164b5d;
+  box-shadow: 0 5px 12px rgba(14, 55, 70, 0.22);
+  transform: translateY(-1px);
+}
+
+.create-first-exam-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(14, 55, 70, 0.15);
+}
+
+.create-first-exam-btn:focus-visible {
+  outline: 3px solid rgba(6, 182, 212, 0.4);
+  outline-offset: 3px;
+}
+
+.create-first-exam-btn svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
 `;
 
 export default function ExamList() {
@@ -604,7 +657,8 @@ export default function ExamList() {
                 : "No exams match your search criteria."}
             </p>
             {exams.length === 0 && (
-              <button className="btn-edx-primary mt-3" onClick={handleCreateExam}>
+              <button className="create-first-exam-btn"
+ onClick={handleCreateExam}>
                 <FaPlus />
                 Create Your First Exam
               </button>
