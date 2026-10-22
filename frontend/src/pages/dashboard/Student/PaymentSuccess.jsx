@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext, useRef } from "react";
-import { useSearchParams, Navigate, useNavigate } from "react-router-dom";
+import { useSearchParams, Navigate, useNavigate, useLocation } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
@@ -46,6 +46,7 @@ export default function PaymentSuccess() {
   const { user, loading: authLoading } = useContext(AuthContext);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const receiptRef = useRef(null);
   const fetchIdRef = useRef(0);
 
@@ -285,7 +286,7 @@ export default function PaymentSuccess() {
     };
   }, [sessionId, paymentGatewayParam, retryNonce]);
 
-  /* ========== POLL RAZORPAY ========== */
+  /* ========== POLL / VERIFY RAZORPAY ========== */
   useEffect(() => {
     if (paymentGatewayParam !== "razorpay" || !orderId) {
       if (paymentGatewayParam === "razorpay" && !orderId) {
@@ -304,118 +305,272 @@ export default function PaymentSuccess() {
     }
     isVerifyingRef.current = verifyKey;
 
+    // 1. If MakePayments already verified successfully and passed verifiedData via state
+    if (
+      location.state?.verifiedData?.valid &&
+      location.state.verifiedData.installment
+    ) {
+      const v = location.state.verifiedData;
+      const inst = v.installment;
+      setPayment({
+        installmentId: inst._id,
+        installmentName: inst.installmentName || inst.name,
+        amount: inst.amount,
+        paidAt: inst.paidAt || new Date().toISOString(),
+        transactionId: inst.transactionId || paymentId,
+        paymentGateway: "RAZORPAY",
+        totalFee: v.totalFee,
+        paidAmount: v.paidAmount,
+        remainingAmount: v.remainingAmount,
+      });
+      toast.success("Payment confirmed successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        icon: <FaCheckCircle />,
+        toastId: "payment-success",
+      });
+      setLoading(false);
+      setIsRetrying(false);
+      return;
+    }
+
+    // 2. If MakePayments captured a verification error (invalid signature or amount mismatch 400)
+    if (
+      location.state?.verifyError &&
+      location.state.verifyError.statusCode === 400
+    ) {
+      const errState = location.state.verifyError;
+      setError({
+        statusCode: errState.statusCode,
+        errorCode: errState.errorCode,
+        message:
+          errState.message ||
+          "Payment verification failed. Invalid signature or amount mismatch.",
+      });
+      setLoading(false);
+      setIsRetrying(false);
+      return;
+    }
+
+    // Helper to read cached signature
+    let savedSignature = null;
+    try {
+      const stored = sessionStorage.getItem(`rzp_sig_${orderId}`);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          savedSignature = parsed?.signature || null;
+        } catch {
+          savedSignature = stored;
+        }
+      }
+    } catch {
+      // Ignore sessionStorage exceptions
+    }
+
+    const signature =
+      location.state?.signature ||
+      searchParams.get("signature") ||
+      searchParams.get("razorpay_signature") ||
+      savedSignature;
+
     let interval;
     let attempts = 0;
     const maxAttempts = 30;
 
-    const checkRazorpayStatus = async (currentFetchId) => {
-      attempts++;
-      try {
-        const res = await api.get(
-          `/student/payments/status?orderId=${orderId}&gateway=razorpay`
-        );
-        if (currentFetchId !== fetchIdRef.current) return true;
-
-        if (res.data?.status === "PAID") {
-          if (interval) clearInterval(interval);
-          setPayment({
-            installmentId: res.data.installmentId,
-            installmentName: res.data.installmentName,
-            amount: res.data.amount,
-            paidAt: res.data.paidAt,
-            transactionId: res.data.transactionId,
-            paymentGateway: "RAZORPAY",
-            totalFee: res.data.totalFee,
-            paidAmount: res.data.paidAmount,
-            remainingAmount: res.data.remainingAmount,
-          });
-          toast.success("Payment confirmed successfully!", {
-            position: "top-right",
-            autoClose: 3000,
-            icon: <FaCheckCircle />,
-            toastId: "payment-success",
-          });
-          setLoading(false);
-          setIsRetrying(false);
-          return true;
-        } else if (res.data?.status === "FAILED") {
-          if (interval) clearInterval(interval);
-          setError({
-            message:
-              res.data.failureReason ||
-              "Payment failed or was declined. Please try again.",
-          });
-          setLoading(false);
-          setIsRetrying(false);
-          return true;
-        } else if (attempts >= maxAttempts) {
-          if (interval) clearInterval(interval);
-          setError({
-            message:
-              "Payment is still processing. Please check back in a few moments.",
-          });
-          setLoading(false);
-          setIsRetrying(false);
-          return true;
-        }
-      } catch (err) {
-        if (currentFetchId !== fetchIdRef.current) return true;
-        const { statusCode, errorCode, isAuth } = detectAuthError(err);
-        logger.error("Razorpay payment status poll error:", {
-          statusCode,
-          errorCode,
-          message: err?.response?.data?.message,
-          page: "PaymentSuccess",
-        });
-        if (isAuth) {
-          if (interval) clearInterval(interval);
-          setError({
-            statusCode,
-            errorCode,
-            message:
-              "Your session has expired. Please sign in again to continue.",
-          });
-          setLoading(false);
-          setIsRetrying(false);
-          return true;
-        }
-        if (attempts >= maxAttempts) {
-          if (interval) clearInterval(interval);
-          const errorMsg =
-            "Your payment is still processing. Please check back in a few moments.";
-          setError({ message: errorMsg });
-          toast.error(errorMsg, {
-            position: "top-right",
-            autoClose: 5000,
-            icon: <FaExclamationTriangle />,
-          });
-          setLoading(false);
-          setIsRetrying(false);
-          return true;
-        }
-      }
-      return false;
-    };
-
-    const pollRazorpay = async () => {
+    const runRazorpayFlow = async () => {
       fetchIdRef.current += 1;
       const currentFetchId = fetchIdRef.current;
-      const isDone = await checkRazorpayStatus(currentFetchId);
+
+      // If signature is available, call verify-payment endpoint directly
+      if (signature && paymentId) {
+        try {
+          const verifyRes = await api.post("/razorpay/verify-payment", {
+            razorpay_order_id: orderId,
+            razorpay_payment_id: paymentId,
+            razorpay_signature: signature,
+          });
+
+          if (currentFetchId !== fetchIdRef.current) return;
+
+          if (verifyRes.data?.valid && verifyRes.data?.installment) {
+            const v = verifyRes.data;
+            const inst = v.installment;
+            setPayment({
+              installmentId: inst._id,
+              installmentName: inst.installmentName || inst.name,
+              amount: inst.amount,
+              paidAt: inst.paidAt || new Date().toISOString(),
+              transactionId: inst.transactionId || paymentId,
+              paymentGateway: "RAZORPAY",
+              totalFee: v.totalFee,
+              paidAmount: v.paidAmount,
+              remainingAmount: v.remainingAmount,
+            });
+            toast.success("Payment confirmed successfully!", {
+              position: "top-right",
+              autoClose: 3000,
+              icon: <FaCheckCircle />,
+              toastId: "payment-success",
+            });
+            setLoading(false);
+            setIsRetrying(false);
+            return;
+          }
+        } catch (err) {
+          if (currentFetchId !== fetchIdRef.current) return;
+          const { statusCode, errorCode, isAuth } = detectAuthError(err);
+          logger.error("Razorpay verify-payment error in PaymentSuccess:", {
+            statusCode,
+            errorCode,
+            message: err?.response?.data?.message,
+            page: "PaymentSuccess",
+          });
+
+          if (isAuth) {
+            setError({
+              statusCode,
+              errorCode,
+              message:
+                "Your session has expired. Please sign in again to continue.",
+            });
+            setLoading(false);
+            setIsRetrying(false);
+            return;
+          }
+
+          // If signature or amount mismatch error (400), show error immediately without polling!
+          if (
+            statusCode === 400 &&
+            (errorCode === "INVALID_SIGNATURE" ||
+              errorCode === "PAYMENT_AMOUNT_MISMATCH" ||
+              errorCode === "MISSING_PAYMENT_PARAMS")
+          ) {
+            const errorMsg =
+              err?.response?.data?.message ||
+              "Payment verification failed. Invalid signature or amount mismatch.";
+            setError({
+              statusCode,
+              errorCode,
+              message: errorMsg,
+            });
+            toast.error(errorMsg, {
+              position: "top-right",
+              autoClose: 5000,
+              icon: <FaExclamationTriangle />,
+            });
+            setLoading(false);
+            setIsRetrying(false);
+            return;
+          }
+          // Otherwise fall through to polling status
+        }
+      }
+
+      // Fallback polling for webhook path or when signature is absent
+      const checkRazorpayStatus = async () => {
+        attempts++;
+        try {
+          const res = await api.get(
+            `/student/payments/status?orderId=${orderId}&gateway=razorpay`,
+          );
+          if (currentFetchId !== fetchIdRef.current) return true;
+
+          if (res.data?.status === "PAID") {
+            if (interval) clearInterval(interval);
+            setPayment({
+              installmentId: res.data.installmentId,
+              installmentName: res.data.installmentName,
+              amount: res.data.amount,
+              paidAt: res.data.paidAt,
+              transactionId: res.data.transactionId,
+              paymentGateway: "RAZORPAY",
+              totalFee: res.data.totalFee,
+              paidAmount: res.data.paidAmount,
+              remainingAmount: res.data.remainingAmount,
+            });
+            toast.success("Payment confirmed successfully!", {
+              position: "top-right",
+              autoClose: 3000,
+              icon: <FaCheckCircle />,
+              toastId: "payment-success",
+            });
+            setLoading(false);
+            setIsRetrying(false);
+            return true;
+          } else if (res.data?.status === "FAILED") {
+            if (interval) clearInterval(interval);
+            setError({
+              message:
+                res.data.failureReason ||
+                "Payment failed or was declined. Please try again.",
+            });
+            setLoading(false);
+            setIsRetrying(false);
+            return true;
+          } else if (attempts >= maxAttempts) {
+            if (interval) clearInterval(interval);
+            setError({
+              message:
+                "Payment is still processing. Please check back in a few moments.",
+            });
+            setLoading(false);
+            setIsRetrying(false);
+            return true;
+          }
+        } catch (err) {
+          if (currentFetchId !== fetchIdRef.current) return true;
+          const { statusCode, errorCode, isAuth } = detectAuthError(err);
+          logger.error("Razorpay payment status poll error:", {
+            statusCode,
+            errorCode,
+            message: err?.response?.data?.message,
+            page: "PaymentSuccess",
+          });
+          if (isAuth) {
+            if (interval) clearInterval(interval);
+            setError({
+              statusCode,
+              errorCode,
+              message:
+                "Your session has expired. Please sign in again to continue.",
+            });
+            setLoading(false);
+            setIsRetrying(false);
+            return true;
+          }
+          if (attempts >= maxAttempts) {
+            if (interval) clearInterval(interval);
+            const errorMsg =
+              "Your payment is still processing. Please check back in a few moments.";
+            setError({ message: errorMsg });
+            toast.error(errorMsg, {
+              position: "top-right",
+              autoClose: 5000,
+              icon: <FaExclamationTriangle />,
+            });
+            setLoading(false);
+            setIsRetrying(false);
+            return true;
+          }
+        }
+        return false;
+      };
+
+      const isDone = await checkRazorpayStatus();
       if (!isDone && currentFetchId === fetchIdRef.current) {
         interval = setInterval(() => {
-          checkRazorpayStatus(currentFetchId);
+          checkRazorpayStatus();
         }, 2000);
       }
     };
 
-    pollRazorpay();
+    runRazorpayFlow();
+
     return () => {
       if (interval) clearInterval(interval);
-      if (isVerifyingRef.current === verifyKey) {
-        isVerifyingRef.current = null;
-      }
     };
-  }, [paymentGatewayParam, orderId, paymentId, retryNonce]);
+  }, [paymentGatewayParam, orderId, paymentId, retryNonce, location.state]);
 
   /* ========== SECURITY ========== */
 if (authLoading) {

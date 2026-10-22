@@ -620,6 +620,74 @@ describe("Issue #194 — Razorpay Webhook Idempotency & Duplicate Payment Protec
       // Exactly 1 email sent despite race
       expect(sendEmailSpy).toHaveBeenCalledTimes(1);
     });
+
+    test("verifyRazorpayPayment on already-PAID installment returns success without second email and recalculates paidAmount", async () => {
+      const fee = await StudentFee.create({
+        student_id: studentA._id,
+        college_id: collegeA._id,
+        course_id: courseA._id,
+        totalFee: 10000,
+        paidAmount: 5000,
+        installments: [
+          {
+            name: "Term 1",
+            amount: 5000,
+            dueDate: new Date(),
+            status: "PAID",
+            paidAt: new Date(),
+            transactionId: "pay_prev_done",
+            razorpayOrderId: "order_prev_done",
+            razorpayPaymentId: "pay_prev_done",
+            receiptEmailSentAt: new Date(),
+          },
+        ],
+      });
+
+      mockFetchOrder.mockResolvedValue({
+        id: "order_prev_done",
+        amount: 500000,
+        currency: "INR",
+        notes: { installmentName: "Term 1", collegeId: collegeA._id.toString() },
+      });
+
+      const orderId = "order_prev_done";
+      const paymentId = "pay_prev_done";
+
+      const verifySignature = crypto
+        .createHmac("sha256", PLAIN_KEY_SECRET)
+        .update(`${orderId}|${paymentId}`)
+        .digest("hex");
+
+      const verifyReqRes = createMockReqRes({
+        body: {
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: verifySignature,
+        },
+        user: { id: studentUserA._id },
+        college_id: collegeA._id,
+      });
+
+      await verifyRazorpayPayment(
+        verifyReqRes.req,
+        verifyReqRes.res,
+        verifyReqRes.next,
+      );
+
+      expect(verifyReqRes.res.statusCode).toBe(200);
+      expect(verifyReqRes.res.body).toMatchObject({
+        valid: true,
+        alreadyPaid: true,
+        installment: expect.objectContaining({
+          installmentName: "Term 1",
+          status: "PAID",
+        }),
+        paidAmount: 5000,
+      });
+
+      // No second email dispatched
+      expect(sendEmailSpy).toHaveBeenCalledTimes(0);
+    });
   });
 
   describe("4. payment.failed Handling", () => {

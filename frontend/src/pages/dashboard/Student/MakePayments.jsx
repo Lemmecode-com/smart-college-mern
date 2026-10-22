@@ -1,4 +1,4 @@
-﻿import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -68,6 +68,7 @@ export default function MakePayments() {
   const sessionTimeoutRef = useRef(null);
   const fetchIdRef = useRef(0);
   const isRequestInProgressRef = useRef(false); // Prevent duplicate payment requests
+  const isRazorpayVerifyingRef = useRef(false); // Prevent double verify in checkout handler
 
   const [installmentName, setInstallmentName] = useState(
     location.state?.installmentName || "",
@@ -198,8 +199,7 @@ if (authLoading) {
             return;
           }
           setAvailableGateways(["stripe", "razorpay"]);
-         setAllowChoice(true);
-         setGatewaysLoading(false);
+          setGatewaysLoading(false);
        }
     };
 
@@ -314,6 +314,7 @@ if (authLoading) {
     try {
       setLoading(true);
       isRequestInProgressRef.current = true;
+      isRazorpayVerifyingRef.current = false;
 
       // Load Razorpay script
       const loaded = await loadRazorpayScript();
@@ -354,29 +355,70 @@ if (authLoading) {
         description: `Fee Payment - ${installmentName}`,
         order_id: orderId,
         handler: async (response) => {
-          // ✅ WEBHOOK-DRIVEN: Don't call verify API. Just redirect to success page.
-          // The webhook will mark the installment as PAID.
-          // PaymentSuccess.jsx will poll for status until webhook processes it.
-          setLoadingMessage("Payment successful! Confirming...");
+          if (isRazorpayVerifyingRef.current) return;
+          isRazorpayVerifyingRef.current = true;
+
+          setLoadingMessage("Payment successful! Verifying payment...");
           setLoading(true);
 
-          // Small delay for UX, then redirect
-          setTimeout(() => {
+          const {
+            razorpay_payment_id,
+            razorpay_order_id,
+            razorpay_signature,
+          } = response;
+
+          // Store signature in sessionStorage as safe fallback for PaymentSuccess or retry
+          try {
+            sessionStorage.setItem(
+              `rzp_sig_${razorpay_order_id}`,
+              JSON.stringify({
+                paymentId: razorpay_payment_id,
+                orderId: razorpay_order_id,
+                signature: razorpay_signature,
+              }),
+            );
+          } catch {
+            // Non-critical if storage fails
+          }
+
+          let verifiedData = null;
+          let verifyError = null;
+
+          try {
+            const verifyRes = await api.post("/razorpay/verify-payment", {
+              razorpay_order_id,
+              razorpay_payment_id,
+              razorpay_signature,
+            });
+            verifiedData = verifyRes.data;
+          } catch (err) {
+            logger.error("Razorpay verify-payment error in checkout handler:", err);
+            const statusCode = err?.response?.status;
+            const errorCode =
+              err?.response?.data?.code || err?.response?.data?.error?.code;
+            const message =
+              err?.response?.data?.message ||
+              "Payment verification failed. Invalid signature or amount mismatch.";
+            verifyError = { statusCode, errorCode, message };
+          } finally {
             setLoading(false);
             isRequestInProgressRef.current = false;
+          }
 
-            // Redirect to success page — PaymentSuccess.jsx will poll for status
-            navigate(
-              `/student/payment-success?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&gateway=razorpay`,
-              {
-                state: {
-                  paymentGateway: "RAZORPAY",
-                  orderId: response.razorpay_order_id,
-                  paymentId: response.razorpay_payment_id,
-                },
+          // Redirect to success page with verification state
+          navigate(
+            `/student/payment-success?payment_id=${razorpay_payment_id}&order_id=${razorpay_order_id}&gateway=razorpay`,
+            {
+              state: {
+                paymentGateway: "RAZORPAY",
+                orderId: razorpay_order_id,
+                paymentId: razorpay_payment_id,
+                signature: razorpay_signature,
+                verifiedData,
+                verifyError,
               },
-            );
-          }, 1000);
+            },
+          );
         },
         prefill: {
           name: user.name || "",
@@ -394,6 +436,7 @@ if (authLoading) {
             });
             setLoading(false);
             isRequestInProgressRef.current = false;
+            isRazorpayVerifyingRef.current = false;
           },
         },
       };
@@ -439,6 +482,7 @@ if (authLoading) {
 
         setLoading(false);
         isRequestInProgressRef.current = false;
+        isRazorpayVerifyingRef.current = false;
       });
 
       rzp.open();

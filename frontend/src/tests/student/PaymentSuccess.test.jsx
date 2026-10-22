@@ -213,4 +213,214 @@ describe("PaymentSuccess Component — Razorpay Verification & Error Handling", 
     );
     expect(retryBtn).toBeDefined();
   });
+
+  it("calls verify-payment with order_id, payment_id, and signature once, and shows success", async () => {
+    const paymentId = "pay_TqsehDt1LI4cMk";
+    const orderId = "order_alpha_verify";
+    const signature = "sig_valid_test_12345";
+
+    mock.onPost("/razorpay/verify-payment", {
+      razorpay_order_id: orderId,
+      razorpay_payment_id: paymentId,
+      razorpay_signature: signature,
+    }).reply(200, {
+      valid: true,
+      installment: {
+        _id: "inst_verified_1",
+        installmentName: "Term 1 Tuition",
+        amount: 30000,
+        paidAt: "2026-10-22T08:00:00.000Z",
+        transactionId: paymentId,
+        paymentGateway: "RAZORPAY",
+        status: "PAID",
+      },
+      totalFee: 60000,
+      paidAmount: 30000,
+      remainingAmount: 30000,
+    });
+
+    mock.onGet("/student/payments/receipt/inst_verified_1").reply(200, {});
+
+    await act(async () => {
+      root.render(
+        <AuthContext.Provider value={{ user: mockUser, loading: false }}>
+          <MemoryRouter
+            initialEntries={[
+              `/student/payment-success?payment_id=${paymentId}&order_id=${orderId}&gateway=razorpay&signature=${signature}`,
+            ]}
+          >
+            <PaymentSuccess />
+          </MemoryRouter>
+        </AuthContext.Provider>
+      );
+    });
+
+    const verifyCalls = mock.history.post.filter((r) =>
+      r.url.includes("/razorpay/verify-payment")
+    );
+    expect(verifyCalls.length).toBe(1);
+    expect(JSON.parse(verifyCalls[0].data)).toEqual({
+      razorpay_order_id: orderId,
+      razorpay_payment_id: paymentId,
+      razorpay_signature: signature,
+    });
+
+    // Does NOT poll status since verify succeeded immediately
+    const statusCalls = mock.history.get.filter((r) =>
+      r.url.includes("/student/payments/status")
+    );
+    expect(statusCalls.length).toBe(0);
+
+    expect(container.textContent).toContain("Payment Successful");
+    expect(container.textContent).toContain("Term 1 Tuition");
+    expect(container.textContent).toContain(paymentId);
+  });
+
+  it("shows clear error on verify-payment signature/amount error (400) without showing still processing", async () => {
+    const paymentId = "pay_TqsehDt1LI4cMk";
+    const orderId = "order_bad_signature";
+    const signature = "sig_invalid_xyz";
+
+    mock.onPost("/razorpay/verify-payment").reply(400, {
+      code: "INVALID_SIGNATURE",
+      message: "Payment verification failed. Invalid signature.",
+    });
+
+    await act(async () => {
+      root.render(
+        <AuthContext.Provider value={{ user: mockUser, loading: false }}>
+          <MemoryRouter
+            initialEntries={[
+              `/student/payment-success?payment_id=${paymentId}&order_id=${orderId}&gateway=razorpay&signature=${signature}`,
+            ]}
+          >
+            <PaymentSuccess />
+          </MemoryRouter>
+        </AuthContext.Provider>
+      );
+    });
+
+    // Should display the specific verification failure message
+    expect(container.textContent).toContain("Payment verification failed. Invalid signature.");
+    // Should NOT show "still processing"
+    expect(container.textContent).not.toContain("still processing");
+
+    // Status polling should NOT have run
+    const statusCalls = mock.history.get.filter((r) =>
+      r.url.includes("/student/payments/status")
+    );
+    expect(statusCalls.length).toBe(0);
+  });
+
+  it("displays payment success immediately when verifiedData is passed in location state", async () => {
+    const paymentId = "pay_TqsehDt1LI4cMk";
+    const orderId = "order_state_verified";
+
+    await act(async () => {
+      root.render(
+        <AuthContext.Provider value={{ user: mockUser, loading: false }}>
+          <MemoryRouter
+            initialEntries={[
+              {
+                pathname: "/student/payment-success",
+                search: `?payment_id=${paymentId}&order_id=${orderId}&gateway=razorpay`,
+                state: {
+                  paymentGateway: "RAZORPAY",
+                  orderId,
+                  paymentId,
+                  verifiedData: {
+                    valid: true,
+                    installment: {
+                      _id: "inst_from_state",
+                      installmentName: "Term 2 Fee",
+                      amount: 15000,
+                      paidAt: "2026-10-22T08:30:00.000Z",
+                      transactionId: paymentId,
+                      status: "PAID",
+                      paymentGateway: "RAZORPAY",
+                    },
+                    totalFee: 45000,
+                    paidAmount: 15000,
+                    remainingAmount: 30000,
+                  },
+                },
+              },
+            ]}
+          >
+            <PaymentSuccess />
+          </MemoryRouter>
+        </AuthContext.Provider>
+      );
+    });
+
+    // Receipt details fetch
+    expect(container.textContent).toContain("Payment Successful");
+    expect(container.textContent).toContain("Term 2 Fee");
+    expect(container.textContent).toContain(paymentId);
+
+    // No extra verify or status network calls needed
+    const verifyCalls = mock.history.post.filter((r) =>
+      r.url.includes("/razorpay/verify-payment")
+    );
+    expect(verifyCalls.length).toBe(0);
+  });
+
+  it("prevents double verify call on re-renders (ref guard against double run)", async () => {
+    const paymentId = "pay_double_guard";
+    const orderId = "order_double_guard";
+    const signature = "sig_guard_123";
+
+    mock.onPost("/razorpay/verify-payment").reply(200, {
+      valid: true,
+      installment: {
+        _id: "inst_double",
+        installmentName: "Guard Fee",
+        amount: 20000,
+        paidAt: "2026-10-22T08:00:00.000Z",
+        transactionId: paymentId,
+        paymentGateway: "RAZORPAY",
+        status: "PAID",
+      },
+      totalFee: 40000,
+      paidAmount: 20000,
+      remainingAmount: 20000,
+    });
+
+    mock.onGet("/student/payments/receipt/inst_double").reply(200, {});
+
+    // Render first time
+    await act(async () => {
+      root.render(
+        <AuthContext.Provider value={{ user: mockUser, loading: false }}>
+          <MemoryRouter
+            initialEntries={[
+              `/student/payment-success?payment_id=${paymentId}&order_id=${orderId}&gateway=razorpay&signature=${signature}`,
+            ]}
+          >
+            <PaymentSuccess />
+          </MemoryRouter>
+        </AuthContext.Provider>
+      );
+    });
+
+    // Re-render (simulating StrictMode or parent update without retry)
+    await act(async () => {
+      root.render(
+        <AuthContext.Provider value={{ user: mockUser, loading: false }}>
+          <MemoryRouter
+            initialEntries={[
+              `/student/payment-success?payment_id=${paymentId}&order_id=${orderId}&gateway=razorpay&signature=${signature}`,
+            ]}
+          >
+            <PaymentSuccess />
+          </MemoryRouter>
+        </AuthContext.Provider>
+      );
+    });
+
+    const verifyCalls = mock.history.post.filter((r) =>
+      r.url.includes("/razorpay/verify-payment")
+    );
+    expect(verifyCalls.length).toBe(1);
+  });
 });

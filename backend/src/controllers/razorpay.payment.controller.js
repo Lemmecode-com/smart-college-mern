@@ -43,7 +43,11 @@ async function processPaymentVerification(
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
           status: installment.status,
+          paymentGateway: installment.paymentGateway || "RAZORPAY",
         },
+        totalFee: studentFee.totalFee,
+        paidAmount: studentFee.paidAmount,
+        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
       });
     }
 
@@ -71,7 +75,11 @@ async function processPaymentVerification(
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
           status: "PAID",
+          paymentGateway: installment.paymentGateway || "RAZORPAY",
         },
+        totalFee: studentFee.totalFee,
+        paidAmount: studentFee.paidAmount,
+        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
       });
     }
 
