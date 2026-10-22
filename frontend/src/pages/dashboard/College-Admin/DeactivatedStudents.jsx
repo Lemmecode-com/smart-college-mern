@@ -47,6 +47,9 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [studentToReactivate, setStudentToReactivate] = useState(null);
+  const [reactivating, setReactivating] = useState(false);
+
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" />;
   if (!admissionOfficerMode && user.role !== "COLLEGE_ADMIN") {
@@ -125,15 +128,34 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
   );
 
   /* ================= REACTIVATE STUDENT ================= */
-  const handleReactivate = async (student) => {
-    if (!window.confirm(`Reactivate "${student.fullName}"? They will regain system access.`)) return;
+  const handleReactivate = (student) => {
+    setStudentToReactivate(student);
+  };
+
+  const confirmReactivate = async () => {
+    if (!studentToReactivate || reactivating) return;
+
+    const student = studentToReactivate;
 
     try {
+      setReactivating(true);
+
       await api.put(`/users/${student.user_id}/reactivate`);
-      toast.success(`${student.fullName} reactivated`, { position: "top-right", autoClose: 3000 });
-      fetchDeactivatedStudents();
+
+      toast.success(`${student.fullName} reactivated`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
+
+      setStudentToReactivate(null);
+      await fetchDeactivatedStudents();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to reactivate", { position: "top-right", autoClose: 5000 });
+      toast.error(
+        err.response?.data?.message || "Failed to reactivate",
+        { position: "top-right", autoClose: 5000 }
+      );
+    } finally {
+      setReactivating(false);
     }
   };
 
@@ -327,6 +349,105 @@ const tableActions = {
   </div>
 )}
 
+{studentToReactivate && (
+  <div
+    className="reactivate-modal-overlay"
+    onClick={() => {
+      if (!reactivating) setStudentToReactivate(null);
+    }}
+  >
+    <div
+      className="reactivate-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reactivate-modal-title"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        className="reactivate-modal-close"
+        onClick={() => setStudentToReactivate(null)}
+        disabled={reactivating}
+        aria-label="Close dialog"
+      >
+        &times;
+      </button>
+
+      <div className="reactivate-modal-heading">
+        <div className="reactivate-modal-icon">
+          <FaUserCheck />
+        </div>
+
+        <h2 id="reactivate-modal-title">
+          Reactivate Student
+        </h2>
+
+        <p>
+          Are you sure you want to reactivate{" "}
+          <strong>{studentToReactivate.fullName}</strong>?
+          They will regain system access.
+        </p>
+      </div>
+
+      <div className="reactivate-modal-details">
+        <div className="reactivate-detail-row">
+          <span>Student Name</span>
+          <strong>{studentToReactivate.fullName || "N/A"}</strong>
+        </div>
+
+        <div className="reactivate-detail-row">
+          <span>Email</span>
+          <strong>{studentToReactivate.email || "N/A"}</strong>
+        </div>
+
+        <div className="reactivate-detail-row">
+          <span>Course</span>
+          <strong>
+            {studentToReactivate.course_id?.name || "N/A"}
+          </strong>
+        </div>
+
+        <div className="reactivate-detail-row">
+          <span>Department</span>
+          <strong>
+            {studentToReactivate.department_id?.name ||
+              studentToReactivate.course_id?.name ||
+              "N/A"}
+          </strong>
+        </div>
+      </div>
+
+      <div className="reactivate-modal-warning">
+        <FaExclamationTriangle />
+        <span>
+          The student will regain access to the system after
+          successful reactivation.
+        </span>
+      </div>
+
+      <div className="reactivate-modal-footer">
+        <button
+          type="button"
+          className="reactivate-cancel-btn"
+          onClick={() => setStudentToReactivate(null)}
+          disabled={reactivating}
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          className="reactivate-confirm-btn"
+          onClick={confirmReactivate}
+          disabled={reactivating}
+        >
+          <FaUserCheck />
+          {reactivating ? "Reactivating..." : "Reactivate Student"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* STYLES */}
       <style>{`
@@ -365,6 +486,227 @@ const tableActions = {
         .btn-reactivate-student:hover { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
         .empty-state { text-align: center; padding: 3rem; color: #64748b; }
         .empty-icon { font-size: 3rem; margin-bottom: 1rem; color: #94a3b8; }
+
+
+/* Reactivate Student Confirmation Modal */
+.reactivate-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 35, 50, 0.58);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.reactivate-modal {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding: 34px 28px 0;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+  color: #123b4b;
+  animation: reactivate-modal-enter 180ms ease-out;
+}
+
+.reactivate-modal-close {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.reactivate-modal-close:hover {
+  background: #f1f5f9;
+  color: #123b4b;
+}
+
+.reactivate-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 18px;
+  background: #e7f7ed;
+  color: #16834a;
+  font-size: 28px;
+}
+
+.reactivate-modal h2 {
+  margin: 0;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 750;
+  color: #123b4b;
+}
+
+.reactivate-modal-description {
+  margin: 12px auto 22px;
+  max-width: 390px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.reactivate-student-details {
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: #f0f5fa;
+}
+
+.reactivate-detail-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid #d6e0eb;
+}
+
+.reactivate-detail-row:last-child {
+  border-bottom: 0;
+}
+
+.reactivate-detail-row span {
+  flex-shrink: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.reactivate-detail-row strong {
+  max-width: 65%;
+  color: #123b4b;
+  font-size: 13px;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.reactivate-modal-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 18px 0 24px;
+  padding: 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: #fff8ed;
+  color: #9a5b08;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.reactivate-modal-warning svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.reactivate-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin: 0 -28px;
+  padding: 18px 28px;
+  border-top: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  border-radius: 0 0 20px 20px;
+}
+
+.reactivate-cancel-btn,
+.reactivate-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.reactivate-cancel-btn {
+  border: 1px solid #d7e0ea;
+  background: #fff;
+  color: #334155;
+}
+
+.reactivate-cancel-btn:hover:not(:disabled) {
+  background: #e8eef5;
+}
+
+.reactivate-confirm-btn {
+  border: 1px solid #16834a;
+  background: #16834a;
+  color: #fff;
+}
+
+.reactivate-confirm-btn:hover:not(:disabled) {
+  background: #116b3b;
+  transform: translateY(-1px);
+}
+
+.reactivate-cancel-btn:disabled,
+.reactivate-confirm-btn:disabled,
+.reactivate-modal-close:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@keyframes reactivate-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 575px) {
+  .reactivate-modal {
+    padding: 28px 18px 0;
+    border-radius: 16px;
+  }
+
+  .reactivate-modal-footer {
+    margin: 0 -18px;
+    padding: 14px 18px;
+  }
+
+  .reactivate-detail-row {
+    gap: 10px;
+  }
+
+  .reactivate-detail-row span,
+  .reactivate-detail-row strong {
+    font-size: 12px;
+  }
+
+  .reactivate-cancel-btn,
+  .reactivate-confirm-btn {
+    padding: 0 13px;
+  }
+}
 
         
 

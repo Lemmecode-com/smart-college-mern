@@ -1750,22 +1750,46 @@ function TimetableSlot({ slot, canManageTimetable, onEdit, onDelete, handleToolt
 }
 
 /* ================= ADD SLOT BUTTON ================= */
+
 function AddSlotButton({ onClick, time, day, handleTooltip, handleTooltipLeave }) {
   return (
     <motion.button
-      whileHover={{ scale: 1.05, backgroundColor: "#dbeafe", transform: "translateY(-3px)" }}
-      whileTap={{ scale: 0.95 }} onClick={onClick}
+      type="button"
+      whileHover={{
+        scale: 1.02,
+        backgroundColor: "#dbeafe",
+        transform: "translateY(-2px)",
+      }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
       style={{
-        width: "100%", height: "100%", border: "2px dashed #93c5fd", borderRadius: "12px", backgroundColor: "#eff6ff",
-        color: BRAND_COLORS.primary.main, fontSize: "2.5rem", fontWeight: 300, cursor: "pointer", display: "flex",
-        flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "0.5rem", transition: "all 0.3s ease", padding: "0.5rem",
+        width: "100%",
+        minHeight: "62px",
+        border: "1.5px dashed #93c5fd",
+        borderRadius: "10px",
+        backgroundColor: "#eff6ff",
+        color: BRAND_COLORS.primary.main,
+        cursor: "pointer",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "4px",
+        padding: "8px",
+        transition: "all 0.2s ease",
       }}
     >
-      <FaPlus size={24} />
-      <span style={{ fontSize: "0.75rem", fontWeight: 500, marginTop: "-0.5rem" }}>Add Slot</span>
+      <FaPlus size={18} />
+      <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+        Add Slot
+      </span>
+      <span style={{ fontSize: "0.68rem", color: "#64748b" }}>
+        {day} · {formatTime12Hour(time.start)}–{formatTime12Hour(time.end)}
+      </span>
     </motion.button>
   );
 }
+
 /* ================= STYLES ================= */
 const headerCellStyle = {
   padding: "1rem",
