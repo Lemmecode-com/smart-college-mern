@@ -5,14 +5,6 @@ const {
   roundToTwoDecimals,
 } = require("../utils/gstCalculator");
 
-<<<<<<< HEAD
-const feeStructureSchema = new mongoose.Schema({
-  college_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "College",
-    required: true,
-  },
-=======
 const FEE_FIELD_CONFIG = [
   { field: "tuitionFee", name: "Tuition Fee", rateKey: "tuition fee" },
   { field: "labFee", name: "Lab Fee", rateKey: "lab fee" },
@@ -28,7 +20,6 @@ const feeStructureSchema = new mongoose.Schema(
       ref: "College",
       required: true,
     },
->>>>>>> origin/feature/exam-module
     course_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Course",
@@ -44,8 +35,6 @@ const feeStructureSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-<<<<<<< HEAD
-=======
     tuitionFee: {
       type: Number,
       default: 0,
@@ -71,34 +60,10 @@ const feeStructureSchema = new mongoose.Schema(
       default: 0,
       min: [0, "Transport fee cannot be negative"],
     },
->>>>>>> origin/feature/exam-module
     totalFee: {
       type: Number,
       required: true,
     },
-<<<<<<< HEAD
-installments: [
-        {
-          name: {
-            type: String,
-            required: true,
-          },
-          amount: {
-            type: Number,
-            required: true,
-          },
-          dueDate: {
-            type: Date,
-            required: true,
-          },
-          // Installment order for sequential payment enforcement
-          order: {
-            type: Number,
-            required: true,
-          },
-        },
-      ],
-=======
     baseFee: {
       type: Number,
     },
@@ -164,13 +129,10 @@ installments: [
         },
       },
     ],
->>>>>>> origin/feature/exam-module
   },
   { timestamps: true }
 );
 
-<<<<<<< HEAD
-=======
 /**
  * Pre-validate hook:
  * Keeps totalFee, baseFee, totalTax, and components consistent with
@@ -250,5 +212,4 @@ feeStructureSchema.pre("validate", function () {
   }
 });
 
->>>>>>> origin/feature/exam-module
 module.exports = mongoose.model("FeeStructure", feeStructureSchema);

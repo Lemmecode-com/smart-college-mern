@@ -208,14 +208,10 @@ class AuditLogService {
       resourceType: "FeeStructure",
       resourceId: feeStructure._id,
       ipAddress: this.getClientIP(req),
-<<<<<<< HEAD
-      userAgent: req.get("user-agent"),
-=======
       userAgent:
         typeof req?.get === "function"
           ? req.get("user-agent")
           : (req?.headers?.["user-agent"] || "unknown"),
->>>>>>> origin/feature/exam-module
       endpoint: req.originalUrl,
       method: req.method,
       statusCode: 201,
@@ -241,14 +237,10 @@ class AuditLogService {
       resourceType: "FeeStructure",
       resourceId: newFeeStructure._id,
       ipAddress: this.getClientIP(req),
-<<<<<<< HEAD
-      userAgent: req.get("user-agent"),
-=======
       userAgent:
         typeof req?.get === "function"
           ? req.get("user-agent")
           : (req?.headers?.["user-agent"] || "unknown"),
->>>>>>> origin/feature/exam-module
       endpoint: req.originalUrl,
       method: req.method,
       statusCode: 200,
@@ -635,8 +627,6 @@ class AuditLogService {
   }
 
   /**
-<<<<<<< HEAD
-=======
    * Log department deactivation
    */
   async logDepartmentDeactivated(user, department, req) {
@@ -701,7 +691,6 @@ class AuditLogService {
   }
 
   /**
->>>>>>> origin/feature/exam-module
    * Log HOD assignment
    */
   async logHODAssigned(user, departmentId, departmentName, teacherId, teacherName, previousHodId, previousUserRole, newHodId, req) {
@@ -887,18 +876,11 @@ class AuditLogService {
    * Get client IP (handles proxies)
    */
   getClientIP(req) {
-<<<<<<< HEAD
-    return (
-      req.ip ||
-      req.headers["x-forwarded-for"] ||
-      req.connection.remoteAddress ||
-=======
     if (!req) return "unknown";
     return (
       req.ip ||
       req.headers?.["x-forwarded-for"] ||
       req.connection?.remoteAddress ||
->>>>>>> origin/feature/exam-module
       "unknown"
     );
   }

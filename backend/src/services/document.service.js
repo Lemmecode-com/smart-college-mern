@@ -77,10 +77,6 @@ class DocumentService {
     return document;
   }
 
-<<<<<<< HEAD
-  static async downloadDocument(documentId) {
-    const document = await Document.findOne({ documentId, status: "ACTIVE" });
-=======
   static async downloadDocument(documentId, existingDoc = null) {
     let document = existingDoc;
 
@@ -93,7 +89,6 @@ class DocumentService {
     if (!document) {
       document = await Document.findOne({ documentId, status: "ACTIVE" });
     }
->>>>>>> origin/feature/exam-module
     if (!document) {
       throw new AppError("Document not found", 404, "DOCUMENT_NOT_FOUND");
     }

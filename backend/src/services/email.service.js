@@ -38,10 +38,7 @@ exports.sendPaymentReceiptEmail = async ({
   paidAmount,
   remainingAmount,
   collegeId,
-<<<<<<< HEAD
-=======
   collegeGstin = null,
->>>>>>> origin/feature/exam-module
   attachments = [],
 }) => {
   if (!collegeId) {
@@ -50,12 +47,6 @@ exports.sendPaymentReceiptEmail = async ({
   
   const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
 
-<<<<<<< HEAD
-  const mailOptions = {
-    from: `"${fromName}" <${fromEmail}>`,
-    to,
-    subject: "Payment Receipt - College Fee",
-=======
   if (!collegeGstin && collegeId) {
     try {
       const College = require("../models/college.model");
@@ -222,7 +213,6 @@ exports.sendPaymentReceiptEmail = async ({
     subject: (isTaxApplicable && hasValidGstin)
       ? "Payment Receipt / Tax Invoice - College Fee"
       : "Payment Receipt - College Fee",
->>>>>>> origin/feature/exam-module
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #28a745;">✅ Payment Successful!</h2>
@@ -237,11 +227,8 @@ exports.sendPaymentReceiptEmail = async ({
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Installment:</b></td>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${installment.name}</td>
             </tr>
-<<<<<<< HEAD
-=======
             ${complianceRows}
             ${taxRows}
->>>>>>> origin/feature/exam-module
             <tr>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Amount Paid:</b></td>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${installment.amount.toLocaleString("en-IN")}</td>
@@ -255,10 +242,7 @@ exports.sendPaymentReceiptEmail = async ({
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${installment.transactionId}</td>
             </tr>
           </table>
-<<<<<<< HEAD
-=======
           ${lineItemsHtml}
->>>>>>> origin/feature/exam-module
         </div>
         
         <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">

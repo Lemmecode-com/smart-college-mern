@@ -32,8 +32,4 @@ dist-ssr
 
 # Editor temp files
 *.swp
-<<<<<<< HEAD
 *.swo
-=======
-*.swo
->>>>>>> origin/feature/exam-module

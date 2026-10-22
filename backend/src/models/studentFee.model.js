@@ -40,8 +40,6 @@ const studentFeeSchema = new mongoose.Schema({
     {
       name: String,
       amount: Number,
-<<<<<<< HEAD
-=======
       baseAmount: Number,
       gstAmount: {
         type: Number,
@@ -51,7 +49,6 @@ const studentFeeSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
         default: null,
       },
->>>>>>> origin/feature/exam-module
       order: {
         type: Number,
         default: 0,

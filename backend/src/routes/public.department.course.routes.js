@@ -21,12 +21,8 @@ router.get("/departments/:collegeCode", normalizeCollegeCode, async (req, res) =
     // Get departments for this college
     const departments = await Department.find({
       college_id: college._id,
-<<<<<<< HEAD
-      status: "ACTIVE"  // Only return active departments
-=======
       status: "ACTIVE",  // Only return active departments
       isActive: { $ne: false },
->>>>>>> origin/feature/exam-module
     });
 
     res.json({
@@ -57,12 +53,8 @@ router.get("/courses/:collegeCode/department/:departmentId", normalizeCollegeCod
     const department = await Department.findOne({
       _id: departmentId,
       college_id: college._id,
-<<<<<<< HEAD
-      status: "ACTIVE"
-=======
       status: "ACTIVE",
       isActive: { $ne: false },
->>>>>>> origin/feature/exam-module
     });
 
     if (!department) {

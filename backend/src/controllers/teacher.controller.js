@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-=======
 const crypto = require("crypto");
->>>>>>> origin/feature/exam-module
 const path = require("path");
 const Teacher = require("../models/teacher.model");
 const Department = require("../models/department.model");
@@ -15,30 +12,13 @@ const auditLogService = require("../services/auditLog.service");
 const logger = require("../utils/logger");
 const { getStorageProvider } = require("../services/storage");
 const DocumentService = require("../services/document.service");
-<<<<<<< HEAD
-=======
 const { sendStaffCredentialsEmail } = require("../services/email.service");
 const { processUploadsWithStorage } = require("../middlewares/upload.middleware");
->>>>>>> origin/feature/exam-module
 const {
   reassignTeacherResources,
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
   getTeacherReassignmentData: fetchReassignmentData,
 } = require("../services/teacherReassignment.service");
-<<<<<<< HEAD
-const { validateAge, ageValidatorMessage } = require("../utils/validators");
-const teacherCreationService = require("../services/teacherCreation.service");
-
-/* =========================================================
-   GET MY PROFILE (Logged-in Teacher)
-   GET /teachers/my-profile
-   ✅ FIXED: Properly populate department_id with hod_id
-   ========================================================= */
-exports.getMyProfile = async (req, res, next) => {
-  try {
-    const teacher = await Teacher.findOne({
-      user_id: req.user.id,
-=======
 const teacherCreationService = require("../services/teacherCreation.service");
 
 const generateTempPassword = (length = 10) => {
@@ -153,7 +133,6 @@ exports.createTeacher = async (req, res, next) => {
     /* ================= Validate Department ================= */
     const department = await Department.findOne({
       _id: department_id,
->>>>>>> origin/feature/exam-module
       college_id: req.college_id,
       status: "ACTIVE",
     })
@@ -169,8 +148,6 @@ exports.createTeacher = async (req, res, next) => {
       .populate("college_id", "name code")
       .select("-__v");
 
-<<<<<<< HEAD
-=======
     if (!department) {
       throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
     }
@@ -324,7 +301,6 @@ exports.getMyProfile = async (req, res, next) => {
       .populate("college_id", "name code")
       .select("-__v");
 
->>>>>>> origin/feature/exam-module
     if (!teacher) {
       return res.status(404).json({
         message: "Teacher profile not found",
