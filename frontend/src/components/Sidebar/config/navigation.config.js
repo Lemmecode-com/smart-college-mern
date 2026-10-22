@@ -352,15 +352,12 @@ export const navigationConfig = {
             exact: true,
           },
           {
-<<<<<<< HEAD
-=======
             path: "/teachers",
             icon: FaChalkboardTeacher,
             label: "Teachers",
             exact: true,
           },
           {
->>>>>>> origin/feature/exam-module
             path: "/college/staff/create",
             icon: FaUserPlus,
             label: "Create Staff Account",
@@ -1268,15 +1265,12 @@ export const navigationConfig = {
             label: "All Teachers",
             exact: true,
           },
-<<<<<<< HEAD
-=======
           {
             path: "/hod/department",
             icon: FaLayerGroup,
             label: "Department Info",
             exact: true,
           },
->>>>>>> origin/feature/exam-module
         ],
       },
       {

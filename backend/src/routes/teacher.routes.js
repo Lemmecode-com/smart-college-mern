@@ -14,6 +14,7 @@ const {
 } = require("../middlewares/validators/teacher.validator");
 
 const {
+  createTeacher,
   getTeachers,
   getTeacherById,
   updateTeacher,

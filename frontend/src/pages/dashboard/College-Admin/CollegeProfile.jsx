@@ -437,10 +437,6 @@ export default function CollegeProfile() {
                     letterSpacing: "-0.02em",
                     color: "#ffffff",
                     lineHeight: 1.2,
-<<<<<<< HEAD
-                    fontWeight: 600,
-=======
->>>>>>> origin/feature/exam-module
                   }}
                 >
                   {college.name}
@@ -636,12 +632,7 @@ export default function CollegeProfile() {
                   custom={1}
                   initial="hidden"
                   animate="visible"
-<<<<<<< HEAD
-                  style={{ gridColumn: "1 / -1", marginTop: "-0.2rem" }}
-                  
-=======
                   style={{ gridColumn: "1 / -1" }}
->>>>>>> origin/feature/exam-module
                 >
                   <div
                     style={{

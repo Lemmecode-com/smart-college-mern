@@ -41,8 +41,6 @@ export default function CreateFeeStructure() {
   const [category, setCategory] = useState("");
   const [totalFee, setTotalFee] = useState("");
 
-<<<<<<< HEAD
-=======
   // Five statutory fee component fields
   const [tuitionFee, setTuitionFee] = useState("");
   const [labFee, setLabFee] = useState("");
@@ -75,7 +73,6 @@ export default function CreateFeeStructure() {
     }
   }, [hasStatutoryBreakdown, grossCalculatedTotal]);
 
->>>>>>> origin/feature/exam-module
   const [installments, setInstallments] = useState([
     { name: "", amount: "", dueDate: "", order: 1 }
   ]);
@@ -187,14 +184,11 @@ export default function CreateFeeStructure() {
       await api.post("/fees/structure", {
         course_id,
         category,
-<<<<<<< HEAD
-=======
         tuitionFee: numTuition,
         labFee: numLab,
         sportsFee: numSports,
         libraryFee: numLibrary,
         transportFee: numTransport,
->>>>>>> origin/feature/exam-module
         totalFee: Number(totalFee),
         installments: installments.map((i, idx) => ({
           name: i.name,
@@ -209,14 +203,11 @@ export default function CreateFeeStructure() {
       setCourseId("");
       setCategory("");
       setTotalFee("");
-<<<<<<< HEAD
-=======
       setTuitionFee("");
       setLabFee("");
       setSportsFee("");
       setLibraryFee("");
       setTransportFee("");
->>>>>>> origin/feature/exam-module
       setInstallments([{ name: "", amount: "", dueDate: "" }]);
       setCourses([]);
 
@@ -445,30 +436,21 @@ export default function CreateFeeStructure() {
                       value={totalFee}
                       onChange={(e) => setTotalFee(e.target.value)}
                       placeholder="Enter total fee amount"
-<<<<<<< HEAD
-=======
                       readOnly={hasStatutoryBreakdown}
                       style={hasStatutoryBreakdown ? { backgroundColor: "#f8fafc", cursor: "not-allowed" } : {}}
->>>>>>> origin/feature/exam-module
                     />
                   </div>
                   <div className="erp-hint-text">
                     <FaInfoCircle className="erp-hint-icon" />
-<<<<<<< HEAD
-                    Sum of all installment amounts must equal this value
-=======
                     {hasStatutoryBreakdown
                       ? "Auto-calculated from statutory fee components + GST"
                       : "Sum of all installment amounts must equal this value"}
->>>>>>> origin/feature/exam-module
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-<<<<<<< HEAD
-=======
           {/* STATUTORY FEE COMPONENTS & GST BREAKDOWN */}
           <div className="erp-form-section">
             <h4 className="erp-section-title">
@@ -616,7 +598,6 @@ export default function CreateFeeStructure() {
             )}
           </div>
 
->>>>>>> origin/feature/exam-module
           {/* INSTALLMENTS SECTION */}
           <div className="erp-form-section">
             <h4 className="erp-section-title">

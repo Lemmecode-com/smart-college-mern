@@ -1455,8 +1455,6 @@
     transform: none !important;
   }
 }
-<<<<<<< HEAD
-=======
 
 /* ================= ACTION BUTTONS (COMPACT ICON-ONLY & TOOLTIPS) ================= */
 .standard-table td[data-label="Actions"] {
@@ -1628,4 +1626,3 @@
 }
 
 
->>>>>>> origin/feature/exam-module

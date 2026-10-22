@@ -7,15 +7,6 @@ import { getDocumentViewUrl } from "../../utils/documentUrl";
 const logoCache = new Map();
 const logoRequestCache = new Map();
 
-<<<<<<< HEAD
-function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
-  const [blobUrl, setBlobUrl] = useState(
-    documentId ? logoCache.get(documentId) || null : null
-  );
-
-  const [loadError, setLoadError] = useState(false);
-  const [isLoading, setIsLoading] = useState(!!documentId);
-=======
 /**
  * Safely retrieve a cached logo data URL from sessionStorage
  */
@@ -95,7 +86,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
   const [blobUrl, setBlobUrl] = useState(initialLogo);
   const [loadError, setLoadError] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(documentId && !initialLogo));
->>>>>>> origin/feature/exam-module
 
   useEffect(() => {
     let isMounted = true;
@@ -108,11 +98,7 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
       return;
     }
 
-<<<<<<< HEAD
-    /* Already loaded in cache */
-=======
     /* Already loaded in in-memory cache */
->>>>>>> origin/feature/exam-module
     if (logoCache.has(documentId)) {
       setBlobUrl(logoCache.get(documentId));
       setLoadError(false);
@@ -120,8 +106,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
       return;
     }
 
-<<<<<<< HEAD
-=======
     /* Already in sessionStorage */
     const sessionCached = getSessionLogo(documentId);
     if (sessionCached) {
@@ -132,7 +116,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
       return;
     }
 
->>>>>>> origin/feature/exam-module
     const fetchLogo = async () => {
       try {
         setLoadError(false);
@@ -208,8 +191,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
 
               logoCache.set(documentId, newBlobUrl);
 
-<<<<<<< HEAD
-=======
               /* Persist to sessionStorage as data URL for instant reloads */
               try {
                 const reader = new FileReader();
@@ -223,7 +204,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
                 // Ignore storage encoding errors
               }
 
->>>>>>> origin/feature/exam-module
               return newBlobUrl;
             })
             .finally(() => {
@@ -241,23 +221,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
           setIsLoading(false);
         }
       } catch (error) {
-<<<<<<< HEAD
-        console.error("====================================");
-        console.error("Failed to load college logo");
-        console.error("Document ID:", documentId);
-        console.error("Logo URL:", getDocumentViewUrl(documentId));
-        console.error("Status:", error?.response?.status);
-        console.error(
-          "Content-Type:",
-          error?.response?.headers?.["content-type"]
-        );
-        console.error("Response:", error?.response?.data);
-        console.error("Message:", error?.message);
-        console.error("Full error:", error);
-        console.error("====================================");
-
-=======
->>>>>>> origin/feature/exam-module
         if (isMounted) {
           setBlobUrl(null);
           setLoadError(true);
@@ -299,11 +262,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
         position: "relative",
       }}
     >
-<<<<<<< HEAD
-      {/* Placeholder */}
-      {showPlaceholder && (
-        <div
-=======
       {/* Pulse Skeleton / Fallback while loading */}
       {isLoading && !blobUrl && (
         <div
@@ -336,7 +294,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
       {showPlaceholder && (
         <div
           data-testid="logo-placeholder"
->>>>>>> origin/feature/exam-module
           style={{
             position: "absolute",
             inset: 0,
@@ -371,14 +328,6 @@ function LogoImage({ documentId, alt = "College Logo", size = 80 }) {
             zIndex: 2,
           }}
           onError={() => {
-<<<<<<< HEAD
-            console.error("College logo image failed to render:", {
-              documentId,
-              blobUrl,
-            });
-
-=======
->>>>>>> origin/feature/exam-module
             setLoadError(true);
             setBlobUrl(null);
           }}

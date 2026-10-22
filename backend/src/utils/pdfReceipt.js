@@ -10,17 +10,11 @@ const generatePaymentReceiptPdf = async ({
   paidAmount,
   remainingAmount,
   collegeName,
-<<<<<<< HEAD
-  transactionId,
-  paymentMode,
-  paidAt,
-=======
   collegeGstin,
   transactionId,
   paymentMode,
   paidAt,
   taxDetails,
->>>>>>> origin/feature/exam-module
 }) => {
   return new Promise((resolve, reject) => {
     try {
@@ -32,11 +26,6 @@ const generatePaymentReceiptPdf = async ({
 
       const formatCurrency = (amount) => `₹${(amount || 0).toLocaleString("en-IN")}`;
 
-<<<<<<< HEAD
-      doc.fontSize(22).font("Helvetica-Bold").text("PAYMENT RECEIPT", { align: "center" });
-      doc.moveDown(0.5);
-      doc.fontSize(12).font("Helvetica").text(collegeName || "College", { align: "center" });
-=======
       const effectiveTax = taxDetails || (installment?.taxBreakdown?.isTaxApplicable ? installment.taxBreakdown : null);
       const isTaxApplicable = Boolean(effectiveTax && effectiveTax.isTaxApplicable);
       // Statutory invoice requirement: Under Section 31 CGST Act & Rule 46 CGST Rules,
@@ -49,7 +38,6 @@ const generatePaymentReceiptPdf = async ({
       if (collegeGstin) {
         doc.fontSize(10).font("Helvetica").text(`GSTIN: ${collegeGstin}`, { align: "center" });
       }
->>>>>>> origin/feature/exam-module
       doc.moveDown(1);
 
       doc.fontSize(10).font("Helvetica").text(`Receipt Date: ${new Date(paidAt || Date.now()).toLocaleString("en-IN")}`);
@@ -64,9 +52,6 @@ const generatePaymentReceiptPdf = async ({
 
       doc.font("Helvetica-Bold").text("Payment Details", { underline: true });
       doc.font("Helvetica").text(`Installment: ${installment.name}`);
-<<<<<<< HEAD
-      doc.text(`Amount Paid: ${formatCurrency(installment.amount)}`);
-=======
 
       if (isTaxApplicable) {
         const sacCode = effectiveTax.sacCode || "999299";
@@ -138,7 +123,6 @@ const generatePaymentReceiptPdf = async ({
         doc.text(`Amount Paid: ${formatCurrency(installment.amount)}`);
       }
 
->>>>>>> origin/feature/exam-module
       doc.text(`Total Fee: ${formatCurrency(totalFee)}`);
       doc.text(`Paid Amount: ${formatCurrency(paidAmount)}`);
       doc.text(`Remaining Amount: ${formatCurrency(remainingAmount)}`);

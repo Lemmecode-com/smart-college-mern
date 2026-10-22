@@ -37,12 +37,7 @@ import {
   FaChevronUp,
   FaBolt,
   FaStar,
-<<<<<<< HEAD
-  FaAward,
-  FaTimes,
-=======
   FaAward
->>>>>>> origin/feature/exam-module
 } from "react-icons/fa";
 
 export default function FeeStructureList() {
@@ -62,11 +57,6 @@ export default function FeeStructureList() {
   ]);
 
   const [structures, setStructures] = useState([]);
-<<<<<<< HEAD
-  const [structureToDelete, setStructureToDelete] = useState(null);
-  const [deleting, setDeleting] = useState(false);
-=======
->>>>>>> origin/feature/exam-module
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -182,44 +172,6 @@ export default function FeeStructureList() {
     setCurrentPage(1);
   }, [searchTerm]);
 
-<<<<<<< HEAD
-/* ================= DELETE MODAL ================= */
-
-// Open the custom confirmation modal
-const handleDelete = (structure) => {
-  setStructureToDelete(structure);
-};
-
-// Delete only after the user confirms in the custom modal
-const confirmDelete = async () => {
-  if (!structureToDelete || deleting) return;
-
-  const id = structureToDelete._id;
-  setDeleting(true);
-
-  try {
-    await api.delete(`/fees/structure/${id}`);
-
-    const updatedStructures = structures.filter(
-      (structure) => structure._id !== id
-    );
-
-    setStructures(updatedStructures);
-    calculateStats(updatedStructures);
-
-    toast.success("Fee structure deleted successfully");
-    setStructureToDelete(null);
-  } catch (err) {
-    const backendMessage =
-      err.response?.data?.message ||
-      "Failed to delete fee structure. Please try again.";
-
-    toast.error(backendMessage);
-  } finally {
-    setDeleting(false);
-  }
-};
-=======
   /* ================= DELETE ================= */
   const handleDelete = async (id) => {
     const confirm = window.confirm(
@@ -240,7 +192,6 @@ const confirmDelete = async () => {
     }
   };
 
->>>>>>> origin/feature/exam-module
 
   /* ================= STANDARD LIST COLUMNS ================= */
 
@@ -330,16 +281,6 @@ const tableActions = {
         navigate(`/fees/edit/${structure._id}`),
     },
 
-<<<<<<< HEAD
-{
-  key: "delete",
-  label: "Delete",
-  icon: FaTrash,
-  className: "delete-btn",
-  show: () => canDelete("fee-structure"),
-  onClick: (structure) => handleDelete(structure),
-},
-=======
     {
       key: "delete",
       label: "Delete",
@@ -349,7 +290,6 @@ const tableActions = {
       onClick: (structure) =>
         handleDelete(structure._id),
     },
->>>>>>> origin/feature/exam-module
   ],
 };
   /* ================= LOADING SKELETON ================= */
@@ -590,385 +530,10 @@ const tableActions = {
   </div>
 )}
 
-<<<<<<< HEAD
-{/* DELETE FEE STRUCTURE MODAL */}
-{structureToDelete && (
-  <div
-    className="fee-delete-overlay"
-    onClick={() => {
-      if (!deleting) setStructureToDelete(null);
-    }}
-  >
-    <div
-      className="fee-delete-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="fee-delete-title"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="fee-delete-header">
-        <div className="fee-delete-icon">
-          <FaExclamationTriangle />
-        </div>
-
-        <button
-          type="button"
-          className="fee-delete-close"
-          onClick={() => setStructureToDelete(null)}
-          disabled={deleting}
-          aria-label="Close delete confirmation"
-        >
-          <FaTimes />
-        </button>
-      </div>
-
-      <div className="fee-delete-body">
-        <h3 id="fee-delete-title">Delete Fee Structure</h3>
-
-        <p className="fee-delete-description">
-          Are you sure you want to delete this fee structure?
-          This action cannot be undone.
-        </p>
-
-        <div className="fee-delete-details">
-          <div className="fee-delete-detail-row">
-            <span>Course:</span>
-            <strong>
-              {structureToDelete.course_id?.name || "N/A"}
-            </strong>
-          </div>
-
-          <div className="fee-delete-detail-row">
-            <span>Category:</span>
-            <strong>{structureToDelete.category || "N/A"}</strong>
-          </div>
-
-          <div className="fee-delete-detail-row">
-            <span>Total Fee:</span>
-            <strong>
-              ₹{(structureToDelete.totalFee || 0).toLocaleString("en-IN")}
-            </strong>
-          </div>
-
-          <div className="fee-delete-detail-row">
-            <span>Installments:</span>
-            <strong>
-              {structureToDelete.installments?.length || 0}
-            </strong>
-          </div>
-        </div>
-
-        <div className="fee-delete-warning">
-          <FaExclamationTriangle />
-          <span>
-            Please verify the fee structure details before permanently
-            deleting this record.
-          </span>
-        </div>
-      </div>
-
-      <div className="fee-delete-footer">
-        <button
-          type="button"
-          className="fee-delete-cancel"
-          onClick={() => setStructureToDelete(null)}
-          disabled={deleting}
-        >
-          Cancel
-        </button>
-
-        <button
-          type="button"
-          className="fee-delete-confirm"
-          onClick={confirmDelete}
-          disabled={deleting}
-        >
-          {deleting ? (
-            <>
-              <FaSyncAlt className="fee-delete-spinner" />
-              Deleting...
-            </>
-          ) : (
-            <>
-              <FaTrash />
-              Delete Permanently
-            </>
-          )}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-=======
->>>>>>> origin/feature/exam-module
       {/* STYLES */}
       <style>{`
  
 
-<<<<<<< HEAD
-/* ================= FEE DELETE CONFIRMATION MODAL ================= */
-
-.fee-delete-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(15, 35, 48, 0.55);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  animation: feeDeleteFadeIn 0.2s ease;
-}
-
-.fee-delete-modal {
-  width: 100%;
-  max-width: 520px;
-  max-height: calc(100vh - 40px);
-  overflow-y: auto;
-  background: #ffffff;
-  border-radius: 20px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
-  color: #123b4b;
-  animation: feeDeleteSlideIn 0.25s ease;
-}
-
-.fee-delete-header {
-  min-height: 82px;
-  padding: 20px 24px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.fee-delete-icon {
-  width: 58px;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  color: #f59e0b;
-  background: #fff7e8;
-  border: 2px solid #ffdfab;
-  font-size: 25px;
-}
-
-.fee-delete-close {
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  border-radius: 9px;
-  background: transparent;
-  color: #8494a7;
-  font-size: 20px;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.fee-delete-close:hover:not(:disabled) {
-  background: #f1f5f9;
-  color: #123b4b;
-}
-
-.fee-delete-body {
-  padding: 16px 24px 24px;
-}
-
-.fee-delete-body h3 {
-  margin: 0 0 10px;
-  color: #123b4b;
-  font-size: 24px;
-  font-weight: 750;
-  line-height: 1.3;
-}
-
-.fee-delete-description {
-  margin: 0 0 22px;
-  color: #64748b;
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.fee-delete-details {
-  padding: 12px 18px;
-  border: 1px solid #dbe7f1;
-  border-radius: 14px;
-  background: #eff5fa;
-}
-
-.fee-delete-detail-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 13px 0;
-  border-bottom: 1px solid #d6e1eb;
-  font-size: 14px;
-}
-
-.fee-delete-detail-row:last-child {
-  border-bottom: none;
-}
-
-.fee-delete-detail-row > span {
-  flex-shrink: 0;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.fee-delete-detail-row strong {
-  color: #123b4b;
-  font-weight: 700;
-  text-align: right;
-  overflow-wrap: anywhere;
-}
-
-.fee-delete-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-top: 20px;
-  padding: 15px;
-  border: 1px solid #ffdfb0;
-  border-radius: 12px;
-  background: #fff8ee;
-  color: #8b5a15;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-.fee-delete-warning svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: #f59e0b;
-  font-size: 17px;
-}
-
-.fee-delete-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-  padding: 18px 24px;
-  border-top: 1px solid #e3eaf1;
-  background: #f1f5f9;
-  border-radius: 0 0 20px 20px;
-}
-
-.fee-delete-cancel,
-.fee-delete-confirm {
-  min-height: 44px;
-  padding: 0 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.fee-delete-cancel {
-  border: 1px solid transparent;
-  background: transparent;
-  color: #334155;
-}
-
-.fee-delete-cancel:hover:not(:disabled) {
-  background: #e2e8f0;
-}
-
-.fee-delete-confirm {
-  border: 1px solid #ef3434;
-  background: #ef3434;
-  color: #ffffff;
-  box-shadow: 0 4px 10px rgba(239, 52, 52, 0.16);
-}
-
-.fee-delete-confirm:hover:not(:disabled) {
-  background: #d92525;
-  border-color: #d92525;
-  box-shadow: 0 6px 14px rgba(239, 52, 52, 0.25);
-  transform: translateY(-1px);
-}
-
-.fee-delete-cancel:disabled,
-.fee-delete-confirm:disabled,
-.fee-delete-close:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.fee-delete-spinner {
-  animation: feeDeleteSpin 0.8s linear infinite;
-}
-
-@keyframes feeDeleteFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes feeDeleteSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes feeDeleteSpin {
-  to { transform: rotate(360deg); }
-}
-
-@media (max-width: 576px) {
-  .fee-delete-overlay {
-    padding: 12px;
-  }
-
-  .fee-delete-modal {
-    max-height: calc(100vh - 24px);
-    border-radius: 16px;
-  }
-
-  .fee-delete-header {
-    padding: 16px 18px 0;
-  }
-
-  .fee-delete-body {
-    padding: 12px 18px 20px;
-  }
-
-  .fee-delete-body h3 {
-    font-size: 21px;
-  }
-
-  .fee-delete-footer {
-    padding: 14px 18px;
-    gap: 8px;
-  }
-
-  .fee-delete-cancel,
-  .fee-delete-confirm {
-    min-height: 42px;
-    padding: 0 12px;
-    font-size: 12px;
-  }
-}
-
-=======
->>>>>>> origin/feature/exam-module
         /* BREADCRUMBS */
         .course-breadcrumb-wrapper {
           width: 100%;

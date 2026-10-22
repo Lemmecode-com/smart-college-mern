@@ -41,8 +41,6 @@ export default function EditFeeStructure() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-<<<<<<< HEAD
-=======
   // Five statutory fee component fields
   const [tuitionFee, setTuitionFee] = useState("");
   const [labFee, setLabFee] = useState("");
@@ -75,7 +73,6 @@ export default function EditFeeStructure() {
     }
   }, [hasStatutoryBreakdown, grossCalculatedTotal, loading]);
 
->>>>>>> origin/feature/exam-module
    /* ================= SECURITY ================= */
    if (!user) return <Navigate to="/login" />;
    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
@@ -109,8 +106,6 @@ export default function EditFeeStructure() {
       setTotalFee(fee.totalFee);
       setInstallments(fee.installments);
 
-<<<<<<< HEAD
-=======
       // Populate fee types from fee fields or components
       let tFee = fee.tuitionFee || 0;
       let lFee = fee.labFee || 0;
@@ -135,7 +130,6 @@ export default function EditFeeStructure() {
       setLibraryFee(libFee ? libFee.toString() : "");
       setTransportFee(trFee ? trFee.toString() : "");
 
->>>>>>> origin/feature/exam-module
       setDepartmentId(fee.course_id?.department_id);
       setCourseId(fee.course_id?._id);
 
@@ -228,12 +222,6 @@ export default function EditFeeStructure() {
       await api.put(`/fees/structure/${id}`, {
         course_id,
         category,
-<<<<<<< HEAD
-        totalFee: Number(totalFee),
-        installments: installments.map((installment) => ({
-          ...installment,
-          amount: Number(installment.amount),
-=======
         tuitionFee: numTuition,
         labFee: numLab,
         sportsFee: numSports,
@@ -244,7 +232,6 @@ export default function EditFeeStructure() {
           ...installment,
           amount: Number(installment.amount),
           order: installment.order || idx + 1,
->>>>>>> origin/feature/exam-module
         })),
       });
 
@@ -476,11 +463,7 @@ export default function EditFeeStructure() {
 
               {/* FEE DETAILS */}
               <div className="mb-4 pb-3 border-bottom">
-<<<<<<< HEAD
-                <h3 className="h6 fw-bold text-uppercase text-muted mb-3">Fee Configuration</h3>
-=======
                 <h3 className="h6 fw-bold text-uppercase text-muted mb-3">Fee Configuration & Statutory GST</h3>
->>>>>>> origin/feature/exam-module
                 <div className="row g-3">
                   <div className="col-md-6">
                     <label className="form-label fw-semibold text-dark">Category <span className="text-danger">*</span></label>
@@ -498,18 +481,12 @@ export default function EditFeeStructure() {
                         <option>OBC</option>
                         <option>SC</option>
                         <option>ST</option>
-<<<<<<< HEAD
-=======
                         <option>EWS</option>
->>>>>>> origin/feature/exam-module
                       </select>
                     </div>
                   </div>
                   
                   <div className="col-md-6">
-<<<<<<< HEAD
-                    <label className="form-label fw-semibold text-dark">Total Fee (₹) <span className="text-danger">*</span></label>
-=======
                     <label className="form-label fw-semibold text-dark">
                       Total Fee (₹) <span className="text-danger">*</span>
                       {hasStatutoryBreakdown && (
@@ -518,7 +495,6 @@ export default function EditFeeStructure() {
                         </span>
                       )}
                     </label>
->>>>>>> origin/feature/exam-module
                     <div className="input-group">
                       <span className="input-group-text bg-light border-end-0">₹</span>
                       <input
@@ -528,11 +504,6 @@ export default function EditFeeStructure() {
                         value={totalFee}
                         onChange={(e) => setTotalFee(e.target.value)}
                         min="0"
-<<<<<<< HEAD
-                      />
-                    </div>
-                  </div>
-=======
                         readOnly={hasStatutoryBreakdown}
                         style={hasStatutoryBreakdown ? { backgroundColor: "#f8fafc", cursor: "not-allowed" } : {}}
                       />
@@ -650,7 +621,6 @@ export default function EditFeeStructure() {
                       </div>
                     </div>
                   )}
->>>>>>> origin/feature/exam-module
                 </div>
               </div>
 
