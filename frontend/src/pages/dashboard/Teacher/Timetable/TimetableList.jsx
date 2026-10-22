@@ -466,7 +466,7 @@ if (
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: '2rem',
+              marginBottom: '1.25rem',
               backgroundColor: 'white',
               borderRadius: '14px',
               overflow: 'hidden',
@@ -645,6 +645,7 @@ if (
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '1rem'
+              
             }}>
               <h2 style={{
                 margin: 0,
@@ -668,6 +669,7 @@ if (
                 borderRadius: '20px',
                 fontSize: '0.9rem',
                 fontWeight: 500
+                
               }}>
                 <FaInfoCircle size={14} />
                 Click on any timetable to view weekly schedule

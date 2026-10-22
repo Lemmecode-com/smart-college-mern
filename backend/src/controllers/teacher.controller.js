@@ -134,7 +134,19 @@ exports.createTeacher = async (req, res, next) => {
     const department = await Department.findOne({
       _id: department_id,
       college_id: req.college_id,
-    });
+      status: "ACTIVE",
+    })
+      .populate({
+        path: "department_id",
+        select: "name code hod_id",
+        populate: {
+          path: "hod_id",
+          select: "name _id",
+        },
+      })
+      .populate("courses", "name code")
+      .populate("college_id", "name code")
+      .select("-__v");
 
     if (!department) {
       throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
