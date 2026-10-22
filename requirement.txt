@@ -1,6 +1,10 @@
 ============== Smart College MERN - Deployment Requirements ==============
 Project version: 2.1.0
+<<<<<<< HEAD
 Last updated: June 20, 2026
+=======
+Last updated: October 21, 2026
+>>>>>>> origin/feature/exam-module
 Source files analyzed:
 - frontend/package.json
 - frontend/package-lock.json
@@ -60,7 +64,11 @@ Security and monitoring:
 - jsonwebtoken 9.0.3
 - helmet 8.1.0
 - express-rate-limit 8.2.1
+<<<<<<< HEAD
 - @sentry/node 10.62.0
+=======
+- @sentry/node 7.119.2
+>>>>>>> origin/feature/exam-module
 
 Validation and middleware:
 - express-validator 7.3.1
@@ -78,9 +86,22 @@ PDF, QR, payments:
 - razorpay 2.9.6
 - stripe 20.3.0
 
+<<<<<<< HEAD
 Backend dev dependency:
 - No devDependencies are declared in backend/package.json.
 - nodemon is not declared as a backend dependency and should not be listed as a deployment requirement.
+=======
+Image processing and utilities:
+- sharp 0.35.5
+- uuid 14.0.0
+
+Backend dev dependencies (for testing and local dev; omitted with --omit=dev in production):
+- @babel/preset-env 7.29.7
+- jest 29.7.0
+- mongodb-memory-server 11.2.0
+- nodemon 3.1.14
+- supertest 7.2.2
+>>>>>>> origin/feature/exam-module
 
 ============== Frontend Dependencies ==============
 Exact resolved versions from frontend/package-lock.json:
@@ -92,6 +113,7 @@ Core React:
 - react-icons 5.5.0
 - prop-types 15.8.1
 
+<<<<<<< HEAD
 UI and styling:
 - bootstrap 5.3.8
 - react-bootstrap 2.10.10
@@ -100,6 +122,19 @@ UI and styling:
 Animation:
 - framer-motion 12.34.0
 - motion 12.34.0
+=======
+UI, styling, and icons:
+- bootstrap 5.3.8
+- react-bootstrap 2.10.10
+- animate.css 4.1.1
+- @fortawesome/fontawesome-free 7.3.1
+
+Monitoring:
+- @sentry/react 8.55.2
+
+Animation:
+- framer-motion 12.42.0
+>>>>>>> origin/feature/exam-module
 - swiper 11.2.0
 
 HTTP and API:
@@ -118,7 +153,10 @@ PDF, image, Excel, and file handling:
 
 Authentication and utilities:
 - jwt-decode 4.0.0
+<<<<<<< HEAD
 - moment 2.30.1
+=======
+>>>>>>> origin/feature/exam-module
 - date-fns 4.2.1
 - uuid 13.0.0
 - dom 0.0.3
@@ -127,9 +165,18 @@ Authentication and utilities:
 Notifications:
 - react-toastify 11.0.5
 
+<<<<<<< HEAD
 Frontend build and lint dev dependencies:
 - vite 7.3.1
 - @vitejs/plugin-react 4.7.0
+=======
+Frontend build, test, and lint dev dependencies:
+- vite 7.3.1
+- @vitejs/plugin-react 4.7.0
+- vitest 4.1.12
+- jsdom 29.1.1
+- axios-mock-adapter 2.1.0
+>>>>>>> origin/feature/exam-module
 - eslint 9.39.4
 - @eslint/js 9.39.4
 - eslint-plugin-react-hooks 5.2.0
@@ -209,6 +256,10 @@ Run only when required by the deployment plan.
 Database/index setup:
 cd backend
 npm run add-indexes
+<<<<<<< HEAD
+=======
+npm run add-timetable-indexes
+>>>>>>> origin/feature/exam-module
 
 Migrations:
 cd backend
@@ -217,6 +268,14 @@ npm run migrate:password-reset
 npm run migrate:timetable-dates
 npm run migrate:timetable-exception-unique-index
 
+<<<<<<< HEAD
+=======
+Asset optimization / logo migration:
+cd backend
+node scripts/resize-existing-logos.js          # Dry-run scan (safe, no writes)
+node scripts/resize-existing-logos.js --apply  # Apply optimization and update GridFS references
+
+>>>>>>> origin/feature/exam-module
 Seeding:
 cd backend
 npm run seed

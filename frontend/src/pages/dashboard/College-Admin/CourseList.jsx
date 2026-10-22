@@ -1027,6 +1027,7 @@ if (loading) {
         </div>
       )}
 
+<<<<<<< HEAD
 
       {/* DELETE MODAL */}
       <DeleteModal
@@ -1043,6 +1044,17 @@ if (loading) {
       />
 
 
+=======
+      {/* DELETE MODAL */}
+      <DeleteModal
+        course={courseToDelete}
+        departmentName={selectedDeptName}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+        isDeleting={deleting}
+      />
+
+>>>>>>> origin/feature/exam-module
       {/* STYLES */}
       <style>{`
         /* ================= DESIGN TOKENS ================= */
@@ -1949,6 +1961,7 @@ if (loading) {
 
         @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+<<<<<<< HEAD
 .modal-container {
   position: relative;
   background: var(--bg-secondary);
@@ -1959,6 +1972,17 @@ if (loading) {
   animation: modalSlideUp 0.25s var(--ease);
   overflow: hidden;
 }
+=======
+        .modal-container {
+          background: var(--bg-secondary);
+          border-radius: var(--radius-2xl);
+          width: 100%;
+          max-width: 480px;
+          box-shadow: var(--shadow-xl);
+          animation: modalSlideUp 0.25s var(--ease);
+          overflow: hidden;
+        }
+>>>>>>> origin/feature/exam-module
 
         @keyframes modalSlideUp {
           from { opacity: 0; transform: translateY(16px) scale(0.97); }
@@ -1971,6 +1995,7 @@ if (loading) {
           justify-content: flex-end;
         }
 
+<<<<<<< HEAD
 .modal-icon-wrapper {
   position: absolute;
   top: 20px;
@@ -1983,6 +2008,14 @@ if (loading) {
   visibility: visible;
   opacity: 1;
 }
+=======
+        .modal-icon-wrapper {
+          position: absolute;
+          top: var(--space-5);
+          left: 50%;
+          transform: translateX(-50%);
+        }
+>>>>>>> origin/feature/exam-module
 
         .modal-icon-bg {
           width: 52px;

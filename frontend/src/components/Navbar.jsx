@@ -612,7 +612,6 @@ export default function NavbarComponent({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-
                     const shouldOpen = !notifOpen;
 
                     setProfileOpen(false);
@@ -622,7 +621,6 @@ export default function NavbarComponent({
                       fetchNotes();
                     }
                   }}
-
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();

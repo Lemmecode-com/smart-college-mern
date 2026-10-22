@@ -8,7 +8,7 @@ import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
-import LogoImage from "../../../components/common/LogoImage";
+import LogoImage, { preloadLogo } from "../../../components/common/LogoImage";
 import "./PrincipalDashboard.css";
 
 import {
@@ -391,12 +391,30 @@ export default function PrincipalDashboard() {
         setLoading(true);
         setError(null);
 
-const [dashboardRes, admissionRes, deptRes, collegeRes] = await Promise.all([
-  api.get("/dashboard/principal"),
-  api.get("/reports/admissions/college-admin-summary"),
-  api.get("/departments"),
-  api.get("/college/my-college"),
-]);
+        // Start college profile fetch early and trigger logo preload immediately
+        const collegePromise = api.get("/college/my-college").then((res) => {
+          if (res?.data) {
+            const docId = res.data.documentRefs?.logo?.documentId || res.data.logoDocumentId;
+            if (docId) preloadLogo(docId);
+            setCollege((prev) => ({ ...(prev || {}), ...res.data }));
+          }
+          return res;
+        });
+
+        const dashboardPromise = api.get("/dashboard/principal").then((res) => {
+          if (res?.data?.college) {
+            const docId = res.data.college.logoDocumentId;
+            if (docId) preloadLogo(docId);
+          }
+          return res;
+        });
+
+        const [dashboardRes, admissionRes, deptRes, collegeRes] = await Promise.all([
+          dashboardPromise,
+          api.get("/reports/admissions/college-admin-summary"),
+          api.get("/departments"),
+          collegePromise,
+        ]);
 
         const dData = dashboardRes.data;
         const admData = admissionRes.data;

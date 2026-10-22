@@ -96,6 +96,10 @@ const createTeacher = async (overrides = {}) => {
   const birthYear = now.getFullYear() - 30; // 30 years old
   const rand = `${Date.now()}.${Math.floor(Math.random() * 1000000)}`;
   const payload = {
+<<<<<<< HEAD
+=======
+    user_id: overrides.user_id || new mongoose.Types.ObjectId(),
+>>>>>>> origin/feature/exam-module
     name: 'Test Teacher',
     email: overrides.email || `teacher.${rand}@test.com`,
     college_id: null,
@@ -187,15 +191,30 @@ const createStaffProfile = async (overrides = {}) => {
 };
 
 const createDepartment = async (overrides = {}) => {
+<<<<<<< HEAD
   const payload = {
     name: 'Test Department',
     code: 'DEPT',
     type: 'ACADEMIC',
     status: 'ACTIVE',
+=======
+  const rand = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const payload = {
+    college_id: overrides.college_id || new mongoose.Types.ObjectId(),
+    name: overrides.name || `Department ${rand}`,
+    code: overrides.code || `D${Math.floor(Math.random() * 9000 + 1000)}`,
+    type: 'ACADEMIC',
+    status: 'ACTIVE',
+    isActive: overrides.isActive !== undefined ? overrides.isActive : true,
+>>>>>>> origin/feature/exam-module
     programsOffered: ['UG'],
     startYear: 2020,
     sanctionedFacultyCount: 10,
     sanctionedStudentIntake: 60,
+<<<<<<< HEAD
+=======
+    createdBy: overrides.createdBy || new mongoose.Types.ObjectId(),
+>>>>>>> origin/feature/exam-module
     ...overrides,
   };
   return Department.create(payload);

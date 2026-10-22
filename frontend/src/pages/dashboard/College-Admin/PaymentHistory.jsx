@@ -341,7 +341,7 @@ const columns = [
 
 const tableActions = {
   label: "Actions",
-  width: "280px",
+  width: "210px",
   icon: FaReceipt,
   items: [
 
@@ -2209,6 +2209,7 @@ const tableActions = {
     flex: 0 0 22px;
   }
 }
+<<<<<<< HEAD
   /* =========================================
    PAYMENT HISTORY — ACTION BUTTONS
    ========================================= */
@@ -2448,6 +2449,8 @@ to {
     font-size: 12px !important;
   }
 }
+=======
+>>>>>>> origin/feature/exam-module
       `}</style>
 
       {/* ================= BREADCRUMB ================= */}

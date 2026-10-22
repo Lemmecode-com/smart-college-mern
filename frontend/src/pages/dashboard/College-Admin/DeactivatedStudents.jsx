@@ -42,8 +42,11 @@ export default function DeactivatedStudents({ admissionOfficerMode = false }) {
   const navigate = useNavigate();
 
   const [students, setStudents] = useState([]);
+<<<<<<< HEAD
   const [studentToReactivate, setStudentToReactivate] = useState(null);
 const [reactivating, setReactivating] = useState(false);
+=======
+>>>>>>> origin/feature/exam-module
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -127,6 +130,7 @@ const [reactivating, setReactivating] = useState(false);
   );
 
   /* ================= REACTIVATE STUDENT ================= */
+<<<<<<< HEAD
 const handleReactivate = (student) => {
   setStudentToReactivate(student);
 };
@@ -157,6 +161,20 @@ const confirmReactivate = async () => {
     setReactivating(false);
   }
 };
+=======
+  const handleReactivate = async (student) => {
+    if (!window.confirm(`Reactivate "${student.fullName}"? They will regain system access.`)) return;
+
+    try {
+      await api.put(`/users/${student.user_id}/reactivate`);
+      toast.success(`${student.fullName} reactivated`, { position: "top-right", autoClose: 3000 });
+      fetchDeactivatedStudents();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to reactivate", { position: "top-right", autoClose: 5000 });
+    }
+  };
+
+>>>>>>> origin/feature/exam-module
 const columns = [
   {
     key: "fullName",
@@ -346,6 +364,7 @@ const tableActions = {
     />
   </div>
 )}
+<<<<<<< HEAD
 {studentToReactivate && (
   <div
     className="reactivate-modal-overlay"
@@ -669,6 +688,12 @@ const tableActions = {
           }
         }
 
+=======
+
+
+      {/* STYLES */}
+      <style>{`
+>>>>>>> origin/feature/exam-module
         .erp-container { padding: 1.5rem; background: #f5f7fa; min-height: 100vh; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
         .stat-card { background: white; padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 1.25rem; }

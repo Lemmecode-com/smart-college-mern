@@ -2150,6 +2150,7 @@ if (loading) {
           border-radius: 0 0 20px 20px;
         }
 
+<<<<<<< HEAD
 
         /* Delete modal footer buttons */
         .modal-footer .erp-btn {
@@ -2219,6 +2220,18 @@ if (loading) {
         }
 
 
+=======
+        .erp-btn-danger {
+          background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
+          border: none;
+        }
+
+        .erp-btn-danger:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 25px rgba(239, 83, 80, 0.4);
+        }
+
+>>>>>>> origin/feature/exam-module
         /* ERROR CONTAINER */
         .erp-error-container {
           display: flex;

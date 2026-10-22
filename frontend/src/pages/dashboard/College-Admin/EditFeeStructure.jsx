@@ -41,6 +41,41 @@ export default function EditFeeStructure() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+<<<<<<< HEAD
+=======
+  // Five statutory fee component fields
+  const [tuitionFee, setTuitionFee] = useState("");
+  const [labFee, setLabFee] = useState("");
+  const [sportsFee, setSportsFee] = useState("");
+  const [libraryFee, setLibraryFee] = useState("");
+  const [transportFee, setTransportFee] = useState("");
+
+  const numTuition = Number(tuitionFee) || 0;
+  const numLab = Number(labFee) || 0;
+  const numSports = Number(sportsFee) || 0;
+  const numLibrary = Number(libraryFee) || 0;
+  const numTransport = Number(transportFee) || 0;
+
+  const hasStatutoryBreakdown =
+    numTuition > 0 || numLab > 0 || numSports > 0 || numLibrary > 0 || numTransport > 0;
+
+  const totalBaseAmount = numTuition + numLab + numSports + numLibrary + numTransport;
+  const tuitionGst = 0;
+  const labGst = Math.round(numLab * 0.18 * 100) / 100;
+  const sportsGst = Math.round(numSports * 0.18 * 100) / 100;
+  const libraryGst = 0;
+  const transportGst = Math.round(numTransport * 0.05 * 100) / 100;
+
+  const totalGstAmount = Math.round((tuitionGst + labGst + sportsGst + libraryGst + transportGst) * 100) / 100;
+  const grossCalculatedTotal = Math.round((totalBaseAmount + totalGstAmount) * 100) / 100;
+
+  useEffect(() => {
+    if (hasStatutoryBreakdown && !loading) {
+      setTotalFee(grossCalculatedTotal > 0 ? grossCalculatedTotal.toString() : "");
+    }
+  }, [hasStatutoryBreakdown, grossCalculatedTotal, loading]);
+
+>>>>>>> origin/feature/exam-module
    /* ================= SECURITY ================= */
    if (!user) return <Navigate to="/login" />;
    if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
@@ -74,6 +109,33 @@ export default function EditFeeStructure() {
       setTotalFee(fee.totalFee);
       setInstallments(fee.installments);
 
+<<<<<<< HEAD
+=======
+      // Populate fee types from fee fields or components
+      let tFee = fee.tuitionFee || 0;
+      let lFee = fee.labFee || 0;
+      let sFee = fee.sportsFee || 0;
+      let libFee = fee.libraryFee || 0;
+      let trFee = fee.transportFee || 0;
+
+      if (!tFee && !lFee && !sFee && !libFee && !trFee && Array.isArray(fee.components)) {
+        for (const c of fee.components) {
+          const n = (c.name || "").toLowerCase();
+          if (n.includes("tuition")) tFee = c.baseAmount || 0;
+          if (n.includes("lab") || n.includes("laboratory")) lFee = c.baseAmount || 0;
+          if (n.includes("sports")) sFee = c.baseAmount || 0;
+          if (n.includes("library")) libFee = c.baseAmount || 0;
+          if (n.includes("transport")) trFee = c.baseAmount || 0;
+        }
+      }
+
+      setTuitionFee(tFee ? tFee.toString() : "");
+      setLabFee(lFee ? lFee.toString() : "");
+      setSportsFee(sFee ? sFee.toString() : "");
+      setLibraryFee(libFee ? libFee.toString() : "");
+      setTransportFee(trFee ? trFee.toString() : "");
+
+>>>>>>> origin/feature/exam-module
       setDepartmentId(fee.course_id?.department_id);
       setCourseId(fee.course_id?._id);
 
@@ -166,10 +228,23 @@ export default function EditFeeStructure() {
       await api.put(`/fees/structure/${id}`, {
         course_id,
         category,
+<<<<<<< HEAD
         totalFee: Number(totalFee),
         installments: installments.map((installment) => ({
           ...installment,
           amount: Number(installment.amount),
+=======
+        tuitionFee: numTuition,
+        labFee: numLab,
+        sportsFee: numSports,
+        libraryFee: numLibrary,
+        transportFee: numTransport,
+        totalFee: Number(totalFee),
+        installments: installments.map((installment, idx) => ({
+          ...installment,
+          amount: Number(installment.amount),
+          order: installment.order || idx + 1,
+>>>>>>> origin/feature/exam-module
         })),
       });
 
@@ -401,7 +476,11 @@ export default function EditFeeStructure() {
 
               {/* FEE DETAILS */}
               <div className="mb-4 pb-3 border-bottom">
+<<<<<<< HEAD
                 <h3 className="h6 fw-bold text-uppercase text-muted mb-3">Fee Configuration</h3>
+=======
+                <h3 className="h6 fw-bold text-uppercase text-muted mb-3">Fee Configuration & Statutory GST</h3>
+>>>>>>> origin/feature/exam-module
                 <div className="row g-3">
                   <div className="col-md-6">
                     <label className="form-label fw-semibold text-dark">Category <span className="text-danger">*</span></label>
@@ -419,12 +498,27 @@ export default function EditFeeStructure() {
                         <option>OBC</option>
                         <option>SC</option>
                         <option>ST</option>
+<<<<<<< HEAD
+=======
+                        <option>EWS</option>
+>>>>>>> origin/feature/exam-module
                       </select>
                     </div>
                   </div>
                   
                   <div className="col-md-6">
+<<<<<<< HEAD
                     <label className="form-label fw-semibold text-dark">Total Fee (₹) <span className="text-danger">*</span></label>
+=======
+                    <label className="form-label fw-semibold text-dark">
+                      Total Fee (₹) <span className="text-danger">*</span>
+                      {hasStatutoryBreakdown && (
+                        <span className="badge bg-primary-subtle text-primary ms-2" style={{ fontSize: "11px" }}>
+                          Auto-calculated with GST
+                        </span>
+                      )}
+                    </label>
+>>>>>>> origin/feature/exam-module
                     <div className="input-group">
                       <span className="input-group-text bg-light border-end-0">₹</span>
                       <input
@@ -434,9 +528,129 @@ export default function EditFeeStructure() {
                         value={totalFee}
                         onChange={(e) => setTotalFee(e.target.value)}
                         min="0"
+<<<<<<< HEAD
                       />
                     </div>
                   </div>
+=======
+                        readOnly={hasStatutoryBreakdown}
+                        style={hasStatutoryBreakdown ? { backgroundColor: "#f8fafc", cursor: "not-allowed" } : {}}
+                      />
+                    </div>
+                  </div>
+
+                  {/* 5 STATUTORY FEE TYPE INPUTS */}
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold text-dark small">Tuition Fee (0% GST - Exempt)</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-end-0">₹</span>
+                      <input
+                        type="number"
+                        className="form-control border-start-0 ps-0 shadow-none"
+                        placeholder="e.g. 50000"
+                        value={tuitionFee}
+                        onChange={(e) => setTuitionFee(e.target.value)}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold text-dark small">Lab Fee (18% GST)</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-end-0">₹</span>
+                      <input
+                        type="number"
+                        className="form-control border-start-0 ps-0 shadow-none"
+                        placeholder="e.g. 10000"
+                        value={labFee}
+                        onChange={(e) => setLabFee(e.target.value)}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold text-dark small">Sports Fee (18% GST)</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-end-0">₹</span>
+                      <input
+                        type="number"
+                        className="form-control border-start-0 ps-0 shadow-none"
+                        placeholder="e.g. 5000"
+                        value={sportsFee}
+                        onChange={(e) => setSportsFee(e.target.value)}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold text-dark small">Library Fee (0% GST - Exempt)</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-end-0">₹</span>
+                      <input
+                        type="number"
+                        className="form-control border-start-0 ps-0 shadow-none"
+                        placeholder="e.g. 2000"
+                        value={libraryFee}
+                        onChange={(e) => setLibraryFee(e.target.value)}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold text-dark small">Transport Fee (5% GST)</label>
+                    <div className="input-group">
+                      <span className="input-group-text bg-light border-end-0">₹</span>
+                      <input
+                        type="number"
+                        className="form-control border-start-0 ps-0 shadow-none"
+                        placeholder="e.g. 8000"
+                        value={transportFee}
+                        onChange={(e) => setTransportFee(e.target.value)}
+                        min="0"
+                      />
+                    </div>
+                  </div>
+
+                  {/* LIVE PREVIEW OF GST AND TOTAL */}
+                  {hasStatutoryBreakdown && (
+                    <div className="col-12">
+                      <div
+                        style={{
+                          background: "#f0f7ff",
+                          border: "1px solid #bfdbfe",
+                          borderRadius: "8px",
+                          padding: "16px",
+                          marginTop: "8px",
+                        }}
+                      >
+                        <h5 style={{ margin: "0 0 10px 0", color: "#1e40af", fontSize: "14px", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}>
+                          <FaPercentage /> Live GST & Total Fee Preview
+                        </h5>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "10px", marginBottom: "10px" }}>
+                          <div>
+                            <span style={{ fontSize: "11px", color: "#64748b" }}>Base Fee (Pre-tax)</span>
+                            <div style={{ fontSize: "15px", fontWeight: "600", color: "#0f172a" }}>₹{totalBaseAmount.toLocaleString("en-IN")}</div>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: "11px", color: "#64748b" }}>Total GST</span>
+                            <div style={{ fontSize: "15px", fontWeight: "600", color: "#2563eb" }}>₹{totalGstAmount.toLocaleString("en-IN")}</div>
+                          </div>
+                          <div>
+                            <span style={{ fontSize: "11px", color: "#64748b" }}>Gross Total</span>
+                            <div style={{ fontSize: "16px", fontWeight: "700", color: "#16a34a" }}>₹{grossCalculatedTotal.toLocaleString("en-IN")}</div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: "11px", color: "#475569", borderTop: "1px solid #e2e8f0", paddingTop: "6px" }}>
+                          <strong>Breakdown:</strong> Tuition (0%): ₹0 | Lab (18%): ₹{labGst.toLocaleString("en-IN")} | Sports (18%): ₹{sportsGst.toLocaleString("en-IN")} | Library (0%): ₹0 | Transport (5%): ₹{transportGst.toLocaleString("en-IN")}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+>>>>>>> origin/feature/exam-module
                 </div>
               </div>
 

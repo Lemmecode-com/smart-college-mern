@@ -3,9 +3,11 @@ const Teacher = require("../models/teacher.model");
 const User = require("../models/user.model");
 const Course = require("../models/course.model");
 const Subject = require("../models/subject.model");
+const Student = require("../models/student.model");
 const ApiResponse = require("../utils/ApiResponse");
 const AppError = require("../utils/AppError");
 const AuditService = require("../services/auditLog.service");
+const { STUDENT_STATUS } = require("../utils/constants");
 const { reassignTeacherResources } = require("../services/teacherReassignment.service");
 
 /**
@@ -66,11 +68,27 @@ exports.getDepartmentById = async (req, res) => {
 
 /**
  * READ Departments
+ * By default returns active departments only. Pass ?includeInactive=true to retrieve all.
  */
 exports.getDepartments = async (req, res) => {
-  const departments = await Department.find({
-    college_id: req.college_id
-  }).populate('hod_id', 'name email');
+  const { includeInactive, status } = req.query;
+  const filter = { college_id: req.college_id };
+
+  if (status) {
+    filter.status = status.toUpperCase();
+    if (filter.status === "ACTIVE") {
+      filter.isActive = { $ne: false };
+    } else if (filter.status === "INACTIVE") {
+      filter.isActive = { $ne: true };
+    }
+  } else if (includeInactive !== "true") {
+    filter.status = "ACTIVE";
+    filter.isActive = { $ne: false };
+  }
+
+  const departments = await Department.find(filter)
+    .populate('hod_id', 'name email')
+    .sort({ createdAt: -1 });
 
   ApiResponse.success(res, { departments }, "Departments fetched successfully");
 };
@@ -162,6 +180,156 @@ exports.deleteDepartment = async (req, res) => {
   );
 
   ApiResponse.success(res, null, "Department deleted successfully");
+};
+
+/**
+ * DEACTIVATE Department
+ * PUT /api/departments/:id/deactivate
+ */
+exports.deactivateDepartment = async (req, res) => {
+  const department = await Department.findOne({
+    _id: req.params.id,
+    college_id: req.college_id,
+  });
+
+  if (!department) {
+    return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
+  }
+
+  if (department.isActive === false || department.status === "INACTIVE") {
+    return ApiResponse.error(
+      res,
+      "Department is already inactive",
+      "DEPARTMENT_ALREADY_INACTIVE",
+      400
+    );
+  }
+
+  // 1. Guard against assigned HOD
+  if (department.hod_id) {
+    return ApiResponse.error(
+      res,
+      "Cannot deactivate department with an assigned HOD. Please remove or reassign the HOD first.",
+      "DEPARTMENT_HAS_ACTIVE_HOD",
+      400
+    );
+  }
+
+  // 2. Guard against active teachers
+  const activeTeachersCount = await Teacher.countDocuments({
+    college_id: req.college_id,
+    department_id: department._id,
+    status: "ACTIVE",
+  });
+  if (activeTeachersCount > 0) {
+    return ApiResponse.error(
+      res,
+      `Cannot deactivate department with ${activeTeachersCount} active teacher(s). Please reassign or deactivate them first.`,
+      "DEPARTMENT_HAS_ACTIVE_TEACHERS",
+      400,
+      { activeTeachersCount }
+    );
+  }
+
+  // 3. Guard against active students
+  const activeStudentsCount = await Student.countDocuments({
+    college_id: req.college_id,
+    department_id: department._id,
+    status: {
+      $in: [
+        STUDENT_STATUS.APPROVED,
+        STUDENT_STATUS.ENROLLED,
+        STUDENT_STATUS.OFFER_MADE,
+        STUDENT_STATUS.SEAT_CONFIRMED,
+        STUDENT_STATUS.PENDING,
+      ],
+    },
+  });
+  if (activeStudentsCount > 0) {
+    return ApiResponse.error(
+      res,
+      `Cannot deactivate department with ${activeStudentsCount} active student(s). Please graduate, transfer, or process them first.`,
+      "DEPARTMENT_HAS_ACTIVE_STUDENTS",
+      400,
+      { activeStudentsCount }
+    );
+  }
+
+  // 4. Guard against active courses
+  const activeCoursesCount = await Course.countDocuments({
+    college_id: req.college_id,
+    department_id: department._id,
+    status: "ACTIVE",
+  });
+  if (activeCoursesCount > 0) {
+    return ApiResponse.error(
+      res,
+      `Cannot deactivate department with ${activeCoursesCount} active course(s). Please deactivate or reassign courses first.`,
+      "DEPARTMENT_HAS_ACTIVE_COURSES",
+      400,
+      { activeCoursesCount }
+    );
+  }
+
+  // 5. Guard against active subjects
+  const activeSubjectsCount = await Subject.countDocuments({
+    college_id: req.college_id,
+    department_id: department._id,
+    status: "ACTIVE",
+  });
+  if (activeSubjectsCount > 0) {
+    return ApiResponse.error(
+      res,
+      `Cannot deactivate department with ${activeSubjectsCount} active subject(s). Please deactivate or reassign subjects first.`,
+      "DEPARTMENT_HAS_ACTIVE_SUBJECTS",
+      400,
+      { activeSubjectsCount }
+    );
+  }
+
+  department.isActive = false;
+  department.status = "INACTIVE";
+  await department.save();
+
+  AuditService.logDepartmentDeactivated(req.user, department, req).catch((err) =>
+    console.error("Audit log failed:", err.message)
+  );
+
+  ApiResponse.success(res, { department }, "Department deactivated successfully");
+};
+
+/**
+ * REACTIVATE Department
+ * PUT /api/departments/:id/reactivate
+ */
+exports.reactivateDepartment = async (req, res) => {
+  const department = await Department.findOne({
+    _id: req.params.id,
+    college_id: req.college_id,
+  });
+
+  if (!department) {
+    return ApiResponse.error(res, "Department not found", "DEPARTMENT_NOT_FOUND", 404);
+  }
+
+  if (department.isActive === true && department.status === "ACTIVE") {
+    return ApiResponse.error(
+      res,
+      "Department is already active",
+      "DEPARTMENT_ALREADY_ACTIVE",
+      400
+    );
+  }
+
+  department.isActive = true;
+  department.status = "ACTIVE";
+  await department.save();
+
+  AuditService.logDepartmentReactivated(req.user, department, req).catch((err) =>
+    console.error("Audit log failed:", err.message)
+  );
+
+  ApiResponse.success(res, { department }, "Department reactivated successfully");
 };
 
 /**

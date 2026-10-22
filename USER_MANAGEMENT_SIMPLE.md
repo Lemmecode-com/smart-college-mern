@@ -464,7 +464,11 @@ switch(userRole) {
 - SUPER_ADMIN (only existing SUPER_ADMIN can create)
 - COLLEGE_ADMIN (only SUPER_ADMIN can create)
 - PARENT_GUARDIAN (self-registration or COLLEGE_ADMIN creates)
+<<<<<<< HEAD
 - TEACHER (created via Staff Management → Create Staff → TEACHER)
+=======
+- TEACHER (created via Staff Management → Create Staff → TEACHER / existing AddTeacher flow)
+>>>>>>> origin/feature/exam-module
 
 ---
 

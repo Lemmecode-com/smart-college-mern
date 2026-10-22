@@ -55,9 +55,12 @@ export default function ApproveStudents({ admissionOfficerMode = false, principa
     byYear: {},
   });
   const [processingId, setProcessingId] = useState(null);
+<<<<<<< HEAD
   const [showToggleActiveModal, setShowToggleActiveModal] = useState(false);
 const [selectedActiveStudent, setSelectedActiveStudent] = useState(null);
 const [togglingActive, setTogglingActive] = useState(false);
+=======
+>>>>>>> origin/feature/exam-module
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [enrollStudentId, setEnrollStudentId] = useState(null);
   const [parentCreds, setParentCreds] = useState(null);
@@ -240,6 +243,7 @@ const [togglingActive, setTogglingActive] = useState(false);
     );
   }, [students, search]);
 
+<<<<<<< HEAD
 
 /* ================= DEACTIVATE / REACTIVATE ================= */
 
@@ -289,6 +293,43 @@ const executeToggleActive = async () => {
   }
 };
 
+=======
+  /* ================= DEACTIVATE / REACTIVATE ================= */
+  const handleToggleActive = async (student) => {
+    if (student.status === STUDENT_STATUS.DEACTIVATED) {
+      if (!window.confirm(`Reactivate "${student.fullName}"?`)) return;
+      try {
+        await api.put(`/users/${student.user_id}/reactivate`);
+        toast.success(`${student.fullName} reactivated`, {
+          position: "top-right",
+        });
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
+      } catch (e) {
+        toast.error(e.response?.data?.message || "Failed to reactivate", {
+          position: "top-right",
+        });
+      }
+    } else {
+      if (
+        !window.confirm(
+          `Deactivate "${student.fullName}"? They will lose access.`,
+        )
+      )
+        return;
+      try {
+        await api.put(`/users/${student.user_id}/deactivate`);
+        toast.success(`${student.fullName} deactivated`, {
+          position: "top-right",
+        });
+        principalMode ? fetchAllStudents() : fetchApprovedStudents();
+      } catch (e) {
+        toast.error(e.response?.data?.message || "Failed to deactivate", {
+          position: "top-right",
+        });
+      }
+    }
+  };
+>>>>>>> origin/feature/exam-module
 
   /* ================= CONFIRM ENROLLMENT ================= */
   const handleConfirmEnrollment = (studentId) => {
@@ -1862,6 +1903,7 @@ const executeToggleActive = async () => {
         isLoading={processingId === enrollStudentId}
       />
 
+<<<<<<< HEAD
 {/* DEACTIVATE / REACTIVATE CONFIRMATION MODAL */}
 <ConfirmModal
   isOpen={showToggleActiveModal && !!selectedActiveStudent}
@@ -1896,6 +1938,8 @@ const executeToggleActive = async () => {
   isLoading={togglingActive}
 />
 
+=======
+>>>>>>> origin/feature/exam-module
       {/* ASSIGN DIVISION MODAL */}
       {showDivisionModal && (
         <div className="modal-overlay" onClick={() => setShowDivisionModal(false)}>

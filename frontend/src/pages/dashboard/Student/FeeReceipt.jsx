@@ -1,4 +1,4 @@
-﻿import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -575,7 +575,12 @@ if (loading) {
       <div className="text-center mb-4" role="banner">
         <h3 className="fw-bold">
           <FaReceipt className="me-2 text-primary" aria-hidden="true" />
-          Fee Payment Receipt
+          {receipt?.taxDetails?.isTaxApplicable &&
+          receipt?.college?.gstin &&
+          typeof receipt.college.gstin === "string" &&
+          receipt.college.gstin.trim().length === 15
+            ? "Fee Payment Receipt / Tax Invoice"
+            : "Fee Payment Receipt"}
         </h3>
       </div>
 
@@ -598,9 +603,14 @@ if (loading) {
             <FaUniversity className="me-2" aria-hidden="true" />
             {receipt.college?.name || "College Name Not Available"}
           </h4>
-          <address className="small text-muted">
+          <address className="small text-muted mb-1">
             {receipt.college?.address || "Address Not Available"}
           </address>
+          {receipt.college?.gstin && (
+            <div className="small fw-bold text-secondary mb-1">
+              GSTIN: {receipt.college.gstin}
+            </div>
+          )}
           <div className="small">
             {receipt.college?.email && (
               <a
@@ -652,10 +662,41 @@ if (loading) {
           <section className="col-md-6" aria-label="Payment details">
             <h6 className="section-title">Payment Details</h6>
             <Info label="Installment" value={receipt.installmentName} />
-            <Info
-              label="Amount"
-              value={`₹ ${receipt.amount}`}
-            />
+            {receipt.taxDetails?.isTaxApplicable ? (
+              <>
+                {receipt.taxDetails.sacCode && (
+                  <Info label="SAC Code" value={receipt.taxDetails.sacCode} />
+                )}
+                {receipt.taxDetails.placeOfSupply && (
+                  <Info label="Place of Supply" value={receipt.taxDetails.placeOfSupply} />
+                )}
+                <Info label="Base Fee" value={formatINR(receipt.taxDetails.baseAmount)} />
+                {receipt.taxDetails.taxSplit?.type === "INTER_STATE" || receipt.taxDetails.taxSplit?.igstAmount > 0 ? (
+                  <Info
+                    label={receipt.taxDetails.taxSplit?.isUniformRate && receipt.taxDetails.taxSplit?.igstRate ? `IGST (${receipt.taxDetails.taxSplit.igstRate}%)` : "IGST"}
+                    value={formatINR(receipt.taxDetails.taxSplit?.igstAmount || receipt.taxDetails.totalTax)}
+                  />
+                ) : (
+                  <>
+                    <Info
+                      label={receipt.taxDetails.taxSplit?.isUniformRate && receipt.taxDetails.taxSplit?.cgstRate ? `CGST (${receipt.taxDetails.taxSplit.cgstRate}%)` : "CGST"}
+                      value={formatINR(receipt.taxDetails.taxSplit?.cgstAmount || (receipt.taxDetails.totalTax / 2))}
+                    />
+                    <Info
+                      label={receipt.taxDetails.taxSplit?.isUniformRate && receipt.taxDetails.taxSplit?.sgstRate ? `SGST (${receipt.taxDetails.taxSplit.sgstRate}%)` : "SGST"}
+                      value={formatINR(receipt.taxDetails.taxSplit?.sgstAmount || (receipt.taxDetails.totalTax / 2))}
+                    />
+                  </>
+                )}
+                <Info label="Total GST" value={formatINR(receipt.taxDetails.totalTax)} />
+                <Info label="Gross Paid Amount" value={formatINR(receipt.amount)} />
+              </>
+            ) : (
+              <Info
+                label="Amount"
+                value={`₹ ${receipt.amount}`}
+              />
+            )}
             <Info
               label="Payment Method"
               value={(() => {
@@ -687,6 +728,69 @@ if (loading) {
             />
             <Info label="Status" value={receipt.status} />
           </section>
+
+          {/* GST LINE ITEMS BREAKDOWN */}
+          {receipt.taxDetails?.isTaxApplicable &&
+            Array.isArray(receipt.taxDetails.lineItems) &&
+            receipt.taxDetails.lineItems.length > 0 && (
+              <section className="col-12 mt-2" aria-label="Fee component breakdown">
+                <h6 className="section-title">Fee Component & GST Breakdown</h6>
+                <div className="table-responsive">
+                  <table className="table table-bordered table-sm align-middle mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Fee Component</th>
+                        <th className="text-end">Base Amount</th>
+                        <th className="text-end">GST Rate</th>
+                        {receipt.taxDetails.taxSplit?.type === "INTER_STATE" ? (
+                          <th className="text-end">IGST</th>
+                        ) : (
+                          <>
+                            <th className="text-end">CGST</th>
+                            <th className="text-end">SGST</th>
+                          </>
+                        )}
+                        <th className="text-end">Total Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {receipt.taxDetails.lineItems.map((item, idx) => {
+                        const isInterState = receipt.taxDetails.taxSplit?.type === "INTER_STATE";
+                        const cRate = item.cgstRate !== undefined ? item.cgstRate : (item.gstRate / 2);
+                        const cAmt = item.cgstAmount !== undefined ? item.cgstAmount : (item.gstAmount / 2);
+                        const sRate = item.sgstRate !== undefined ? item.sgstRate : (item.gstRate / 2);
+                        const sAmt = item.sgstAmount !== undefined ? item.sgstAmount : (item.gstAmount / 2);
+                        const iRate = item.igstRate !== undefined ? item.igstRate : item.gstRate;
+                        const iAmt = item.igstAmount !== undefined ? item.igstAmount : item.gstAmount;
+
+                        return (
+                          <tr key={idx}>
+                            <td className="fw-medium">{item.name}</td>
+                            <td className="text-end">{formatINR(item.baseAmount)}</td>
+                            <td className="text-end">{item.gstRate}%</td>
+                            {isInterState ? (
+                              <td className="text-end">
+                                {formatINR(iAmt)} <span className="text-muted small">({iRate}%)</span>
+                              </td>
+                            ) : (
+                              <>
+                                <td className="text-end">
+                                  {formatINR(cAmt)} <span className="text-muted small">({cRate}%)</span>
+                                </td>
+                                <td className="text-end">
+                                  {formatINR(sAmt)} <span className="text-muted small">({sRate}%)</span>
+                                </td>
+                              </>
+                            )}
+                            <td className="text-end fw-semibold">{formatINR(item.totalAmount)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
         </div>
 
         <hr />

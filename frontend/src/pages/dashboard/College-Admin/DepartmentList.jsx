@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import { useContext, useEffect, useState } from "react";
+=======
+import React, { useContext, useEffect, useState } from "react";
+>>>>>>> origin/feature/exam-module
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -12,7 +16,10 @@ import useRole from "../../../hooks/useRole";
 import {
   FaBuilding,
   FaEdit,
+<<<<<<< HEAD
   FaTrash,
+=======
+>>>>>>> origin/feature/exam-module
   FaUserTie,
   FaUserSlash,
   FaSearch,
@@ -33,6 +40,10 @@ import {
 } from "react-icons/fa";
 
 import ConfirmModal from "../../../components/ConfirmModal";
+<<<<<<< HEAD
+=======
+import ActionIconButton from "../../../components/common/ActionIconButton";
+>>>>>>> origin/feature/exam-module
 import HodSubjectReassign from "../../../components/HodSubjectReassign";
 import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
@@ -285,9 +296,18 @@ export default function DepartmentList() {
   const [removingHod, setRemovingHod] = useState(false);
   const [hodSubjectCount, setHodSubjectCount] = useState(null);
   const [showReassignSubjectsModal, setShowReassignSubjectsModal] = useState(false);
+<<<<<<< HEAD
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [departmentToDelete, setDepartmentToDelete] = useState(null);
   const [deletingDepartment, setDeletingDepartment] = useState(false);
+=======
+  const [lifecycleModal, setLifecycleModal] = useState({
+    isOpen: false,
+    department: null,
+    type: null, // "deactivate" | "reactivate"
+    loading: false,
+  });
+>>>>>>> origin/feature/exam-module
 
   const [hoveredRow, setHoveredRow] = useState(null);
   const [mounted, setMounted] = useState(false);
@@ -301,9 +321,18 @@ export default function DepartmentList() {
   const fetchDepartments = async () => {
     try {
       logger.info('Fetching departments...');
+<<<<<<< HEAD
       const res = await api.get("/departments");
       logger.info('Departments API response received');
       setDepartments(res.data || []);
+=======
+      const res = await api.get("/departments?includeInactive=true");
+      logger.info('Departments API response received');
+      const list = Array.isArray(res.data)
+        ? res.data
+        : res.data?.departments || res.data?.data?.departments || [];
+      setDepartments(list);
+>>>>>>> origin/feature/exam-module
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -341,6 +370,7 @@ export default function DepartmentList() {
     const t = setTimeout(() => setMounted(true), 10);
     return () => clearTimeout(t);
   }, []);
+<<<<<<< HEAD
 
   /* ================= DELETE ================= */
   const handleDeleteClick = (department) => {
@@ -494,6 +524,200 @@ export default function DepartmentList() {
           <FaGraduationCap size={15} />
         </div>
 
+=======
+
+  /* ================= DEACTIVATE / REACTIVATE LIFECYCLE ================= */
+  const handleOpenDeactivateModal = (department) => {
+    setLifecycleModal({
+      isOpen: true,
+      department,
+      type: "deactivate",
+      loading: false,
+    });
+  };
+
+  const handleOpenReactivateModal = (department) => {
+    setLifecycleModal({
+      isOpen: true,
+      department,
+      type: "reactivate",
+      loading: false,
+    });
+  };
+
+  const handleLifecycleConfirm = async () => {
+    const { department, type } = lifecycleModal;
+    if (!department) return;
+
+    setLifecycleModal((prev) => ({ ...prev, loading: true }));
+    try {
+      const endpoint = `/departments/${department._id}/${type}`;
+      const res = await api.put(endpoint);
+      const updatedDepartment = res.data?.data?.department;
+
+      toast.success(
+        res.data?.message ||
+          (type === "deactivate"
+            ? `"${department.name}" deactivated successfully`
+            : `"${department.name}" reactivated successfully`)
+      );
+
+      // In-place update without full reload
+      setDepartments((prev) =>
+        prev.map((d) =>
+          d._id === department._id
+            ? {
+                ...d,
+                ...(updatedDepartment || {}),
+                status: type === "deactivate" ? "INACTIVE" : "ACTIVE",
+                isActive: type !== "deactivate",
+              }
+            : d
+        )
+      );
+
+      setLifecycleModal({
+        isOpen: false,
+        department: null,
+        type: null,
+        loading: false,
+      });
+    } catch (err) {
+      logger.error(`Error during department ${type}:`, err);
+      const serverMessage =
+        err.response?.data?.message ||
+        `Failed to ${type} department. Please try again.`;
+      toast.error(serverMessage);
+      setLifecycleModal((prev) => ({ ...prev, loading: false }));
+    }
+  };
+
+  /* ================= REMOVE HOD ================= */
+  const fetchHodSubjectCount = async (hodTeacherId) => {
+    try {
+      const res = await api.get(
+        `/teachers/${hodTeacherId}/reassignment-data`,
+      );
+      const payload = res.data?.data || res.data;
+      const subjects = payload?.subjects || [];
+      return subjects.length;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleRemoveHodClick = async (department) => {
+    const hodId = department.hod_id?._id || department.hod_id;
+    if (!hodId) return;
+
+    setSelectedDepartment(department);
+    setHodSubjectCount(null);
+    const count = await fetchHodSubjectCount(hodId);
+    setHodSubjectCount(count);
+    setShowRemoveHodModal(true);
+  };
+
+  const handleRemoveHod = async () => {
+    if (!selectedDepartment) return;
+
+    setRemovingHod(true);
+    try {
+      await api.delete(`/departments/${selectedDepartment._id}/hod`);
+      setShowRemoveHodModal(false);
+      setSelectedDepartment(null);
+      setHodSubjectCount(null);
+      fetchDepartments();
+    } catch (err) {
+      const backendMessage =
+        err.response?.data?.error?.message ||
+        err.response?.data?.message ||
+        "Failed to remove HOD. Please try again.";
+      toast.error(backendMessage, {
+        position: "top-right",
+        autoClose: 5000,
+      });
+    } finally {
+      setRemovingHod(false);
+    }
+  };
+
+  /* ================= REASSIGN HOD SUBJECTS =================
+     Triggered from the blocked state of the Remove HOD confirmation
+     (see the ConfirmModal below). This never removes or replaces the
+     HOD — it only moves subjects/slots/sessions to another teacher so
+     the admin can, in a separate explicit step, remove the HOD once
+     the active subject count reaches zero. */
+  const handleOpenReassignModal = () => {
+    // Keep selectedDepartment set — the reassignment modal needs the
+    // same department/HOD context. Just swap which dialog is visible.
+    setShowRemoveHodModal(false);
+    setShowReassignSubjectsModal(true);
+  };
+
+  const handleReassignModalClose = () => {
+    setShowReassignSubjectsModal(false);
+  };
+
+  const handleReassignSuccess = () => {
+    // Do NOT call handleRemoveHod here — removal must remain an explicit,
+    // separate admin action. We just clear stale state so the next
+    // "Remove HOD" click re-fetches a fresh (now lower/zero) count.
+    setShowReassignSubjectsModal(false);
+    setSelectedDepartment(null);
+    setHodSubjectCount(null);
+    fetchDepartments();
+  };
+
+  /* ================= FILTER LOGIC ================= */
+  const filteredDepartments = departments.filter((d) => {
+    const matchesSearch =
+      d.name?.toLowerCase().includes(search.toLowerCase()) ||
+      d.code?.toLowerCase().includes(search.toLowerCase()) ||
+      d.type?.toLowerCase().includes(search.toLowerCase());
+
+    const isDeptActive = d.status === "ACTIVE" && d.isActive !== false;
+    const matchesStatus =
+      statusFilter === "All" ||
+      (statusFilter === "ACTIVE" && isDeptActive) ||
+      (statusFilter === "INACTIVE" && !isDeptActive);
+
+    const matchesType = typeFilter === "All" || d.type === typeFilter;
+
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  /* ================= PAGINATION LOGIC ================= */
+  const totalPages = Math.ceil(filteredDepartments.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredDepartments.slice(indexOfFirstItem, indexOfLastItem);
+
+  const hasActiveFilters = search || statusFilter !== "All" || typeFilter !== "All";
+  const columns = [
+  {
+    key: "srNo",
+    label: "Sr.No",
+    sortable: false,
+    width: "50px",
+    render: (department, index) => (
+      <span className="department-index">
+        {indexOfFirstItem + index + 1}
+      </span>
+    ),
+  },
+
+  {
+    key: "name",
+    label: "Department",
+    sortable: true,
+    width: "190px",
+    render: (department) => (
+      <div className="department-info">
+        <div className="department-avatar">
+          <FaGraduationCap size={15} />
+        </div>
+
+>>>>>>> origin/feature/exam-module
         <div className="department-details">
           <div className="department-name">
             {department.name}
@@ -537,7 +761,11 @@ export default function DepartmentList() {
     sortable: true,
     width: "105px",
     render: (department) => {
+<<<<<<< HEAD
       const isActive = department.status === "ACTIVE";
+=======
+      const isActive = department.status === "ACTIVE" && department.isActive !== false;
+>>>>>>> origin/feature/exam-module
 
       return (
         <span
@@ -546,7 +774,11 @@ export default function DepartmentList() {
           }`}
         >
           <span className="status-dot" />
+<<<<<<< HEAD
           {department.status}
+=======
+          {isActive ? "Active" : "Inactive"}
+>>>>>>> origin/feature/exam-module
         </span>
       );
     },
@@ -614,6 +846,7 @@ export default function DepartmentList() {
       </div>
     ),
   },
+<<<<<<< HEAD
 ];
 
 const tableActions = {
@@ -661,6 +894,74 @@ const tableActions = {
     },
   ],
 };
+=======
+
+  {
+    key: "actions",
+    label: "Actions",
+    sortable: false,
+    width: "170px",
+    render: (department) => {
+      const isDeptActive = department.status === "ACTIVE" && department.isActive !== false;
+      const canManage = canEdit("departments");
+
+      return (
+        <div className="standard-table-actions erp-staff-actions erp-dept-actions">
+          {(hasAccess("departments") || hasAccess("departments-view")) && (
+            <ActionIconButton
+              icon={FaEye}
+              className="view-btn"
+              ariaLabel={`View details of ${department.name}`}
+              tooltip={`View details of ${department.name}`}
+              onClick={() => navigate(`/departments/view/${department._id}`)}
+            />
+          )}
+
+          {canManage && (
+            <ActionIconButton
+              icon={FaEdit}
+              className="edit-btn"
+              ariaLabel={`Edit ${department.name}`}
+              tooltip={`Edit ${department.name}`}
+              onClick={() => navigate(`/departments/edit/${department._id}`)}
+            />
+          )}
+
+          {canManage && !!department.hod_id && (
+            <ActionIconButton
+              icon={FaUserSlash}
+              className="remove-btn"
+              ariaLabel={`Remove HOD of ${department.name}`}
+              tooltip={`Remove HOD of ${department.name}`}
+              onClick={() => handleRemoveHodClick(department)}
+            />
+          )}
+
+          {canManage && isDeptActive && (
+            <ActionIconButton
+              icon={FaTimesCircle}
+              className="deactivate-btn"
+              ariaLabel={`Deactivate ${department.name}`}
+              tooltip={`Deactivate ${department.name}. It will no longer be available for new students, courses or teachers.`}
+              onClick={() => handleOpenDeactivateModal(department)}
+            />
+          )}
+
+          {canManage && !isDeptActive && (
+            <ActionIconButton
+              icon={FaCheckCircle}
+              className="reactivate-btn"
+              ariaLabel={`Reactivate ${department.name}`}
+              tooltip={`Reactivate ${department.name}. Makes it available again.`}
+              onClick={() => handleOpenReactivateModal(department)}
+            />
+          )}
+        </div>
+      );
+    },
+  },
+];
+>>>>>>> origin/feature/exam-module
 
 
 
@@ -1012,7 +1313,10 @@ const tableActions = {
         }
       : null,
   }}
+<<<<<<< HEAD
   actions={tableActions}
+=======
+>>>>>>> origin/feature/exam-module
 />
 
 {filteredDepartments.length > 0 && (
@@ -1108,6 +1412,7 @@ const tableActions = {
       />
 
       <ConfirmModal
+<<<<<<< HEAD
         isOpen={showDeleteModal}
         onClose={() => {
           setShowDeleteModal(false);
@@ -1124,6 +1429,39 @@ const tableActions = {
         confirmText="Delete Department"
         cancelText="Cancel"
         isLoading={deletingDepartment}
+=======
+        isOpen={lifecycleModal.isOpen}
+        onClose={() =>
+          !lifecycleModal.loading &&
+          setLifecycleModal({
+            isOpen: false,
+            department: null,
+            type: null,
+            loading: false,
+          })
+        }
+        onConfirm={handleLifecycleConfirm}
+        title={
+          lifecycleModal.type === "deactivate"
+            ? "Deactivate Department"
+            : "Reactivate Department"
+        }
+        message={
+          lifecycleModal.department
+            ? lifecycleModal.type === "deactivate"
+              ? `Are you sure you want to deactivate "${lifecycleModal.department.name}"? It will no longer be available for new students, courses or teachers.`
+              : `Are you sure you want to reactivate "${lifecycleModal.department.name}"? This will make the department available again for new courses, teachers, and student admissions.`
+            : ""
+        }
+        type={lifecycleModal.type === "deactivate" ? "warning" : "primary"}
+        confirmText={
+          lifecycleModal.type === "deactivate"
+            ? "Deactivate Department"
+            : "Reactivate Department"
+        }
+        cancelText="Cancel"
+        isLoading={lifecycleModal.loading}
+>>>>>>> origin/feature/exam-module
       />
     </div>
   );

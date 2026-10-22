@@ -38,6 +38,10 @@ exports.sendPaymentReceiptEmail = async ({
   paidAmount,
   remainingAmount,
   collegeId,
+<<<<<<< HEAD
+=======
+  collegeGstin = null,
+>>>>>>> origin/feature/exam-module
   attachments = [],
 }) => {
   if (!collegeId) {
@@ -46,10 +50,179 @@ exports.sendPaymentReceiptEmail = async ({
   
   const { transporter, fromName, fromEmail } = await getCollegeTransporter(collegeId);
 
+<<<<<<< HEAD
   const mailOptions = {
     from: `"${fromName}" <${fromEmail}>`,
     to,
     subject: "Payment Receipt - College Fee",
+=======
+  if (!collegeGstin && collegeId) {
+    try {
+      const College = require("../models/college.model");
+      const collegeDoc = await College.findById(collegeId).select("gstin");
+      if (collegeDoc?.gstin) {
+        collegeGstin = collegeDoc.gstin;
+      }
+    } catch (_) {}
+  }
+
+  const effectiveTax = installment.taxBreakdown || installment.taxDetails;
+  const isTaxApplicable = Boolean(effectiveTax && effectiveTax.isTaxApplicable);
+  const hasValidGstin = Boolean(collegeGstin && typeof collegeGstin === "string" && collegeGstin.trim().length === 15);
+
+  let taxRows = "";
+  let complianceRows = "";
+  if (isTaxApplicable) {
+    if (collegeGstin) {
+      complianceRows += `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>College GSTIN:</b></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${collegeGstin}</td>
+        </tr>
+      `;
+    }
+    const sacCode = effectiveTax.sacCode || "999299";
+    complianceRows += `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>SAC Code:</b></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${sacCode}</td>
+      </tr>
+    `;
+    const placeOfSupply = effectiveTax.placeOfSupply || "Maharashtra (27)";
+    complianceRows += `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Place of Supply:</b></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${placeOfSupply}</td>
+      </tr>
+    `;
+
+    const base = effectiveTax.baseAmount !== undefined
+      ? effectiveTax.baseAmount
+      : effectiveTax.taxableBase !== undefined
+      ? effectiveTax.taxableBase
+      : (installment.amount - effectiveTax.totalTax);
+    const taxSplit = effectiveTax.taxSplit || {};
+
+    taxRows += `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Base Fee:</b></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${base.toLocaleString("en-IN")}</td>
+      </tr>
+    `;
+
+    let isUniform = taxSplit.isUniformRate;
+    if (isUniform === undefined) {
+      if (Array.isArray(effectiveTax.lineItems) && effectiveTax.lineItems.length > 0) {
+        const taxable = effectiveTax.lineItems.filter(l => Number(l.gstRate) > 0 || Number(l.gstAmount) > 0);
+        const unique = [...new Set(taxable.map(l => Number(l.gstRate)))];
+        isUniform = unique.length === 1;
+      } else if (taxSplit.cgstRate != null || taxSplit.igstRate != null) {
+        isUniform = true;
+      } else {
+        isUniform = false;
+      }
+    }
+
+    if (taxSplit.type === "INTER_STATE" || taxSplit.igstAmount > 0) {
+      const hasUniform = Boolean(isUniform && taxSplit.igstRate);
+      const igstLabel = hasUniform ? `IGST (${taxSplit.igstRate}%):` : "IGST:";
+      taxRows += `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>${igstLabel}</b></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${(taxSplit.igstAmount || effectiveTax.totalTax).toLocaleString("en-IN")}</td>
+        </tr>
+      `;
+    } else {
+      const hasUniform = Boolean(isUniform && taxSplit.cgstRate);
+      const cgstLabel = hasUniform ? `CGST (${taxSplit.cgstRate}%):` : "CGST:";
+      const sgstLabel = hasUniform ? `SGST (${taxSplit.sgstRate}%):` : "SGST:";
+      taxRows += `
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>${cgstLabel}</b></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${(taxSplit.cgstAmount || (effectiveTax.totalTax / 2)).toLocaleString("en-IN")}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>${sgstLabel}</b></td>
+          <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${(taxSplit.sgstAmount || (effectiveTax.totalTax / 2)).toLocaleString("en-IN")}</td>
+        </tr>
+      `;
+    }
+
+    const totalTaxVal = effectiveTax.totalTax !== undefined
+      ? effectiveTax.totalTax
+      : ((taxSplit.cgstAmount || 0) + (taxSplit.sgstAmount || 0) + (taxSplit.igstAmount || 0));
+    taxRows += `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Total GST:</b></td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${totalTaxVal.toLocaleString("en-IN")}</td>
+      </tr>
+    `;
+  }
+
+  let lineItemsHtml = "";
+  if (isTaxApplicable && Array.isArray(effectiveTax.lineItems) && effectiveTax.lineItems.length > 0) {
+    const isInterState = effectiveTax.taxSplit?.type === "INTER_STATE" || effectiveTax.taxSplit?.igstAmount > 0;
+    lineItemsHtml = `
+      <div style="margin: 20px 0;">
+        <h4 style="margin: 0 0 10px 0; color: #1e293b; font-size: 14px; text-transform: uppercase;">Fee Component & GST Breakdown</h4>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #e2e8f0; color: #1e293b;">
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: left;">Component</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Base Amount</th>
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">GST Rate</th>
+              ${isInterState ? `
+                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">IGST</th>
+              ` : `
+                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">CGST</th>
+                <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">SGST</th>
+              `}
+              <th style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">Total Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${effectiveTax.lineItems.map(item => {
+              if (isInterState) {
+                const iRate = item.igstRate !== undefined ? item.igstRate : item.gstRate;
+                const iAmt = item.igstAmount !== undefined ? item.igstAmount : item.gstAmount;
+                return `
+                  <tr>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.name}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(item.baseAmount) || 0).toLocaleString("en-IN")}</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">${item.gstRate}%</td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(iAmt) || 0).toLocaleString("en-IN")} <span style="font-size:11px;color:#64748b;">(${iRate}%)</span></td>
+                    <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(item.totalAmount) || 0).toLocaleString("en-IN")}</td>
+                  </tr>
+                `;
+              }
+              const cRate = item.cgstRate !== undefined ? item.cgstRate : (item.gstRate / 2);
+              const cAmt = item.cgstAmount !== undefined ? item.cgstAmount : (item.gstAmount / 2);
+              const sRate = item.sgstRate !== undefined ? item.sgstRate : (item.gstRate / 2);
+              const sAmt = item.sgstAmount !== undefined ? item.sgstAmount : (item.gstAmount / 2);
+              return `
+                <tr>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1;">${item.name}</td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(item.baseAmount) || 0).toLocaleString("en-IN")}</td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">${item.gstRate}%</td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(cAmt) || 0).toLocaleString("en-IN")} <span style="font-size:11px;color:#64748b;">(${cRate}%)</span></td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(sAmt) || 0).toLocaleString("en-IN")} <span style="font-size:11px;color:#64748b;">(${sRate}%)</span></td>
+                  <td style="padding: 8px; border: 1px solid #cbd5e1; text-align: right;">₹${(Number(item.totalAmount) || 0).toLocaleString("en-IN")}</td>
+                </tr>
+              `;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to,
+    subject: (isTaxApplicable && hasValidGstin)
+      ? "Payment Receipt / Tax Invoice - College Fee"
+      : "Payment Receipt - College Fee",
+>>>>>>> origin/feature/exam-module
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #28a745;">✅ Payment Successful!</h2>
@@ -64,6 +237,11 @@ exports.sendPaymentReceiptEmail = async ({
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Installment:</b></td>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${installment.name}</td>
             </tr>
+<<<<<<< HEAD
+=======
+            ${complianceRows}
+            ${taxRows}
+>>>>>>> origin/feature/exam-module
             <tr>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6;"><b>Amount Paid:</b></td>
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">₹${installment.amount.toLocaleString("en-IN")}</td>
@@ -77,6 +255,10 @@ exports.sendPaymentReceiptEmail = async ({
               <td style="padding: 8px 0; border-bottom: 1px solid #dee2e6; text-align: right;">${installment.transactionId}</td>
             </tr>
           </table>
+<<<<<<< HEAD
+=======
+          ${lineItemsHtml}
+>>>>>>> origin/feature/exam-module
         </div>
         
         <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; margin: 20px 0;">

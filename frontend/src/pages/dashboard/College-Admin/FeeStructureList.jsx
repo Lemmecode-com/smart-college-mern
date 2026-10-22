@@ -37,8 +37,12 @@ import {
   FaChevronUp,
   FaBolt,
   FaStar,
+<<<<<<< HEAD
   FaAward,
   FaTimes,
+=======
+  FaAward
+>>>>>>> origin/feature/exam-module
 } from "react-icons/fa";
 
 export default function FeeStructureList() {
@@ -58,8 +62,11 @@ export default function FeeStructureList() {
   ]);
 
   const [structures, setStructures] = useState([]);
+<<<<<<< HEAD
   const [structureToDelete, setStructureToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+=======
+>>>>>>> origin/feature/exam-module
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -175,6 +182,7 @@ export default function FeeStructureList() {
     setCurrentPage(1);
   }, [searchTerm]);
 
+<<<<<<< HEAD
 /* ================= DELETE MODAL ================= */
 
 // Open the custom confirmation modal
@@ -211,6 +219,28 @@ const confirmDelete = async () => {
     setDeleting(false);
   }
 };
+=======
+  /* ================= DELETE ================= */
+  const handleDelete = async (id) => {
+    const confirm = window.confirm(
+      "Are you sure you want to delete this fee structure? This action cannot be undone."
+    );
+    if (!confirm) return;
+
+    try {
+      await api.delete(`/fees/structure/${id}`);
+      setStructures((prev) => prev.filter((s) => s._id !== id));
+      toast.success("Fee structure deleted successfully");
+      calculateStats(structures.filter((s) => s._id !== id));
+    } catch (err) {
+      const backendMessage =
+        err.response?.data?.message ||
+        "Failed to delete fee structure. Please try again.";
+      toast.error(backendMessage);
+    }
+  };
+
+>>>>>>> origin/feature/exam-module
 
   /* ================= STANDARD LIST COLUMNS ================= */
 
@@ -300,6 +330,7 @@ const tableActions = {
         navigate(`/fees/edit/${structure._id}`),
     },
 
+<<<<<<< HEAD
 {
   key: "delete",
   label: "Delete",
@@ -308,6 +339,17 @@ const tableActions = {
   show: () => canDelete("fee-structure"),
   onClick: (structure) => handleDelete(structure),
 },
+=======
+    {
+      key: "delete",
+      label: "Delete",
+      icon: FaTrash,
+      className: "delete-btn",
+      show: () => canDelete("fee-structure"),
+      onClick: (structure) =>
+        handleDelete(structure._id),
+    },
+>>>>>>> origin/feature/exam-module
   ],
 };
   /* ================= LOADING SKELETON ================= */
@@ -548,6 +590,7 @@ const tableActions = {
   </div>
 )}
 
+<<<<<<< HEAD
 {/* DELETE FEE STRUCTURE MODAL */}
 {structureToDelete && (
   <div
@@ -657,10 +700,13 @@ const tableActions = {
   </div>
 )}
 
+=======
+>>>>>>> origin/feature/exam-module
       {/* STYLES */}
       <style>{`
  
 
+<<<<<<< HEAD
 /* ================= FEE DELETE CONFIRMATION MODAL ================= */
 
 .fee-delete-overlay {
@@ -921,6 +967,8 @@ const tableActions = {
   }
 }
 
+=======
+>>>>>>> origin/feature/exam-module
         /* BREADCRUMBS */
         .course-breadcrumb-wrapper {
           width: 100%;

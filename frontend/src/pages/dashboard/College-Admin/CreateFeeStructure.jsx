@@ -41,6 +41,41 @@ export default function CreateFeeStructure() {
   const [category, setCategory] = useState("");
   const [totalFee, setTotalFee] = useState("");
 
+<<<<<<< HEAD
+=======
+  // Five statutory fee component fields
+  const [tuitionFee, setTuitionFee] = useState("");
+  const [labFee, setLabFee] = useState("");
+  const [sportsFee, setSportsFee] = useState("");
+  const [libraryFee, setLibraryFee] = useState("");
+  const [transportFee, setTransportFee] = useState("");
+
+  const numTuition = Number(tuitionFee) || 0;
+  const numLab = Number(labFee) || 0;
+  const numSports = Number(sportsFee) || 0;
+  const numLibrary = Number(libraryFee) || 0;
+  const numTransport = Number(transportFee) || 0;
+
+  const hasStatutoryBreakdown =
+    numTuition > 0 || numLab > 0 || numSports > 0 || numLibrary > 0 || numTransport > 0;
+
+  const totalBaseAmount = numTuition + numLab + numSports + numLibrary + numTransport;
+  const tuitionGst = 0;
+  const labGst = Math.round(numLab * 0.18 * 100) / 100;
+  const sportsGst = Math.round(numSports * 0.18 * 100) / 100;
+  const libraryGst = 0;
+  const transportGst = Math.round(numTransport * 0.05 * 100) / 100;
+
+  const totalGstAmount = Math.round((tuitionGst + labGst + sportsGst + libraryGst + transportGst) * 100) / 100;
+  const grossCalculatedTotal = Math.round((totalBaseAmount + totalGstAmount) * 100) / 100;
+
+  useEffect(() => {
+    if (hasStatutoryBreakdown) {
+      setTotalFee(grossCalculatedTotal > 0 ? grossCalculatedTotal.toString() : "");
+    }
+  }, [hasStatutoryBreakdown, grossCalculatedTotal]);
+
+>>>>>>> origin/feature/exam-module
   const [installments, setInstallments] = useState([
     { name: "", amount: "", dueDate: "", order: 1 }
   ]);
@@ -152,6 +187,14 @@ export default function CreateFeeStructure() {
       await api.post("/fees/structure", {
         course_id,
         category,
+<<<<<<< HEAD
+=======
+        tuitionFee: numTuition,
+        labFee: numLab,
+        sportsFee: numSports,
+        libraryFee: numLibrary,
+        transportFee: numTransport,
+>>>>>>> origin/feature/exam-module
         totalFee: Number(totalFee),
         installments: installments.map((i, idx) => ({
           name: i.name,
@@ -166,6 +209,14 @@ export default function CreateFeeStructure() {
       setCourseId("");
       setCategory("");
       setTotalFee("");
+<<<<<<< HEAD
+=======
+      setTuitionFee("");
+      setLabFee("");
+      setSportsFee("");
+      setLibraryFee("");
+      setTransportFee("");
+>>>>>>> origin/feature/exam-module
       setInstallments([{ name: "", amount: "", dueDate: "" }]);
       setCourses([]);
 
@@ -394,17 +445,178 @@ export default function CreateFeeStructure() {
                       value={totalFee}
                       onChange={(e) => setTotalFee(e.target.value)}
                       placeholder="Enter total fee amount"
+<<<<<<< HEAD
+=======
+                      readOnly={hasStatutoryBreakdown}
+                      style={hasStatutoryBreakdown ? { backgroundColor: "#f8fafc", cursor: "not-allowed" } : {}}
+>>>>>>> origin/feature/exam-module
                     />
                   </div>
                   <div className="erp-hint-text">
                     <FaInfoCircle className="erp-hint-icon" />
+<<<<<<< HEAD
                     Sum of all installment amounts must equal this value
+=======
+                    {hasStatutoryBreakdown
+                      ? "Auto-calculated from statutory fee components + GST"
+                      : "Sum of all installment amounts must equal this value"}
+>>>>>>> origin/feature/exam-module
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
+<<<<<<< HEAD
+=======
+          {/* STATUTORY FEE COMPONENTS & GST BREAKDOWN */}
+          <div className="erp-form-section">
+            <h4 className="erp-section-title">
+              <FaPercentage className="erp-section-icon" />
+              Fee Types & Statutory GST Breakdown
+            </h4>
+            <p className="section-description">
+              Enter individual component fees below. GST is automatically calculated based on statutory rates (Tuition 0%, Lab 18%, Sports 18%, Library 0%, Transport 5%).
+            </p>
+
+            <div className="erp-row">
+              <div className="erp-col-4">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaRupeeSign className="erp-label-icon" />
+                    Tuition Fee (0% GST - Exempt)
+                  </label>
+                  <div className="erp-input-group">
+                    <span className="erp-input-group-text"><FaRupeeSign /></span>
+                    <input
+                      type="number"
+                      className="erp-input"
+                      value={tuitionFee}
+                      onChange={(e) => setTuitionFee(e.target.value)}
+                      placeholder="e.g. 50000"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="erp-col-4">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaRupeeSign className="erp-label-icon" />
+                    Lab Fee (18% GST)
+                  </label>
+                  <div className="erp-input-group">
+                    <span className="erp-input-group-text"><FaRupeeSign /></span>
+                    <input
+                      type="number"
+                      className="erp-input"
+                      value={labFee}
+                      onChange={(e) => setLabFee(e.target.value)}
+                      placeholder="e.g. 10000"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="erp-col-4">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaRupeeSign className="erp-label-icon" />
+                    Sports Fee (18% GST)
+                  </label>
+                  <div className="erp-input-group">
+                    <span className="erp-input-group-text"><FaRupeeSign /></span>
+                    <input
+                      type="number"
+                      className="erp-input"
+                      value={sportsFee}
+                      onChange={(e) => setSportsFee(e.target.value)}
+                      placeholder="e.g. 5000"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="erp-col-4">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaRupeeSign className="erp-label-icon" />
+                    Library Fee (0% GST - Exempt)
+                  </label>
+                  <div className="erp-input-group">
+                    <span className="erp-input-group-text"><FaRupeeSign /></span>
+                    <input
+                      type="number"
+                      className="erp-input"
+                      value={libraryFee}
+                      onChange={(e) => setLibraryFee(e.target.value)}
+                      placeholder="e.g. 2000"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="erp-col-4">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaRupeeSign className="erp-label-icon" />
+                    Transport Fee (5% GST)
+                  </label>
+                  <div className="erp-input-group">
+                    <span className="erp-input-group-text"><FaRupeeSign /></span>
+                    <input
+                      type="number"
+                      className="erp-input"
+                      value={transportFee}
+                      onChange={(e) => setTransportFee(e.target.value)}
+                      placeholder="e.g. 8000"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* LIVE PREVIEW OF GST AND TOTAL */}
+            {hasStatutoryBreakdown && (
+              <div
+                style={{
+                  background: "#f0f7ff",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "8px",
+                  padding: "16px",
+                  marginTop: "16px",
+                }}
+              >
+                <h5 style={{ margin: "0 0 12px 0", color: "#1e40af", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FaFileInvoice /> Live GST & Total Fee Preview
+                </h5>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "12px" }}>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>Base Fee (Pre-tax)</span>
+                    <div style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>₹{totalBaseAmount.toLocaleString("en-IN")}</div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>Total GST</span>
+                    <div style={{ fontSize: "16px", fontWeight: "600", color: "#2563eb" }}>₹{totalGstAmount.toLocaleString("en-IN")}</div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>Gross Total (Base + GST)</span>
+                    <div style={{ fontSize: "18px", fontWeight: "700", color: "#16a34a" }}>₹{grossCalculatedTotal.toLocaleString("en-IN")}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: "12px", color: "#475569", borderTop: "1px solid #e2e8f0", paddingTop: "8px" }}>
+                  <strong>Tax Breakdown:</strong> Tuition (0%): ₹0 | Lab (18%): ₹{labGst.toLocaleString("en-IN")} | Sports (18%): ₹{sportsGst.toLocaleString("en-IN")} | Library (0%): ₹0 | Transport (5%): ₹{transportGst.toLocaleString("en-IN")}
+                </div>
+              </div>
+            )}
+          </div>
+
+>>>>>>> origin/feature/exam-module
           {/* INSTALLMENTS SECTION */}
           <div className="erp-form-section">
             <h4 className="erp-section-title">

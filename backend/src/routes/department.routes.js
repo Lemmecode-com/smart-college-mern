@@ -12,6 +12,11 @@ const {
   getDepartmentById,
   updateDepartment,
   deleteDepartment,
+<<<<<<< HEAD
+=======
+  deactivateDepartment,
+  reactivateDepartment,
+>>>>>>> origin/feature/exam-module
   assignHOD,
   removeHOD,
   reassignHODSubjects,
@@ -32,12 +37,27 @@ router.get("/:id", getDepartmentById);
 // Update Department — COLLEGE_ADMIN only
 router.put("/:id", role(ROLE.COLLEGE_ADMIN), updateDepartment);
 
+<<<<<<< HEAD
 // Delete Department — COLLEGE_ADMIN only
 router.delete("/:id", role(ROLE.COLLEGE_ADMIN), deleteDepartment);
 
 // Assign HOD — COLLEGE_ADMIN only
 router.put("/:id/assign-hod", role(ROLE.COLLEGE_ADMIN), assignHOD);
 
+=======
+// Delete Department — COLLEGE_ADMIN only (kept for API compatibility, not exposed in Department List UI)
+router.delete("/:id", role(ROLE.COLLEGE_ADMIN), deleteDepartment);
+
+// Deactivate Department — COLLEGE_ADMIN only
+router.put("/:id/deactivate", role(ROLE.COLLEGE_ADMIN), deactivateDepartment);
+
+// Reactivate Department — COLLEGE_ADMIN only
+router.put("/:id/reactivate", role(ROLE.COLLEGE_ADMIN), reactivateDepartment);
+
+// Assign HOD — COLLEGE_ADMIN only
+router.put("/:id/assign-hod", role(ROLE.COLLEGE_ADMIN), assignHOD);
+
+>>>>>>> origin/feature/exam-module
 // Remove HOD — COLLEGE_ADMIN only
 router.delete("/:id/hod", role(ROLE.COLLEGE_ADMIN), removeHOD);
 

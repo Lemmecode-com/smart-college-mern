@@ -32,4 +32,8 @@ module.exports = {
   transform: {
     '^.+\\.js$': 'babel-jest'
   }
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> origin/feature/exam-module

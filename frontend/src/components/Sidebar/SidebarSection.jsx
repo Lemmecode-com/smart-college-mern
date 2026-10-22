@@ -28,6 +28,7 @@ export default function SidebarSection({
     }
   };
 
+<<<<<<< HEAD
   const handleSubmenuTransitionEnd = (event) => {
     if (!isOpen || event.target !== event.currentTarget || event.propertyName !== "grid-template-rows") {
       return;
@@ -60,6 +61,8 @@ export default function SidebarSection({
     }
   };
 
+=======
+>>>>>>> origin/feature/exam-module
   return (
     <div className={`sidebar-section-wrapper ${isActive ? 'section-active' : ''}`}>
       {/* Full row clickable button */}
@@ -92,7 +95,10 @@ export default function SidebarSection({
         className={`submenu ${isOpen ? "open" : ""}`}
         role="group"
         aria-label={`${title} submenu`}
+<<<<<<< HEAD
         onTransitionEnd={handleSubmenuTransitionEnd}
+=======
+>>>>>>> origin/feature/exam-module
       >
         <div className="submenu-inner">
           {children}

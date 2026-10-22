@@ -1,5 +1,6 @@
 const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
+const College = require("../models/college.model");
 const Document = require("../models/document.model");
 const {
    getPaymentOverdueReport,
@@ -405,6 +406,8 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
 
     // Send receipt email (non-blocking, don't fail if email fails)
     try {
+      const college = await College.findById(collegeId).select("name gstin state address email contactNumber");
+
       const pdfBuffer = await generatePaymentReceiptPdf({
         studentName: student.fullName,
         enrollmentNumber: student.enrollmentNumber,
@@ -412,10 +415,12 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
         totalFee: studentFee.totalFee,
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
-        collegeName: "",
+        collegeName: college?.name || "",
+        collegeGstin: college?.gstin || null,
         transactionId: installment.transactionId,
         paymentMode: installment.paymentMode,
         paidAt: installment.paidAt,
+        taxDetails: installment.taxBreakdown || null,
       });
 
       await sendPaymentReceiptEmail({
@@ -424,6 +429,9 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
         installment: {
           name: installment.name,
           amount: installment.amount,
+          baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : (installment.taxBreakdown?.taxableBase || installment.amount),
+          gstAmount: installment.gstAmount !== undefined ? installment.gstAmount : (installment.taxBreakdown?.totalTax || 0),
+          taxBreakdown: installment.taxBreakdown || null,
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
         },
@@ -431,6 +439,7 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
         paidAmount: studentFee.paidAmount,
         remainingAmount: studentFee.totalFee - studentFee.paidAmount,
         collegeId: collegeId,
+        collegeGstin: college?.gstin || null,
         attachments: [
           {
             filename: `receipt-${installment.transactionId}.pdf`,
