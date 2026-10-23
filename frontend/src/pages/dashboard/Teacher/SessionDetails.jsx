@@ -556,6 +556,7 @@ if (loading) {
           <Breadcrumb
             items={[
               { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "My Sessions", path: "/attendance/my-sessions-list" },
               { label: "Session Details" },
             ]}
           />
