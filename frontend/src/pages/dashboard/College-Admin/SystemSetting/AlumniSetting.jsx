@@ -39,6 +39,7 @@ export default function AlumniSetting() {
 
   const [attendanceEnabled, setAttendanceEnabled] = useState(true);
   const [minimumAttendance, setMinimumAttendance] = useState(DEFAULT_ATTENDANCE);
+  const [allowCumulativeFallback, setAllowCumulativeFallback] = useState(false);
 
   const [feeEnabled, setFeeEnabled] = useState(true);
   const [minimumFeePaid, setMinimumFeePaid] = useState(DEFAULT_FEE_PAID);
@@ -90,6 +91,7 @@ export default function AlumniSetting() {
 
         setAttendanceEnabled(data.attendanceRule?.enabled ?? true);
         setMinimumAttendance(data.attendanceRule?.minimumPercentage ?? DEFAULT_ATTENDANCE);
+        setAllowCumulativeFallback(Boolean(data.attendanceRule?.allowCumulativeFallback));
 
         setFeeEnabled(data.feeRule?.enabled ?? true);
         setMinimumFeePaid(data.feeRule?.minimumPaidPercentage ?? DEFAULT_FEE_PAID);
@@ -139,6 +141,7 @@ export default function AlumniSetting() {
         attendanceRule: {
           enabled: attendanceEnabled,
           minimumPercentage: attNum,
+          allowCumulativeFallback,
         },
         feeRule: {
           enabled: feeEnabled,
@@ -433,21 +436,42 @@ export default function AlumniSetting() {
               </div>
 
               {attendanceEnabled && (
-                <div className="alumni-form-group" style={{ marginTop: "1rem" }}>
-                  <label htmlFor="attendance-input">Minimum Attendance (%)</label>
-                  <input
-                    id="attendance-input"
-                    type="number"
-                    min="0"
-                    max="100"
-                    className="alumni-form-control"
-                    value={minimumAttendance}
-                    onChange={(e) => setMinimumAttendance(e.target.value)}
-                  />
-                  <span style={{ fontSize: "12px", color: "#64748b", marginTop: "4px", display: "block" }}>
-                    Standard UGC/AICTE recommendation is 75%.
-                  </span>
-                </div>
+                <>
+                  <div className="alumni-form-group" style={{ marginTop: "1rem" }}>
+                    <label htmlFor="attendance-input">Minimum Attendance (%)</label>
+                    <input
+                      id="attendance-input"
+                      type="number"
+                      min="0"
+                      max="100"
+                      className="alumni-form-control"
+                      value={minimumAttendance}
+                      onChange={(e) => setMinimumAttendance(e.target.value)}
+                    />
+                    <span style={{ fontSize: "12px", color: "#64748b", marginTop: "4px", display: "block" }}>
+                      Standard UGC/AICTE recommendation is 75%.
+                    </span>
+                  </div>
+
+                  <div
+                    className="alumni-checkbox-group"
+                    style={{ marginTop: "1rem" }}
+                    onClick={() => setAllowCumulativeFallback(!allowCumulativeFallback)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={allowCumulativeFallback}
+                      onChange={(e) => setAllowCumulativeFallback(e.target.checked)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div>
+                      <div className="alumni-checkbox-label">Allow Cumulative Attendance Fallback</div>
+                      <div className="alumni-checkbox-desc">
+                        When enabled, if no attendance sessions exist for the final semester, eligibility will fall back to the student's cumulative overall attendance across all semesters instead of blocking.
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 

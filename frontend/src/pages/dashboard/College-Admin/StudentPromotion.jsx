@@ -670,10 +670,12 @@ function getAlumniEligibilityInfo(data) {
   // 2. Attendance Check
   if (attendanceSnap) {
     const req = roundPercent(attendanceSnap.requiredPercentage ?? 75);
-    if (req > 0 && attendanceSnap.status === "ATTENDANCE_NOT_AVAILABLE") {
+    if (attendanceSnap.status === "NO_DATA" || attendanceSnap.totalSessions === 0) {
+      blockers.push("No attendance sessions found for final semester. Attendance cannot be verified.");
+    } else if (req > 0 && attendanceSnap.status === "ATTENDANCE_NOT_AVAILABLE") {
       blockers.push("Attendance data is not available for this semester.");
     } else if (attendanceSnap.passed === false) {
-      const pct = roundPercent(attendanceSnap.percentage);
+      const pct = roundPercent(attendanceSnap.percentage ?? attendanceSnap.actualPercentage);
       blockers.push(`Attendance requirement not met (${pct}% / Required: ${req}%).`);
     }
   }
@@ -2436,13 +2438,57 @@ if (error && !loading && students.length === 0) {
                           }
 
                           if (checks.attendance && !checks.attendance.skipped) {
+                            const isNoData = checks.attendance.status === "NO_DATA";
+                            const total = checks.attendance.totalSessions ?? 0;
+                            const present = checks.attendance.presentSessions ?? 0;
+                            const pct = checks.attendance.actualPercentage ?? 0;
+                            const req = checks.attendance.requiredPercentage ?? 75;
+                            const isFallback = Boolean(checks.attendance.isFallback);
+
+                            let attendanceMessage;
+                            if (isNoData) {
+                              attendanceMessage = (
+                                <span>
+                                  No attendance sessions found for final semester ({present} of {total} sessions). Attendance cannot be verified.
+                                </span>
+                              );
+                            } else {
+                              attendanceMessage = (
+                                <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                                  <span>
+                                    {pct}% ({present} of {total} sessions)
+                                  </span>
+                                  {isFallback && (
+                                    <span
+                                      className="badge badge-info"
+                                      style={{
+                                        fontSize: "10px",
+                                        padding: "2px 6px",
+                                        borderRadius: "4px",
+                                        background: "#0284c7",
+                                        color: "#ffffff",
+                                        fontWeight: 600,
+                                        textTransform: "lowercase",
+                                      }}
+                                    >
+                                      cumulative
+                                    </span>
+                                  )}
+                                  <span>— Required: {req}%</span>
+                                  {!checks.attendance.passed && (
+                                    <span style={{ color: "#dc2626", fontWeight: 500 }}>
+                                      (Requirement not met)
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            }
+
                             rows.push(
                               renderCompactStatus({
                                 label: "Attendance",
                                 passed: checks.attendance.passed,
-                                message: checks.attendance.passed
-                                  ? `${checks.attendance.actualPercentage}% — Required: ${checks.attendance.requiredPercentage}%`
-                                  : `Requirement not met (${checks.attendance.actualPercentage}% / Required: ${checks.attendance.requiredPercentage}%)`,
+                                message: attendanceMessage,
                               })
                             );
                           }

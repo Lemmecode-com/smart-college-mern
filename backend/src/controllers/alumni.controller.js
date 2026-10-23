@@ -51,6 +51,7 @@ exports.getAlumniPolicy = async (req, res, next) => {
           attendanceRule: {
             enabled: true,
             minimumPercentage: 75,
+            allowCumulativeFallback: false,
           },
           feeRule: {
             enabled: true,

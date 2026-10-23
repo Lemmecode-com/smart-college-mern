@@ -471,9 +471,34 @@ if (loadingDeps) {
                     max="8"
                     required
                   />
-                  <small className="text-muted">
+                  <small className="text-muted d-block">
                     Total semesters in this program (e.g., BCA = 6 semesters). Years will be auto-calculated.
                   </small>
+                  {(() => {
+                    const semNum = Number(formData.durationSemesters);
+                    const years = formData.durationYears ? Number(formData.durationYears) : Math.ceil(semNum / 2);
+                    if (!semNum || isNaN(semNum)) return null;
+
+                    let warningMsg = null;
+                    if (formData.durationYears && semNum < 2 * Number(formData.durationYears)) {
+                      warningMsg = `Warning: Duration (${semNum} semesters) is less than 2 × durationYears (${2 * Number(formData.durationYears)} semesters).`;
+                    } else if (semNum <= 2) {
+                      warningMsg = `Warning: ${semNum} semester(s) (${years} year) is unusually low. Degree programs like B.Tech typically require 8 semesters (4 years). Please verify you did not enter years instead of semesters.`;
+                    } else if (formData.programLevel === "UG" && semNum < 6) {
+                      warningMsg = `Warning: ${semNum} semester(s) is lower than typical undergraduate programs (usually 6–8 semesters).`;
+                    }
+
+                    if (!warningMsg) return null;
+                    return (
+                      <div
+                        className="alert alert-warning py-2 px-3 mt-2 d-flex align-items-center gap-2"
+                        style={{ fontSize: "12px", borderRadius: "8px", border: "1px solid #fcd34d", background: "#fef3c7", color: "#92400e" }}
+                      >
+                        <FaExclamationTriangle className="flex-shrink-0" />
+                        <span>{warningMsg}</span>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

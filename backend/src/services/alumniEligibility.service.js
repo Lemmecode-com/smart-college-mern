@@ -8,7 +8,10 @@ const {
   resolveAuthoritativeResult,
   RESULT_AUTHORITY_STATUS,
 } = require("./resultAuthority.service");
-const { getAttendanceDataForStudents } = require("./attendance.service");
+const {
+  getAttendanceDataForStudents,
+  getCumulativeAttendanceForStudent,
+} = require("./attendance.service");
 const { calculatePreviousAcademicYear } = require("./promotionDecision.service");
 
 /**
@@ -204,36 +207,110 @@ exports.checkAlumniEligibility = async (studentId, collegeId, options = {}) => {
 
   // 4. Attendance Check
   if (policy.attendanceRule?.enabled) {
+    const requiredPercentage = policy.attendanceRule.minimumPercentage ?? 75;
+    const allowCumulativeFallback = Boolean(
+      policy.attendanceRule.allowCumulativeFallback
+    );
     const attendanceData = (
       await getAttendanceDataForStudents([student], collegeId)
     )[0];
 
-    const actualPercentage = attendanceData
-      ? Math.round(attendanceData.percentage || 0)
-      : 0;
-    const requiredPercentage = policy.attendanceRule.minimumPercentage ?? 75;
-    const isAvailable = attendanceData?.status !== "ATTENDANCE_NOT_AVAILABLE";
-    const attendancePassed = isAvailable && actualPercentage >= requiredPercentage;
+    const finalSemesterTotal = attendanceData?.totalSessions || 0;
+    const finalSemesterPresent = attendanceData?.presentSessions || 0;
 
-    checks.attendance = {
-      passed: attendancePassed,
-      actualPercentage,
-      requiredPercentage,
-      totalSessions: attendanceData?.totalSessions || 0,
-      status: attendanceData?.status || "ATTENDANCE_NOT_AVAILABLE",
-    };
+    if (finalSemesterTotal === 0) {
+      if (allowCumulativeFallback) {
+        const cumulativeData = await getCumulativeAttendanceForStudent(
+          student._id,
+          collegeId
+        );
 
-    if (!attendancePassed) {
-      if (!isAvailable) {
-        blockers.push({
-          code: "ATTENDANCE_REQUIREMENT",
-          message: "Attendance data is not available for this semester.",
-        });
+        if (cumulativeData.totalSessions > 0) {
+          const actualPercentage = Math.round(cumulativeData.percentage || 0);
+          const attendancePassed = actualPercentage >= requiredPercentage;
+
+          checks.attendance = {
+            passed: attendancePassed,
+            actualPercentage,
+            requiredPercentage,
+            totalSessions: cumulativeData.totalSessions,
+            presentSessions: cumulativeData.presentSessions,
+            status: attendancePassed ? "PASSED" : "FAILED",
+            isFallback: true,
+            fallbackLabel: "cumulative (fallback)",
+          };
+
+          if (!attendancePassed) {
+            blockers.push({
+              code: "ATTENDANCE_REQUIREMENT",
+              message: `Attendance requirement not met (${actualPercentage}% [cumulative (fallback)] / Required: ${requiredPercentage}%).`,
+            });
+          }
+        } else {
+          checks.attendance = {
+            passed: false,
+            actualPercentage: 0,
+            requiredPercentage,
+            totalSessions: 0,
+            presentSessions: 0,
+            status: "NO_DATA",
+            isFallback: true,
+            fallbackLabel: "cumulative (fallback)",
+          };
+
+          blockers.push({
+            code: "ATTENDANCE_NO_DATA",
+            message: `No attendance sessions found for Semester ${student.currentSemester} (${student.currentAcademicYear || "N/A"}) or cumulative history. Attendance cannot be verified.`,
+          });
+        }
       } else {
+        checks.attendance = {
+          passed: false,
+          actualPercentage: 0,
+          requiredPercentage,
+          totalSessions: 0,
+          presentSessions: 0,
+          status: "NO_DATA",
+          isFallback: false,
+        };
+
         blockers.push({
-          code: "ATTENDANCE_REQUIREMENT",
-          message: `Attendance requirement not met (${actualPercentage}% / Required: ${requiredPercentage}%).`,
+          code: "ATTENDANCE_NO_DATA",
+          message: `No attendance sessions found for Semester ${student.currentSemester} (${student.currentAcademicYear || "N/A"}). Attendance cannot be verified.`,
         });
+      }
+    } else {
+      const actualPercentage = Math.round(attendanceData.percentage || 0);
+      const isAvailable = attendanceData?.status !== "ATTENDANCE_NOT_AVAILABLE";
+      const attendancePassed =
+        isAvailable && actualPercentage >= requiredPercentage;
+
+      checks.attendance = {
+        passed: attendancePassed,
+        actualPercentage,
+        requiredPercentage,
+        totalSessions: finalSemesterTotal,
+        presentSessions: finalSemesterPresent,
+        status: attendancePassed
+          ? "PASSED"
+          : isAvailable
+          ? "FAILED"
+          : "ATTENDANCE_NOT_AVAILABLE",
+        isFallback: false,
+      };
+
+      if (!attendancePassed) {
+        if (!isAvailable) {
+          blockers.push({
+            code: "ATTENDANCE_REQUIREMENT",
+            message: "Attendance data is not available for this semester.",
+          });
+        } else {
+          blockers.push({
+            code: "ATTENDANCE_REQUIREMENT",
+            message: `Attendance requirement not met (${actualPercentage}% / Required: ${requiredPercentage}%).`,
+          });
+        }
       }
     }
   } else {

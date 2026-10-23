@@ -1522,6 +1522,33 @@ exports.moveToAlumni = async (req, res, next) => {
 
     await student.save();
 
+    const attendanceMode = eligibility.checks?.attendance?.isFallback
+      ? "cumulative (fallback)"
+      : "final-semester";
+
+    try {
+      await auditLogService.logAudit({
+        collegeId: req.college_id,
+        userId: req.user?.id || req.user?._id,
+        userEmail: req.user?.email || "admin@college.com",
+        userRole: req.user?.role || "COLLEGE_ADMIN",
+        ipAddress: req.ip || "127.0.0.1",
+        action: "UPDATE",
+        resourceType: "Student",
+        resourceId: student._id,
+        details: {
+          studentId: student._id,
+          graduationYear: student.graduationYear,
+          status: "ALUMNI",
+          attendanceMode,
+          attendancePercentage: eligibility.checks?.attendance?.actualPercentage,
+          attendanceStatus: eligibility.checks?.attendance?.status,
+        },
+      });
+    } catch (auditErr) {
+      logger.warn(`Failed to create audit log for moveToAlumni: ${auditErr.message}`);
+    }
+
     ApiResponse.success(
       res,
       {
@@ -1533,6 +1560,7 @@ exports.moveToAlumni = async (req, res, next) => {
           alumniDate: student.alumniDate,
           graduationYear: student.graduationYear,
           course_id: student.course_id,
+          attendanceMode,
         },
       },
       `${student.fullName} has been moved to Alumni successfully`,

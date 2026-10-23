@@ -3,10 +3,12 @@ const { connectTestDb, clearTestDb, closeTestDb } = require("../setup/testDb");
 
 jest.mock("../../src/services/attendance.service", () => ({
   getAttendanceDataForStudents: jest.fn(),
+  getCumulativeAttendanceForStudent: jest.fn(),
 }));
 
 const {
   getAttendanceDataForStudents,
+  getCumulativeAttendanceForStudent,
 } = require("../../src/services/attendance.service");
 
 const {
@@ -71,8 +73,10 @@ describe("Alumni Settings & Eligibility Matrix", () => {
     });
 
     // Default good attendance mock
+    getAttendanceDataForStudents.mockReset();
+    getCumulativeAttendanceForStudent.mockReset();
     getAttendanceDataForStudents.mockResolvedValue([
-      { percentage: 85, totalSessions: 20, status: "ELIGIBLE" },
+      { percentage: 85, totalSessions: 20, presentSessions: 17, status: "ELIGIBLE" },
     ]);
   });
 
@@ -559,5 +563,111 @@ describe("Alumni Settings & Eligibility Matrix", () => {
     expect(thrownError).toBeTruthy();
     expect(thrownError.statusCode).toBe(404);
     expect(thrownError.code).toBe("STUDENT_NOT_FOUND");
+  });
+
+  // 22. No attendance sessions found in final semester -> NO_DATA and blocks
+  it("22. No final semester sessions -> status NO_DATA and blocks eligibility", async () => {
+    await createPolicy({
+      attendanceRule: { enabled: true, minimumPercentage: 75, allowCumulativeFallback: false },
+    });
+    const student = await createTestStudent();
+    await createPublishedResult(student);
+    await createFeeRecord(student);
+
+    // Mock 0 final semester sessions
+    getAttendanceDataForStudents.mockResolvedValueOnce([
+      { percentage: 0, totalSessions: 0, presentSessions: 0 },
+    ]);
+
+    const res = await checkAlumniEligibility(student._id, collegeId);
+
+    expect(res.eligible).toBe(false);
+    expect(res.checks.attendance.status).toBe("NO_DATA");
+    expect(res.checks.attendance.totalSessions).toBe(0);
+    expect(res.checks.attendance.passed).toBe(false);
+    expect(res.checks.attendance.isFallback).toBe(false);
+    const blocker = res.blockers.find((b) => b.code === "ATTENDANCE_NO_DATA");
+    expect(blocker).toBeDefined();
+    expect(blocker.message).toContain("No attendance sessions found for Semester 4");
+    expect(blocker.message).toContain("Attendance cannot be verified.");
+  });
+
+  // 23. Fallback disabled keeps blocking even when cumulative attendance exists
+  it("23. Fallback off keeps blocking even if cumulative attendance exists", async () => {
+    await createPolicy({
+      attendanceRule: { enabled: true, minimumPercentage: 75, allowCumulativeFallback: false },
+    });
+    const student = await createTestStudent();
+    await createPublishedResult(student);
+    await createFeeRecord(student);
+
+    getAttendanceDataForStudents.mockResolvedValueOnce([
+      { percentage: 0, totalSessions: 0, presentSessions: 0 },
+    ]);
+    getCumulativeAttendanceForStudent.mockResolvedValueOnce({
+      percentage: 100,
+      totalSessions: 10,
+      presentSessions: 10,
+    });
+
+    const res = await checkAlumniEligibility(student._id, collegeId);
+
+    expect(res.eligible).toBe(false);
+    expect(res.checks.attendance.status).toBe("NO_DATA");
+    expect(res.blockers.some((b) => b.code === "ATTENDANCE_NO_DATA")).toBe(true);
+    expect(getCumulativeAttendanceForStudent).not.toHaveBeenCalled();
+  });
+
+  // 24. Fallback enabled uses cumulative attendance and labels result
+  it("24. Fallback on uses cumulative attendance and labels result as cumulative (fallback)", async () => {
+    await createPolicy({
+      attendanceRule: { enabled: true, minimumPercentage: 75, allowCumulativeFallback: true },
+    });
+    const student = await createTestStudent();
+    await createPublishedResult(student);
+    await createFeeRecord(student);
+
+    getAttendanceDataForStudents.mockResolvedValueOnce([
+      { percentage: 0, totalSessions: 0, presentSessions: 0 },
+    ]);
+    getCumulativeAttendanceForStudent.mockResolvedValueOnce({
+      percentage: 85,
+      totalSessions: 20,
+      presentSessions: 17,
+    });
+
+    const res = await checkAlumniEligibility(student._id, collegeId);
+
+    expect(res.eligible).toBe(true);
+    expect(res.checks.attendance.passed).toBe(true);
+    expect(res.checks.attendance.isFallback).toBe(true);
+    expect(res.checks.attendance.fallbackLabel).toBe("cumulative (fallback)");
+    expect(res.checks.attendance.actualPercentage).toBe(85);
+    expect(res.checks.attendance.totalSessions).toBe(20);
+    expect(res.checks.attendance.presentSessions).toBe(17);
+    expect(res.blockers.length).toBe(0);
+  });
+
+  // 25. Matching semester sessions work without fallback when sessions exist
+  it("25. Matching semester sessions evaluate standard semester attendance without fallback", async () => {
+    await createPolicy({
+      attendanceRule: { enabled: true, minimumPercentage: 75, allowCumulativeFallback: true },
+    });
+    const student = await createTestStudent();
+    await createPublishedResult(student);
+    await createFeeRecord(student);
+
+    getAttendanceDataForStudents.mockResolvedValueOnce([
+      { percentage: 80, totalSessions: 25, presentSessions: 20 },
+    ]);
+
+    const res = await checkAlumniEligibility(student._id, collegeId);
+
+    expect(res.eligible).toBe(true);
+    expect(res.checks.attendance.passed).toBe(true);
+    expect(res.checks.attendance.isFallback).toBe(false);
+    expect(res.checks.attendance.totalSessions).toBe(25);
+    expect(res.checks.attendance.presentSessions).toBe(20);
+    expect(getCumulativeAttendanceForStudent).not.toHaveBeenCalled();
   });
 });

@@ -43,6 +43,10 @@ const alumniPolicySchema = new mongoose.Schema(
         max: 100,
         default: 75,
       },
+      allowCumulativeFallback: {
+        type: Boolean,
+        default: false,
+      },
     },
     feeRule: {
       enabled: {
