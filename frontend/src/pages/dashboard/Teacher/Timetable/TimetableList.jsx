@@ -7,6 +7,7 @@ import ApiError from "../../../../components/ApiError";
 import Breadcrumb from "../../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import ActionIconButton from "../../../../components/common/ActionIconButton";
 import { logger } from "../../../../utils/logger";
 
 import {
@@ -65,13 +66,6 @@ const pulseVariants = {
   pulse: {
     scale: [1, 1.05, 1],
     transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-  }
-};
-
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: { duration: 1, repeat: Infinity, ease: "linear" }
   }
 };
 
@@ -853,11 +847,11 @@ if (
                           <td style={{ ...cellStyle, textAlign: 'center', padding: '0.75rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                               {/* VIEW BUTTON */}
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                              <ActionIconButton
+                                icon={FaEye}
+                                ariaLabel={`View weekly timetable for ${t.name || "this timetable"}`}
+                                tooltip="View weekly timetable"
                                 onClick={() => navigate(`/timetable/${t._id}/weekly${activeTab === "archived" ? "?includeArchived=true" : ""}`)}
-                                title="View Weekly Timetable"
                                 style={{
                                   padding: '0.5rem 0.875rem',
                                   borderRadius: '10px',
@@ -872,18 +866,16 @@ if (
                                   gap: '0.375rem',
                                   transition: 'all 0.2s ease'
                                 }}
-                              >
-                                 <FaEye size={14} /> View
-                               </motion.button>
+                              />
 
                                {/* UNARCHIVE BUTTON (HOD ONLY) — shown for archived timetables */}
                                {activeTab === "archived" && isHOD && t.status === "ARCHIVED" && (
-                                 <motion.button
-                                   whileHover={{ scale: 1.05 }}
-                                   whileTap={{ scale: 0.95 }}
+                                 <ActionIconButton
+                                   icon={unarchivingId === t._id ? FaSyncAlt : FaUnlock}
+                                   ariaLabel={`Unarchive timetable ${t.name || ""}`}
+                                   tooltip="Unarchive timetable"
                                    onClick={() => showUnarchiveConfirm(t._id)}
                                    disabled={unarchivingId === t._id}
-                                   title="Unarchive Timetable"
                                    style={{
                                      padding: '0.5rem 0.875rem',
                                      borderRadius: '10px',
@@ -899,26 +891,17 @@ if (
                                      transition: 'all 0.2s ease',
                                      boxShadow: unarchivingId === t._id ? 'none' : '0 2px 8px rgba(23, 162, 184, 0.3)'
                                    }}
-                                 >
-                                   {unarchivingId === t._id ? (
-                                     <motion.div variants={spinVariants} animate="animate">
-                                       <FaSyncAlt size={14} />
-                                     </motion.div>
-                                   ) : (
-                                     <FaUnlock size={14} />
-                                   )}
-                                   {unarchivingId === t._id ? 'Unarchiving...' : 'Unarchive'}
-                                 </motion.button>
+                                 />
                                )
 }
                               {/* PUBLISH BUTTON (HOD ONLY) — hidden for archived */}
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
+                                <ActionIconButton
+                                  icon={publishingId === t._id ? FaSyncAlt : FaCheckCircle}
+                                  ariaLabel={`Publish timetable ${t.name || ""}`}
+                                  tooltip="Publish timetable"
                                   onClick={() => showPublishConfirm(t._id)}
                                   disabled={publishingId === t._id}
-                                  title="Publish Timetable"
                                   style={{
                                     padding: '0.5rem 0.875rem',
                                     borderRadius: '10px',
@@ -934,26 +917,17 @@ if (
                                     transition: 'all 0.2s ease',
                                     boxShadow: publishingId === t._id ? 'none' : '0 2px 8px rgba(40, 167, 69, 0.3)'
                                   }}
-                                >
-                                  {publishingId === t._id ? (
-                                    <motion.div variants={spinVariants} animate="animate">
-                                      <FaSyncAlt size={14} />
-                                    </motion.div>
-                                  ) : (
-                                    <FaCheckCircle size={14} />
-                                  )}
-                                  {publishingId === t._id ? 'Publishing...' : 'Publish'}
-                                </motion.button>
+                                />
                               )}
                               
                               {/* ARCHIVE BUTTON (HOD ONLY) — hidden for archived */}
                               {activeTab !== "archived" && isHOD && t.status === "PUBLISHED" && (
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
+                                <ActionIconButton
+                                  icon={archivingId === t._id ? FaSyncAlt : FaArchive}
+                                  ariaLabel={`Archive timetable ${t.name || ""}`}
+                                  tooltip="Archive timetable"
                                   onClick={() => showArchiveConfirm(t._id)}
                                   disabled={archivingId === t._id}
-                                  title="Archive Timetable"
                                   style={{
                                     padding: '0.5rem 0.875rem',
                                     borderRadius: '10px',
@@ -969,26 +943,17 @@ if (
                                     transition: 'all 0.2s ease',
                                     boxShadow: archivingId === t._id ? 'none' : '0 2px 8px rgba(108, 117, 125, 0.3)'
                                   }}
-                                >
-                                  {archivingId === t._id ? (
-                                    <motion.div variants={spinVariants} animate="animate">
-                                      <FaSyncAlt size={14} />
-                                    </motion.div>
-                                  ) : (
-                                    <FaArchive size={14} />
-                                  )}
-                                  {archivingId === t._id ? 'Archiving...' : 'Archive'}
-                                </motion.button>
+                                />
                               )}
                               
                               {/* DELETE BUTTON — hidden for archived */}
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
+                                <ActionIconButton
+                                  icon={deletingId === t._id ? FaSyncAlt : FaTrash}
+                                  ariaLabel={`Delete timetable ${t.name || ""}`}
+                                  tooltip="Delete timetable"
                                   onClick={() => showDeleteConfirm(t._id)}
                                   disabled={deletingId === t._id}
-                                  title="Delete Timetable"
                                   style={{
                                     padding: '0.5rem 0.875rem',
                                     borderRadius: '10px',
@@ -1003,16 +968,7 @@ if (
                                     gap: '0.375rem',
                                     transition: 'all 0.2s ease'
                                   }}
-                                >
-                                  {deletingId === t._id ? (
-                                    <motion.div variants={spinVariants} animate="animate">
-                                      <FaSyncAlt size={14} />
-                                    </motion.div>
-                                  ) : (
-                                    <FaTrash size={14} />
-                                  )}
-                                  {deletingId === t._id ? 'Deleting...' : 'Delete'}
-                                </motion.button>
+                                />
                               )}
                             </div>
                           </td>

@@ -39,6 +39,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { formatDistanceToNow } from "date-fns";
 import api from "../../../api/axios";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 
 export default function SupportTickets() {
   const navigate = useNavigate();
@@ -422,39 +423,39 @@ export default function SupportTickets() {
                           <small className="text-muted">{ticket.assignedTo.email}</small>
                         </div>
                       ) : (
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
+                        <ActionIconButton
+                          icon={FaUser}
+                          className="btn btn-sm btn-outline-primary"
                           onClick={() => {/* assign modal */ ''}}
-                        >
-                          Assign
-                        </Button>
+                          ariaLabel={`Assign ticket ${ticket.ticketId}`}
+                          tooltip="Assign ticket"
+                        />
                       )}
                     </td>
                     <td>
                       <div className="d-flex flex-column gap-1">
-                        <Button
-                          variant="outline-info"
-                          size="sm"
+                        <ActionIconButton
+                          icon={FaEye}
+                          className="btn btn-sm btn-outline-info"
                           onClick={() => {
                             setSelectedTicket(ticket);
                             setShowModal(true);
                           }}
-                        >
-                          <FaEye /> View
-                        </Button>
+                          ariaLabel={`View ticket ${ticket.ticketId}`}
+                          tooltip="View ticket"
+                        />
                         {ticket.status !== "RESOLVED" && ticket.status !== "CLOSED" && (
-                          <Button
-                            variant="outline-success"
-                            size="sm"
+                          <ActionIconButton
+                            icon={FaCheckCircle}
+                            className="btn btn-sm btn-outline-success"
                             onClick={() => {
                               if (window.confirm("Mark this ticket as resolved?")) {
                                 handleResolve(ticket.ticketId, "Resolved by platform support");
                               }
                             }}
-                          >
-                            <FaCheckCircle /> Resolve
-                          </Button>
+                            ariaLabel={`Resolve ticket ${ticket.ticketId}`}
+                            tooltip="Resolve ticket"
+                          />
                         )}
                       </div>
                     </td>

@@ -367,7 +367,7 @@ const executeToggleActive = async () => {
 
   const tableActions = {
   label: "Actions",
-  width: "670px",
+  width: "260px",
   text: "Actions",
 
   items: [
@@ -760,39 +760,28 @@ const executeToggleActive = async () => {
 
 /* Common action button */
 .approve-students-list .standard-action-btn {
-  min-height: 38px;
-  padding: 0 22px;
-  border-radius: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: -3rem;
-  border: none;
-  font-family: 'Inter', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
+  box-sizing: border-box;
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  flex: 0 0 44px;
+  overflow: visible;
 }
 
 /* Icon */
 .approve-students-list .standard-action-btn svg {
   font-size: 12px;
-  margin-right: 14px;
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin: 0;
   
 }
 
 /* View */
 .approve-students-list .standard-action-btn.view-btn {
-  min-width: 140px;
-  background: linear-gradient(135deg, #3db5e6 0%, #0f3a4a 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(61, 181, 230, 0.28);
+  min-width: 0;
+  width: 44px;
 }
 
 .approve-students-list .standard-action-btn.view-btn:hover:not(:disabled) {
@@ -802,11 +791,10 @@ const executeToggleActive = async () => {
 
 /* Assign Division */
 .approve-students-list .standard-action-btn.edit-btn {
-  min-width: 155px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.28);
+  min-width: 0;
+  width: 44px;
 }
+
 
 .approve-students-list .standard-action-btn.edit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
@@ -815,8 +803,9 @@ const executeToggleActive = async () => {
 
 /* Confirm Enrollment */
 .approve-students-list .standard-action-btn.approve-btn {
-  min-width: 169px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  min-width: 0;
+  width: 44px;
+   background: linear-gradient(135deg, #123978 0%, #475d8d 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28);
 }
@@ -837,10 +826,11 @@ const executeToggleActive = async () => {
 
 /* Deactivate */
 .approve-students-list .standard-action-btn.warning-btn {
-  min-width: 125px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  min-width: 0;
+  width: 44px;
+    background: linear-gradient(135deg, #d40000 0%, #d63737 100%);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.28);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.28);
 }
 
 .approve-students-list .standard-action-btn.warning-btn:hover:not(:disabled) {

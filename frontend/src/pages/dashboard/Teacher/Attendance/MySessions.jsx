@@ -4,6 +4,7 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import Pagination from "../../../../components/Pagination";
+import ActionIconButton from "../../../../components/common/ActionIconButton";
 
 import {
   FaListAlt,
@@ -136,38 +137,38 @@ export default function MySessions() {
                     </td>
                     <td className="text-center d-flex gap-2 justify-content-center">
                       {/* VIEW / MARK */}
-                      <button
+                      <ActionIconButton
+                        icon={FaEye}
                         className="btn btn-sm btn-primary"
                         onClick={() =>
                           navigate(`/attendance/session/${s._id}`)
                         }
-                        title="Mark Attendance"
-                      >
-                        <FaEye />
-                      </button>
+                        ariaLabel={`Mark attendance for session ${s.lectureNumber}`}
+                        tooltip={`Mark attendance for session ${s.lectureNumber}`}
+                      />
 
                       {/* EDIT */}
                       {s.status === "OPEN" && (
-                        <button
+                        <ActionIconButton
+                          icon={FaEdit}
                           className="btn btn-sm btn-warning"
                           onClick={() =>
                             navigate(`/attendance/session/${s._id}/edit`)
                           }
-                          title="Edit Attendance"
-                        >
-                          <FaEdit />
-                        </button>
+                          ariaLabel={`Edit attendance for session ${s.lectureNumber}`}
+                          tooltip={`Edit attendance for session ${s.lectureNumber}`}
+                        />
                       )}
 
                       {/* CLOSE */}
                       {s.status === "OPEN" && (
-                        <button
+                        <ActionIconButton
+                          icon={FaLock}
                           className="btn btn-sm btn-danger"
                           onClick={() => navigate(`/session/close/${s._id}`)}
-                          title="Close Session"
-                        >
-                          <FaLock />
-                        </button>
+                          ariaLabel={`Close session ${s.lectureNumber}`}
+                          tooltip={`Close session ${s.lectureNumber}`}
+                        />
                       )}
                     </td>
                   </tr>

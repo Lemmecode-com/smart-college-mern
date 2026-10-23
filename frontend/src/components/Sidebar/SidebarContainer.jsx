@@ -184,6 +184,7 @@ export default function SidebarContainer({
           <SidebarNav
             role={role}
             openSections={sidebar.openSections}
+            setOpenSections={sidebar.setOpenSections}
             toggleSection={sidebar.toggleSection}
             isMobileDevice={sidebar.isMobileDevice}
             isCollapsed={isCollapsed}
@@ -252,6 +253,7 @@ export default function SidebarContainer({
             <SidebarNav
               role={role}
               openSections={sidebar.openSections}
+              setOpenSections={sidebar.setOpenSections}
               toggleSection={sidebar.toggleSection}
               isMobileDevice={true}
               isCollapsed={false}

@@ -619,7 +619,7 @@ const tableActions = {
       style: { backgroundColor: "#c82121", fontWeight: "bold", fontSize: "1.8rem" },
       label: (parent) =>
         parent.isActive ? "Deactivate" : "Activate",
-      icon: (parent) =>
+      getIcon: (parent) =>
         parent.isActive ? FaTimesCircle : FaCheckCircle,
       className: "danger-btn",
 

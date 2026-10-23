@@ -129,35 +129,6 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
     }
   }, [isCollapsed]);
 
-  // Persist open sections to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem(
-        STORAGE_KEYS.OPEN_SECTIONS,
-        JSON.stringify(openSections)
-      );
-    } catch (error) {
-      // Failed to save open sections to localStorage
-    }
-  }, [openSections]);
-
-  // Update open sections when role changes
-  useEffect(() => {
-    if (role) {
-      const defaultSections = getDefaultOpenSections(role);
-
-      const collapsedSections = Object.keys(defaultSections).reduce(
-        (sections, sectionId) => {
-          sections[sectionId] = false;
-          return sections;
-        },
-        {}
-      );
-
-      setOpenSections(collapsedSections);
-    }
-  }, [role]);
-
   /**
    * Toggle sidebar collapsed state
    */

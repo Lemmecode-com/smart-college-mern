@@ -18,6 +18,7 @@ import SidebarSection, { SidebarSubItem } from "./SidebarSection";
 export default function SidebarNav({
   role,
   openSections,
+  setOpenSections,
   toggleSection,
   isMobileDevice,
   onClose,
@@ -50,6 +51,22 @@ export default function SidebarNav({
 
   // Get navigation config for current role
   const navigation = navigationConfig[role] || navigationConfig.COLLEGE_ADMIN;
+
+  useEffect(() => {
+    if (!navigation) return;
+
+    const expandedSection = navigation.sections.find(
+      (section) =>
+        section.items?.length > 1 &&
+        checkSectionActive(section, location.pathname),
+    );
+    const nextOpenSections = Object.fromEntries(
+      navigation.sections
+        .filter((section) => section.items?.length > 1)
+        .map((section) => [section.id, section.id === expandedSection?.id]),
+    );
+    setOpenSections(nextOpenSections);
+  }, [location.pathname, navigation, setOpenSections]);
 
   if (!navigation) return null;
 

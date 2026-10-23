@@ -6,6 +6,7 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
@@ -720,44 +721,48 @@ export default function ExamList() {
                     <td>
                       <div className="d-flex gap-2">
                         {exam.status === "DRAFT" && (
-                          <button
+                          <ActionIconButton
+                            icon={FaCheckCircle}
                             className="icon-btn"
                             style={{ color: "var(--edx-green-600)", borderColor: "var(--edx-green-500)" }}
                             onClick={() => handlePublishClick(exam)}
-                            title="Publish Exam"
+                            tooltip={`Publish ${exam.name}`}
+                            ariaLabel={`Publish ${exam.name}`}
                             disabled={actionBusy === exam._id}
-                          >
-                            <FaCheckCircle />
-                          </button>
+                          />
                         )}
-                        <button
+                        <ActionIconButton
+                          icon={FaEye}
                           className="icon-btn icon-btn-view"
                           onClick={() => handleViewExam(exam._id)}
-                          title="View Exam"
-                        >
-                          <FaEye />
-                        </button>
+                          tooltip={`View ${exam.name}`}
+                          ariaLabel={`View ${exam.name}`}
+                        />
                         {(exam.status === "PUBLISHED" || exam.status === "LOCKED" || exam.status === "DRAFT") && (
-                          <button
+                          <ActionIconButton
+                            icon={FaCalendarAlt}
                             className="icon-btn icon-btn-schedule"
                             onClick={() => handleTimetable(exam._id)}
-                            title={
+                            tooltip={
                               exam.status === "DRAFT"
                                 ? "Manage Timetable"
                                 : "View Timetable"
                             }
-                          >
-                            <FaCalendarAlt />
-                          </button>
+                            ariaLabel={
+                              exam.status === "DRAFT"
+                                ? `Manage timetable for ${exam.name}`
+                                : `View timetable for ${exam.name}`
+                            }
+                          />
                         )}
                         {exam.status === "DRAFT" && (
-                          <button
+                          <ActionIconButton
+                            icon={FaEdit}
                             className="icon-btn icon-btn-edit"
                             onClick={() => handleEditExam(exam._id)}
-                            title="Edit Exam"
-                          >
-                            <FaEdit />
-                          </button>
+                            tooltip={`Edit ${exam.name}`}
+                            ariaLabel={`Edit ${exam.name}`}
+                          />
                         )}
                       </div>
                     </td>

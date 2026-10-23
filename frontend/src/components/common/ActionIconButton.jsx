@@ -1,5 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import "./ActionIconButton.css";
 
 /**
@@ -10,10 +18,18 @@ import "./ActionIconButton.css";
  */
 export default function ActionIconButton({
   icon: Icon,
+  iconClassName = "",
+  trailingIcon: TrailingIcon,
+  trailingIconClassName = "",
+  badge,
+  badgeClassName = "",
   className = "",
   style,
   ariaLabel,
+  ariaExpanded,
+  ariaHasPopup,
   tooltip,
+  to,
   onClick,
   disabled = false,
   tooltipClassName = "erp-staff-tooltip",
@@ -21,34 +37,42 @@ export default function ActionIconButton({
   const [showTooltip, setShowTooltip] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0, isBottom: false });
   const buttonRef = useRef(null);
+  const tooltipRef = useRef(null);
   const tooltipId = useMemo(
     () => `tip-${Math.random().toString(36).substring(2, 9)}`,
     []
   );
+  const ButtonComponent = to ? Link : "button";
+  const buttonProps = to ? { to } : { type: "button" };
 
   const updateCoords = useCallback(() => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
-    const isNearTop = rect.top < 65;
-    const top = isNearTop ? rect.bottom + 8 : rect.top - 8;
+    const tooltipRect = tooltipRef.current?.getBoundingClientRect();
+    const tooltipHeight = tooltipRect?.height || 36;
+    const tooltipWidth = tooltipRect?.width || 130;
+    const isBottom = rect.top < tooltipHeight + 12;
+    const top = isBottom ? rect.bottom + 8 : rect.top - 8;
     let left = rect.left + rect.width / 2;
-
-    const windowWidth =
-      typeof window !== "undefined" ? window.innerWidth : 800;
-    const minLeft = 130;
-    const maxLeft = windowWidth - 130;
+    const horizontalPadding = 8;
+    const availableHalfWidth = Math.max(
+      0,
+      (window.innerWidth - horizontalPadding * 2) / 2
+    );
+    const minLeft =
+      Math.min(tooltipWidth / 2, availableHalfWidth) + horizontalPadding;
+    const maxLeft = window.innerWidth - minLeft;
     left = Math.max(minLeft, Math.min(left, maxLeft));
 
     setCoords({
       top: Math.round(top),
       left: Math.round(left),
-      isBottom: isNearTop,
+      isBottom,
     });
   }, []);
 
   const handleMouseEnter = () => {
     if (disabled) return;
-    updateCoords();
     setShowTooltip(true);
   };
 
@@ -58,7 +82,6 @@ export default function ActionIconButton({
 
   const handleFocus = () => {
     if (disabled) return;
-    updateCoords();
     setShowTooltip(true);
   };
 
@@ -71,6 +94,10 @@ export default function ActionIconButton({
       setShowTooltip(false);
     }
   };
+
+  useLayoutEffect(() => {
+    if (showTooltip) updateCoords();
+  }, [showTooltip, tooltip, updateCoords]);
 
   useEffect(() => {
     if (!showTooltip) return;
@@ -87,14 +114,16 @@ export default function ActionIconButton({
 
   return (
     <>
-      <button
+      <ButtonComponent
+        {...buttonProps}
         ref={buttonRef}
-        type="button"
         className={`standard-action-btn ${className}`}
         style={style}
-        onClick={onClick}
+        onClick={disabled ? undefined : onClick}
         disabled={disabled}
         aria-label={ariaLabel}
+        aria-expanded={ariaExpanded}
+        aria-haspopup={ariaHasPopup}
         aria-describedby={showTooltip ? tooltipId : undefined}
         onMouseEnter={handleMouseEnter}
         onMouseOver={handleMouseEnter}
@@ -106,14 +135,29 @@ export default function ActionIconButton({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
       >
-        {Icon && <Icon aria-hidden="true" />}
-      </button>
+        {Icon && (
+          <Icon
+            className={iconClassName}
+            aria-hidden="true"
+          />
+        )}
+        {badge != null && badge !== false && (
+          <span className={badgeClassName}>{badge}</span>
+        )}
+        {TrailingIcon && (
+          <TrailingIcon
+            className={trailingIconClassName}
+            aria-hidden="true"
+          />
+        )}
+      </ButtonComponent>
 
       {showTooltip &&
         !disabled &&
         typeof document !== "undefined" &&
         createPortal(
           <div
+            ref={tooltipRef}
             role="tooltip"
             id={tooltipId}
             className={`${tooltipClassName} ${

@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useCallback, useContext, useRef } from "r
 import { useNavigate, Link } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
@@ -380,30 +381,26 @@ const tableActions = {
             activeDropdown === recordKey ? "active" : ""
           }`}
         >
-          <button
+          <ActionIconButton
+            icon={FaReceipt}
+            iconClassName="receipt-icon"
+            badge={paidInstallments.length}
+            badgeClassName="receipt-count-badge"
+            trailingIcon={
+              activeDropdown === recordKey
+                ? FaChevronUp
+                : FaChevronDown
+            }
+            trailingIconClassName="dropdown-arrow"
             className="receipt-dropdown-btn"
             onClick={(event) =>
               toggleDropdown(recordKey, event)
             }
-            aria-expanded={activeDropdown === recordKey}
-            aria-haspopup="true"
-          >
-            <FaReceipt className="receipt-icon" />
-
-            <span className="receipt-btn-text">
-              Receipts
-            </span>
-
-            <span className="receipt-count-badge">
-              {paidInstallments.length}
-            </span>
-
-            {activeDropdown === recordKey ? (
-              <FaChevronUp className="dropdown-arrow" />
-            ) : (
-              <FaChevronDown className="dropdown-arrow" />
-            )}
-          </button>
+            ariaLabel={`View ${paidInstallments.length} payment receipts`}
+            ariaExpanded={activeDropdown === recordKey}
+            ariaHasPopup="true"
+            tooltip={`View ${paidInstallments.length} payment receipts`}
+          />
 
           {activeDropdown === recordKey && (
             <div className="receipt-dropdown-menu">

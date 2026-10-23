@@ -1,4 +1,5 @@
 import React from "react";
+import ActionIconButton from "../common/ActionIconButton";
 
 const TableActions = ({ item, actions = [] }) => {
   const visibleActions = actions.filter((action) => {
@@ -12,17 +13,26 @@ const TableActions = ({ item, actions = [] }) => {
   return (
     <div className="standard-table-actions">
       {visibleActions.map((action) => {
-        const Icon = action.icon;
+        const Icon =
+          typeof action.getIcon === "function"
+            ? action.getIcon(item)
+            : action.icon;
+        const label =
+          typeof action.getLabel === "function"
+            ? action.getLabel(item)
+            : typeof action.label === "function"
+              ? action.label(item)
+              : action.label;
 
         const isDisabled =
           typeof action.disabled === "function"
             ? action.disabled(item)
             : action.disabled === true;
 
-        const title =
+        const tooltip =
           typeof action.title === "function"
             ? action.title(item)
-            : action.title || action.label;
+            : action.title || label || action.text;
 
 
         if (typeof action.render === "function") {
@@ -34,25 +44,16 @@ const TableActions = ({ item, actions = [] }) => {
         }
 
         return (
-          <button
+          <ActionIconButton
             key={action.key}
-            type="button"
-            className={`standard-action-btn ${
-              action.className || ""
-            }`}
-            onClick={() => {
-              if (!isDisabled) {
-                action.onClick?.(item);
-              }
-            }}
+            icon={Icon}
+            className={action.className}
+            onClick={() => action.onClick?.(item)}
             disabled={isDisabled}
-            title={title}
-            aria-label={action.label}
+            ariaLabel={label || action.text || action.key}
+            tooltip={tooltip || label || action.text || action.key}
             style={action.style}
-          >
-            {Icon && <Icon />}
-            <span>{action.text}</span>
-          </button>
+          />
         );
 
       })}

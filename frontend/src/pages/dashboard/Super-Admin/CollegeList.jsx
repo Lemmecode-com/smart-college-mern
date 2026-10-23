@@ -13,6 +13,7 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ApiError from "../../../components/ApiError";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import { logger } from "../../../utils/logger";
 import { toast } from "react-toastify";
 import { exportToExcel, exportToPDF } from "../../../utils/exportHelpers";
@@ -530,38 +531,33 @@ export default function CollegeList() {
                       </td>
                       <td className="action-cell">
                         <div className="action-buttons">
-                          <button
+                          <ActionIconButton
+                            icon={FaEye}
                             className="action-btn view-btn"
-                            title="View College Details"
+                            tooltip={`View details for ${college.name}`}
                             onClick={() =>
                               navigate(`/super-admin/college/${college._id}`)
                             }
-                            aria-label={`View details for ${college.name}`}
-                          >
-                            <FaEye />
-                          </button>
-                          <button
+                            ariaLabel={`View details for ${college.name}`}
+                          />
+                          <ActionIconButton
+                            icon={college.isActive ? FaToggleOff : FaToggleOn}
+                            iconClassName="toggle-icon"
                             className="action-btn toggle-btn"
-                            title={
-                              college.isActive
-                                ? "Deactivate College"
-                                : "Activate College"
-                            }
-                            onClick={() =>
-                              handleToggleClick(college._id, college.isActive)
-                            }
-                            aria-label={
+                            tooltip={
                               college.isActive
                                 ? `Deactivate ${college.name}`
                                 : `Activate ${college.name}`
                             }
-                          >
-                            {college.isActive ? (
-                              <FaToggleOff className="toggle-icon" />
-                            ) : (
-                              <FaToggleOn className="toggle-icon" />
-                            )}
-                          </button>
+                            onClick={() =>
+                              handleToggleClick(college._id, college.isActive)
+                            }
+                            ariaLabel={
+                              college.isActive
+                                ? `Deactivate ${college.name}`
+                                : `Activate ${college.name}`
+                            }
+                          />
                         </div>
                       </td>
                     </tr>

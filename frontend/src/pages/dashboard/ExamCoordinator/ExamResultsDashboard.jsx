@@ -11,6 +11,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import {
@@ -1428,60 +1429,58 @@ export default function ExamResultsDashboard() {
                           <div className="d-flex justify-content-end align-items-center gap-1 flex-wrap">
                             {/* Primary Workflow CTA */}
                             {canReview ? (
-                              <button
+                              <ActionIconButton
+                                icon={FaEye}
                                 className="btn-table-primary"
                                 onClick={() => handleReview(exam._id)}
-                                title="Review and manage student results"
-                              >
-                                <FaEye /> Review
-                              </button>
+                                ariaLabel={`Review results for ${exam.name}`}
+                                tooltip="Review and manage student results"
+                              />
                             ) : (
-                              <button
+                              <ActionIconButton
+                                icon={FaCog}
                                 className="btn-table-secondary"
                                 onClick={() => handleGenerate(exam._id)}
-                                title="Generate results for this exam"
-                              >
-                                <FaCog /> Generate
-                              </button>
+                                ariaLabel={`Generate results for ${exam.name}`}
+                                tooltip="Generate results for this exam"
+                              />
                             )}
 
                             {/* Secondary Lifecycle Action Buttons */}
                             {canLock && (
-                              <button
+                              <ActionIconButton
+                                icon={FaLock}
                                 className="icon-action-btn icon-action-lock"
-                                title={`Lock ${draft} Draft Result(s)`}
+                                tooltip={`Lock ${draft} draft result(s)`}
+                                ariaLabel={`Lock ${draft} draft result(s) for ${exam.name}`}
                                 disabled={actionBusy === exam._id}
                                 onClick={() => handleLockClick(exam)}
-                              >
-                                <FaLock />
-                                {draft > 0 && (
-                                  <span className="action-badge">{draft}</span>
-                                )}
-                              </button>
+                                badge={draft > 0 ? draft : undefined}
+                                badgeClassName="action-badge"
+                              />
                             )}
 
                             {canPublish && (
-                              <button
+                              <ActionIconButton
+                                icon={FaGlobe}
                                 className="icon-action-btn icon-action-publish"
-                                title={`Publish ${locked} Locked Result(s)`}
+                                tooltip={`Publish ${locked} locked result(s)`}
+                                ariaLabel={`Publish ${locked} locked result(s) for ${exam.name}`}
                                 disabled={actionBusy === exam._id}
                                 onClick={() => handlePublishClick(exam)}
-                              >
-                                <FaGlobe />
-                                {locked > 0 && (
-                                  <span className="action-badge">{locked}</span>
-                                )}
-                              </button>
+                                badge={locked > 0 ? locked : undefined}
+                                badgeClassName="action-badge"
+                              />
                             )}
 
                             {canUnlock && (
-                              <button
+                              <ActionIconButton
+                                icon={FaLockOpen}
                                 className="icon-action-btn icon-action-unlock"
-                                title="Review and unlock locked results"
+                                tooltip="Review and unlock locked results"
+                                ariaLabel={`Unlock locked results for ${exam.name}`}
                                 onClick={() => handleUnlockClick(exam)}
-                              >
-                                <FaLockOpen />
-                              </button>
+                              />
                             )}
                           </div>
                         </td>

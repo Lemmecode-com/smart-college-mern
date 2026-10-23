@@ -27,6 +27,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import api from "../../../api/axios";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 
 export default function CollegeHealthOverview() {
   const navigate = useNavigate();
@@ -279,21 +280,20 @@ export default function CollegeHealthOverview() {
                       </td>
                       <td>
                         <div className="d-flex gap-1 flex-wrap">
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
+                          <ActionIconButton
+                            icon={FaChartLine}
+                            className="btn btn-sm btn-outline-primary"
                             onClick={() => navigate(`/platform-support/colleges/${college._id}/diagnostics`)}
-                            title="View Diagnostics"
-                          >
-                            <FaChartLine /> Diagnostics
-                          </Button>
-                          <Button
-                            variant="outline-info"
-                            size="sm"
+                            ariaLabel={`View diagnostics for ${college.name}`}
+                            tooltip="View college diagnostics"
+                          />
+                          <ActionIconButton
+                            icon={FaBuilding}
+                            className="btn btn-sm btn-outline-info"
                             onClick={() => navigate(`/super-admin/college/${college._id}`)}
-                          >
-                            View College
-                          </Button>
+                            ariaLabel={`View ${college.name}`}
+                            tooltip="View college"
+                          />
                         </div>
                       </td>
                     </tr>

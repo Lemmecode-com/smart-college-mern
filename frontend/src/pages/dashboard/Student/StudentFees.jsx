@@ -7,6 +7,7 @@ import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import { logger } from "../../../utils/logger";
 
 import { ToastContainer, toast } from "react-toastify";
@@ -901,36 +902,33 @@ if (loading) {
                         </td>
 <td className="cell-action" data-label="Action">
                            {installment.status === "PAID" ? (
-                             <button
+                             <ActionIconButton
+                               icon={FaReceipt}
                                className="btn-receipt"
                                onClick={() =>
                                  navigate(
                                    `/student/fee-receipt/${installment._id}`,
                                  )
                                }
-                               aria-label={`View receipt for ${installment.name}`}
-                               title="View Receipt"
-                             >
-                               <FaReceipt aria-hidden="true" /> Receipt
-                             </button>
+                               ariaLabel={`View receipt for ${installment.name}`}
+                               tooltip={`View receipt for ${installment.name}`}
+                             />
                            ) : canPayInstallment(installment) ? (
-                             <button
+                             <ActionIconButton
+                               icon={FaCreditCard}
                                className="btn-pay"
                                onClick={() => handleRedirectPayment(installment)}
-                               aria-label={`Pay ${installment.name} - ₹${installment.amount}`}
-                               title="Pay Now"
-                             >
-                               <FaCreditCard aria-hidden="true" /> Pay
-                             </button>
+                               ariaLabel={`Pay ${installment.name} - ₹${installment.amount}`}
+                               tooltip={`Pay ${installment.name}`}
+                             />
                            ) : (
-                             <button
+                             <ActionIconButton
+                               icon={FaCreditCard}
                                className="btn-pay"
                                disabled
-                               aria-label={`Cannot pay ${installment.name} - previous installments pending`}
-                               title="Pay previous installments first"
-                             >
-                               <FaCreditCard aria-hidden="true" /> Pay
-                             </button>
+                               ariaLabel={`Cannot pay ${installment.name} - previous installments pending`}
+                               tooltip="Pay previous installments first"
+                             />
                            )}
                          </td>
                       </tr>

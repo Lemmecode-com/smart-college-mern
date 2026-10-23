@@ -19,6 +19,7 @@ import {
 import api from "../../../../api/axios";
 import ApiError from "../../../../components/ApiError";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import ActionIconButton from "../../../../components/common/ActionIconButton";
 import { logger } from "../../../../utils/logger";
 import Breadcrumb from "../../../../components/Breadcrumb";
 import "./PromotionSetting.css";
@@ -935,22 +936,21 @@ const PromotionSetting = () => {
                             <td>
                               <div className="kt-rule-actions">
                                 {hasRule ? (
-                                  <button
-                                    type="button"
+                                  <ActionIconButton
+                                    icon={FaTrash}
                                     className="btn-remove-rule"
                                     onClick={() => removeKTRule(trans.from)}
-                                    title="Remove rule"
-                                  >
-                                    <FaTrash style={{ fontSize: "0.875rem" }} />
-                                  </button>
+                                    ariaLabel={`Remove promotion rule from semester ${trans.from}`}
+                                    tooltip={`Remove promotion rule from semester ${trans.from}`}
+                                  />
                                 ) : (
-                                  <button
-                                    type="button"
+                                  <ActionIconButton
+                                    icon={FaCheck}
                                     className="btn-add-rule"
                                     onClick={() => updateKTRule(trans.from, {})}
-                                  >
-                                    <FaCheck style={{ fontSize: "0.875rem" }} /> Add
-                                  </button>
+                                    ariaLabel={`Add promotion rule from semester ${trans.from}`}
+                                    tooltip={`Add promotion rule from semester ${trans.from}`}
+                                  />
                                 )}
                               </div>
                             </td>

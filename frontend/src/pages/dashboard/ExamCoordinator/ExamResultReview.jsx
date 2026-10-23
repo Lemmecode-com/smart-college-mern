@@ -12,6 +12,7 @@ import Pagination from "../../../components/Pagination";
 import ApiError from "../../../components/ApiError";
 import Loading from "../../../components/Loading";
 import ConfirmModal from "../../../components/ConfirmModal";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import {
@@ -1664,16 +1665,13 @@ export default function ExamResultReview() {
                       </span>
                     </td>
                     <td className="text-end">
-                      <button
-                        type="button"
+                      <ActionIconButton
+                        icon={FaEye}
                         className="btn-sheet-view"
                         onClick={() => navigate(`/dashboard/exam/results/${r._id}`)}
-                        title="View individual result sheet"
-                        aria-label={`View result sheet for ${studentName}`}
-                      >
-                        <FaEye aria-hidden="true" />
-                        <span>View Sheet</span>
-                      </button>
+                        tooltip={`View result sheet for ${studentName}`}
+                        ariaLabel={`View result sheet for ${studentName}`}
+                      />
                     </td>
                   </tr>
                 );

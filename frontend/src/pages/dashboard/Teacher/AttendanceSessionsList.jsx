@@ -4,6 +4,7 @@ import CreateSessionModal from "./CreateSessionModal";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import {
   FaClipboardList,
   FaCheckCircle,
@@ -760,13 +761,15 @@ function SessionRow({ session, delay, onView }) {
         </div>
       </td>
       <td style={cellStyle}>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <ActionIconButton
+          icon={FaEye}
+          ariaLabel="View attendance session"
+          tooltip="View attendance session"
           onClick={onView}
           style={{
             width: '36px',
             height: '36px',
+            padding: 0,
             borderRadius: '10px',
             backgroundColor: BRAND_COLORS.primary.main,
             color: 'white',
@@ -779,9 +782,7 @@ function SessionRow({ session, delay, onView }) {
             flexShrink: 0,
             boxShadow: '0 2px 8px rgba(26, 75, 109, 0.3)'
           }}
-        >
-          <FaEye size={16} />
-        </motion.button>
+        />
       </td>
     </motion.tr>
   );
