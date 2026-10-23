@@ -169,7 +169,7 @@ export default function AttendanceSessionsList() {
           <Breadcrumb
             items={[
               { label: "Dashboard", path: "/teacher/dashboard" },
-              { label: "Attendance Sessions" },
+              { label: "My Sessions" },
             ]}
           />
 
