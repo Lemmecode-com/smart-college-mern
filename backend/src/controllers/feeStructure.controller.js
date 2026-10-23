@@ -103,27 +103,114 @@ exports.createFeeStructure = async (req, res, next) => {
     }
 
     // Validate installments
+    if (!Array.isArray(installments) || installments.length === 0) {
+      const err = new AppError(
+        "At least one installment is required",
+        400,
+        "INVALID_INSTALLMENTS",
+        { field: "installmentTotal" }
+      );
+      err.details = { field: "installmentTotal" };
+      throw err;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let idx = 0; idx < installments.length; idx++) {
+      const inst = installments[idx];
+      const fieldPrefix = `installments[${idx}]`;
+
+      if (!inst.name || !String(inst.name).trim()) {
+        const err = new AppError(
+          `Installment ${idx + 1} name is required`,
+          400,
+          "MISSING_INSTALLMENT_NAME",
+          { field: `${fieldPrefix}.name` }
+        );
+        err.details = { field: `${fieldPrefix}.name` };
+        throw err;
+      }
+
+      const numAmount = Number(inst.amount);
+      if (inst.amount === undefined || inst.amount === null || isNaN(numAmount) || numAmount <= 0) {
+        const err = new AppError(
+          `Installment ${idx + 1} amount must be greater than 0`,
+          400,
+          "INVALID_INSTALLMENT_AMOUNT",
+          { field: `${fieldPrefix}.amount` }
+        );
+        err.details = { field: `${fieldPrefix}.amount` };
+        throw err;
+      }
+
+      if (!inst.dueDate) {
+        const err = new AppError(
+          `Installment ${idx + 1} due date is required`,
+          400,
+          "MISSING_DUE_DATE",
+          { field: `${fieldPrefix}.dueDate` }
+        );
+        err.details = { field: `${fieldPrefix}.dueDate` };
+        throw err;
+      }
+
+      const dueDateObj = new Date(inst.dueDate);
+      if (isNaN(dueDateObj.getTime())) {
+        const err = new AppError(
+          `Installment ${idx + 1} due date is invalid`,
+          400,
+          "INVALID_DUE_DATE",
+          { field: `${fieldPrefix}.dueDate` }
+        );
+        err.details = { field: `${fieldPrefix}.dueDate` };
+        throw err;
+      }
+
+      const checkDate = new Date(dueDateObj);
+      checkDate.setHours(0, 0, 0, 0);
+
+      if (checkDate < today) {
+        const err = new AppError(
+          `Installment ${idx + 1} due date cannot be earlier than today`,
+          400,
+          "PAST_DUE_DATE",
+          { field: `${fieldPrefix}.dueDate` }
+        );
+        err.details = { field: `${fieldPrefix}.dueDate` };
+        throw err;
+      }
+
+      if (idx > 0) {
+        const prevDate = new Date(installments[idx - 1].dueDate);
+        prevDate.setHours(0, 0, 0, 0);
+        if (checkDate <= prevDate) {
+          const err = new AppError(
+            `Installment ${idx + 1} due date must be later than installment ${idx} due date`,
+            400,
+            "INVALID_DUE_DATE_ORDER",
+            { field: `${fieldPrefix}.dueDate` }
+          );
+          err.details = { field: `${fieldPrefix}.dueDate` };
+          throw err;
+        }
+      }
+    }
+
     const totalInstallmentAmount = installments.reduce(
-      (sum, i) => sum + i.amount,
+      (sum, i) => sum + (Number(i.amount) || 0),
       0,
     );
 
-    if (totalInstallmentAmount !== effectiveTotalFee) {
-      throw new AppError(
+    if (Math.abs(totalInstallmentAmount - effectiveTotalFee) >= 0.01) {
+      const err = new AppError(
         "Installment total must match total fee",
         400,
         "INVALID_INSTALLMENTS",
+        { field: "installmentTotal", expected: effectiveTotalFee, actual: totalInstallmentAmount }
       );
-    }
-
-    for (const inst of installments) {
-      if (!validateExpiryDate(inst.dueDate)) {
-        throw new AppError(
-          "Installment due date cannot be earlier than today",
-          400,
-          "PAST_DUE_DATE",
-        );
-      }
+      err.details = { field: "installmentTotal", expected: effectiveTotalFee, actual: totalInstallmentAmount };
+      throw err;
     }
 
     // Auto-assign order based on index if not provided
@@ -269,40 +356,129 @@ exports.updateFeeStructure = async (req, res, next) => {
       }
     }
 
-    const installmentTotal = installments.reduce((sum, i) => sum + i.amount, 0);
-
-    if (installmentTotal !== effectiveTotalFee) {
-      throw new AppError(
-        "Installment total must match total fee",
+    if (!Array.isArray(installments) || installments.length === 0) {
+      const err = new AppError(
+        "At least one installment is required",
         400,
         "INVALID_INSTALLMENTS",
+        { field: "installmentTotal" }
       );
+      err.details = { field: "installmentTotal" };
+      throw err;
     }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const existingInstallmentsMap = new Map();
     for (const inst of feeStructure.installments) {
       existingInstallmentsMap.set(inst._id.toString(), inst);
     }
 
-    for (const inst of installments) {
+    for (let idx = 0; idx < installments.length; idx++) {
+      const inst = installments[idx];
+      const fieldPrefix = `installments[${idx}]`;
+
+      if (!inst.name || !String(inst.name).trim()) {
+        const err = new AppError(
+          `Installment ${idx + 1} name is required`,
+          400,
+          "MISSING_INSTALLMENT_NAME",
+          { field: `${fieldPrefix}.name` }
+        );
+        err.details = { field: `${fieldPrefix}.name` };
+        throw err;
+      }
+
+      const numAmount = Number(inst.amount);
+      if (inst.amount === undefined || inst.amount === null || isNaN(numAmount) || numAmount <= 0) {
+        const err = new AppError(
+          `Installment ${idx + 1} amount must be greater than 0`,
+          400,
+          "INVALID_INSTALLMENT_AMOUNT",
+          { field: `${fieldPrefix}.amount` }
+        );
+        err.details = { field: `${fieldPrefix}.amount` };
+        throw err;
+      }
+
+      if (!inst.dueDate) {
+        const err = new AppError(
+          `Installment ${idx + 1} due date is required`,
+          400,
+          "MISSING_DUE_DATE",
+          { field: `${fieldPrefix}.dueDate` }
+        );
+        err.details = { field: `${fieldPrefix}.dueDate` };
+        throw err;
+      }
+
+      const dueDateObj = new Date(inst.dueDate);
+      if (isNaN(dueDateObj.getTime())) {
+        const err = new AppError(
+          `Installment ${idx + 1} due date is invalid`,
+          400,
+          "INVALID_DUE_DATE",
+          { field: `${fieldPrefix}.dueDate` }
+        );
+        err.details = { field: `${fieldPrefix}.dueDate` };
+        throw err;
+      }
+
+      const checkDate = new Date(dueDateObj);
+      checkDate.setHours(0, 0, 0, 0);
+
       const existingInst = inst._id
         ? existingInstallmentsMap.get(inst._id.toString())
         : null;
 
-      if (existingInst) {
-        const oldDueDate = new Date(existingInst.dueDate);
-        if (oldDueDate < new Date()) {
-          continue;
-        }
-      }
+      const isUnchangedPast =
+        existingInst &&
+        new Date(existingInst.dueDate) < today &&
+        new Date(existingInst.dueDate).toISOString().split("T")[0] ===
+          new Date(inst.dueDate).toISOString().split("T")[0];
 
-      if (!validateExpiryDate(inst.dueDate)) {
-        throw new AppError(
-          "Installment due date cannot be earlier than today",
+      if (!isUnchangedPast && checkDate < today) {
+        const err = new AppError(
+          `Installment ${idx + 1} due date cannot be earlier than today`,
           400,
           "PAST_DUE_DATE",
+          { field: `${fieldPrefix}.dueDate` }
         );
+        err.details = { field: `${fieldPrefix}.dueDate` };
+        throw err;
       }
+
+      if (idx > 0) {
+        const prevDate = new Date(installments[idx - 1].dueDate);
+        prevDate.setHours(0, 0, 0, 0);
+        if (checkDate <= prevDate) {
+          const err = new AppError(
+            `Installment ${idx + 1} due date must be later than installment ${idx} due date`,
+            400,
+            "INVALID_DUE_DATE_ORDER",
+            { field: `${fieldPrefix}.dueDate` }
+          );
+          err.details = { field: `${fieldPrefix}.dueDate` };
+          throw err;
+        }
+      }
+    }
+
+    const installmentTotal = installments.reduce(
+      (sum, i) => sum + (Number(i.amount) || 0),
+      0
+    );
+
+    if (Math.abs(installmentTotal - effectiveTotalFee) >= 0.01) {
+      const err = new AppError(
+        "Installment total must match total fee",
+        400,
+        "INVALID_INSTALLMENTS",
+        { field: "installmentTotal", expected: effectiveTotalFee, actual: installmentTotal }
+      );
+      err.details = { field: "installmentTotal", expected: effectiveTotalFee, actual: installmentTotal };
+      throw err;
     }
 
     feeStructure.totalFee = effectiveTotalFee;
