@@ -60,6 +60,18 @@ export default function SidebarNav({
         section.items?.length > 1 &&
         checkSectionActive(section, location.pathname),
     );
+    const matchesNavigationRoute =
+      isActiveRoute(navigation.dashboard.path, location.pathname) ||
+      navigation.sections.some((section) =>
+        section.items?.some((item) =>
+          isActiveRoute(item.path, location.pathname),
+        ),
+      );
+
+    // Detail/edit routes opened from list actions are not menu entries.
+    // Keep the current dropdown in that case instead of closing every section.
+    if (!expandedSection && !matchesNavigationRoute) return;
+
     const nextOpenSections = Object.fromEntries(
       navigation.sections
         .filter((section) => section.items?.length > 1)
