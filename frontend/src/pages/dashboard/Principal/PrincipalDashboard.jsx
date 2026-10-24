@@ -8,7 +8,7 @@ import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
-import LogoImage from "../../../components/common/LogoImage";
+import LogoImage, { preloadLogo } from "../../../components/common/LogoImage";
 import "./PrincipalDashboard.css";
 
 import {
@@ -21,10 +21,7 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaArrowRight,
-  FaPlus,
-  FaSpinner,
   FaEye,
-  FaFileAlt,
   FaChartLine,
   FaEnvelope,
   FaMapMarkerAlt,
@@ -35,7 +32,6 @@ import {
   FaMoneyBillWave,
   FaClipboardCheck,
   FaTimes,
-  FaInfoCircle,
 } from "react-icons/fa";
 import {
   PieChart,
@@ -395,14 +391,34 @@ export default function PrincipalDashboard() {
         setLoading(true);
         setError(null);
 
-        const [dashboardRes, admissionRes, deptRes] = await Promise.all([
-          api.get("/dashboard/principal"),
+        // Start college profile fetch early and trigger logo preload immediately
+        const collegePromise = api.get("/college/my-college").then((res) => {
+          if (res?.data) {
+            const docId = res.data.documentRefs?.logo?.documentId || res.data.logoDocumentId;
+            if (docId) preloadLogo(docId);
+            setCollege((prev) => ({ ...(prev || {}), ...res.data }));
+          }
+          return res;
+        });
+
+        const dashboardPromise = api.get("/dashboard/principal").then((res) => {
+          if (res?.data?.college) {
+            const docId = res.data.college.logoDocumentId;
+            if (docId) preloadLogo(docId);
+          }
+          return res;
+        });
+
+        const [dashboardRes, admissionRes, deptRes, collegeRes] = await Promise.all([
+          dashboardPromise,
           api.get("/reports/admissions/college-admin-summary"),
           api.get("/departments"),
+          collegePromise,
         ]);
 
         const dData = dashboardRes.data;
         const admData = admissionRes.data;
+        const collegeProfile = collegeRes.data;
         const deptData = Array.isArray(deptRes.data) ? deptRes.data :
                          Array.isArray(deptRes.data.departments) ? deptRes.data.departments :
                          Array.isArray(deptRes.data.data) ? deptRes.data.data : [];
@@ -420,7 +436,10 @@ export default function PrincipalDashboard() {
           pendingPercentage: admData?.pendingPercentage || 0,
           rejectedPercentage: admData?.rejectedPercentage || 0,
         });
-        setCollege(dData?.college || null);
+       setCollege({
+            ...(dData?.college || {}),
+            ...(collegeProfile || {}),
+          });
         setRecentStudents(dData?.recentStudents || []);
 
         const deptChart = deptData.slice(0, 6).map(dept => ({
@@ -448,7 +467,23 @@ export default function PrincipalDashboard() {
     fetchDashboardData();
   }, []);
 
-  if (loading) return <Loading fullScreen size="lg" text="Loading Dashboard..." />;
+  // Loading State
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Dashboard..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error) {
     return (
@@ -481,7 +516,7 @@ export default function PrincipalDashboard() {
   const quickActions = [
     { icon: FaBuilding, label: "Departments", path: "/departments", color: BRAND_COLORS.info, count: totalDepartments },
     { icon: FaBook, label: "Courses", path: "/courses", color: BRAND_COLORS.success, count: totalCourses },
-    { icon: FaChalkboardTeacher, label: "Teachers", path: "/teachers", color: BRAND_COLORS.warning, count: totalTeachers },
+    { icon: FaChalkboardTeacher, label: "Staff", path: "/college/staff", color: BRAND_COLORS.warning, count: totalTeachers },
     { icon: FaUserGraduate, label: "Students", path: "/students/pending-approvals", color: BRAND_COLORS.primary, count: totalStudents },
   ];
 
@@ -494,7 +529,7 @@ export default function PrincipalDashboard() {
   const quickLinks = [
     { label: 'View Departments', path: '/departments', icon: FaBuilding, color: BRAND_COLORS.info },
     { label: 'View Courses', path: '/courses', icon: FaBook, color: BRAND_COLORS.success },
-    { label: 'View Teachers', path: '/teachers', icon: FaChalkboardTeacher, color: BRAND_COLORS.warning },
+    { label: 'View Staff', path: '/college/staff', icon: FaChalkboardTeacher, color: BRAND_COLORS.warning },
     { label: 'Review Students', path: '/students/pending-approvals', icon: FaUserGraduate, color: BRAND_COLORS.primary },
     { label: 'Fee Structures', path: '/fees/list', icon: FaMoneyBillWave, color: BRAND_COLORS.danger },
     { label: 'Analytics Reports', path: '/college-admin/reports-dashboard', icon: FaChartLine, color: BRAND_COLORS.secondary },
@@ -531,7 +566,13 @@ export default function PrincipalDashboard() {
                         flexShrink: 0,
                       }}
                     >
-                      <LogoImage documentId={college?.logoDocumentId} size={88} />
+                      <LogoImage
+                        documentId={
+                          college?.documentRefs?.logo?.documentId ||
+                          college?.logoDocumentId
+                        }
+                        size={88}
+                      />
                     </motion.div>
                     <div className="header-title-section">
                       <h1 className="header-title">

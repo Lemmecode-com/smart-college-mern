@@ -7,7 +7,7 @@ import { Container, Row, Col, Card, Button, Badge } from "react-bootstrap";
 import { toast } from "react-toastify";
 import "./Dashboard.css";
 import { getFrontendRegistrationUrl } from "../../../utils/urlHelpers";
-import LogoImage from "../../../components/common/LogoImage";
+import LogoImage, { preloadLogo } from "../../../components/common/LogoImage";
 
 import {
   FaUsers,
@@ -184,8 +184,8 @@ export default function CollegeAdminDashboard() {
     {
       id: 2,
       icon: FaChalkboardTeacher,
-      label: "Manage Teachers",
-      path: "/teachers",
+      label: "Manage Staff",
+      path: "/college/staff",
       color: BRAND_COLORS.info.main,
       gradient: BRAND_COLORS.info.gradient
     },
@@ -249,8 +249,11 @@ export default function CollegeAdminDashboard() {
         const res = await api.get("/dashboard/college-admin");
         const data = res.data;
 
-        // Set college data
+        // Set college data and preload logo immediately
         setCollege(data.college);
+        if (data.college?.logoDocumentId) {
+          preloadLogo(data.college.logoDocumentId);
+        }
 
         // Check if setup is incomplete
         if (data.college && data.college.setupCompleted === false) {
@@ -321,11 +324,23 @@ export default function CollegeAdminDashboard() {
     );
   }
 
-  /* ================= LOADING STATE ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Dashboard..." />;
-  }
-
+// ================= LOADING STATE =================
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading College Dashboard..."
+        />
+      </div>
+    </div>
+  );
+}
   // Redirect to setup wizard if college setup is incomplete
   if (setupRedirect) {
     return <Navigate to="/college/setup-wizard" replace />;
@@ -359,12 +374,12 @@ export default function CollegeAdminDashboard() {
                        initial="initial"
                        animate="pulse"
                        style={{
-                         width: 88,
-                         height: 88,
+                         width: 85,
+                         height: 85,
                          flexShrink: 0,
                        }}
                      >
-                       <LogoImage documentId={college?.logoDocumentId} size={88} />
+                       <LogoImage documentId={college?.logoDocumentId} size={85} />
                      </motion.div>
                      <div className="header-title-section">
                       <h1 className="header-title">

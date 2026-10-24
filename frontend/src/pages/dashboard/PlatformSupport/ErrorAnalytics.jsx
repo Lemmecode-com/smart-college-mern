@@ -42,6 +42,7 @@ import {
   Cell,
 } from "recharts";
 import api from "../../../api/axios";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 
 // Predefined colors for modules
 const MODULE_COLORS = {
@@ -345,13 +346,13 @@ export default function ErrorAnalytics() {
                           </Badge>
                         </td>
                         <td>
-                          <Button
-                            variant="outline-info"
-                            size="sm"
+                          <ActionIconButton
+                            icon={FaExternalLinkAlt}
+                            className="btn btn-sm btn-outline-info"
                             onClick={() => navigate(`/platform-support/system-logs?module=${stat._id}`)}
-                          >
-                            <FaExternalLinkAlt /> View Logs
-                          </Button>
+                            ariaLabel={`View logs for ${stat._id}`}
+                            tooltip="View error logs"
+                          />
                         </td>
                       </tr>
                     );
@@ -467,13 +468,13 @@ export default function ErrorAnalytics() {
                       <Badge bg="danger">{ep.count}</Badge>
                     </td>
                     <td>
-                      <Button
-                        variant="outline-secondary"
-                        size="sm"
+                      <ActionIconButton
+                        icon={FaExternalLinkAlt}
+                        className="btn btn-sm btn-outline-secondary"
                         onClick={() => navigate(`/platform-support/system-logs?search=${encodeURIComponent(ep.endpoint)}`)}
-                      >
-                        View Logs
-                      </Button>
+                        ariaLabel={`View logs for ${ep.endpoint}`}
+                        tooltip="View endpoint logs"
+                      />
                     </td>
                   </tr>
                 ))}

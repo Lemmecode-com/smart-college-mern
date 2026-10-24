@@ -4,8 +4,10 @@ import { AuthContext } from "../../../../auth/AuthContext";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import ActionIconButton from "../../../../components/common/ActionIconButton";
 import { logger } from "../../../../utils/logger";
 
 import {
@@ -64,13 +66,6 @@ const pulseVariants = {
   pulse: {
     scale: [1, 1.05, 1],
     transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-  }
-};
-
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: { duration: 1, repeat: Infinity, ease: "linear" }
   }
 };
 
@@ -389,9 +384,27 @@ export default function TimetableList() {
      }
    };
 
-   if (initialLoading && timetables.length === 0 && archivedTimetables.length === 0) {
-     return <Loading fullScreen size="lg" text="Loading Timetables..." />;
-   }
+  // Loading State
+if (
+  initialLoading &&
+  timetables.length === 0 &&
+  archivedTimetables.length === 0
+) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Timetables..."
+        />
+      </div>
+    </div>
+  );
+}
 
    if (error) {
      return (
@@ -415,7 +428,7 @@ export default function TimetableList() {
         style={{
           minHeight: '100vh',
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '1.5rem',
+          paddingTop: '0.5rem',
           paddingBottom: '2rem',
           paddingLeft: '1rem',
           paddingRight: '1rem'
@@ -423,46 +436,23 @@ export default function TimetableList() {
       >
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate(-1)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>
-              Timetable Management
-            </span>
-          </motion.div>
+              <div
+                style={{
+                  width: "100%",
+                  margin: "0 auto",
+                  paddingBottom: 0,
+                  height: "auto",
+                }}
+              >
+                <div style={{ width: "100%" }}>
+                  <Breadcrumb
+                    items={[
+                      { label: "Dashboard", path: "/hod/dashboard" },
+                      { label: "Timetable Management" },
+                    ]}
+                  />
+                </div>
+              </div>
 
           {/* ================= HEADER ================= */}
           <motion.div
@@ -470,25 +460,30 @@ export default function TimetableList() {
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: '2rem',
+              marginBottom: '1.25rem',
               backgroundColor: 'white',
-              borderRadius: '1.5rem',
+              borderRadius: '14px',
               overflow: 'hidden',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.5rem'
+              // padding: '1.5rem 2rem',
+              // gap: '1.5rem',
+              // paddingBottom: '2rem',
+              height: '165px',
+   
             }}
           >
             <div className="erp-timetable-hero-inner" style={{
-              padding: '2rem',
-              background: BRAND_COLORS.primary.gradient,
+              padding: '1.5rem 2rem',
+              background: '#0E3746',
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '1.5rem'
+              gap: '1.5rem',
+              height: '92px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div
@@ -497,14 +492,14 @@ export default function TimetableList() {
                   animate="pulse"
                   className="erp-timetable-hero-icon"
                   style={{
-                    width: '80px',
-                    height: '80px',
+                    width: '52px',
+                    height: '52px',
                     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '20px',
+                    borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '2.5rem',
+                    fontSize: '1.6rem',
                     flexShrink: 0,
                     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
                   }}
@@ -514,16 +509,19 @@ export default function TimetableList() {
                 <div className="erp-timetable-hero-text">
                   <h1 className="erp-timetable-hero-title" style={{
                     margin: 0,
-                    fontSize: '2.25rem',
+                    fontSize: '1.625rem',
                     fontWeight: 700,
-                    lineHeight: 1.1
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.25,
                   }}>
                     Timetable Management
                   </h1>
                   <p className="erp-timetable-hero-desc" style={{
-                    margin: '0.75rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '1.25rem'
+                    margin: 0,
+                    opacity: 0.8,
+                    fontSize: '0.9rem',
+                    fontWeight: 400,
+                    lineHeight: 1.5,
                   }}>
                     View, manage, and publish academic schedules
                   </p>
@@ -535,21 +533,31 @@ export default function TimetableList() {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate('/timetable/create-timetable')}
                   className="erp-timetable-hero-cta"
-                  style={{
-                    backgroundColor: 'white',
-                    color: BRAND_COLORS.primary.main,
-                    border: '2px solid white',
-                    padding: '0.875rem 1.75rem',
-                    borderRadius: '14px',
-                    fontSize: '1.1rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 6px 20px rgba(255, 255, 255, 0.3)'
-                  }}
+                      style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgb(255, 255, 255)",
+                    color: "#0E3746",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
                 >
                   <FaPlus /> Create Timetable
                 </motion.button>
@@ -631,6 +639,7 @@ export default function TimetableList() {
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '1rem'
+              
             }}>
               <h2 style={{
                 margin: 0,
@@ -654,6 +663,7 @@ export default function TimetableList() {
                 borderRadius: '20px',
                 fontSize: '0.9rem',
                 fontWeight: 500
+                
               }}>
                 <FaInfoCircle size={14} />
                 Click on any timetable to view weekly schedule
@@ -837,11 +847,11 @@ export default function TimetableList() {
                           <td style={{ ...cellStyle, textAlign: 'center', padding: '0.75rem' }}>
                             <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                               {/* VIEW BUTTON */}
-                              <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                              <ActionIconButton
+                                icon={FaEye}
+                                ariaLabel={`View weekly timetable for ${t.name || "this timetable"}`}
+                                tooltip="View weekly timetable"
                                 onClick={() => navigate(`/timetable/${t._id}/weekly${activeTab === "archived" ? "?includeArchived=true" : ""}`)}
-                                title="View Weekly Timetable"
                                 style={{
                                   padding: '0.5rem 0.875rem',
                                   borderRadius: '10px',
@@ -856,18 +866,16 @@ export default function TimetableList() {
                                   gap: '0.375rem',
                                   transition: 'all 0.2s ease'
                                 }}
-                              >
-                                 <FaEye size={14} /> View
-                               </motion.button>
+                              />
 
                                {/* UNARCHIVE BUTTON (HOD ONLY) — shown for archived timetables */}
                                {activeTab === "archived" && isHOD && t.status === "ARCHIVED" && (
-                                 <motion.button
-                                   whileHover={{ scale: 1.05 }}
-                                   whileTap={{ scale: 0.95 }}
+                                 <ActionIconButton
+                                   icon={unarchivingId === t._id ? FaSyncAlt : FaUnlock}
+                                   ariaLabel={`Unarchive timetable ${t.name || ""}`}
+                                   tooltip="Unarchive timetable"
                                    onClick={() => showUnarchiveConfirm(t._id)}
                                    disabled={unarchivingId === t._id}
-                                   title="Unarchive Timetable"
                                    style={{
                                      padding: '0.5rem 0.875rem',
                                      borderRadius: '10px',
@@ -883,26 +891,17 @@ export default function TimetableList() {
                                      transition: 'all 0.2s ease',
                                      boxShadow: unarchivingId === t._id ? 'none' : '0 2px 8px rgba(23, 162, 184, 0.3)'
                                    }}
-                                 >
-                                   {unarchivingId === t._id ? (
-                                     <motion.div variants={spinVariants} animate="animate">
-                                       <FaSyncAlt size={14} />
-                                     </motion.div>
-                                   ) : (
-                                     <FaUnlock size={14} />
-                                   )}
-                                   {unarchivingId === t._id ? 'Unarchiving...' : 'Unarchive'}
-                                 </motion.button>
+                                 />
                                )
 }
                               {/* PUBLISH BUTTON (HOD ONLY) — hidden for archived */}
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
+                                <ActionIconButton
+                                  icon={publishingId === t._id ? FaSyncAlt : FaCheckCircle}
+                                  ariaLabel={`Publish timetable ${t.name || ""}`}
+                                  tooltip="Publish timetable"
                                   onClick={() => showPublishConfirm(t._id)}
                                   disabled={publishingId === t._id}
-                                  title="Publish Timetable"
                                   style={{
                                     padding: '0.5rem 0.875rem',
                                     borderRadius: '10px',
@@ -918,26 +917,17 @@ export default function TimetableList() {
                                     transition: 'all 0.2s ease',
                                     boxShadow: publishingId === t._id ? 'none' : '0 2px 8px rgba(40, 167, 69, 0.3)'
                                   }}
-                                >
-                                  {publishingId === t._id ? (
-                                    <motion.div variants={spinVariants} animate="animate">
-                                      <FaSyncAlt size={14} />
-                                    </motion.div>
-                                  ) : (
-                                    <FaCheckCircle size={14} />
-                                  )}
-                                  {publishingId === t._id ? 'Publishing...' : 'Publish'}
-                                </motion.button>
+                                />
                               )}
                               
                               {/* ARCHIVE BUTTON (HOD ONLY) — hidden for archived */}
                               {activeTab !== "archived" && isHOD && t.status === "PUBLISHED" && (
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
+                                <ActionIconButton
+                                  icon={archivingId === t._id ? FaSyncAlt : FaArchive}
+                                  ariaLabel={`Archive timetable ${t.name || ""}`}
+                                  tooltip="Archive timetable"
                                   onClick={() => showArchiveConfirm(t._id)}
                                   disabled={archivingId === t._id}
-                                  title="Archive Timetable"
                                   style={{
                                     padding: '0.5rem 0.875rem',
                                     borderRadius: '10px',
@@ -953,26 +943,17 @@ export default function TimetableList() {
                                     transition: 'all 0.2s ease',
                                     boxShadow: archivingId === t._id ? 'none' : '0 2px 8px rgba(108, 117, 125, 0.3)'
                                   }}
-                                >
-                                  {archivingId === t._id ? (
-                                    <motion.div variants={spinVariants} animate="animate">
-                                      <FaSyncAlt size={14} />
-                                    </motion.div>
-                                  ) : (
-                                    <FaArchive size={14} />
-                                  )}
-                                  {archivingId === t._id ? 'Archiving...' : 'Archive'}
-                                </motion.button>
+                                />
                               )}
                               
                               {/* DELETE BUTTON — hidden for archived */}
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
-                                <motion.button
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
+                                <ActionIconButton
+                                  icon={deletingId === t._id ? FaSyncAlt : FaTrash}
+                                  ariaLabel={`Delete timetable ${t.name || ""}`}
+                                  tooltip="Delete timetable"
                                   onClick={() => showDeleteConfirm(t._id)}
                                   disabled={deletingId === t._id}
-                                  title="Delete Timetable"
                                   style={{
                                     padding: '0.5rem 0.875rem',
                                     borderRadius: '10px',
@@ -987,16 +968,7 @@ export default function TimetableList() {
                                     gap: '0.375rem',
                                     transition: 'all 0.2s ease'
                                   }}
-                                >
-                                  {deletingId === t._id ? (
-                                    <motion.div variants={spinVariants} animate="animate">
-                                      <FaSyncAlt size={14} />
-                                    </motion.div>
-                                  ) : (
-                                    <FaTrash size={14} />
-                                  )}
-                                  {deletingId === t._id ? 'Deleting...' : 'Delete'}
-                                </motion.button>
+                                />
                               )}
                             </div>
                           </td>

@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const AttendanceSession = require("../models/attendanceSession.model");
+const logger = require("../utils/logger");
 
 const getCourseId = (student) => student.course_id?._id || student.course_id;
 
@@ -42,6 +43,44 @@ const getAttendanceDataForStudents = async (students, collegeId) => {
   const academicYearValues = [
     ...new Set(scopedStudents.map((student) => student.academicYear)),
   ];
+
+  // Detect orphan sessions referencing missing timetable slots without crashing
+  try {
+    const orphanCount = await AttendanceSession.aggregate([
+      {
+        $match: {
+          college_id: collegeId,
+          course_id: { $in: courseObjectIds },
+          status: "CLOSED",
+          slot_id: { $exists: true, $ne: null },
+        },
+      },
+      {
+        $lookup: {
+          from: "timetableslots",
+          localField: "slot_id",
+          foreignField: "_id",
+          as: "slot",
+        },
+      },
+      {
+        $match: {
+          "slot.0": { $exists: false },
+        },
+      },
+      {
+        $project: { _id: 1, slot_id: 1 },
+      },
+    ]);
+
+    if (orphanCount.length > 0) {
+      logger.warn(
+        `[AttendanceService] Found ${orphanCount.length} AttendanceSession(s) referencing missing timetable slot(s) in college ${collegeId}: ${orphanCount.map((s) => s._id).join(", ")}`
+      );
+    }
+  } catch (err) {
+    logger.warn(`[AttendanceService] Error checking for orphan attendance sessions: ${err.message}`);
+  }
 
   const scopedSessions = await AttendanceSession.aggregate([
     {
@@ -167,10 +206,73 @@ const getAttendanceDataForStudents = async (students, collegeId) => {
       student_id: student.student_id,
       percentage,
       totalSessions,
+      presentSessions: presentCount,
     };
   });
 };
 
+/**
+ * Compute cumulative attendance across all closed sessions for a student in a college
+ * @param {string|ObjectId} studentId
+ * @param {string|ObjectId} collegeId
+ * @returns {Promise<{totalSessions: number, presentSessions: number, percentage: number}>}
+ */
+const getCumulativeAttendanceForStudent = async (studentId, collegeId) => {
+  const stats = await AttendanceRecord.aggregate([
+    {
+      $match: {
+        student_id: new mongoose.Types.ObjectId(studentId),
+        college_id: new mongoose.Types.ObjectId(collegeId),
+      },
+    },
+    {
+      $lookup: {
+        from: "attendancesessions",
+        localField: "session_id",
+        foreignField: "_id",
+        as: "session",
+      },
+    },
+    { $unwind: "$session" },
+    {
+      $match: {
+        "session.status": "CLOSED",
+      },
+    },
+    {
+      $group: {
+        _id: "$student_id",
+        totalSessions: { $sum: 1 },
+        presentSessions: {
+          $sum: { $cond: [{ $in: ["$status", ["PRESENT", "LATE"]] }, 1, 0] },
+        },
+      },
+    },
+  ]);
+
+  if (!stats || stats.length === 0) {
+    return {
+      totalSessions: 0,
+      presentSessions: 0,
+      percentage: 0,
+    };
+  }
+
+  const row = stats[0];
+  const totalSessions = row.totalSessions || 0;
+  const presentSessions = row.presentSessions || 0;
+  const percentage = totalSessions > 0
+    ? parseFloat(((presentSessions / totalSessions) * 100).toFixed(2))
+    : 0;
+
+  return {
+    totalSessions,
+    presentSessions,
+    percentage,
+  };
+};
+
 module.exports = {
   getAttendanceDataForStudents,
+  getCumulativeAttendanceForStudent,
 };

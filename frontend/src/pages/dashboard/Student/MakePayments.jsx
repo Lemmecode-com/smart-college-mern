@@ -1,4 +1,4 @@
-﻿import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -68,6 +68,7 @@ export default function MakePayments() {
   const sessionTimeoutRef = useRef(null);
   const fetchIdRef = useRef(0);
   const isRequestInProgressRef = useRef(false); // Prevent duplicate payment requests
+  const isRazorpayVerifyingRef = useRef(false); // Prevent double verify in checkout handler
 
   const [installmentName, setInstallmentName] = useState(
     location.state?.installmentName || "",
@@ -96,10 +97,22 @@ export default function MakePayments() {
 
   /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
   // Wait for auth to finish loading before any redirects
-  if (authLoading) {
-    return <Loading fullScreen text="Verifying your session..." />;
-  }
-
+if (authLoading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Verifying your session..."
+        />
+      </div>
+    </div>
+  );
+}
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "STUDENT")
     return <Navigate to="/student/dashboard" replace />;
@@ -186,8 +199,7 @@ export default function MakePayments() {
             return;
           }
           setAvailableGateways(["stripe", "razorpay"]);
-         setAllowChoice(true);
-         setGatewaysLoading(false);
+          setGatewaysLoading(false);
        }
     };
 
@@ -302,6 +314,7 @@ export default function MakePayments() {
     try {
       setLoading(true);
       isRequestInProgressRef.current = true;
+      isRazorpayVerifyingRef.current = false;
 
       // Load Razorpay script
       const loaded = await loadRazorpayScript();
@@ -342,29 +355,70 @@ export default function MakePayments() {
         description: `Fee Payment - ${installmentName}`,
         order_id: orderId,
         handler: async (response) => {
-          // ✅ WEBHOOK-DRIVEN: Don't call verify API. Just redirect to success page.
-          // The webhook will mark the installment as PAID.
-          // PaymentSuccess.jsx will poll for status until webhook processes it.
-          setLoadingMessage("Payment successful! Confirming...");
+          if (isRazorpayVerifyingRef.current) return;
+          isRazorpayVerifyingRef.current = true;
+
+          setLoadingMessage("Payment successful! Verifying payment...");
           setLoading(true);
 
-          // Small delay for UX, then redirect
-          setTimeout(() => {
+          const {
+            razorpay_payment_id,
+            razorpay_order_id,
+            razorpay_signature,
+          } = response;
+
+          // Store signature in sessionStorage as safe fallback for PaymentSuccess or retry
+          try {
+            sessionStorage.setItem(
+              `rzp_sig_${razorpay_order_id}`,
+              JSON.stringify({
+                paymentId: razorpay_payment_id,
+                orderId: razorpay_order_id,
+                signature: razorpay_signature,
+              }),
+            );
+          } catch {
+            // Non-critical if storage fails
+          }
+
+          let verifiedData = null;
+          let verifyError = null;
+
+          try {
+            const verifyRes = await api.post("/razorpay/verify-payment", {
+              razorpay_order_id,
+              razorpay_payment_id,
+              razorpay_signature,
+            });
+            verifiedData = verifyRes.data;
+          } catch (err) {
+            logger.error("Razorpay verify-payment error in checkout handler:", err);
+            const statusCode = err?.response?.status;
+            const errorCode =
+              err?.response?.data?.code || err?.response?.data?.error?.code;
+            const message =
+              err?.response?.data?.message ||
+              "Payment verification failed. Invalid signature or amount mismatch.";
+            verifyError = { statusCode, errorCode, message };
+          } finally {
             setLoading(false);
             isRequestInProgressRef.current = false;
+          }
 
-            // Redirect to success page — PaymentSuccess.jsx will poll for status
-            navigate(
-              `/student/payment-success?payment_id=${response.razorpay_payment_id}&order_id=${response.razorpay_order_id}&gateway=razorpay`,
-              {
-                state: {
-                  paymentGateway: "RAZORPAY",
-                  orderId: response.razorpay_order_id,
-                  paymentId: response.razorpay_payment_id,
-                },
+          // Redirect to success page with verification state
+          navigate(
+            `/student/payment-success?payment_id=${razorpay_payment_id}&order_id=${razorpay_order_id}&gateway=razorpay`,
+            {
+              state: {
+                paymentGateway: "RAZORPAY",
+                orderId: razorpay_order_id,
+                paymentId: razorpay_payment_id,
+                signature: razorpay_signature,
+                verifiedData,
+                verifyError,
               },
-            );
-          }, 1000);
+            },
+          );
         },
         prefill: {
           name: user.name || "",
@@ -382,6 +436,7 @@ export default function MakePayments() {
             });
             setLoading(false);
             isRequestInProgressRef.current = false;
+            isRazorpayVerifyingRef.current = false;
           },
         },
       };
@@ -427,6 +482,7 @@ export default function MakePayments() {
 
         setLoading(false);
         isRequestInProgressRef.current = false;
+        isRazorpayVerifyingRef.current = false;
       });
 
       rzp.open();
@@ -877,8 +933,9 @@ export default function MakePayments() {
           <div className="text-muted small">
             Due on{" "}
             <strong>
-                ? formatDate(installmentDetails.dueDate)
-                : "N/A"}
+                {installmentDetails.dueDate
+                  ? formatDate(installmentDetails.dueDate)
+                  : "N/A"}
             </strong>
           </div>
         </div>
@@ -912,10 +969,11 @@ export default function MakePayments() {
 
           {/* ====== GATEWAYS LOADING OR AUTO-REDIRECT ====== */}
           {gatewaysLoading ? (
-            <div className="text-center py-4">
-              <FaSpinner className="spin fa-2x text-primary" />
-              <p className="text-muted mt-2">Loading payment options...</p>
-            </div>
+            <Loading
+              size="md"
+              color="primary"
+              text="Loading Payment Options..."
+            />
           ) : availableGateways.length > 0 ? (
             // Show a Pay button for each available gateway (single or multiple)
             <>
@@ -1099,7 +1157,6 @@ export default function MakePayments() {
                   <p className="mb-3">
                     <strong>Paid At:</strong>{" "}
                     {formatDateTime(result.installment.paidAt)}
-                    )}
                   </p>
                 </div>
 

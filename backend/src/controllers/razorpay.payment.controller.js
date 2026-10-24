@@ -1,15 +1,9 @@
-const {
-  getRazorpayInstance,
-  getCollegeRazorpayConfig,
-} = require("../services/collegeRazorpay.service");
+const collegeRazorpayService = require("../services/collegeRazorpay.service");
 const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
 const College = require("../models/college.model");
 const Course = require("../models/course.model");
-const {
-  sendPaymentReceiptEmail,
-  sendPaymentFailureEmail,
-} = require("../services/email.service");
+const emailService = require("../services/email.service");
 const AppError = require("../utils/AppError");
 const crypto = require("crypto");
 const logger = require("../utils/logger");
@@ -34,10 +28,11 @@ async function processPaymentVerification(
         studentFeeId: studentFee._id,
         installmentId: installment._id,
       });
-      // Recalculate paidAmount to ensure consistency
+      // Recalculate paidAmount to ensure consistency and persist
       studentFee.paidAmount = studentFee.installments
         .filter((i) => i.status === "PAID")
         .reduce((sum, i) => sum + i.amount, 0);
+      await studentFee.save();
       return res.json({
         valid: true,
         alreadyPaid: true,
@@ -48,7 +43,11 @@ async function processPaymentVerification(
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
           status: installment.status,
+          paymentGateway: installment.paymentGateway || "RAZORPAY",
         },
+        totalFee: studentFee.totalFee,
+        paidAmount: studentFee.paidAmount,
+        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
       });
     }
 
@@ -61,10 +60,11 @@ async function processPaymentVerification(
         installmentId: installment._id,
         razorpayPaymentId: razorpay_payment_id,
       });
-      // Recalculate paidAmount
+      // Recalculate paidAmount and persist
       studentFee.paidAmount = studentFee.installments
         .filter((i) => i.status === "PAID")
         .reduce((sum, i) => sum + i.amount, 0);
+      await studentFee.save();
       return res.json({
         valid: true,
         alreadyPaid: true,
@@ -75,7 +75,11 @@ async function processPaymentVerification(
           paidAt: installment.paidAt,
           transactionId: installment.transactionId,
           status: "PAID",
+          paymentGateway: installment.paymentGateway || "RAZORPAY",
         },
+        totalFee: studentFee.totalFee,
+        paidAmount: studentFee.paidAmount,
+        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
       });
     }
 
@@ -182,17 +186,49 @@ async function processPaymentVerification(
     // 📧 Send payment confirmation email (non-blocking)
     (async () => {
       try {
+        const claimed = await StudentFee.findOneAndUpdate(
+          {
+            _id: studentFee._id,
+            installments: {
+              $elemMatch: {
+                _id: installment._id,
+                $or: [
+                  { receiptEmailSentAt: null },
+                  { receiptEmailSentAt: { $exists: false } },
+                ],
+              },
+            },
+          },
+          {
+            $set: {
+              "installments.$.receiptEmailSentAt": new Date(),
+            },
+          },
+          { new: true },
+        );
+
+        if (!claimed) {
+          logger.logInfo("ℹ️ Receipt email already claimed/sent - skipping", {
+            studentId: student._id,
+            installmentId: installment._id,
+          });
+          return;
+        }
+
         const college = await College.findById(student.college_id).select(
-          "name email",
+          "name email gstin state",
         );
         const course = await Course.findById(student.course_id).select("name");
 
-        await sendPaymentReceiptEmail({
+        await emailService.sendPaymentReceiptEmail({
           to: student.email,
           studentName: student.fullName,
           installment: {
             name: installment.name,
             amount: installment.amount,
+            baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : (installment.taxBreakdown?.taxableBase || installment.amount),
+            gstAmount: installment.gstAmount !== undefined ? installment.gstAmount : (installment.taxBreakdown?.totalTax || 0),
+            taxBreakdown: installment.taxBreakdown || null,
             paidAt: new Date(),
             transactionId: razorpay_payment_id,
           },
@@ -200,6 +236,7 @@ async function processPaymentVerification(
           paidAmount: paidAmount,
           remainingAmount: updatedStudentFee.totalFee - paidAmount,
           collegeId: student.college_id,
+          collegeGstin: college?.gstin || null,
         });
         logger.logInfo("✅ Payment receipt email sent", {
           studentId: student._id,
@@ -356,7 +393,7 @@ exports.createRazorpayOrder = async (req, res, next) => {
     // ⚠️ IMPORTANT: Get config FIRST to ensure we have keyId for all response paths
     let keyId;
     try {
-      const razorpayConfig = await getCollegeRazorpayConfig(collegeId);
+      const razorpayConfig = await collegeRazorpayService.getCollegeRazorpayConfig(collegeId);
       keyId = razorpayConfig.config.credentials.keyId;
       logger.logInfo("✅ [createRazorpayOrder] Razorpay config obtained", {
         keyId,
@@ -382,7 +419,7 @@ exports.createRazorpayOrder = async (req, res, next) => {
     // Now check for existing order (with keyId available)
     if (installment.razorpayOrderId) {
       try {
-        const razorpay = await getRazorpayInstance(collegeId);
+        const razorpay = await collegeRazorpayService.getRazorpayInstance(collegeId);
         const existingOrder = await razorpay.orders.fetch(
           installment.razorpayOrderId,
         );
@@ -440,7 +477,7 @@ exports.createRazorpayOrder = async (req, res, next) => {
     logger.logInfo("🔵 [createRazorpayOrder] Getting Razorpay instance");
     let razorpay;
     try {
-      razorpay = await getRazorpayInstance(collegeId);
+      razorpay = await collegeRazorpayService.getRazorpayInstance(collegeId);
       logger.logInfo("✅ [createRazorpayOrder] Razorpay instance obtained");
     } catch (razorpayInitError) {
       logger.logError(
@@ -802,16 +839,22 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
     }
 
     // Get college config for signature verification
-    const { keySecret } = await getCollegeRazorpayConfig(collegeId);
+    const { keySecret } = await collegeRazorpayService.getCollegeRazorpayConfig(collegeId);
 
-    // ✅ Verify payment signature
+    // ✅ Verify payment signature using timing-safe comparison
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSign = crypto
       .createHmac("sha256", keySecret)
       .update(sign.toString())
       .digest("hex");
 
-    if (razorpay_signature !== expectedSign) {
+    const sigBuf = Buffer.from(razorpay_signature, "utf8");
+    const expBuf = Buffer.from(expectedSign, "utf8");
+
+    if (
+      sigBuf.length !== expBuf.length ||
+      !crypto.timingSafeEqual(sigBuf, expBuf)
+    ) {
       logger.logError("❌ Payment signature verification failed", {
         orderId: razorpay_order_id,
         paymentId: razorpay_payment_id,
@@ -837,18 +880,19 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // ✅ OPTIMIZED: Directly query for installment with razorpayOrderId
-    // This is more efficient than loading all installments and filtering in JS
+    // ✅ OPTIMIZED: Directly query for installment with razorpayOrderId scoped by college_id
     logger.logInfo(
       "🔍 [verifyRazorpayPayment] Querying for installment with razorpayOrderId",
       {
         orderId: razorpay_order_id,
         studentId: student._id,
+        collegeId,
       },
     );
 
     const studentFee = await StudentFee.findOne({
       student_id: student._id,
+      college_id: collegeId,
       "installments.razorpayOrderId": razorpay_order_id,
     });
 
@@ -867,7 +911,7 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
       );
 
       try {
-        const razorpay = await getRazorpayInstance(collegeId);
+        const razorpay = await collegeRazorpayService.getRazorpayInstance(collegeId);
         const orderDetails = await razorpay.orders.fetch(razorpay_order_id);
 
         logger.logInfo(
@@ -887,9 +931,10 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
             },
           );
 
-          // Try to find fee record with matching installment name
+          // Try to find fee record with matching installment name scoped by college_id
           const fallbackFee = await StudentFee.findOne({
             student_id: student._id,
+            college_id: collegeId,
             "installments.name": installmentName,
           });
 
@@ -904,6 +949,30 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
             );
 
             if (fallbackInstallment) {
+              // Validate amount and currency
+              const expectedAmountInPaise = Math.round(
+                fallbackInstallment.amount * 100,
+              );
+              if (
+                orderDetails.amount !== expectedAmountInPaise ||
+                orderDetails.currency !== "INR"
+              ) {
+                logger.logError(
+                  "❌ [verifyRazorpayPayment] FALLBACK: Order amount or currency mismatch",
+                  {
+                    expectedAmount: expectedAmountInPaise,
+                    actualAmount: orderDetails.amount,
+                    expectedCurrency: "INR",
+                    actualCurrency: orderDetails.currency,
+                  },
+                );
+                throw new AppError(
+                  "Payment verification failed. Amount or currency mismatch.",
+                  400,
+                  "PAYMENT_AMOUNT_MISMATCH",
+                );
+              }
+
               logger.logInfo(
                 "🟢 [verifyRazorpayPayment] FALLBACK: Found installment, updating razorpayOrderId...",
               );
@@ -964,7 +1033,10 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
       }
 
       // Debug: Check if student has any fee record
-      const anyFee = await StudentFee.findOne({ student_id: student._id });
+      const anyFee = await StudentFee.findOne({
+        student_id: student._id,
+        college_id: collegeId,
+      });
       if (!anyFee) {
         logger.logError(
           "❌ [verifyRazorpayPayment] Student has NO fee record at all!",
@@ -1017,6 +1089,31 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
       installmentName: installment.name,
       status: installment.status,
     });
+
+    // Validate order amount and currency against Razorpay order
+    const razorpay = await collegeRazorpayService.getRazorpayInstance(collegeId);
+    const orderDetails = await razorpay.orders.fetch(razorpay_order_id);
+
+    const expectedAmountInPaise = Math.round(installment.amount * 100);
+    if (
+      orderDetails.amount !== expectedAmountInPaise ||
+      orderDetails.currency !== "INR"
+    ) {
+      logger.logError(
+        "❌ [verifyRazorpayPayment] Order amount or currency mismatch",
+        {
+          expectedAmount: expectedAmountInPaise,
+          actualAmount: orderDetails.amount,
+          expectedCurrency: "INR",
+          actualCurrency: orderDetails.currency,
+        },
+      );
+      throw new AppError(
+        "Payment verification failed. Amount or currency mismatch.",
+        400,
+        "PAYMENT_AMOUNT_MISMATCH",
+      );
+    }
 
     // Use helper function to process verification
     return processPaymentVerification(

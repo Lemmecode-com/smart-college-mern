@@ -18,6 +18,7 @@ const securityAuditService = require("../services/securityAudit.service");
 const AuditService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
 const DocumentService = require("../services/document.service");
+const { processCollegeLogo } = require("../utils/logoProcessor");
 
 exports.createCollege = async (req, res, next) => {
   try {
@@ -68,16 +69,22 @@ exports.createCollege = async (req, res, next) => {
     // 3️⃣ Upload logo to storage if provided
     let logoPath = null;
     let logoDocumentId = null;
+    let processedLogo = null;
     if (req.file) {
-      const storageService = getStorageProvider().getAdapter();
-      const uploadResult = await storageService.uploadFile(
+      processedLogo = await processCollegeLogo(
         req.file.buffer,
         req.file.originalname,
+        req.file.mimetype
+      );
+      const storageService = getStorageProvider().getAdapter();
+      const uploadResult = await storageService.uploadFile(
+        processedLogo.buffer,
+        processedLogo.originalName,
         "college-logo",
         {
-          originalName: req.file.originalname,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
+          originalName: processedLogo.originalName,
+          mimetype: processedLogo.mimeType,
+          size: processedLogo.size,
         }
       );
       logoPath = uploadResult.storagePath;
@@ -98,15 +105,15 @@ exports.createCollege = async (req, res, next) => {
     });
 
     // 5️⃣ Create Document records NOW that college exists
-    if (logoPath) {
+    if (logoPath && processedLogo) {
       const logoDocument = await DocumentService.createDocument({
         ownerType: "College",
         ownerId: college._id,
         documentType: "logo",
-        fileBuffer: req.file.buffer,
-        originalFileName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        size: req.file.size,
+        fileBuffer: processedLogo.buffer,
+        originalFileName: processedLogo.originalName,
+        mimeType: processedLogo.mimeType,
+        size: processedLogo.size,
         uploadedBy: req.user.id,
         category: "college-logo",
         storageKey: logoPath,
@@ -522,6 +529,7 @@ exports.getCollegeById = async (req, res, next) => {
         establishedYear: college.establishedYear,
         logo: college.logo,
         logoDocumentId: college.logoDocumentId,
+        logoUrl: college.logoDocumentId ? `/api/documents/${college.logoDocumentId}` : null,
         registrationUrl: college.registrationUrl,
         registrationQr: college.registrationQr,
         registrationQrDocumentId: college.registrationQrDocumentId,

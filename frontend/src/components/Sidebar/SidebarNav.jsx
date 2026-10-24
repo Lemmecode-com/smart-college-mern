@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useContext, useState, useEffect } from "react";
 import { AuthContext } from "../../auth/AuthContext";
 import api from "../../api/axios";
@@ -18,12 +18,14 @@ import SidebarSection, { SidebarSubItem } from "./SidebarSection";
 export default function SidebarNav({
   role,
   openSections,
+  setOpenSections,
   toggleSection,
   isMobileDevice,
   onClose,
   isCollapsed = false
 }) {
   const { user } = useContext(AuthContext);
+  const location = useLocation();
   const [children, setChildren] = useState([]);
   const [loadingChildren, setLoadingChildren] = useState(false);
 
@@ -49,6 +51,34 @@ export default function SidebarNav({
 
   // Get navigation config for current role
   const navigation = navigationConfig[role] || navigationConfig.COLLEGE_ADMIN;
+
+  useEffect(() => {
+    if (!navigation) return;
+
+    const expandedSection = navigation.sections.find(
+      (section) =>
+        section.items?.length > 1 &&
+        checkSectionActive(section, location.pathname),
+    );
+    const matchesNavigationRoute =
+      isActiveRoute(navigation.dashboard.path, location.pathname) ||
+      navigation.sections.some((section) =>
+        section.items?.some((item) =>
+          isActiveRoute(item.path, location.pathname),
+        ),
+      );
+
+    // Detail/edit routes opened from list actions are not menu entries.
+    // Keep the current dropdown in that case instead of closing every section.
+    if (!expandedSection && !matchesNavigationRoute) return;
+
+    const nextOpenSections = Object.fromEntries(
+      navigation.sections
+        .filter((section) => section.items?.length > 1)
+        .map((section) => [section.id, section.id === expandedSection?.id]),
+    );
+    setOpenSections(nextOpenSections);
+  }, [location.pathname, navigation, setOpenSections]);
 
   if (!navigation) return null;
 
@@ -80,66 +110,97 @@ export default function SidebarNav({
       {/* DASHBOARD LINK - COMMON FOR ALL ROLES */}
       <NavLink
         to={dashboard.path}
+        end={dashboard.exact ?? true}
         className={({ isActive }) =>
           `nav-link ${isActive ? "active-link" : ""}`
         }
         role="menuitem"
         aria-label={dashboard.label}
-        aria-current={isActiveRoute(dashboard.path) ? "page" : undefined}
         onClick={handleNavClick}
       >
-        <span className="nav-link-icon" aria-hidden="true">
-          <dashboard.icon />
-        </span>
-        <span className="nav-link-text">{dashboard.label}</span>
+        {({ isActive }) => (
+          <>
+            <span className="nav-link-icon" aria-hidden="true">
+              <dashboard.icon />
+            </span>
+            <span className="nav-link-text">
+              <span>{dashboard.label}</span>
+            </span>
+            <span className="sr-only">
+              {isActive ? "(current page)" : ""}
+            </span>
+          </>
+        )}
       </NavLink>
 
       {/* DYNAMIC SECTIONS BASED ON ROLE */}
-      {sections.map((section) => (
-        <SidebarSection
-          key={section.id}
-          title={section.title}
-          icon={section.icon}
-          isOpen={openSections[section.id]}
-          onToggle={() => toggleSection(section.id)}
-          sectionId={section.id}
-          isActive={checkSectionActive(section)}
-          isCollapsed={isCollapsed}
-        >
-           {section.items.map((item, index) => (
-             <SidebarSubItem
-               key={index}
-               to={resolvePath(item)}
-               icon={item.icon}
-               label={item.label}
-               exact={item.exact}
-               onClick={handleNavClick}
-             />
-           ))}
-        </SidebarSection>
+
+{sections.map((section) => {
+  const hasSingleItem = section.items?.length === 1;
+
+if (hasSingleItem) {
+  const item = section.items[0];
+
+  return (
+    <SidebarSubItem
+      key={section.id}
+      to={resolvePath(item)}
+      icon={item.icon}
+      label={item.label}
+      exact={item.exact}
+      onClick={handleNavClick}
+      className="sidebar-direct-link"
+    />
+  );
+}
+
+  return (
+    <SidebarSection
+      key={section.id}
+      title={section.title}
+      icon={section.icon}
+      isOpen={openSections[section.id]}
+      onToggle={() => toggleSection(section.id)}
+      sectionId={section.id}
+      isActive={checkSectionActive(section, location.pathname)}
+      isCollapsed={isCollapsed}
+    >
+      {section.items.map((item, index) => (
+        <SidebarSubItem
+          key={index}
+          to={resolvePath(item)}
+          icon={item.icon}
+          label={item.label}
+          exact={item.exact}
+          onClick={handleNavClick}
+        />
       ))}
+    </SidebarSection>
+  );
+})}
+
     </nav>
   );
 }
 
 /**
- * Check if current route matches or is a child of the target path
+ * Check if current route matches or is a child of the target path.
+ * Uses React Router's location (kept reactive across SPA navigations).
  * @param {string} path - Path to check (may contain dynamic segments like :id)
+ * @param {string} currentPath - Current pathname from useLocation()
  * @returns {boolean} True if route is active
  */
-function isActiveRoute(path) {
-  if (typeof window === 'undefined') return false;
-  
-  const currentPath = window.location.pathname;
-  
+function isActiveRoute(path, currentPath) {
+  if (!path) return false;
+
   // Exact match
   if (currentPath === path) return true;
-  
+
   // Handle dynamic routes (e.g., /subjects/course/:courseId)
   if (path.includes(':')) {
     return isDynamicRouteMatch(path, currentPath);
   }
-  
+
   // Check if current path starts with the target path (for child routes)
   return currentPath.startsWith(path + '/');
 }
@@ -147,14 +208,19 @@ function isActiveRoute(path) {
 /**
  * Check if any item in a section is active
  * @param {Object} section - Section object with items array
+ * @param {string} currentPath - Current pathname from useLocation()
  * @returns {boolean} True if section should be highlighted
  */
-function checkSectionActive(section) {
+function checkSectionActive(section, currentPath) {
   if (!section?.items || !Array.isArray(section.items)) {
     return false;
   }
-  
-  return section.items.some(item => isActiveRoute(item.path));
+
+  if (section.matchPath && isActiveRoute(section.matchPath, currentPath)) {
+    return true;
+  }
+
+  return section.items.some(item => isActiveRoute(item.path, currentPath));
 }
 
 /**

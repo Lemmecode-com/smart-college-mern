@@ -50,6 +50,12 @@ const collegeSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  gstin: {
+    type: String,
+    trim: true,
+    uppercase: true,
+    default: null,
+  },
   establishedYear: {
     type: Number,
     required: true,

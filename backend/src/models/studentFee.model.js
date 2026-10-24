@@ -22,6 +22,15 @@ const studentFeeSchema = new mongoose.Schema({
     required: true,
   },
 
+  baseFee: {
+    type: Number,
+  },
+
+  totalTax: {
+    type: Number,
+    default: 0,
+  },
+
   paidAmount: {
     type: Number,
     default: 0,
@@ -31,6 +40,15 @@ const studentFeeSchema = new mongoose.Schema({
     {
       name: String,
       amount: Number,
+      baseAmount: Number,
+      gstAmount: {
+        type: Number,
+        default: 0,
+      },
+      taxBreakdown: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
+      },
       order: {
         type: Number,
         default: 0,
@@ -136,6 +154,11 @@ const studentFeeSchema = new mongoose.Schema({
       razorpayPaymentId: {
         type: String,
         trim: true,
+      },
+
+      receiptEmailSentAt: {
+        type: Date,
+        default: null,
       },
 
       // Reminder tracking (original field)

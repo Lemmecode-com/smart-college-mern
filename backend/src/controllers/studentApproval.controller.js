@@ -159,7 +159,11 @@ exports.approveStudent = async (req, res, next) => {
         name: inst.name,
         amount: inst.amount,
         dueDate: inst.dueDate,
+        order: inst.order,
         status: "PENDING",
+        baseAmount: inst.baseAmount !== undefined ? inst.baseAmount : inst.amount,
+        gstAmount: inst.gstAmount !== undefined ? inst.gstAmount : 0,
+        taxBreakdown: inst.taxBreakdown ? { ...inst.taxBreakdown } : null,
       }));
 
       studentFee = await StudentFee.create({
@@ -167,6 +171,8 @@ exports.approveStudent = async (req, res, next) => {
         college_id: student.college_id,
         course_id: student.course_id,
         totalFee: feeStructure.totalFee,
+        baseFee: feeStructure.baseFee !== undefined ? feeStructure.baseFee : feeStructure.totalFee,
+        totalTax: feeStructure.totalTax !== undefined ? feeStructure.totalTax : 0,
         paidAmount: 0,
         installments,
       });
