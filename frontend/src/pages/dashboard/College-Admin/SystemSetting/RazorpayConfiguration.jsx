@@ -4,6 +4,7 @@ import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import { logger } from "../../../../utils/logger";
 import ApiError from "../../../../components/ApiError";
+import PageHeader from "../../../../components/PageHeader";
 import {
   FaCreditCard,
   FaArrowLeft,
@@ -362,68 +363,93 @@ const RazorpayConfiguration = () => {
 
   return (
     <div className="razorpay-config-page">
-    <header className="rp-header">
-      <div className="rp-heading">
-        <span className="rp-heading-icon" aria-hidden="true">
-          <FaCreditCard />
-        </span>
-        <div>
-          <h1>Razorpay Configuration</h1>
-          <p>Manage payment credentials, mode, and webhook settings.</p>
-        </div>
-      </div>
-      <div className="rp-header-actions">
-        <div className="rp-status-list" aria-label="Gateway status">
-          <span
-            className={`rp-status ${isGatewayActive ? "rp-status--active" : "rp-status--disabled"}`}
-          >
-            {isGatewayActive ? <FaCheckCircle /> : <FaToggleOff />}
-            {isGatewayActive ? "Active" : "Disabled"}
-          </span>
-          {config && (
+    <PageHeader
+      className="rp-page-header"
+      icon={FaCreditCard}
+      title="Razorpay Configuration"
+      subtitle="Manage payment credentials, mode, and webhook settings."
+      actions={
+        <>
+          <div className="rp-header-actions">
             <span
-              className={`rp-status ${formData.testMode ? "rp-status--test" : "rp-status--live"}`}
+              className={`rp-status ${isGatewayActive ? "rp-status--active" : "rp-status--disabled"}`}
             >
-              {formData.testMode ? <FaFlask /> : <FaRocket />}
-              {formData.testMode ? "Test Mode" : "Live Mode"}
+              {isGatewayActive ? <FaCheckCircle /> : <FaToggleOff />}
+              {isGatewayActive ? "Active" : "Disabled"}
             </span>
-          )}
-        </div>
-        <button
-          className={`btn ${isGatewayActive ? "btn-outline-danger" : "btn-success"}`}
-          onClick={handleToggleGateway}
-          disabled={toggling}
-        >
-          {toggling ? (
-            <FaSpinner className="spin me-1" />
-          ) : isGatewayActive ? (
-            <FaToggleOff className="me-1" />
-          ) : (
-            <FaToggleOn className="me-1" />
-          )}
-          {isGatewayActive ? "Disable" : "Enable"}
-        </button>
-        <button
-          className="btn btn-outline-secondary"
-          onClick={() => navigate(-1)} 
-        >
-          <FaArrowLeft className="me-1"/>
-          Back
-        </button>
-      </div>
+            {config && (
+              <span
+                className={`rp-status ${formData.testMode ? "rp-status--test" : "rp-status--live"}`}
+              >
+                {formData.testMode ? <FaFlask /> : <FaRocket />}
+                {formData.testMode ? "Test Mode" : "Live Mode"}
+              </span>
+            )}
+          </div>
+          <button
+            className={`btn ${isGatewayActive ? "btn-danger" : "btn-success"}`}
+            
+            onClick={handleToggleGateway}
+            disabled={toggling}
+          >
+            {toggling ? (
+              <FaSpinner className="spin me-1" />
+            ) : isGatewayActive ? (
+              <FaToggleOff className="me-1" />
+            ) : (
+              <FaToggleOn className="me-1" />
+            )}
+            {isGatewayActive ? "Disable" : "Enable"}
+          </button>
+          <button
+            className="btn btn-outline-light"
+            onClick={() => navigate(-1)}
+            style={{
+                    minHeight: "40px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "8px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                >
+
+          
+            <FaArrowLeft className="me-1" />
+            Back
+          </button>
+        </>
+      }
+    />
       {showWebhookWarning && (
         <div
-          className="alert alert-warning py-2 px-3 mb-0 small d-flex align-items-center gap-2"
+          className="alert alert-warning rp-webhook-warning py-2 px-3 mb-4 small d-flex align-items-center gap-2"
           data-testid="webhook-warning-header"
         >
           <FaExclamationTriangle className="flex-shrink-0" />
           <span>{WEBHOOK_LOCALHOST_WARNING_MESSAGE}</span>
         </div>
       )}
-    </header>
 
     {isGatewayActive ? (
-      <div className="rp-content-grid">
+      <div className={`rp-content-grid ${config ? "" : "rp-content-grid--unconfigured"}`}>
         <section className="card rp-card">
           <div className="card-body">
             <h2 className="rp-card-heading">

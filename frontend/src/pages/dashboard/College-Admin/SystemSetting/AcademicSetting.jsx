@@ -4,12 +4,12 @@ import {
   FaClipboardCheck,
   FaStar,
   FaClock,
-  FaSave,
   FaUndo,
   FaInfoCircle,
   FaCheck,
 } from "react-icons/fa";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 
 const AcademicSetting = () => {
   const [formData, setFormData] = useState({
@@ -39,6 +39,7 @@ const AcademicSetting = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isModified, setIsModified] = useState(false);
+  const [activeSection, setActiveSection] = useState("attendance");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1484,6 +1485,374 @@ const AcademicSetting = () => {
     font-size: 0.64rem;
   }
 }
+
+  .academic-settings-page {
+    min-height: auto;
+    padding: 12px 20px 92px;
+    background: #f3f6fa;
+    font-family: inherit;
+    color: #18313c;
+  }
+
+  .academic-settings-page .academic-settings-page-header {
+    min-height: 82px;
+    margin: 0 0 14px;
+    border-radius: 12px;
+    background: #0e3746;
+    box-shadow: 0 4px 14px rgba(14, 55, 70, 0.16);
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-content {
+    min-height: 82px;
+    padding: 14px 20px;
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-main {
+    gap: 14px;
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    background: rgba(255, 255, 255, 0.14);
+    font-size: 20px;
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-title {
+    font-size: 21px;
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-subtitle {
+    margin-top: 3px;
+    font-size: 0.82rem;
+  }
+
+  .as-section-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    margin-bottom: 12px;
+    padding: 4px;
+    border: 1px solid #dce7eb;
+    border-radius: 10px;
+    background: #fff;
+    scrollbar-width: thin;
+  }
+
+  .as-section-tab {
+    display: inline-flex;
+    flex: 1 0 auto;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 7px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #536a75;
+    font-size: 0.86rem;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+
+  .as-section-tab:hover {
+    border: 1px solid #9dcbd0;
+    background: #eaf5f6;
+    color: #0e3746;
+  }
+
+  .as-section-tab.is-active {
+    background: #0e3746;
+    color: #fff;
+    box-shadow: inset 0 0 0 1px #168b9a;
+  }
+
+  .as-section-tab.is-active svg {
+    color: #fff;
+  }
+
+  .settings-grid {
+    display: block;
+    margin: 0;
+  }
+
+  .academic-settings-page .settings-card,
+  .academic-settings-page .card-attendance,
+  .academic-settings-page .card-grading,
+  .academic-settings-page .card-session {
+    border: 1px solid #d6e0e8;
+    border-top: 1px solid #d6e0e8;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(14, 55, 70, 0.08);
+  }
+
+  .academic-settings-page .settings-card:hover {
+    transform: none;
+    box-shadow: 0 4px 14px rgba(14, 55, 70, 0.08);
+  }
+
+  .academic-settings-page .as-section-hidden {
+    display: none;
+  }
+
+  .academic-settings-page .card-header-custom {
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #dce7eb;
+    background: #f4f8fa;
+  }
+
+  .academic-settings-page .card-icon-wrapper {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 50%;
+    background: #0e3746;
+    color: #fff;
+    box-shadow: none;
+  }
+
+  .academic-settings-page .card-icon-wrapper .card-icon {
+    color: #fff;
+    font-size: 0.95rem;
+  }
+
+  .academic-settings-page .card-attendance,
+  .academic-settings-page .card-grading,
+  .academic-settings-page .card-session {
+    border-top: 3px solid #168b9a;
+  }
+
+  .academic-settings-page .card-title {
+    margin: 0;
+    color: #0f3a4a;
+    font-size: 0.98rem;
+  }
+
+  .academic-settings-page .card-body-custom {
+    padding: 14px 16px 16px;
+  }
+
+  .academic-settings-page .badge-info {
+    margin-bottom: 12px;
+    padding: 0;
+    background: none;
+    color: #647985;
+    font-size: 0.78rem;
+  }
+
+  .academic-settings-page .form-row,
+  .academic-settings-page .form-row-4 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    min-width: 0;
+    gap: 12px 16px;
+    margin-bottom: 4px;
+  }
+
+  .academic-settings-page .settings-grid,
+  .academic-settings-page .settings-card,
+  .academic-settings-page .card-body-custom,
+  .academic-settings-page .form-group,
+  .academic-settings-page .input-wrapper,
+  .academic-settings-page .select-wrapper {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .academic-settings-page .settings-card {
+    width: 100%;
+  }
+
+  .academic-settings-page .form-group {
+    margin-bottom: 8px;
+  }
+
+  .academic-settings-page .form-label {
+    min-width: 0;
+    min-height: 0;
+    margin-bottom: 5px;
+    color: #314d58;
+    font-size: 0.81rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+  }
+
+  .academic-settings-page .form-input,
+  .academic-settings-page .form-select {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 39px;
+    padding: 7px 10px;
+    box-sizing: border-box;
+    border: 1px solid #cbd9df;
+    border-radius: 7px;
+    background-color: #fff;
+    color: #18313c;
+    font-size: 0.84rem;
+  }
+
+  .academic-settings-page .form-input:focus,
+  .academic-settings-page .form-select:focus {
+    border-color: #168b9a;
+    box-shadow: 0 0 0 3px rgba(22, 139, 154, 0.12);
+    outline: 0;
+  }
+
+  .academic-settings-page .form-hint {
+    display: block;
+    min-height: 0;
+    margin-top: 4px;
+    color: #647985;
+    font-size: 0.74rem;
+  }
+
+  .academic-settings-page .input-suffix {
+    right: 2.15rem;
+    color: #647985;
+    font-size: 0.75rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .academic-settings-page .input-wrapper .form-input {
+    padding-right: 4.35rem;
+  }
+
+  .academic-settings-page .select-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .academic-settings-page .form-select {
+    padding-right: 2.75rem;
+    background-position: right 0.75rem center;
+    text-overflow: ellipsis;
+  }
+
+  .academic-settings-page .form-hint {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .academic-settings-page .form-label {
+    color: #233f4a;
+  }
+
+  .academic-settings-page .form-input,
+  .academic-settings-page .form-select {
+    border-color: #b9cbd3;
+  }
+
+  .as-action-bar {
+    position: sticky;
+    z-index: 5;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: 14px -20px -92px;
+    padding: 10px 20px;
+    border-top: 1px solid #dce7eb;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 -3px 12px rgba(15, 58, 74, 0.06);
+  }
+
+  .as-save-state {
+    color: #647985;
+    font-size: 0.82rem;
+  }
+
+  .as-action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .as-action-bar .btn-reset,
+  .as-action-bar .btn-save {
+    min-height: 38px;
+    padding: 7px 13px;
+    border: 1px solid #cbd9df;
+    border-radius: 7px;
+    background: #fff;
+    color: #314d58;
+    font-size: 0.82rem;
+    box-shadow: none;
+  }
+
+  .as-action-bar .btn-save {
+    border-color: #0e3746;
+    background: #0e3746;
+    color: #fff;
+  }
+
+  .as-action-bar .btn-save:hover:not(:disabled) {
+    border-color: #168b9a;
+    background: #125063;
+  }
+
+  .as-action-bar .btn-reset:hover:not(:disabled) {
+    border-color: #168b9a;
+    background: #eaf5f6;
+    color: #0e3746;
+  }
+
+  .as-action-bar .btn-save:disabled,
+  .as-action-bar .btn-reset:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  @media (max-width: 600px) {
+    .academic-settings-page {
+      padding: 10px 12px 84px;
+    }
+
+    .academic-settings-page .academic-settings-page-header .standard-page-header-content {
+      padding: 12px 14px;
+    }
+
+    .academic-settings-page .academic-settings-page-header .standard-page-header-title {
+      font-size: 18px;
+    }
+
+    .academic-settings-page .academic-settings-page-header .standard-page-header-subtitle {
+      font-size: 0.76rem;
+    }
+
+    .academic-settings-page .card-body-custom {
+      padding: 12px;
+    }
+
+    .academic-settings-page .form-row,
+    .academic-settings-page .form-row-4 {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2px;
+    }
+
+    .as-action-bar {
+      margin: 14px -12px -84px;
+      padding: 9px 12px;
+    }
+
+    .as-save-state {
+      font-size: 0.72rem;
+    }
+
+    .as-action-bar .btn-reset,
+    .as-action-bar .btn-save {
+      padding: 7px 10px;
+      font-size: 0.76rem;
+    }
+  }
       `}</style>
 
       <div className="academic-settings-page" style={{ paddingTop: "0.5rem" }}>
@@ -1507,69 +1876,36 @@ const AcademicSetting = () => {
           </div>
         </div>
 
-        {/* ================= PAGE HEADER ================= */}
-        <div className="settings-header">
-          <div className="header-content">
-            <div className="header-icon-wrapper">
-              <FaBookOpen className="header-icon" />
-            </div>
-            <div className="header-text">
-              <h2 className="settings-title">Academic Settings</h2>
-              <p className="settings-subtitle">
-                Configure academic rules, attendance policies, grading, and
-                session management
-              </p>
-            </div>
-          </div>
-          <div className="header-actions">
-            <button
-              className="btn-reset"
-              onClick={handleReset}
-              disabled={isSaving || !isModified}
-            >
-              <FaUndo className="btn-icon" />
-              <span>Reset</span>
-            </button>
-            <button
-              className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
-              onClick={handleSave}
-              disabled={isSaving || !isModified}
-            >
-              {isSaving ? (
-                <>
-                  <span className="spinner-icon" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <FaCheck className="btn-icon" />
-                  <span>Save Changes</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+        <PageHeader
+          className="academic-settings-page-header"
+          icon={FaBookOpen}
+          title="Academic Settings"
+          subtitle="Manage institution-wide academic policies"
+        />
 
-        {/* ================= OVERVIEW ================= */}
-        <div className="as-info-card">
-          <div className="as-info-card-icon">
-            <FaInfoCircle />
-          </div>
-          <div className="as-info-card-content">
-            <h3 className="as-info-card-title">
-              Manage core academic policies from one place
-            </h3>
-            <p className="as-info-card-text">
-              Define attendance, grading, and session/timetable rules that apply
-              across the institution. Changes are applied globally once saved.
-            </p>
-          </div>
-        </div>
+        <nav className="as-section-tabs" aria-label="Academic settings sections">
+          {[
+            { id: "attendance", label: "Attendance", icon: <FaClipboardCheck /> },
+            { id: "grading", label: "Grading", icon: <FaStar /> },
+            { id: "sessions", label: "Sessions & Timetable", icon: <FaClock /> },
+          ].map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={`as-section-tab ${activeSection === section.id ? "is-active" : ""}`}
+              aria-pressed={activeSection === section.id}
+              onClick={() => setActiveSection(section.id)}
+            >
+              {section.icon}
+              {section.label}
+            </button>
+          ))}
+        </nav>
 
         {/* ================= SETTINGS CARDS ================= */}
         <div className="settings-grid">
           {/* ================= ATTENDANCE RULES ================= */}
-          <div className="settings-card card-attendance">
+          <div className={`settings-card card-attendance ${activeSection !== "attendance" ? "as-section-hidden" : ""}`}>
             <div className="card-header-custom">
               <div className="card-icon-wrapper icon-attendance">
                 <FaClipboardCheck className="card-icon" />
@@ -1712,7 +2048,7 @@ const AcademicSetting = () => {
           </div>
 
           {/* ================= GRADING RULES ================= */}
-          <div className="settings-card card-grading">
+          <div className={`settings-card card-grading ${activeSection !== "grading" ? "as-section-hidden" : ""}`}>
             <div className="card-header-custom">
               <div className="card-icon-wrapper icon-grading">
                 <FaStar className="card-icon" />
@@ -1826,7 +2162,7 @@ const AcademicSetting = () => {
           </div>
 
           {/* ================= SESSION & TIMETABLE ================= */}
-          <div className="settings-card card-session">
+          <div className={`settings-card card-session ${activeSection !== "sessions" ? "as-section-hidden" : ""}`}>
             <div className="card-header-custom">
               <div className="card-icon-wrapper icon-session">
                 <FaClock className="card-icon" />
@@ -1967,19 +2303,38 @@ const AcademicSetting = () => {
           </div>
         </div>
 
-        {/* ================= MODIFIED INDICATOR ================= */}
-        {isModified && (
-          <div className="modified-indicator">
-            <div className="indicator-content">
-              <FaInfoCircle className="indicator-icon" />
-              <span>You have unsaved changes</span>
-            </div>
-            <button className="btn-save-small" onClick={handleSave}>
-              <FaSave className="btn-icon-small" />
-              <span>Save Now</span>
+        <div className="as-action-bar">
+          <span className="as-save-state">
+            {isModified ? "Unsaved changes" : "All changes saved"}
+          </span>
+          <div className="as-action-buttons">
+            <button
+              className="btn-reset"
+              onClick={handleReset}
+              disabled={isSaving || !isModified}
+            >
+              <FaUndo className="btn-icon" />
+              <span>Reset</span>
+            </button>
+            <button
+              className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
+              onClick={handleSave}
+              disabled={isSaving || !isModified}
+            >
+              {isSaving ? (
+                <>
+                  <span className="spinner-icon" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <FaCheck className="btn-icon" />
+                  <span>Save Changes</span>
+                </>
+              )}
             </button>
           </div>
-        )}
+        </div>
       </div>
     </>
   );
