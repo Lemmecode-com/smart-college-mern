@@ -874,6 +874,7 @@ if (
                                {activeTab === "archived" && isHOD && t.status === "ARCHIVED" && (
                                  <ActionIconButton
                                    icon={unarchivingId === t._id ? FaSyncAlt : FaUnlock}
+                                   iconClassName="timetable-action-icon"
                                    ariaLabel={`Unarchive timetable ${t.name || ""}`}
                                    tooltip="Unarchive timetable"
                                    onClick={() => showUnarchiveConfirm(t._id)}
@@ -900,6 +901,7 @@ if (
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
                                 <ActionIconButton
                                   icon={publishingId === t._id ? FaSyncAlt : FaCheckCircle}
+                                  iconClassName="timetable-action-icon"
                                   ariaLabel={`Publish timetable ${t.name || ""}`}
                                   tooltip="Publish timetable"
                                   onClick={() => showPublishConfirm(t._id)}
@@ -953,6 +955,7 @@ if (
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
                                 <ActionIconButton
                                   icon={deletingId === t._id ? FaSyncAlt : FaTrash}
+                                  iconClassName="timetable-action-icon"
                                   ariaLabel={`Delete timetable ${t.name || ""}`}
                                   tooltip="Delete timetable"
                                   onClick={() => showDeleteConfirm(t._id)}

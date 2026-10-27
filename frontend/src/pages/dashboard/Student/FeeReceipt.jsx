@@ -183,7 +183,9 @@ if (authLoading) {
     const fetchReceipt = async () => {
       fetchIdRef.current += 1;
       const currentFetchId = fetchIdRef.current;
-      const toastId = toast.loading("Loading receipt...");
+      const toastId = `fee-receipt-loading-${paymentId}`;
+      toast.loading("Loading receipt...", { toastId });
+      let errorToastShown = false;
 
       try {
         if (!paymentId) {
@@ -191,7 +193,6 @@ if (authLoading) {
         }
 
         if (currentFetchId !== fetchIdRef.current) {
-          toast.dismiss(toastId);
           return;
         }
 
@@ -203,7 +204,6 @@ if (authLoading) {
         const res = await api.get(endpoint);
 
         if (currentFetchId !== fetchIdRef.current) {
-          toast.dismiss(toastId);
           return;
         }
 
@@ -224,7 +224,6 @@ if (authLoading) {
         toast.dismiss(toastId);
       } catch (err) {
         if (currentFetchId !== fetchIdRef.current) {
-          toast.dismiss(toastId);
           return;
         }
 
@@ -279,13 +278,15 @@ if (authLoading) {
             isLoading: false,
             autoClose: 5000,
           });
+          errorToastShown = true;
         } else {
           toast.dismiss(toastId);
         }
       } finally {
-        if (currentFetchId !== fetchIdRef.current) return;
-        setLoading(false);
-        toast.dismiss(toastId);
+        if (currentFetchId === fetchIdRef.current) {
+          setLoading(false);
+          if (!errorToastShown) toast.dismiss(toastId);
+        }
       }
     };
 
