@@ -4,8 +4,9 @@
   --rp-ink: #18313c;
   --rp-muted: #647985;
   --rp-line: #dce7eb;
-  width: min(100%, 1440px);
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 24px clamp(16px, 3vw, 36px) 36px;
   color: var(--rp-ink);
 }

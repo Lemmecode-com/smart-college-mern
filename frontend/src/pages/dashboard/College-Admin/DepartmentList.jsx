@@ -806,7 +806,9 @@ export default function DepartmentList() {
   const showStudents = width >= 992;
 
   return (
+    
     <div
+    className="department-list-responsive"
       style={{
         background: T.bg,
         minHeight: "100vh",
@@ -816,8 +818,49 @@ export default function DepartmentList() {
         transform: mounted ? "translateY(0)" : "translateY(8px)",
         transition: "opacity 0.4s ease, transform 0.4s ease",
       }}
+      
     >
-      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0.5rem 1.5rem 1.5rem" }}>
+      <style>{`
+  /* Department List page only */
+  .department-list-responsive {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .department-list-responsive * {
+    box-sizing: border-box;
+  }
+
+  /* Tablet */
+  @media (max-width: 991.98px) {
+    .department-list-responsive > div {
+      min-width: 0;
+    }
+  }
+
+  /* Mobile */
+  @media (max-width: 575.98px) {
+    .department-list-responsive {
+      padding: 0;
+    }
+
+    .department-list-responsive > div {
+      padding: 0.5rem 0.75rem 1rem !important;
+      width: 100%;
+      max-width: 100%;
+    }
+  }
+`}</style>
+<div
+  style={{
+    width: "100%",
+    maxWidth: "none",
+    margin: "0 auto",
+    padding: "0.5rem clamp(0.75rem, 2vw, 1.5rem) 1.5rem",
+    boxSizing: "border-box",
+  }}
+>
 
         {/* ================= BREADCRUMB ================= */}
           <div
@@ -1047,53 +1090,53 @@ export default function DepartmentList() {
 
         {/* ================= STANDARD DEPARTMENT LIST ================= */}
 
-<StandardListView
-  title="Department List"
-  icon={FaBuilding}
-  count={filteredDepartments.length}
-  columns={columns}
-  data={currentItems}
-  loading={false}
-  emptyState={{
-    icon: FaBuilding,
-    title: "No Departments Found",
-    description: hasActiveFilters
-      ? "Try adjusting your filters or search criteria."
-      : "No departments available in the system.",
+          <StandardListView
+            title="Department List"
+            icon={FaBuilding}
+            count={filteredDepartments.length}
+            columns={columns}
+            data={currentItems}
+            loading={false}
+            emptyState={{
+              icon: FaBuilding,
+              title: "No Departments Found",
+              description: hasActiveFilters
+                ? "Try adjusting your filters or search criteria."
+                : "No departments available in the system.",
 
-    action: hasActiveFilters
-      ? {
-          label: "Clear Filters",
-          icon: FaTimes,
-          onClick: resetFilters,
-        }
-      : canCreate("departments")
-      ? {
-          label: "Add Department",
-          icon: FaPlus,
-          onClick: () =>
-            navigate("/departments/add"),
-        }
-      : null,
-  }}
-/>
+              action: hasActiveFilters
+                ? {
+                    label: "Clear Filters",
+                    icon: FaTimes,
+                    onClick: resetFilters,
+                  }
+                : canCreate("departments")
+                ? {
+                    label: "Add Department",
+                    icon: FaPlus,
+                    onClick: () =>
+                      navigate("/departments/add"),
+                  }
+                : null,
+            }}
+          />
 
-{filteredDepartments.length > 0 && (
-  <div >
-    {/* <div className="department-list-showing">
-      Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
-      {filteredDepartments.length} departments
-    </div> */}
+          {filteredDepartments.length > 0 && (
+            <div >
+              {/* <div className="department-list-showing">
+                Showing {Math.min(indexOfLastItem, filteredDepartments.length)} of{" "}
+                {filteredDepartments.length} departments
+              </div> */}
 
-    <Pagination
-      page={currentPage}
-      totalPages={totalPages}
-      setPage={setCurrentPage}
-    />
-  </div>
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
+            </div>
 
-  
-)}
+            
+          )}
 
 
 
@@ -1204,7 +1247,10 @@ export default function DepartmentList() {
         isLoading={lifecycleModal.loading}
       />
     </div>
+    
   );
+  
+
 }
 
 const thStyle = (width) => ({

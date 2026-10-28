@@ -1517,7 +1517,9 @@ export default function CreateFeeStructure() {
 @media (min-width: 769px) and (max-width: 991px) {
 
   .erp-container {
-    padding: 1.25rem;
+    padding: 0.75rem;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   /* Banner */
@@ -1558,12 +1560,34 @@ export default function CreateFeeStructure() {
   }
 
   /* Form */
+  .erp-container .erp-form-card,
+  .erp-container .erp-form,
+  .erp-container .erp-form-section,
+  .erp-container .erp-row,
+  .erp-container .erp-form-group {
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
   .erp-form-header {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 
   .erp-form {
-    padding: 1.5rem;
+    padding: 1rem;
+  }
+
+  .erp-container .erp-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .erp-container .erp-col-12,
+  .erp-container .erp-col-6,
+  .erp-container .erp-col-4,
+  .erp-container .erp-col-3,
+  .erp-container .erp-col-2 {
+    grid-column: 1 / -1;
   }
 
   .erp-form-title h3 {
@@ -1581,11 +1605,29 @@ export default function CreateFeeStructure() {
 
   /* Installments */
   .installment-row {
-    padding: 1rem;
+    padding: 0.75rem;
   }
 
   .erp-form-footer {
-    padding: 1.5rem;
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  .erp-container .erp-row {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .erp-container .erp-col-12 { grid-column: span 6; }
+  .erp-container .erp-col-6,
+  .erp-container .erp-col-4 { grid-column: span 3; }
+  .erp-container .erp-col-3,
+  .erp-container .erp-col-2 { grid-column: span 2; }
+
+  .erp-container .erp-form-group,
+  .erp-container .erp-input-group {
+    min-width: 0;
   }
 }
 

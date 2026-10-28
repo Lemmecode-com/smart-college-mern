@@ -764,6 +764,7 @@ const tableActions = {
 {/* ================= STANDARD STUDENT LIST ================= */}
 
 <StandardListView
+  className="pending-approvals-list"
   title="Awaiting Your Review"
   icon={FaClock}
   count={filteredStudents.length}
@@ -1267,8 +1268,7 @@ const tableActions = {
         /* ---------- TOOLBAR ---------- */
         .erp-toolbar-card {
           margin-bottom: 1rem;
-        }
-
+      }
         .erp-toolbar {
           display: flex;
           align-items: center;
@@ -2261,6 +2261,127 @@ const tableActions = {
   .erp-pagination {
     padding: 1rem 0.5rem;
     overflow-x: auto;
+  }
+}
+
+@media (max-width: 1400px) {
+  .pending-approvals-list .standard-table-container {
+    overflow-x: hidden;
+  }
+
+  .pending-approvals-list .standard-table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    table-layout: auto;
+  }
+
+  .pending-approvals-list .standard-table thead {
+    display: none;
+  }
+
+  .pending-approvals-list .standard-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .pending-approvals-list .standard-table tbody tr {
+    display: block;
+    width: auto;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    border: 1px solid #e4ebf1;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 58, 74, 0.06);
+  }
+
+  .pending-approvals-list .standard-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .pending-approvals-list .standard-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(82px, 30%) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 8px 0;
+    border-bottom: 1px solid #edf2f6;
+    overflow-wrap: anywhere;
+  }
+
+  .pending-approvals-list .standard-table tbody td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .pending-approvals-list .standard-table tbody .standard-selection-cell {
+    display: grid;
+    grid-template-columns: minmax(82px, 30%) minmax(0, 1fr);
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .pending-approvals-list .standard-table tbody td.standard-selection-cell::before {
+    content: "Select";
+  }
+
+  .pending-approvals-list .standard-selection-cell input {
+    justify-self: end;
+    flex: 0 0 auto;
+    margin: 0 4px;
+  }
+
+  .pending-approvals-list .student-info {
+    min-width: 0;
+    align-items: flex-start;
+  }
+
+  .pending-approvals-list .student-info-text,
+  .pending-approvals-list .student-name-cell,
+  .pending-approvals-list .student-email {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .pending-approvals-list .student-email {
+    white-space: normal;
+  }
+
+  .pending-approvals-list .student-status-cell {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .pending-approvals-list .standard-table tbody td.standard-table-actions-cell {
+    grid-template-columns: minmax(88px, 30%) minmax(0, 1fr);
+    text-align: left;
+  }
+
+  .pending-approvals-list .standard-table-actions {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .pending-approvals-list .standard-table-actions .standard-action-btn {
+    flex: 0 0 31px;
+    width: 31px !important;
+    min-width: 31px !important;
+    max-width: 31px;
+    padding: 0 !important;
   }
 }
       `}</style>

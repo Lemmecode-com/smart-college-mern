@@ -741,17 +741,24 @@
    RESPONSIVE
    ========================================================= */
 
+/* =========================================================
+   RESPONSIVE STANDARD LIST VIEW
+   Preserve desktop layout; adapt header and table for smaller screens
+   ========================================================= */
+
 @media (max-width: 1024px) {
   .standard-list-header {
-    align-items: flex-start;
+    align-items: center;
+    gap: 1rem;
   }
 
   .standard-list-search {
     width: 300px;
   }
 
+  /* Keep the table readable and scroll within its container */
   .standard-table {
-    min-width: 850px;
+    min-width: 700px;
   }
 }
 
@@ -762,16 +769,31 @@
     gap: 0.85rem;
   }
 
+  .standard-list-header-left {
+    width: 100%;
+  }
+
   .standard-list-header-right {
     width: 100%;
+    min-width: 0;
   }
 
   .standard-list-search {
     width: 100%;
   }
 
+  .standard-list-search input {
+    width: 100%;
+  }
+
   .standard-table {
     min-width: 700px;
+  }
+
+  .standard-table-container {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -787,22 +809,67 @@
   .standard-list-header-icon {
     width: 38px;
     height: 38px;
-
     font-size: 0.95rem;
+  }
+
+  .standard-list-title-row {
+    gap: 0.4rem;
   }
 
   .standard-list-title-row h3 {
     font-size: 0.88rem;
   }
 
+  .standard-list-count {
+    font-size: 0.68rem;
+  }
+
   .standard-table {
-    min-width: 650px;
+    min-width: 700px;
+  }
+
+  .standard-table thead th,
+  .standard-table tbody td {
+    padding: 0.7rem 0.75rem;
   }
 
   .standard-empty-state {
     padding: 3rem 1.25rem;
   }
 }
+/* Keep action buttons together inside their table cell */
+.standard-table-actions-cell {
+  white-space: nowrap;
+}
+
+.standard-table-actions {
+  flex-wrap: nowrap;
+  min-width: max-content;
+}
+
+/* Prevent table content from forcing the page wider */
+.standard-table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.standard-table {
+  width: 100%;
+  min-width: 700px;
+  table-layout: fixed;
+}
+
+/* Keep selection controls at a consistent size */
+.standard-selection-header,
+.standard-selection-cell {
+  width: 52px;
+  min-width: 52px;
+}
+
+
+
 
 
 

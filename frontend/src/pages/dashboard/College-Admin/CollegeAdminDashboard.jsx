@@ -352,7 +352,7 @@ if (loading) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="erp-page erp-viewport-min-100"
+        className="erp-page erp-viewport-min-100 college-admin-dashboard"
         style={{ background: "var(--bg-gradient)" }}
       >
         {/* Main Container - Centered with max-width for better readability */}

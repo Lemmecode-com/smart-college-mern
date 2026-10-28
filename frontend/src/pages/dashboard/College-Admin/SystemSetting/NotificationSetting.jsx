@@ -1443,6 +1443,35 @@ const NotificationSetting = () => {
     bottom: 0.5rem;
   }
 }
+
+@media (max-width: 300px) {
+  .channels-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .channel-card {
+    padding: 0.75rem;
+  }
+
+  .channel-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .channel-status {
+    margin-left: auto;
+  }
+
+  .channel-name,
+  .channel-description {
+    overflow-wrap: anywhere;
+  }
+
+  .settings-card,
+  .card-body-custom {
+    min-width: 0;
+  }
+}
       `}</style>
 
       <div className="notification-settings-page" style={{ paddingTop: "0.5rem" }}>

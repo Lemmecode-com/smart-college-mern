@@ -637,7 +637,7 @@ const renderPagination = () => {
   if (!pagination || pagination.pages <= 1) return null;
 
   return (
-    <div style={{ marginTop: "2rem", marginBottom: "24px" }}>
+    <div className="audit-pagination-wrapper" style={{ marginTop: "2rem", marginBottom: "24px" }}>
       <Pagination
         page={currentPage}
         totalPages={pagination.pages}
@@ -944,7 +944,8 @@ const renderPagination = () => {
           <>
             <div 
             className="audit-table-wrapper"
-            style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }}
+            aria-label="Audit logs table; scroll horizontally to view all columns">
               <table
                 className="erp-table"
                 style={{
@@ -1130,6 +1131,9 @@ const renderPagination = () => {
                 </tbody>
               </table>
             </div>
+            <p className="audit-table-scroll-hint">
+              Swipe horizontally to view all columns
+            </p>
 
             {/* Pagination */}
             {renderPagination()}
@@ -1170,6 +1174,8 @@ const renderPagination = () => {
     /* Main page spacing */
     .audit-responsive-container {
       padding: 0.5rem 1.25rem 1.25rem !important;
+    }
+
     .audit-responsive-container .audit-header {
       padding: 1.5rem !important;
     }
@@ -1271,7 +1277,7 @@ const renderPagination = () => {
        HEADER
        ========================= */
 
-    .audit-responsive-container .audit-header {
+    .audit-responsive-container .audit-header-wrapper {
       padding: 1.15rem !important;
       border-radius: 16px !important;
       margin-bottom: 1rem !important;
@@ -1282,12 +1288,14 @@ const renderPagination = () => {
       flex-direction: column !important;
       align-items: stretch !important;
       gap: 1rem !important;
+      height: auto !important;
     }
 
     .audit-responsive-container .audit-header-content {
       display: flex !important;
       align-items: center !important;
       gap: 0.75rem !important;
+      min-width: 0 !important;
     }
 
     .audit-responsive-container .audit-header-icon {
@@ -1295,6 +1303,11 @@ const renderPagination = () => {
       height: 48px !important;
       min-width: 48px !important;
       border-radius: 13px !important;
+    }
+
+    .audit-responsive-container .audit-header-content > div:last-child {
+      min-width: 0 !important;
+      flex: 1 1 auto !important;
     }
 
     .audit-responsive-container .audit-header-icon svg {
@@ -1417,12 +1430,30 @@ const renderPagination = () => {
       overflow-y: hidden !important;
       -webkit-overflow-scrolling: touch !important;
       border-radius: 10px !important;
+      scrollbar-width: thin !important;
+      scrollbar-color: #94a3b8 #e2e8f0 !important;
     }
 
     .audit-responsive-container .erp-table {
-      min-width: 760px !important;
-      width: 760px !important;
+      min-width: 600px !important;
+      width: 600px !important;
       font-size: 0.8rem !important;
+    }
+
+    .audit-responsive-container .audit-table-wrapper::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .audit-responsive-container .audit-table-wrapper::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 6px;
+    }
+
+    .audit-responsive-container .audit-table-scroll-hint {
+      margin: 0.35rem 0 0;
+      color: #64748b;
+      font-size: 0.68rem;
+      text-align: center;
     }
 
     .audit-responsive-container .erp-table th {
@@ -1439,26 +1470,30 @@ const renderPagination = () => {
        PAGINATION
        ========================= */
 
-    .audit-responsive-container .audit-pagination {
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination {
       margin-top: 1rem !important;
       gap: 0.3rem !important;
       flex-wrap: wrap !important;
+      width: 100% !important;
+      padding: 8px 4px !important;
+      box-sizing: border-box !important;
     }
 
-    .audit-responsive-container .audit-pagination button {
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination button {
       padding: 0.5rem 0.7rem !important;
       font-size: 0.75rem !important;
     }
 
-    .audit-responsive-container .audit-pagination span {
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination span {
       padding: 0.5rem 0.6rem !important;
       font-size: 0.75rem !important;
     }
 
     /* Results text */
-    .audit-responsive-container .audit-results-info {
+    .audit-responsive-container .audit-table-card > p {
       margin-top: 0.9rem !important;
       font-size: 0.75rem !important;
+      line-height: 1.4 !important;
     }
   }
 
@@ -1475,7 +1510,7 @@ const renderPagination = () => {
     }
 
     /* Header */
-    .audit-responsive-container .audit-header {
+    .audit-responsive-container .audit-header-wrapper {
       padding: 1rem !important;
     }
 
@@ -1523,8 +1558,154 @@ const renderPagination = () => {
     }
 
     .audit-responsive-container .erp-table {
-      min-width: 720px !important;
-      width: 720px !important;
+      min-width: 600px !important;
+      width: 600px !important;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .audit-responsive-container .audit-header-wrapper {
+      padding: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-header-inner {
+      gap: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-header-content {
+      align-items: flex-start !important;
+    }
+
+    .audit-responsive-container .audit-subtitle {
+      overflow-wrap: anywhere;
+    }
+
+    .audit-responsive-container .audit-stats {
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 0.6rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-card > div[style*="position: relative"] > div:first-child {
+      gap: 0.5rem;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      max-width: none !important;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    .audit-responsive-container .audit-table-card {
+      padding: 0.5rem !important;
+    }
+
+    .audit-responsive-container .audit-table-wrapper {
+      overscroll-behavior-x: contain;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination {
+      gap: 2px !important;
+      padding: 6px 2px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__pages > button {
+      flex: 0 0 26px !important;
+      width: 26px !important;
+      min-width: 26px !important;
+      height: 28px !important;
+      min-height: 28px !important;
+      font-size: 9px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button {
+      display: inline-flex !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__pages {
+      gap: 2px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__pages > span {
+      min-width: 18px !important;
+      min-height: 28px !important;
+      padding: 0 !important;
+      font-size: 11px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__info {
+      max-width: calc(100vw - 48px) !important;
+      white-space: normal !important;
+      text-align: center !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="First page"] svg,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Previous page"] svg,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Next page"] svg,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Last page"] svg {
+      display: none !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="First page"]::after,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Last page"]::after {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Previous page"]::after,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Next page"]::after {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="First page"]::after { content: "«"; }
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Previous page"]::after { content: "‹"; }
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Next page"]::after { content: "›"; }
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Last page"]::after { content: "»"; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table {
+      table-layout: fixed;
+    }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(1),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(1) { width: 145px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(1) {
+      white-space: normal !important;
+      overflow-wrap: anywhere;
+    }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(2),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(2) { width: 110px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(3),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(3) { width: 95px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(4),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(4) { width: 150px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(5),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(5) { width: 100px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(2) > span,
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(3) > span {
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 0.35rem 0.45rem !important;
+      gap: 0.3rem !important;
+      font-size: 0.7rem !important;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(4),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(5) {
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
   }
 `}</style>

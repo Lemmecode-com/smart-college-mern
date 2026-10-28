@@ -482,7 +482,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
           paddingRight: "1rem",
         }}
       >
-        <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+        <div style={{ width: "100%", maxWidth: "auto", margin: "0 auto" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[

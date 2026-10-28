@@ -1983,6 +1983,142 @@ export default function DocumentSettings() {
     font-size: 0.75rem;
   }
 }
+
+@media (max-width: 1400px) {
+  .documents-card .table-responsive {
+    overflow: visible;
+  }
+
+  .documents-table,
+  .documents-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .documents-table thead {
+    display: none;
+  }
+
+  .documents-table tbody {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .documents-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #fff;
+  }
+
+  .documents-table tbody tr.disabled-row {
+    background: #fafbfc;
+  }
+
+  .documents-table td,
+  .documents-table td.text-center {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem !important;
+    text-align: left;
+    border: 0;
+  }
+
+  .documents-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--ds-text-secondary);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .documents-table .label-input {
+    width: min(100%, 220px);
+    min-width: 0;
+  }
+
+  .documents-table .format-buttons {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .documents-table tbody tr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .documents-table td::before {
+    min-width: 7rem;
+  }
+
+  .documents-table .label-input {
+    width: 100%;
+  }
+}
+
+@media (min-width: 740px) and (max-width: 1400px) {
+  .documents-table tbody tr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .documents-table td,
+  .documents-table td.text-center {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+  }
+
+  .documents-table td::before {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .documents-table .label-input {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .documents-table .format-buttons {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1400px) {
+  .modified-indicator {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+    max-width: none;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    transform: none;
+    animation: none;
+  }
+
+  .indicator-content {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1400px) {
+  .modified-indicator {
+    left: calc(var(--erp-sidebar-width, 250px) + 1rem);
+  }
+
+  .layout-wrapper.layout-collapsed .modified-indicator {
+    left: calc(var(--erp-sidebar-collapsed-width, 80px) + 1rem);
+  }
+}
         @media (prefers-reduced-motion: reduce) {
           *,
           *::before,
@@ -2179,7 +2315,7 @@ export default function DocumentSettings() {
                     key={doc.type}
                     className={!doc.enabled ? "disabled-row" : ""}
                   >
-                    <td className="text-center">
+                    <td className="text-center" data-label="Enable">
                       <button
                         className="toggle-btn"
                         onClick={() => toggleEnabled(index)}
@@ -2192,13 +2328,13 @@ export default function DocumentSettings() {
                         )}
                       </button>
                     </td>
-                    <td>
+                    <td data-label="Document Type">
                       <span className="doc-type-badge">
                         <FaFileAlt />
                         {doc.type}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Label">
                       <input
                         type="text"
                         className="label-input"
@@ -2209,7 +2345,7 @@ export default function DocumentSettings() {
                         placeholder="Document label"
                       />
                     </td>
-                    <td className="text-center">
+                    <td className="text-center" data-label="Mandatory">
                       <input
                         type="checkbox"
                         className="mandatory-checkbox"
@@ -2223,7 +2359,7 @@ export default function DocumentSettings() {
                         }
                       />
                     </td>
-                    <td>
+                    <td data-label="Allowed Formats">
                       <div className="format-buttons">
                         {availableFormats.map((format) => (
                           <button
@@ -2238,7 +2374,7 @@ export default function DocumentSettings() {
                         ))}
                       </div>
                     </td>
-                    <td className="text-center">
+                    <td className="text-center" data-label="Max Size">
                       <input
                         type="number"
                         className="size-input"
@@ -2263,7 +2399,7 @@ export default function DocumentSettings() {
                         MB
                       </div>
                     </td>
-                    <td className="text-center">
+                    <td className="text-center" data-label="Actions">
                       <button
                         className="action-btn"
                         onClick={() => removeDocument(index)}

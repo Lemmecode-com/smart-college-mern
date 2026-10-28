@@ -214,7 +214,7 @@ export default function AddDepartment() {
   };
 
   return (
-    <div className="container-fluid pt-2 pb-3 pb-md-4 animate-fade-in">
+    <div className="container-fluid department-form-page pt-2 pb-3 pb-md-4 animate-fade-in">
       {/* ================= BREADCRUMB ================= */}
       <div
         style={{
@@ -927,6 +927,118 @@ export default function AddDepartment() {
             font-size: 0.9rem;
           }
         }
+
+
+/* =========================================================
+   ADD DEPARTMENT - RESPONSIVE FORM
+   ========================================================= */
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .department-form-page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  /* Form columns */
+  .department-form-page .row.g-3 > .col-md-4,
+  .department-form-page .row.g-3 > .col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+    min-width: 0;
+  }
+
+  .department-form-page .form-control,
+  .department-form-page .form-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Programs Offered */
+  .department-form-page .programs-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .department-form-page .program-card {
+    min-width: 0;
+  }
+
+  /* Reduce section padding */
+  .department-form-page .section-group {
+    padding: 1rem;
+  }
+
+  /* Help button */
+  .department-form-page .department-header-help {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+  .department-form-page {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .department-form-page .row.g-3 > .col-md-4,
+  .department-form-page .row.g-3 > .col-md-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .department-form-page .form-control,
+  .department-form-page .form-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .department-form-page .programs-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .department-form-page .program-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .department-form-page .section-group {
+    padding: 1rem;
+  }
+
+  .department-form-page .section-title {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .department-form-page .department-header-help {
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .department-form-page .section-group {
+    padding: 0.85rem;
+  }
+
+  .department-form-page .program-card {
+    padding: 12px;
+  }
+}
+
+
       `}</style>
     </div>
   );

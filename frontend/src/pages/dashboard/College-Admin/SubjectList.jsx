@@ -1127,7 +1127,9 @@ if (loading) {
 
   {selectedCourse && (
   <>
+  <div className="subject-list-view">
     <StandardListView
+    
       title={`${selectedCourseName} Subjects`}
       icon={FaBook}
       count={filteredSubjects.length}
@@ -1143,6 +1145,7 @@ if (loading) {
         // Keep your existing emptyState configuration.
       }}
     />
+    </div>
 
     {totalPages > 1 && (
       
@@ -1197,6 +1200,158 @@ if (loading) {
       {/* STYLES */}
 
             <style>{`
+
+/* =========================================
+   SUBJECT LIST - MOBILE CARD DESIGN
+========================================= */
+
+@media (max-width: 1200px) {
+  .subject-list-view .standard-table-container {
+    width: 100%;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .subject-list-view .standard-table {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+    table-layout: auto !important;
+  }
+
+  .subject-list-view .standard-table thead {
+    display: none;
+  }
+
+  .subject-list-view .standard-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  /* Card */
+  .subject-list-view .standard-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(14, 55, 70, 0.05);
+  }
+
+  /* General fields */
+  .subject-list-view .standard-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100% !important;
+    min-width: 0;
+    padding: 7px 0;
+    border: none;
+    font-size: 12px;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  /* Field labels */
+  .subject-list-view .standard-table tbody td[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 76px;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+  }
+
+  /* Subject name row */
+  .subject-list-view .standard-table tbody td:first-child {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 0 0 12px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid #edf1f5;
+  }
+
+  .subject-list-view .standard-table tbody td:first-child::before {
+    display: none;
+  }
+
+  /* Subject details */
+  .subject-list-view .subject-name,
+  .subject-list-view .subject-details {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .subject-list-view .subject-title {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: #0e3746;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  /* Teacher information */
+  .subject-list-view .teacher-info {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+    max-width: 65%;
+  }
+
+  .subject-list-view .teacher-avatar {
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+  }
+
+  .subject-list-view .teacher-name {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.3;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  .subject-list-view .teacher-role {
+    font-size: 10px;
+    color: #64748b;
+  }
+
+  /* Keep badges compact */
+  .subject-list-view .semester-badge,
+  .subject-list-view .credits-badge {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* Actions */
+  .subject-list-view .standard-table-actions-cell {
+    justify-content: flex-end;
+    padding: 12px 0 0;
+    margin-top: 5px;
+    border-top: 1px solid #edf1f5 !important;
+  }
+
+  .subject-list-view .standard-table-actions-cell::before {
+    display: none;
+  }
+
+  .subject-list-view .standard-table-actions-cell > * {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}
         /* CSS Custom Properties for consistent theming */
         :root {
           --sidebar-primary: #0f3a4a;

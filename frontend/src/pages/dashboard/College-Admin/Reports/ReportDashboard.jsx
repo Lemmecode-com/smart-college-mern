@@ -967,6 +967,7 @@ export default function ReportDashboard() {
               <h3>Student Payment Status</h3>
             </div>
             <div
+              className="payment-export-actions"
               style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
             >
               <ExportButtons
@@ -1050,16 +1051,16 @@ export default function ReportDashboard() {
                    {paymentPagination.data.map((student) => (
                      <>
                        <tr key={student._id}>
-                         <td className="student-name">{student.name}</td>
-                         <td>{student.course}</td>
-                         <td>{formatCurrency(student.totalFee)}</td>
-                         <td className="text-success">
+                         <td className="student-name" data-label="Student Name">{student.name}</td>
+                         <td data-label="Course">{student.course}</td>
+                         <td data-label="Total Fee">{formatCurrency(student.totalFee)}</td>
+                         <td className="text-success" data-label="Paid">
                            {formatCurrency(student.paid)}
                          </td>
-                         <td className="text-danger">
+                         <td className="text-danger" data-label="Pending">
                            {formatCurrency(student.pending)}
                          </td>
-                         <td>
+                         <td data-label="Status">
                            <div
                              style={{
                                display: "flex",
@@ -1107,7 +1108,7 @@ export default function ReportDashboard() {
                        </tr>
                        {expandedStudentId === student._id?.toString() &&
                          student.feeRecords && (
-                           <tr>
+                           <tr className="payment-details-row">
                              <td
                                colSpan="6"
                                style={{
@@ -1130,6 +1131,7 @@ export default function ReportDashboard() {
                                    Fee Records
                                  </div>
                                  <table
+                                   className="fee-records-table"
                                    style={{
                                      width: "100%",
                                      borderCollapse: "collapse",
@@ -2796,6 +2798,146 @@ export default function ReportDashboard() {
   .data-table td {
     padding: 0.65rem 0.55rem;
     font-size: 0.76rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .payment-table-card .card-header {
+    gap: 0.6rem;
+  }
+
+  .payment-table-card .card-title-wrapper {
+    min-width: 0;
+  }
+
+  .payment-table-card .payment-export-actions,
+  .payment-table-card .payment-export-actions .export-buttons {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .payment-table-card .payment-export-actions .export-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0.5rem;
+  }
+
+  .payment-table-card .payment-export-actions .btn-export {
+    width: auto;
+    min-height: 36px;
+    padding: 0.45rem 0.7rem;
+  }
+
+  .payment-table-card .card-body {
+    min-width: 0;
+    padding: 0.75rem;
+  }
+
+  .payment-table-card .filters-row {
+    gap: 0.55rem;
+  }
+
+  .payment-table-card .filter-group,
+  .payment-table-card .filter-select {
+    min-width: 0;
+  }
+
+  .payment-table-card .results-count {
+    margin-bottom: 0.65rem;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .payment-table-card .table-responsive {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .payment-table-card .data-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .payment-table-card .data-table thead {
+    display: none;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) {
+    display: block;
+    margin: 0 0 0.65rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid #e3eaf0;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(15, 58, 74, 0.06);
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td {
+    display: grid;
+    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid #edf2f6;
+    font-size: 0.8rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td:last-child {
+    border-bottom: 0;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td > div {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .payment-table-card .data-table tbody tr.payment-details-row {
+    display: block;
+    margin: -0.5rem 0 0.75rem;
+  }
+
+  .payment-table-card .payment-details-row > td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+  }
+
+  .payment-table-card .fee-records-table {
+    min-width: 480px;
+  }
+}
+
+@media (max-width: 360px) {
+  .payment-table-card .card-body {
+    padding: 0.6rem;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+    font-size: 0.78rem;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td::before {
+    font-size: 0.66rem;
+  }
+
+  .payment-table-card .payment-export-actions .btn-export {
+    min-width: 0;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.72rem;
   }
 }
       `}</style>

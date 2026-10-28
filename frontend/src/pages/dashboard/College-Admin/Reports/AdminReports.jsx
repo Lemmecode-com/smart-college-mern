@@ -1684,7 +1684,7 @@ export default function AdminReports() {
      ========================================================= */
 
   .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
     margin-bottom: 1.25rem;
   }
@@ -1729,7 +1729,8 @@ export default function AdminReports() {
     line-height: 1.25;
 
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
 
@@ -1795,7 +1796,7 @@ export default function AdminReports() {
   /* ================= METRICS ================= */
 
   .metrics-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 1rem;
   }
 
@@ -2443,6 +2444,74 @@ export default function AdminReports() {
   .footer-note {
     font-size: 0.72rem;
     padding: 0.7rem;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1600px) {
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  }
+
+  .stat-card,
+  .metric-item,
+  .stat-card-header,
+  .stat-card-body,
+  .metric-content {
+    min-width: 0;
+  }
+
+  .stat-title,
+  .metric-label,
+  .metric-description,
+  .stat-trend {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+}
+
+@media (max-width: 360px) {
+  .stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stat-card {
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-width: 0;
+  }
+
+  .stat-card-header {
+    padding: 0.65rem !important;
+  }
+
+  .stat-title {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .stat-card-body {
+    min-width: 0 !important;
+    padding: 0 0.65rem 0.65rem !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 0.4rem;
+    text-align: left;
+  }
+
+  .stat-value {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+
+  .stat-trend {
+    justify-content: flex-start;
+    white-space: normal;
+    overflow-wrap: normal;
+    text-align: left;
   }
 }
       `}</style>

@@ -860,6 +860,79 @@ const executeToggleActive = async () => {
     font-size: 13px;
   }
 }
+
+@media (max-width: 1400px) {
+  .approve-students-list .standard-table-container {
+    overflow-x: hidden;
+  }
+
+  .approve-students-list .standard-table,
+  .approve-students-list .standard-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .approve-students-list .standard-table thead {
+    display: none;
+  }
+
+  .approve-students-list .standard-table tbody tr {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border: 1px solid #e4ebf1;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 58, 74, 0.06);
+  }
+
+  .approve-students-list .standard-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(82px, 30%) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 9px 0;
+    border-bottom: 1px solid #edf2f6;
+    overflow-wrap: anywhere;
+  }
+
+  .approve-students-list .standard-table tbody td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .approve-students-list .standard-table tbody td:last-child {
+    border-bottom: 0;
+  }
+
+  .approve-students-list .standard-table-actions-cell {
+    min-width: 0;
+    padding: 9px 0;
+  }
+
+  .approve-students-list .standard-table-actions-cell > div {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .approve-students-list .standard-action-btn {
+    flex: 0 0 38px;
+    width: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0;
+  }
+}
         /* ================= STATS GRID ================= */
         .stats-grid {
           display: grid;
