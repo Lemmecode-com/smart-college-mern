@@ -46,9 +46,38 @@ class ErrorBoundary extends Component {
     }
 
     Sentry.captureException(error, { extra: errorInfo });
+
+    // Detect stale chunk load failure after a new deployment and reload once
+    const errMsg = (error?.message || error?.toString() || "").toLowerCase();
+    const isDynamicImportError =
+      errMsg.includes("failed to fetch dynamically imported module") ||
+      errMsg.includes("importing a module script failed");
+
+    if (isDynamicImportError && typeof window !== "undefined") {
+      const CHUNK_RELOAD_KEY = "chunk_failed_reloaded";
+      if (!sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
+        sessionStorage.setItem(CHUNK_RELOAD_KEY, "true");
+        window.location.reload();
+      }
+    }
   }
 
   handleRetry = () => {
+    // If dynamic import error, clicking retry should force a full reload
+    const errMsg = (this.state.error?.message || "").toLowerCase();
+    if (
+      errMsg.includes("failed to fetch dynamically imported module") ||
+      errMsg.includes("importing a module script failed")
+    ) {
+      try {
+        sessionStorage.removeItem("chunk_failed_reloaded");
+      } catch {
+        // ignore
+      }
+      window.location.reload();
+      return;
+    }
+
     // If parent provides onRetry, use it; otherwise just reset state
     if (this.props.onRetry) {
       this.props.onRetry();
