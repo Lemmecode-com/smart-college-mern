@@ -12,6 +12,7 @@ import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import ActionIconButton from "../../../components/common/ActionIconButton";
+import Pagination from "../../../components/Pagination";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import {
@@ -30,8 +31,6 @@ import {
   FaLayerGroup,
   FaChartBar,
   FaFilter,
-  FaChevronLeft,
-  FaChevronRight,
   FaRedo,
   FaClock,
   FaInfoCircle,
@@ -412,6 +411,12 @@ const styles = `
   position: relative;
   font-size: 0.82rem;
 }
+.erd .standard-action-btn > svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
 .erd .icon-action-btn:hover:not(:disabled) {
   transform: translateY(-1px);
 }
@@ -464,38 +469,9 @@ const styles = `
   font-size: 0.85rem;
   color: var(--edx-slate-600);
 }
-.erd .pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.erd .page-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--edx-slate-200);
-  background: #fff;
-  color: var(--edx-slate-900);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-.erd .page-btn:hover:not(:disabled) {
-  border-color: var(--edx-navy-700);
-  background: var(--edx-slate-100);
-}
-.erd .page-btn.active {
-  background: var(--edx-navy-900);
-  color: #fff;
-  border-color: var(--edx-navy-900);
-}
-.erd .page-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.erd .pagination-wrapper .erp-pagination {
+  flex: 1 1 100%;
+  margin: 0;
 }
 
 /* ---------- Empty & Alerts ---------- */
@@ -1493,92 +1469,11 @@ export default function ExamResultsDashboard() {
 
             {/* Pagination Controls */}
             <div className="pagination-wrapper">
-              <div className="pagination-info">
-                Showing{" "}
-                <strong>
-                  {Math.min(
-                    (currentPage - 1) * pageSize + 1,
-                    filteredExams.length
-                  )}
-                </strong>{" "}
-                to{" "}
-                <strong>
-                  {Math.min(currentPage * pageSize, filteredExams.length)}
-                </strong>{" "}
-                of <strong>{filteredExams.length}</strong> exam(s)
-              </div>
-
-              <div className="d-flex align-items-center gap-3">
-                <div className="d-flex align-items-center gap-1">
-                  <span style={{ fontSize: "0.82rem", color: "var(--edx-slate-600)" }}>
-                    Rows:
-                  </span>
-                  <select
-                    className="form-select form-select-sm"
-                    style={{ width: "70px", borderRadius: "8px" }}
-                    value={pageSize}
-                    onChange={(e) => {
-                      setPageSize(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <option value={10}>10</option>
-                    <option value={25}>25</option>
-                    <option value={50}>50</option>
-                  </select>
-                </div>
-
-                <div className="pagination-controls">
-                  <button
-                    className="page-btn"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                    title="Previous Page"
-                  >
-                    <FaChevronLeft size={10} />
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter((page) => {
-                      return (
-                        page === 1 ||
-                        page === totalPages ||
-                        Math.abs(page - currentPage) <= 1
-                      );
-                    })
-                    .map((page, idx, arr) => {
-                      const prevPage = arr[idx - 1];
-                      return (
-                        <span key={page} className="d-flex align-items-center">
-                          {prevPage && page - prevPage > 1 && (
-                            <span style={{ padding: "0 0.25rem", color: "var(--edx-slate-400)" }}>
-                              …
-                            </span>
-                          )}
-                          <button
-                            className={`page-btn ${
-                              currentPage === page ? "active" : ""
-                            }`}
-                            onClick={() => setCurrentPage(page)}
-                          >
-                            {page}
-                          </button>
-                        </span>
-                      );
-                    })}
-
-                  <button
-                    className="page-btn"
-                    disabled={currentPage === totalPages}
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(p + 1, totalPages))
-                    }
-                    title="Next Page"
-                  >
-                    <FaChevronRight size={10} />
-                  </button>
-                </div>
-              </div>
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
             </div>
           </>
         )}

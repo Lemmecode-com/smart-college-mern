@@ -229,7 +229,7 @@ export default function ParentDashboard() {
         exit={{ opacity: 0 }}
         className="parent-portal-wrapper"
       >
-        <div className="parent-portal-container">
+        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[

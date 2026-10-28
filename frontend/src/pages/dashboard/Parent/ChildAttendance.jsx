@@ -200,7 +200,7 @@ if (loading) {
         exit={{ opacity: 0 }}
         className="parent-portal-wrapper erp-viewport-min-100"
       >
-        <div className="parent-portal-container">
+        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[

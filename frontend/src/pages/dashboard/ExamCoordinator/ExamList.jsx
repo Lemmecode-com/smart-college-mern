@@ -283,6 +283,13 @@ const listStyles = `
   .exam-list-page .edx-header { flex-direction: column; align-items: stretch; }
   .exam-list-page .btn-edx-primary { justify-content: center; }
   .exam-list-page .filter-row { flex-direction: column; }
+  .exam-list-page .search-box {
+    flex: 0 1 auto;
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+  .exam-list-page .search-box input { height: auto; }
   .exam-list-page .select-box { flex: 1 1 auto; }
 }
 

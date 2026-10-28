@@ -20,6 +20,7 @@ import {
   FaArrowLeft,
   FaInfoCircle,
   FaSearch,
+  FaTimes,
   FaEye,
   FaStar,
   FaBullhorn,
@@ -193,6 +194,7 @@ export default function NotificationListPage({ role = "college-admin" }) {
 
   // Search & Filter states
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
   const [typeFilter, setTypeFilter] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
@@ -613,11 +615,25 @@ export default function NotificationListPage({ role = "college-admin" }) {
           >
             {/* Search Input with Icon Inside */}
             <div
-              className="search-wrapper"
+              className={`search-wrapper${role === "parent" ? " parent-notification-search" : ""}`}
               style={{
                 width: "100%",
                 position: "relative",
                 overflow: "visible",
+                ...(role === "parent"
+                  ? {
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      minWidth: 0,
+                      minHeight: "46px",
+                      padding: "0 0.875rem",
+                      border: `1px solid ${searchFocused ? BRAND_COLORS.primary.main : "#dbe3eb"}`,
+                      borderRadius: "10px",
+                      boxShadow: searchFocused ? "0 0 0 3px rgba(26, 75, 109, 0.12)" : "none",
+                      transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+                    }
+                  : {}),
               }}
             >
               <FaSearch
@@ -631,6 +647,9 @@ export default function NotificationListPage({ role = "college-admin" }) {
                   zIndex: 2,
                   pointerEvents: "none",
                   fontSize: "0.95rem",
+                  ...(role === "parent"
+                    ? { position: "static", transform: "none", flexShrink: 0 }
+                    : {}),
                 }}
               />
               <input
@@ -638,6 +657,8 @@ export default function NotificationListPage({ role = "college-admin" }) {
                 placeholder="Search notifications..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => role === "parent" && setSearchFocused(true)}
+                onBlur={() => role === "parent" && setSearchFocused(false)}
                 className="search-input"
                 style={{
                   width: "100%",
@@ -648,9 +669,41 @@ export default function NotificationListPage({ role = "college-admin" }) {
                   transition: "all 0.3s ease",
                   boxSizing: "border-box",
                   display: "block",
+                  ...(role === "parent"
+                    ? {
+                        minWidth: 0,
+                        flex: 1,
+                        padding: "0.65rem 0",
+                        border: 0,
+                        borderRadius: 0,
+                        outline: "none",
+                        boxShadow: "none",
+                        fontSize: "0.95rem",
+                      }
+                    : {}),
                 }}
                 aria-label="Search notifications"
               />
+              {role === "parent" && searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear notification search"
+                  style={{
+                    display: "grid",
+                    placeItems: "center",
+                    flexShrink: 0,
+                    padding: "0.35rem",
+                    border: 0,
+                    borderRadius: "6px",
+                    background: "transparent",
+                    color: "#64748b",
+                    cursor: "pointer",
+                  }}
+                >
+                  <FaTimes aria-hidden="true" />
+                </button>
+              )}
             </div>
 
             {/* TABS */}

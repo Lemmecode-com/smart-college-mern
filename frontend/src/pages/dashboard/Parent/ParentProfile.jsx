@@ -173,7 +173,7 @@ export default function ParentProfile() {
   if (loading) {
     return (
       <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
         
 
         <PageHeader
@@ -195,7 +195,7 @@ export default function ParentProfile() {
   if (error) {
     return (
       <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
 <PageHeader
   icon={FaUserTie}
   title="My Profile"
@@ -252,7 +252,7 @@ export default function ParentProfile() {
         exit={{ opacity: 0 }}
         className="parent-portal-wrapper"
       >
-        <div className="parent-portal-container">
+        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <div
               style={{

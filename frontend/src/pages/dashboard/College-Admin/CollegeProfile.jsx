@@ -1496,7 +1496,7 @@ export default function CollegeProfile() {
 
     max-width: 100% !important;
 
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
 
@@ -1513,11 +1513,8 @@ export default function CollegeProfile() {
 
     line-height: 1.2 !important;
 
-    white-space: nowrap !important;
-
-    overflow: hidden !important;
-
-    text-overflow: ellipsis !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
   }
 
 
