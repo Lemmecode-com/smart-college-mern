@@ -10,7 +10,7 @@
 }
 
 .hod-reports-container {
-  max-width: 1400px;
+  max-width: none;
   margin: 0 auto;
 }
 
@@ -1130,5 +1130,76 @@
 @media (max-width: 479.98px) {
   .hod-kpi-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  .hod-reports-page,
+  .hod-reports-container {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .hod-reports-page {
+    padding: 0.4rem 0.5rem 2rem;
+  }
+
+  .hod-reports-header {
+    padding: 0.9rem;
+  }
+
+  .hod-reports-header-inner,
+  .hod-reports-header-title-group {
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  .hod-reports-header-title-group {
+    gap: 0.6rem;
+  }
+
+  .hod-reports-header-title {
+    font-size: 1.05rem;
+    overflow-wrap: anywhere;
+  }
+
+  .hod-header-actions {
+    width: 100%;
+  }
+
+  .hod-export-btn {
+    flex: 1 1 0;
+    min-height: 48px;
+    justify-content: center;
+    min-width: 0;
+    padding-inline: 0.45rem;
+    white-space: nowrap;
+  }
+
+  .hod-filter-bar,
+  .hod-filter-group,
+  .hod-filter-item,
+  .hod-filter-custom-dates {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .hod-filter-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .hod-filter-select,
+  .hod-filter-date-input {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .hod-filter-custom-dates {
+    flex-wrap: wrap;
   }
 }

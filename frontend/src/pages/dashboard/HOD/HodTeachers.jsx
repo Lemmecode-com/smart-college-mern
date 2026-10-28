@@ -180,7 +180,7 @@ export default function HodTeachers() {
         padding: "0.5rem 1rem 2.5rem",
       }}
     >
-      <div className="erp-page-content" style={{ maxWidth: 1200 }}>
+      <div className="erp-page-content" style={{ width: "100%", maxWidth: "none" }}>
         {/* ================= BREADCRUMB ================= */}
         <div
           style={{

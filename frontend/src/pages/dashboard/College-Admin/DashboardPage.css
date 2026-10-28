@@ -98,7 +98,7 @@
 
 /* ================= CONTAINER ================= */
 .cad-page .cad-container {
-  max-width: 1400px;
+  max-width: none;
   margin: 0 auto;
   display: flex;
   flex-direction: column;

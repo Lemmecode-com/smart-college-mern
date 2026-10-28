@@ -26,14 +26,39 @@
 
    /* Breakpoints: match responsive-foundation.css (Bootstrap 5.3) */
 @media (max-width: 767.98px) {
+  .erp-timetable-list-page {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.4rem 0.55rem 2rem !important;
+  }
+
+  .erp-timetable-list-page > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .erp-timetable-hero-card {
+    height: auto !important;
+  }
+
   /* ---------- Hero inner: stack to a centered column ---------- */
   .erp-timetable-hero-inner {
+    height: auto !important;
+    min-height: 0;
     padding: 1rem !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
-    gap: 1rem !important;
+    gap: 0.8rem !important;
+  }
+
+  .erp-timetable-hero-inner > div:first-child {
+    width: 100%;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.65rem !important;
   }
 
   /* ---------- Calendar icon: smaller, centered, rigid ---------- */
@@ -52,12 +77,13 @@
     width: 100% !important;
     max-width: 100% !important;
     overflow-wrap: break-word !important;
-    word-break: break-word !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere;
   }
 
   /* ---------- Heading: 24px, fully visible, wraps by words ---------- */
   .erp-timetable-hero-title {
-    font-size: 1.5rem !important;
+    font-size: 1.25rem !important;
     line-height: 1.2 !important;
   }
 
@@ -89,6 +115,44 @@
   /* ---------- Stats item group: tighter gap ---------- */
   .erp-timetable-stats-grid {
     gap: 1rem !important;
+    justify-content: center;
+  }
+
+  .erp-timetable-section-header {
+    display: flex !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    padding: 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .erp-timetable-section-header h2 {
+    font-size: 1.15rem !important;
+    line-height: 1.25;
+  }
+
+  .erp-timetable-section-header > div {
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.8rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .erp-timetable-tabs {
+    padding: 0 0.5rem !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.25rem !important;
+    box-sizing: border-box;
+  }
+
+  .erp-timetable-tab {
+    min-width: 0;
+    padding: 0.65rem 0.35rem !important;
+    font-size: 0.82rem !important;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
   }
 
   /* ---------- Tip badge: wrap text on narrow screens ---------- */
@@ -98,5 +162,32 @@
     text-align: center !important;
     font-size: 0.875rem !important;
     overflow-wrap: break-word !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .erp-timetable-hero-inner {
+    padding: 0.8rem !important;
+  }
+
+  .erp-timetable-hero-title {
+    font-size: 1.1rem !important;
+  }
+
+  .erp-timetable-hero-desc {
+    font-size: 0.85rem !important;
+  }
+
+  .erp-timetable-hero-cta {
+    padding: 0.65rem 0.75rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .erp-timetable-stats {
+    padding: 0.75rem !important;
+  }
+
+  .erp-timetable-tab {
+    font-size: 0.75rem !important;
   }
 }

@@ -688,7 +688,7 @@ export default function WeeklyTimetable() {
               paddingRight: "1rem",
             }}
           >
-        <div style={{ maxWidth: "100%", margin: "0 auto" }}>
+        <div style={{ width: "100%", maxWidth: "none", margin: "0 auto" }}>
             <div
               style={{
                 width: "100%",
@@ -708,6 +708,7 @@ export default function WeeklyTimetable() {
             </div>
           {/* ================= HEADER ================= */}
               <motion.div
+                className="weekly-timetable-hero"
                 variants={slideDownVariants}
                 initial="hidden"
                 animate="visible"
@@ -721,6 +722,7 @@ export default function WeeklyTimetable() {
               >
                         
                           <div
+                className="weekly-timetable-hero-row"
                 style={{
                   minHeight: "104px",
                   padding: "1.5rem 2rem",
@@ -732,7 +734,7 @@ export default function WeeklyTimetable() {
                   gap: "1.5rem",
                 }}
               >
-              <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+              <div className="weekly-timetable-hero-main" style={{ display: "flex", alignItems: "center", gap: "1.5rem", minWidth: 0 }}>
               <motion.div
                 variants={pulseVariants}
                 initial="initial"
@@ -754,7 +756,7 @@ export default function WeeklyTimetable() {
               >
                   <FaCalendarAlt />
                 </motion.div>
-                <div>
+                <div className="weekly-timetable-hero-details">
                   <h1 style={{
                     margin: 0,
                     fontSize: "1.65rem",
@@ -908,6 +910,34 @@ export default function WeeklyTimetable() {
 
             .weekly-timetable-page {
               padding: 0.6rem !important;
+            }
+
+            .weekly-timetable-page .weekly-timetable-hero-row {
+              min-height: 0 !important;
+              padding: 1rem !important;
+              flex-wrap: wrap !important;
+              gap: 1rem !important;
+            }
+
+            .weekly-timetable-page .weekly-timetable-hero-main,
+            .weekly-timetable-page .weekly-timetable-hero-details {
+              min-width: 0;
+              width: 100%;
+            }
+
+            .weekly-timetable-page .weekly-timetable-hero-main {
+              align-items: flex-start !important;
+              gap: 0.75rem !important;
+            }
+
+            .weekly-timetable-page .weekly-timetable-hero-main h1 {
+              font-size: 1.2rem !important;
+              overflow-wrap: anywhere;
+            }
+
+            .weekly-timetable-page .weekly-timetable-hero > .weekly-timetable-hero-row > button {
+              width: 100%;
+              justify-content: center;
             }
 
             /* ================= HEADER ================= */

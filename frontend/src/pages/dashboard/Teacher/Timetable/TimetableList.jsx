@@ -435,7 +435,7 @@ if (
           paddingRight: '1rem'
         }}
       >
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ width: '100%', maxWidth: 'none', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
               <div
                 style={{
@@ -457,6 +457,7 @@ if (
 
           {/* ================= HEADER ================= */}
           <motion.div
+            className="erp-timetable-hero-card"
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
@@ -632,7 +633,7 @@ if (
               overflow: 'hidden'
             }}
           />
-            <div style={{
+            <div className="erp-timetable-section-header" style={{
               padding: '1.75rem',
               borderBottom: '1px solid #e2e8f0',
               display: 'flex',
@@ -672,13 +673,14 @@ if (
             </div>
 
             {/* ================= TAB SWITCHER ================= */}
-            <div style={{
+            <div className="erp-timetable-tabs" style={{
               padding: '0 1.75rem',
               borderBottom: '1px solid #e2e8f0',
               display: 'flex',
               gap: '0.5rem'
             }}>
               <motion.button
+                className="erp-timetable-tab"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab("active")}
@@ -697,6 +699,7 @@ if (
                 Active Timetables
               </motion.button>
               <motion.button
+                className="erp-timetable-tab"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab("archived")}

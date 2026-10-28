@@ -101,6 +101,7 @@ const safeString = (value, fallback = "—") => {
 // ============================================================
 const EmptyState = ({ onRetry }) => (
   <div
+    className="hod-profile-info-row"
     style={{
       minHeight: "60vh",
       display: "flex",
@@ -111,6 +112,7 @@ const EmptyState = ({ onRetry }) => (
   >
     <div style={{ textAlign: "center", maxWidth: 380 }}>
       <div
+        className="hod-profile-identity"
         style={{
           width: 68,
           height: 68,
@@ -264,6 +266,7 @@ const InfoRow = ({ icon: Icon, label, value }) => {
           </div>
         )}
         <span
+          className="hod-profile-info-label"
           style={{
             fontSize: "0.82rem",
             fontWeight: 600,
@@ -275,6 +278,7 @@ const InfoRow = ({ icon: Icon, label, value }) => {
         </span>
       </div>
       <span
+        className="hod-profile-info-value"
         style={{
           fontSize: "0.86rem",
           fontWeight: isFallback ? 500 : 600,
@@ -453,27 +457,178 @@ export default function HodProfile() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="erp-page erp-viewport-min-100"
+      className="erp-page erp-viewport-min-100 hod-profile-page"
       style={{
         background: `linear-gradient(180deg, ${BRAND.bg} 0%, #eef4fb 100%)`,
         padding: "0.5rem 1rem 2.5rem",
       }}
     >
       <style>{`
+        .hod-profile-page,
+        .hod-profile-content,
+        .hod-profile-hero,
+        .hod-profile-sections,
+        .hod-profile-info-row {
+          min-width: 0;
+          box-sizing: border-box;
+        }
+
+        .hod-profile-content {
+          width: 100%;
+        }
+
+        .hod-profile-info-value {
+          min-width: 0;
+          overflow-wrap: anywhere;
+          white-space: normal !important;
+          text-overflow: clip !important;
+        }
+
         @media (min-width: 768px) {
           .hod-header-contact {
             align-items: flex-end !important;
           }
         }
+
+        @media (min-width: 768px) and (max-width: 1400px) {
+          .hod-profile-page {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+          }
+
+          .hod-profile-identity-column,
+          .hod-profile-contact-column,
+          .hod-profile-details-column,
+          .hod-profile-scope-column {
+            flex: 0 0 100%;
+            width: 100%;
+            max-width: 100%;
+          }
+
+          .hod-profile-contact-column {
+            text-align: left !important;
+          }
+
+          .hod-profile-contact-column > button {
+            margin-left: 0 !important;
+          }
+        }
+
         @media (max-width: 767.98px) {
+          .hod-profile-page {
+            padding: 0.5rem 0.65rem 2rem !important;
+          }
+
+          .hod-profile-content {
+            max-width: 100% !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+
+          .hod-profile-hero {
+            padding: 1rem !important;
+          }
+
+          .hod-profile-hero-row {
+            width: 100%;
+            margin: 0 !important;
+          }
+
+          .hod-profile-hero-row > [class*="col-"] {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+          }
+
+          .hod-profile-identity-column,
+          .hod-profile-contact-column,
+          .hod-profile-details-column,
+          .hod-profile-scope-column {
+            min-width: 0;
+          }
+
+          .hod-profile-identity {
+            flex-wrap: nowrap !important;
+            align-items: flex-start !important;
+            gap: 0.75rem !important;
+          }
+
+          .hod-profile-avatar {
+            flex: 0 0 48px !important;
+            width: 48px !important;
+            height: 48px !important;
+          }
+
+          .hod-profile-identity-copy {
+            flex: 1 1 0 !important;
+            width: 0;
+          }
+
           .hod-header-contact {
             align-items: flex-start !important;
             width: 100%;
           }
+
+          .hod-profile-contact-column {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.65rem;
+            text-align: left !important;
+          }
+
+          .hod-profile-contact-column > .hod-header-contact {
+            display: flex !important;
+            width: 100%;
+            min-width: 0;
+          }
+
+          .hod-profile-contact-column > .hod-header-contact > span {
+            max-width: 100%;
+            overflow-wrap: anywhere;
+          }
+
+          .hod-profile-contact-column > button {
+            align-self: flex-start;
+            margin: 0 !important;
+          }
+
+          .hod-profile-info-row {
+            align-items: flex-start !important;
+          }
+
+          .hod-profile-info-label {
+            white-space: normal !important;
+          }
+
+          .hod-profile-info-value {
+            max-width: 55% !important;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .hod-profile-info-row {
+            flex-direction: column;
+            gap: 0.35rem !important;
+            padding: 0.7rem 0.9rem !important;
+          }
+
+          .hod-profile-info-value {
+            max-width: 100% !important;
+            padding-left: 2.1rem;
+            text-align: left !important;
+          }
+
+          .hod-header-contact > span {
+            max-width: 100%;
+            overflow-wrap: anywhere;
+          }
         }
       `}</style>
 
-      <div className="erp-page-content" style={{ maxWidth: 1120 }}>
+      <div
+        className="erp-page-content hod-profile-content"
+        style={{ width: "100%", maxWidth: "none" }}
+      >
         {/* Navigation / Header Bar */}
         <div
           style={{
@@ -511,6 +666,7 @@ export default function HodProfile() {
             position: "relative",
             overflow: "hidden",
           }}
+          className="hod-profile-hero"
         >
           {/* Decorative subtle ambient highlight */}
           <div
@@ -527,11 +683,11 @@ export default function HodProfile() {
           />
 
           <div
-            className="row align-items-center g-3"
+            className="row align-items-center g-3 hod-profile-hero-row"
             style={{ position: "relative", zIndex: 1 }}
           >
             {/* Left: Avatar + Identity + Key Badges */}
-            <div className="col-12 col-md-8">
+            <div className="col-12 col-md-8 hod-profile-identity-column">
               <div
                 style={{
                   display: "flex",
@@ -543,6 +699,7 @@ export default function HodProfile() {
                 {/* Avatar / Photo */}
                 {avatarUrl ? (
                   <img
+                    className="hod-profile-avatar"
                     src={avatarUrl}
                     alt={profile.name || "HOD Profile"}
                     style={{
@@ -557,6 +714,7 @@ export default function HodProfile() {
                   />
                 ) : (
                   <div
+                    className="hod-profile-avatar"
                     style={{
                       width: 58,
                       height: 58,
@@ -578,7 +736,7 @@ export default function HodProfile() {
                   </div>
                 )}
 
-                <div style={{ minWidth: 0, flex: "1 1 240px" }}>
+                <div className="hod-profile-identity-copy" style={{ minWidth: 0, flex: "1 1 240px" }}>
                   <div
                     style={{
                       display: "flex",
@@ -704,7 +862,7 @@ export default function HodProfile() {
 
             {/* Right: Contact Information */}
             
-            <div className="col-12 col-md-4 text-md-end">
+            <div className="col-12 col-md-4 text-md-end hod-profile-contact-column">
               
               <div
                 className="hod-header-contact"
@@ -800,9 +958,9 @@ export default function HodProfile() {
         {/* ==================================================
              2. MAIN 2-COLUMN BALANCED GRID
         ================================================== */}
-        <div className="row g-3">
+        <div className="row g-3 hod-profile-sections">
           {/* LEFT COLUMN: Department & Professional Information */}
-          <div className="col-12 col-lg-7">
+          <div className="col-12 col-lg-7 hod-profile-details-column">
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {/* Department Information / Administrative Scope */}
               <motion.div variants={fadeUp} custom={1} initial="hidden" animate="visible">
@@ -896,7 +1054,7 @@ export default function HodProfile() {
           </div>
 
           {/* RIGHT COLUMN: Scope Context */}
-          <div className="col-12 col-lg-5">
+          <div className="col-12 col-lg-5 hod-profile-scope-column">
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               {/* Department Responsibilities Overview */}
               <motion.div variants={fadeUp} custom={3} initial="hidden" animate="visible">

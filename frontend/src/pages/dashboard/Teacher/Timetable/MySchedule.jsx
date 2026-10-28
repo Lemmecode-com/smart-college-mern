@@ -205,7 +205,7 @@ const componentStyles = `
   border-radius: 15px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(26, 75, 109, 0.12);
-  height: 170px;
+  height: auto;
 }
 
 .header-top {
@@ -218,7 +218,7 @@ const componentStyles = `
   align-items: center;
   flex-wrap: nowrap;
   gap: 1.5rem;
-  height: 95px;
+  height: auto;
 }
 .header-left {
   display: flex;
@@ -795,6 +795,71 @@ const componentStyles = `
   }
 }
 
+@media (max-width: 1024px) {
+  .schedule-container .schedule-header,
+  .schedule-container .header-top {
+    height: auto;
+  }
+
+  .schedule-container .schedule-header {
+    overflow: visible;
+  }
+
+  .schedule-container .header-top {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .schedule-container {
+    padding: 0.5rem !important;
+  }
+
+  .schedule-container .header-top {
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .schedule-container .header-left {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 0.75rem;
+  }
+
+  .schedule-container .header-title {
+    font-size: 1.2rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .schedule-container .header-right {
+    justify-content: space-between;
+  }
+
+  .schedule-container .current-time-badge {
+    flex: 1;
+  }
+
+  .schedule-container .stats-bar {
+    padding: 0.75rem;
+  }
+
+  .schedule-container .stats-items {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .schedule-container .stat-item {
+    min-width: 0;
+  }
+
+  .schedule-container .stat-label {
+    overflow-wrap: anywhere;
+  }
+}
+
 /* ================= TOAST NOTIFICATIONS ================= */
 .Toastify__toast {
   border-radius: 12px;
@@ -1306,7 +1371,7 @@ export default function MySchedule() {
     const isTablet = width >= 768 && width < 1024;
     return {
       container: {
-        maxWidth: isMobile ? "100%" : isTablet ? "95%" : "1200px",
+        maxWidth: isMobile ? "100%" : "none",
         padding: isMobile ? "0.75rem" : "1.5rem",
       },
 headerTitle: {
