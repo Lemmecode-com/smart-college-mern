@@ -5,7 +5,8 @@
 
 .student-results-page {
   padding: 0.5rem 1.5rem 1.5rem;
-  max-width: 1280px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
   min-height: calc(100vh - 80px);
   box-sizing: border-box;
@@ -2087,4 +2088,3 @@
     justify-content: center;
   }
 }
-

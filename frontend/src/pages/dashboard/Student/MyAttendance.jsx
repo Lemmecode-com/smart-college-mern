@@ -428,7 +428,7 @@ addToast("Filters reset successfully!", "info");
           Skip to attendance content
         </a>
 
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }} id="attendance-content">
+        <div style={{ width: '100%', maxWidth: 'none', margin: '0 auto' }} id="attendance-content">
           <style>{`
             .student-attendance-report-hero,
             .student-attendance-report-hero-content,

@@ -252,7 +252,8 @@ export default function StudentExamTimetable() {
       <style>{`
         .student-exam-timetable-page {
           padding: 0.5rem 1.5rem 1.5rem;
-          max-width: 1200px;
+          width: 100%;
+          max-width: none;
           margin: 0 auto;
         }
 

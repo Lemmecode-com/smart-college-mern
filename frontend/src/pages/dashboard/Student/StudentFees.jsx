@@ -1788,6 +1788,17 @@ if (loading) {
           visibility: visible !important;
         }
 
+        .fees-table .cell-action .btn-pay > svg {
+          display: block !important;
+          width: 16px !important;
+          height: 16px !important;
+          flex: 0 0 16px !important;
+          color: currentColor !important;
+          fill: currentColor !important;
+          opacity: 1 !important;
+          visibility: visible !important;
+        }
+
         .btn-receipt:hover {
           background: #28a745;
           color: white;

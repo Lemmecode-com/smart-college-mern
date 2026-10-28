@@ -331,7 +331,7 @@ if (loading) {
   const { student, college, department, course } = profile;
 
   return (
-    <div className="erp-page erp-viewport-min-100 py-3 py-md-4 animate-fade-in" role="main">
+    <div className="student-profile-page erp-page erp-viewport-min-100 py-3 py-md-4 animate-fade-in" role="main">
       <ToastContainer position="top-right" />
 
       {/* ================= BREADCRUMB ================= */}
@@ -1543,6 +1543,50 @@ if (loading) {
           }
           .document-card {
             padding: 1rem;
+          }
+        }
+
+        @media (min-width: 750px) and (max-width: 1100px) {
+          .student-profile-page .card-header.bg-gradient-primary .position-relative > .d-flex {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 1rem !important;
+          }
+
+          .student-profile-page .profile-header-btn {
+            position: static !important;
+            margin: 0 !important;
+          }
+
+          .student-profile-page .tabs-navigation {
+            width: 100%;
+            min-width: 0;
+            display: flex;
+            overflow-x: auto;
+            border-right: 0;
+            border-bottom: 1px solid #e9ecef;
+          }
+
+          .student-profile-page .tabs-navigation .tab-item {
+            flex: 1 0 150px;
+            min-width: 150px;
+            padding: 0.9rem 0.65rem;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .student-profile-page .tabs-content,
+          .student-profile-page .section-content {
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+          }
+
+          .student-profile-page .info-item,
+          .student-profile-page .info-value {
+            min-width: 0;
+            overflow-wrap: anywhere;
           }
         }
 

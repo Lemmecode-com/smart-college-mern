@@ -618,7 +618,7 @@ if (loading) {
         theme="colored"
       />
 
-      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
+      <div style={{ width: "100%", maxWidth: "none", margin: "0 auto", padding: "1.5rem" }}>
         
 {/* ================= PAGE HEADER ================= */}
 <PageHeader
