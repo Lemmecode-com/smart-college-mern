@@ -2194,9 +2194,9 @@ if (error && !loading && students.length === 0) {
 
       {/* Unified Promotion Modal */}
       {showEligibilityModal && eligibilityStudent && (
-        <div className="modal-overlay" onClick={() => setShowEligibilityModal(false)}>
+        <div className="modal-overlay promotion-eligibility-overlay" onClick={() => setShowEligibilityModal(false)}>
           <div
-            className="modal-content"
+            className="modal-content promotion-eligibility-modal"
             onClick={(e) => e.stopPropagation()}
             style={{ maxWidth: "800px", width: "calc(100% - 2rem)", maxHeight: "90vh" }}
           >
@@ -4025,6 +4025,10 @@ if (error && !loading && students.length === 0) {
           animation: fadeIn 0.3s ease;
         }
 
+        .promotion-eligibility-overlay {
+          z-index: 1100;
+        }
+
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
@@ -5468,6 +5472,198 @@ if (error && !loading && students.length === 0) {
               flex: 1;
               min-width: 120px;
               justify-content: center;
+            }
+          }
+
+          @media (max-width: 600px) {
+            .promotion-eligibility-modal {
+              box-sizing: border-box;
+              width: calc(100vw - 16px) !important;
+              max-width: calc(100vw - 16px) !important;
+              max-height: calc(100dvh - 16px) !important;
+              margin: 0;
+              overflow-x: hidden;
+              border-radius: 14px;
+            }
+
+            .promotion-eligibility-modal .modal-header {
+              padding: 12px;
+            }
+
+            .promotion-eligibility-modal .modal-title {
+              min-width: 0;
+              font-size: 16px;
+            }
+
+            .promotion-eligibility-modal .modal-body {
+              padding: 12px;
+              overflow-wrap: anywhere;
+            }
+
+            .promotion-eligibility-modal .student-info-card {
+              padding: 12px;
+              margin-bottom: 12px;
+            }
+
+            .promotion-eligibility-modal .promotion-info {
+              flex-wrap: wrap;
+              min-width: 0;
+            }
+
+            .promotion-eligibility-modal .badge {
+              max-width: 100%;
+              box-sizing: border-box;
+              white-space: normal;
+              overflow-wrap: anywhere;
+            }
+
+            .promotion-eligibility-modal .outcome-banner-content {
+              padding: 12px;
+              gap: 10px;
+            }
+
+            .promotion-eligibility-modal .outcome-text,
+            .promotion-eligibility-modal .outcome-reason {
+              min-width: 0;
+              overflow-wrap: anywhere;
+            }
+
+            .promotion-eligibility-modal .outcome-actions,
+            .promotion-eligibility-modal .outcome-actions .btn {
+              width: 100%;
+              min-width: 0;
+              box-sizing: border-box;
+            }
+
+            .promotion-eligibility-modal .compact-status-row {
+              display: grid !important;
+              grid-template-columns: 20px minmax(0, 1fr);
+              gap: 4px 8px !important;
+              padding: 9px !important;
+            }
+
+            .promotion-eligibility-modal .compact-status-row > span:nth-child(2) {
+              min-width: 0 !important;
+              overflow-wrap: anywhere;
+            }
+
+            .promotion-eligibility-modal .compact-status-row > span:nth-child(3) {
+              grid-column: 2;
+              min-width: 0;
+              overflow-wrap: anywhere;
+            }
+
+            .promotion-eligibility-modal .modal-footer {
+              flex-wrap: wrap;
+              padding: 12px;
+            }
+
+            .promotion-eligibility-modal .backlog-card .decision-card-header {
+              display: grid;
+              grid-template-columns: auto minmax(0, 1fr);
+              gap: 6px 8px;
+              padding: 10px;
+            }
+
+            .promotion-eligibility-modal .backlog-card .decision-card-header h5 {
+              min-width: 0;
+              white-space: nowrap;
+            }
+
+            .promotion-eligibility-modal .backlog-card .decision-card-header > .text-muted,
+            .promotion-eligibility-modal .backlog-card .decision-card-header > div {
+              grid-column: 2;
+              min-width: 0;
+              overflow-wrap: anywhere;
+            }
+
+            .promotion-eligibility-modal .backlog-card .decision-card-header > div {
+              flex-wrap: wrap;
+            }
+
+            .promotion-eligibility-modal .backlog-card .decision-card-body {
+              min-width: 0;
+              padding: 10px;
+            }
+
+            .promotion-eligibility-modal .backlog-empty-state {
+              padding: 24px 12px !important;
+            }
+          }
+
+          @media (max-width: 1450px) {
+            .student-promotion-list .standard-table-container {
+              overflow-x: hidden;
+            }
+
+            .student-promotion-list .standard-table,
+            .student-promotion-list .standard-table tbody {
+              display: block;
+              width: 100%;
+              min-width: 0;
+            }
+
+            .student-promotion-list .standard-table thead {
+              display: none;
+            }
+
+            .student-promotion-list .standard-table tbody tr {
+              display: block;
+              width: 100%;
+              box-sizing: border-box;
+              margin: 0 0 12px;
+              padding: 8px 12px;
+              border: 1px solid #e4ebf1;
+              border-radius: 12px;
+              background: #fff;
+              box-shadow: 0 2px 8px rgba(15, 58, 74, 0.06);
+            }
+
+            .student-promotion-list .standard-table tbody td {
+              display: grid;
+              grid-template-columns: minmax(82px, 30%) minmax(0, 1fr);
+              align-items: center;
+              gap: 8px;
+              width: 100%;
+              min-width: 0;
+              box-sizing: border-box;
+              padding: 9px 0;
+              border-bottom: 1px solid #edf2f6;
+              overflow-wrap: anywhere;
+            }
+
+            .student-promotion-list .standard-table tbody td::before {
+              content: attr(data-label);
+              color: #64748b;
+              font-size: 0.72rem;
+              font-weight: 700;
+            }
+
+            .student-promotion-list .standard-table tbody td.standard-selection-cell {
+              grid-template-columns: minmax(82px, 30%) minmax(0, 1fr);
+            }
+
+            .student-promotion-list .standard-table tbody td.standard-selection-cell::before {
+              content: "Select";
+            }
+
+            .student-promotion-list .standard-selection-cell input {
+              justify-self: end;
+            }
+
+            .student-promotion-list .standard-table tbody td:last-child {
+              border-bottom: 0;
+            }
+
+            .student-promotion-list .standard-table-actions-cell {
+              min-width: 0;
+            }
+
+            .student-promotion-list .standard-table-actions {
+              justify-content: flex-start;
+              flex-wrap: wrap;
+              gap: 6px;
+              min-width: 0;
             }
           }
         `}</style>

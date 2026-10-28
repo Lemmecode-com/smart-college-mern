@@ -694,7 +694,7 @@ if (loading) {
     "Select Department";
 
   return (
-    <div className="erp-page erp-viewport-min-100">
+    <div className="erp-page erp-viewport-min-100 course-management-page">
       {/* BREADCRUMBS */}
       <div className="course-breadcrumb-wrapper">
         <Breadcrumb
@@ -2149,6 +2149,259 @@ if (loading) {
           .page-title { font-size: 1.35rem; }
           .header-icon-bg { width: 52px; height: 52px; }
         }
+          /* Course Management - responsive styles, this page only */
+
+.course-management-page {
+  min-width: 0;
+  width: 100%;
+}
+
+@media (max-width: 767.98px) {
+  .course-management-page {
+    padding: 12px;
+  }
+
+  /* Breadcrumb should not push the page wider */
+  .course-management-page .course-breadcrumb-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Department and course cards should use the available width */
+  .course-management-page .department-card,
+  .course-management-page .course-card {
+    width: 100%;
+    min-width: 0;
+    margin-bottom: 14px;
+  }
+
+  .course-management-page .card-header {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .course-management-page .card-body {
+    padding: 14px;
+  }
+
+  /* Department selector: stack dropdown and stats */
+  .course-management-page .department-selector {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .course-management-page .select-wrapper {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 auto;
+  }
+
+  .course-management-page .modern-select {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .course-management-page .quick-stats {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  /* Course section header */
+  .course-management-page .course-card > .card-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .course-management-page .card-actions {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .course-management-page .search-wrapper {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .course-management-page .search-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .course-management-page .card-actions .btn {
+    min-height: 40px;
+  }
+
+  /* Summary stats */
+  .course-management-page .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  /* Prevent table/list content from forcing horizontal page overflow */
+  .course-management-page .course-info,
+  .course-management-page .course-text {
+    min-width: 0;
+  }
+
+  .course-management-page .course-name-text {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .course-management-page {
+    padding: 8px;
+  }
+
+  .course-management-page .card-header {
+    padding: 10px 12px;
+  }
+
+  .course-management-page .card-body {
+    padding: 12px;
+  }
+
+  .course-management-page .card-title {
+    font-size: 0.95rem;
+  }
+
+  .course-management-page .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .course-management-page .card-actions .btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
+/* =========================================================
+   COURSE MANAGEMENT - TABLET RESPONSIVENESS
+   Scoped to CourseList only. Desktop remains unchanged.
+   ========================================================= */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .course-management-page {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Page header: allow title and actions to use available space */
+  .course-management-page .page-header {
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .course-management-page .page-header > * {
+    min-width: 0;
+  }
+
+  .course-management-page .header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .course-management-page .header-actions button {
+    min-height: 42px !important;
+    padding: 0 14px !important;
+    font-size: 13px !important;
+  }
+
+  /* Department selector */
+  .course-management-page .department-selector {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .course-management-page .select-wrapper {
+    flex: 1 1 260px;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .course-management-page .modern-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .course-management-page .quick-stats {
+    flex: 0 1 auto;
+    margin-top: 0;
+  }
+
+  /* Course statistics */
+  .course-management-page .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .course-management-page .stat-card {
+    min-width: 0;
+  }
+
+  .course-management-page .stat-card-details {
+    min-width: 0;
+  }
+
+  .course-management-page .stat-label {
+    overflow-wrap: anywhere;
+  }
+
+  /* Course list header */
+  .course-management-page .course-card > .card-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .course-management-page .card-actions {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .course-management-page .search-wrapper {
+    flex: 1 1 260px;
+    width: auto;
+    min-width: 0;
+  }
+
+  .course-management-page .search-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Keep the table inside its own scroll container */
+  .course-management-page .standard-list-view,
+  .course-management-page .standard-list-body,
+  .course-management-page .standard-table-container {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .course-management-page .standard-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
       `}</style>
     </div>
   );

@@ -462,7 +462,6 @@ style={{
 className="notification-details-grid"
 style={{
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) 320px",
   gap: "24px",
   alignItems: "start",
 }}

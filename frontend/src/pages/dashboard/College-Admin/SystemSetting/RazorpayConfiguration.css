@@ -4,8 +4,9 @@
   --rp-ink: #18313c;
   --rp-muted: #647985;
   --rp-line: #dce7eb;
-  width: min(100%, 1440px);
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 24px clamp(16px, 3vw, 36px) 36px;
   color: var(--rp-ink);
 }
@@ -15,54 +16,23 @@
   box-sizing: border-box;
 }
 
-.rp-header {
-  display: flex;
+.razorpay-config-page .spin {
+  animation: rp-spin 1s linear infinite;
+}
+
+@keyframes rp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.razorpay-config-page .rp-page-header {
+  margin-bottom: 20px;
+}
+
+.razorpay-config-page .rp-page-header .standard-page-header-actions {
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 22px;
-  padding: 20px 22px;
-  border: 1px solid var(--rp-line);
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 5px 18px rgba(15, 58, 74, 0.07);
-}
-
-.rp-header > .alert {
-  flex-basis: 100%;
-}
-
-.rp-heading {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  gap: 15px;
-}
-
-.rp-heading-icon {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  flex: 0 0 48px;
-  place-items: center;
-  border-radius: 14px;
-  background: #e8f5f6;
-  color: var(--rp-navy);
-  font-size: 21px;
-}
-
-.rp-heading h1 {
-  margin: 0;
-  color: var(--rp-navy);
-  font-size: clamp(1.25rem, 2vw, 1.65rem);
-  font-weight: 750;
-}
-
-.rp-heading p {
-  margin: 4px 0 0;
-  color: var(--rp-muted);
-  font-size: 0.9rem;
+  gap: 9px;
 }
 
 .rp-header-actions,
@@ -72,7 +42,10 @@
   justify-content: flex-end;
   gap: 9px;
   flex-wrap: wrap;
-  
+}
+
+.rp-webhook-warning {
+  width: 100%;
 }
 
 .rp-status {
@@ -116,6 +89,10 @@
   grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
   align-items: start;
   gap: 18px;
+}
+
+.rp-content-grid--unconfigured {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .rp-card {

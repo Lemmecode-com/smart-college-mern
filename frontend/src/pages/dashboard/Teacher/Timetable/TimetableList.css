@@ -13,7 +13,18 @@
    unrelated page is affected.
    ===================================================== */
 
-/* Breakpoints: match responsive-foundation.css (Bootstrap 5.3) */
+   .erp-timetable-list-page .erp-timetable-action-buttons .timetable-action-icon {
+     display: block !important;
+     width: 15px !important;
+     height: 15px !important;
+     flex: 0 0 15px !important;
+     color: currentColor !important;
+     fill: currentColor;
+     opacity: 1 !important;
+     visibility: visible !important;
+   }
+
+   /* Breakpoints: match responsive-foundation.css (Bootstrap 5.3) */
 @media (max-width: 767.98px) {
   /* ---------- Hero inner: stack to a centered column ---------- */
   .erp-timetable-hero-inner {

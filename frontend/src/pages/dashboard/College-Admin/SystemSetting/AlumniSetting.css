@@ -1,5 +1,7 @@
 .alumni-setting-page {
   min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
   background: linear-gradient(180deg, #f0f4f8 0%, #f5f7fb 100%);
   padding: 1.5rem;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -22,12 +24,15 @@
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  min-width: 0;
   z-index: 1;
 }
 
 .alumni-header-icon-wrapper {
   width: 52px;
+  min-width: 52px;
   height: 52px;
+  flex: 0 0 52px;
   border-radius: 50%;
   background: linear-gradient(135deg, #10b981, #059669);
   display: flex;
@@ -38,7 +43,12 @@
 
 .alumni-header-icon {
   font-size: 1.5rem;
+  flex-shrink: 0;
   color: #ffffff;
+}
+
+.alumni-header-text {
+  min-width: 0;
 }
 
 .alumni-header-text h1 {
@@ -56,6 +66,8 @@
 
 .alumni-header-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.75rem;
   z-index: 1;
 }
@@ -182,20 +194,27 @@
 }
 
 /* Switch styling */
-.switch {
+.alumni-toggle-container .switch {
   position: relative;
   display: inline-block;
+  flex: 0 0 52px;
   width: 52px;
+  min-width: 52px;
   height: 28px;
 }
 
-.switch input {
+.alumni-toggle-container .switch input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   opacity: 0;
   width: 0;
   height: 0;
+  margin: 0;
+  cursor: pointer;
 }
 
-.slider {
+.alumni-toggle-container .slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -207,7 +226,7 @@
   border-radius: 34px;
 }
 
-.slider:before {
+.alumni-toggle-container .slider:before {
   position: absolute;
   content: "";
   height: 20px;
@@ -219,12 +238,29 @@
   border-radius: 50%;
 }
 
-input:checked + .slider {
+.alumni-toggle-container .switch input:checked + .slider {
   background-color: #10b981;
 }
 
-input:checked + .slider:before {
+.alumni-toggle-container .switch input:checked + .slider:before {
   transform: translateX(24px);
+}
+
+.alumni-toggle-container .switch input:focus-visible + .slider {
+  outline: 3px solid rgba(16, 185, 129, 0.3);
+  outline-offset: 3px;
+}
+
+@media (max-width: 420px) {
+  .alumni-toggle-container {
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem;
+  }
+
+  .alumni-toggle-label {
+    min-width: 0;
+  }
 }
 
 .btn-primary-alumni {
@@ -273,17 +309,80 @@ input:checked + .slider:before {
 
 .alumni-grid-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.25rem;
 }
 
 @media (max-width: 768px) {
+  .alumni-setting-page {
+    padding: 0.75rem;
+  }
+
   .alumni-grid-2 {
     grid-template-columns: 1fr;
   }
+
   .alumni-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+    padding: 1rem;
+  }
+
+  .alumni-header-content,
+  .alumni-header-actions {
+    width: 100%;
+  }
+
+  .alumni-header-actions {
+    justify-content: stretch;
+  }
+
+  .alumni-header-actions button {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .alumni-card {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .alumni-setting-page {
+    padding: 0.5rem;
+  }
+
+  .alumni-header-content {
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .alumni-header-icon-wrapper {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  .alumni-header-text h1 {
+    font-size: 1.25rem;
+  }
+
+  .alumni-header-text p {
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .alumni-header-actions {
+    gap: 0.5rem;
+  }
+
+  .alumni-header-actions button {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .alumni-card {
+    padding: 0.75rem;
   }
 }

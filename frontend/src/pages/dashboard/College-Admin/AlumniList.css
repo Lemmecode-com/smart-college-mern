@@ -751,6 +751,10 @@
 
 /* ================= MODAL ================= */
 /* BACKDROP */
+.alumni-details-overlay {
+  z-index: 1100;
+}
+
 .cert-modal-overlay {
   position: fixed;
   inset: 0;
@@ -2039,4 +2043,76 @@
   box-shadow: none;
   text-align: left;
   white-space: normal;
+}
+
+@media (max-width: 1450px) {
+  .alumni-list .standard-table-container {
+    overflow-x: hidden;
+  }
+
+  .alumni-list .standard-table,
+  .alumni-list .standard-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .alumni-list .standard-table thead {
+    display: none;
+  }
+
+  .alumni-list .standard-table tbody tr {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border: 1px solid #e4ebf1;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 58, 74, 0.06);
+  }
+
+  .alumni-list .standard-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(82px, 30%) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 9px 0;
+    border-bottom: 1px solid #edf2f6;
+    overflow-wrap: anywhere;
+  }
+
+  .alumni-list .standard-table tbody td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .alumni-list .standard-table tbody td:last-child {
+    border-bottom: 0;
+  }
+
+  .alumni-list .student-info {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .alumni-list .student-email {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .alumni-list .standard-table-actions-cell {
+    min-width: 0;
+  }
+
+  .alumni-list .standard-table-actions {
+    justify-content: flex-start;
+    min-width: 0;
+  }
 }

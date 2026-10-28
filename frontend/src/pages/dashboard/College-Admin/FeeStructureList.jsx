@@ -383,7 +383,7 @@ const tableActions = {
     );
   }
   return (
-    <div className="erp-page erp-viewport-min-100" style={{ background: "#f5f7fa" }}>
+    <div className="erp-page erp-viewport-min-100 fee-structure-page" style={{ background: "#f5f7fa" }}>
       {/* BREADCRUMBS */}
       <div className="course-breadcrumb-wrapper">
       <Breadcrumb
@@ -790,7 +790,7 @@ const tableActions = {
           padding: 0;
         }
         
-        .controls-container {
+        .fee-structure-page .controls-container {
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -2280,6 +2280,90 @@ const tableActions = {
   }
 }
 
+@media (max-width: 1450px) {
+  .fee-structures-list .standard-table-container {
+    overflow-x: hidden;
+  }
+
+  .fee-structures-list .standard-table,
+  .fee-structures-list .standard-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .fee-structures-list .standard-table thead {
+    display: none;
+  }
+
+  .fee-structures-list .standard-table tbody tr {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0 0 10px;
+    padding: 6px 12px;
+    border: 1px solid #e4ebf1;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(15, 58, 74, 0.06);
+  }
+
+  .fee-structures-list .standard-table tbody td {
+    display: grid;
+    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 9px 0;
+    border-bottom: 1px solid #edf2f6;
+    overflow-wrap: anywhere;
+  }
+
+  .fee-structures-list .standard-table tbody td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .fee-structures-list .standard-table tbody td:last-child {
+    border-bottom: 0;
+  }
+
+  .fee-structures-list .standard-table-actions-cell {
+    min-width: 0;
+  }
+
+  .fee-structures-list .standard-table-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .controls-container {
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .fee-structure-page .controls-container .search-box {
+    flex: 1 1 0;
+  }
+
+  .fee-structure-page .controls-container .refresh-btn {
+    width: 42px;
+    min-width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+  }
+
+  .fee-structure-page .controls-container .refresh-btn span {
+    display: none;
+  }
+}
       `}</style>
 
       

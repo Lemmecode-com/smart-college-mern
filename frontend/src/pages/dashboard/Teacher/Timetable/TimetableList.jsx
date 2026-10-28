@@ -422,6 +422,7 @@ if (
    return (
     <AnimatePresence mode="wait">
       <motion.div
+        className="erp-timetable-list-page"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -845,10 +846,11 @@ if (
                             </span>
                           </td>
                           <td style={{ ...cellStyle, textAlign: 'center', padding: '0.75rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <div className="erp-timetable-action-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                               {/* VIEW BUTTON */}
                               <ActionIconButton
                                 icon={FaEye}
+                                iconClassName="timetable-action-icon"
                                 ariaLabel={`View weekly timetable for ${t.name || "this timetable"}`}
                                 tooltip="View weekly timetable"
                                 onClick={() => navigate(`/timetable/${t._id}/weekly${activeTab === "archived" ? "?includeArchived=true" : ""}`)}
@@ -872,6 +874,7 @@ if (
                                {activeTab === "archived" && isHOD && t.status === "ARCHIVED" && (
                                  <ActionIconButton
                                    icon={unarchivingId === t._id ? FaSyncAlt : FaUnlock}
+                                   iconClassName="timetable-action-icon"
                                    ariaLabel={`Unarchive timetable ${t.name || ""}`}
                                    tooltip="Unarchive timetable"
                                    onClick={() => showUnarchiveConfirm(t._id)}
@@ -898,6 +901,7 @@ if (
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
                                 <ActionIconButton
                                   icon={publishingId === t._id ? FaSyncAlt : FaCheckCircle}
+                                  iconClassName="timetable-action-icon"
                                   ariaLabel={`Publish timetable ${t.name || ""}`}
                                   tooltip="Publish timetable"
                                   onClick={() => showPublishConfirm(t._id)}
@@ -924,6 +928,7 @@ if (
                               {activeTab !== "archived" && isHOD && t.status === "PUBLISHED" && (
                                 <ActionIconButton
                                   icon={archivingId === t._id ? FaSyncAlt : FaArchive}
+                                  iconClassName="timetable-action-icon"
                                   ariaLabel={`Archive timetable ${t.name || ""}`}
                                   tooltip="Archive timetable"
                                   onClick={() => showArchiveConfirm(t._id)}
@@ -950,6 +955,7 @@ if (
                               {activeTab !== "archived" && isHOD && t.status === "DRAFT" && (
                                 <ActionIconButton
                                   icon={deletingId === t._id ? FaSyncAlt : FaTrash}
+                                  iconClassName="timetable-action-icon"
                                   ariaLabel={`Delete timetable ${t.name || ""}`}
                                   tooltip="Delete timetable"
                                   onClick={() => showDeleteConfirm(t._id)}

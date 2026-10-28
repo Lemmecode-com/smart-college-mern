@@ -824,6 +824,9 @@ const tableActions = {
    DESKTOP UNCHANGED
    ========================================================= */
 
+.parent-management-page {
+  max-width: none;
+}
 
 /* =========================================================
    TABLET

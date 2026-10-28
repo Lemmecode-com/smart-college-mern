@@ -717,8 +717,7 @@
        Visually reduce the logo without cropping it.
        Layout still reserves the full logo area.
     */
-    transform: scale(0.60);
-    transform-origin: center;
+   transform: none;
   }
 
 
@@ -1027,13 +1026,13 @@
   .row > .col-md-7
   > .d-flex
   > div:first-child {
-    width: 72px !important;
-    min-width: 72px !important;
-    max-width: 72px !important;
+    width: 92px !important;
+    min-width: 92px !important;
+    max-width: 92px !important;
 
-    height: 72px !important;
-    min-height: 72px !important;
-    max-height: 72px !important;
+    height: 92px !important;
+    min-height: 92px !important;
+    max-height: 92px !important;
 
     flex: 0 0 72px !important;
 
@@ -1048,8 +1047,7 @@
        Visually smaller while preserving
        the complete logo.
     */
-    transform: scale(0.56);
-    transform-origin: center;
+    transform: none;
   }
 
 
@@ -1057,7 +1055,7 @@
      Never crop the actual logo.
   */
 
-  .dashboard-header-hero
+  .college-admin-dashboard .dashboard-header-hero
   .row > .col-md-7
   > .d-flex
   > div:first-child img {
@@ -1365,19 +1363,73 @@
    992px+
    KEEP EXISTING DESKTOP DESIGN
    ========================================================= */
+/* =========================================================
+   DESKTOP & WIDE SCREENS
+   ========================================================= */
 
 @media (min-width: 992px) {
-
-  .dashboard-wrapper {
-    padding: 0.5rem calc(var(--spacing-xl) + 1rem) var(--spacing-xl);
+  .college-admin-dashboard .erp-page-content {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+    box-sizing: border-box;
   }
 
+  .college-admin-dashboard .dashboard-wrapper {
+    width: 100%;
+    padding: 0.5rem 1.5rem 1.5rem;
+    box-sizing: border-box;
+  }
 
-  .dashboard-container-inner {
-    max-width: 1400px;
+  .college-admin-dashboard .dashboard-container-inner {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: auto;
+    box-sizing: border-box;
+  }
+
+  .college-admin-dashboard .dashboard-header,
+  .college-admin-dashboard .dashboard-section {
+    width: 100%;
+    max-width: 100%;
   }
 }
 
+/* =========================================================
+   WIDE SCREENS
+   1600px+
+   ========================================================= */
+
+@media (min-width: 1600px) {
+  .college-admin-dashboard .erp-page-content {
+    max-width: 100%;
+    padding-inline: 2rem;
+  }
+
+  .college-admin-dashboard .dashboard-wrapper {
+    padding-inline: 2rem;
+  }
+
+  .college-admin-dashboard .dashboard-container-inner {
+    max-width: 100%;
+  }
+}
+
+/* =========================================================
+   ULTRA-WIDE SCREENS
+   1920px+
+   ========================================================= */
+
+@media (min-width: 1920px) {
+  .college-admin-dashboard .erp-page-content {
+    padding-inline: 2.5rem;
+  }
+
+  .college-admin-dashboard .dashboard-wrapper {
+    padding-inline: 2.5rem;
+  }
+}
 /* ================= HOVER/FOCUS STATES ================= */
 .stat-card,
 .quick-action-card,

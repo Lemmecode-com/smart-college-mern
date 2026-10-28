@@ -433,7 +433,10 @@ if (loadingDepartments) {
           paddingRight: "1rem",
         }}
       >
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
+        <div
+          className="add-subject-content"
+          style={{ maxWidth: "1200px", margin: "0 auto" }}
+        >
           {error && typeof error === 'object' && !loading && (
             <ApiError
               title="Subject Creation Error"
@@ -551,16 +554,18 @@ if (loadingDepartments) {
                 gap: "1rem",
                 flexWrap: "wrap",
               }}
+
             >
               <FaInfoCircle
                 style={{
                   color: BRAND_COLORS.primary.main,
                   fontSize: "1.5rem",
                   flexShrink: 0,
+
                 }}
               />
                 <div
-                  style={{ color: "#1e293b", fontWeight: 500, lineHeight: 1.5 }}
+                  style={{ color: "#1e293b", fontWeight: 500, lineHeight: 1.5,  }}
                 >
                   <strong>Workflow:</strong> Select Department → Choose Course →
                   Enter Subject Details → Generate/Enter Subject Code
@@ -2548,7 +2553,104 @@ if (loadingDepartments) {
   .security-note {
     font-size: 0.67rem !important;
   }
+
 }
+  /* Add Subject - fix hero header overlap up to 769px */
+@media (max-width: 769px) {
+  .add-subject-page .add-subject-hero {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Dark teal header section */
+  .add-subject-page .add-subject-hero > div:first-child {
+    height: auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+    padding: 1rem !important;
+    overflow: visible !important;
+  }
+
+  /* Icon and text wrapper */
+  .add-subject-page .add-subject-hero
+  > div:first-child > div:first-child {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Header icon */
+  .add-subject-page .add-subject-hero
+  > div:first-child > div:first-child
+  > div:first-child {
+    flex: 0 0 42px !important;
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+  }
+
+  /* Title and description wrapper */
+  .add-subject-page .add-subject-hero
+  > div:first-child > div:first-child
+  > div:last-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .add-subject-page .add-subject-hero h1 {
+    margin: 0 !important;
+    font-size: 1.1rem !important;
+    line-height: 1.3 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+
+  .add-subject-page .add-subject-hero p {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0.3rem 0 0 !important;
+    font-size: 0.72rem !important;
+    line-height: 1.45 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+  }
+
+  /* Workflow strip */
+  .add-subject-page .add-subject-hero
+  > div:last-child {
+    position: relative !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0.7rem 0.85rem !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+    overflow: visible !important;
+  }
+}
+  .add-subject-workflow{
+  margin-top: 0.75rem !important;
+  }
+          @media (min-width: 1600px) {
+            .add-subject-page .add-subject-content {
+              width: 100% !important;
+              max-width: none !important;
+              margin-left: auto !important;
+              margin-right: auto !important;
+            }
+          }
         `}</style>
       </motion.div>
     </AnimatePresence>

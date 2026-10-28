@@ -900,10 +900,11 @@ if (loading) {
                             <span className="not-paid">Not paid yet</span>
                           )}
                         </td>
-<td className="cell-action" data-label="Action">
+                          <td className="cell-action" data-label="Action">
                            {installment.status === "PAID" ? (
                              <ActionIconButton
                                icon={FaReceipt}
+                               iconClassName="fee-receipt-icon"
                                className="btn-receipt"
                                onClick={() =>
                                  navigate(
@@ -1774,6 +1775,17 @@ if (loading) {
           background: white;
           color: #28a745;
           border: 2px solid #28a745;
+        }
+
+        .fees-table .cell-action .btn-receipt > .fee-receipt-icon {
+          display: block !important;
+          width: 16px !important;
+          height: 16px !important;
+          flex: 0 0 16px !important;
+          color: currentColor !important;
+          fill: currentColor;
+          opacity: 1 !important;
+          visibility: visible !important;
         }
 
         .btn-receipt:hover {

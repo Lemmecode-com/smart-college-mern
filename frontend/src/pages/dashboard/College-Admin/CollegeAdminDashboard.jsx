@@ -373,18 +373,6 @@ export default function CollegeAdminDashboard() {
             <div className="cad-header-actions">
               <HeaderClock />
 
-              <button
-                type="button"
-                className="cad-btn-refresh"
-                onClick={() => loadDashboardData(true)}
-                disabled={refreshing || loading}
-                aria-label="Refresh dashboard data"
-                title="Refresh dashboard data"
-              >
-                <FaSyncAlt className={refreshing ? "cad-spin" : ""} aria-hidden="true" />
-                <span>Refresh</span>
-              </button>
-
               <Link
                 to="/college/profile"
                 className="cad-btn-profile"
@@ -557,16 +545,9 @@ export default function CollegeAdminDashboard() {
                 </div>
                 <div className="cad-reg-meta">
                   <div className="cad-reg-title">Student Registration Link</div>
-                  <div
-                    className="cad-reg-url-preview"
-                    title={
-                      college?.registrationUrl
-                        ? getFrontendRegistrationUrl(college.registrationUrl)
-                        : "Link not configured"
-                    }
-                  >
+                  <div className="cad-stat-helper">
                     {college?.registrationUrl
-                      ? getFrontendRegistrationUrl(college.registrationUrl)
+                      ? "Shareable link for student self-enrollment"
                       : "Not configured yet"}
                   </div>
                 </div>

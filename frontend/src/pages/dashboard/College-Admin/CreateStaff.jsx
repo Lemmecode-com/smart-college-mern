@@ -623,9 +623,9 @@ export default function CreateStaff() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="dashboard-wrapper"
+        className="dashboard-wrapper create-staff-page"
       >
-        <div className="dashboard-container-inner">
+        <div className="dashboard-container-inner create-staff-page-container">
           {/* ================= BREADCRUMB ================= */}  
           <div
             style={{
@@ -678,6 +678,12 @@ export default function CreateStaff() {
   </div>
 </div>
 <style>{`
+  .create-staff-page-container {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+  }
+
   /* ================= STANDARD HEADER ================= */
 
   .create-staff-header {
@@ -830,6 +836,88 @@ export default function CreateStaff() {
       font-size: 13px;
     }
   }
+
+  @media (min-width: 768px) and (max-width: 1100px) {
+    .create-staff-header {
+      height: auto;
+      padding: 18px 20px;
+    }
+
+    .create-staff-header-content {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+    }
+
+    .create-staff-header-text h1 {
+      font-size: 24px;
+    }
+
+    .create-staff-header-btn {
+      align-self: flex-start;
+    }
+
+    .create-staff-form > .row > [class*="col-lg-6"],
+    .create-staff-form .row > [class*="col-md-"] {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 300px) {
+    .create-staff-page {
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+
+    .create-staff-page-container {
+      padding: 0;
+    }
+
+    .create-staff-header {
+      padding: 12px;
+    }
+
+    .create-staff-header-left {
+      align-items: flex-start;
+    }
+
+    .create-staff-header-text {
+      min-width: 0;
+    }
+
+    .create-staff-header-text h1 {
+      font-size: 19px;
+      overflow-wrap: anywhere;
+    }
+
+    .create-staff-header-text p {
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .create-staff-header-btn {
+      min-width: 0;
+      height: auto;
+      min-height: 42px;
+      padding: 8px 10px;
+      white-space: normal;
+    }
+
+    .create-staff-form,
+    .create-staff-form .row,
+    .create-staff-form [class*="col-"] {
+      min-width: 0;
+      --bs-gutter-x: 0.5rem;
+    }
+
+    .create-staff-form .form-control,
+    .create-staff-form .form-select {
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+  }
 `}</style>
           <motion.div
             variants={fadeInVariants}
@@ -837,7 +925,7 @@ export default function CreateStaff() {
             initial="hidden"
             animate="visible"
           >
-            <form onSubmit={handleSubmit}>
+            <form className="create-staff-form" onSubmit={handleSubmit}>
               <div className="row g-3 g-md-4">
                 <div className="col-12">
                   <SectionCard

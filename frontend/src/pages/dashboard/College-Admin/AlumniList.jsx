@@ -249,7 +249,7 @@ function AlumniDetailsModal({ alumnus, isOpen, onClose }) {
   if (!isOpen || !alumnus) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay alumni-details-overlay" onClick={onClose}>
       <div
         className="modal-container details-modal"
         onClick={(e) => e.stopPropagation()}

@@ -40,7 +40,7 @@
 
 .erp-staff-page-content {
   width: 100%;
-  max-width: 1400px;
+  max-width: none;
   min-width: 0;
   margin: 0 auto;
   padding: 0.5rem 1rem 1rem;
@@ -1624,5 +1624,4 @@
     min-height: 36px;
   }
 }
-
 
