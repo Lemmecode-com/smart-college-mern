@@ -254,11 +254,31 @@
 
   .hod-header-user-info {
     align-items: flex-start;
+    width: 100%;
+    flex: none;
+  }
+
+  .hod-header-identity {
+    flex: 1 1 0;
+    width: 0;
+  }
+
+  .hod-header-greeting,
+  .hod-header-name,
+  .hod-header-subtitle {
+    margin-left: 0;
+  }
+
+  .hod-header-name {
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
   .hod-header-avatar {
     width: 48px;
     height: 48px;
+    min-width: 48px;
+    flex: 0 0 48px;
     border-radius: 12px;
     font-size: 1.3rem;
   }
@@ -276,6 +296,28 @@
     grid-template-columns: 1fr;
     gap: 1rem;
     padding: 1.1rem 1.25rem;
+  }
+}
+
+@media (max-width: 300px) {
+  .hod-dashboard-root {
+    padding: 0.5rem 0.35rem 2rem;
+  }
+
+  .hod-header-main {
+    padding: 0.85rem;
+  }
+
+  .hod-header-user-info {
+    gap: 0.65rem;
+  }
+
+  .hod-header-name {
+    font-size: 1.2rem;
+  }
+
+  .hod-header-subtitle {
+    font-size: 0.8rem;
   }
 }
 
@@ -1010,19 +1052,53 @@
 }
 
 /* ================= RESPONSIVE DESIGN ================= */
-@media (max-width: 1024px) {
+@media (max-width: 1400px) {
+  .hod-dashboard-root,
+  .hod-dashboard-container,
+  .hod-main-columns,
+  .hod-column-left,
+  .hod-column-right,
+  .hod-section-card,
+  .hod-activity-list,
+  .hod-activity-card,
+  .hod-activity-item,
+  .hod-activity-content {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
   .hod-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .hod-main-columns {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hod-activity-text {
+    overflow-wrap: anywhere;
   }
 }
 
 @media (max-width: 640px) {
   .hod-dashboard-root {
+    width: 100%;
     padding: 1rem 0.75rem 2.5rem;
+    box-sizing: border-box;
+  }
+
+  .hod-dashboard-container,
+  .hod-main-columns,
+  .hod-column-left,
+  .hod-column-right,
+  .hod-section-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hod-main-columns {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .hod-header-banner {
@@ -1050,5 +1126,13 @@
   .hod-section-card {
     padding: 1.15rem 1.1rem;
     border-radius: 14px;
+  }
+
+  .hod-activity-item,
+  .hod-activity-content,
+  .hod-activity-text {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: normal;
   }
 }
