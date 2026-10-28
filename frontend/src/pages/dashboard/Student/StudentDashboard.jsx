@@ -1,4 +1,4 @@
-import { useEffect, useContext, useState } from "react";
+import { useEffect, useContext, useState, useCallback, memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
@@ -8,8 +8,6 @@ import { logger } from "../../../utils/logger";
 import PageHeader from "../../../components/PageHeader";
 import {
   FaUserGraduate,
-  FaBook,
-  FaBuilding,
   FaInfoCircle,
   FaCheckCircle,
   FaTimesCircle,
@@ -22,12 +20,9 @@ import {
   FaCalendarAlt,
   FaChartPie,
   FaChartBar,
-  FaDownload,
   FaEye,
   FaWallet,
   FaGraduationCap,
-  FaAward,
-  FaTrophy,
   FaStar,
   FaSync,
   FaUniversity,
@@ -46,14 +41,16 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  AreaChart,
-  Area,
   ReferenceLine,
 } from "recharts";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const PAGE_LOAD_TOAST_ID = "student-dashboard-load";
+
+// Attendance policy thresholds
+const MIN_ATTENDANCE_PERCENT = 75;
+const WARNING_ATTENDANCE_PERCENT = 60;
 
 /**
  * Format a Date as YYYY-MM-DD using LOCAL date parts (not toISOString which uses UTC).
@@ -122,33 +119,59 @@ const fadeStyle = (mounted, delay = 0) => ({
   transition: `opacity 0.5s ease ${delay}s, transform 0.5s ease ${delay}s`,
 });
 
-function Btn({ children, onClick, color = T.navy, tint }) {
-  const [hover, setHover] = useState(false);
+// Memoized live clock to isolate 1-second interval from root dashboard re-renders
+const LiveClock = memo(function LiveClock() {
+  const [time, setTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+    <div
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "0.5rem",
-        fontSize: "0.85rem",
-        fontWeight: 600,
-        borderRadius: T.radiusSm,
-        padding: "0.6rem 1.1rem",
-        cursor: "pointer",
-        color: hover ? "#fff" : color,
-        background: hover ? color : T.surface,
-        border: `1px solid ${color}`,
-        transition: "all 0.15s ease",
-        transform: hover ? "translateY(-1px)" : "translateY(0)",
+        minWidth: 105,
+        padding: "0.55rem 0.9rem",
+        borderRadius: T.radiusMd,
+        background: "rgba(255, 255, 255, 0.12)",
+        color: "#ffffff",
+        textAlign: "center",
       }}
+      aria-label={`Current time: ${time.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })}`}
     >
-      {children}
-    </button>
+      <div
+        style={{
+          fontSize: "0.7rem",
+          opacity: 0.75,
+          marginBottom: "0.2rem",
+        }}
+      >
+        Time
+      </div>
+
+      <div
+        style={{
+          fontSize: "1rem",
+          fontWeight: 700,
+        }}
+      >
+        {time.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        })}
+      </div>
+    </div>
   );
-}
+});
 
 function Card({ icon, title, tooltip, action, children, delay = 0, mounted, style }) {
   return (
@@ -343,10 +366,10 @@ export default function StudentDashboard() {
   const { user } = useContext(AuthContext);
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [hoveredStat, setHoveredStat] = useState(null);
   const [hoveredSubject, setHoveredSubject] = useState(null);
   const [hoveredSlot, setHoveredSlot] = useState(null);
@@ -373,25 +396,26 @@ export default function StudentDashboard() {
     semester: 1,
   };
 
+  // Initial load effect
   useEffect(() => {
-    let isCancelled = false;
+    let isMounted = true;
 
-    const load = async () => {
+    const loadInitial = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Send student's local calendar date to avoid timezone mismatch with server
         const todayStr = toLocalDateStr(new Date());
-        
+
         const response = await api.get("/dashboard/student", {
           params: { date: todayStr },
         });
-        if (!isCancelled) {
+        if (isMounted) {
           setDashboardData(response.data);
         }
       } catch (err) {
-        if (!isCancelled) {
+        if (isMounted) {
           const statusCode = err.response?.status;
           const errorCode = err.response?.data?.code;
           const backendMessage = err.response?.data?.message;
@@ -406,6 +430,7 @@ export default function StudentDashboard() {
 
           setError({
             message:
+              backendMessage ||
               "Failed to load dashboard. Please check your connection and try again.",
             statusCode,
             errorCode,
@@ -423,41 +448,65 @@ export default function StudentDashboard() {
           }
         }
       } finally {
-        if (!isCancelled) {
+        if (isMounted) {
           setLoading(false);
         }
       }
     };
 
-    load();
-    
+    loadInitial();
+
     return () => {
-      isCancelled = true;
+      isMounted = false;
       toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
-  }, [retryCount]);
+  }, [user?.role, retryCount]);
 
-  useEffect(() => {
-  const timer = setInterval(() => {
-    setCurrentTime(new Date());
-  }, 1000);
+  // Background refresh handler: keeps current data mounted, spins button, no click limit
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const todayStr = toLocalDateStr(new Date());
+      const response = await api.get("/dashboard/student", {
+        params: { date: todayStr },
+      });
+      setDashboardData(response.data);
+      toast.success("Dashboard refreshed", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    } catch (err) {
+      logger.error("Student dashboard refresh error:", {
+        statusCode: err.response?.status,
+        errorCode: err.response?.data?.code,
+        message: err.message,
+        page: "StudentDashboard",
+      });
+      toast.error("Failed to refresh dashboard. Please try again.", {
+        position: "top-right",
+        autoClose: 4000,
+        icon: <FaExclamationTriangle />,
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing]);
 
-  return () => clearInterval(timer);
-}, []);
-
-  const handleRetry = async () => {
+  // Error retry handler: only used on error state screen, max 3 retries
+  const handleRetry = useCallback(() => {
     if (retryCount >= 3) return;
     setIsRetrying(true);
     setRetryCount((prev) => prev + 1);
     setIsRetrying(false);
-  };
+  }, [retryCount]);
 
   // Handle go back action
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     navigate("/student/dashboard");
-  };
+  }, [navigate]);
 
-  // Prepare Attendance Pie Chart Data (with defensive checks)
+  // Prepare Attendance Pie Chart Data (filtered non-zero slices for clean rendering)
   const attendancePieData = [
     {
       name: "Present",
@@ -471,6 +520,8 @@ export default function StudentDashboard() {
     },
   ];
 
+  const nonZeroAttendanceSlices = attendancePieData.filter((entry) => entry.value > 0);
+
   // Prepare Subject-wise Bar Chart Data (with defensive checks)
   const subjectBarData =
     (dashboardData?.subjectWiseAttendance || []).map((subject) => ({
@@ -481,24 +532,23 @@ export default function StudentDashboard() {
       percentage: subject.percentage || 0,
     })) || [];
 
- 
-// Loading State
-if (loading) {
-  return (
-    <div className="parent-portal-wrapper">
-      <div
-        className="parent-portal-container parent-loading-container"
-        style={{ minHeight: "70vh" }}
-      >
-        <Loading
-          size="md"
-          color="primary"
-          text="Loading your dashboard..."
-        />
+  // Loading State
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading your dashboard..."
+          />
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   // Error State
   if (error) {
@@ -526,8 +576,7 @@ if (loading) {
     latestNotifications = [],
   } = dashboardData || {};
 
-  // Keep external references in sync. The backend response key is
-  // `todaysTimetable`; the rest of the component renders `todayTimetable`.
+  // Keep external references in sync
   const todayTimetable = todaysTimetable;
 
   // Set default values for feeSummary if not available
@@ -537,6 +586,12 @@ if (loading) {
     due: 0,
     paymentStatus: "NOT_GENERATED",
   };
+
+  // Guard against division by zero (never render NaN%)
+  const feeProgressPercent =
+    safeFeeSummary.totalFee > 0
+      ? Math.round((safeFeeSummary.paid / safeFeeSummary.totalFee) * 100)
+      : 0;
 
   // Utility Functions
   const getFeeStatusColor = (status) => {
@@ -549,8 +604,8 @@ if (loading) {
   };
 
   const getAttendanceWarningColor = (percentage) => {
-    if (percentage >= 75) return T.success;
-    if (percentage >= 60) return T.amber;
+    if (percentage >= MIN_ATTENDANCE_PERCENT) return T.success;
+    if (percentage >= WARNING_ATTENDANCE_PERCENT) return T.amber;
     return T.danger;
   };
 
@@ -618,86 +673,56 @@ if (loading) {
         theme="colored"
       />
 
-      <div style={{ width: "100%", maxWidth: "none", margin: "0 auto", padding: "1.5rem" }}>
-        
-{/* ================= PAGE HEADER ================= */}
-<PageHeader
-  icon={FaGraduationCap}
-  title={`${getGreeting()}, ${studentData.name}!`}
-  subtitle="Student Dashboard"
-  actions={
-    <>
-      <div
-        style={{
-          minWidth: 105,
-          padding: "0.55rem 0.9rem",
-          borderRadius: T.radiusMd,
-          background: "rgba(255, 255, 255, 0.12)",
-          color: "#ffffff",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "0.7rem",
-            opacity: 0.75,
-            marginBottom: "0.2rem",
-          }}
-        >
-          Time
-        </div>
+      <div style={{ maxWidth: 1320, margin: "0 auto", padding: "1.5rem" }}>
+        {/* ================= PAGE HEADER ================= */}
+        <PageHeader
+          icon={FaGraduationCap}
+          title={`${getGreeting()}, ${studentData.name}!`}
+          subtitle="Student Dashboard"
+          actions={
+            <>
+              <LiveClock />
 
-        <div
-          style={{
-            fontSize: "1rem",
-            fontWeight: 700,
-          }}
-        >
-          {currentTime.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          })}
-        </div>
-      </div>
-
-      <button
-        onClick={handleRetry}
-   style={{
-                    minHeight: "48px",
-                    padding: "0 20px",
-                    border: "1px solid rgba(255, 255, 255, 0.35)",
-                    borderRadius: "12px",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    color: "#ffffff",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "9px",
-                    fontSize: "15px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",       
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                aria-label={isRefreshing ? "Refreshing dashboard data" : "Refresh dashboard data"}
+                style={{
+                  minHeight: "48px",
+                  padding: "0 20px",
+                  border: "1px solid rgba(255, 255, 255, 0.35)",
+                  borderRadius: "12px",
+                  background: "rgba(255, 255, 255, 0.12)",
+                  color: "#ffffff",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "9px",
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  cursor: isRefreshing ? "not-allowed" : "pointer",
+                  opacity: isRefreshing ? 0.75 : 1,
+                  transition: "all 0.2s ease",
                 }}
-                  onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                onMouseEnter={(e) => {
+                  if (!isRefreshing) {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow =
+                      "0 4px 10px rgba(20, 27, 41, 0.18)";
+                  }
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = "translateY(0)";
                   e.currentTarget.style.boxShadow = "none";
                 }}
-      >
-        <FaSync size={14} />
-        Refresh
-      </button>
-    </>
-  }
-/>
-  
-
- 
+              >
+                <FaSync className={isRefreshing ? "sd-spin" : ""} size={14} />
+                {isRefreshing ? "Refreshing..." : "Refresh"}
+              </button>
+            </>
+          }
+        />
 
         {/* ================= QUICK ACTIONS ================= */}
         <div style={{ marginBottom: "1.25rem" }}>
@@ -838,27 +863,35 @@ if (loading) {
                 })}
               </div>
 
-              <div style={{ width: "100%", height: 280, marginBottom: "1.5rem" }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={attendancePieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      dataKey="value"
-                      labelLine={false}
-                    >
-                      {attendancePieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div
+                style={{ width: "100%", height: 280, marginBottom: "1.5rem" }}
+                role="region"
+                aria-label={`Attendance chart: ${attendanceSummary.percentage}%, ${attendanceSummary.present} of ${attendanceSummary.total} lectures attended`}
+              >
+                {attendanceSummary.total === 0 || nonZeroAttendanceSlices.length === 0 ? (
+                  <EmptyRow icon={<FaChartPie />} text="No attendance recorded yet" />
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={nonZeroAttendanceSlices}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={100}
+                        paddingAngle={nonZeroAttendanceSlices.length > 1 ? 2 : 0}
+                        dataKey="value"
+                        labelLine={false}
+                      >
+                        {nonZeroAttendanceSlices.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend verticalAlign="bottom" height={36} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
               </div>
 
               <div style={{ textAlign: "center" }}>
@@ -867,10 +900,21 @@ if (loading) {
                     fontSize: "1.15rem",
                     fontWeight: 700,
                     color: getAttendanceWarningColor(attendanceSummary.percentage),
-                    marginBottom: "0.6rem",
+                    marginBottom: "0.25rem",
                   }}
                 >
                   {attendanceSummary.percentage}% Overall Attendance
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.82rem",
+                    color: T.textMuted,
+                    marginBottom: "0.65rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  {attendanceSummary.present} of {attendanceSummary.total}{" "}
+                  {attendanceSummary.total === 1 ? "lecture" : "lectures"} attended
                 </div>
                 {attendanceSummary.warning && (
                   <div
@@ -888,7 +932,9 @@ if (loading) {
                     }}
                   >
                     <FaExclamationTriangle aria-hidden="true" />
-                    <span>Low Attendance! Minimum 75% required for exam eligibility.</span>
+                    <span>
+                      Low Attendance! Minimum {MIN_ATTENDANCE_PERCENT}% required for exam eligibility.
+                    </span>
                   </div>
                 )}
                 <div
@@ -899,9 +945,16 @@ if (loading) {
                   aria-label={`Attendance progress: ${attendanceSummary.percentage}%`}
                   style={{ position: "relative", marginTop: "0.5rem" }}
                 >
-                  <ProgressBar percent={attendanceSummary.percentage} color={getAttendanceWarningColor(attendanceSummary.percentage)} thick markerPercent={75} />
+                  <ProgressBar
+                    percent={attendanceSummary.percentage}
+                    color={getAttendanceWarningColor(attendanceSummary.percentage)}
+                    thick
+                    markerPercent={MIN_ATTENDANCE_PERCENT}
+                  />
                 </div>
-                <div style={{ fontSize: "0.7rem", color: T.danger, fontWeight: 600, marginTop: "0.3rem" }}>75% Minimum</div>
+                <div style={{ fontSize: "0.7rem", color: T.danger, fontWeight: 600, marginTop: "0.3rem" }}>
+                  {MIN_ATTENDANCE_PERCENT}% Minimum
+                </div>
               </div>
             </Card>
           </div>
@@ -915,12 +968,19 @@ if (loading) {
               mounted={mounted}
               delay={0.18}
             >
-              <div style={{ width: "100%", height: 320, marginBottom: "1.5rem" }}>
+              <div
+                style={{ width: "100%", height: 320, marginBottom: "1.5rem" }}
+                role="region"
+                aria-label={`Subject-wise attendance bar chart across ${subjectBarData.length} subjects`}
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={subjectBarData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                     <XAxis dataKey="code" tick={{ fontSize: 11, fontWeight: 500 }} interval={0} height={50} tickLine={false} />
                     <YAxis
+                      allowDecimals={false}
+                      domain={[0, "auto"]}
+                      tickFormatter={(val) => Math.round(val)}
                       tick={{ fontSize: 11 }}
                       tickLine={false}
                       axisLine={false}
@@ -929,16 +989,22 @@ if (loading) {
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
                     <ReferenceLine
-                      y={maxSubjectTotal * 0.75}
+                      y={maxSubjectTotal * (MIN_ATTENDANCE_PERCENT / 100)}
                       stroke={T.danger}
                       strokeDasharray="3 3"
-                      label={{ value: "75% Target", fill: T.danger, fontSize: 10, position: "right" }}
+                      label={{ value: `${MIN_ATTENDANCE_PERCENT}% Target`, fill: T.danger, fontSize: 10, position: "right" }}
                     />
                     <Bar dataKey="present" name="Present" radius={[6, 6, 0, 0]} animationDuration={1000}>
                       {subjectBarData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
-                          fill={entry.percentage >= 75 ? T.success : entry.percentage >= 60 ? T.amber : T.danger}
+                          fill={
+                            entry.percentage >= MIN_ATTENDANCE_PERCENT
+                              ? T.success
+                              : entry.percentage >= WARNING_ATTENDANCE_PERCENT
+                              ? T.amber
+                              : T.danger
+                          }
                         />
                       ))}
                     </Bar>
@@ -955,9 +1021,10 @@ if (loading) {
                     .sort((a, b) => a.percentage - b.percentage)
                     .map((subject, index) => {
                       const attendanceColor = getAttendanceWarningColor(subject.percentage);
-                      const needsAttention = subject.percentage < 75;
-                      const lecturesNeeded = Math.ceil(
-                        (75 * (subject.present + subject.total - subject.present)) / 25 - subject.present,
+                      const needsAttention = subject.percentage < MIN_ATTENDANCE_PERCENT;
+                      const lecturesNeeded = Math.max(
+                        0,
+                        Math.ceil(3 * subject.total - 4 * subject.present),
                       );
                       const hovered = hoveredSubject === index;
                       return (
@@ -1011,7 +1078,7 @@ if (loading) {
                                 {subject.present}/{subject.total}
                               </span>
                             </div>
-                            {needsAttention && lecturesNeeded > 0 && lecturesNeeded < subject.total && (
+                            {needsAttention && lecturesNeeded > 0 && (
                               <div
                                 style={{
                                   fontSize: "0.72rem",
@@ -1024,7 +1091,7 @@ if (loading) {
                                   marginTop: "0.4rem",
                                 }}
                               >
-                                Need {lecturesNeeded} more to reach 75%
+                                Need {lecturesNeeded} more {lecturesNeeded === 1 ? "lecture" : "lectures"} to reach {MIN_ATTENDANCE_PERCENT}%
                               </div>
                             )}
                           </div>
@@ -1051,7 +1118,7 @@ if (loading) {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                   {[...todayTimetable]
-                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                    .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""))
                     .map((slot, index) => {
                       const hovered = hoveredSlot === index;
                       return (
@@ -1121,76 +1188,84 @@ if (loading) {
               mounted={mounted}
               delay={0.24}
             >
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.65rem", marginBottom: "1.25rem" }}>
-                <div style={{ textAlign: "center", padding: "0.85rem", background: T.row, borderRadius: T.radiusMd }}>
-                  <div style={{ fontSize: "0.68rem", color: T.textMuted, marginBottom: "0.4rem", fontWeight: 600, textTransform: "uppercase" }}>
-                    Total Fee
+              {!dashboardData?.feeSummary || safeFeeSummary.paymentStatus === "NOT_GENERATED" ? (
+                <EmptyRow icon={<FaWallet />} text="Fee details not generated yet" />
+              ) : (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.65rem", marginBottom: "1.25rem" }}>
+                    <div style={{ textAlign: "center", padding: "0.85rem", background: T.row, borderRadius: T.radiusMd }}>
+                      <div style={{ fontSize: "0.68rem", color: T.textMuted, marginBottom: "0.4rem", fontWeight: 600, textTransform: "uppercase" }}>
+                        Total Fee
+                      </div>
+                      <div style={{ fontSize: "1rem", fontWeight: 700, color: T.text }}>{formatCurrency(safeFeeSummary.totalFee)}</div>
+                    </div>
+                    <div style={{ textAlign: "center", padding: "0.85rem", background: T.row, borderRadius: T.radiusMd }}>
+                      <div style={{ fontSize: "0.68rem", color: T.textMuted, marginBottom: "0.4rem", fontWeight: 600, textTransform: "uppercase" }}>
+                        Paid
+                      </div>
+                      <div style={{ fontSize: "1rem", fontWeight: 700, color: T.success }}>{formatCurrency(safeFeeSummary.paid)}</div>
+                    </div>
+                    <div style={{ textAlign: "center", padding: "0.85rem", background: T.row, borderRadius: T.radiusMd }}>
+                      <div style={{ fontSize: "0.68rem", color: T.textMuted, marginBottom: "0.4rem", fontWeight: 600, textTransform: "uppercase" }}>
+                        Due
+                      </div>
+                      <div style={{ fontSize: "1rem", fontWeight: 700, color: T.danger }}>{formatCurrency(safeFeeSummary.due)}</div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: "1rem", fontWeight: 700, color: T.text }}>{formatCurrency(safeFeeSummary.totalFee)}</div>
-                </div>
-                <div style={{ textAlign: "center", padding: "0.85rem", background: T.row, borderRadius: T.radiusMd }}>
-                  <div style={{ fontSize: "0.68rem", color: T.textMuted, marginBottom: "0.4rem", fontWeight: 600, textTransform: "uppercase" }}>
-                    Paid
+
+                  <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "0.45rem 1.2rem",
+                        borderRadius: 999,
+                        color: "#fff",
+                        fontWeight: 700,
+                        fontSize: "0.82rem",
+                        background: getFeeStatusColor(safeFeeSummary.paymentStatus),
+                      }}
+                    >
+                      {safeFeeSummary.paymentStatus}
+                    </span>
                   </div>
-                  <div style={{ fontSize: "1rem", fontWeight: 700, color: T.success }}>{formatCurrency(safeFeeSummary.paid)}</div>
-                </div>
-                <div style={{ textAlign: "center", padding: "0.85rem", background: T.row, borderRadius: T.radiusMd }}>
-                  <div style={{ fontSize: "0.68rem", color: T.textMuted, marginBottom: "0.4rem", fontWeight: 600, textTransform: "uppercase" }}>
-                    Due
+
+                  <div style={{ marginBottom: "1.25rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: T.textMuted, fontWeight: 600, marginBottom: "0.4rem" }}>
+                      <span>Payment Progress</span>
+                      <span>{feeProgressPercent}%</span>
+                    </div>
+                    <ProgressBar
+                      percent={feeProgressPercent}
+                      color={getFeeStatusColor(safeFeeSummary.paymentStatus)}
+                    />
                   </div>
-                  <div style={{ fontSize: "1rem", fontWeight: 700, color: T.danger }}>{formatCurrency(safeFeeSummary.due)}</div>
-                </div>
-              </div>
 
-              <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>
-                <span
-                  style={{
-                    display: "inline-block",
-                    padding: "0.45rem 1.2rem",
-                    borderRadius: 999,
-                    color: "#fff",
-                    fontWeight: 700,
-                    fontSize: "0.82rem",
-                    background: getFeeStatusColor(safeFeeSummary.paymentStatus),
-                  }}
-                >
-                  {safeFeeSummary.paymentStatus}
-                </span>
-              </div>
-
-              <div style={{ marginBottom: "1.25rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: T.textMuted, fontWeight: 600, marginBottom: "0.4rem" }}>
-                  <span>Payment Progress</span>
-                  <span>{Math.round((safeFeeSummary.paid / safeFeeSummary.totalFee) * 100)}%</span>
-                </div>
-                <ProgressBar
-                  percent={(safeFeeSummary.paid / safeFeeSummary.totalFee) * 100}
-                  color={getFeeStatusColor(safeFeeSummary.paymentStatus)}
-                />
-              </div>
-
-              {safeFeeSummary.paymentStatus !== "PAID" && (
-                <Link
-                  to="/student/make-payment"
-                  onMouseEnter={() => setPayHover(true)}
-                  onMouseLeave={() => setPayHover(false)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: "0.85rem",
-                    background: payHover ? "#116139" : T.success,
-                    color: "#fff",
-                    borderRadius: T.radiusSm,
-                    fontWeight: 700,
-                    textDecoration: "none",
-                    transition: "all 0.2s ease",
-                    transform: payHover ? "translateY(-1px)" : "translateY(0)",
-                  }}
-                >
-                  <FaRupeeSign /> Pay Now
-                </Link>
+                  {safeFeeSummary.due > 0 &&
+                    safeFeeSummary.paymentStatus !== "PAID" &&
+                    safeFeeSummary.paymentStatus !== "NOT_GENERATED" && (
+                      <Link
+                        to="/student/make-payment"
+                        onMouseEnter={() => setPayHover(true)}
+                        onMouseLeave={() => setPayHover(false)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                          padding: "0.85rem",
+                          background: payHover ? "#116139" : T.success,
+                          color: "#fff",
+                          borderRadius: T.radiusSm,
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          transition: "all 0.2s ease",
+                          transform: payHover ? "translateY(-1px)" : "translateY(0)",
+                        }}
+                      >
+                        <FaRupeeSign /> Pay Now
+                      </Link>
+                    )}
+                </>
               )}
             </Card>
           </div>
@@ -1211,17 +1286,29 @@ if (loading) {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "0.85rem" }}>
                   {latestNotifications.slice(0, 5).map((notification) => {
                     const hovered = hoveredNotif === notification._id;
+                    const handleNotificationClick = () => {
+                      if (
+                        notification.actionUrl &&
+                        typeof notification.actionUrl === "string" &&
+                        notification.actionUrl.startsWith("/")
+                      ) {
+                        navigate(notification.actionUrl);
+                      } else {
+                        navigate(`/notification/view/${notification._id}`);
+                      }
+                    };
+
                     return (
                       <div
                         key={notification._id}
                         role="button"
                         tabIndex={0}
                         aria-label={`View notification: ${notification.title}`}
-                        onClick={() => navigate(`/notification/view/${notification._id}`)}
+                        onClick={handleNotificationClick}
                         onKeyDown={(event) => {
                           if (event.key === "Enter" || event.key === " ") {
                             event.preventDefault();
-                            navigate(`/notification/view/${notification._id}`);
+                            handleNotificationClick();
                           }
                         }}
                         onMouseEnter={() => setHoveredNotif(notification._id)}
@@ -1231,8 +1318,8 @@ if (loading) {
                           gap: "0.9rem",
                           padding: "1rem",
                           borderRadius: T.radiusMd,
-                          background: !notification.isRead ? T.navyTint : T.row,
-                          borderLeft: `4px solid ${!notification.isRead ? T.navy : T.border}`,
+                          background: hovered ? T.navyTint : T.row,
+                          borderLeft: `4px solid ${T.navy}`,
                           cursor: "pointer",
                           transition: "all 0.2s ease",
                           transform: hovered ? "translateX(4px)" : "translateX(0)",
@@ -1251,7 +1338,7 @@ if (loading) {
                             flexShrink: 0,
                           }}
                         >
-                          <FaBell style={{ color: notification.isRead ? T.textMuted : T.navy }} />
+                          <FaBell style={{ color: T.navy }} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <h4 style={{ margin: "0 0 0.25rem", fontSize: "0.9rem", color: T.text, fontWeight: 700 }}>{notification.title}</h4>
@@ -1270,6 +1357,19 @@ if (loading) {
           </div>
         </div>
         <style>{`
+          @keyframes sd-spin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          .sd-spin {
+            animation: sd-spin 0.8s linear infinite;
+          }
+
           @media (max-width: 1024px) {
             .student-dashboard-main-content,
             .student-attendance-panel {
