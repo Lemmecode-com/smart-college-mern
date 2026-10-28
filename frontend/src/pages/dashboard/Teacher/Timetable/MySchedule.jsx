@@ -860,6 +860,21 @@ const componentStyles = `
   }
 }
 
+@media (max-width: 450px) {
+  .schedule-container .stats-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .schedule-container .stat-info {
+    min-width: 0;
+  }
+
+  .schedule-container .stat-label {
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+}
+
 /* ================= TOAST NOTIFICATIONS ================= */
 .Toastify__toast {
   border-radius: 12px;

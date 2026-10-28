@@ -256,7 +256,8 @@ export default function TeacherExamTimetable() {
       <style>{`
         .teacher-exam-timetable-page {
           padding: 0.5rem 1.5rem 1.5rem;
-          max-width: 1200px;
+          width: 100%;
+          max-width: none;
           margin: 0 auto;
         }
 
@@ -387,6 +388,17 @@ export default function TeacherExamTimetable() {
 
           .teacher-exam-timetable-title-row {
             flex-direction: column;
+          }
+        }
+
+        @media (max-width: 450px) {
+          .teacher-exam-timetable-page .published-exam-subject-tag-list,
+          .teacher-exam-timetable-page .published-exam-subject-tag {
+            min-width: 0;
+            max-width: 100%;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            box-sizing: border-box;
           }
         }
       `}</style>

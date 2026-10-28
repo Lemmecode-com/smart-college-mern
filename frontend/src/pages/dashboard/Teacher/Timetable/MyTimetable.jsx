@@ -1699,7 +1699,7 @@ if (loading) {
      MOBILE + TABLET TIMETABLE NAVIGATION
      ========================================= */
 
-  @media (max-width: 991px) {
+  @media (max-width: 1100px) {
 
     .timetable-week-navigation {
       display: grid !important;
@@ -1800,8 +1800,8 @@ if (loading) {
        =============================== */
 
     .timetable-slot-summary {
-      grid-column: 4 / 7 !important;
-      grid-row: 2 !important;
+      grid-column: 1 / 7 !important;
+      grid-row: 3 !important;
 
       min-width: 0 !important;
       width: 100% !important;
@@ -1809,7 +1809,7 @@ if (loading) {
 
       display: flex !important;
       align-items: center !important;
-      justify-content: center !important;
+      justify-content: flex-start !important;
 
       box-sizing: border-box !important;
       padding: 0 6px !important;
@@ -1821,6 +1821,11 @@ if (loading) {
       gap: 5px !important;
       white-space: nowrap !important;
       overflow: hidden !important;
+    }
+
+    .my-timetable-slot-badge {
+      margin-left: 0 !important;
+      align-self: flex-start;
     }
 
     .timetable-slot-summary .small {

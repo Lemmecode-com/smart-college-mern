@@ -347,7 +347,7 @@ export default function AttendanceSessionsList() {
 
 
 <style>{`
-  @media (max-width: 991px) {
+  @media (max-width: 1150px) {
 
   /* =========================================
    ATTENDANCE STATISTICS - 2 x 2
@@ -368,6 +368,9 @@ export default function AttendanceSessionsList() {
     .attendance-banner-content {
       padding: 1.25rem !important;
       gap: 1.25rem !important;
+      height: auto !important;
+      min-height: 0 !important;
+      align-items: stretch !important;
     }
 
     .attendance-banner-content > div:first-child {
@@ -401,13 +404,15 @@ export default function AttendanceSessionsList() {
       width: 100% !important;
       display: flex !important;
       flex-direction: row !important;
+      flex-wrap: wrap !important;
       gap: 10px !important;
     }
 
     .attendance-banner-actions button {
       flex: 1 !important;
-      width: 50% !important;
+      width: auto !important;
       min-width: 0 !important;
+      min-height: 48px !important;
       height: 48px !important;
       padding: 0 8px !important;
 
@@ -483,6 +488,7 @@ export default function AttendanceSessionsList() {
 
     .attendance-banner-actions button {
       height: 44px !important;
+      min-height: 44px !important;
       font-size: 0.76rem !important;
       padding: 0 5px !important;
     }
