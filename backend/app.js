@@ -21,9 +21,13 @@ const { isLoopbackOrLocalhost } = require("./src/utils/validateUrlConfig");
 
 const app = express();
 
-/* ================= TRUST PROXY (nginx) ================= */
+/* ================= TRUST PROXY (nginx) & ETAG SETTINGS ================= */
 // Required for express-rate-limit to get real client IP behind nginx
 app.set("trust proxy", 1);
+// Disable automatic Express weak ETags on API responses to prevent stale 304 browser caching.
+// Note: Specialized endpoints (e.g. /api/documents) manually set res.setHeader('ETag') and
+// handle conditional 304s explicitly, which remains unaffected.
+app.set("etag", false);
 
 /* ================= CORS CONFIGURATION ================= */
 const rawCorsOrigins = process.env.CORS_ORIGINS
@@ -109,6 +113,23 @@ app.use("/api/fees/structure", paymentLimiter);
 
 // Global limiter applied to remaining /api/* routes
 app.use("/api/", globalLimiter);
+
+/* ================= API CACHE-CONTROL HEADERS ================= */
+// Enforce private, no-store for authenticated API endpoints to prevent stale browser caching and shared proxy leakage.
+// Exclude /api/documents/ which manages its own specialized caching, ETags, and streaming headers.
+app.use("/api", (req, res, next) => {
+  const isDocumentsRoute =
+    req.baseUrl === "/api/documents" ||
+    req.path.startsWith("/documents") ||
+    (req.originalUrl && req.originalUrl.startsWith("/api/documents"));
+
+  if (!isDocumentsRoute) {
+    res.setHeader("Cache-Control", "private, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Vary", "Cookie, Origin");
+  }
+  next();
+});
 
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));

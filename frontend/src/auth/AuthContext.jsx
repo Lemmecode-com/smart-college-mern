@@ -6,6 +6,42 @@ import { listenForAuthInvalidation, broadcastAuthInvalidation } from "../utils/a
 const ACCESS_TOKEN_EXPIRY_MS = 2 * 60 * 60 * 1000;
 const TOKEN_EXPIRY_BUFFER_MS = 30 * 1000;
 
+/**
+ * Safely wipe sessionStorage and app-specific localStorage caches on logout/invalidation
+ * to prevent cross-user data leakage on shared devices.
+ */
+const clearClientStorageCaches = () => {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.clear();
+  } catch {
+    // ignore
+  }
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (
+        key &&
+        (key.startsWith("activeSessions_") ||
+          key.includes("_activeSessions_") ||
+          key.startsWith("attendanceSessions_") ||
+          key.includes("_attendanceSessions_") ||
+          key.startsWith("todaySlots_") ||
+          key.includes("_todaySlots_") ||
+          key === "subjectListFilters" ||
+          key.startsWith("college_logo_") ||
+          key.includes("_college_logo_"))
+      ) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+};
+
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -66,8 +102,8 @@ const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED", 
        } finally {
             resetAuthInvalidationGuard();
             setUser(null);
-           sessionStorage.clear();
-           const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
+            clearClientStorageCaches();
+            const publicRoutes = ["/", "/login", "/forgot-password", "/verify-otp", "/register"];
           const onPublicRoute = currentPathname && publicRoutes.some(route =>
             currentPathname === route || currentPathname.startsWith("/register/")
           );
@@ -188,6 +224,7 @@ const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED", 
       logger.error("Logout error:", error);
     } finally {
       setUser(null);
+      clearClientStorageCaches();
     }
   };
 

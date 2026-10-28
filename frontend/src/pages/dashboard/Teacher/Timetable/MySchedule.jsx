@@ -893,13 +893,19 @@ export default function MySchedule() {
     return () => clearInterval(timer);
   }, []);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (scoped by logged-in user id)
   useEffect(() => {
     if (!isClient) return;
+    const uid = user?.id || user?.realId;
+    if (!uid) {
+      setSessionsLoaded(true);
+      return;
+    }
     const today = new Date().toISOString().split("T")[0];
-    const storedSessions = localStorage.getItem(`activeSessions_${today}`);
+    // Read only user-scoped keys (ignore old unscoped keys to prevent cross-user leakage)
+    const storedSessions = localStorage.getItem(`${uid}_activeSessions_${today}`);
     const storedAttendance = localStorage.getItem(
-      `attendanceSessions_${today}`,
+      `${uid}_attendanceSessions_${today}`,
     );
     if (storedSessions) {
       try {
@@ -916,7 +922,7 @@ export default function MySchedule() {
       }
     }
     setSessionsLoaded(true);
-  }, [isClient]);
+  }, [isClient, user?.id, user?.realId]);
 
   // Fetch current teacher profile for HOD ownership validation
   useEffect(() => {
@@ -986,9 +992,14 @@ export default function MySchedule() {
     try {
       const res = await api.get("/attendance/today-slots");
       setTodaySlotsData(res.data);
-      // Store today's slots in localStorage for quick access
-      const today = new Date().toISOString().split("T")[0];
-      localStorage.setItem(`todaySlots_${today}`, JSON.stringify(res.data));
+      // Store today's slots in localStorage for quick access (scoped to user)
+      if (isClient) {
+        const uid = user?.id || user?.realId;
+        if (uid) {
+          const today = new Date().toISOString().split("T")[0];
+          localStorage.setItem(`${uid}_todaySlots_${today}`, JSON.stringify(res.data));
+        }
+      }
     } catch (err) {
       // Don't fail the entire load, just use weekly data
     }
@@ -1019,16 +1030,19 @@ export default function MySchedule() {
       }
       setActiveSessions(sessionsMap);
       setAttendanceSessions(attendanceMap);
-      // Store in localStorage
+      // Store in localStorage (scoped to user)
       if (isClient) {
-        localStorage.setItem(
-          `activeSessions_${todayStr}`,
-          JSON.stringify(sessionsMap),
-        );
-        localStorage.setItem(
-          `attendanceSessions_${todayStr}`,
-          JSON.stringify(attendanceMap),
-        );
+        const uid = user?.id || user?.realId;
+        if (uid) {
+          localStorage.setItem(
+            `${uid}_activeSessions_${todayStr}`,
+            JSON.stringify(sessionsMap),
+          );
+          localStorage.setItem(
+            `${uid}_attendanceSessions_${todayStr}`,
+            JSON.stringify(attendanceMap),
+          );
+        }
       }
     } catch (err) {
       // Don't show error toast for this, just use empty state
@@ -1199,17 +1213,20 @@ export default function MySchedule() {
       setActiveSessions(newActiveSessions);
       setAttendanceSessions(newAttendanceSessions);
 
-      // Store in localStorage
+      // Store in localStorage (scoped to user)
       if (isClient) {
-        const todayStr = today.toISOString().split("T")[0];
-        localStorage.setItem(
-          `activeSessions_${todayStr}`,
-          JSON.stringify(newActiveSessions),
-        );
-        localStorage.setItem(
-          `attendanceSessions_${todayStr}`,
-          JSON.stringify(newAttendanceSessions),
-        );
+        const uid = user?.id || user?.realId;
+        if (uid) {
+          const todayStr = today.toISOString().split("T")[0];
+          localStorage.setItem(
+            `${uid}_activeSessions_${todayStr}`,
+            JSON.stringify(newActiveSessions),
+          );
+          localStorage.setItem(
+            `${uid}_attendanceSessions_${todayStr}`,
+            JSON.stringify(newAttendanceSessions),
+          );
+        }
       }
 
       toast.success("Attendance session started successfully! Redirecting...", {
@@ -1258,15 +1275,18 @@ export default function MySchedule() {
         setActiveSessions(newActiveSessions);
         setAttendanceSessions(newAttendanceSessions);
         if (isClient) {
-          const todayStr = today.toISOString().split("T")[0];
-          localStorage.setItem(
-            `activeSessions_${todayStr}`,
-            JSON.stringify(newActiveSessions),
-          );
-          localStorage.setItem(
-            `attendanceSessions_${todayStr}`,
-            JSON.stringify(newAttendanceSessions),
-          );
+          const uid = user?.id || user?.realId;
+          if (uid) {
+            const todayStr = today.toISOString().split("T")[0];
+            localStorage.setItem(
+              `${uid}_activeSessions_${todayStr}`,
+              JSON.stringify(newActiveSessions),
+            );
+            localStorage.setItem(
+              `${uid}_attendanceSessions_${todayStr}`,
+              JSON.stringify(newAttendanceSessions),
+            );
+          }
         }
       }
 

@@ -19,6 +19,20 @@ const timetableScheduleService = require("../services/timetableSchedule.service"
 const ApiResponse = require("../utils/ApiResponse");
 const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
 const logger = require("../utils/logger");
+const { cache: scheduleCache } = require("../services/scheduleCache.service");
+
+/**
+ * Safely invalidate schedule cache for a timetable without throwing errors
+ */
+const safeInvalidateScheduleCache = (timetableId) => {
+  try {
+    if (timetableId && scheduleCache && typeof scheduleCache.invalidateTimetable === "function") {
+      scheduleCache.invalidateTimetable(timetableId);
+    }
+  } catch (cacheErr) {
+    logger.warn(`Failed to invalidate schedule cache for timetable ${timetableId}: ${cacheErr.message}`);
+  }
+};
 
 /* =========================================================
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
@@ -239,6 +253,8 @@ exports.publishTimetable = async (req, res) => {
       }
     })();
 
+    safeInvalidateScheduleCache(timetable._id);
+
     ApiResponse.success(
       res,
       {
@@ -318,6 +334,8 @@ exports.archiveTimetable = async (req, res) => {
     }).catch((err) =>
       console.error("Audit log failed for timetable archival:", err.message),
     );
+
+    safeInvalidateScheduleCache(timetable._id);
 
     ApiResponse.success(
       res,
@@ -421,6 +439,8 @@ exports.unarchiveTimetable = async (req, res) => {
     }).catch((err) =>
       console.error("Audit log failed for timetable unarchival:", err.message),
     );
+
+    safeInvalidateScheduleCache(timetable._id);
 
     ApiResponse.success(
       res,
@@ -1378,6 +1398,8 @@ exports.deleteTimetable = async (req, res, next) => {
     }).catch((err) =>
       console.error("Audit log failed for timetable deletion:", err.message),
     );
+
+    safeInvalidateScheduleCache(id);
 
     ApiResponse.success(
       res,
