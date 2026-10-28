@@ -777,8 +777,8 @@ if (
        {/* Breadcrumb - ABOVE Exception Approvals Banner */}
             <div
               style={{
-                width: "96%",
-                margin: "0 auto",
+                width: "auto",
+                margin: "0 24px",
                 paddingTop: 0,
                 height: "auto",
               }}

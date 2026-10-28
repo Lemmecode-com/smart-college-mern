@@ -319,7 +319,7 @@ if (loading) {
           paddingRight: '1rem'
         }}
       >
-        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ width: '100%', maxWidth: 'none', margin: '0 auto' }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -330,11 +330,16 @@ if (loading) {
 
           {/* ================= HEADER ================= */}
           <motion.div
+            className="create-timetable-header"
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
             style={{
               marginBottom: '1.25rem',
+              width: '100%',
+              maxWidth: 'none',
+              marginLeft: 'auto',
+              marginRight: 'auto',
               backgroundColor: 'white',
               borderRadius: '14px',
               overflow: 'hidden',
@@ -407,6 +412,7 @@ if (loading) {
                 </div>
               </div>
 <div
+  className="create-timetable-header-actions"
   style={{
     position: 'absolute',
     top: '1.45rem',
@@ -923,7 +929,90 @@ fontSize: '0.9rem',
   width: 100%;
   margin-top: 0 !important;
 }
-        `}</style>
+
+@media (max-width: 700px) {
+.create-timetable-header-content {
+  height: auto !important;
+  min-height: 0 !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0.75rem !important;
+  padding: 1rem !important;
+}
+
+.create-timetable-header-inner {
+  min-width: 0;
+  align-items: flex-start !important;
+  gap: 0.75rem !important;
+}
+
+.create-timetable-header-inner > div {
+  min-width: 0;
+}
+
+.create-timetable-header-title {
+  font-size: 1.2rem !important;
+  line-height: 1.25 !important;
+  overflow-wrap: anywhere;
+}
+
+.create-timetable-description {
+  line-height: 1.4 !important;
+  overflow-wrap: anywhere;
+}
+
+.create-timetable-icon {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px;
+  font-size: 1.35rem !important;
+}
+
+.create-timetable-header-actions {
+  position: static !important;
+  width: 100%;
+}
+
+.create-timetable-button {
+  width: 100%;
+  white-space: normal !important;
+}
+
+.create-timetable-info-banner {
+  align-items: flex-start !important;
+  padding: 0.75rem 1rem !important;
+}
+}
+
+@media (min-width: 701px) and (max-width: 1100px) {
+  .create-timetable-header-content {
+    height: auto !important;
+    min-height: 0 !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+  }
+
+  .create-timetable-header-inner {
+    min-width: 0;
+  }
+
+  .create-timetable-header-title,
+  .create-timetable-description {
+    overflow-wrap: anywhere;
+  }
+
+  .create-timetable-header-actions {
+    position: static !important;
+    width: 100%;
+  }
+
+  .create-timetable-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+      `}</style>
       </motion.div>
     </AnimatePresence>
   );
