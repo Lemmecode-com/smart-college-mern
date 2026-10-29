@@ -802,11 +802,8 @@ if (loading) {
         items={[
 
           { label: "Dashboard", path: "/dashboard" },
-
           { label: "Courses" },
-
           { label: "Subject Management" }
-
         ]}
 
       />
@@ -892,9 +889,7 @@ if (loading) {
                 <FaLayerGroup className="filter-icon" />
 
                 <span>Department</span>
-
               </label>
-
               <div className="filter-select-wrapper">
 
                 <select

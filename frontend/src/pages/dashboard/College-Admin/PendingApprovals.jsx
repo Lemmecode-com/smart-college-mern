@@ -603,7 +603,7 @@ const tableActions = {
   }
 
   return (
-    <div className="erp-container" style={{ paddingTop: "0.5rem" }}>
+    <div className="erp-container pending-approvals-page" style={{ paddingTop: "0.5rem" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={admissionOfficerMode
@@ -1098,10 +1098,9 @@ const tableActions = {
       )}
 
       {/* STYLES */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700&display=swap');`}</style>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700&display=swap');
-
-        :root {
+        .pending-approvals-page {
           --erp-navy-deep: #0f3a4a;
           --erp-navy: #1a4b6d;
           --erp-navy-light: #1a5263;
@@ -1125,11 +1124,12 @@ const tableActions = {
           --erp-bg: #f5f7fa;
         }
 
-        * {
+        .pending-approvals-page,
+        .pending-approvals-page * {
           box-sizing: border-box;
         }
 
-        .erp-container {
+        .pending-approvals-page {
           padding: 1.5rem;
           background: var(--erp-bg);
           min-height: 100vh;
@@ -1938,7 +1938,7 @@ const tableActions = {
  /* ---------- RESPONSIVE ---------- */
 
 @media (max-width: 991px) {
-  .erp-container {
+  .pending-approvals-page {
     padding: 1rem;
   }
 
@@ -2079,7 +2079,7 @@ const tableActions = {
 /* ================= MOBILE ================= */
 
 @media (max-width: 575px) {
-  .erp-container {
+  .pending-approvals-page {
     padding: 0.75rem;
   }
 
