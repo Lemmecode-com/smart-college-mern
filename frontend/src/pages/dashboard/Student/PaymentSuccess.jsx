@@ -5,6 +5,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { AuthContext } from "../../../auth/AuthContext";
 import { logger } from "../../../utils/logger";
+import { clearStudentDashboardCache } from "../../../utils/studentDashboardCache";
 // eslint-disable-next-line no-unused-vars
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
@@ -213,6 +214,7 @@ export default function PaymentSuccess() {
           if (currentFetchId !== fetchIdRef.current) return;
           if (res.data.status === "PAID") {
             clearInterval(statusInterval);
+            clearStudentDashboardCache();
             setPayment({
               installmentId: res.data.installmentId,
               installmentName: res.data.installmentName,
@@ -310,6 +312,7 @@ export default function PaymentSuccess() {
       location.state?.verifiedData?.valid &&
       location.state.verifiedData.installment
     ) {
+      clearStudentDashboardCache();
       const v = location.state.verifiedData;
       const inst = v.installment;
       setPayment({
@@ -394,6 +397,7 @@ export default function PaymentSuccess() {
           if (currentFetchId !== fetchIdRef.current) return;
 
           if (verifyRes.data?.valid && verifyRes.data?.installment) {
+            clearStudentDashboardCache();
             const v = verifyRes.data;
             const inst = v.installment;
             setPayment({
@@ -478,6 +482,7 @@ export default function PaymentSuccess() {
 
           if (res.data?.status === "PAID") {
             if (interval) clearInterval(interval);
+            clearStudentDashboardCache();
             setPayment({
               installmentId: res.data.installmentId,
               installmentName: res.data.installmentName,

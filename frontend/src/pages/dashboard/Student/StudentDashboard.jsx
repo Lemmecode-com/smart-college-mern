@@ -1,9 +1,12 @@
 import { useEffect, useContext, useState, useCallback, memo, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import api from "../../../api/axios";
 import ApiError from "../../../components/ApiError";
+import Loading from "../../../components/Loading";
 import { AuthContext } from "../../../auth/AuthContext";
 import { logger } from "../../../utils/logger";
+import studentDashboardCache from "../../../utils/studentDashboardCache";
 import {
   FaGraduationCap,
   FaCalendarAlt,
@@ -136,8 +139,14 @@ const parseTimeToMinutes = (timeStr) => {
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const userId = user?.id || user?._id;
+
+  const [dashboardData, setDashboardData] = useState(() =>
+    studentDashboardCache.get(userId),
+  );
+  const [status, setStatus] = useState(() =>
+    studentDashboardCache.get(userId) ? "success" : "loading",
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -146,34 +155,83 @@ export default function StudentDashboard() {
   // Initial load effect
   useEffect(() => {
     let isMounted = true;
+    const controller = new AbortController();
 
     const loadInitial = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+      const cached = studentDashboardCache.get(userId);
+      const hasCachedData = Boolean(cached);
 
+      // If we have cached data, ensure it is set as data and status is success
+      if (cached) {
+        setDashboardData(cached);
+        setStatus("success");
+      }
+
+      // If no cached data exists or if this is a manual retry, show loader
+      if (!hasCachedData || retryCount > 0) {
+        setStatus("loading");
+        setError(null);
+      }
+
+      try {
         const todayStr = toLocalDateStr(new Date());
         const response = await api.get("/dashboard/student", {
           params: { date: todayStr },
+          signal: controller.signal,
         });
 
-        if (isMounted) {
-          setDashboardData(response.data);
+        if (!isMounted || controller.signal.aborted) {
+          return;
+        }
+
+        setDashboardData(response.data);
+        setStatus("success");
+        setError(null);
+        if (
+          userId &&
+          response.data?.student &&
+          response.data?.feeSummary !== null &&
+          response.data?.feeSummary !== undefined
+        ) {
+          studentDashboardCache.set(userId, response.data);
         }
       } catch (err) {
-        if (isMounted) {
-          const statusCode = err.response?.status;
-          const errorCode = err.response?.data?.code;
-          const backendMessage = err.response?.data?.message;
+        const isAborted =
+          controller.signal.aborted ||
+          axios.isCancel(err) ||
+          err?.name === "CanceledError" ||
+          err?.name === "AbortError" ||
+          err?.code === "ERR_CANCELED";
 
-          logger.error("Student dashboard load error:", {
-            statusCode,
-            errorCode,
-            backendMessage,
-            page: "StudentDashboard",
-            role: user?.role,
-          });
+        if (isAborted || !isMounted) {
+          return;
+        }
 
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+
+        logger.error("Student dashboard load error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "StudentDashboard",
+          role: user?.role,
+        });
+
+        const isAuthError =
+          statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (hasCachedData && retryCount === 0) {
+          // Keep cached data mounted and silently alert user of refresh failure
+          if (!isAuthError) {
+            toast.error("Failed to update dashboard. Showing cached data.", {
+              position: "top-right",
+              autoClose: 4000,
+              icon: <FaExclamationTriangle />,
+            });
+          }
+        } else {
           setError({
             message:
               backendMessage ||
@@ -181,9 +239,7 @@ export default function StudentDashboard() {
             statusCode,
             errorCode,
           });
-
-          const isAuthError =
-            statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+          setStatus("error");
 
           if (!isAuthError) {
             toast.error("Failed to load dashboard. Please try again.", {
@@ -193,10 +249,6 @@ export default function StudentDashboard() {
             });
           }
         }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
       }
     };
 
@@ -204,9 +256,10 @@ export default function StudentDashboard() {
 
     return () => {
       isMounted = false;
+      controller.abort();
       toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
-  }, [user?.role, retryCount]);
+  }, [userId, user?.role, retryCount]);
 
   // Background refresh handler: keeps current data mounted, spins button, no click limit
   const handleRefresh = useCallback(async () => {
@@ -218,6 +271,14 @@ export default function StudentDashboard() {
         params: { date: todayStr },
       });
       setDashboardData(response.data);
+      if (
+        userId &&
+        response.data?.student &&
+        response.data?.feeSummary !== null &&
+        response.data?.feeSummary !== undefined
+      ) {
+        studentDashboardCache.set(userId, response.data);
+      }
       toast.success("Dashboard refreshed", {
         position: "top-right",
         autoClose: 2000,
@@ -237,7 +298,7 @@ export default function StudentDashboard() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [isRefreshing]);
+  }, [isRefreshing, userId]);
 
   // Error retry handler: only used on error state screen, max 3 retries
   const handleRetry = useCallback(() => {
@@ -273,7 +334,7 @@ export default function StudentDashboard() {
         enrollmentNumber: "N/A",
         course: "Not Assigned",
         department: "Not Assigned",
-        semester: 1,
+        semester: null,
       }
     );
   }, [dashboardData?.student]);
@@ -382,10 +443,10 @@ export default function StudentDashboard() {
     }));
   }, [subjectWiseAttendance]);
 
-  // Low attendance count
+  // Low attendance count (only count subjects with at least 1 lecture recorded)
   const lowAttendanceCount = useMemo(() => {
     return subjectWiseAttendance.filter(
-      (s) => (s.percentage || 0) < MIN_ATTENDANCE_PERCENT,
+      (s) => (s.total || 0) > 0 && (s.percentage || 0) < MIN_ATTENDANCE_PERCENT,
     ).length;
   }, [subjectWiseAttendance]);
 
@@ -487,7 +548,7 @@ export default function StudentDashboard() {
   }, [sortedTimetable]);
 
   // Loading State
-  if (loading) {
+  if (status === "loading") {
     return (
       <div className="sd-page">
         <ToastContainer position="top-right" autoClose={3000} theme="colored" />
@@ -501,11 +562,12 @@ export default function StudentDashboard() {
               <LiveClock />
             </div>
           </header>
-          <div className="sd-loading-container" role="status" aria-live="polite">
-            <div className="sd-loading-spinner" />
-            <p style={{ margin: 0, fontSize: "14px", fontWeight: 500 }}>
-              Fetching your academic records...
-            </p>
+          <div className="sd-loading-container">
+            <Loading
+              size="md"
+              color="primary"
+              text="Fetching your academic records..."
+            />
           </div>
         </div>
       </div>
@@ -513,13 +575,13 @@ export default function StudentDashboard() {
   }
 
   // Error State
-  if (error) {
+  if (status === "error" || (status !== "success" && error)) {
     return (
       <ApiError
         title="Dashboard Loading Error"
-        message={error.message || "Failed to load dashboard. Please try again."}
-        statusCode={error.statusCode}
-        errorCode={error.errorCode}
+        message={error?.message || "Failed to load dashboard. Please try again."}
+        statusCode={error?.statusCode}
+        errorCode={error?.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -529,9 +591,14 @@ export default function StudentDashboard() {
     );
   }
 
-  if (!dashboardData) return null;
+  // Main tree renders only when status === "success" and dashboardData exists
+  if (status !== "success" || !dashboardData) {
+    return null;
+  }
 
-  const isAttendanceLow = attendanceSummary.percentage < MIN_ATTENDANCE_PERCENT;
+  const hasAttendanceRecords = (attendanceSummary.total || 0) > 0;
+  const isAttendanceLow =
+    hasAttendanceRecords && attendanceSummary.percentage < MIN_ATTENDANCE_PERCENT;
 
   return (
     <div className="sd-page">
@@ -658,55 +725,88 @@ export default function StudentDashboard() {
           </div>
 
           {/* Card 3: Semester or Enrollment No */}
-          <div className="sd-stat-card sd-stat-card-teal">
-            <div className="sd-stat-icon-box sd-stat-teal" aria-hidden="true">
-              <FaIdBadge />
-            </div>
-            <div className="sd-stat-content">
-              <span className="sd-stat-label">
-                {studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A"
-                  ? "Enrollment No"
-                  : "Semester"}
-              </span>
-              <div className="sd-stat-val-row">
-                <span
-                  className="sd-stat-val sd-stat-val-enrollment"
-                  title={
-                    studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A"
-                      ? studentData.enrollmentNumber
-                      : `Semester ${studentData.semester}`
-                  }
-                >
+          {Boolean(
+            (studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A") ||
+              studentData.semester,
+          ) && (
+            <div className="sd-stat-card sd-stat-card-teal">
+              <div className="sd-stat-icon-box sd-stat-teal" aria-hidden="true">
+                <FaIdBadge />
+              </div>
+              <div className="sd-stat-content">
+                <span className="sd-stat-label">
                   {studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A"
-                    ? studentData.enrollmentNumber
-                    : `Sem ${studentData.semester}`}
+                    ? "Enrollment No"
+                    : "Semester"}
                 </span>
+                <div className="sd-stat-val-row">
+                  <span
+                    className="sd-stat-val sd-stat-val-enrollment"
+                    title={
+                      studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A"
+                        ? studentData.enrollmentNumber
+                        : `Semester ${studentData.semester}`
+                    }
+                  >
+                    {studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A"
+                      ? studentData.enrollmentNumber
+                      : `Sem ${studentData.semester}`}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Card 4: Overall Attendance */}
-          <div className={`sd-stat-card ${isAttendanceLow ? "sd-stat-card-danger" : "sd-stat-card-green"}`}>
-            <div className={`sd-stat-icon-box ${isAttendanceLow ? "sd-stat-danger" : "sd-stat-green"}`} aria-hidden="true">
+          <div
+            className={`sd-stat-card ${
+              !hasAttendanceRecords
+                ? "sd-stat-card-teal"
+                : isAttendanceLow
+                  ? "sd-stat-card-danger"
+                  : "sd-stat-card-green"
+            }`}
+          >
+            <div
+              className={`sd-stat-icon-box ${
+                !hasAttendanceRecords
+                  ? "sd-stat-teal"
+                  : isAttendanceLow
+                    ? "sd-stat-danger"
+                    : "sd-stat-green"
+              }`}
+              aria-hidden="true"
+            >
               <FaCheckCircle />
             </div>
             <div className="sd-stat-content">
               <span className="sd-stat-label">Overall Attendance</span>
               <div className="sd-stat-val-row">
-                <span className="sd-stat-val">{attendanceSummary.percentage}%</span>
-                <span
-                  className={`sd-chip ${isAttendanceLow ? "sd-chip-danger" : "sd-chip-success"}`}
-                >
-                  {isAttendanceLow ? (
-                    <>
-                      <FaExclamationTriangle size={11} /> Low
-                    </>
-                  ) : (
-                    <>
-                      <FaCheckCircle size={11} /> On Track
-                    </>
-                  )}
-                </span>
+                {hasAttendanceRecords ? (
+                  <>
+                    <span className="sd-stat-val">{attendanceSummary.percentage}%</span>
+                    <span
+                      className={`sd-chip ${isAttendanceLow ? "sd-chip-danger" : "sd-chip-success"}`}
+                    >
+                      {isAttendanceLow ? (
+                        <>
+                          <FaExclamationTriangle size={11} /> Low
+                        </>
+                      ) : (
+                        <>
+                          <FaCheckCircle size={11} /> On Track
+                        </>
+                      )}
+                    </span>
+                  </>
+                ) : (
+                  <span
+                    className="sd-stat-val"
+                    style={{ fontSize: "0.92rem", fontWeight: 600 }}
+                  >
+                    No attendance recorded yet
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -804,17 +904,33 @@ export default function StudentDashboard() {
               </div>
 
               <p className="sd-attendance-helper">
-                {attendanceSummary.present} of {attendanceSummary.total}{" "}
-                {attendanceSummary.total === 1 ? "lecture" : "lectures"} attended
+                {hasAttendanceRecords ? (
+                  <>
+                    {attendanceSummary.present} of {attendanceSummary.total}{" "}
+                    {attendanceSummary.total === 1 ? "lecture" : "lectures"} attended
+                  </>
+                ) : (
+                  "No lectures recorded for this term yet"
+                )}
               </p>
 
               {/* Progress Section with 75% marker (10px height, green gradient) */}
               <div className="sd-progress-section">
                 <div className="sd-progress-track">
                   <div
-                    className={isAttendanceLow ? "sd-progress-fill-danger" : "sd-progress-fill-green"}
+                    className={
+                      !hasAttendanceRecords
+                        ? "sd-progress-fill-green"
+                        : isAttendanceLow
+                          ? "sd-progress-fill-danger"
+                          : "sd-progress-fill-green"
+                    }
                     style={{
-                      width: `${Math.max(0, Math.min(100, attendanceSummary.percentage))}%`,
+                      width: `${
+                        hasAttendanceRecords
+                          ? Math.max(0, Math.min(100, attendanceSummary.percentage))
+                          : 0
+                      }%`,
                     }}
                   />
                   <div className="sd-progress-marker" style={{ left: `${MIN_ATTENDANCE_PERCENT}%` }} aria-hidden="true" />
@@ -825,9 +941,19 @@ export default function StudentDashboard() {
                   </span>
                   <span
                     className="sd-progress-status"
-                    style={{ color: isAttendanceLow ? "var(--sd-danger)" : "var(--sd-success)" }}
+                    style={{
+                      color: !hasAttendanceRecords
+                        ? "var(--sd-muted)"
+                        : isAttendanceLow
+                          ? "var(--sd-danger)"
+                          : "var(--sd-success)",
+                    }}
                   >
-                    {isAttendanceLow ? "Action Needed" : "Eligible for Exams"}
+                    {!hasAttendanceRecords
+                      ? "No records"
+                      : isAttendanceLow
+                        ? "Action Needed"
+                        : "Eligible for Exams"}
                   </span>
                 </div>
               </div>
@@ -908,7 +1034,9 @@ export default function StudentDashboard() {
                   {[...subjectWiseAttendance]
                     .sort((a, b) => (a.percentage || 0) - (b.percentage || 0))
                     .map((subject, idx) => {
-                      const isLow = (subject.percentage || 0) < MIN_ATTENDANCE_PERCENT;
+                      const isLow =
+                        (subject.total || 0) > 0 &&
+                        (subject.percentage || 0) < MIN_ATTENDANCE_PERCENT;
                       const lecturesNeeded = Math.max(
                         0,
                         Math.ceil(3 * (subject.total || 0) - 4 * (subject.present || 0)),
