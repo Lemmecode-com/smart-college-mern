@@ -1,8 +1,10 @@
-import React, { useContext, useEffect, useState, useCallback, memo } from "react";
+import React, { useContext, useEffect, useState, useCallback, useRef, memo } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
+import axios from "axios";
 import { toast } from "react-toastify";
+import Loading from "../../../components/Loading";
 import "./DashboardPage.css";
 import { getFrontendRegistrationUrl } from "../../../utils/urlHelpers";
 import LogoImage, { preloadLogo } from "../../../components/common/LogoImage";
@@ -31,7 +33,6 @@ import {
   FaEnvelope,
   FaCalendarAlt,
   FaSyncAlt,
-  FaSpinner,
   FaBarcode,
 } from "react-icons/fa";
 
@@ -221,8 +222,8 @@ export default function CollegeAdminDashboard() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  /* ================= STATE ================= */
-  const [loading, setLoading] = useState(true);
+  /* ================= STATE & REFS ================= */
+  const [status, setStatus] = useState("loading"); // "loading" | "success" | "error"
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [college, setCollege] = useState(null);
@@ -240,19 +241,40 @@ export default function CollegeAdminDashboard() {
   const [recentStudents, setRecentStudents] = useState([]);
   const [pendingAdmissions, setPendingAdmissions] = useState([]);
 
+  const isMountedRef = useRef(true);
+  const collegeRef = useRef(college);
+
+  useEffect(() => {
+    collegeRef.current = college;
+  }, [college]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   /* ================= LOAD DASHBOARD DATA ================= */
-  const loadDashboardData = useCallback(async (isRefresh = false) => {
+  const loadDashboardData = useCallback(async (isRefresh = false, signal = null) => {
     if (!user || user.role !== "COLLEGE_ADMIN") return;
+
+    let isAborted = false;
 
     try {
       if (isRefresh) {
         setRefreshing(true);
       } else {
-        setLoading(true);
+        setStatus("loading");
       }
       setError(null);
 
-      const res = await api.get("/dashboard/college-admin");
+      const res = await api.get("/dashboard/college-admin", { signal });
+      if (signal?.aborted || !isMountedRef.current) {
+        isAborted = true;
+        return;
+      }
+
       const data = res.data;
 
       setCollege(data.college);
@@ -275,7 +297,25 @@ export default function CollegeAdminDashboard() {
 
       setRecentStudents(data.recentStudents || []);
       setPendingAdmissions(data.pendingAdmissions || []);
+
+      setStatus("success");
     } catch (err) {
+      if (
+        signal?.aborted ||
+        axios.isCancel?.(err) ||
+        err?.name === "CanceledError" ||
+        err?.name === "AbortError" ||
+        err?.code === "ERR_CANCELED"
+      ) {
+        isAborted = true;
+        return;
+      }
+
+      if (!isMountedRef.current) {
+        isAborted = true;
+        return;
+      }
+
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
       const backendMessage = err.response?.data?.message;
@@ -285,27 +325,38 @@ export default function CollegeAdminDashboard() {
 
       logger.error("College admin dashboard load error:", statusCode, errorCode);
 
-      setError({
-        message: errorMessage,
-        statusCode,
-        errorCode,
-      });
-
       const isAuthError =
         statusCode === 401 ||
         (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
+      // If college data is not loaded yet (initial load failure), record error for the error gate
+      // If college exists (refresh failure), keep status "success" and do not overwrite with error screen
+      if (!collegeRef.current) {
+        setError({
+          message: errorMessage,
+          statusCode,
+          errorCode,
+        });
+        setStatus("error");
+      }
+
+      // If college exists (refresh failure), or for any user-facing error, notify via toast
       if (!isAuthError) {
         toast.error(errorMessage);
       }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!isAborted && !signal?.aborted && isMountedRef.current) {
+        setRefreshing(false);
+      }
     }
   }, [user]);
 
   useEffect(() => {
-    loadDashboardData();
+    const controller = new AbortController();
+    loadDashboardData(false, controller.signal);
+    return () => {
+      controller.abort();
+    };
   }, [loadDashboardData]);
 
   // Copy registration link
@@ -345,6 +396,50 @@ export default function CollegeAdminDashboard() {
     return <Navigate to="/college/setup-wizard" replace />;
   }
 
+  /* ================= LOADING GATE ================= */
+  if (status === "loading") {
+    return (
+      <div className="cad-page">
+        <div className="cad-container cad-state-wrap">
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading College Dashboard..."
+          />
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= ERROR GATE ================= */
+  if (status === "error" && !college) {
+    return (
+      <div className="cad-page">
+        <div className="cad-container cad-state-wrap">
+          <div className="cad-error-card" role="alert">
+            <FaExclamationTriangle className="cad-error-icon" aria-hidden="true" />
+            <h2 className="cad-error-title">Dashboard Loading Error</h2>
+            <p className="cad-error-msg">{error?.message || "Failed to load dashboard data. Please try again."}</p>
+            <button
+              type="button"
+              className="cad-btn-retry"
+              onClick={() => loadDashboardData()}
+            >
+              <FaSyncAlt aria-hidden="true" />
+              <span>Retry Loading</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ================= MAIN DASHBOARD GUARD ================= */
+  // Ensure dashboard only renders on success with valid college data
+  if (status !== "success" || !college) {
+    return null;
+  }
+
   // Filter pending students out of recent activities
   const nonPendingRecentStudents = recentStudents.filter(
     (student) => (student?.status || "").toUpperCase() !== "PENDING"
@@ -373,6 +468,17 @@ export default function CollegeAdminDashboard() {
             <div className="cad-header-actions">
               <HeaderClock />
 
+              <button
+                type="button"
+                className="cad-btn-refresh"
+                onClick={() => loadDashboardData(true)}
+                disabled={refreshing}
+                aria-label="Refresh dashboard data"
+              >
+                <FaSyncAlt className={refreshing ? "cad-spin" : ""} aria-hidden="true" />
+                <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
+              </button>
+
               <Link
                 to="/college/profile"
                 className="cad-btn-profile"
@@ -386,20 +492,24 @@ export default function CollegeAdminDashboard() {
 
           {/* Info Chips */}
           <div className="cad-header-chips" aria-label="Institution metadata">
-            <div className="cad-chip" title="College email">
-              <FaEnvelope className="cad-chip-icon" aria-hidden="true" />
-              <span>{college?.email || "No email on record"}</span>
-            </div>
+            {college?.email && (
+              <div className="cad-chip" title="College email">
+                <FaEnvelope className="cad-chip-icon" aria-hidden="true" />
+                <span>{college.email}</span>
+              </div>
+            )}
 
-            <div className="cad-chip" title="Established year">
-              <FaCalendarAlt className="cad-chip-icon" aria-hidden="true" />
-              <span>Est. {college?.establishedYear || "N/A"}</span>
-            </div>
+            {college?.establishedYear && (
+              <div className="cad-chip" title="Established year">
+                <FaCalendarAlt className="cad-chip-icon" aria-hidden="true" />
+                <span>Est. {college.establishedYear}</span>
+              </div>
+            )}
 
-            <div className="cad-chip" title="College code">
-              <FaBarcode className="cad-chip-icon" aria-hidden="true" />
-              <span>Code: {college?.code ? college.code.toUpperCase() : "N/A"}</span>
-              {college?.code && (
+            {college?.code && (
+              <div className="cad-chip" title="College code">
+                <FaBarcode className="cad-chip-icon" aria-hidden="true" />
+                <span>Code: {college.code.toUpperCase()}</span>
                 <button
                   type="button"
                   className="cad-chip-copy"
@@ -409,8 +519,8 @@ export default function CollegeAdminDashboard() {
                 >
                   {copiedCode ? <FaCheck style={{ color: "#86efac" }} /> : <FaCopy />}
                 </button>
-              )}
-            </div>
+              </div>
+            )}
 
             <div className="cad-chip cad-chip-badge">
               <FaCheckCircle aria-hidden="true" />
@@ -418,23 +528,6 @@ export default function CollegeAdminDashboard() {
             </div>
           </div>
         </header>
-
-        {/* ================= ERROR STATE ================= */}
-        {error && (
-          <div className="cad-error-card" role="alert">
-            <FaExclamationTriangle className="cad-error-icon" aria-hidden="true" />
-            <h2 className="cad-error-title">Dashboard Loading Error</h2>
-            <p className="cad-error-msg">{error.message}</p>
-            <button
-              type="button"
-              className="cad-btn-retry"
-              onClick={() => loadDashboardData()}
-            >
-              <FaSyncAlt aria-hidden="true" />
-              <span>Retry Loading</span>
-            </button>
-          </div>
-        )}
 
         {/* ================= STAT CARDS GRID (6 CARDS) ================= */}
         <section aria-label="Key Institution Statistics">
@@ -450,7 +543,7 @@ export default function CollegeAdminDashboard() {
               </div>
               <div className="cad-stat-body">
                 <div className="cad-stat-value">
-                  {loading ? "--" : stats.totalStudents.toLocaleString()}
+                  {stats.totalStudents.toLocaleString()}
                 </div>
                 <div className="cad-stat-label">Total Students</div>
                 <div className="cad-stat-helper">Approved & enrolled</div>
@@ -469,7 +562,7 @@ export default function CollegeAdminDashboard() {
               </div>
               <div className="cad-stat-body">
                 <div className="cad-stat-value">
-                  {loading ? "--" : stats.totalTeachers.toLocaleString()}
+                  {stats.totalTeachers.toLocaleString()}
                 </div>
                 <div className="cad-stat-label">Total Teachers</div>
                 <div className="cad-stat-helper">Active faculty members</div>
@@ -488,7 +581,7 @@ export default function CollegeAdminDashboard() {
               </div>
               <div className="cad-stat-body">
                 <div className="cad-stat-value">
-                  {loading ? "--" : stats.totalDepartments.toLocaleString()}
+                  {stats.totalDepartments.toLocaleString()}
                 </div>
                 <div className="cad-stat-label">Total Departments</div>
                 <div className="cad-stat-helper">Academic departments</div>
@@ -507,7 +600,7 @@ export default function CollegeAdminDashboard() {
               </div>
               <div className="cad-stat-body">
                 <div className="cad-stat-value">
-                  {loading ? "--" : stats.totalCourses.toLocaleString()}
+                  {stats.totalCourses.toLocaleString()}
                 </div>
                 <div className="cad-stat-label">Total Courses</div>
                 <div className="cad-stat-helper">Active academic courses</div>
@@ -529,7 +622,7 @@ export default function CollegeAdminDashboard() {
               </div>
               <div className="cad-stat-body">
                 <div className="cad-stat-value">
-                  {loading ? "--" : stats.pendingAdmissions.toLocaleString()}
+                  {stats.pendingAdmissions.toLocaleString()}
                 </div>
                 <div className="cad-stat-label">Pending Admissions</div>
                 <div className="cad-stat-helper">Awaiting approval</div>
@@ -655,16 +748,7 @@ export default function CollegeAdminDashboard() {
               </div>
 
               <div className="cad-section-body">
-                {loading && !refreshing ? (
-                  <div
-                    className="cad-spinner-container"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    <FaSpinner className="cad-spin" aria-hidden="true" />
-                    <span>Loading recent student activities...</span>
-                  </div>
-                ) : nonPendingRecentStudents.length > 0 ? (
+                {nonPendingRecentStudents.length > 0 ? (
                   <div className="cad-list">
                     {nonPendingRecentStudents.slice(0, 5).map((student) => {
                       const badgeInfo = getStatusBadge(student.status);
@@ -746,28 +830,19 @@ export default function CollegeAdminDashboard() {
                       Pending Admissions
                     </h2>
                     <span className="cad-section-badge cad-badge-warning">
-                      {pendingAdmissions.length}
+                      {stats.pendingAdmissions}
                     </span>
                   </div>
                   <p className="cad-section-subtitle">
-                    {pendingAdmissions.length === 1
+                    {stats.pendingAdmissions === 1
                       ? "1 student awaiting approval"
-                      : `${pendingAdmissions.length} students awaiting approval`}
+                      : `${stats.pendingAdmissions} students awaiting approval`}
                   </p>
                 </div>
               </div>
 
               <div className="cad-section-body">
-                {loading && !refreshing ? (
-                  <div
-                    className="cad-spinner-container"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    <FaSpinner className="cad-spin" aria-hidden="true" />
-                    <span>Checking pending admissions...</span>
-                  </div>
-                ) : pendingAdmissions.length > 0 ? (
+                {pendingAdmissions.length > 0 ? (
                   <div className="cad-list">
                     {pendingAdmissions.slice(0, 4).map((student) => {
                       const initial = (student?.fullName?.[0] || "?").toUpperCase();
@@ -817,7 +892,7 @@ export default function CollegeAdminDashboard() {
                     >
                       <FaUserCheck aria-hidden="true" />
                       <span>
-                        Review All Pending ({pendingAdmissions.length})
+                        Review All Pending ({stats.pendingAdmissions})
                       </span>
                     </Link>
                   </div>
