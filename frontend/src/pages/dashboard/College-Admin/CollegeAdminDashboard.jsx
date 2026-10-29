@@ -224,7 +224,6 @@ export default function CollegeAdminDashboard() {
 
   /* ================= STATE & REFS ================= */
   const [status, setStatus] = useState("loading"); // "loading" | "success" | "error"
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [college, setCollege] = useState(null);
   const [setupRedirect, setSetupRedirect] = useState(false);
@@ -256,24 +255,15 @@ export default function CollegeAdminDashboard() {
   }, []);
 
   /* ================= LOAD DASHBOARD DATA ================= */
-  const loadDashboardData = useCallback(async (isRefresh = false, signal = null) => {
+  const loadDashboardData = useCallback(async (signal = null) => {
     if (!user || user.role !== "COLLEGE_ADMIN") return;
 
-    let isAborted = false;
-
     try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setStatus("loading");
-      }
+      setStatus("loading");
       setError(null);
 
       const res = await api.get("/dashboard/college-admin", { signal });
-      if (signal?.aborted || !isMountedRef.current) {
-        isAborted = true;
-        return;
-      }
+      if (signal?.aborted || !isMountedRef.current) return;
 
       const data = res.data;
 
@@ -307,14 +297,10 @@ export default function CollegeAdminDashboard() {
         err?.name === "AbortError" ||
         err?.code === "ERR_CANCELED"
       ) {
-        isAborted = true;
         return;
       }
 
-      if (!isMountedRef.current) {
-        isAborted = true;
-        return;
-      }
+      if (!isMountedRef.current) return;
 
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -330,7 +316,6 @@ export default function CollegeAdminDashboard() {
         (errorCode && AUTH_ERROR_CODES.has(errorCode));
 
       // If college data is not loaded yet (initial load failure), record error for the error gate
-      // If college exists (refresh failure), keep status "success" and do not overwrite with error screen
       if (!collegeRef.current) {
         setError({
           message: errorMessage,
@@ -340,20 +325,16 @@ export default function CollegeAdminDashboard() {
         setStatus("error");
       }
 
-      // If college exists (refresh failure), or for any user-facing error, notify via toast
+      // User-facing error notification
       if (!isAuthError) {
         toast.error(errorMessage);
-      }
-    } finally {
-      if (!isAborted && !signal?.aborted && isMountedRef.current) {
-        setRefreshing(false);
       }
     }
   }, [user]);
 
   useEffect(() => {
     const controller = new AbortController();
-    loadDashboardData(false, controller.signal);
+    loadDashboardData(controller.signal);
     return () => {
       controller.abort();
     };
@@ -467,17 +448,6 @@ export default function CollegeAdminDashboard() {
 
             <div className="cad-header-actions">
               <HeaderClock />
-
-              <button
-                type="button"
-                className="cad-btn-refresh"
-                onClick={() => loadDashboardData(true)}
-                disabled={refreshing}
-                aria-label="Refresh dashboard data"
-              >
-                <FaSyncAlt className={refreshing ? "cad-spin" : ""} aria-hidden="true" />
-                <span>{refreshing ? "Refreshing..." : "Refresh"}</span>
-              </button>
 
               <Link
                 to="/college/profile"
