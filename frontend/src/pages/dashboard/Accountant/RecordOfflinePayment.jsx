@@ -7,6 +7,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
+import { clearStudentDashboardCache } from "../../../utils/studentDashboardCache";
 import Pagination from "../../../components/Pagination";
 import {
    FaMoneyBillWave,
@@ -191,6 +192,7 @@ export default function RecordOfflinePayment() {
                 },
              });
 
+             clearStudentDashboardCache();
              toast.success("Payment recorded successfully!");
              fetchReport();
 

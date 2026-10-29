@@ -9,6 +9,7 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ConfirmModal from "../../../components/ConfirmModal";
 import { logger } from "../../../utils/logger";
+import { clearStudentDashboardCache } from "../../../utils/studentDashboardCache";
 
 import {
   FaMoneyBillWave,
@@ -391,6 +392,7 @@ if (authLoading) {
               razorpay_signature,
             });
             verifiedData = verifyRes.data;
+            clearStudentDashboardCache();
           } catch (err) {
             logger.error("Razorpay verify-payment error in checkout handler:", err);
             const statusCode = err?.response?.status;
@@ -721,6 +723,7 @@ if (authLoading) {
         installmentName,
       });
 
+      clearStudentDashboardCache();
       setResult(res.data);
       toast.success("🎉 Mock payment successful!", {
         position: "top-right",

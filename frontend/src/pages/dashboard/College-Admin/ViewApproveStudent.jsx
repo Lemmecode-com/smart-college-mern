@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import useRole from "../../../hooks/useRole";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
+import { clearStudentDashboardCache } from "../../../utils/studentDashboardCache";
 import {
   FaUserGraduate,
   FaEnvelope,
@@ -1555,6 +1556,7 @@ export default function ViewApproveStudent() {
         );
 
         if (response.data.success) {
+          clearStudentDashboardCache();
           toast.success(response.data.message, {
             position: "top-right",
             autoClose: 4000,

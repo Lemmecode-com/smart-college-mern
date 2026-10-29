@@ -2,6 +2,7 @@ import { createContext, useEffect, useState, useRef, useCallback } from "react";
 import api, { resetAuthInvalidationGuard } from "../api/axios";
 import { logger } from "../utils/logger";
 import { listenForAuthInvalidation, broadcastAuthInvalidation } from "../utils/authSync";
+import { clearStudentDashboardCache } from "../utils/studentDashboardCache";
 
 const ACCESS_TOKEN_EXPIRY_MS = 2 * 60 * 60 * 1000;
 const TOKEN_EXPIRY_BUFFER_MS = 30 * 1000;
@@ -11,6 +12,7 @@ const TOKEN_EXPIRY_BUFFER_MS = 30 * 1000;
  * to prevent cross-user data leakage on shared devices.
  */
 const clearClientStorageCaches = () => {
+  clearStudentDashboardCache();
   if (typeof window === "undefined") return;
   try {
     sessionStorage.clear();
@@ -146,6 +148,7 @@ const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED", 
       // Clear any stale session-expiry guard so a fresh login session
       // can handle subsequent authentication failures normally.
       resetAuthInvalidationGuard();
+      clearStudentDashboardCache();
       try {
         // Note: With httpOnly cookies, the token will be stored in the cookie automatically
         const res = await api.post("/auth/login", credentials);
@@ -218,6 +221,7 @@ const performSessionInvalidation = useCallback(async (reason = "TOKEN_EXPIRED", 
   const logout = async () => {
     clearTokenExpiryTimer();
     setAuthError(null);
+    clearStudentDashboardCache();
     try {
       await api.post("/auth/logout");
     } catch (error) {
