@@ -71,7 +71,7 @@ export default function PageHeader({
   .standard-page-header {
     width: 100%;
     min-height: 104px;
-    background: #0E3746;
+    background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
     border-radius: 15px;
     overflow: hidden;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);

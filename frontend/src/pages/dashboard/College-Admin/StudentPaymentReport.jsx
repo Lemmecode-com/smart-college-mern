@@ -497,6 +497,12 @@ if (loading) {
           border-collapse: collapse;
         }
 
+        .installments-table-scroll {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
         .installments-table th {
           padding: 1rem 2rem;
           text-align: left;
@@ -601,6 +607,12 @@ if (loading) {
           .installments-table th,
           .installments-table td {
             padding: 0.75rem 1rem;
+          }
+        }
+
+        @media (max-width: 1080px) {
+          .installments-table {
+            min-width: 680px;
           }
         }
       `}</style>
@@ -775,62 +787,64 @@ if (loading) {
         </div>
 
         {paymentHistory.length > 0 ? (
-          <table className="installments-table">
-            <thead>
-              <tr>
-                <th>Installment</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th>Payment Date</th>
-                <th>Due Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paymentHistory.map((installment, index) => (
-                <tr key={index}>
-                  <td>
-                    <div className="installment-name">
-                      {installment.name || `Installment ${index + 1}`}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="installment-amount">
-                      ₹{installment.amount?.toLocaleString() || "0"}
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`status-badge status-${installment.status?.toLowerCase() || 'pending'}`}>
-                      {installment.status || "PENDING"}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="installment-date">
-                      {installment.paidAt
-                        ? new Date(installment.paidAt).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric'
-                          })
-                        : "Not paid"
-                      }
-                    </div>
-                  </td>
-                  <td>
-                    <div className="installment-date">
-                      {installment.dueDate
-                        ? new Date(installment.dueDate).toLocaleDateString('en-IN', {
-                            day: '2-digit',
-                            month: 'short',
-                            year: 'numeric'
-                          })
-                        : "N/A"
-                      }
-                    </div>
-                  </td>
+          <div className="installments-table-scroll">
+            <table className="installments-table">
+              <thead>
+                <tr>
+                  <th>Installment</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Payment Date</th>
+                  <th>Due Date</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paymentHistory.map((installment, index) => (
+                  <tr key={index}>
+                    <td>
+                      <div className="installment-name">
+                        {installment.name || `Installment ${index + 1}`}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="installment-amount">
+                        ₹{installment.amount?.toLocaleString() || "0"}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-badge status-${installment.status?.toLowerCase() || 'pending'}`}>
+                        {installment.status || "PENDING"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="installment-date">
+                        {installment.paidAt
+                          ? new Date(installment.paidAt).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })
+                          : "Not paid"
+                        }
+                      </div>
+                    </td>
+                    <td>
+                      <div className="installment-date">
+                        {installment.dueDate
+                          ? new Date(installment.dueDate).toLocaleDateString('en-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })
+                          : "N/A"
+                        }
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="no-installments">
             <FaFileInvoiceDollar className="no-installments-icon" />
