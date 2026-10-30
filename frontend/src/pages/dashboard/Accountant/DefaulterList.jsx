@@ -6,6 +6,7 @@ import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import Pagination from "../../../components/Pagination";
 import { toast } from "react-toastify";
 import {
   FaUserTimes,
@@ -16,8 +17,6 @@ import {
   FaCalendarAlt,
   FaRupeeSign,
   FaSyncAlt,
-  FaChevronLeft,
-  FaChevronRight,
   FaFileInvoiceDollar,
 } from "react-icons/fa";
 import "./DefaulterList.css";
@@ -339,35 +338,11 @@ export default function DefaulterList() {
             </div>
 
             {totalPages > 1 && (
-              <div className="defaulter-pagination">
-                <button
-                  className="page-btn"
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  <FaChevronLeft />
-                </button>
-
-                <div className="d-flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                    <button
-                      key={num}
-                      className={`page-btn ${currentPage === num ? "active" : ""}`}
-                      onClick={() => setCurrentPage(num)}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  className="page-btn"
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  <FaChevronRight />
-                </button>
-              </div>
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
             )}
           </>
         )}

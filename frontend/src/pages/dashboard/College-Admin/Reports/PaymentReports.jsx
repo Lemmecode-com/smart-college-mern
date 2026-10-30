@@ -2825,6 +2825,7 @@ export default function PaymentReports() {
 
   .filter-controls {
     width: 100%;
+    min-width: 0;
 
     display: flex !important;
 
@@ -2837,6 +2838,7 @@ export default function PaymentReports() {
 
   .filter-group {
     width: 100%;
+    min-width: 0;
   }
 
   .filter-group label {
@@ -2849,6 +2851,7 @@ export default function PaymentReports() {
 
   .filter-group > div {
     width: 100%;
+    min-width: 0;
 
     display: grid !important;
 

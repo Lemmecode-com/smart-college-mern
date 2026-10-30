@@ -311,7 +311,7 @@ if (loading) {
                     fontSize: '0.875rem'
                   }}
                 >
-                  <FaEdit /> <span className="d-none d-sm-inline">Edit Profile</span>
+                  <FaEdit /> <span>Edit Profile</span>
                 </motion.button>
               </div>
             </div>
@@ -475,6 +475,35 @@ if (loading) {
       height: 34px !important;
     }
   }
+
+  @media (min-width: 270px) and (max-width: 1030px) {
+    .teacher-dashboard-banner .bg-light button {
+      width: auto !important;
+      min-width: max-content !important;
+      height: auto !important;
+      min-height: 36px !important;
+      padding: 0.4rem 0.75rem !important;
+      white-space: nowrap !important;
+    }
+  }
+
+  @media (min-width: 980px) and (max-width: 1400px) {
+    .teacher-dashboard-stats > [class*="col-"] {
+      flex: 0 0 50%;
+      max-width: 50%;
+    }
+  }
+
+  @media (min-width: 980px) and (max-width: 1350px) {
+    .teacher-dashboard-actions > [class*="col-"] {
+      flex: 0 0 50%;
+      max-width: 50%;
+    }
+
+    .teacher-dashboard-actions .teacher-action-card {
+      padding: 1rem !important;
+    }
+  }
 `}</style>
 
           {/* ================= STATS GRID ================= */}
@@ -484,7 +513,7 @@ if (loading) {
             initial="hidden"
             animate="visible"
           >
-            <div className="row g-3 g-md-4 mb-3 mb-md-4">
+            <div className="row g-3 g-md-4 mb-3 mb-md-4 teacher-dashboard-stats">
               <div className="col-12 col-sm-6 col-lg-3">
                 <StatCard
                   icon={FaCalendarAlt}
@@ -542,7 +571,7 @@ if (loading) {
               subtitle="Frequently used operations"
               color={BRAND_COLORS.primary.main}
             >
-              <div className="row g-3 g-md-4 p-3 p-md-4">
+              <div className="row g-3 g-md-4 p-3 p-md-4 teacher-dashboard-actions">
                 <div className="col-12 col-sm-6 col-lg-3">
                   <ActionCard
                     icon={FaQrcode}
@@ -789,7 +818,7 @@ function ActionCard({ icon: Icon, title, desc, link, color, gradient }) {
       whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)' }}
       whileTap={{ scale: 0.98 }}
       onClick={() => navigate(link)}
-      className="card border-0 h-100 text-center cursor-pointer d-flex flex-column"
+      className="card border-0 h-100 text-center cursor-pointer d-flex flex-column teacher-action-card"
       style={{
         borderRadius: '16px',
         padding: '1.75rem',
