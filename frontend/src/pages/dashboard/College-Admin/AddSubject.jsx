@@ -485,7 +485,7 @@ if (loadingDepartments) {
             <div
               style={{
                 padding: "2rem",
-                background: "#0E3746",
+                background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
                 color: "white",
                 display: "flex",
                 justifyContent: "space-between",
@@ -2645,8 +2645,8 @@ if (loadingDepartments) {
   }
           @media (min-width: 1600px) {
             .add-subject-page .add-subject-content {
-              width: 100% !important;
-              max-width: none !important;
+              width: min(100%, 3600px) !important;
+              max-width: 3600px !important;
               margin-left: auto !important;
               margin-right: auto !important;
             }

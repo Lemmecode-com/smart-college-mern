@@ -463,30 +463,30 @@ export default function CollegeProfile() {
                 >
                   <span
                     style={{
-  background: "rgba(255, 255, 255, 0.08)",
-  border: "1px solid rgba(255, 255, 255, 0.12)",
-  padding: "5px 12px",
-  borderRadius: "9999px",
-  display: "inline-flex",
-  alignItems: "center",
-  gap: "7px",
-  fontSize: "12px",
-  color: "rgba(255, 255, 255, 0.95)",
-  minHeight: "28px",
-  marginTop: "8px",
+                      background: "rgba(255, 255, 255, 0.08)",
+                      border: "1px solid rgba(255, 255, 255, 0.12)",
+                      padding: "5px 12px",
+                      borderRadius: "9999px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "7px",
+                      fontSize: "12px",
+                      color: "rgba(255, 255, 255, 0.95)",
+                      minHeight: "28px",
+                      marginTop: "8px",
                     }}
                   >
                     {college.code}
                   </span>
                   <span
                     style={{
-  background: "rgba(34, 197, 94, 0.2)",
-  color: "#86efac",
-  border: "1px solid rgba(34, 197, 94, 0.35)",
-  fontWeight: "600",
-  borderRadius: "9999px",
-  padding: "3px 12px",
-  marginTop: "8px",
+                    background: "rgba(34, 197, 94, 0.2)",
+                    color: "#86efac",
+                    border: "1px solid rgba(34, 197, 94, 0.35)",
+                    fontWeight: "600",
+                    borderRadius: "9999px",
+                    padding: "3px 12px",
+                    marginTop: "8px",
                     
                     }}
                   >
