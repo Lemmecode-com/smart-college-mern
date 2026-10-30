@@ -414,9 +414,10 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
       expect(parentIds(res.body)).not.toContain(notificationId);
     });
 
-    it("TC-1.6: the authoring Admin does NOT see the student fee notice in My Notifications", async () => {
+    it("TC-1.6: the authoring Admin DOES see the student fee notice in My Notifications (outbox view)", async () => {
+      // Decided rule: authoring admin sees all authored notifications in outbox (myNotifications)
       const res = await adminAgent.get("/api/notifications/admin/read").expect(200);
-      expect(res.body.data.myNotifications.map((n) => n._id)).not.toContain(notificationId);
+      expect(res.body.data.myNotifications.map((n) => n._id)).toContain(notificationId);
     });
 
     it("TC-1.7: the authoring Admin does NOT see it in the Bell", async () => {
@@ -537,14 +538,21 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
       notificationId = res.body.data.notification._id;
     });
 
-    it("TC-2.1: the Admin Bell shows it", async () => {
+    it("TC-2.1: the Admin Bell does NOT show own-authored announcement (Option A rule)", async () => {
+      // Option A rule: Admins do NOT see their own authored notifications in their unread badge or bell dropdown.
       const res = await adminAgent.get("/api/notifications/unread/bell").expect(200);
-      expect(bellIds(res.body)).toContain(notificationId);
+      expect(bellIds(res.body)).not.toContain(notificationId);
+
+      // Verify it remains present in the author's sent/outbox list
+      const outbox = await adminAgent.get("/api/notifications/admin/read").expect(200);
+      expect(outbox.body.data.myNotifications.map((n) => n._id)).toContain(notificationId);
     });
 
-    it("TC-2.2: the Admin unread count includes it", async () => {
+    it("TC-2.2: the Admin unread count excludes own-authored announcement (Option A rule)", async () => {
+      // Option A rule: Own-authored notifications are excluded from unread count (createdBy: { $ne: userId }).
       const res = await adminAgent.get("/api/notifications/count/admin").expect(200);
-      expect(res.body.data.myCount).toBe(1);
+      expect(res.body.data.myCount).toBe(0);
+      expect(res.body.data.total).toBe(0);
     });
 
     it("TC-2.3: Students and their parents still receive it", async () => {
@@ -585,14 +593,21 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
       notificationId = doc._id.toString();
     });
 
-    it("TC-3.1: the Admin Bell shows it", async () => {
+    it("TC-3.1: the Admin Bell does NOT show self-authored reminder (Option A rule)", async () => {
+      // Option A rule: Admins do NOT see their own authored notifications in the bell dropdown.
       const res = await adminAgent.get("/api/notifications/unread/bell").expect(200);
-      expect(bellIds(res.body)).toContain(notificationId);
+      expect(bellIds(res.body)).not.toContain(notificationId);
+
+      // Verify the self-addressed reminder remains present in the author's sent/outbox list
+      const outbox = await adminAgent.get("/api/notifications/admin/read").expect(200);
+      expect(outbox.body.data.myNotifications.map((n) => n._id)).toContain(notificationId);
     });
 
-    it("TC-3.2: the Admin unread count includes it", async () => {
+    it("TC-3.2: the Admin unread count excludes self-authored reminder (Option A rule)", async () => {
+      // Option A rule: Own-authored notifications are excluded from unread count (createdBy: { $ne: userId }).
       const res = await adminAgent.get("/api/notifications/count/admin").expect(200);
-      expect(res.body.data.myCount).toBe(1);
+      expect(res.body.data.myCount).toBe(0);
+      expect(res.body.data.total).toBe(0);
     });
 
     it("TC-3.3: an admin NOT in target_users sees nothing", async () => {
@@ -632,8 +647,9 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
 
         const notificationId = res.body.data.notification._id;
 
+        // Decided rule: authoring admin sees own broadcast in myNotifications outbox view
         const listRes = await adminAgent.get("/api/notifications/admin/read").expect(200);
-        expect(listRes.body.data.myNotifications.map((n) => n._id)).not.toContain(notificationId);
+        expect(listRes.body.data.myNotifications.map((n) => n._id)).toContain(notificationId);
 
         const bellRes = await adminAgent.get("/api/notifications/unread/bell").expect(200);
         expect(bellIds(bellRes.body)).not.toContain(notificationId);
@@ -672,9 +688,10 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
       const s = await studentAAgent.get("/api/notifications/student/read").expect(200);
       expect(studentIds(s.body)).not.toContain(notificationId);
 
-      // The management/outbox view intentionally keeps its previous behaviour.
+      // Decided rule: management/outbox view retains author's own notifications even after expiry
+      // so the admin can review, extend, or delete them; bell and count keep excluding them.
       const list = await adminAgent.get("/api/notifications/admin/read").expect(200);
-      expect(list.body.data.myNotifications.map((n) => n._id)).not.toContain(notificationId);
+      expect(list.body.data.myNotifications.map((n) => n._id)).toContain(notificationId);
     });
 
     it("TC-5.2: an expired ALL notice is excluded from the admin bell and count", async () => {
@@ -713,7 +730,7 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
       expect(after - before).toBe(1);
     });
 
-    it("TC-6.2: the fee notice is never echoed to the admin in any admin surface", async () => {
+    it("TC-6.2: the fee notice is in the admin outbox but never echoed to admin bell or count", async () => {
       const res = await adminAgent
         .post("/api/notifications/admin/create")
         .send({ ...FEE_NOTICE, target: "STUDENTS" })
@@ -724,11 +741,13 @@ describe("NTF-FEE-DEADLINE — student fee deadline audience isolation", () => {
       const count = await adminAgent.get("/api/notifications/count/admin").expect(200);
       const list = await adminAgent.get("/api/notifications/admin/read").expect(200);
 
+      // Decided rule: authoring admin sees own notification in outbox (myNotifications),
+      // while bell and unread count continue to exclude it.
       expect(bellIds(bell.body)).not.toContain(notificationId);
       expect(count.body.data.myCount).toBe(0);
       expect(
         (list.body.data.myNotifications || []).map((n) => n._id),
-      ).not.toContain(notificationId);
+      ).toContain(notificationId);
       expect(mongoose.isValidObjectId(notificationId)).toBe(true);
     });
   });

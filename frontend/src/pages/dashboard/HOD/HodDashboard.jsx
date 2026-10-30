@@ -474,7 +474,7 @@ const HodDashboard = () => {
               >
                 <FaUsers />
               </div>
-              <FaArrowRight style={{ fontSize: "0.75rem", color: BRAND.muted, opacity: 0.6 }} />
+              <FaArrowRight className="hod-kpi-arrow" />
             </div>
             <div>
               <div className="hod-kpi-value">{totalTeachers}</div>
@@ -509,7 +509,7 @@ const HodDashboard = () => {
               >
                 <FaGraduationCap />
               </div>
-              <FaArrowRight style={{ fontSize: "0.75rem", color: BRAND.muted, opacity: 0.6 }} />
+              <FaArrowRight className="hod-kpi-arrow" />
             </div>
             <div>
               <div className="hod-kpi-value">{totalStudents}</div>
@@ -546,7 +546,7 @@ const HodDashboard = () => {
               >
                 <FaCalendarAlt />
               </div>
-              <FaArrowRight style={{ fontSize: "0.75rem", color: BRAND.muted, opacity: 0.6 }} />
+              <FaArrowRight className="hod-kpi-arrow" />
             </div>
             <div>
               <div className="hod-kpi-value">{totalTimetables}</div>
@@ -583,7 +583,7 @@ const HodDashboard = () => {
               >
                 <FaClipboardCheck />
               </div>
-              <FaArrowRight style={{ fontSize: "0.75rem", color: BRAND.muted, opacity: 0.6 }} />
+              <FaArrowRight className="hod-kpi-arrow" />
             </div>
             <div>
               <div className="hod-kpi-value">

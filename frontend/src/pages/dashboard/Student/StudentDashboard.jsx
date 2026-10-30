@@ -619,7 +619,6 @@ export default function StudentDashboard() {
         {/* ================= 1. HERO SECTION ================= */}
         <header className="sd-hero">
           <div className="sd-hero-left">
-            <p className="sd-hero-subtitle">Student Dashboard</p>
             <h1 className="sd-hero-title">
               {greeting}, {firstName}!
             </h1>

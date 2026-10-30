@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useContext } from "react";
+import { useEffect, useState, useCallback, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
@@ -37,11 +37,13 @@ export default function NotificationDetails() {
   const [isOwner, setIsOwner] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Confirm modal state
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
     type: null, // 'delete' or 'back'
   });
+
+  // Guard against StrictMode duplicates and multiple calls per notification ID
+  const markedReadRef = useRef(new Set());
 
   // Notification type configurations (shared single source of truth)
   const typeConfig = NOTIFICATION_TYPES;
@@ -80,6 +82,18 @@ export default function NotificationDetails() {
         String(found.createdBy) === String(user?.id) ||
         String(found.createdBy) === String(user?._id),
       );
+
+      // Call mark-as-read once when opened successfully (ignore failures silently)
+      if (found?._id && !markedReadRef.current.has(found._id)) {
+        markedReadRef.current.add(found._id);
+        api.post(`/notifications/${found._id}/mark-read`)
+          .then(() => {
+            window.dispatchEvent(new CustomEvent("notification-read"));
+          })
+          .catch(() => {
+            // Silently ignore mark-as-read errors on view
+          });
+      }
     } catch (err) {
       console.error("Error fetching notification:", err);
       setError(err.response?.data?.error?.message || "Failed to load notification");
@@ -97,9 +111,12 @@ export default function NotificationDetails() {
   const handleEdit = () => {
     if (!notification) return;
 
-    const editPath = window.location.pathname.includes("/teacher/")
-      ? `/notifications/edit/${id}`
-      : `/notification/edit/${id}`;
+    let editPath = `/notification/edit/${id}`;
+    if (user?.role === "HOD") {
+      editPath = `/hod/notifications/edit/${id}`;
+    } else if (window.location.pathname.includes("/teacher/") || user?.role === "TEACHER") {
+      editPath = `/notifications/edit/${id}`;
+    }
 
     navigate(editPath);
   };

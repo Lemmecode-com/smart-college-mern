@@ -283,16 +283,12 @@ describe("NTF-ADM-IND — Admin visibility of INDIVIDUAL notifications", () => {
         const listRes = await adminAgent.get("/api/notifications/admin/read").expect(200);
         expect(collectAdminPayload(listRes.body).myNotifications.map((n) => n._id)).toContain(notificationId);
 
-        // Unread count is the admin INBOX. Only an ALL broadcast is also an
-        // incoming notification for the admin; STUDENTS/TEACHERS/DEPARTMENT/
-        // COURSE/SEMESTER audiences explicitly exclude the admin, so they must
-        // not raise an unread badge for the person who sent them.
+        // Option A rule: Admins/HODs do NOT see their own authored notifications
+        // in their unread badge or bell dropdown. Every own-created notification
+        // (including target=ALL) is excluded from the creator's unread badge count (myCount === 0).
         const countRes = await adminAgent.get("/api/notifications/count/admin").expect(200);
-        if (target === "ALL") {
-          expect(countRes.body.data.myCount).toBeGreaterThanOrEqual(1);
-        } else {
-          expect(countRes.body.data.myCount).toBe(0);
-        }
+        expect(countRes.body.data.myCount).toBe(0);
+        expect(countRes.body.data.total).toBe(0);
       });
     });
   });

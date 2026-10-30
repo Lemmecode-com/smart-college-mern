@@ -14,7 +14,13 @@ const notificationSchema = new mongoose.Schema(
 
     createdByRole: {
       type: String,
-      enum: ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "TEACHER", "HOD"],
+      enum: [
+        "COLLEGE_ADMIN",
+        "ADMISSION_OFFICER",
+        "TEACHER",
+        "HOD",
+        "EXAM_COORDINATOR",
+      ],
       required: true,
     },
 

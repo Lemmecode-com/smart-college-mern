@@ -205,7 +205,7 @@ export default function NavbarComponent({
     }
 
     // Only supported roles have notification endpoints
-    const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
+    const supportedRoles = ["COLLEGE_ADMIN", "PRINCIPAL", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
     if (!supportedRoles.includes(user.role)) {
       return;
     }
@@ -213,7 +213,7 @@ export default function NavbarComponent({
     try {
       let res;
 
-      if (user.role === "COLLEGE_ADMIN")
+      if (user.role === "COLLEGE_ADMIN" || user.role === "PRINCIPAL")
         res = await api.get("/notifications/count/admin");
       if (user.role === "TEACHER")
         res = await api.get("/notifications/count/teacher");
@@ -269,7 +269,7 @@ export default function NavbarComponent({
 /* ================= FETCH UNREAD FOR BELL ================= */
    const fetchNotes = async () => {
      // Only supported roles have notification endpoints
-      const supportedRoles = ["COLLEGE_ADMIN", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
+      const supportedRoles = ["COLLEGE_ADMIN", "PRINCIPAL", "TEACHER", "STUDENT", "HOD", "PARENT_GUARDIAN"];
       if (!supportedRoles.includes(user.role)) {
         setNotes([]);
         return;
@@ -399,6 +399,17 @@ export default function NavbarComponent({
     }, 15000);
     return () => clearInterval(interval);
   }, [user, rateLimitBackoff]);
+
+  /* ================= NOTIFICATION READ EVENT LISTENER ================= */
+  useEffect(() => {
+    const handleNotificationRead = () => {
+      fetchCount(true);
+    };
+    window.addEventListener("notification-read", handleNotificationRead);
+    return () => {
+      window.removeEventListener("notification-read", handleNotificationRead);
+    };
+  }, []);
 
   /* ================= FETCH NOTES WHEN COUNT INCREASES ================= */
   useEffect(() => {
@@ -697,7 +708,17 @@ export default function NavbarComponent({
                         onClick={async () => {
                           setNotifOpen(false);
                           await markAsRead(n._id);
-                          navigate(`/notification/view/${n._id}`);
+                          const isSafeInternalUrl = (url) => {
+                            if (!url || typeof url !== "string") return false;
+                            const trimmed = url.trim();
+                            if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return false;
+                            if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed) || /javascript:/i.test(trimmed)) return false;
+                            return true;
+                          };
+                          const destination = isSafeInternalUrl(n.actionUrl)
+                            ? n.actionUrl.trim()
+                            : `/notification/view/${n._id}`;
+                          navigate(destination);
                         }}
                         style={{ cursor: "pointer" }}
                       >

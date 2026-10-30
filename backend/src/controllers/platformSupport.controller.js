@@ -326,7 +326,11 @@ exports.broadcastAlert = async (req, res) => {
     if (!message || message.trim() === "") {
       return ApiResponse.error(res, "Alert message is required", "MISSING_MESSAGE", 400);
     }
-    const result = await platformSupportService.broadcastAlert(message.trim(), severity);
+    const result = await platformSupportService.broadcastAlert(
+      message.trim(),
+      severity,
+      req.user?._id || req.user?.id
+    );
     return ApiResponse.success(res, result, `Alert broadcasted (${severity})`);
   } catch (error) {
     console.error("Error broadcasting alert:", error);

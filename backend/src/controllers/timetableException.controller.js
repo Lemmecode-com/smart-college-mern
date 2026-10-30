@@ -1443,14 +1443,17 @@ exports.approveException = async (req, res, next) => {
 
         const studentUserIds = await Student.find(studentQuery).distinct("user_id");
 
-        const allUserIds = [
-          ...new Set([...teacherUserIds, ...studentUserIds]),
+        const uniqueTeacherUserIds = [
+          ...new Set(teacherUserIds.map(String)),
+        ];
+        const uniqueStudentUserIds = [
+          ...new Set(studentUserIds.map(String)),
         ];
 
-        if (allUserIds.length === 0) return;
+        const allNotifications = [];
 
-        await Notification.insertMany(
-          allUserIds.map((uid) => ({
+        uniqueTeacherUserIds.forEach((uid) => {
+          allNotifications.push({
             college_id: req.college_id,
             createdBy: req.user.id,
             createdByRole: "HOD",
@@ -1459,11 +1462,31 @@ exports.approveException = async (req, res, next) => {
             title: `Schedule Change: ${approvedException.type}`,
             message: `A timetable exception (${approvedException.type}) on ${new Date(approvedException.exceptionDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} affects your schedule. Reason: ${approvedException.reason}`,
             type: "ACADEMIC",
-            actionUrl: "/timetable",
+            actionUrl: "/timetable/my-timetable",
             isActive: true,
             isRead: false,
-          })),
-        );
+          });
+        });
+
+        uniqueStudentUserIds.forEach((uid) => {
+          allNotifications.push({
+            college_id: req.college_id,
+            createdBy: req.user.id,
+            createdByRole: "HOD",
+            target: "INDIVIDUAL",
+            target_users: [uid],
+            title: `Schedule Change: ${approvedException.type}`,
+            message: `A timetable exception (${approvedException.type}) on ${new Date(approvedException.exceptionDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} affects your schedule. Reason: ${approvedException.reason}`,
+            type: "ACADEMIC",
+            actionUrl: "/student/timetable",
+            isActive: true,
+            isRead: false,
+          });
+        });
+
+        if (allNotifications.length === 0) return;
+
+        await Notification.insertMany(allNotifications);
 
         approvedException.notificationsSent = true;
         await approvedException.save();

@@ -257,7 +257,7 @@ describe("NOT-DUP-VIS — Duplicate Submission Protection & Admin Visibility", (
   });
 
   describe("B. College Admin Visibility & Tenant Isolation", () => {
-    it("a STUDENTS fee notification created by College Admin is excluded from GET /api/notifications/admin/read", async () => {
+    it("a STUDENTS fee notification created by College Admin is present in outbox (/admin/read myNotifications) but excluded from bell and count", async () => {
       const createRes = await adminAgent
         .post("/api/notifications/admin/create")
         .send({
@@ -270,12 +270,12 @@ describe("NOT-DUP-VIS — Duplicate Submission Protection & Admin Visibility", (
 
       const noteId = createRes.body.data.notification._id;
 
-      // Admin read list must NOT contain it
+      // Decided rule: authoring admin sees own notification in myNotifications outbox view
       const adminList = await adminAgent
         .get("/api/notifications/admin/read")
         .expect(200);
       const myNoteIds = (adminList.body.data.myNotifications || []).map((n) => n._id);
-      expect(myNoteIds).not.toContain(noteId);
+      expect(myNoteIds).toContain(noteId);
 
       // Admin Bell & Unread Count must NOT contain it
       const bellRes = await adminAgent.get("/api/notifications/unread/bell").expect(200);
@@ -376,6 +376,83 @@ describe("NOT-DUP-VIS — Duplicate Submission Protection & Admin Visibility", (
 
       // Direct ID lookup from College B must be 404
       await adminBAgent.get(`/api/notifications/${noteId}`).expect(404);
+    });
+
+    it("an admin's own STUDENTS notification appears exactly once in myNotifications and never in staffNotifications", async () => {
+      const createRes = await adminAgent
+        .post("/api/notifications/admin/create")
+        .send({
+          title: "Sports Day Registration",
+          message: "Registration is open for all students.",
+          type: "GENERAL",
+          target: "STUDENTS",
+        })
+        .expect(201);
+
+      const noteId = createRes.body.data.notification._id;
+
+      const adminList = await adminAgent
+        .get("/api/notifications/admin/read")
+        .expect(200);
+
+      const myNotes = adminList.body.data.myNotifications || [];
+      const staffNotes = adminList.body.data.staffNotifications || [];
+
+      // Appears exactly once in myNotifications
+      const myMatching = myNotes.filter((n) => n._id === noteId);
+      expect(myMatching).toHaveLength(1);
+
+      // Never appears in staffNotifications
+      const staffMatching = staffNotes.filter((n) => n._id === noteId);
+      expect(staffMatching).toHaveLength(0);
+    });
+
+    it("an admin's own STUDENTS notification is excluded from author's bell and count, does not leak to another admin's outbox/bell, and never appears cross-college", async () => {
+      const createRes = await adminAgent
+        .post("/api/notifications/admin/create")
+        .send({
+          title: "Exam Form Submission Deadline",
+          message: "Exam forms must be submitted by Friday.",
+          type: "ACADEMIC",
+          target: "STUDENTS",
+        })
+        .expect(201);
+
+      const noteId = createRes.body.data.notification._id;
+
+      // 1. Author Admin: excluded from bell dropdown and unread count
+      const authorBell = await adminAgent.get("/api/notifications/unread/bell").expect(200);
+      expect((authorBell.body.data || []).map((n) => n._id)).not.toContain(noteId);
+
+      const authorCount = await adminAgent.get("/api/notifications/count/admin").expect(200);
+      expect(authorCount.body.data.myCount).toBe(0);
+      expect(authorCount.body.data.total).toBe(0);
+
+      // 2. Different Admin in the same college:
+      // Must not appear in his myNotifications (authored by someone else).
+      // Also excluded from his bell/count because the target audience is STUDENTS.
+      const secondAdminList = await adminASecondAgent.get("/api/notifications/admin/read").expect(200);
+      expect((secondAdminList.body.data.myNotifications || []).map((n) => n._id)).not.toContain(noteId);
+
+      const secondAdminBell = await adminASecondAgent.get("/api/notifications/unread/bell").expect(200);
+      expect((secondAdminBell.body.data || []).map((n) => n._id)).not.toContain(noteId);
+
+      const secondAdminCount = await adminASecondAgent.get("/api/notifications/count/admin").expect(200);
+      expect(secondAdminCount.body.data.myCount).toBe(0);
+
+      // 3. Cross-college Admin: strictly excluded from all surfaces
+      const crossCollegeList = await adminBAgent.get("/api/notifications/admin/read").expect(200);
+      const allBNotes = [
+        ...(crossCollegeList.body.data.myNotifications || []),
+        ...(crossCollegeList.body.data.staffNotifications || []),
+      ].map((n) => n._id);
+      expect(allBNotes).not.toContain(noteId);
+
+      const crossCollegeBell = await adminBAgent.get("/api/notifications/unread/bell").expect(200);
+      expect((crossCollegeBell.body.data || []).map((n) => n._id)).not.toContain(noteId);
+
+      const crossCollegeCount = await adminBAgent.get("/api/notifications/count/admin").expect(200);
+      expect(crossCollegeCount.body.data.myCount).toBe(0);
     });
   });
 });

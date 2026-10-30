@@ -237,7 +237,7 @@ exports.publishTimetable = async (req, res) => {
             message: `Exam timetable for ${timetable.name} has been published.`,
             type: "EXAM",
             priority: "HIGH",
-            actionUrl: "/student/timetable",
+            actionUrl: "/student/exam-timetable",
           });
           logger.logInfo("Exam timetable notification sent", {
             collegeId: req.college_id,

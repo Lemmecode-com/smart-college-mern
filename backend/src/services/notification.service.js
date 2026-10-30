@@ -253,7 +253,13 @@ class NotificationService {
         return existing;
       }
 
-      const validRoles = ["COLLEGE_ADMIN", "ADMISSION_OFFICER", "TEACHER", "HOD"];
+      const validRoles = [
+        "COLLEGE_ADMIN",
+        "ADMISSION_OFFICER",
+        "TEACHER",
+        "HOD",
+        "EXAM_COORDINATOR",
+      ];
       const createdByRole = validRoles.includes(actorRole) ? actorRole : "COLLEGE_ADMIN";
 
       const notification = await this.createNotification({
