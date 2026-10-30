@@ -396,12 +396,12 @@ export default function CollegeProfile() {
               flexWrap: "wrap",
               gap: "1.5rem",
 
-              background: "#0E3746",
+              background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
               padding: "1.25rem 1.75rem",
-              borderRadius: "1.25rem",
+              borderRadius: "12px",
               boxShadow: "0 8px 24px rgba(14, 55, 70, 0.18)",
               color: "#ffffff",
-              minHeight: "140px",
+              minHeight: "80px",
             }}
           >
             <div
@@ -415,15 +415,27 @@ export default function CollegeProfile() {
               <motion.div
                 variants={pulseVariants}
                 initial="initial"
-                animate="pulse"
-                style={{ flexShrink: 0 }}
+                // animate="pulse"
+                style={{ 
+
+                    width: "64px",
+                    height: "64px",
+                    minWidth: "64px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    borderRadius: "10px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                }}
               >
                 <LogoImage
                   documentId={
                     college?.documentRefs?.logo?.documentId ||
                     college?.logoDocumentId
                   }
-                  size={100}
+                  size={54}
                 />
               </motion.div>
 
@@ -451,40 +463,40 @@ export default function CollegeProfile() {
                 >
                   <span
                     style={{
-                      backgroundColor: "rgba(255, 255, 255, 0.14)",
-                      color: "#ffffff",
-                      border: "1px solid rgba(255, 255, 255, 0.18)",
-                      padding: "0.5rem 1rem",
-                      borderRadius: "9999px",
-                      fontSize: "0.875rem",
-                      fontWeight: 600,
-                      marginTop: "0.55rem",
+  background: "rgba(255, 255, 255, 0.08)",
+  border: "1px solid rgba(255, 255, 255, 0.12)",
+  padding: "5px 12px",
+  borderRadius: "9999px",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "7px",
+  fontSize: "12px",
+  color: "rgba(255, 255, 255, 0.95)",
+  minHeight: "28px",
+  marginTop: "8px",
                     }}
                   >
                     {college.code}
                   </span>
                   <span
                     style={{
-                      backgroundColor: college.isActive ? "#dcfce7" : "#fee2e2",
-                      color: college.isActive ? "#166534" : "#b91c1c",
-                      padding: "0.5rem 1rem",
-                      borderRadius: "9999px",
-                      fontSize: "0.875rem",
-                      fontWeight: 600,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.25rem",
-                      marginTop: "0.55rem",
+  background: "rgba(34, 197, 94, 0.2)",
+  color: "#86efac",
+  border: "1px solid rgba(34, 197, 94, 0.35)",
+  fontWeight: "600",
+  borderRadius: "9999px",
+  padding: "3px 12px",
+  marginTop: "8px",
                     
                     }}
                   >
                     {college.isActive ? (
                       <>
-                        <FaCheckCircle size={16} /> Active
+                        <FaCheckCircle aria-hidden="true"/> Active
                       </>
                     ) : (
                       <>
-                        <FaTimesCircle size={16} /> Inactive
+                        <FaTimesCircle aria-hidden="true" /> Inactive
                       </>
                     )}
                   </span>
@@ -503,10 +515,10 @@ export default function CollegeProfile() {
                   backgroundColor: "#ffffff",
                   color: "#0E3746",
                   border: "none",
-                  padding: "0.875rem 1.75rem",
+                  padding: "0.675rem 1.45rem",
                   borderRadius: "0.75rem",
                   fontSize: "1rem",
-                  fontWeight: 600,
+                  fontWeight: 500,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
