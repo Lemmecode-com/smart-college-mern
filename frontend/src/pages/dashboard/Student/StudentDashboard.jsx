@@ -124,6 +124,29 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 /**
+ * Rotated X-axis tick renderer.
+ * Subject codes can be long (e.g. "CS101", "BBA204"); rendering them
+ * horizontally at `interval={0}` makes adjacent labels overlap.
+ * Rotating each label ~32deg with a `start` text-anchor keeps every
+ * code readable while preserving the original code in tooltips.
+ */
+const RotatedXTick = ({ x, y, payload }) => {
+  if (!payload) return null;
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor="start"
+      transform={`rotate(32 ${x} ${y})`}
+      fontSize={11}
+      fill="#475569"
+    >
+      {payload.value}
+    </text>
+  );
+};
+
+/**
  * Converts "HH:mm" to total minutes from midnight for slot time comparison
  */
 const parseTimeToMinutes = (timeStr) => {
@@ -716,9 +739,12 @@ export default function StudentDashboard() {
             <div className="sd-stat-content">
               <span className="sd-stat-label">Department</span>
               <div className="sd-stat-val-row">
-                <span className="sd-stat-val" title={studentData.department}>
-                  {studentData.department}
-                </span>
+              <span
+                className="sd-stat-val sd-stat-val-department"
+                title={studentData.department}
+              >
+                {studentData.department || "Not Assigned"}
+              </span>
               </div>
             </div>
           </div>
@@ -995,13 +1021,13 @@ export default function StudentDashboard() {
                   aria-label={`Subject-wise attendance bar chart across ${subjectBarData.length} subjects`}
                 >
                   <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                    <BarChart data={subjectBarData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
+                    <BarChart data={subjectBarData} margin={{ top: 10, right: 10, bottom: 48, left: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e6ebf1" vertical={false} />
                       <XAxis
                         dataKey="code"
-                        tick={{ fontSize: 12, fill: "#475569" }}
                         interval={0}
                         tickLine={false}
+                        tick={<RotatedXTick />}
                       />
                       <YAxis
                         allowDecimals={false}
