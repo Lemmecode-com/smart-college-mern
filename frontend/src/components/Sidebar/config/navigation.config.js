@@ -967,7 +967,6 @@ export const navigationConfig = {
         title: "Exam Management",
         icon: FaClipboardList,
         defaultOpen: true,
-        matchPath: "/dashboard/exam",
         items: [
           {
             path: "/dashboard/exam/create",

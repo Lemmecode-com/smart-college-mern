@@ -223,7 +223,7 @@ if (loading) {
           >
             <div
               className="p-3 p-md-4 text-white"
-              style={{ background: '#0E3746'}}
+              style={{ background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)"}}
             >
               <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3 teacher-banner-main">
                 <div className="d-flex align-items-center gap-3">

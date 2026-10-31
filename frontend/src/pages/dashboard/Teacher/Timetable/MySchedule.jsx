@@ -211,7 +211,7 @@ const componentStyles = `
 .header-top {
   min-height: 100px;
   padding: 0.8rem 1.5rem;
-  background: #0E3746;
+  background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
   color: white;
   display: flex;
   justify-content: space-between;
