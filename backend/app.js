@@ -17,21 +17,47 @@ const {
   webhookLimiter,
 } = require("./src/middlewares/rateLimit.middleware");
 const logger = require("./src/utils/logger");
+const { isLoopbackOrLocalhost } = require("./src/utils/validateUrlConfig");
 
 const app = express();
 
-/* ================= TRUST PROXY (nginx) ================= */
+/* ================= TRUST PROXY (nginx) & ETAG SETTINGS ================= */
 // Required for express-rate-limit to get real client IP behind nginx
 app.set("trust proxy", 1);
+// Disable automatic Express weak ETags on API responses to prevent stale 304 browser caching.
+// Note: Specialized endpoints (e.g. /api/documents) manually set res.setHeader('ETag') and
+// handle conditional 304s explicitly, which remains unaffected.
+app.set("etag", false);
 
 /* ================= CORS CONFIGURATION ================= */
-const corsOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",")
+const rawCorsOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
   : [];
+
+const isProduction = process.env.NODE_ENV === "production";
+const corsOrigins = isProduction
+  ? rawCorsOrigins.filter((origin) => {
+      try {
+        const parsed = new URL(origin);
+        const isLocal = isLoopbackOrLocalhost(parsed.hostname);
+        const isInsecure = parsed.protocol !== "https:";
+        if (isLocal || isInsecure) {
+          logger.error(
+            `🚨 BLOCKED: Insecure or localhost origin in production CORS configuration: ${origin}`,
+          );
+          return false;
+        }
+        return true;
+      } catch (err) {
+        logger.error(`🚨 BLOCKED: Malformed origin in CORS configuration: ${origin}`);
+        return false;
+      }
+    })
+  : rawCorsOrigins;
 
 if (corsOrigins.length === 0) {
   logger.warn(
-    "CORS_ORIGINS environment variable is not set. No origins will be allowed.",
+    "CORS_ORIGINS environment variable is not set or contains no valid origins. No origins will be allowed.",
   );
 }
 
@@ -64,8 +90,14 @@ app.use(
   require("./src/webhooks/stripe.webhook").handleStripeWebhook,
 );
 
-/* ================= JSON PARSER (EXCLUDES WEBHOOK) ================= */
-app.use(express.json());
+/* ================= JSON PARSER (EXCLUDES STRIPE RAW WEBHOOK) ================= */
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 
 /* ================= SECURITY MIDDLEWARE ================= */
 app.use(securityMiddleware);
@@ -81,6 +113,23 @@ app.use("/api/fees/structure", paymentLimiter);
 
 // Global limiter applied to remaining /api/* routes
 app.use("/api/", globalLimiter);
+
+/* ================= API CACHE-CONTROL HEADERS ================= */
+// Enforce private, no-store for authenticated API endpoints to prevent stale browser caching and shared proxy leakage.
+// Exclude /api/documents/ which manages its own specialized caching, ETags, and streaming headers.
+app.use("/api", (req, res, next) => {
+  const isDocumentsRoute =
+    req.baseUrl === "/api/documents" ||
+    req.path.startsWith("/documents") ||
+    (req.originalUrl && req.originalUrl.startsWith("/api/documents"));
+
+  if (!isDocumentsRoute) {
+    res.setHeader("Cache-Control", "private, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Vary", "Cookie, Origin");
+  }
+  next();
+});
 
 /* ================= AUTH & CORE ================= */
 app.use("/api/auth", require("./src/routes/auth.routes"));
@@ -100,6 +149,9 @@ app.use("/api/subjects", require("./src/routes/subject.routes"));
 app.use("/api/students", require("./src/routes/student.routes"));
 app.use("/api/admission", require("./src/routes/admission.routes"));
 app.use("/api/exam", require("./src/routes/exam.routes"));
+app.use("/api/exam-schedule", require("./src/routes/examSchedule.routes")); // Exam Timetable (Step 1)
+app.use("/api/marks", require("./src/routes/marks.routes"));
+app.use("/api/results", require("./src/routes/semesterResult.routes"));
 app.use("/api/parent", require("./src/routes/parent.routes")); // Parent Guardian
 app.use("/api/users", require("./src/routes/user.routes"));
 app.use("/api/timetable", require("./src/routes/timetable.routes"));
@@ -119,9 +171,10 @@ app.use("/api/admin/payment", require("./src/routes/paymentConfig.routes"));
 app.use("/api/fees/structure", require("./src/routes/feeStructure.routes"));
 app.use("/api/accountant", require("./src/routes/accountant.routes")); // Accountant module
 
-/* ================= STUDENT PROMOTION ================= */
+/* ================= STUDENT PROMOTION & ALUMNI ================= */
 app.use("/api/promotion", require("./src/routes/promotion.routes"));
 app.use("/api/promotion-policy", require("./src/routes/promotionPolicy.routes"));
+app.use("/api/alumni", require("./src/routes/alumni.routes"));
 
 /* ================= REPORTS & DASHBOARD ================= */
 app.use(

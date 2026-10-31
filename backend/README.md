@@ -259,6 +259,11 @@ How to run project in GitHub Codespace
 
 Environment variables explanation
 
+### Statutory GST Policy Configuration (`ENABLE_STATUTORY_GST_POLICY`)
+Per Indian statutory GST regulations and Management Fees Policy (`docs/fees-policy.md`), component-level fee calculations and GST exemption claims require formal policy authorization.
+- `ENABLE_STATUTORY_GST_POLICY=false` (Default): Policy guard is active. Requests creating fee structures with component-level tax or exemption claim return `HTTP 400` with code `GST_POLICY_APPROVAL_PENDING`.
+- `ENABLE_STATUTORY_GST_POLICY=true`: Policy is authorized. GST calculations use approved rates: Tuition (0%), Laboratory (18%), Sports (18%), Library (0%), Transport (5%).
+
 
 
 10. Git Rules (Strict)

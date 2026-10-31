@@ -4,6 +4,7 @@ import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import Pagination from "../../../components/Pagination";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { motion, AnimatePresence } from "framer-motion";
@@ -325,6 +326,7 @@ export default function AuditLogs() {
 
     return (
       <div
+      className="audit-stats"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
@@ -334,6 +336,7 @@ export default function AuditLogs() {
       >
         {cards.map((card, index) => (
           <motion.div
+          className="audit-stat-card"
             key={index}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -370,6 +373,7 @@ export default function AuditLogs() {
                 }}
               >
                 <p
+                className="audit-stat-title"
                   style={{
                     margin: 0,
                     fontSize: "0.75rem",
@@ -380,6 +384,7 @@ export default function AuditLogs() {
                   {card.title}
                 </p>
                 <div
+                className="audit-stat-icon"
                   style={{
                     width: "32px",
                     height: "32px",
@@ -397,6 +402,7 @@ export default function AuditLogs() {
                 </div>
               </div>
               <h3
+                className="audit-stat-value"
                 style={{
                   margin: 0,
                   fontSize: "1.5rem",
@@ -626,74 +632,20 @@ export default function AuditLogs() {
     </AnimatePresence>
   );
 
-  // Render pagination
-  const renderPagination = () => {
-    if (!pagination || pagination.pages <= 1) return null;
+  // Render shared pagination
+const renderPagination = () => {
+  if (!pagination || pagination.pages <= 1) return null;
 
-    return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: "0.5rem",
-          marginTop: "2rem",
-        }}
-      >
-        <button
-          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
-          style={{
-            padding: "0.625rem 1rem",
-            background: currentPage === 1 ? "#f1f5f9" : "white",
-            border: `2px solid ${currentPage === 1 ? "#e2e8f0" : "#e2e8f0"}`,
-            borderRadius: "10px",
-            cursor: currentPage === 1 ? "not-allowed" : "pointer",
-            opacity: currentPage === 1 ? 0.5 : 1,
-            fontWeight: "600",
-            fontSize: "0.875rem",
-            color: THEME.text.secondary,
-            transition: "all 0.2s",
-          }}
-        >
-          ← Previous
-        </button>
-
-        <span
-          style={{
-            padding: "0.625rem 1.25rem",
-            color: THEME.text.secondary,
-            fontSize: "0.875rem",
-            fontWeight: "500",
-          }}
-        >
-          Page {currentPage} of {pagination.pages}
-        </span>
-
-        <button
-          onClick={() =>
-            setCurrentPage((prev) => Math.min(pagination.pages, prev + 1))
-          }
-          disabled={currentPage === pagination.pages}
-          style={{
-            padding: "0.625rem 1rem",
-            background: currentPage === pagination.pages ? "#f1f5f9" : "white",
-            border: `2px solid ${currentPage === pagination.pages ? "#e2e8f0" : "#e2e8f0"}`,
-            borderRadius: "10px",
-            cursor:
-              currentPage === pagination.pages ? "not-allowed" : "pointer",
-            opacity: currentPage === pagination.pages ? 0.5 : 1,
-            fontWeight: "600",
-            fontSize: "0.875rem",
-            color: THEME.text.secondary,
-            transition: "all 0.2s",
-          }}
-        >
-          Next →
-        </button>
-      </div>
-    );
-  };
+  return (
+    <div className="audit-pagination-wrapper" style={{ marginTop: "2rem", marginBottom: "24px" }}>
+      <Pagination
+        page={currentPage}
+        totalPages={pagination.pages}
+        setPage={setCurrentPage}
+      />
+    </div>
+  );
+};
 
   if (error) {
     return (
@@ -708,26 +660,41 @@ export default function AuditLogs() {
 
   return (
     <div
+    className="audit-responsive-container"
       style={{
         minHeight: "100vh",
         background: THEME.background.light,
-        padding: "1.5rem",
+        padding: "0.5rem 1.5rem 1.5rem",
       }}
     >
       {/* Breadcrumb */}
-      <Breadcrumb
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Audit Logs", active: true },
-        ]}
-      />
+      <div
+      className="audit-breadcrumb-wrapper"
+        style={{
+          width: "100%",
+          margin: "0 auto",
+          paddingTop: 0,
+          height: "auto",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Reports & Analytics", },
+              { label: "Audit Logs", active: true },
+            ]}
+          />
+        </div>
+      </div>
 
       {/* Header */}
       <motion.div
+      className="audit-header-wrapper"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
-          background: "linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%)",
+          background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
           padding: "2rem",
           borderRadius: "20px",
           marginBottom: "1.5rem",
@@ -760,22 +727,30 @@ export default function AuditLogs() {
         />
 
         <div
+          className="audit-header-inner"
           style={{
             position: "relative",
             zIndex: 1,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            flexWrap: "wrap",
+            flexWrap: "nowrap",
             gap: "1rem",
+            // padding: "18px 1px",
+            height: "35px",
+            borderRadius: "15px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <div 
+          className="audit-header-content"
+          style={{ display: "flex", alignItems: "center", gap: "1rem" }}
+          >
             <div
+              className="audit-header-icon"
               style={{
-                width: "60px",
-                height: "60px",
-                borderRadius: "16px",
+                width: "52px",
+                height: "52px",
+                borderRadius: "50%",
                 background: "rgba(255,255,255,0.15)",
                 backdropFilter: "blur(10px)",
                 display: "flex",
@@ -788,21 +763,27 @@ export default function AuditLogs() {
             </div>
             <div>
               <h2
+                className="audit-title"
                 style={{
                   margin: 0,
-                  fontSize: "1.75rem",
-                  fontWeight: "bold",
+                  fontSize: "1.625rem",
+                  fontWeight: 700,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.25,
                   color: "white",
                 }}
               >
                 Audit Logs
               </h2>
               <p
+                className="audit-subtitle"
                 style={{
-                  margin: "0.25rem 0 0",
-                  fontSize: "0.9375rem",
-                  color: "rgba(255,255,255,0.8)",
-                  fontWeight: "500",
+                  margin: 0,
+                  opacity: 0.8,
+                  fontSize: "0.9rem",
+                  fontWeight: 400,
+                  lineHeight: 1.5,
+                  color: "white",
                 }}
               >
                 Track all admin actions on student data • DPDPA 2026 Compliant
@@ -811,11 +792,13 @@ export default function AuditLogs() {
           </div>
 
           <motion.button
+            className="audit-filter-btn"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowFilters(!showFilters)}
             style={{
-              padding: "0.75rem 1.5rem",
+              padding: "0 1.5rem",
+              height: "40px",
               background: showFilters
                 ? "rgba(255,255,255,0.2)"
                 : "rgba(255,255,255,0.1)",
@@ -892,6 +875,7 @@ export default function AuditLogs() {
         }
       `}</style>
       <motion.div
+      className="audit-table-card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
@@ -958,7 +942,10 @@ export default function AuditLogs() {
           </motion.div>
         ) : (
           <>
-            <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+            <div 
+            className="audit-table-wrapper"
+            style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }}
+            aria-label="Audit logs table; scroll horizontally to view all columns">
               <table
                 className="erp-table"
                 style={{
@@ -1051,7 +1038,7 @@ export default function AuditLogs() {
                           transition={{ delay: index * 0.05 }}
                           style={{ transition: "all 0.2s" }}
                           onClick={() =>
-                            setExpandedLog(isExpanded ? null : log._id)
+                            setExpandedLog(expandedLog === log._id ? null : log._id)
                           }
                         >
                           <td
@@ -1144,6 +1131,9 @@ export default function AuditLogs() {
                 </tbody>
               </table>
             </div>
+            <p className="audit-table-scroll-hint">
+              Swipe horizontally to view all columns
+            </p>
 
             {/* Pagination */}
             {renderPagination()}
@@ -1167,6 +1157,558 @@ export default function AuditLogs() {
           </>
         )}
       </motion.div>
+      <style>{`
+  /* =========================================================
+     AUDIT LOGS - MOBILE & TABLET RESPONSIVE
+     Desktop remains unchanged
+     ========================================================= */
+
+
+  /* =========================
+     TABLET
+     769px - 1024px
+     ========================= */
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+
+    /* Main page spacing */
+    .audit-responsive-container {
+      padding: 0.5rem 1.25rem 1.25rem !important;
+    }
+
+    .audit-responsive-container .audit-header {
+      padding: 1.5rem !important;
+    }
+
+    /* Header content */
+    .audit-responsive-container .audit-header-content {
+      gap: 0.85rem !important;
+    }
+
+    /* Header title */
+    .audit-responsive-container .audit-title {
+      font-size: 1.55rem !important;
+    }
+
+    .audit-responsive-container .audit-subtitle {
+      font-size: 0.88rem !important;
+      line-height: 1.45 !important;
+    }
+
+    /* Filter button */
+    .audit-responsive-container .audit-filter-btn {
+      padding: 0.65rem 1.15rem !important;
+      font-size: 0.85rem !important;
+    }
+
+    /* Stats - keep 4 cards but make them compact */
+    .audit-responsive-container .audit-stats {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 0.6rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-card {
+      padding: 0.8rem !important;
+      min-width: 0 !important;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      font-size: 0.7rem !important;
+      line-height: 1.4 !important;
+    }
+
+    .audit-responsive-container .audit-stat-icon {
+      width: 28px !important;
+      height: 28px !important;
+      font-size: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-value {
+      font-size: 1.35rem !important;
+    }
+
+    /* Table card */
+    .audit-responsive-container .audit-table-card {
+      padding: 1.1rem !important;
+      border-radius: 16px !important;
+    }
+
+    /* Table */
+    .audit-responsive-container .erp-table {
+      min-width: 760px !important;
+    }
+  }
+
+
+  /* =========================
+     MOBILE
+     <= 768px
+     ========================= */
+
+  @media (max-width: 768px) {
+
+    /* Main page */
+    .audit-responsive-container {
+      padding: 0.5rem 0.75rem 0.75rem !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      overflow-x: hidden !important;
+    }
+
+
+    /* =========================
+       BREADCRUMB
+       ========================= */
+
+    .audit-responsive-container .audit-breadcrumb-wrapper {
+      height: auto !important;
+      margin: 0 0 0.75rem !important;
+      padding: 0 !important;
+      overflow-x: auto !important;
+      scrollbar-width: none !important;
+    }
+
+    .audit-responsive-container .audit-breadcrumb-wrapper::-webkit-scrollbar {
+      display: none !important;
+    }
+
+
+    /* =========================
+       HEADER
+       ========================= */
+
+    .audit-responsive-container .audit-header-wrapper {
+      padding: 1.15rem !important;
+      border-radius: 16px !important;
+      margin-bottom: 1rem !important;
+    }
+
+    .audit-responsive-container .audit-header-inner {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: stretch !important;
+      gap: 1rem !important;
+      height: auto !important;
+    }
+
+    .audit-responsive-container .audit-header-content {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      min-width: 0 !important;
+    }
+
+    .audit-responsive-container .audit-header-icon {
+      width: 48px !important;
+      height: 48px !important;
+      min-width: 48px !important;
+      border-radius: 13px !important;
+    }
+
+    .audit-responsive-container .audit-header-content > div:last-child {
+      min-width: 0 !important;
+      flex: 1 1 auto !important;
+    }
+
+    .audit-responsive-container .audit-header-icon svg {
+      font-size: 1.35rem !important;
+    }
+
+    .audit-responsive-container .audit-title {
+      font-size: 1.4rem !important;
+      line-height: 1.2 !important;
+    }
+
+    .audit-responsive-container .audit-subtitle {
+      font-size: 0.82rem !important;
+      line-height: 1.4 !important;
+      margin-top: 0.3rem !important;
+    }
+
+
+    /* =========================
+       FILTER BUTTON
+       ========================= */
+
+    .audit-responsive-container .audit-filter-btn {
+      width: 100% !important;
+      justify-content: center !important;
+      padding: 0.7rem 1rem !important;
+      border-radius: 10px !important;
+      font-size: 0.85rem !important;
+    }
+
+
+    /* =========================
+       STATS
+       2 x 2 ON MOBILE
+       ========================= */
+
+    .audit-responsive-container .audit-stats {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 0.7rem !important;
+      width: 100% !important;
+      margin-bottom: 1rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-card {
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      padding: 0.85rem !important;
+      border-radius: 12px !important;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      font-size: 0.72rem !important;
+      line-height: 1.35 !important;
+      max-width: 85px !important;
+    }
+
+    .audit-responsive-container .audit-stat-icon {
+      width: 28px !important;
+      height: 28px !important;
+      min-width: 28px !important;
+      font-size: 0.72rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-value {
+      font-size: 1.5rem !important;
+      margin-top: 0.2rem !important;
+    }
+
+
+    /* =========================
+       FILTER PANEL
+       ========================= */
+
+    .audit-responsive-container .audit-filter-panel {
+      padding: 1rem !important;
+      border-radius: 14px !important;
+      margin-bottom: 1rem !important;
+    }
+
+    .audit-responsive-container .audit-filter-grid {
+      grid-template-columns: 1fr !important;
+      gap: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-filter-panel select,
+    .audit-responsive-container .audit-filter-panel input {
+      padding: 0.65rem 0.8rem !important;
+      font-size: 0.82rem !important;
+    }
+
+    .audit-responsive-container .audit-filter-actions {
+      justify-content: stretch !important;
+    }
+
+    .audit-responsive-container .audit-filter-actions button {
+      width: 100% !important;
+    }
+
+
+    /* =========================
+       TABLE CARD
+       ========================= */
+
+    .audit-responsive-container .audit-table-card {
+      padding: 0.75rem !important;
+      border-radius: 15px !important;
+      overflow: hidden !important;
+    }
+
+
+    /* =========================
+       TABLE
+       ========================= */
+
+    .audit-responsive-container .audit-table-wrapper {
+      width: 100% !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch !important;
+      border-radius: 10px !important;
+      scrollbar-width: thin !important;
+      scrollbar-color: #94a3b8 #e2e8f0 !important;
+    }
+
+    .audit-responsive-container .erp-table {
+      min-width: 600px !important;
+      width: 600px !important;
+      font-size: 0.8rem !important;
+    }
+
+    .audit-responsive-container .audit-table-wrapper::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    .audit-responsive-container .audit-table-wrapper::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 6px;
+    }
+
+    .audit-responsive-container .audit-table-scroll-hint {
+      margin: 0.35rem 0 0;
+      color: #64748b;
+      font-size: 0.68rem;
+      text-align: center;
+    }
+
+    .audit-responsive-container .erp-table th {
+      padding: 0.7rem 0.75rem !important;
+      font-size: 0.68rem !important;
+    }
+
+    .audit-responsive-container .erp-table td {
+      padding: 0.75rem !important;
+    }
+
+
+    /* =========================
+       PAGINATION
+       ========================= */
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination {
+      margin-top: 1rem !important;
+      gap: 0.3rem !important;
+      flex-wrap: wrap !important;
+      width: 100% !important;
+      padding: 8px 4px !important;
+      box-sizing: border-box !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination button {
+      padding: 0.5rem 0.7rem !important;
+      font-size: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination span {
+      padding: 0.5rem 0.6rem !important;
+      font-size: 0.75rem !important;
+    }
+
+    /* Results text */
+    .audit-responsive-container .audit-table-card > p {
+      margin-top: 0.9rem !important;
+      font-size: 0.75rem !important;
+      line-height: 1.4 !important;
+    }
+  }
+
+
+  /* =========================
+     SMALL MOBILE
+     <= 480px
+     ========================= */
+
+  @media (max-width: 480px) {
+
+    .audit-responsive-container {
+      padding: 0.6rem !important;
+    }
+
+    /* Header */
+    .audit-responsive-container .audit-header-wrapper {
+      padding: 1rem !important;
+    }
+
+    .audit-responsive-container .audit-header-icon {
+      width: 42px !important;
+      height: 42px !important;
+      min-width: 42px !important;
+    }
+
+    .audit-responsive-container .audit-title {
+      font-size: 1.25rem !important;
+    }
+
+    .audit-responsive-container .audit-subtitle {
+      font-size: 0.76rem !important;
+    }
+
+    /* Stats */
+    .audit-responsive-container .audit-stats {
+      gap: 0.55rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-card {
+      padding: 0.7rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      font-size: 0.68rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-icon {
+      width: 25px !important;
+      height: 25px !important;
+      min-width: 25px !important;
+      font-size: 0.65rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-value {
+      font-size: 1.3rem !important;
+    }
+
+    /* Table */
+    .audit-responsive-container .audit-table-card {
+      padding: 0.55rem !important;
+    }
+
+    .audit-responsive-container .erp-table {
+      min-width: 600px !important;
+      width: 600px !important;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .audit-responsive-container .audit-header-wrapper {
+      padding: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-header-inner {
+      gap: 0.75rem !important;
+    }
+
+    .audit-responsive-container .audit-header-content {
+      align-items: flex-start !important;
+    }
+
+    .audit-responsive-container .audit-subtitle {
+      overflow-wrap: anywhere;
+    }
+
+    .audit-responsive-container .audit-stats {
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 0.6rem !important;
+    }
+
+    .audit-responsive-container .audit-stat-card > div[style*="position: relative"] > div:first-child {
+      gap: 0.5rem;
+    }
+
+    .audit-responsive-container .audit-stat-title {
+      max-width: none !important;
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-wrap: normal;
+      word-break: normal;
+    }
+
+    .audit-responsive-container .audit-table-card {
+      padding: 0.5rem !important;
+    }
+
+    .audit-responsive-container .audit-table-wrapper {
+      overscroll-behavior-x: contain;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination {
+      gap: 2px !important;
+      padding: 6px 2px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__pages > button {
+      flex: 0 0 26px !important;
+      width: 26px !important;
+      min-width: 26px !important;
+      height: 28px !important;
+      min-height: 28px !important;
+      font-size: 9px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button {
+      display: inline-flex !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__pages {
+      gap: 2px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__pages > span {
+      min-width: 18px !important;
+      min-height: 28px !important;
+      padding: 0 !important;
+      font-size: 11px !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination__info {
+      max-width: calc(100vw - 48px) !important;
+      white-space: normal !important;
+      text-align: center !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="First page"] svg,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Previous page"] svg,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Next page"] svg,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Last page"] svg {
+      display: none !important;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="First page"]::after,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Last page"]::after {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Previous page"]::after,
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Next page"]::after {
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="First page"]::after { content: "«"; }
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Previous page"]::after { content: "‹"; }
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Next page"]::after { content: "›"; }
+    .audit-responsive-container .audit-pagination-wrapper .erp-pagination > button[aria-label="Last page"]::after { content: "»"; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table {
+      table-layout: fixed;
+    }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(1),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(1) { width: 145px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(1) {
+      white-space: normal !important;
+      overflow-wrap: anywhere;
+    }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(2),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(2) { width: 110px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(3),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(3) { width: 95px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(4),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(4) { width: 150px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table th:nth-child(5),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(5) { width: 100px; }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(2) > span,
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(3) > span {
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 0.35rem 0.45rem !important;
+      gap: 0.3rem !important;
+      font-size: 0.7rem !important;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(4),
+    .audit-responsive-container .audit-table-wrapper .erp-table td:nth-child(5) {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+  }
+`}</style>
     </div>
   );
 }

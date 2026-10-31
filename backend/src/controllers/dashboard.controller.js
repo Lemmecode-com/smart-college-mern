@@ -13,6 +13,7 @@ const NotificationRead = require("../models/notificationRead.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { getNotificationVisibilityQuery } = require("../services/notificationVisibility.service");
+const { parseLocalDateSafe, getDayName } = require("../utils/date.utils");
 
 /**
  * 👨‍🎓 STUDENT DASHBOARD
@@ -41,190 +42,254 @@ exports.studentDashboard = async (req, res, next) => {
     })
       .populate("course_id", "name")
       .populate("department_id", "name")
-      .select("user_id college_id department_id course_id currentSemester approvedAt createdAt");
+      .select("user_id college_id department_id course_id currentSemester currentAcademicYear approvedAt createdAt fullName enrollmentNumber division")
+      .lean();
 
     if (!student) {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
     /* =====================================================
-       2️⃣ ATTENDANCE RECORDS (OPTIMIZED WITH AGGREGATION)
+       2️⃣ DATE & DAY CALCULATION
+    ===================================================== */
+    // Use client-provided date if available (timezone-safe), otherwise fall back to server date
+    let todayDate;
+    if (req.query.date) {
+      // Validate YYYY-MM-DD format
+      const dateStr = req.query.date;
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(dateStr)) {
+        // Parse using timezone-safe utility (treats YYYY-MM-DD as local date)
+        todayDate = parseLocalDateSafe(dateStr);
+      }
+    }
+    // Fallback to server date if no valid client date provided
+    if (!todayDate) {
+      todayDate = new Date();
+    }
+    const dayName = getDayName(todayDate);
+
+    /* =====================================================
+       3️⃣ CONCURRENT SUB-QUERIES (PROMISE.ALL)
+       - Attendance aggregation
+       - Today's timetable lookup (Timetable + TimetableSlot)
+       - Fee summary lookup
+       - Latest notifications chain (NotificationRead -> Notification)
     ===================================================== */
 
-    // ⚡ PERFORMANCE: Use aggregation instead of loading all records
-    const attendanceStats = await AttendanceRecord.aggregate([
-      {
-        $match: {
-          student_id: student._id,
-          college_id: collegeId,
-        },
-      },
-      {
-        $lookup: {
-          from: "attendancesessions",
-          localField: "session_id",
-          foreignField: "_id",
-          as: "session",
-        },
-      },
-      {
-        $unwind: "$session",
-      },
-      {
-        $lookup: {
-          from: "subjects",
-          localField: "session.subject_id",
-          foreignField: "_id",
-          as: "subject",
-        },
-      },
-      {
-        $unwind: "$subject",
-      },
-      {
-        $group: {
-          _id: "$subject._id",
-          subjectName: { $first: "$subject.name" },
-          subjectCode: { $first: "$subject.code" },
-          total: { $sum: 1 },
-          present: {
-            $sum: { $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0] },
+    // ⚡ Sub-query 1: Attendance aggregate
+    const fetchAttendance = async () => {
+      const attendanceStats = await AttendanceRecord.aggregate([
+        {
+          $match: {
+            student_id: student._id,
+            college_id: collegeId,
           },
         },
-      },
-    ]);
+        {
+          $lookup: {
+            from: "attendancesessions",
+            localField: "session_id",
+            foreignField: "_id",
+            as: "session",
+          },
+        },
+        {
+          $unwind: "$session",
+        },
+        {
+          $lookup: {
+            from: "subjects",
+            localField: "session.subject_id",
+            foreignField: "_id",
+            as: "subject",
+          },
+        },
+        {
+          $unwind: "$subject",
+        },
+        {
+          $group: {
+            _id: "$subject._id",
+            subjectName: { $first: "$subject.name" },
+            subjectCode: { $first: "$subject.code" },
+            total: { $sum: 1 },
+            present: {
+              $sum: { $cond: [{ $eq: ["$status", "PRESENT"] }, 1, 0] },
+            },
+          },
+        },
+      ]);
 
-    // Calculate overall attendance
-    const total = attendanceStats.reduce((sum, s) => sum + s.total, 0);
-    const present = attendanceStats.reduce((sum, s) => sum + s.present, 0);
-    const absent = total - present; // ✅ Calculate absent
-    const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+      const total = attendanceStats.reduce((sum, s) => sum + s.total, 0);
+      const present = attendanceStats.reduce((sum, s) => sum + s.present, 0);
+      const absent = total - present;
+      const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
 
-    // Format subject-wise attendance with null safety
-    const subjectWiseAttendance = attendanceStats.map((stat) => ({
-      subject: stat.subjectName || "Unknown",
-      code: stat.subjectCode || "N/A",
-      total: stat.total || 0,
-      present: stat.present || 0,
-      percentage:
-        stat.total > 0 ? Math.round((stat.present / stat.total) * 100) : 0,
-    }));
+      const subjectWiseAttendance = attendanceStats.map((stat) => ({
+        subject: stat.subjectName || "Unknown",
+        code: stat.subjectCode || "N/A",
+        total: stat.total || 0,
+        present: stat.present || 0,
+        percentage:
+          stat.total > 0 ? Math.round((stat.present / stat.total) * 100) : 0,
+      }));
 
-    /* =====================================================
-       4️⃣ TODAY TIMETABLE (FILTERED BY COURSE + SEMESTER)
-    ===================================================== */
-
-    const todayDate = new Date();
-    const dayName = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][todayDate.getDay()];
-
-    let todaysTimetable = [];
-    try {
-      const semester = Number(student.currentSemester);
-
-      const timetableFilters = {
-        college_id: collegeId,
-        status: { $in: ["PUBLISHED", "DRAFT"] },
-        semester,
+      return {
+        attendanceSummary: {
+          total: total || 0,
+          present: present || 0,
+          absent: absent || 0,
+          percentage: percentage || 0,
+          warning: percentage < 75,
+        },
+        subjectWiseAttendance,
       };
+    };
 
-      if (student.course_id) {
-        timetableFilters.course_id = student.course_id;
-      }
+    // ⚡ Sub-query 2: Today's timetable slots
+    const fetchTodaysTimetable = async () => {
+      try {
+        const semester = Number(student.currentSemester);
+        const academicYear = student.currentAcademicYear;
 
-      const timetables = await Timetable.find(timetableFilters)
-        .select("_id semester")
-        .limit(20);
-
-      const timetableIds = timetables.map((t) => t._id);
-
-      if (timetableIds.length > 0) {
-        const todaySlots = await TimetableSlot.find({
+        // Build timetable query matching student's context
+        // Only PUBLISHED timetables are visible to students
+        const timetableQuery = {
           college_id: collegeId,
-          day: dayName,
-          timetable_id: { $in: timetableIds },
-        })
-          .populate("subject_id", "name code")
-          .populate("teacher_id", "name")
-          .sort({ startTime: 1 })
-          .limit(20);
+          department_id: student.department_id?._id || student.department_id,
+          course_id: student.course_id?._id || student.course_id,
+          semester,
+          academicYear,
+          status: "PUBLISHED",
+        };
 
-        todaysTimetable = todaySlots.map((slot) => ({
-          subject: slot.subject_id?.name || "No Subject",
-          code: slot.subject_id?.code || "N/A",
-          teacher: slot.teacher_id?.name || "TBA",
-          startTime: slot.startTime,
-          endTime: slot.endTime,
-          room: slot.room || "TBA",
-          slotType: slot.slotType || "Regular",
-        }));
+        // Division filtering with null fallback (same as getStudentTodayTimetable)
+        if (student.division) {
+          timetableQuery.$or = [
+            { division: student.division },
+            { division: null },
+          ];
+        } else {
+          timetableQuery.division = null;
+        }
+
+        const matchingTimetables = await Timetable.find(timetableQuery)
+          .select("_id semester academicYear division")
+          .lean();
+
+        const timetableIds = matchingTimetables.map((t) => t._id);
+
+        if (timetableIds.length > 0) {
+          const todaySlots = await TimetableSlot.find({
+            college_id: collegeId,
+            day: dayName,
+            timetable_id: { $in: timetableIds },
+          })
+            .populate("subject_id", "name code")
+            .populate("teacher_id", "name")
+            .sort({ startTime: 1 })
+            .limit(20)
+            .lean();
+
+          return todaySlots.map((slot) => ({
+            subject: slot.subject_id?.name || "No Subject",
+            code: slot.subject_id?.code || "N/A",
+            teacher: slot.teacher_id?.name || "TBA",
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            room: slot.room || "TBA",
+            slotType: slot.slotType || "Regular",
+          }));
+        }
+        return [];
+      } catch (timetableError) {
+        return [];
       }
-    } catch (timetableError) {
-      todaysTimetable = [];
-    }
+    };
 
-    /* =====================================================
-       5️⃣ FEE SUMMARY
-    ===================================================== */
+    // ⚡ Sub-query 3: Fee summary lookup
+    const fetchFeeSummary = async () => {
+      const fee = await StudentFee.findOne({
+        student_id: student._id,
+      })
+        .select("college_id totalFee paidAmount")
+        .lean();
 
-    const fee = await StudentFee.findOne({
-      student_id: student._id, // ✅ Use student._id (not user_id)
-    });
+      if (!fee) return null;
 
-    let feeSummary = null;
+      // Validate tenant defensively: if college_id is present, ensure it matches collegeId
+      if (fee.college_id && String(fee.college_id) !== String(collegeId)) {
+        return null;
+      }
 
-    if (fee) {
       const due = fee.totalFee - fee.paidAmount;
 
-      feeSummary = {
+      return {
         totalFee: fee.totalFee,
         paid: fee.paidAmount,
         due,
         paymentStatus:
           due === 0 ? "PAID" : due < fee.totalFee ? "PARTIAL" : "DUE",
       };
-    }
+    };
+
+    // ⚡ Sub-query 4: Latest notifications chain (NotificationRead -> Notification)
+    const fetchLatestNotifications = async () => {
+      const readRecords = await NotificationRead.find({
+        user_id: student.user_id,
+      })
+        .select("notification_id")
+        .lean();
+
+      const readIds = readRecords.map((r) => r.notification_id);
+
+      const visibilityQuery = await getNotificationVisibilityQuery({
+        collegeId: req.college_id,
+        role: req.user.role,
+        userId: req.user.id,
+        studentProfile: {
+          department_id: student.department_id?._id || student.department_id,
+          course_id: student.course_id?._id || student.course_id,
+          currentSemester: student.currentSemester,
+          approvedAt: student.approvedAt,
+          createdAt: student.createdAt,
+        },
+      });
+
+      const rawNotifications = await Notification.find({
+        ...visibilityQuery,
+        _id: { $nin: readIds },
+      })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean();
+
+      return rawNotifications.map((n) => ({
+        _id: n._id,
+        title: n.title,
+        message: n.message,
+        type: n.type,
+        actionUrl: n.actionUrl,
+        createdAt: n.createdAt,
+      }));
+    };
+
+    // Execute independent queries in parallel
+    const [
+      attendanceData,
+      todaysTimetable,
+      feeSummary,
+      latestNotifications,
+    ] = await Promise.all([
+      fetchAttendance(),
+      fetchTodaysTimetable(),
+      fetchFeeSummary(),
+      fetchLatestNotifications(),
+    ]);
 
     /* =====================================================
-       6️⃣ LATEST NOTIFICATIONS
-    ===================================================== */
-
-    const readRecords = await NotificationRead.find({
-      user_id: student.user_id, // ✅ Use student.user_id
-    }).select("notification_id");
-
-    const readIds = readRecords.map((r) => r.notification_id);
-
-    const visibilityQuery = await getNotificationVisibilityQuery({
-      collegeId: req.college_id,
-      role: req.user.role,
-      userId: req.user.id,
-      studentProfile: {
-        department_id: student.department_id?._id || student.department_id,
-        course_id: student.course_id?._id || student.course_id,
-        currentSemester: student.currentSemester,
-        approvedAt: student.approvedAt,
-        createdAt: student.createdAt,
-      },
-    });
-
-    const rawNotifications = await Notification.find({
-      ...visibilityQuery,
-      _id: { $nin: readIds },
-    })
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    const latestNotifications = rawNotifications.map((n) => ({
-      _id: n._id,
-      title: n.title,
-      message: n.message,
-      type: n.type,
-      actionUrl: n.actionUrl,
-      createdAt: n.createdAt,
-    }));
-
-    /* =====================================================
-       7️⃣ FINAL RESPONSE
+       4️⃣ FINAL RESPONSE
     ===================================================== */
 
     ApiResponse.success(
@@ -235,18 +300,11 @@ exports.studentDashboard = async (req, res, next) => {
           enrollmentNumber: student.enrollmentNumber || "N/A",
           course: student.course_id?.name || "Not Assigned",
           department: student.department_id?.name || "Not Assigned",
-          semester: student.currentSemester || student.semester || 1,
+          semester: student.currentSemester || student.semester || null,
         },
 
-        attendanceSummary: {
-          total: total || 0,
-          present: present || 0,
-          absent: absent || 0,
-          percentage: percentage || 0,
-          warning: percentage < 75,
-        },
-
-        subjectWiseAttendance,
+        attendanceSummary: attendanceData.attendanceSummary,
+        subjectWiseAttendance: attendanceData.subjectWiseAttendance,
         todaysTimetable,
         feeSummary,
         latestNotifications: latestNotifications || [],
@@ -430,6 +488,7 @@ exports.collegeAdminDashboard = async (req, res, next) => {
           establishedYear: college.establishedYear,
           logo: college.logo,
           logoDocumentId: college.logoDocumentId,
+          logoUrl: college.logoDocumentId ? `/api/documents/${college.logoDocumentId}` : null,
           registrationUrl: college.registrationUrl,
         },
 
@@ -491,7 +550,7 @@ exports.principalDashboard = async (req, res, next) => {
       throw new AppError("College ID missing", 403, "COLLEGE_ID_MISSING");
     }
 
-    const college = await College.findById(collegeId).select("name code email establishedYear logo address contactNumber");
+    const college = await College.findById(collegeId).select("name code email establishedYear logo address contactNumber logoDocumentId");
 
     if (!college) {
       throw new AppError("College not found", 404, "COLLEGE_NOT_FOUND");
@@ -531,6 +590,8 @@ exports.principalDashboard = async (req, res, next) => {
           email: college.email,
           establishedYear: college.establishedYear,
           logo: college.logo,
+          logoDocumentId: college.logoDocumentId,
+          logoUrl: college.logoDocumentId ? `/api/documents/${college.logoDocumentId}` : null,
           address: college.address,
           contactNumber: college.contactNumber,
         },

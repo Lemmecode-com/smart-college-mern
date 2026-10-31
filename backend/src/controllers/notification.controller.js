@@ -16,6 +16,33 @@ const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/validators");
 
+// Concurrency lock for simultaneous in-flight submissions
+const inFlightAdminSubmissions = new Set();
+
+/**
+ * Validate that an actionUrl is a safe relative internal path starting with '/'
+ * and does not contain a protocol/scheme, '//', or 'javascript:'.
+ */
+const validateActionUrl = (actionUrl) => {
+  if (actionUrl === undefined || actionUrl === null || actionUrl === "") return;
+  if (typeof actionUrl !== "string") {
+    throw new AppError("actionUrl must be a string", 400, "INVALID_ACTION_URL");
+  }
+  const trimmed = actionUrl.trim();
+  if (
+    !trimmed.startsWith("/") ||
+    trimmed.startsWith("//") ||
+    /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed) ||
+    /javascript:/i.test(trimmed)
+  ) {
+    throw new AppError(
+      "actionUrl must be a relative path starting with '/' and cannot contain a URL scheme, '//', or 'javascript:'",
+      400,
+      "INVALID_ACTION_URL"
+    );
+  }
+};
+
 /**
  * ================================
  * COLLEGE ADMIN – CREATE NOTIFICATION
@@ -23,9 +50,58 @@ const { validateExpiryDate, expiryDateValidatorMessage } = require("../utils/val
  * ================================
  */
 exports.createAdminNotification = async (req, res, next) => {
+  let inFlightKey = null;
   try {
     const { title, message, type, target, actionUrl, expiresAt, priority,
             target_department, target_course, target_semester, target_users } = req.body;
+
+    const normalizedTitle = String(title || "").trim();
+    const normalizedMessage = String(message || "").trim();
+    const effectiveTarget = target || "ALL";
+
+    // 🔒 Concurrency Guard: prevent simultaneous duplicate submissions in flight
+    inFlightKey = `${req.college_id}:${req.user.id}:${normalizedTitle}:${effectiveTarget}`;
+    if (inFlightAdminSubmissions.has(inFlightKey)) {
+      throw new AppError(
+        "A notification submission with identical content is already being processed. Please wait.",
+        409,
+        "DUPLICATE_NOTIFICATION"
+      );
+    }
+    inFlightAdminSubmissions.add(inFlightKey);
+
+    // 🔒 Duplicate Protection: check for identical submission within 30-second window
+    const DUPLICATE_WINDOW_MS = 30 * 1000;
+    const windowStart = new Date(Date.now() - DUPLICATE_WINDOW_MS);
+
+    const duplicateQuery = {
+      college_id: req.college_id,
+      createdBy: req.user.id,
+      title: normalizedTitle,
+      message: normalizedMessage,
+      target: effectiveTarget,
+      createdAt: { $gte: windowStart },
+    };
+
+    if (effectiveTarget === "DEPARTMENT" && target_department) {
+      duplicateQuery.target_department = target_department;
+    } else if (effectiveTarget === "COURSE" && target_course) {
+      duplicateQuery.target_course = target_course;
+    } else if (effectiveTarget === "SEMESTER" && target_semester) {
+      duplicateQuery.target_semester = target_semester;
+    }
+
+    const existingDuplicate = await Notification.findOne(duplicateQuery);
+    if (existingDuplicate) {
+      throw new AppError(
+        "A notification with identical content was recently created. Please wait before submitting again.",
+        409,
+        "DUPLICATE_NOTIFICATION"
+      );
+    }
+
+    // Validate actionUrl format
+    validateActionUrl(actionUrl);
 
     // Validate target field
     const validTargets = ["ALL", "STUDENTS", "TEACHERS", "HOD", "PARENTS", "DEPARTMENT", "COURSE", "SEMESTER", "INDIVIDUAL"];
@@ -122,6 +198,10 @@ exports.createAdminNotification = async (req, res, next) => {
     }, "Notification created successfully");
   } catch (error) {
     next(error);
+  } finally {
+    if (inFlightKey) {
+      inFlightAdminSubmissions.delete(inFlightKey);
+    }
   }
 };
 
@@ -135,6 +215,9 @@ exports.createTeacherNotification = async (req, res, next) => {
   try {
     const { title, message, type, target, actionUrl, expiresAt, priority,
             target_department, target_users } = req.body;
+
+    // Validate actionUrl format
+    validateActionUrl(actionUrl);
 
     // Teachers can only target STUDENTS or DEPARTMENT
     const validTeacherTargets = ["STUDENTS", "DEPARTMENT"];
@@ -209,6 +292,9 @@ exports.createHodNotification = async (req, res, next) => {
 
     const { title, message, type, target, actionUrl, expiresAt, priority,
             target_department, target_users } = req.body;
+
+    // Validate actionUrl format
+    validateActionUrl(actionUrl);
 
     const validHodTargets = ["STUDENTS", "TEACHERS", "HOD", "DEPARTMENT", "INDIVIDUAL"];
     const effectiveTarget = target || "STUDENTS";
@@ -349,12 +435,12 @@ exports.getStudentNotifications = async (req, res, next) => {
      const hodNotifications = [];
 
      notifications.forEach((n) => {
-       if (n.createdByRole === "COLLEGE_ADMIN") {
-         adminNotifications.push(n);
-       } else if (n.createdByRole === "TEACHER") {
+       if (n.createdByRole === "TEACHER") {
          teacherNotifications.push(n);
        } else if (n.createdByRole === "HOD") {
          hodNotifications.push(n);
+       } else {
+         adminNotifications.push(n);
        }
      });
 
@@ -483,6 +569,7 @@ exports.getAdminNotifications = async (req, res, next) => {
       collegeId: req.college_id,
       role: req.user.role,
       userId: req.user.id,
+      includeOwnBroadcasts: true,
     });
 
     const notifications = await Notification.find(visibilityQuery)
@@ -494,7 +581,9 @@ exports.getAdminNotifications = async (req, res, next) => {
     notifications.forEach((n) => {
       if (
         n.createdByRole === "COLLEGE_ADMIN" &&
-        n.createdBy.toString() === req.user.id
+        (n.createdBy.toString() === req.user.id ||
+          (Array.isArray(n.target_users) &&
+            n.target_users.some((u) => u.toString() === req.user.id)))
       ) {
         myNotifications.push(n);
       } else if (n.createdByRole === "TEACHER") {
@@ -505,7 +594,7 @@ exports.getAdminNotifications = async (req, res, next) => {
     ApiResponse.success(res, {
       myNotifications: await attachReadStatus(myNotifications, req.user.id),
       staffNotifications: await attachReadStatus(staffNotifications, req.user.id),
-    }, "Student notifications fetched successfully");
+    }, "Admin notifications fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -611,6 +700,11 @@ exports.updateNotification = async (req, res, next) => {
       }
     }
 
+    // Validate actionUrl if provided
+    if (req.body.actionUrl !== undefined) {
+      validateActionUrl(req.body.actionUrl);
+    }
+
     notification.title = req.body.title ?? notification.title;
     notification.message = req.body.message ?? notification.message;
     notification.type = req.body.type ?? notification.type;
@@ -697,7 +791,7 @@ exports.getStudentNotificationCount = async (req, res, next) => {
      const adminCount = await Notification.countDocuments({
        ...visibilityQuery,
        _id: { $nin: readIds },
-       createdByRole: "COLLEGE_ADMIN"
+       createdByRole: { $nin: ["TEACHER", "HOD"] }
      });
 
      const teacherCount = await Notification.countDocuments({
@@ -749,32 +843,28 @@ exports.getTeacherNotificationCount = async (req, res, next) => {
       teacherProfile,
     });
 
+    const total = await Notification.countDocuments({
+      ...visibilityQuery,
+      _id: { $nin: readIds },
+    });
+
     const adminCount = await Notification.countDocuments({
       ...visibilityQuery,
       _id: { $nin: readIds },
-      createdByRole: "COLLEGE_ADMIN"
+      createdByRole: { $nin: ["TEACHER", "HOD"] },
     });
 
     const hodCount = await Notification.countDocuments({
       ...visibilityQuery,
       _id: { $nin: readIds },
-      createdByRole: "HOD"
+      createdByRole: "HOD",
     });
-
-    const individualCount = await Notification.countDocuments({
-      ...visibilityQuery,
-      _id: { $nin: readIds },
-      target: "INDIVIDUAL",
-      target_users: toObjectId(userId, "User ID")
-    });
-
-    const myCount = adminCount + hodCount + individualCount;
 
     ApiResponse.success(res, {
-      myCount,
+      myCount: total,
       adminCount,
       hodCount,
-      total: myCount
+      total,
     }, "Teacher notification count fetched successfully");
   } catch (error) {
     next(error);
@@ -798,6 +888,7 @@ exports.getHodNotificationCount = async (req, res, next) => {
       }).select("_id user_id department_id");
     }
 
+    const userObjectId = toObjectId(userId, "User ID");
     const readIds = await getReadNotificationIds(userId);
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
@@ -806,33 +897,29 @@ exports.getHodNotificationCount = async (req, res, next) => {
       teacherProfile,
     });
 
-    const adminCount = await Notification.countDocuments({
+    const unreadQuery = {
       ...visibilityQuery,
       _id: { $nin: readIds },
-      createdByRole: "COLLEGE_ADMIN"
+      createdBy: { $ne: userObjectId },
+    };
+
+    const total = await Notification.countDocuments(unreadQuery);
+
+    const adminCount = await Notification.countDocuments({
+      ...unreadQuery,
+      createdByRole: { $nin: ["TEACHER", "HOD"] },
     });
 
     const teacherCount = await Notification.countDocuments({
-      ...visibilityQuery,
-      _id: { $nin: readIds },
-      target: "INDIVIDUAL",
-      target_users: toObjectId(userId, "User ID")
+      ...unreadQuery,
+      createdByRole: "TEACHER",
     });
-
-    const ownHodCount = await Notification.countDocuments({
-      ...visibilityQuery,
-      _id: { $nin: readIds },
-      createdByRole: "HOD",
-      createdBy: toObjectId(userId, "User ID")
-    });
-
-    const myCount = adminCount + teacherCount + ownHodCount;
 
     ApiResponse.success(res, {
-      myCount,
+      myCount: total,
       adminCount,
       teacherCount,
-      total: myCount
+      total,
     }, "HOD notification count fetched successfully");
   } catch (error) {
     next(error);
@@ -847,30 +934,37 @@ exports.getAdminNotificationCount = async (req, res, next) => {
       throw new AppError("College ID not available. Please login again.", 403, "COLLEGE_ID_MISSING");
     }
 
+    const userObjectId = toObjectId(userId, "User ID");
     const readIds = await getReadNotificationIds(userId);
     const visibilityQuery = await getNotificationVisibilityQuery({
       collegeId: req.college_id,
       role: req.user.role,
       userId,
+      // Unread badge = inbox. Admin-authored broadcasts aimed at STUDENTS,
+      // PARENTS, TEACHERS, HOD, DEPARTMENT, COURSE or SEMESTER must not be
+      // counted against the admin who sent them.
+      includeOwnBroadcasts: false,
     });
 
-    const myCount = await Notification.countDocuments({
+    const unreadQuery = {
       ...visibilityQuery,
       _id: { $nin: readIds },
-      createdByRole: "COLLEGE_ADMIN",
-      createdBy: toObjectId(userId, "User ID")
-    });
+      createdBy: { $ne: userObjectId },
+    };
+
+    const total = await Notification.countDocuments(unreadQuery);
 
     const staffCount = await Notification.countDocuments({
-      ...visibilityQuery,
-      _id: { $nin: readIds },
-      createdByRole: "TEACHER"
+      ...unreadQuery,
+      createdByRole: "TEACHER",
     });
+
+    const myCount = total - staffCount;
 
     ApiResponse.success(res, {
       myCount,
       staffCount,
-      total: myCount + staffCount
+      total,
     }, "Admin notification count fetched successfully");
   } catch (error) {
     next(error);
@@ -906,12 +1000,12 @@ exports.getParentNotifications = async (req, res, next) => {
     const hodNotifications = [];
 
     notifications.forEach((n) => {
-      if (n.createdByRole === "COLLEGE_ADMIN") {
-        adminNotifications.push(n);
-      } else if (n.createdByRole === "TEACHER") {
+      if (n.createdByRole === "TEACHER") {
         teacherNotifications.push(n);
       } else if (n.createdByRole === "HOD") {
         hodNotifications.push(n);
+      } else {
+        adminNotifications.push(n);
       }
     });
 
@@ -957,7 +1051,7 @@ exports.getParentNotificationCount = async (req, res, next) => {
     const adminCount = await Notification.countDocuments({
       ...visibilityQuery,
       _id: { $nin: readIds },
-      createdByRole: "COLLEGE_ADMIN",
+      createdByRole: { $nin: ["TEACHER", "HOD"] },
     });
 
     const teacherCount = await Notification.countDocuments({
@@ -1020,11 +1114,16 @@ exports.getUnreadForBell = async (req, res, next) => {
       userId: req.user.id,
       studentProfile,
       teacherProfile,
+      // Bell = inbox. For COLLEGE_ADMIN/PRINCIPAL this stops the admin from
+      // seeing their own student/parent/teacher/HOD-only broadcasts here.
+      includeOwnBroadcasts: false,
     });
 
+    const userObjectId = toObjectId(req.user.id, "User ID");
     const unread = await Notification.find({
       ...visibilityQuery,
       _id: { $nin: readIds },
+      createdBy: { $ne: userObjectId },
     })
       .sort({ createdAt: -1 })
       .limit(20);
@@ -1109,15 +1208,6 @@ exports.markAllAsRead = async (req, res, next) => {
       { ordered: false },
     );
 
-    await Notification.updateMany(
-      {
-        _id: { $in: unreadIds },
-        college_id: req.college_id,
-        isActive: true,
-      },
-      { $set: { isRead: true } },
-    );
-
     ApiResponse.success(
       res,
       { markedCount: unreadIds.length, totalUnread: 0 },
@@ -1192,15 +1282,6 @@ exports.markAsRead = async (req, res, next) => {
         readAt: new Date(),
       },
       { upsert: true },
-    );
-
-    await Notification.updateOne(
-      {
-        _id: safeNotificationId,
-        college_id: req.college_id,
-        isActive: true,
-      },
-      { $set: { isRead: true } },
     );
 
     ApiResponse.success(res, null, "Notification marked as read");
@@ -1324,15 +1405,40 @@ exports.sendPromotionNotification = async (req, res, next) => {
   try {
     const { studentId, studentName, newSemester, newAcademicYear, adminName } = req.body;
 
+    if (!studentId) {
+      return ApiResponse.error(res, "Student ID is required", "MISSING_STUDENT_ID", 400);
+    }
+
+    const studentQuery = mongoose.Types.ObjectId.isValid(studentId)
+      ? { $or: [{ _id: studentId }, { user_id: studentId }], college_id: req.college_id }
+      : { user_id: studentId, college_id: req.college_id };
+
+    const student = await Student.findOne(studentQuery)
+      .select("_id user_id name")
+      .lean();
+
+    if (!student || !student.user_id) {
+      return ApiResponse.error(
+        res,
+        "Student not found or student has no linked user account in this college",
+        "STUDENT_NOT_FOUND",
+        404
+      );
+    }
+
+    const resolvedStudentName = studentName || student.name || "Student";
+
     await Notification.create({
       college_id: req.college_id,
       createdBy: new mongoose.Types.ObjectId(req.user.id),
       createdByRole: "COLLEGE_ADMIN",
-      target: "STUDENTS",
+      target: "INDIVIDUAL",
+      target_users: [student.user_id],
       title: "🎓 Promotion Approved",
-      message: `Congratulations ${studentName}! You have been promoted to Semester ${newSemester} (${newAcademicYear}) by ${adminName}.`,
+      message: `Congratulations ${resolvedStudentName}! You have been promoted to Semester ${newSemester} (${newAcademicYear}) by ${adminName || "College Administration"}.`,
       type: "ACADEMIC",
-      actionUrl: "/dashboard/student/profile"
+      priority: "HIGH",
+      actionUrl: "/student/profile",
     });
 
     ApiResponse.success(res, null, "Notification sent successfully");

@@ -5,6 +5,8 @@ import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import ExportButtons from "../../../components/ExportButtons";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import Pagination from "../../../components/Pagination";
 import { toast } from "react-toastify";
 import {
   FaUserTimes,
@@ -15,8 +17,6 @@ import {
   FaCalendarAlt,
   FaRupeeSign,
   FaSyncAlt,
-  FaChevronLeft,
-  FaChevronRight,
   FaFileInvoiceDollar,
 } from "react-icons/fa";
 import "./DefaulterList.css";
@@ -155,7 +155,20 @@ export default function DefaulterList() {
   ];
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading defaulters list..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Defaulters List..."
+          />
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -180,12 +193,12 @@ export default function DefaulterList() {
          ]}
        />
 
-       <div className="dashboard-header">
-         <h1>
-           <FaUserTimes />
-           Defaulter List
-         </h1>
-       </div>
+ {/* ================= HEADER ================= */}
+<PageHeader
+  icon={FaUserTimes}
+  title="Defaulter List"
+  subtitle="View and manage students with overdue fee payments"
+/>
 
        {summary && (
          <div className="summary-grid">
@@ -325,35 +338,11 @@ export default function DefaulterList() {
             </div>
 
             {totalPages > 1 && (
-              <div className="defaulter-pagination">
-                <button
-                  className="page-btn"
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  <FaChevronLeft />
-                </button>
-
-                <div className="d-flex gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                    <button
-                      key={num}
-                      className={`page-btn ${currentPage === num ? "active" : ""}`}
-                      onClick={() => setCurrentPage(num)}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  className="page-btn"
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  <FaChevronRight />
-                </button>
-              </div>
+              <Pagination
+                page={currentPage}
+                totalPages={totalPages}
+                setPage={setCurrentPage}
+              />
             )}
           </>
         )}

@@ -625,6 +625,27 @@ exports.markAttendance = async (req, res, next) => {
     // Execute all operations in a single bulkWrite for atomicity
     const result = await AttendanceRecord.bulkWrite(operations, { session });
 
+    // Recompute presentCount and absentCount from persisted records
+    const presentCount = await AttendanceRecord.countDocuments({
+      session_id: attendanceSession._id,
+      college_id: collegeId,
+      status: "PRESENT",
+    }).session(session);
+
+    const absentCount = await AttendanceRecord.countDocuments({
+      session_id: attendanceSession._id,
+      college_id: collegeId,
+      status: "ABSENT",
+    }).session(session);
+
+    const total = presentCount + absentCount;
+    attendanceSession.presentCount = presentCount;
+    attendanceSession.absentCount = absentCount;
+    if (total > attendanceSession.totalStudents) {
+      attendanceSession.totalStudents = total;
+    }
+    await attendanceSession.save({ session });
+
     // Commit transaction
     await session.commitTransaction();
 
@@ -678,6 +699,44 @@ exports.editAttendance = async (req, res, next) => {
       );
     }
 
+    // Validate payload entries: non-empty, valid ObjectId, unique student_id, valid status
+    const seenStudentIds = new Set();
+    for (const item of attendance) {
+      if (!item || !item.student_id || !item.status) {
+        throw new AppError(
+          `Invalid attendance data for student: ${item?.student_id || "unknown"}`,
+          400,
+          "INVALID_ATTENDANCE_DATA",
+        );
+      }
+
+      const studentIdStr = item.student_id.toString();
+      if (!mongoose.Types.ObjectId.isValid(studentIdStr)) {
+        throw new AppError(
+          `Invalid student ID: ${item.student_id}`,
+          400,
+          "INVALID_STUDENT_ID",
+        );
+      }
+
+      if (seenStudentIds.has(studentIdStr)) {
+        throw new AppError(
+          `Duplicate student ID in attendance payload: ${item.student_id}`,
+          400,
+          "DUPLICATE_STUDENT_IN_PAYLOAD",
+        );
+      }
+      seenStudentIds.add(studentIdStr);
+
+      if (!["PRESENT", "ABSENT"].includes(item.status)) {
+        throw new AppError(
+          `Invalid status "${item.status}" for student: ${item.student_id}`,
+          400,
+          "INVALID_STATUS",
+        );
+      }
+    }
+
     // Resolve teacher
     const teacher = await Teacher.findOne({
       user_id: req.user.id,
@@ -688,42 +747,72 @@ exports.editAttendance = async (req, res, next) => {
       throw new AppError("Teacher profile not found", 403, "TEACHER_NOT_FOUND");
     }
 
-    // Validate session
+    // Validate session belongs to teacher and college
     const attendanceSession = await AttendanceSession.findOne({
       _id: req.params.sessionId,
       college_id: collegeId,
       teacher_id: teacher._id,
-      status: "OPEN",
     }).session(session);
 
     if (!attendanceSession) {
       throw new AppError(
-        "Session not found or already closed",
+        "Attendance session not found",
         404,
         "SESSION_NOT_FOUND",
       );
+    }
+
+    // Distinguish closed sessions safely without cross-tenant info leakage
+    if (attendanceSession.status !== "OPEN") {
+      throw new AppError(
+        "Attendance session is closed and cannot be edited",
+        400,
+        "SESSION_CLOSED",
+      );
+    }
+
+    // Validate all students belong to the session's course/college roster
+    const validStudents = await Student.find({
+      college_id: collegeId,
+      course_id: attendanceSession.course_id,
+      status: { $in: ["APPROVED", "ENROLLED"] },
+    })
+      .select("_id")
+      .session(session);
+
+    const validStudentIdSet = new Set(
+      validStudents.map((s) => s._id.toString()),
+    );
+
+    // Also include students who already have an AttendanceRecord in this session
+    const existingRecords = await AttendanceRecord.find({
+      session_id: attendanceSession._id,
+      college_id: collegeId,
+    })
+      .select("student_id")
+      .session(session);
+
+    existingRecords.forEach((r) => {
+      if (r.student_id) {
+        validStudentIdSet.add(r.student_id.toString());
+      }
+    });
+
+    for (const item of attendance) {
+      const studentIdStr = item.student_id.toString();
+      if (!validStudentIdSet.has(studentIdStr)) {
+        throw new AppError(
+          `Student ${item.student_id} is not enrolled in this session's course roster`,
+          400,
+          "STUDENT_NOT_IN_ROSTER",
+        );
+      }
     }
 
     const operations = [];
     const timestamp = new Date();
 
     for (const item of attendance) {
-      if (!item.student_id || !item.status) {
-        throw new AppError(
-          `Invalid attendance data for student: ${item.student_id}`,
-          400,
-          "INVALID_ATTENDANCE_DATA",
-        );
-      }
-
-      if (!["PRESENT", "ABSENT"].includes(item.status)) {
-        throw new AppError(
-          `Invalid status "${item.status}" for student: ${item.student_id}`,
-          400,
-          "INVALID_STATUS",
-        );
-      }
-
       operations.push({
         updateOne: {
           filter: {
@@ -732,11 +821,19 @@ exports.editAttendance = async (req, res, next) => {
             college_id: collegeId,
           },
           update: {
-            status: item.status,
-            markedBy: teacher._id,
-            lastModified: timestamp,
-            lastModifiedBy: teacher._id,
+            $set: {
+              status: item.status,
+              lastModified: timestamp,
+              lastModifiedBy: teacher._id,
+            },
+            $setOnInsert: {
+              college_id: collegeId,
+              session_id: attendanceSession._id,
+              student_id: item.student_id,
+              markedBy: teacher._id,
+            },
           },
+          upsert: true,
         },
       });
     }
@@ -744,12 +841,42 @@ exports.editAttendance = async (req, res, next) => {
     // Execute all operations in a single bulkWrite for atomicity
     const result = await AttendanceRecord.bulkWrite(operations, { session });
 
+    // Recompute presentCount and absentCount from persisted AttendanceRecord documents
+    const presentCount = await AttendanceRecord.countDocuments({
+      session_id: attendanceSession._id,
+      college_id: collegeId,
+      status: "PRESENT",
+    }).session(session);
+
+    const absentCount = await AttendanceRecord.countDocuments({
+      session_id: attendanceSession._id,
+      college_id: collegeId,
+      status: "ABSENT",
+    }).session(session);
+
+    const total = presentCount + absentCount;
+    const percentage =
+      total > 0 ? parseFloat(((presentCount / total) * 100).toFixed(1)) : 0;
+
+    attendanceSession.presentCount = presentCount;
+    attendanceSession.absentCount = absentCount;
+    if (total > attendanceSession.totalStudents) {
+      attendanceSession.totalStudents = total;
+    }
+    await attendanceSession.save({ session });
+
     // Commit transaction
     await session.commitTransaction();
 
     res.status(200).json({
       message: "Attendance updated successfully",
-      updatedCount: result.modifiedCount,
+      updatedCount: result.modifiedCount + result.upsertedCount,
+      summary: {
+        total,
+        present: presentCount,
+        absent: absentCount,
+        percentage,
+      },
       timestamp,
     });
   } catch (error) {

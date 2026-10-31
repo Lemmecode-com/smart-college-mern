@@ -1,11 +1,12 @@
 import { useContext, useEffect, useRef, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
 import TeacherDeactivationModal from "../../../components/TeacherDeactivationModal";
 import ApiError from "../../../components/ApiError";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import TeacherDeleteModal from "../../../components/TeacherDeleteModal";
 import { toast } from "react-toastify";
 import useRole from "../../../hooks/useRole";
@@ -701,51 +702,43 @@ export default function TeachersList() {
                       </td>
                        <td className="action-cell">
                          <div className="action-buttons">
-                           <Link
+                           <ActionIconButton
                              to={`/teachers/view/${teacher._id}`}
+                             icon={FaEye}
                              className="action-btn view-btn"
-                             title="View Details"
-                             aria-label={`View details for ${teacher.name}`}
-                           >
-                             <FaEye />
-                           </Link>
+                             tooltip={`View details for ${teacher.name}`}
+                             ariaLabel={`View details for ${teacher.name}`}
+                           />
                            {canEdit('teachers') && (
-                             <Link
+                             <ActionIconButton
                                to={`/teachers/edit/${teacher._id}`}
+                               icon={FaEdit}
                                className="action-btn edit-btn"
-                               title="Edit Teacher"
-                               aria-label={`Edit ${teacher.name}`}
-                             >
-                               <FaEdit />
-                             </Link>
+                               tooltip={`Edit ${teacher.name}`}
+                               ariaLabel={`Edit ${teacher.name}`}
+                             />
                            )}
                            {canEdit('teachers') && (
-                             <button
+                             <ActionIconButton
+                               icon={teacher.status === "ACTIVE" ? FaUserTimes : FaUserCheck}
                                className={`action-btn ${teacher.status === "ACTIVE" ? "action-btn-deactivate" : "action-btn-reactivate"}`}
-                               title={
+                               tooltip={
                                  teacher.status === "ACTIVE"
-                                   ? "Deactivate Teacher"
-                                   : "Reactivate Teacher"
+                                   ? `Deactivate ${teacher.name}`
+                                   : `Reactivate ${teacher.name}`
                                }
                                onClick={() => handleToggleActive(teacher)}
-                               aria-label={`${teacher.status === "ACTIVE" ? "Deactivate" : "Reactivate"} ${teacher.name}`}
-                             >
-                               {teacher.status === "ACTIVE" ? (
-                                 <FaUserTimes />
-                               ) : (
-                                 <FaUserCheck />
-                               )}
-                             </button>
+                               ariaLabel={`${teacher.status === "ACTIVE" ? "Deactivate" : "Reactivate"} ${teacher.name}`}
+                             />
                            )}
                             {canDelete('teachers') && (
-                              <button
+                              <ActionIconButton
+                                icon={FaTrash}
                                 className="action-btn delete-btn"
-                                title="Delete Teacher"
+                                tooltip={`Delete ${teacher.name}`}
                                 onClick={() => openDeleteModal(teacher)}
-                                aria-label={`Delete ${teacher.name}`}
-                              >
-                                <FaTrash />
-                              </button>
+                                ariaLabel={`Delete ${teacher.name}`}
+                              />
                             )}
                          </div>
                        </td>

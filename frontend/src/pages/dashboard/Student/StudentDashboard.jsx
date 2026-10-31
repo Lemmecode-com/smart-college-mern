@@ -1,36 +1,32 @@
-import { useEffect, useContext, useState } from "react";
+import { useEffect, useContext, useState, useCallback, memo, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import api from "../../../api/axios";
-import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
+import Loading from "../../../components/Loading";
 import { AuthContext } from "../../../auth/AuthContext";
 import { logger } from "../../../utils/logger";
+import studentDashboardCache from "../../../utils/studentDashboardCache";
 import {
+  FaGraduationCap,
+  FaCalendarAlt,
+  FaWallet,
+  FaFileAlt,
   FaUserGraduate,
-  FaBook,
-  FaBuilding,
-  FaInfoCircle,
+  FaBell,
+  FaSync,
   FaCheckCircle,
   FaTimesCircle,
-  FaExclamationTriangle,
   FaClock,
-  FaMapMarkerAlt,
   FaChalkboardTeacher,
+  FaMapMarkerAlt,
+  FaExclamationTriangle,
+  FaArrowRight,
   FaRupeeSign,
-  FaBell,
-  FaCalendarAlt,
-  FaChartPie,
-  FaChartBar,
-  FaDownload,
-  FaEye,
-  FaWallet,
-  FaGraduationCap,
-  FaAward,
-  FaTrophy,
-  FaStar,
-  FaSync,
   FaUniversity,
-  FaClipboardCheck,
+  FaBook,
+  FaLayerGroup,
+  FaIdBadge,
 } from "react-icons/fa";
 import {
   PieChart,
@@ -43,18 +39,24 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
-  AreaChart,
-  Area,
-  ReferenceLine,
 } from "recharts";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "./StudentDashboard.css";
 
 const PAGE_LOAD_TOAST_ID = "student-dashboard-load";
 
+// Attendance policy threshold
+const MIN_ATTENDANCE_PERCENT = 75;
+
+/**
+ * Format a Date as YYYY-MM-DD using LOCAL date parts (not toISOString which uses UTC).
+ * This avoids off-by-one-day issues for timezones ahead of UTC (like IST).
+ */
+const toLocalDateStr = (d) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
 // Authentication / session error codes that must NOT surface a toast.
-// These are routed exclusively to ApiError for a friendly mapped screen.
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
   "TOKEN_EXPIRED",
@@ -66,69 +68,178 @@ const AUTH_ERROR_CODES = new Set([
   "UNAUTHORIZED",
 ]);
 
+/**
+ * Memoized live clock to isolate 1-second interval updates from root dashboard re-renders
+ */
+const LiveClock = memo(function LiveClock() {
+  const [time, setTime] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div
+      className="sd-hero-clock"
+      aria-label={`Current time: ${time.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      })}`}
+    >
+      <span className="sd-clock-label">Time</span>
+      <span className="sd-clock-val">
+        {time.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: true,
+        })}
+      </span>
+    </div>
+  );
+});
+
+/**
+ * Custom Recharts tooltip for chart hover states
+ */
+function CustomTooltip({ active, payload, label }) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="sd-chart-tooltip">
+        {label && <p className="sd-chart-tooltip-label">{label}</p>}
+        {payload.map((entry, index) => (
+          <p key={index} className="sd-chart-tooltip-row" style={{ color: entry.color || entry.fill }}>
+            {entry.name}: {entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
+/**
+ * Converts "HH:mm" to total minutes from midnight for slot time comparison
+ */
+const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr || typeof timeStr !== "string") return -1;
+  const parts = timeStr.trim().split(":");
+  if (parts.length < 2) return -1;
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (isNaN(h) || isNaN(m)) return -1;
+  return h * 60 + m;
+};
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const userId = user?.id || user?._id;
+
+  const [dashboardData, setDashboardData] = useState(() =>
+    studentDashboardCache.get(userId),
+  );
+  const [status, setStatus] = useState(() =>
+    studentDashboardCache.get(userId) ? "success" : "loading",
+  );
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
 
-  // Defensive: Safe access to attendance data
-  const attendanceSummary = dashboardData?.attendanceSummary || {
-    total: 0,
-    present: 0,
-    absent: 0,
-    percentage: 0,
-    warning: false,
-  };
-
-  // Defensive: Safe access to student data
-  const studentData = dashboardData?.student || {
-    name: "Student",
-    enrollmentNumber: "N/A",
-    course: "Not Assigned",
-    department: "Not Assigned",
-    semester: 1,
-  };
-
-  // Defensive: Safe access to pie chart data (handled via attendancePieData below)
-
+  // Initial load effect
   useEffect(() => {
-    let isCancelled = false;
+    let isMounted = true;
+    const controller = new AbortController();
 
-    const load = async () => {
-      try {
-        setLoading(true);
+    const loadInitial = async () => {
+      const cached = studentDashboardCache.get(userId);
+      const hasCachedData = Boolean(cached);
+
+      // If we have cached data, ensure it is set as data and status is success
+      if (cached) {
+        setDashboardData(cached);
+        setStatus("success");
+      }
+
+      // If no cached data exists or if this is a manual retry, show loader
+      if (!hasCachedData || retryCount > 0) {
+        setStatus("loading");
         setError(null);
-        const response = await api.get("/dashboard/student");
-        if (!isCancelled) {
-          setDashboardData(response.data);
+      }
+
+      try {
+        const todayStr = toLocalDateStr(new Date());
+        const response = await api.get("/dashboard/student", {
+          params: { date: todayStr },
+          signal: controller.signal,
+        });
+
+        if (!isMounted || controller.signal.aborted) {
+          return;
+        }
+
+        setDashboardData(response.data);
+        setStatus("success");
+        setError(null);
+        if (
+          userId &&
+          response.data?.student &&
+          response.data?.feeSummary !== null &&
+          response.data?.feeSummary !== undefined
+        ) {
+          studentDashboardCache.set(userId, response.data);
         }
       } catch (err) {
-        if (!isCancelled) {
-          const statusCode = err.response?.status;
-          const errorCode = err.response?.data?.code;
-          const backendMessage = err.response?.data?.message;
+        const isAborted =
+          controller.signal.aborted ||
+          axios.isCancel(err) ||
+          err?.name === "CanceledError" ||
+          err?.name === "AbortError" ||
+          err?.code === "ERR_CANCELED";
 
-          logger.error("Student dashboard load error:", {
-            statusCode,
-            errorCode,
-            backendMessage,
-            page: "StudentDashboard",
-            role: user?.role,
-          });
+        if (isAborted || !isMounted) {
+          return;
+        }
 
+        const statusCode = err.response?.status;
+        const errorCode = err.response?.data?.code;
+        const backendMessage = err.response?.data?.message;
+
+        logger.error("Student dashboard load error:", {
+          statusCode,
+          errorCode,
+          backendMessage,
+          page: "StudentDashboard",
+          role: user?.role,
+        });
+
+        const isAuthError =
+          statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+        if (hasCachedData && retryCount === 0) {
+          // Keep cached data mounted and silently alert user of refresh failure
+          if (!isAuthError) {
+            toast.error("Failed to update dashboard. Showing cached data.", {
+              position: "top-right",
+              autoClose: 4000,
+              icon: <FaExclamationTriangle />,
+            });
+          }
+        } else {
           setError({
             message:
+              backendMessage ||
               "Failed to load dashboard. Please check your connection and try again.",
             statusCode,
             errorCode,
           });
-
-          const isAuthError =
-            statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+          setStatus("error");
 
           if (!isAuthError) {
             toast.error("Failed to load dashboard. Please try again.", {
@@ -138,101 +249,339 @@ export default function StudentDashboard() {
             });
           }
         }
-      } finally {
-        if (!isCancelled) {
-          setLoading(false);
-        }
       }
     };
 
-    load();
+    loadInitial();
 
     return () => {
-      isCancelled = true;
+      isMounted = false;
+      controller.abort();
       toast.dismiss(PAGE_LOAD_TOAST_ID);
     };
-  }, [retryCount]);
+  }, [userId, user?.role, retryCount]);
 
-  const handleRetry = async () => {
+  // Background refresh handler: keeps current data mounted, spins button, no click limit
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const todayStr = toLocalDateStr(new Date());
+      const response = await api.get("/dashboard/student", {
+        params: { date: todayStr },
+      });
+      setDashboardData(response.data);
+      if (
+        userId &&
+        response.data?.student &&
+        response.data?.feeSummary !== null &&
+        response.data?.feeSummary !== undefined
+      ) {
+        studentDashboardCache.set(userId, response.data);
+      }
+      toast.success("Dashboard refreshed", {
+        position: "top-right",
+        autoClose: 2000,
+      });
+    } catch (err) {
+      logger.error("Student dashboard refresh error:", {
+        statusCode: err.response?.status,
+        errorCode: err.response?.data?.code,
+        message: err.message,
+        page: "StudentDashboard",
+      });
+      toast.error("Failed to refresh dashboard. Please try again.", {
+        position: "top-right",
+        autoClose: 4000,
+        icon: <FaExclamationTriangle />,
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [isRefreshing, userId]);
+
+  // Error retry handler: only used on error state screen, max 3 retries
+  const handleRetry = useCallback(() => {
     if (retryCount >= 3) return;
     setIsRetrying(true);
     setRetryCount((prev) => prev + 1);
     setIsRetrying(false);
-  };
+  }, [retryCount]);
 
   // Handle go back action
-  const handleGoBack = () => {
+  const handleGoBack = useCallback(() => {
     navigate("/student/dashboard");
-  };
+  }, [navigate]);
 
-  // Tooltip Component
-  const InfoTooltip = ({ message }) => (
-    <div className="info-tooltip-wrapper">
-      <FaInfoCircle className="info-icon" />
-      <div className="info-tooltip-content">
-        <span className="tooltip-text">{message}</span>
-      </div>
-    </div>
-  );
+  // Defensive: Safe access to attendance data
+  const attendanceSummary = useMemo(() => {
+    return (
+      dashboardData?.attendanceSummary || {
+        total: 0,
+        present: 0,
+        absent: 0,
+        percentage: 0,
+        warning: false,
+      }
+    );
+  }, [dashboardData?.attendanceSummary]);
 
-  // Custom Tooltip for Charts
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="custom-chart-tooltip">
-          <p className="tooltip-label">{label}</p>
-          {payload.map((entry, index) => (
-            <p
-              key={index}
-              className="tooltip-value"
-              style={{ color: entry.fill }}
-            >
-              {entry.name}: {entry.value}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+  // Defensive: Safe access to student data
+  const studentData = useMemo(() => {
+    return (
+      dashboardData?.student || {
+        name: "Student",
+        enrollmentNumber: "N/A",
+        course: "Not Assigned",
+        department: "Not Assigned",
+        semester: null,
+      }
+    );
+  }, [dashboardData?.student]);
 
-  // Prepare Attendance Pie Chart Data (with defensive checks)
-  const attendancePieData = [
-    {
-      name: "Present",
-      value: attendanceSummary.present || 0,
-      color: "#28a745",
-    },
-    {
-      name: "Absent",
-      value: attendanceSummary.absent || 0,
-      color: "#dc3545",
-    },
-  ];
+  // Defensive: Safe access to fee data
+  const safeFeeSummary = useMemo(() => {
+    return (
+      dashboardData?.feeSummary || {
+        totalFee: 0,
+        paid: 0,
+        due: 0,
+        paymentStatus: "NOT_GENERATED",
+      }
+    );
+  }, [dashboardData?.feeSummary]);
 
-  // Prepare Subject-wise Bar Chart Data (with defensive checks)
-  const subjectBarData =
-    (dashboardData?.subjectWiseAttendance || []).map((subject) => ({
+  const subjectWiseAttendance = useMemo(() => {
+    return dashboardData?.subjectWiseAttendance || [];
+  }, [dashboardData?.subjectWiseAttendance]);
+
+  const todaysTimetable = useMemo(() => {
+    return dashboardData?.todaysTimetable || [];
+  }, [dashboardData?.todaysTimetable]);
+
+  const latestNotifications = useMemo(() => {
+    return dashboardData?.latestNotifications || [];
+  }, [dashboardData?.latestNotifications]);
+
+  // Format currency in INR
+  const formatCurrency = useCallback((amount) => {
+    const val = Number.isFinite(amount) ? amount : 0;
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(val);
+  }, []);
+
+  // Format date helper
+  const formatDate = useCallback((dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  }, []);
+
+  // Timezone-safe greeting & name
+  const greeting = useMemo(() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  }, []);
+
+  const firstName = useMemo(() => {
+    const full = (studentData.name || "Student").trim();
+    return full.split(" ")[0] || "Student";
+  }, [studentData.name]);
+
+  const formattedDate = useMemo(() => {
+    return new Intl.DateTimeFormat("en-IN", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    }).format(new Date());
+  }, []);
+
+  // Guard against division by zero (never render NaN%)
+  const feeProgressPercent = useMemo(() => {
+    return safeFeeSummary.totalFee > 0
+      ? Math.max(0, Math.min(100, Math.round((safeFeeSummary.paid / safeFeeSummary.totalFee) * 100)))
+      : 0;
+  }, [safeFeeSummary.paid, safeFeeSummary.totalFee]);
+
+  // Prepare Attendance Pie Chart Data (Present #15803d, Absent #b91c1c)
+  const attendancePieData = useMemo(() => {
+    return [
+      {
+        name: "Present",
+        value: attendanceSummary.present || 0,
+        color: "#15803d",
+      },
+      {
+        name: "Absent",
+        value: attendanceSummary.absent || 0,
+        color: "#b91c1c",
+      },
+    ];
+  }, [attendanceSummary.present, attendanceSummary.absent]);
+
+  const nonZeroAttendanceSlices = useMemo(() => {
+    return attendancePieData.filter((entry) => entry.value > 0);
+  }, [attendancePieData]);
+
+  // Prepare Subject-wise Bar Chart Data
+  const subjectBarData = useMemo(() => {
+    return subjectWiseAttendance.map((subject) => ({
       subject: subject.subject || "Unknown",
       code: subject.code || "N/A",
       present: subject.present || 0,
       total: subject.total || 0,
       percentage: subject.percentage || 0,
-    })) || [];
+    }));
+  }, [subjectWiseAttendance]);
+
+  // Low attendance count (only count subjects with at least 1 lecture recorded)
+  const lowAttendanceCount = useMemo(() => {
+    return subjectWiseAttendance.filter(
+      (s) => (s.total || 0) > 0 && (s.percentage || 0) < MIN_ATTENDANCE_PERCENT,
+    ).length;
+  }, [subjectWiseAttendance]);
+
+  // Compute "Today at a glance" strip items
+  const glanceItems = useMemo(() => {
+    const items = [];
+    if (todaysTimetable.length > 0) {
+      items.push({
+        id: "classes",
+        icon: <FaCalendarAlt />,
+        val: `${todaysTimetable.length} Classes`,
+        label: "Scheduled Today",
+        to: "/student/timetable",
+      });
+    }
+    if (safeFeeSummary.due > 0) {
+      items.push({
+        id: "fee",
+        icon: <FaWallet />,
+        val: formatCurrency(safeFeeSummary.due),
+        label: "Fee Payment Due",
+        to: "/student/fees",
+      });
+    }
+    if (lowAttendanceCount > 0) {
+      items.push({
+        id: "attendance",
+        icon: <FaExclamationTriangle />,
+        val: `${lowAttendanceCount} Subject${lowAttendanceCount === 1 ? "" : "s"}`,
+        label: `Below ${MIN_ATTENDANCE_PERCENT}% Minimum`,
+        to: "/my-attendance",
+      });
+    }
+    if (latestNotifications.length > 0) {
+      items.push({
+        id: "notifs",
+        icon: <FaBell />,
+        val: `${latestNotifications.length} New`,
+        label: "Recent Notifications",
+        to: "/notification/student",
+      });
+    }
+    return items;
+  }, [
+    todaysTimetable.length,
+    safeFeeSummary.due,
+    lowAttendanceCount,
+    latestNotifications.length,
+    formatCurrency,
+  ]);
+
+  // Quick action tiles (6 equal tiles with meaning-matched tints)
+  const quickActions = useMemo(
+    () => [
+      { icon: <FaGraduationCap />, label: "Attendance", path: "/my-attendance", tintClass: "sd-action-teal" },
+      { icon: <FaCalendarAlt />, label: "Timetable", path: "/student/timetable", tintClass: "sd-action-blue" },
+      { icon: <FaWallet />, label: "Fees", path: "/student/fees", tintClass: "sd-action-amber" },
+      { icon: <FaFileAlt />, label: "My Results", path: "/student/results", tintClass: "sd-action-purple" },
+      { icon: <FaUserGraduate />, label: "Profile", path: "/student/profile", tintClass: "sd-action-green" },
+      { icon: <FaBell />, label: "Notifications", path: "/notification/student", tintClass: "sd-action-rose" },
+    ],
+    [],
+  );
+
+  // Timetable active/next slot calculation
+  const sortedTimetable = useMemo(() => {
+    return [...todaysTimetable].sort((a, b) =>
+      (a.startTime || "").localeCompare(b.startTime || ""),
+    );
+  }, [todaysTimetable]);
+
+  const { currentSlotIdx, nextSlotIdx } = useMemo(() => {
+    const now = new Date();
+    const currentM = now.getHours() * 60 + now.getMinutes();
+
+    let cur = -1;
+    let nxt = -1;
+
+    for (let i = 0; i < sortedTimetable.length; i++) {
+      const startM = parseTimeToMinutes(sortedTimetable[i].startTime);
+      const endM = parseTimeToMinutes(sortedTimetable[i].endTime);
+      if (startM !== -1 && endM !== -1 && currentM >= startM && currentM <= endM) {
+        cur = i;
+        break;
+      }
+    }
+
+    if (cur === -1) {
+      for (let i = 0; i < sortedTimetable.length; i++) {
+        const startM = parseTimeToMinutes(sortedTimetable[i].startTime);
+        if (startM !== -1 && startM > currentM) {
+          nxt = i;
+          break;
+        }
+      }
+    }
+
+    return { currentSlotIdx: cur, nextSlotIdx: nxt };
+  }, [sortedTimetable]);
 
   // Loading State
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading your dashboard..." />;
+  if (status === "loading") {
+    return (
+      <div className="sd-page">
+        <ToastContainer position="top-right" autoClose={3000} theme="colored" />
+        <div className="sd-container">
+          <header className="sd-hero">
+            <div className="sd-hero-left">
+              <span className="sd-hero-subtitle">Student Portal</span>
+              <h1 className="sd-hero-title">Loading dashboard...</h1>
+            </div>
+            <div className="sd-hero-right">
+              <LiveClock />
+            </div>
+          </header>
+          <div className="sd-loading-container">
+            <Loading
+              size="md"
+              color="primary"
+              text="Fetching your academic records..."
+            />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Error State
-  if (error) {
+  if (status === "error" || (status !== "success" && error)) {
     return (
       <ApiError
         title="Dashboard Loading Error"
-        message={error.message || "Failed to load dashboard. Please try again."}
-        statusCode={error.statusCode}
-        errorCode={error.errorCode}
+        message={error?.message || "Failed to load dashboard. Please try again."}
+        statusCode={error?.statusCode}
+        errorCode={error?.errorCode}
         onRetry={handleRetry}
         onGoBack={handleGoBack}
         retryCount={retryCount}
@@ -242,65 +591,17 @@ export default function StudentDashboard() {
     );
   }
 
-  if (!dashboardData) return null;
+  // Main tree renders only when status === "success" and dashboardData exists
+  if (status !== "success" || !dashboardData) {
+    return null;
+  }
 
-  // Use the safe variables declared at the top (already have defaults)
-  // No need to destructure again - attendanceSummary, studentData already defined
-
-  const {
-    subjectWiseAttendance = [],
-    todaysTimetable = [],
-    feeSummary,
-    latestNotifications = [],
-  } = dashboardData || {};
-
-  // Keep external references in sync. The backend response key is
-  // `todaysTimetable`; the rest of the component renders `todayTimetable`.
-  const todayTimetable = todaysTimetable;
-
-  // Set default values for feeSummary if not available
-  const safeFeeSummary = feeSummary || {
-    totalFee: 0,
-    paid: 0,
-    due: 0,
-    paymentStatus: "NOT_GENERATED",
-  };
-
-  // Utility Functions
-  const getFeeStatusColor = (status) => {
-    const colors = {
-      PAID: "#28a745",
-      PARTIAL: "#ffc107",
-      DUE: "#dc3545",
-    };
-    return colors[status] || "#6c757d";
-  };
-
-  const getAttendanceWarningColor = (percentage) => {
-    if (percentage >= 75) return "#28a745";
-    if (percentage >= 60) return "#ffc107";
-    return "#dc3545";
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  const hasAttendanceRecords = (attendanceSummary.total || 0) > 0;
+  const isAttendanceLow =
+    hasAttendanceRecords && attendanceSummary.percentage < MIN_ATTENDANCE_PERCENT;
 
   return (
-    <div className="erp-page erp-viewport-min-100" style={{ background: "linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%)" }}>
+    <div className="sd-page">
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -314,466 +615,572 @@ export default function StudentDashboard() {
         theme="colored"
       />
 
-      {/* ================= HEADER ================= */}
-      <div className="dashboard-header fade-in">
-        <div className="header-left">
-          <div className="header-icon-wrapper">
-            <FaGraduationCap />
-          </div>
-          <div>
-            <h1 className="dashboard-title">Welcome, {studentData.name}!</h1>
-          </div>
-        </div>
-        <div className="header-right">
-          <button className="btn-refresh" onClick={handleRetry}>
-            <FaSync className={loading ? "spinning" : ""} /> Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* ================= QUICK ACTIONS (MOVED TO TOP) ================= */}
-      <div
-        className="dashboard-card quick-actions-card fade-in-up"
-        style={{ marginBottom: "1.5rem" }}
-      >
-        <div className="card-header">
-          <div className="card-title-wrapper">
-            <FaStar className="card-icon blink-fast" />
-            <h3>Quick Actions</h3>
-            <InfoTooltip message="Frequently used actions" />
-          </div>
-        </div>
-
-        <div className="card-body">
-          <div className="quick-actions-grid">
-            <Link
-              to="/my-attendance"
-              className="quick-action-item quick-action-blink"
-            >
-              <FaChartPie className="action-icon" />
-              <span>Attendance</span>
-            </Link>
-            <Link
-              to="/student/timetable"
-              className="quick-action-item quick-action-blink"
-            >
-              <FaCalendarAlt className="action-icon" />
-              <span>Timetable</span>
-            </Link>
-            <Link
-              to="/student/fees"
-              className="quick-action-item quick-action-blink"
-            >
-              <FaWallet className="action-icon" />
-              <span>Fees</span>
-            </Link>
-            <Link
-              to="/student/profile"
-              className="quick-action-item quick-action-blink"
-            >
-              <FaUserGraduate className="action-icon" />
-              <span>Profile</span>
-            </Link>
-            <Link
-              to="/notification/student"
-              className="quick-action-item quick-action-blink"
-            >
-              <FaBell className="action-icon" />
-              <span>Notifications</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= INFO CARDS ROW ================= */}
-      <div className="row g-3 mb-4">
-        <div className="col-12 col-sm-6 col-lg-3">
-          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div
-                className="card-icon-wrapper blue bg-primary bg-opacity-10 text-primary rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
-              >
-                <FaUserGraduate />
-              </div>
-              <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{studentData.name}</h3>
-                <p className="text-muted small mb-0">Student Name</p>
-              </div>
+      <div className="sd-container">
+        {/* ================= 1. HERO SECTION ================= */}
+        <header className="sd-hero">
+          <div className="sd-hero-left">
+            <h1 className="sd-hero-title">
+              {greeting}, {firstName}!
+            </h1>
+            <div className="sd-hero-chips">
+              {studentData.course && studentData.course !== "Not Assigned" && (
+                <span className="sd-hero-chip">
+                  <FaBook size={13} /> {studentData.course}
+                </span>
+              )}
+              {studentData.semester && (
+                <span className="sd-hero-chip">
+                  <FaLayerGroup size={13} /> Semester {studentData.semester}
+                </span>
+              )}
+              {studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A" && (
+                <span className="sd-hero-chip">
+                  <FaIdBadge size={13} /> {studentData.enrollmentNumber}
+                </span>
+              )}
             </div>
           </div>
-        </div>
 
-        <div className="col-12 col-sm-6 col-lg-3">
-          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div
-                className="card-icon-wrapper green bg-success bg-opacity-10 text-success rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
-              >
-                <FaGraduationCap />
-              </div>
-              <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{studentData.course}</h3>
-                <p className="text-muted small mb-0">Current Course</p>
-              </div>
+          <div className="sd-hero-right">
+            <div className="sd-hero-date-block">
+              <span className="sd-hero-date-label">Today</span>
+              <span className="sd-hero-date-val">{formattedDate}</span>
             </div>
+            <LiveClock />
+            <button
+              type="button"
+              className="sd-hero-refresh-btn"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              aria-label={isRefreshing ? "Refreshing dashboard data" : "Refresh dashboard data"}
+              title={isRefreshing ? "Refreshing..." : "Refresh dashboard"}
+            >
+              <FaSync className={isRefreshing ? "sd-spin" : ""} size={16} />
+            </button>
           </div>
-        </div>
+        </header>
 
-        <div className="col-12 col-sm-6 col-lg-3">
-          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div
-                className="card-icon-wrapper purple bg-info bg-opacity-10 text-info rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
-              >
-                <FaUniversity />
-              </div>
-              <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">{studentData.department}</h3>
-                <p className="text-muted small mb-0">Department</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-sm-6 col-lg-3">
-          <div className="info-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-body d-flex align-items-center gap-3 p-3">
-              <div
-                className="card-icon-wrapper orange bg-warning bg-opacity-10 text-warning rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{ width: "48px", height: "48px", fontSize: "1.5rem" }}
-              >
-                <FaClipboardCheck />
-              </div>
-              <div className="card-content">
-                <h3 className="h6 mb-0 fw-bold">
-                  {attendanceSummary.percentage}%
-                </h3>
-                <p className="text-muted small mb-0">Attendance</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ================= MAIN CONTENT GRID - Bootstrap Row/Col ================= */}
-      <div className="row g-3 g-md-4">
-        {/* ================= ATTENDANCE SUMMARY ================= */}
-        <div className="col-12 col-lg-8">
-          <div className="dashboard-card attendance-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaChartPie className="card-icon" />
-                <h3>Attendance Summary</h3>
-                <InfoTooltip message="Your overall attendance statistics" />
-              </div>
-              <Link to="/my-attendance" className="view-all-link">
-                <FaEye /> View All
+        {/* ================= 2. TODAY AT A GLANCE STRIP ================= */}
+        {glanceItems.length > 0 && (
+          <section className="sd-glance-strip" aria-label="Today at a glance">
+            {glanceItems.map((item) => (
+              <Link key={item.id} to={item.to} className="sd-glance-item">
+                <div className="sd-glance-icon-box" aria-hidden="true">
+                  {item.icon}
+                </div>
+                <div className="sd-glance-content">
+                  <span className="sd-glance-val">{item.val}</span>
+                  <span className="sd-glance-label">{item.label}</span>
+                </div>
               </Link>
+            ))}
+          </section>
+        )}
+
+        {/* ================= 3. QUICK ACTIONS ================= */}
+        <section className="sd-quick-actions-card" aria-label="Quick Actions">
+          <div className="sd-quick-actions-grid">
+            {quickActions.map((action, idx) => (
+              <Link key={idx} to={action.path} className={`sd-action-tile ${action.tintClass}`}>
+                <div className="sd-action-icon-box" aria-hidden="true">
+                  {action.icon}
+                </div>
+                <span className="sd-action-label">{action.label}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* ================= 4. STAT CARDS (4) with 3px Accent Bars & Meaning Tints ================= */}
+        <section className="sd-stats-grid" aria-label="Academic statistics">
+          {/* Card 1: Course */}
+          <div className="sd-stat-card sd-stat-card-blue">
+            <div className="sd-stat-icon-box sd-stat-blue" aria-hidden="true">
+              <FaGraduationCap />
             </div>
-
-            <div className="card-body">
-              {/* Enhanced Stats with Hover Effects */}
-              <div className="attendance-stats">
-                <div
-                  className="stat-item stat-item-hover"
-                  role="listitem"
-                  aria-label={`${attendanceSummary.present} lectures present`}
-                >
-                  <FaCheckCircle
-                    className="stat-icon present"
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <span className="stat-value stat-value-large">
-                      {attendanceSummary.present}
-                    </span>
-                    <span className="stat-label">Present</span>
-                  </div>
-                </div>
-                <div
-                  className="stat-item stat-item-hover"
-                  role="listitem"
-                  aria-label={`${attendanceSummary.absent} lectures absent`}
-                >
-                  <FaTimesCircle
-                    className="stat-icon absent"
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <span className="stat-value stat-value-large">
-                      {attendanceSummary.absent}
-                    </span>
-                    <span className="stat-label">Absent</span>
-                  </div>
-                </div>
-                <div
-                  className="stat-item stat-item-hover"
-                  role="listitem"
-                  aria-label={`${attendanceSummary.total} total lectures`}
-                >
-                  <FaClock className="stat-icon total" aria-hidden="true" />
-                  <div>
-                    <span className="stat-value stat-value-large">
-                      {attendanceSummary.total}
-                    </span>
-                    <span className="stat-label">Total</span>
-                  </div>
-                </div>
+            <div className="sd-stat-content">
+              <span className="sd-stat-label">Course</span>
+              <div className="sd-stat-val-row">
+                <span className="sd-stat-val" title={studentData.course}>
+                  {studentData.course}
+                </span>
               </div>
+            </div>
+          </div>
 
-              {/* Enhanced Pie Chart with better dimensions */}
-              <div
-                className="attendance-chart"
-                style={{ width: "100%", height: "300px", minHeight: "280px" }}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={attendancePieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={70}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      dataKey="value"
-                      labelLine={false}
-                    >
-                      {attendancePieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="bottom" height={36} />
-                  </PieChart>
-                </ResponsiveContainer>
+          {/* Card 2: Department */}
+          <div className="sd-stat-card sd-stat-card-amber">
+            <div className="sd-stat-icon-box sd-stat-amber" aria-hidden="true">
+              <FaUniversity />
+            </div>
+            <div className="sd-stat-content">
+              <span className="sd-stat-label">Department</span>
+              <div className="sd-stat-val-row">
+                <span className="sd-stat-val" title={studentData.department}>
+                  {studentData.department}
+                </span>
               </div>
+            </div>
+          </div>
 
-              {/* Enhanced Progress Bar with Integrated Warning */}
-              <div className="attendance-percentage">
-                <div className="percentage-header">
+          {/* Card 3: Semester or Enrollment No */}
+          {Boolean(
+            (studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A") ||
+              studentData.semester,
+          ) && (
+            <div className="sd-stat-card sd-stat-card-teal">
+              <div className="sd-stat-icon-box sd-stat-teal" aria-hidden="true">
+                <FaIdBadge />
+              </div>
+              <div className="sd-stat-content">
+                <span className="sd-stat-label">
+                  {studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A"
+                    ? "Enrollment No"
+                    : "Semester"}
+                </span>
+                <div className="sd-stat-val-row">
                   <span
-                    className="percentage-text percentage-text-large"
-                    style={{
-                      color: getAttendanceWarningColor(
-                        attendanceSummary.percentage,
-                      ),
-                    }}
+                    className="sd-stat-val sd-stat-val-enrollment"
+                    title={
+                      studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A"
+                        ? studentData.enrollmentNumber
+                        : `Semester ${studentData.semester}`
+                    }
                   >
-                    {attendanceSummary.percentage}% Overall Attendance
+                    {studentData.enrollmentNumber && studentData.enrollmentNumber !== "N/A"
+                      ? studentData.enrollmentNumber
+                      : `Sem ${studentData.semester}`}
                   </span>
-                  {attendanceSummary.warning && (
-                    <div className="attendance-warning attendance-warning-inline">
-                      <FaExclamationTriangle aria-hidden="true" />
-                      <span>
-                        Low Attendance! Minimum 75% required for exam
-                        eligibility.
-                      </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Card 4: Overall Attendance */}
+          <div
+            className={`sd-stat-card ${
+              !hasAttendanceRecords
+                ? "sd-stat-card-teal"
+                : isAttendanceLow
+                  ? "sd-stat-card-danger"
+                  : "sd-stat-card-green"
+            }`}
+          >
+            <div
+              className={`sd-stat-icon-box ${
+                !hasAttendanceRecords
+                  ? "sd-stat-teal"
+                  : isAttendanceLow
+                    ? "sd-stat-danger"
+                    : "sd-stat-green"
+              }`}
+              aria-hidden="true"
+            >
+              <FaCheckCircle />
+            </div>
+            <div className="sd-stat-content">
+              <span className="sd-stat-label">Overall Attendance</span>
+              <div className="sd-stat-val-row">
+                {hasAttendanceRecords ? (
+                  <>
+                    <span className="sd-stat-val">{attendanceSummary.percentage}%</span>
+                    <span
+                      className={`sd-chip ${isAttendanceLow ? "sd-chip-danger" : "sd-chip-success"}`}
+                    >
+                      {isAttendanceLow ? (
+                        <>
+                          <FaExclamationTriangle size={11} /> Low
+                        </>
+                      ) : (
+                        <>
+                          <FaCheckCircle size={11} /> On Track
+                        </>
+                      )}
+                    </span>
+                  </>
+                ) : (
+                  <span
+                    className="sd-stat-val"
+                    style={{ fontSize: "0.92rem", fontWeight: 600 }}
+                  >
+                    No attendance recorded yet
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ================= 5. MAIN GRID (Equal Height Panels) ================= */}
+        <div className="sd-main-grid">
+          {/* Panel A: Attendance Summary */}
+          <article className="sd-card">
+            <header className="sd-card-header">
+              <div className="sd-card-header-left">
+                <div className="sd-card-header-icon" aria-hidden="true">
+                  <FaCheckCircle />
+                </div>
+                <div className="sd-card-title-wrap">
+                  <h2 className="sd-card-title">Attendance Summary</h2>
+                  <p className="sd-card-subtitle">Overall attendance statistics & eligibility</p>
+                </div>
+              </div>
+              <Link to="/my-attendance" className="sd-view-all-link">
+                View All <FaArrowRight size={11} />
+              </Link>
+            </header>
+
+            <div className="sd-card-body">
+              {/* Donut Left + Stacked Metrics Right on >= 1200px */}
+              <div className="sd-attendance-main-row">
+                <div
+                  className="sd-donut-wrapper"
+                  role="region"
+                  aria-label={`Attendance chart: ${attendanceSummary.percentage}% overall attendance`}
+                >
+                  {attendanceSummary.total === 0 || nonZeroAttendanceSlices.length === 0 ? (
+                    <div className="sd-empty-state">
+                      <div className="sd-empty-icon-circle">
+                        <FaCheckCircle />
+                      </div>
+                      <div className="sd-empty-text-wrap">
+                        <span className="sd-empty-title">No attendance yet</span>
+                        <span className="sd-empty-subtitle">Records will show here</span>
+                      </div>
                     </div>
+                  ) : (
+                    <>
+                      <ResponsiveContainer width={180} height={180} minWidth={0}>
+                        <PieChart>
+                          <Pie
+                            data={nonZeroAttendanceSlices}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={58}
+                            outerRadius={78}
+                            paddingAngle={nonZeroAttendanceSlices.length > 1 ? 3 : 0}
+                            dataKey="value"
+                            stroke="none"
+                          >
+                            {nonZeroAttendanceSlices.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="sd-donut-center" aria-hidden="true">
+                        <span className="sd-donut-percent">{attendanceSummary.percentage}%</span>
+                        <span className="sd-donut-caption">Attended</span>
+                      </div>
+                    </>
                   )}
                 </div>
-                <div
-                  className="progress-bar-wrapper progress-bar-thick"
-                  role="progressbar"
-                  aria-valuenow={attendanceSummary.percentage}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={`Attendance progress: ${attendanceSummary.percentage}%`}
-                >
+
+                <div className="sd-attendance-metrics">
+                  <div className="sd-att-metric-box sd-metric-present">
+                    <FaCheckCircle className="sd-att-metric-icon" />
+                    <div className="sd-att-metric-info">
+                      <span className="sd-att-metric-val">{attendanceSummary.present}</span>
+                      <span className="sd-att-metric-label">Present</span>
+                    </div>
+                  </div>
+                  <div className="sd-att-metric-box sd-metric-absent">
+                    <FaTimesCircle className="sd-att-metric-icon" />
+                    <div className="sd-att-metric-info">
+                      <span className="sd-att-metric-val">{attendanceSummary.absent}</span>
+                      <span className="sd-att-metric-label">Absent</span>
+                    </div>
+                  </div>
+                  <div className="sd-att-metric-box sd-metric-total">
+                    <FaClock className="sd-att-metric-icon" />
+                    <div className="sd-att-metric-info">
+                      <span className="sd-att-metric-val">{attendanceSummary.total}</span>
+                      <span className="sd-att-metric-label">Total Lectures</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <p className="sd-attendance-helper">
+                {hasAttendanceRecords ? (
+                  <>
+                    {attendanceSummary.present} of {attendanceSummary.total}{" "}
+                    {attendanceSummary.total === 1 ? "lecture" : "lectures"} attended
+                  </>
+                ) : (
+                  "No lectures recorded for this term yet"
+                )}
+              </p>
+
+              {/* Progress Section with 75% marker (10px height, green gradient) */}
+              <div className="sd-progress-section">
+                <div className="sd-progress-track">
                   <div
-                    className="progress-bar progress-bar-animated"
+                    className={
+                      !hasAttendanceRecords
+                        ? "sd-progress-fill-green"
+                        : isAttendanceLow
+                          ? "sd-progress-fill-danger"
+                          : "sd-progress-fill-green"
+                    }
                     style={{
-                      width: `${attendanceSummary.percentage}%`,
-                      backgroundColor: getAttendanceWarningColor(
-                        attendanceSummary.percentage,
-                      ),
+                      width: `${
+                        hasAttendanceRecords
+                          ? Math.max(0, Math.min(100, attendanceSummary.percentage))
+                          : 0
+                      }%`,
                     }}
                   />
+                  <div className="sd-progress-marker" style={{ left: `${MIN_ATTENDANCE_PERCENT}%` }} aria-hidden="true" />
                 </div>
-                <div className="progress-thresholds">
-                  <span className="threshold-marker" style={{ left: "75%" }}>
-                    <span className="threshold-line"></span>
-                    <span className="threshold-label">75% Min</span>
+                <div className="sd-progress-info">
+                  <span className="sd-progress-threshold">
+                    Minimum required: {MIN_ATTENDANCE_PERCENT}%
+                  </span>
+                  <span
+                    className="sd-progress-status"
+                    style={{
+                      color: !hasAttendanceRecords
+                        ? "var(--sd-muted)"
+                        : isAttendanceLow
+                          ? "var(--sd-danger)"
+                          : "var(--sd-success)",
+                    }}
+                  >
+                    {!hasAttendanceRecords
+                      ? "No records"
+                      : isAttendanceLow
+                        ? "Action Needed"
+                        : "Eligible for Exams"}
                   </span>
                 </div>
               </div>
+
+              {/* Alert banner if below minimum */}
+              {isAttendanceLow && (
+                <div className="sd-alert-banner" role="alert">
+                  <FaExclamationTriangle className="sd-alert-icon" />
+                  <span>
+                    Low Attendance Alert: Minimum {MIN_ATTENDANCE_PERCENT}% required for exam eligibility.
+                  </span>
+                </div>
+              )}
             </div>
-          </div>
-        </div>
+          </article>
 
-        {/* ================= SUBJECT-WISE ATTENDANCE ================= */}
-        <div className="col-12 col-lg-4">
-          <div className="dashboard-card subject-attendance-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaChartBar className="card-icon" />
-                <h3>Subject-wise Attendance</h3>
-                <InfoTooltip message="Attendance breakdown by subject. Subjects with low attendance are highlighted in red." />
+          {/* Panel B: Subject-wise Attendance */}
+          <article className="sd-card">
+            <header className="sd-card-header">
+              <div className="sd-card-header-left">
+                <div className="sd-card-header-icon" aria-hidden="true">
+                  <FaBook />
+                </div>
+                <div className="sd-card-title-wrap">
+                  <h2 className="sd-card-title">Subject-wise Attendance</h2>
+                  <p className="sd-card-subtitle">Performance breakdown across subjects</p>
+                </div>
               </div>
-            </div>
+              <Link to="/my-attendance" className="sd-view-all-link">
+                View All <FaArrowRight size={11} />
+              </Link>
+            </header>
 
-            <div className="card-body">
-              {/* Enhanced Bar Chart with Risk-Based Colors */}
-              <div
-                className="subject-chart"
-                style={{ width: "100%", height: "400px", minHeight: "350px" }}
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={subjectBarData}
-                    margin={{ top: 10, right: 10, bottom: 20, left: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#f0f0f0"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="code"
-                      tick={{ fontSize: 11, fontWeight: 500 }}
-                      interval={0}
-                      height={50}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      tick={{ fontSize: 11 }}
-                      tickLine={false}
-                      axisLine={false}
-                      label={{
-                        value: "Lectures",
-                        angle: -90,
-                        position: "insideLeft",
-                        fontSize: 11,
-                      }}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
-                    />
-                    <ReferenceLine
-                      y={Math.max(...subjectBarData.map((s) => s.total)) * 0.75}
-                      stroke="#dc3545"
-                      strokeDasharray="3 3"
-                      label={{
-                        value: "75% Target",
-                        fill: "#dc3545",
-                        fontSize: 10,
-                        position: "right",
-                      }}
-                    />
-                    <Bar
-                      dataKey="present"
-                      name="Present"
-                      radius={[6, 6, 0, 0]}
-                      animationDuration={1000}
-                    >
-                      {subjectBarData.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={
-                            entry.percentage >= 75
-                              ? "#28a745"
-                              : entry.percentage >= 60
-                                ? "#ffc107"
-                                : "#dc3545"
-                          }
-                        />
-                      ))}
-                    </Bar>
-                    <Bar
-                      dataKey="total"
-                      name="Total"
-                      fill="#80adda"
-                      radius={[6, 6, 0, 0]}
-                      animationDuration={1000}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+            <div className="sd-card-body">
+              {/* Show bar chart ONLY when there are 3 or more subjects */}
+              {subjectBarData.length >= 3 && (
+                <div
+                  className="sd-subject-chart-wrap"
+                  role="region"
+                  aria-label={`Subject-wise attendance bar chart across ${subjectBarData.length} subjects`}
+                >
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                    <BarChart data={subjectBarData} margin={{ top: 10, right: 10, bottom: 20, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e6ebf1" vertical={false} />
+                      <XAxis
+                        dataKey="code"
+                        tick={{ fontSize: 12, fill: "#475569" }}
+                        interval={0}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        domain={[0, "dataMax"]}
+                        tick={{ fontSize: 12, fill: "#475569" }}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="present" name="Present" fill="var(--sd-success)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="total" name="Total" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
 
-              {/* Enhanced Subject List with Teacher Info and Trends */}
               {subjectWiseAttendance.length === 0 ? (
-                <div className="no-data">
-                  <FaChartBar className="no-data-icon" />
-                  <p>No subject attendance data available</p>
+                <div className="sd-empty-state">
+                  <div className="sd-empty-icon-circle">
+                    <FaBook />
+                  </div>
+                  <div className="sd-empty-text-wrap">
+                    <span className="sd-empty-title">No subjects recorded</span>
+                    <span className="sd-empty-subtitle">Course subjects will appear once scheduled</span>
+                  </div>
                 </div>
               ) : (
-                <div
-                  className="subject-list"
-                  role="list"
-                  aria-label="Subject-wise attendance list"
-                >
-                  {(subjectWiseAttendance || [])
-                    .sort((a, b) => a.percentage - b.percentage) // Sort by attendance (lowest first)
-                    .map((subject, index) => {
-                    const attendanceColor = getAttendanceWarningColor(
-                      subject.percentage,
-                    );
-                    const needsAttention = subject.percentage < 75;
-                    const lecturesNeeded = Math.ceil(
-                      (75 *
-                        (subject.present + subject.total - subject.present)) /
-                        25 -
-                        subject.present,
-                    );
+                <div className="sd-subject-rows" role="list" aria-label="Subject attendance list">
+                  {[...subjectWiseAttendance]
+                    .sort((a, b) => (a.percentage || 0) - (b.percentage || 0))
+                    .map((subject, idx) => {
+                      const isLow =
+                        (subject.total || 0) > 0 &&
+                        (subject.percentage || 0) < MIN_ATTENDANCE_PERCENT;
+                      const lecturesNeeded = Math.max(
+                        0,
+                        Math.ceil(3 * (subject.total || 0) - 4 * (subject.present || 0)),
+                      );
+                      return (
+                        <div
+                          key={idx}
+                          role="listitem"
+                          className={`sd-subject-row ${isLow ? "sd-subject-row-warning" : ""}`}
+                        >
+                          <div className="sd-subject-row-top">
+                            <div className="sd-subject-title-wrap">
+                              <span className="sd-subject-name">{subject.subject}</span>
+                              <span className="sd-subject-code">{subject.code}</span>
+                            </div>
+                            <span
+                              className={`sd-chip ${isLow ? "sd-chip-danger" : "sd-chip-success"}`}
+                            >
+                              {isLow ? (
+                                <>
+                                  <FaExclamationTriangle size={11} /> Needs Attention
+                                </>
+                              ) : (
+                                <>
+                                  <FaCheckCircle size={11} /> On Track
+                                </>
+                              )}
+                            </span>
+                          </div>
+                          <div className="sd-subject-progress-wrap">
+                            <div className="sd-progress-track">
+                              <div
+                                className={isLow ? "sd-progress-fill-danger" : "sd-progress-fill-green"}
+                                style={{
+                                  width: `${Math.max(0, Math.min(100, subject.percentage || 0))}%`,
+                                }}
+                              />
+                            </div>
+                            <div className="sd-subject-progress-labels">
+                              <span
+                                style={{
+                                  color: isLow ? "var(--sd-danger)" : "var(--sd-success)",
+                                }}
+                              >
+                                {subject.percentage || 0}%
+                              </span>
+                              <span className="sd-subject-counts">
+                                {subject.present || 0} / {subject.total || 0} lectures
+                              </span>
+                            </div>
+                          </div>
+                          {isLow && lecturesNeeded > 0 && (
+                            <div>
+                              <span className="sd-subject-needed-callout">
+                                Need {lecturesNeeded} more {lecturesNeeded === 1 ? "lecture" : "lectures"} to reach {MIN_ATTENDANCE_PERCENT}%
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          </article>
+        </div>
+
+        {/* ================= 6. SECOND GRID (Timetable & Fee Summary) ================= */}
+        <div className="sd-second-grid">
+          {/* Panel C: Today's Timetable */}
+          <article className="sd-card">
+            <header className="sd-card-header">
+              <div className="sd-card-header-left">
+                <div className="sd-card-header-icon" aria-hidden="true">
+                  <FaCalendarAlt />
+                </div>
+                <div className="sd-card-title-wrap">
+                  <h2 className="sd-card-title">Today's Schedule</h2>
+                  <p className="sd-card-subtitle">Scheduled lectures & classroom timeline</p>
+                </div>
+              </div>
+              <Link to="/student/timetable" className="sd-view-all-link">
+                Full Timetable <FaArrowRight size={11} />
+              </Link>
+            </header>
+
+            <div className="sd-card-body">
+              {sortedTimetable.length === 0 ? (
+                <div className="sd-empty-state">
+                  <div className="sd-empty-icon-circle">
+                    <FaCalendarAlt />
+                  </div>
+                  <div className="sd-empty-text-wrap">
+                    <span className="sd-empty-title">No classes scheduled today</span>
+                    <span className="sd-empty-subtitle">Enjoy your free day or catch up on revision</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="sd-timeline" role="list" aria-label="Today's schedule list">
+                  {sortedTimetable.map((slot, index) => {
+                    const isCurrent = index === currentSlotIdx;
+                    const isNext = index === nextSlotIdx;
 
                     return (
                       <div
                         key={index}
-                        className={`subject-item subject-item-hover ${needsAttention ? "subject-item-warning" : ""}`}
                         role="listitem"
-                        aria-label={`${subject.subject}: ${subject.percentage}% attendance`}
+                        className={`sd-timeline-item ${isCurrent ? "sd-timeline-active" : isNext ? "sd-timeline-next" : ""}`}
                       >
-                        <div className="subject-info">
-                          <div className="subject-info-main">
-                            <span className="subject-name">
-                              {subject.subject}
-                            </span>
-                            <span className="subject-code">{subject.code}</span>
-                          </div>
-                          {needsAttention && (
-                            <div className="subject-attention-badge">
-                              <FaExclamationTriangle size={12} />
-                              <span>Needs Attention</span>
-                            </div>
-                          )}
+                        <div className="sd-timeline-time-box">
+                          <span className="sd-time-start">{slot.startTime}</span>
+                          <span className="sd-time-end">to {slot.endTime}</span>
                         </div>
-                        <div className="subject-progress">
-                          <div
-                            className="progress-bar-wrapper progress-bar-thick"
-                            role="progressbar"
-                            aria-valuenow={subject.percentage}
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                          >
-                            <div
-                              className="progress-bar progress-bar-animated"
-                              style={{
-                                width: `${subject.percentage}%`,
-                                backgroundColor: attendanceColor,
-                              }}
-                            />
+                        <div className="sd-timeline-body">
+                          <div className="sd-timeline-header-row">
+                            <h3 className="sd-timeline-subject">{slot.subject}</h3>
+                            <div className="sd-timeline-tags">
+                              {isCurrent && (
+                                <span className="sd-chip sd-chip-success">
+                                  <FaClock size={11} /> Live Now
+                                </span>
+                              )}
+                              {isNext && (
+                                <span className="sd-chip sd-chip-brand">
+                                  <FaClock size={11} /> Next Up
+                                </span>
+                              )}
+                              <span className="sd-chip sd-chip-neutral">{slot.code}</span>
+                              {slot.slotType && (
+                                <span className="sd-chip sd-chip-brand">{slot.slotType}</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="subject-progress-info">
-                            <span
-                              className="percentage-text percentage-text-bold"
-                              style={{ color: attendanceColor }}
-                            >
-                              {subject.percentage}%
-                            </span>
-                            <span className="subject-lectures-count">
-                              {subject.present}/{subject.total}
-                            </span>
-                          </div>
-                          {needsAttention &&
-                            lecturesNeeded > 0 &&
-                            lecturesNeeded < subject.total && (
-                              <div className="subject-action-needed">
-                                Need {lecturesNeeded} more to reach 75%
-                              </div>
+                          <div className="sd-timeline-meta">
+                            {slot.teacher && (
+                              <span>
+                                <FaChalkboardTeacher /> {slot.teacher}
+                              </span>
                             )}
+                            {slot.room && (
+                              <span>
+                                <FaMapMarkerAlt /> Room {slot.room}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -781,1510 +1188,178 @@ export default function StudentDashboard() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
+          </article>
 
-        {/* ================= TODAY'S TIMETABLE ================= */}
-        <div className="col-12 col-lg-6">
-          <div className="dashboard-card timetable-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaCalendarAlt className="card-icon" />
-                <h3>Today's Timetable</h3>
-                <InfoTooltip message="Your scheduled classes for today" />
+          {/* Panel D: Fee Summary */}
+          <article className="sd-card">
+            <header className="sd-card-header">
+              <div className="sd-card-header-left">
+                <div className="sd-card-header-icon" aria-hidden="true">
+                  <FaWallet />
+                </div>
+                <div className="sd-card-title-wrap">
+                  <h2 className="sd-card-title">Fee Summary</h2>
+                  <p className="sd-card-subtitle">Installment balance & payment status</p>
+                </div>
               </div>
-              <Link to="/student/timetable" className="view-all-link">
-                <FaEye /> Full Timetable
+              <Link to="/student/fees" className="sd-view-all-link">
+                View Details <FaArrowRight size={11} />
               </Link>
-            </div>
+            </header>
 
-            <div className="card-body">
-              {todayTimetable.length === 0 ? (
-                <div className="no-data">
-                  <FaCalendarAlt className="no-data-icon" />
-                  <p>No classes scheduled for today</p>
+            <div className="sd-card-body">
+              {!dashboardData?.feeSummary || safeFeeSummary.paymentStatus === "NOT_GENERATED" ? (
+                <div className="sd-empty-state">
+                  <div className="sd-empty-icon-circle">
+                    <FaWallet />
+                  </div>
+                  <div className="sd-empty-text-wrap">
+                    <span className="sd-empty-title">Fee details not generated yet</span>
+                    <span className="sd-empty-subtitle">Contact the administration office for billing updates</span>
+                  </div>
                 </div>
               ) : (
-                <div className="timetable-list">
-                  {[...todayTimetable].sort((a, b) => a.startTime.localeCompare(b.startTime)).map((slot, index) => (
-                    <div key={index} className="timetable-slot">
-                      <div className="slot-time">
-                        <FaClock className="time-icon" />
-                        <div className="time-range">
-                          <span className="start-time">{slot.startTime}</span>
-                          <span className="time-separator">-</span>
-                          <span className="end-time">{slot.endTime}</span>
-                        </div>
-                      </div>
-                      <div className="slot-details">
-                        <h4 className="slot-subject">{slot.subject}</h4>
-                        <div className="slot-meta">
-                          <span className="slot-code">{slot.code}</span>
-                          <span className="slot-type">{slot.slotType}</span>
-                        </div>
-                        <div className="slot-info">
-                          <span className="slot-teacher">
-                            <FaChalkboardTeacher /> {slot.teacher}
-                          </span>
-                          <span className="slot-room">
-                            <FaMapMarkerAlt /> Room {slot.room}
-                          </span>
-                        </div>
-                      </div>
+                <>
+                  <div className="sd-fee-strip">
+                    <div className="sd-fee-metric sd-fee-metric-total">
+                      <span className="sd-fee-label">Total Fee</span>
+                      <span className="sd-fee-val">{formatCurrency(safeFeeSummary.totalFee)}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+                    <div className="sd-fee-metric sd-fee-metric-paid">
+                      <span className="sd-fee-label">Paid</span>
+                      <span className="sd-fee-val sd-fee-val-paid">{formatCurrency(safeFeeSummary.paid)}</span>
+                    </div>
+                    <div className={`sd-fee-metric ${safeFeeSummary.due > 0 ? "sd-fee-metric-due" : "sd-fee-metric-cleared"}`}>
+                      <span className="sd-fee-label">Due</span>
+                      <span className={`sd-fee-val ${safeFeeSummary.due > 0 ? "sd-fee-val-due" : "sd-fee-val-cleared"}`}>
+                        {formatCurrency(safeFeeSummary.due)}
+                      </span>
+                    </div>
+                  </div>
 
-        {/* ================= FEE SUMMARY ================= */}
-        <div className="col-12 col-lg-6">
-          <div className="dashboard-card fee-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaWallet className="card-icon" />
-                <h3>Fee Summary</h3>
-                <InfoTooltip message="Your fee payment status" />
-              </div>
-              <Link to="/student/fees" className="view-all-link">
-                <FaEye /> View Details
-              </Link>
-            </div>
+                  <div className="sd-fee-status-row">
+                    <span className="sd-fee-progress-label">Payment Progress</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span className="sd-fee-progress-pct">{feeProgressPercent}%</span>
+                      {safeFeeSummary.due === 0 && safeFeeSummary.totalFee > 0 ? (
+                        <span className="sd-chip sd-chip-success">
+                          <FaCheckCircle size={12} /> Fully Paid
+                        </span>
+                      ) : safeFeeSummary.due > 0 ? (
+                        <span className="sd-chip sd-chip-danger">
+                          <FaClock size={12} /> Payment Due
+                        </span>
+                      ) : (
+                        <span className="sd-chip sd-chip-warning">
+                          <FaExclamationTriangle size={12} /> {safeFeeSummary.paymentStatus}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-            <div className="card-body">
-              <div className="fee-overview">
-                <div className="fee-stat">
-                  <span className="fee-label">Total Fee</span>
-                  <span className="fee-value">
-                    {formatCurrency(safeFeeSummary.totalFee)}
-                  </span>
-                </div>
-                <div className="fee-stat">
-                  <span className="fee-label">Paid</span>
-                  <span className="fee-value paid">
-                    {formatCurrency(safeFeeSummary.paid)}
-                  </span>
-                </div>
-                <div className="fee-stat">
-                  <span className="fee-label">Due</span>
-                  <span className="fee-value due">
-                    {formatCurrency(safeFeeSummary.due)}
-                  </span>
-                </div>
-              </div>
+                  <div className="sd-progress-section">
+                    <div className="sd-progress-track">
+                      <div
+                        className={safeFeeSummary.due === 0 ? "sd-progress-fill-green" : "sd-progress-fill-danger"}
+                        style={{
+                          width: `${feeProgressPercent}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
 
-              <div className="fee-status">
-                <div
-                  className="status-badge"
-                  style={{
-                    backgroundColor: getFeeStatusColor(
-                      safeFeeSummary.paymentStatus,
-                    ),
-                  }}
-                >
-                  {safeFeeSummary.paymentStatus}
-                </div>
-              </div>
-
-              <div className="fee-progress">
-                <div className="progress-label">
-                  <span>Payment Progress</span>
-                  <span>
-                    {Math.round(
-                      (safeFeeSummary.paid / safeFeeSummary.totalFee) * 100,
+                  {safeFeeSummary.due > 0 &&
+                    safeFeeSummary.paymentStatus !== "PAID" &&
+                    safeFeeSummary.paymentStatus !== "NOT_GENERATED" && (
+                      <div className="sd-fee-actions">
+                        <Link to="/student/make-payment" className="sd-btn-primary">
+                          <FaRupeeSign /> Pay Now ({formatCurrency(safeFeeSummary.due)})
+                        </Link>
+                      </div>
                     )}
-                    %
-                  </span>
-                </div>
-                <div className="progress-bar-wrapper">
-                  <div
-                    className="progress-bar"
-                    style={{
-                      width: `${(safeFeeSummary.paid / safeFeeSummary.totalFee) * 100}%`,
-                      backgroundColor: getFeeStatusColor(
-                        safeFeeSummary.paymentStatus,
-                      ),
-                    }}
-                  />
-                </div>
-              </div>
-
-              {safeFeeSummary.paymentStatus !== "PAID" && (
-                <Link to="/student/make-payment" className="btn-pay-now">
-                  <FaRupeeSign /> Pay Now
-                </Link>
+                </>
               )}
             </div>
-          </div>
+          </article>
         </div>
 
-        {/* ================= LATEST NOTIFICATIONS ================= */}
-        <div className="col-12 col-lg-6">
-          <div className="dashboard-card notifications-card fade-in-up card border-0 shadow-sm h-100">
-            <div className="card-header">
-              <div className="card-title-wrapper">
-                <FaBell className="card-icon" />
-                <h3>Latest Notifications</h3>
-                <InfoTooltip message="Recent announcements and updates" />
+        {/* ================= 7. NOTIFICATIONS ================= */}
+        <section className="sd-card" aria-label="Notifications">
+          <header className="sd-card-header">
+            <div className="sd-card-header-left">
+              <div className="sd-card-header-icon" aria-hidden="true">
+                <FaBell />
               </div>
-              <Link to="/notification/student" className="view-all-link">
-                <FaEye /> View All
-              </Link>
+              <div className="sd-card-title-wrap">
+                <h2 className="sd-card-title">Latest Notifications</h2>
+                <p className="sd-card-subtitle">Official announcements and campus notices</p>
+              </div>
             </div>
+            <Link to="/notification/student" className="sd-view-all-link">
+              View All <FaArrowRight size={11} />
+            </Link>
+          </header>
 
-            <div className="card-body">
-              {latestNotifications?.length === 0 ? (
-                <div className="no-data">
-                  <FaBell className="no-data-icon" />
-                  <p>No new notifications</p>
+          <div className="sd-card-body">
+            {latestNotifications.length === 0 ? (
+              <div className="sd-empty-state">
+                <div className="sd-empty-icon-circle">
+                  <FaCheckCircle />
                 </div>
-              ) : (
-                <div className="notifications-list">
-                  {latestNotifications.slice(0, 5).map((notification) => (
+                <div className="sd-empty-text-wrap">
+                  <span className="sd-empty-title">No new notifications</span>
+                  <span className="sd-empty-subtitle">You are all caught up with announcements</span>
+                </div>
+              </div>
+            ) : (
+              <div className="sd-notifications-list" role="list">
+                {latestNotifications.slice(0, 4).map((notification) => {
+                  const handleNotificationClick = () => {
+                    if (
+                      notification.actionUrl &&
+                      typeof notification.actionUrl === "string" &&
+                      notification.actionUrl.startsWith("/")
+                    ) {
+                      navigate(notification.actionUrl);
+                    } else {
+                      navigate(`/notification/view/${notification._id}`);
+                    }
+                  };
+
+                  return (
                     <div
                       key={notification._id}
-                      className={`notification-item ${
-                        !notification.isRead ? "unread" : ""
-                      }`}
+                      role="button"
+                      tabIndex={0}
+                      className="sd-notif-card"
+                      aria-label={`View notification: ${notification.title}`}
+                      onClick={handleNotificationClick}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          handleNotificationClick();
+                        }
+                      }}
                     >
-                      <div className="notification-icon">
-                        <FaBell
-                          className={notification.isRead ? "read" : "unread"}
-                        />
+                      <div className="sd-notif-icon-box" aria-hidden="true">
+                        <FaBell />
                       </div>
-                      <div className="notification-content">
-                        <h4 className="notification-title">
-                          {notification.title}
-                        </h4>
-                        <p className="notification-message">
-                          {notification.message}
-                        </p>
-                        <div className="notification-meta">
-                          <span className="notification-type">
-                            {notification.type}
-                          </span>
-                          <span className="notification-date">
-                            {formatDate(notification.createdAt)}
-                          </span>
+                      <div className="sd-notif-content">
+                        <h3 className="sd-notif-title">{notification.title}</h3>
+                        <p className="sd-notif-message">{notification.message}</p>
+                        <div className="sd-notif-meta">
+                          <span className="sd-chip sd-chip-neutral">{notification.type || "General"}</span>
+                          <span>{formatDate(notification.createdAt)}</span>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
-        </div>
+        </section>
       </div>
-
-      {/* ================= STYLES ================= */}
-      <style>{`
-        /* ================= LOADING STATE ================= */
-        .dashboard-loading {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-          gap: 2rem;
-          padding: 2rem;
-        }
-
-        .loading-spinner {
-          text-align: center;
-        }
-
-        .spinner-icon {
-          font-size: 5rem;
-          color: #1a4b6d;
-          animation: float 3s ease-in-out infinite;
-        }
-
-        .loading-text {
-          margin-top: 1.5rem;
-          font-size: 1.25rem;
-          color: #1a4b6d;
-          font-weight: 600;
-        }
-
-        .loading-bar {
-          width: 200px;
-          height: 4px;
-          background: #e0e0e0;
-          border-radius: 2px;
-          margin: 1.5rem auto 0;
-          overflow: hidden;
-        }
-
-        .loading-progress {
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, #1a4b6d, #2d6f8f);
-          animation: loading 1.5s ease-in-out infinite;
-        }
-
-        /* ================= SKELETON LOADERS ================= */
-        .skeleton-cards {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-          width: 100%;
-          max-width: 1200px;
-        }
-
-        .skeleton-card {
-          background: white;
-          border-radius: 12px;
-          height: 150px;
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .skeleton-table {
-          width: 100%;
-          max-width: 1200px;
-          background: white;
-          border-radius: 12px;
-          padding: 1.5rem;
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .skeleton-table-header {
-          height: 40px;
-          background: #e0e0e0;
-          border-radius: 8px;
-          margin-bottom: 1rem;
-        }
-
-        .skeleton-table-row {
-          height: 60px;
-          background: #f0f0f0;
-          border-radius: 8px;
-          margin-bottom: 0.75rem;
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-
-        @keyframes loading {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-
-        /* ================= ERROR STATE ================= */
-        .dashboard-error {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
-        }
-
-        .error-content {
-          text-align: center;
-          padding: 3rem;
-          background: white;
-          border-radius: 16px;
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-        }
-
-        .error-icon {
-          font-size: 5rem;
-          color: #dc3545;
-          margin-bottom: 1.5rem;
-        }
-
-        .error-content h3 {
-          margin: 0 0 1rem;
-          color: #1a4b6d;
-          font-size: 1.75rem;
-        }
-
-        .error-message {
-          color: #4a5568;
-          margin-bottom: 2rem;
-          font-size: 1rem;
-          line-height: 1.6;
-        }
-
-        .retry-btn {
-          padding: 0.875rem 2rem;
-          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          transition: all 0.3s ease;
-        }
-
-        .retry-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
-        }
-
-        .retry-btn .spinning {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        /* ================= HEADER ================= */
-        .dashboard-header {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          padding: 1.25rem;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        }
-
-        @media (min-width: 768px) {
-          .dashboard-header {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding: 1.5rem;
-          }
-        }
-
-        .header-left {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .header-icon-wrapper {
-          width: clamp(56px, 10vw, 70px);
-          height: clamp(56px, 10vw, 70px);
-          min-width: 56px;
-          min-height: 56px;
-          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: clamp(1.75rem, 4vw, 2.5rem);
-          box-shadow: 0 4px 15px rgba(26, 75, 109, 0.3);
-          flex-shrink: 0;
-        }
-
-        .dashboard-title {
-          margin: 0;
-          font-size: clamp(1.25rem, 3vw, 1.75rem);
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .dashboard-subtitle {
-          margin: 0.25rem 0 0;
-          color: #4a5568;
-          font-size: 1rem;
-        }
-
-        .header-right {
-          display: flex;
-          gap: 1rem;
-        }
-
-        .btn-refresh,
-        .btn-primary {
-          padding: 0.75rem 1.25rem;
-          border-radius: 8px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          text-decoration: none;
-          cursor: pointer;
-          border: none;
-          transition: all 0.3s ease;
-          font-size: 0.9rem;
-        }
-
-        .btn-refresh {
-          background: #f8f9fa;
-          color: #1a4b6d;
-          border: 2px solid #1a4b6d;
-        }
-
-        .btn-refresh:hover {
-          background: #1a4b6d;
-          color: white;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-          color: white;
-        }
-
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
-        }
-
-        /* ================= INFO CARDS ================= */
-        .info-cards-row {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        @media (min-width: 768px) {
-          .info-cards-row {
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-          }
-        }
-
-        .info-card {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 1.25rem;
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-          transition: all 0.3s ease;
-          position: relative;
-        }
-
-        @media (min-width: 768px) {
-          .info-card {
-            gap: 1rem;
-            padding: 1.5rem;
-          }
-        }
-
-        .info-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        }
-
-        .card-icon-wrapper {
-          width: clamp(48px, 8vw, 60px);
-          height: clamp(48px, 8vw, 60px);
-          min-width: 48px;
-          min-height: 48px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: clamp(1.25rem, 3vw, 1.75rem);
-          color: white;
-          flex-shrink: 0;
-        }
-
-        .card-icon-wrapper.blue { background: linear-gradient(135deg, #007bff, #0056b3); }
-        .card-icon-wrapper.green { background: linear-gradient(135deg, #28a745, #1e7e34); }
-        .card-icon-wrapper.purple { background: linear-gradient(135deg, #6f42c1, #4a2d8a); }
-        .card-icon-wrapper.orange { background: linear-gradient(135deg, #fd7e14, #c95d0a); }
-
-        .card-content {
-          flex: 1;
-          position: relative;
-        }
-
-        .card-content h3 {
-          margin: 0;
-          font-size: 1.1rem;
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .card-content p {
-          margin: 0.25rem 0 0;
-          font-size: 0.85rem;
-          color: #4a5568;
-        }
-
-        /* ================= TOOLTIP ================= */
-        .info-tooltip-wrapper {
-          position: absolute;
-          top: 0;
-          right: 0;
-          cursor: pointer;
-        }
-
-        .info-icon {
-          color: #4a5568;
-          font-size: 1rem;
-          transition: color 0.3s ease;
-        }
-
-        .info-icon:hover {
-          color: #1a4b6d;
-        }
-
-        .info-tooltip-content {
-          position: absolute;
-          top: 100%;
-          right: 0;
-          background: #1a4b6d;
-          color: white;
-          padding: 0.5rem 0.75rem;
-          border-radius: 6px;
-          font-size: 0.75rem;
-          white-space: nowrap;
-          opacity: 0;
-          visibility: hidden;
-          transition: all 0.3s ease;
-          z-index: 100;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-          margin-top: 5px;
-        }
-
-        .info-tooltip-content::before {
-          content: "";
-          position: absolute;
-          bottom: 100%;
-          right: 1rem;
-          border: 6px solid transparent;
-          border-bottom-color: #1a4b6d;
-        }
-
-        .info-tooltip-wrapper:hover .info-tooltip-content {
-          opacity: 1;
-          visibility: visible;
-          transform: translateY(0);
-        }
-
-        /* ================= DASHBOARD GRID ================= */
-        .dashboard-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-          gap: 1rem;
-        }
-
-        @media (min-width: 768px) {
-          .dashboard-grid {
-            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-            gap: 1.5rem;
-          }
-        }
-
-        @media (min-width: 1024px) {
-          .dashboard-grid {
-            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-          }
-        }
-
-        /* ================= CARD STYLES ================= */
-        .dashboard-card {
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-          overflow: hidden;
-          transition: all 0.3s ease;
-        }
-
-        .dashboard-card:hover {
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        }
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid #e9ecef;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        }
-
-        .card-title-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .card-icon {
-          font-size: 1.25rem;
-          color: #1a4b6d;
-        }
-
-        .card-header h3 {
-          margin: 0;
-          font-size: 1.1rem;
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .view-all-link {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: #1a4b6d;
-          text-decoration: none;
-          font-size: 0.85rem;
-          font-weight: 600;
-          transition: color 0.3s ease;
-        }
-
-        .view-all-link:hover {
-          color: #2d6f8f;
-        }
-
-        .card-body {
-          padding: 1.5rem;
-        }
-
-        /* ================= ATTENDANCE ================= */
-        .attendance-stats {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .stat-item {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 1rem;
-          background: #f8f9fa;
-          border-radius: 8px;
-          transition: all 0.3s ease;
-        }
-
-        /* Enhanced Stat Item Hover Effect */
-        .stat-item-hover:hover {
-          transform: translateY(-3px);
-          background: linear-gradient(135deg, #e8f4f8 0%, #d4edda 100%);
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-          cursor: pointer;
-        }
-
-        .stat-icon {
-          font-size: 1.5rem;
-          flex-shrink: 0;
-        }
-
-        .stat-icon.present { color: #28a745; }
-        .stat-icon.absent { color: #dc3545; }
-        .stat-icon.total { color: #1a4b6d; }
-
-        .stat-value {
-          display: block;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #1a4b6d;
-          transition: all 0.3s ease;
-        }
-
-        /* Enhanced Stat Value - Larger and More Prominent */
-        .stat-value-large {
-          font-size: 2rem;
-          line-height: 1.2;
-        }
-
-        .stat-item-hover:hover .stat-value-large {
-          transform: scale(1.05);
-          display: inline-block;
-        }
-
-        .stat-label {
-          font-size: 0.75rem;
-          color: #4a5568;
-          font-weight: 500;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .attendance-chart {
-          margin: 1.5rem 0;
-          height: clamp(220px, 30vw, 300px);
-          min-height: 220px;
-        }
-
-        .attendance-percentage {
-          text-align: center;
-        }
-
-        /* Enhanced Percentage Header with Integrated Warning */
-        .percentage-header {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
-          margin-bottom: 0.75rem;
-        }
-
-        /* Enhanced Percentage Text - Larger and More Prominent */
-        .percentage-text-large {
-          font-size: 1.25rem;
-          font-weight: 700;
-        }
-
-        /* Enhanced Inline Warning */
-        .attendance-warning-inline {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-          color: #856404;
-          border-radius: 20px;
-          font-size: 0.8rem;
-          font-weight: 600;
-          box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
-          animation: warning-pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes warning-pulse {
-          0%, 100% {
-            box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
-          }
-          50% {
-            box-shadow: 0 2px 12px rgba(255, 193, 7, 0.5);
-          }
-        }
-
-        /* Enhanced Progress Bar - Thicker and Animated */
-        .progress-bar-thick {
-          width: 100%;
-          height: 16px;
-          background: linear-gradient(90deg, #e9ecef 0%, #dee2e6 100%);
-          border-radius: 10px;
-          overflow: hidden;
-          margin-bottom: 0.5rem;
-          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .progress-bar-animated {
-          height: 100%;
-          border-radius: 10px;
-          transition: width 1s ease-in-out;
-          background: linear-gradient(90deg, currentColor 0%, currentColor 100%);
-          animation: progress-shimmer 2s linear infinite;
-          background-size: 200% 100%;
-        }
-
-        @keyframes progress-shimmer {
-          0% {
-            background-position: 200% 0;
-          }
-          100% {
-            background-position: -200% 0;
-          }
-        }
-
-        /* Progress Threshold Marker */
-        .progress-thresholds {
-          position: relative;
-          width: 100%;
-          height: 20px;
-          margin-top: 0.25rem;
-        }
-
-        .threshold-marker {
-          position: absolute;
-          top: 0;
-          transform: translateX(-50%);
-        }
-
-        .threshold-line {
-          display: block;
-          width: 2px;
-          height: 10px;
-          background: #dc3545;
-          margin: 0 auto 0.25rem;
-        }
-
-        .threshold-label {
-          display: block;
-          font-size: 0.7rem;
-          color: #dc3545;
-          font-weight: 600;
-          white-space: nowrap;
-        }
-
-        .percentage-text {
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: #4a5568;
-        }
-
-        .attendance-warning {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          margin-top: 0.75rem;
-          padding: 0.75rem;
-          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-          color: #856404;
-          border-radius: 6px;
-          font-size: 0.85rem;
-          font-weight: 600;
-          box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
-        }
-
-        /* ================= SUBJECT ATTENDANCE ================= */
-        .subject-chart {
-          margin-bottom: 1.5rem;
-          height: clamp(280px, 40vw, 380px);
-          min-height: 280px;
-        }
-
-        .subject-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        /* Enhanced Subject Item */
-        .subject-item {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          padding: 1.25rem;
-          background: #f8f9fa;
-          border-radius: 10px;
-          transition: all 0.3s ease;
-          border-left: 4px solid transparent;
-        }
-
-        /* Subject Item Hover Effect */
-        .subject-item-hover:hover {
-          transform: translateX(5px);
-          background: linear-gradient(135deg, #f8f9fa 0%, #e8f4f8 100%);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-          cursor: pointer;
-        }
-
-        /* Subject Item Warning State (Low Attendance) */
-        .subject-item-warning {
-          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-          border-left-color: #dc3545;
-        }
-
-        .subject-item-warning:hover {
-          box-shadow: 0 4px 20px rgba(220, 53, 69, 0.2);
-        }
-
-        .subject-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 0.5rem;
-        }
-
-        .subject-info-main {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          flex-wrap: wrap;
-        }
-
-        .subject-name {
-          font-weight: 600;
-          color: #1a4b6d;
-          font-size: 1rem;
-        }
-
-        .subject-code {
-          font-size: 0.75rem;
-          color: #4a5568;
-          background: #e9ecef;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          font-weight: 500;
-        }
-
-        /* Subject Attention Badge */
-        .subject-attention-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.375rem;
-          padding: 0.375rem 0.75rem;
-          background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-          color: white;
-          border-radius: 12px;
-          font-size: 0.7rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-        }
-
-        /* Enhanced Subject Progress */
-        .subject-progress {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          width: 100%;
-        }
-
-        .subject-progress .progress-bar-wrapper {
-          width: 100%;
-          margin-bottom: 0;
-        }
-
-        /* Subject Progress Info (Percentage + Count) */
-        .subject-progress-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 0.25rem;
-        }
-
-        .percentage-text-bold {
-          font-size: 1rem;
-          font-weight: 700;
-        }
-
-        .subject-lectures-count {
-          font-size: 0.85rem;
-          color: #4a5568;
-          font-weight: 600;
-          background: #e9ecef;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-        }
-
-        /* Subject Action Needed Text */
-        .subject-action-needed {
-          font-size: 0.75rem;
-          color: #dc3545;
-          font-weight: 600;
-          background: rgba(220, 53, 69, 0.1);
-          padding: 0.375rem 0.75rem;
-          border-radius: 6px;
-          text-align: center;
-          margin-top: 0.25rem;
-        }
-
-        /* ================= TIMETABLE ================= */
-        .timetable-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .timetable-slot {
-          display: flex;
-          gap: 1rem;
-          padding: 1rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-radius: 8px;
-          border-left: 4px solid #1a4b6d;
-          transition: all 0.3s ease;
-        }
-
-        .timetable-slot:hover {
-          transform: translateX(5px);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .slot-time {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-width: 90px;
-          padding: 0.75rem;
-          background: white;
-          border-radius: 8px;
-          text-align: center;
-        }
-
-        .time-icon {
-          font-size: 1.25rem;
-          color: #1a4b6d;
-          margin-bottom: 0.25rem;
-        }
-
-        .time-range {
-          display: flex;
-          align-items: center;
-          gap: 0.25rem;
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: #1a4b6d;
-        }
-
-        .time-separator {
-          color: #4a5568;
-        }
-
-        .slot-details {
-          flex: 1;
-        }
-
-        .slot-subject {
-          margin: 0 0 0.5rem;
-          font-size: 1rem;
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .slot-meta {
-          display: flex;
-          gap: 0.75rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .slot-code,
-        .slot-type {
-          font-size: 0.75rem;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          background: #e9ecef;
-          color: #4a5568;
-          font-weight: 500;
-        }
-
-        .slot-type {
-          background: #1a4b6d;
-          color: white;
-        }
-
-        .slot-info {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 1rem;
-          font-size: 0.85rem;
-          color: #4a5568;
-        }
-
-        .slot-teacher,
-        .slot-room {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        /* ================= FEE ================= */
-        .fee-overview {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-        }
-
-        .fee-stat {
-          text-align: center;
-          padding: 1rem;
-          background: #f8f9fa;
-          border-radius: 8px;
-        }
-
-        .fee-label {
-          display: block;
-          font-size: 0.75rem;
-          color: #4a5568;
-          margin-bottom: 0.5rem;
-          font-weight: 500;
-        }
-
-        .fee-value {
-          display: block;
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #1a4b6d;
-        }
-
-        .fee-value.paid { color: #28a745; }
-        .fee-value.due { color: #dc3545; }
-
-        .fee-status {
-          text-align: center;
-          margin-bottom: 1.5rem;
-        }
-
-        .status-badge {
-          display: inline-block;
-          padding: 0.5rem 1.5rem;
-          border-radius: 20px;
-          color: white;
-          font-weight: 700;
-          font-size: 0.9rem;
-        }
-
-        .fee-progress {
-          margin-bottom: 1.5rem;
-        }
-
-        .progress-label {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 0.5rem;
-          font-size: 0.85rem;
-          color: #4a5568;
-          font-weight: 600;
-        }
-
-        .btn-pay-now {
-          display: block;
-          width: 100%;
-          padding: 1rem;
-          background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-          color: white;
-          text-align: center;
-          text-decoration: none;
-          border-radius: 8px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          transition: all 0.3s ease;
-        }
-
-        .btn-pay-now:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-        }
-
-        /* ================= NOTIFICATIONS ================= */
-        .notifications-list {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .notification-item {
-          display: flex;
-          gap: 1rem;
-          padding: 1rem;
-          background: #f8f9fa;
-          border-radius: 8px;
-          border-left: 4px solid #e9ecef;
-          transition: all 0.3s ease;
-        }
-
-        .notification-item.unread {
-          background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-          border-left-color: #1a4b6d;
-        }
-
-        .notification-item:hover {
-          transform: translateX(5px);
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .notification-icon {
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: white;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-
-        .notification-icon .unread { color: #1a4b6d; }
-        .notification-icon .read { color: #4a5568; }
-
-        .notification-content {
-          flex: 1;
-        }
-
-        .notification-title {
-          margin: 0 0 0.25rem;
-          font-size: 0.95rem;
-          color: #1a4b6d;
-          font-weight: 700;
-        }
-
-        .notification-message {
-          margin: 0 0 0.5rem;
-          font-size: 0.85rem;
-          color: #4a5568;
-          line-height: 1.5;
-        }
-
-        .notification-meta {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.75rem;
-          color: #4a5568;
-        }
-
-        .notification-type {
-          background: #e9ecef;
-          padding: 0.25rem 0.5rem;
-          border-radius: 4px;
-          color: #4a5568;
-          font-weight: 500;
-        }
-
-        /* ================= QUICK ACTIONS ================= */
-        .quick-actions-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-          gap: 1rem;
-        }
-
-        .quick-action-item {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 1.25rem;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-radius: 10px;
-          text-decoration: none;
-          color: #1a4b6d;
-          transition: all 0.3s ease;
-        }
-
-        .quick-action-item:hover {
-          transform: translateY(-5px);
-          background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-          color: white;
-          box-shadow: 0 6px 20px rgba(26, 75, 109, 0.4);
-        }
-
-        .action-icon {
-          font-size: 1.75rem;
-        }
-
-        .quick-action-item span {
-          font-size: 0.85rem;
-          font-weight: 600;
-        }
-
-        /* ================= NO DATA ================= */
-        .no-data {
-          text-align: center;
-          padding: 3rem 1rem;
-          color: #4a5568;
-        }
-
-        .no-data-icon {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-          opacity: 0.5;
-        }
-
-        /* ================= CHART TOOLTIP ================= */
-        .custom-chart-tooltip {
-          background: white;
-          padding: 0.75rem 1rem;
-          border-radius: 8px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-          border: 1px solid #e9ecef;
-        }
-
-        .tooltip-label {
-          margin: 0 0 0.5rem;
-          font-weight: 700;
-          color: #1a4b6d;
-          font-size: 0.85rem;
-        }
-
-        .tooltip-value {
-          margin: 0.25rem 0;
-          font-size: 0.8rem;
-        }
-
-        /* ================= ANIMATIONS ================= */
-        .fade-in {
-          animation: fadeIn 0.6s ease forwards;
-        }
-
-        .fade-in-up {
-          animation: fadeInUp 0.6s ease forwards;
-          opacity: 0;
-        }
-
-        .fade-in-up:nth-child(1) { animation-delay: 0.1s; }
-        .fade-in-up:nth-child(2) { animation-delay: 0.2s; }
-        .fade-in-up:nth-child(3) { animation-delay: 0.3s; }
-        .fade-in-up:nth-child(4) { animation-delay: 0.4s; }
-        .fade-in-up:nth-child(5) { animation-delay: 0.5s; }
-        .fade-in-up:nth-child(6) { animation-delay: 0.6s; }
-
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-10px);
-          }
-        }
-
-        /* ================= BLINKING ANIMATIONS ================= */
-        @keyframes blink-fast {
-          0%, 100% {
-            opacity: 1;
-            transform: scale(1);
-          }
-          50% {
-            opacity: 0.6;
-            transform: scale(0.95);
-          }
-        }
-
-        @keyframes blink-slow {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.7;
-          }
-        }
-
-        .blink-fast {
-          animation: blink-fast 1.5s ease-in-out infinite;
-        }
-
-        .blink-slow {
-          animation: blink-slow 2s ease-in-out infinite;
-        }
-
-        /* Quick Actions Blinking Effect */
-        .quick-action-blink {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .quick-action-blink::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-          animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-          0% {
-            left: -100%;
-          }
-          100% {
-            left: 100%;
-          }
-        }
-
-        .quick-action-blink:hover::before {
-          animation: none;
-        }
-
-        /* ================= RESPONSIVE ================= */
-        @media (max-width: 768px) {
-          .dashboard-header {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-          }
-
-          .header-left {
-            flex-direction: column;
-          }
-
-          .header-right {
-            width: 100%;
-            justify-content: center;
-          }
-
-          .info-cards-row {
-            grid-template-columns: 1fr;
-          }
-
-          .dashboard-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .attendance-stats,
-          .fee-overview {
-            grid-template-columns: 1fr;
-          }
-
-          .timetable-slot {
-            flex-direction: column;
-          }
-
-          .slot-time {
-            width: 100%;
-            flex-direction: row;
-            gap: 0.5rem;
-          }
-
-          .quick-actions-grid {
-            grid-template-columns: repeat(3, 1fr);
-          }
-        }
-
-        @media (max-width: 480px) {
-          .dashboard-title {
-            font-size: 1.5rem;
-          }
-
-          .header-icon-wrapper {
-            width: 60px;
-            height: 60px;
-            font-size: 2rem;
-          }
-
-          .quick-actions-grid {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .card-header {
-            flex-direction: column;
-            gap: 0.75rem;
-            text-align: center;
-          }
-
-          .card-title-wrapper {
-            flex-direction: column;
-          }
-
-          .stat-value {
-            font-size: 1.25rem;
-          }
-
-          .attendance-chart {
-            height: 250px;
-          }
-          
-          .subject-chart {
-            height: 320px;
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -11,7 +11,12 @@ const SecurityAudit = require('../models/securityAudit.model');
 const SENSITIVE_FIELDS = ['endpoint', 'ipAddress', 'userAgent', 'userEmail'];
 
 async function migrate() {
-  await mongoose.connect(process.env.MONGODB_URI);
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+  if (!mongoUri) {
+    console.error('Error: MONGO_URI or MONGODB_URI is not set in environment.');
+    process.exit(1);
+  }
+  await mongoose.connect(mongoUri);
   console.log('Connected to MongoDB\n');
 
   // Migrate AuditLog

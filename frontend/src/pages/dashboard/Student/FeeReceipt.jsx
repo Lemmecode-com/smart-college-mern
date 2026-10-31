@@ -1,16 +1,31 @@
-﻿import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
-import Loading from "../../../components/Loading";
-import ApiError from "../../../components/ApiError";
-import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
 import "react-toastify/dist/ReactToastify.css";
+import "./FeeReceipt.css";
+
+import {
+  FaReceipt,
+  FaCheckCircle,
+  FaDownload,
+  FaPrint,
+  FaUniversity,
+  FaExclamationTriangle,
+  FaArrowLeft,
+  FaRedo,
+  FaSpinner,
+  FaClock,
+  FaTimesCircle,
+} from "react-icons/fa";
+import LogoImage from "../../../components/common/LogoImage";
+
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 // Authentication / session error codes that must NOT surface a toast.
-// These are routed exclusively to ApiError for a friendly mapped screen.
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
   "TOKEN_EXPIRED",
@@ -22,263 +37,327 @@ const AUTH_ERROR_CODES = new Set([
   "UNAUTHORIZED",
 ]);
 
-import {
-  FaReceipt,
-  FaCheckCircle,
-  FaDownload,
-  FaPrint,
-  FaUniversity,
-  FaCreditCard,
-  FaExclamationTriangle,
-  FaInfoCircle,
-  FaSync,
-  FaArrowLeft,
-  FaSpinner,
-} from "react-icons/fa";
-import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
+/* ================= CURRENCY FORMATTER (INR) ================= */
+// Local Indian currency formatter with grouping and two decimals (e.g. ₹30,000.00)
+function formatCurrencyINR(amount) {
+  if (amount === null || amount === undefined || Number.isNaN(Number(amount))) return "₹ --";
+  const num = Number(amount);
+  const isNegative = num < 0;
+  const abs = Math.abs(num);
+  const fixed = abs.toFixed(2);
+  const [intPart, decPart] = fixed.split(".");
+  const lastThree = intPart.slice(-3);
+  const remaining = intPart.slice(0, -3);
+  let grouped = lastThree;
+  if (remaining) {
+    const parts = remaining.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
+    grouped = `${parts},${grouped}`;
+  }
+  return `${isNegative ? "-" : ""}₹${grouped}.${decPart}`;
+}
 
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+/* ================= DATE FORMATTER (ASIA/KOLKATA) ================= */
+// Format date in Asia/Kolkata timezone: e.g. "23 Oct 2026, 12:47 PM IST"
+function formatDateTimeKolkata(dateInput) {
+  if (!dateInput) return "N/A";
+  const date = new Date(dateInput);
+  if (Number.isNaN(date.getTime())) return "N/A";
+
+  try {
+    const formatter = new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    const parts = formatter.formatToParts(date);
+    const day = parts.find((p) => p.type === "day")?.value || "";
+    const month = parts.find((p) => p.type === "month")?.value || "";
+    const year = parts.find((p) => p.type === "year")?.value || "";
+    const hour = parts.find((p) => p.type === "hour")?.value || "";
+    const minute = parts.find((p) => p.type === "minute")?.value || "";
+    const dayPeriod = parts.find((p) => p.type === "dayPeriod")?.value?.toUpperCase() || "";
+
+    return `${day} ${month} ${year}, ${hour}:${minute} ${dayPeriod} IST`;
+  } catch {
+    return date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+  }
+}
+
+/* ================= NUMBER TO WORDS (INR FORMAT) ================= */
+function convertBelowThousand(n) {
+  const ones = [
+    "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+    "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+    "Seventeen", "Eighteen", "Nineteen",
+  ];
+  const tens = [
+    "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety",
+  ];
+
+  let str = "";
+  if (n >= 100) {
+    str += `${ones[Math.floor(n / 100)]} Hundred `;
+    n %= 100;
+  }
+  if (n >= 20) {
+    str += `${tens[Math.floor(n / 10)]} `;
+    n %= 10;
+  }
+  if (n > 0) {
+    str += `${ones[n]} `;
+  }
+  return str.trim();
+}
+
+function convertNumberToWords(num) {
+  if (num === 0) return "Zero";
+
+  const crore = Math.floor(num / 10000000);
+  num %= 10000000;
+  const lakh = Math.floor(num / 100000);
+  num %= 100000;
+  const thousand = Math.floor(num / 1000);
+  num %= 1000;
+  const remainder = Math.floor(num);
+
+  let result = "";
+  if (crore > 0) {
+    result += `${convertNumberToWords(crore)} Crore `;
+  }
+  if (lakh > 0) {
+    result += `${convertBelowThousand(lakh)} Lakh `;
+  }
+  if (thousand > 0) {
+    result += `${convertBelowThousand(thousand)} Thousand `;
+  }
+  if (remainder > 0) {
+    result += `${convertBelowThousand(remainder)} `;
+  }
+  return result.trim();
+}
+
+function amountToWordsINR(amount) {
+  if (amount === null || amount === undefined || Number.isNaN(Number(amount))) {
+    return "";
+  }
+  const num = Number(amount);
+  if (num === 0) return "Rupees Zero Only";
+
+  const isNegative = num < 0;
+  const abs = Math.abs(num);
+  const rupees = Math.floor(abs);
+  const paise = Math.round((abs - rupees) * 100);
+
+  let words = "";
+  if (rupees > 0) {
+    words = `Rupees ${convertNumberToWords(rupees)}`;
+  }
+  if (paise > 0) {
+    const paiseWords = `${convertBelowThousand(paise)} Paise`;
+    words = words ? `${words} and ${paiseWords}` : `${paiseWords}`;
+  }
+
+  return `${isNegative ? "Minus " : ""}${words} Only`;
+}
+
+/* ================= VALIDATION HELPER ================= */
+const validateReceiptData = (data) => {
+  const errors = [];
+
+  if (!data) {
+    errors.push("Receipt data is missing");
+  } else {
+    if (!data.college?.name) errors.push("College name is missing");
+    if (!data.student?.name) errors.push("Student name is missing");
+    if (!data.installmentName) errors.push("Installment name is missing");
+    if (data.amount === undefined || data.amount === null) errors.push("Payment amount is missing");
+    if (!data.transactionId && !data.receiptNumber) errors.push("Transaction / Receipt ID is missing");
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+};
+
+/* ================= STATUS CHIP HELPER ================= */
+function getStatusChipInfo(status) {
+  const norm = String(status || "").toUpperCase();
+  if (norm === "SUCCESS" || norm === "PAID" || norm === "COMPLETED") {
+    return {
+      label: "Payment Successful",
+      className: "fr-status-paid",
+      icon: <FaCheckCircle aria-hidden="true" />,
+    };
+  }
+  if (norm === "PENDING" || norm === "PROCESSING") {
+    return {
+      label: "Payment Pending",
+      className: "fr-status-pending",
+      icon: <FaClock aria-hidden="true" />,
+    };
+  }
+  return {
+    label: norm ? `Payment ${norm}` : "Payment Failed",
+    className: "fr-status-failed",
+    icon: <FaTimesCircle aria-hidden="true" />,
+  };
+}
+
+/* ================= DETAIL ROW HELPER ================= */
+function DetailRow({ label, value, mono = false }) {
+  if (value === null || value === undefined) return null;
+  const str = String(value).trim();
+  if (!str) return null;
+
+  return (
+    <div className="fr-dl-row">
+      <dt className="fr-dt">{label}</dt>
+      <dd className={`fr-dd ${mono ? "fr-font-mono" : ""}`}>{value}</dd>
+    </div>
+  );
+}
 
 export default function FeeReceipt() {
+  /* ================= ALL HOOKS FIRST (REACT RULES OF HOOKS) ================= */
   const { user, loading: authLoading } = useContext(AuthContext);
   const { paymentId } = useParams();
   const navigate = useNavigate();
-  const receiptRef = useRef();
+  const receiptRef = useRef(null);
 
   const [receipt, setReceipt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const fetchIdRef = useRef(0);
 
-  /* ================= SECURITY - WAIT FOR AUTH LOADING ================= */
-  // Wait for auth to finish loading before any redirects
-  if (authLoading) {
-    return <Loading fullScreen text="Verifying your session..." />;
-  }
-
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "STUDENT" && user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT" && user.role !== "PRINCIPAL")
-    return <Navigate to="/dashboard" replace />;
-
-  /* ================= EARLY VALIDATION - PAYMENT ID ================= */
-  if (!paymentId) {
-    return (
-      <div className="receipt-empty-wrapper">
-        <motion.div
-          className="empty-card"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          <FaExclamationTriangle className="empty-icon" />
-          <h3>Invalid Receipt URL</h3>
-          <p>Payment ID is missing from the URL</p>
-          <button
-            className="btn-back"
-            onClick={() =>
-              user.role === "COLLEGE_ADMIN" || user.role === "PRINCIPAL"
-                ? navigate("/college-admin/payment-history")
-                : navigate("/student/fees")
-            }
-          >
-            <FaArrowLeft />{" "}
-            {user.role === "COLLEGE_ADMIN" || user.role === "PRINCIPAL"
-              ? "Back to Payment History"
-              : "Back to Fees"}
-          </button>
-        </motion.div>
-        <style>{`
-          .receipt-empty-wrapper {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            padding: 20px;
-          }
-          .empty-card {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-          }
-          .empty-icon {
-            font-size: 5rem;
-            color: #f59e0b;
-            margin-bottom: 20px;
-          }
-          .empty-card h3 {
-            margin: 0 0 10px 0;
-            color: #1e293b;
-            font-weight: 700;
-          }
-          .empty-card p {
-            color: #64748b;
-            margin: 0 0 25px 0;
-          }
-          .btn-back {
-            padding: 12px 24px;
-            border-radius: 10px;
-            border: none;
-            background: linear-gradient(135deg, #0f3a4a, #1a4b6d);
-            color: white;
-            cursor: pointer;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-          }
-          .btn-back:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(15, 58, 74, 0.4);
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  /* ================= VALIDATION HELPER ================= */
-  const validateReceiptData = (data) => {
-    const errors = [];
-
-    if (!data) {
-      errors.push("Receipt data is missing");
+  // Navigate back action
+  const handleGoBack = useCallback(() => {
+    if (
+      user?.role === "COLLEGE_ADMIN" ||
+      user?.role === "ACCOUNTANT" ||
+      user?.role === "PRINCIPAL"
+    ) {
+      navigate("/college-admin/payment-history");
     } else {
-      if (!data.college?.name) errors.push("College name is missing");
-      if (!data.student?.name) errors.push("Student name is missing");
-      if (!data.installmentName) errors.push("Installment name is missing");
-      if (!data.amount) errors.push("Payment amount is missing");
-      if (!data.transactionId) errors.push("Transaction ID is missing");
+      navigate("/student/fees");
     }
+  }, [user?.role, navigate]);
 
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
-  };
+  // Fetch receipt callback in component scope
+  const fetchReceipt = useCallback(async () => {
+    if (!paymentId || !user) return;
 
-  /* ================= FETCH RECEIPT ================= */
-  useEffect(() => {
-    const fetchReceipt = async () => {
-      fetchIdRef.current += 1;
-      const currentFetchId = fetchIdRef.current;
-      const toastId = toast.loading("Loading receipt...");
+    fetchIdRef.current += 1;
+    const currentFetchId = fetchIdRef.current;
+    const toastId = `fee-receipt-loading-${paymentId}`;
+    toast.loading("Loading receipt...", { toastId });
+    let errorToastShown = false;
 
-      try {
-        if (!paymentId) {
-          throw new Error("Payment ID is required");
-        }
+    try {
+      const endpoint =
+        user.role === "COLLEGE_ADMIN" ||
+        user.role === "ACCOUNTANT" ||
+        user.role === "PRINCIPAL"
+          ? `/admin/payments/receipt/${paymentId}`
+          : `/student/payments/receipt/${paymentId}`;
 
-        if (currentFetchId !== fetchIdRef.current) {
-          toast.dismiss(toastId);
-          return;
-        }
+      const res = await api.get(endpoint);
 
-        const endpoint =
-          (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT" || user.role === "PRINCIPAL")
-            ? `/admin/payments/receipt/${paymentId}`
-            : `/student/payments/receipt/${paymentId}`;
+      if (currentFetchId !== fetchIdRef.current) {
+        return;
+      }
 
-        const res = await api.get(endpoint);
+      if (!res.data) {
+        throw new Error("Invalid response from server");
+      }
 
-        if (currentFetchId !== fetchIdRef.current) {
-          toast.dismiss(toastId);
-          return;
-        }
+      const validation = validateReceiptData(res.data);
+      if (!validation.isValid) {
+        throw new Error(
+          `Invalid receipt data: ${validation.errors.join(", ")}`,
+        );
+      }
 
-        if (!res.data) {
-          throw new Error("Invalid response from server");
-        }
+      setReceipt(res.data);
+      setError(null);
+      toast.dismiss(toastId);
+    } catch (err) {
+      if (currentFetchId !== fetchIdRef.current) {
+        return;
+      }
 
-        const validation = validateReceiptData(res.data);
-        if (!validation.isValid) {
-          throw new Error(
-            `Invalid receipt data: ${validation.errors.join(", ")}`,
-          );
-        }
+      const statusCode = err.response?.status;
+      const errorCode = err.response?.data?.code;
+      const backendMessage = err.response?.data?.message;
 
-        setReceipt(res.data);
-        setError(null);
+      logger.error("Fee receipt load error:", {
+        statusCode,
+        errorCode,
+        backendMessage,
+        page: "FeeReceipt",
+        role: user?.role,
+      });
 
-        toast.dismiss(toastId);
-      } catch (err) {
-        if (currentFetchId !== fetchIdRef.current) {
-          toast.dismiss(toastId);
-          return;
-        }
+      let errorMessage = "Unable to fetch receipt. ";
 
-        const statusCode = err.response?.status;
-        const errorCode = err.response?.data?.code;
-        const backendMessage = err.response?.data?.message;
+      if (statusCode === 404) {
+        errorMessage = "Receipt not available for this payment.";
+      } else if (statusCode === 403) {
+        errorMessage = "You don't have permission to view this receipt.";
+      } else if (statusCode === 500) {
+        errorMessage = "Server error. Please try again later.";
+      } else if (statusCode === 401) {
+        errorMessage = "Your session has expired. Please sign in again.";
+      } else if (
+        err.code === "ERR_NETWORK" ||
+        err.message?.includes("Network Error")
+      ) {
+        errorMessage =
+          "Network error. Please check your internet connection and try again.";
+      } else if (
+        err.name === "AbortError" ||
+        err.message?.includes("timeout")
+      ) {
+        errorMessage =
+          "Request timeout. The server took too long to respond. Please try again.";
+      } else {
+        errorMessage += "Please check your connection and try again.";
+      }
 
-        logger.error("Fee receipt load error:", {
-          statusCode,
-          errorCode,
-          backendMessage,
-          page: "FeeReceipt",
-          role: user?.role,
+      setError({ message: errorMessage, statusCode, errorCode });
+
+      const isAuthError =
+        statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
+
+      if (!isAuthError) {
+        toast.update(toastId, {
+          render: errorMessage,
+          type: "error",
+          isLoading: false,
+          autoClose: 5000,
         });
-
-        let errorMessage = "Unable to fetch receipt. ";
-
-        if (statusCode === 404) {
-          errorMessage =
-            "Receipt not found. It may have been deleted or never existed.";
-        } else if (statusCode === 403) {
-          errorMessage = "You don't have permission to view this receipt.";
-        } else if (statusCode === 500) {
-          errorMessage = "Server error. Please try again later.";
-        } else if (statusCode === 401) {
-          errorMessage = "Your session has expired. Please sign in again.";
-        } else if (
-          err.code === "ERR_NETWORK" ||
-          err.message?.includes("Network Error")
-        ) {
-          errorMessage =
-            "Network error. Please check your internet connection and try again.";
-        } else if (
-          err.name === "AbortError" ||
-          err.message?.includes("timeout")
-        ) {
-          errorMessage =
-            "Request timeout. The server took too long to respond. Please try again.";
-        } else {
-          errorMessage += "Please check your connection and try again.";
-        }
-
-        setError({ message: errorMessage, statusCode, errorCode });
-
-        const isAuthError =
-          statusCode === 401 || (errorCode && AUTH_ERROR_CODES.has(errorCode));
-
-        if (!isAuthError) {
-          toast.update(toastId, {
-            render: errorMessage,
-            type: "error",
-            isLoading: false,
-            autoClose: 5000,
-          });
-        } else {
-          toast.dismiss(toastId);
-        }
-      } finally {
-        if (currentFetchId !== fetchIdRef.current) return;
-        setLoading(false);
+        errorToastShown = true;
+      } else {
         toast.dismiss(toastId);
       }
-    };
+    } finally {
+      if (currentFetchId === fetchIdRef.current) {
+        setLoading(false);
+        if (!errorToastShown) toast.dismiss(toastId);
+      }
+    }
+  }, [paymentId, user]);
 
-    fetchReceipt();
-  }, [paymentId, navigate]);
-
-  // Handle retry action
-  const handleRetry = async () => {
+  // Retry action
+  const handleRetry = useCallback(async () => {
     if (retryCount >= 3) return;
     setIsRetrying(true);
     setRetryCount((prev) => prev + 1);
@@ -286,37 +365,43 @@ export default function FeeReceipt() {
     setLoading(true);
     await fetchReceipt();
     setIsRetrying(false);
-  };
+  }, [retryCount, fetchReceipt]);
 
-  // Handle go back action
-  const handleGoBack = () => {
-    if (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT") {
-      navigate("/college-admin/payment-history");
-    } else {
-      navigate("/student/fees");
+  // Initial fetch effect
+  useEffect(() => {
+    if (!authLoading && user && paymentId) {
+      fetchReceipt();
     }
-  };
+  }, [authLoading, user, paymentId, fetchReceipt]);
 
-  /* ================= PDF DOWNLOAD ================= */
-  const downloadPDF = async () => {
+  // Helper function for error logging
+  const logErrorToMonitoring = useCallback((err, context) => {
+    logger.error("[FeeReceipt] Error:", {
+      error: err.message,
+      context,
+      timestamp: new Date().toISOString(),
+    });
+  }, []);
+
+  // PDF Download with html2canvas (scale 2, A4 fit, multi-page split if tall)
+  const downloadPDF = useCallback(async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
     const toastId = toast.loading("Generating PDF...");
 
     try {
-      // Step 1: Validate receipt element
       if (!receiptRef.current) {
         throw new Error("Receipt element not found");
       }
 
-      // Step 2: Generate canvas with timeout
       const canvas = await Promise.race([
         html2canvas(receiptRef.current, {
-          scale: 3,
+          scale: 2,
           useCORS: true,
           allowTaint: true,
           logging: false,
           imageTimeout: 15000,
           onclone: (clonedDoc) => {
-            // Ensure all images are loaded
             const images = clonedDoc.getElementsByTagName("img");
             return Promise.all(
               Array.from(images).map((img) => {
@@ -324,7 +409,7 @@ export default function FeeReceipt() {
                 return new Promise((resolve) => {
                   img.onload = resolve;
                   img.onerror = () => {
-                    resolve(); // Continue even if image fails
+                    resolve();
                   };
                 });
               }),
@@ -339,27 +424,71 @@ export default function FeeReceipt() {
         ),
       ]);
 
-      // Step 3: Validate canvas
       if (!canvas || !canvas.toDataURL) {
         throw new Error("Canvas generation failed");
       }
 
-      const imgData = canvas.toDataURL("image/png");
-
-      // Step 4: Generate PDF
       const pdf = new jsPDF("p", "mm", "a4");
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // Step 5: Add image to PDF with error handling
-      try {
-        pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      } catch (pdfError) {
-        throw new Error("Failed to add receipt to PDF");
+      const canvasWidth = canvas.width;
+      const canvasHeight = canvas.height;
+
+      const mmToPx = canvasWidth / pageWidth;
+      const pageCanvasHeight = Math.floor(pageHeight * mmToPx);
+
+      if (canvasHeight <= pageCanvasHeight) {
+        const imgData = canvas.toDataURL("image/png");
+        const renderedHeightMm = (canvasHeight * pageWidth) / canvasWidth;
+        pdf.addImage(imgData, "PNG", 0, 0, pageWidth, renderedHeightMm, undefined, "FAST");
+      } else {
+        let currentY = 0;
+        let pageIndex = 0;
+
+        while (currentY < canvasHeight) {
+          if (pageIndex > 0) {
+            pdf.addPage();
+          }
+
+          const sliceHeight = Math.min(pageCanvasHeight, canvasHeight - currentY);
+          const pageCanvas = document.createElement("canvas");
+          pageCanvas.width = canvasWidth;
+          pageCanvas.height = sliceHeight;
+
+          const ctx = pageCanvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(
+              canvas,
+              0,
+              currentY,
+              canvasWidth,
+              sliceHeight,
+              0,
+              0,
+              canvasWidth,
+              sliceHeight,
+            );
+
+            const pageImgData = pageCanvas.toDataURL("image/png");
+            const sliceHeightMm = (sliceHeight * pageWidth) / canvasWidth;
+            pdf.addImage(pageImgData, "PNG", 0, 0, pageWidth, sliceHeightMm, undefined, "FAST");
+          }
+
+          currentY += sliceHeight;
+          pageIndex += 1;
+        }
       }
 
-      // Step 6: Save PDF
-      const fileName = `Fee_Receipt_${receipt.transactionId || "unknown"}.pdf`;
+      const cleanReceiptNum = String(
+        receipt?.receiptNumber || receipt?.transactionId || "Receipt",
+      ).replace(/[^a-zA-Z0-9_-]/g, "_");
+
+      const studentIdentifier = String(
+        receipt?.student?.enrollment || receipt?.student?.name || "Student",
+      ).replace(/[^a-zA-Z0-9_-]/g, "_");
+
+      const fileName = `Receipt_${cleanReceiptNum}_${studentIdentifier}.pdf`;
       pdf.save(fileName);
 
       toast.update(toastId, {
@@ -368,21 +497,21 @@ export default function FeeReceipt() {
         isLoading: false,
         autoClose: 3000,
       });
-    } catch (error) {
+    } catch (err) {
       let errorMessage = "Failed to generate PDF. ";
 
-      if (error.message.includes("timeout")) {
+      if (err.message.includes("timeout")) {
         errorMessage += "Operation timed out. Please try again.";
       } else if (
-        error.message.includes("CORS") ||
-        error.message.includes("taint")
+        err.message.includes("CORS") ||
+        err.message.includes("taint")
       ) {
         errorMessage +=
           "Image loading failed. Please ensure all images are accessible.";
-      } else if (error.message.includes("Canvas")) {
+      } else if (err.message.includes("Canvas")) {
         errorMessage +=
           "Browser compatibility issue. Please try Chrome or Firefox.";
-      } else if (error.message.includes("element")) {
+      } else if (err.message.includes("element")) {
         errorMessage +=
           "Receipt not ready. Please wait a moment and try again.";
       } else {
@@ -396,392 +525,638 @@ export default function FeeReceipt() {
         autoClose: 5000,
       });
 
-      // Log error for monitoring
-      logErrorToMonitoring(error, {
+      logErrorToMonitoring(err, {
         component: "FeeReceipt",
         action: "downloadPDF",
         receiptId: receipt?._id,
       });
+    } finally {
+      setIsDownloading(false);
     }
-  };
+  }, [receipt, isDownloading, logErrorToMonitoring]);
 
-   // Helper function for error logging
-   const logErrorToMonitoring = (error, context) => {
-     logger.error("[FeeReceipt] Error:", {
-       error: error.message,
-       context,
-       timestamp: new Date().toISOString(),
-     });
-   };
+  const backButtonLabel =
+    user?.role === "COLLEGE_ADMIN" ||
+    user?.role === "PRINCIPAL" ||
+    user?.role === "ACCOUNTANT"
+      ? "Back to Payment History"
+      : "Back to Fees";
 
-  /* ================= STATE ORDER - ERROR FIRST, THEN LOADING ================= */
-  // Error state should be checked before loading state
+  /* ================= CONDITIONAL EARLY RETURNS AFTER ALL HOOKS ================= */
+  if (authLoading) {
+    return (
+      <div className="fee-receipt-page fr-state-page">
+        <div className="fr-loading-card" role="status" aria-live="polite">
+          <FaSpinner className="fr-loading-icon fr-spin" aria-hidden="true" />
+          <h2 className="fr-loading-title">Verifying Session</h2>
+          <p className="fr-loading-subtitle">
+            Please wait while we verify your credentials...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (
+    user.role !== "STUDENT" &&
+    user.role !== "COLLEGE_ADMIN" &&
+    user.role !== "ACCOUNTANT" &&
+    user.role !== "PRINCIPAL"
+  ) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (!paymentId) {
+    return (
+      <div className="fee-receipt-page fr-state-page">
+        <div className="fr-state-card" role="alert">
+          <FaExclamationTriangle
+            className="fr-state-icon fr-state-icon-error"
+            aria-hidden="true"
+          />
+          <h2 className="fr-state-title">Invalid Receipt URL</h2>
+          <p className="fr-state-message">
+            Payment ID is missing from the URL.
+          </p>
+          <div className="fr-state-actions">
+            <button
+              type="button"
+              className="fr-btn fr-btn-primary"
+              onClick={handleGoBack}
+            >
+              <FaArrowLeft aria-hidden="true" /> {backButtonLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <ApiError
-        title="Unable to Load Receipt"
-        message={error.message || "Unable to fetch receipt. Please try again."}
-        statusCode={error.statusCode}
-        errorCode={error.errorCode}
-        onRetry={handleRetry}
-        onGoBack={handleGoBack}
-        retryCount={retryCount}
-        maxRetry={3}
-        isRetryLoading={isRetrying}
-      />
+      <div className="fee-receipt-page fr-state-page">
+        <div className="fr-state-card" role="alert">
+          <FaExclamationTriangle
+            className="fr-state-icon fr-state-icon-error"
+            aria-hidden="true"
+          />
+          <h2 className="fr-state-title">Unable to Load Receipt</h2>
+          <p className="fr-state-message">
+            {error.message || "Unable to fetch receipt. Please try again."}
+          </p>
+          <div className="fr-state-actions">
+            {retryCount < 3 && (
+              <button
+                type="button"
+                className="fr-btn fr-btn-primary"
+                onClick={handleRetry}
+                disabled={isRetrying}
+              >
+                {isRetrying ? (
+                  <>
+                    <FaSpinner className="fr-spin" aria-hidden="true" />{" "}
+                    Retrying...
+                  </>
+                ) : (
+                  <>
+                    <FaRedo aria-hidden="true" /> Retry ({3 - retryCount} left)
+                  </>
+                )}
+              </button>
+            )}
+            <button
+              type="button"
+              className="fr-btn fr-btn-secondary"
+              onClick={handleGoBack}
+            >
+              <FaArrowLeft aria-hidden="true" /> {backButtonLabel}
+            </button>
+          </div>
+        </div>
+      </div>
     );
   }
 
-  /* ================= LOADING STATE ================= */
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Receipt..." />;
+    return (
+      <div className="fee-receipt-page fr-state-page">
+        <div className="fr-loading-card" role="status" aria-live="polite">
+          <FaSpinner className="fr-loading-icon fr-spin" aria-hidden="true" />
+          <h2 className="fr-loading-title">Loading Receipt</h2>
+          <p className="fr-loading-subtitle">
+            Fetching payment receipt details...
+          </p>
+        </div>
+      </div>
+    );
   }
 
-  /* ================= EMPTY STATE ================= */
   if (!receipt) {
     return (
-      <div className="receipt-empty-wrapper">
-        <motion.div
-          className="empty-card"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          <FaReceipt className="empty-icon" />
-          <h3>Receipt Not Found</h3>
-          <p>
-            The receipt you're looking for doesn't exist or has been removed.
+      <div className="fee-receipt-page fr-state-page">
+        <div className="fr-state-card">
+          <FaReceipt
+            className="fr-state-icon fr-state-icon-muted"
+            aria-hidden="true"
+          />
+          <h2 className="fr-state-title">Receipt Not Available</h2>
+          <p className="fr-state-message">
+            Receipt not available for this payment.
           </p>
-          <button
-            className="btn-back"
-            onClick={() =>
-              user.role === "COLLEGE_ADMIN"
-                ? navigate("/college-admin/payment-history")
-                : navigate("/student/fees")
-            }
-          >
-            <FaArrowLeft />{" "}
-            {user.role === "COLLEGE_ADMIN"
-              ? "Back to Payment History"
-              : "Back to Fees"}
-          </button>
-        </motion.div>
-        <style>{`
-          .receipt-empty-wrapper {
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-            padding: 20px;
-          }
-          .empty-card {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-          }
-          .empty-icon {
-            font-size: 5rem;
-            color: #cbd5e1;
-            margin-bottom: 20px;
-          }
-          .empty-card h3 {
-            margin: 0 0 10px 0;
-            color: #1e293b;
-            font-weight: 700;
-          }
-          .empty-card p {
-            color: #64748b;
-            margin: 0 0 25px 0;
-          }
-          .btn-back {
-            padding: 12px 24px;
-            border-radius: 10px;
-            border: none;
-            background: linear-gradient(135deg, #0f3a4a, #1a4b6d);
-            color: white;
-            cursor: pointer;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-          }
-          .btn-back:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(15, 58, 74, 0.4);
-          }
-        `}</style>
+          <div className="fr-state-actions">
+            <button
+              type="button"
+              className="fr-btn fr-btn-primary"
+              onClick={handleGoBack}
+            >
+              <FaArrowLeft aria-hidden="true" /> {backButtonLabel}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
+  /* ================= COMPUTED VALUES ================= */
+  const statusChip = getStatusChipInfo(receipt.status);
+  const isPaid =
+    String(receipt.status || "").toUpperCase() === "SUCCESS" ||
+    String(receipt.status || "").toUpperCase() === "PAID";
+
+  const paymentMethodLabel = (() => {
+    const gateway = receipt.paymentGateway || "STRIPE";
+    const mode = receipt.paymentMode || "ONLINE";
+
+    if (gateway === "OFFLINE" || mode !== "ONLINE") {
+      const modeLabels = {
+        CASH: "Cash",
+        CHEQUE: "Cheque",
+        DD: "Demand Draft",
+      };
+      return modeLabels[mode] || `Offline (${mode})`;
+    }
+    const gatewayLabels = {
+      STRIPE: "Card (Stripe)",
+      RAZORPAY: "UPI / Card (Razorpay)",
+      MOCK: "Mock Payment",
+    };
+    return gatewayLabels[gateway] || "Online Card / Netbanking";
+  })();
+
+  const isInterState =
+    receipt.taxDetails?.taxSplit?.type === "INTER_STATE" ||
+    (receipt.taxDetails?.taxSplit?.igstAmount &&
+      receipt.taxDetails.taxSplit.igstAmount > 0);
+
+  const amountInWords = amountToWordsINR(receipt.amount);
+
+  const isTaxInvoice =
+    receipt?.taxDetails?.isTaxApplicable &&
+    receipt?.college?.gstin &&
+    typeof receipt.college.gstin === "string" &&
+    receipt.college.gstin.trim().length === 15;
+
+  /* ================= MAIN RECEIPT VIEW ================= */
   return (
-    <div className="container py-4" role="main">
-      {/* BACK BUTTON */}
-      <div className="mb-3">
-        <button
-          className="btn-back-to-fees"
-            onClick={() =>
-              (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")
-                ? navigate("/college-admin/payment-history")
-                : navigate("/student/fees")
-            }
-          aria-label="Go back to fees page"
+    <div className="fee-receipt-page" role="main">
+      <div className="fr-container">
+
+        {/* RECEIPT CARD */}
+        <div
+          ref={receiptRef}
+          className="fr-card"
+          id="receipt-content"
+          role="article"
+          aria-label="Payment receipt details"
+        >
+          {/* WATERMARK (PAID ONLY) */}
+          {isPaid && (
+            <div className="fr-watermark" aria-hidden="true" role="presentation">
+              PAID
+            </div>
+          )}
+
+          <div className="fr-card-inner">
+            {/* 1. CARD HEADER */}
+            <header className="fr-header">
+              <div className="fr-header-brand">
+                <div className="fr-logo-wrap" aria-hidden="true">
+                  {receipt.college?.logo ? (
+                    <LogoImage
+                      documentId={receipt.college.logo}
+                      alt={receipt.college?.name || "College Logo"}
+                      size={56}
+                    />
+                  ) : (
+                    <FaUniversity className="fr-logo-fallback" />
+                  )}
+                </div>
+                <div className="fr-header-info">
+                  <h1 className="fr-college-title">
+                    {receipt.college?.name || "College Name Not Available"}
+                  </h1>
+                  {receipt.college?.address && (
+                    <address className="fr-college-meta">
+                      {receipt.college.address}
+                    </address>
+                  )}
+                  {(receipt.college?.email || receipt.college?.contact) && (
+                    <div className="fr-college-contacts">
+                      {receipt.college?.email && (
+                        <a
+                          href={`mailto:${receipt.college.email}`}
+                          aria-label={`Email: ${receipt.college.email}`}
+                        >
+                          {receipt.college.email}
+                        </a>
+                      )}
+                      {receipt.college?.email &&
+                        receipt.college?.contact &&
+                        " | "}
+                      {receipt.college?.contact && (
+                        <a
+                          href={`tel:${receipt.college.contact}`}
+                          aria-label={`Phone: ${receipt.college.contact}`}
+                        >
+                          {receipt.college.contact}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                  {receipt.college?.gstin && (
+                    <div className="fr-gstin-badge">
+                      GSTIN: {receipt.college.gstin}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="fr-header-receipt-meta">
+                <span className="fr-receipt-badge">
+                  {isTaxInvoice ? "TAX INVOICE" : "RECEIPT"}
+                </span>
+                <div className="fr-receipt-num">
+                  Receipt No:{" "}
+                  <strong>
+                    {receipt.receiptNumber || receipt.transactionId || "N/A"}
+                  </strong>
+                </div>
+                <div className="fr-receipt-date">
+                  Paid On: {formatDateTimeKolkata(receipt.paidAt)}
+                </div>
+              </div>
+            </header>
+
+            {/* 2. STATUS BAND */}
+            <div className="fr-status-band" aria-label="Payment status">
+              <span className={`fr-status-chip ${statusChip.className}`}>
+                {statusChip.icon}
+                <span>{statusChip.label}</span>
+              </span>
+            </div>
+
+            {/* 3. AMOUNT HERO */}
+            <div className="fr-amount-hero">
+              <span className="fr-amount-label">Amount Paid</span>
+              <div className="fr-amount-value">
+                {formatCurrencyINR(receipt.amount)}
+              </div>
+              {amountInWords && (
+                <p className="fr-amount-words">{amountInWords}</p>
+              )}
+            </div>
+
+            {/* 4. DETAIL CARDS (GRID 2 COLS >= 768px, 1 COL BELOW) */}
+            <div className="fr-grid">
+              {/* Student Details */}
+              <section
+                className="fr-detail-card"
+                aria-labelledby="fr-student-heading"
+              >
+                <h2 id="fr-student-heading" className="fr-section-title">
+                  Student Details
+                </h2>
+                <dl className="fr-dl">
+                  <DetailRow label="Name" value={receipt.student?.name} />
+                  <DetailRow
+                    label="Enrollment No"
+                    value={receipt.student?.enrollment}
+                    mono
+                  />
+                  <DetailRow label="Course" value={receipt.student?.course} />
+                  <DetailRow
+                    label="Department"
+                    value={receipt.student?.department}
+                  />
+                  <DetailRow
+                    label="Academic Year"
+                    value={receipt.student?.academicYear}
+                  />
+                </dl>
+              </section>
+
+              {/* Payment Details */}
+              <section
+                className="fr-detail-card"
+                aria-labelledby="fr-payment-heading"
+              >
+                <h2 id="fr-payment-heading" className="fr-section-title">
+                  Payment Details
+                </h2>
+                <dl className="fr-dl">
+                  <DetailRow
+                    label="Installment"
+                    value={receipt.installmentName}
+                  />
+                  <DetailRow
+                    label="Payment Method"
+                    value={paymentMethodLabel}
+                  />
+                  <DetailRow
+                    label="Transaction Ref"
+                    value={receipt.transactionId}
+                    mono
+                  />
+                  {receipt.paymentMode &&
+                    receipt.paymentMode !== "ONLINE" && (
+                      <>
+                        <DetailRow
+                          label="Reference / Cheque No"
+                          value={receipt.referenceNumber}
+                          mono
+                        />
+                        <DetailRow
+                          label="Remarks"
+                          value={receipt.remarks}
+                        />
+                      </>
+                    )}
+                  {receipt.taxDetails?.isTaxApplicable && (
+                    <>
+                      <DetailRow
+                        label="SAC Code"
+                        value={receipt.taxDetails.sacCode}
+                        mono
+                      />
+                      <DetailRow
+                        label="Place of Supply"
+                        value={receipt.taxDetails.placeOfSupply}
+                      />
+                      <DetailRow
+                        label="Base Fee"
+                        value={formatCurrencyINR(receipt.taxDetails.baseAmount)}
+                      />
+                      {isInterState ? (
+                        <DetailRow
+                          label={
+                            receipt.taxDetails.taxSplit?.isUniformRate &&
+                            receipt.taxDetails.taxSplit?.igstRate
+                              ? `IGST (${receipt.taxDetails.taxSplit.igstRate}%)`
+                              : "IGST"
+                          }
+                          value={formatCurrencyINR(
+                            receipt.taxDetails.taxSplit?.igstAmount ||
+                              receipt.taxDetails.totalTax,
+                          )}
+                        />
+                      ) : (
+                        <>
+                          <DetailRow
+                            label={
+                              receipt.taxDetails.taxSplit?.isUniformRate &&
+                              receipt.taxDetails.taxSplit?.cgstRate
+                                ? `CGST (${receipt.taxDetails.taxSplit.cgstRate}%)`
+                                : "CGST"
+                            }
+                            value={formatCurrencyINR(
+                              receipt.taxDetails.taxSplit?.cgstAmount ||
+                                receipt.taxDetails.totalTax / 2,
+                            )}
+                          />
+                          <DetailRow
+                            label={
+                              receipt.taxDetails.taxSplit?.isUniformRate &&
+                              receipt.taxDetails.taxSplit?.sgstRate
+                                ? `SGST (${receipt.taxDetails.taxSplit.sgstRate}%)`
+                                : "SGST"
+                            }
+                            value={formatCurrencyINR(
+                              receipt.taxDetails.taxSplit?.sgstAmount ||
+                                receipt.taxDetails.totalTax / 2,
+                            )}
+                          />
+                        </>
+                      )}
+                      <DetailRow
+                        label="Total GST"
+                        value={formatCurrencyINR(receipt.taxDetails.totalTax)}
+                      />
+                    </>
+                  )}
+                </dl>
+              </section>
+            </div>
+
+            {/* 5. TAX INVOICE & GST BREAKDOWN TABLE (IF PRESENT) */}
+            {receipt.taxDetails?.isTaxApplicable &&
+              Array.isArray(receipt.taxDetails.lineItems) &&
+              receipt.taxDetails.lineItems.length > 0 && (
+                <section
+                  className="fr-tax-section"
+                  aria-labelledby="fr-tax-heading"
+                >
+                  <h2 id="fr-tax-heading" className="fr-section-title">
+                    Fee Component &amp; GST Breakdown
+                  </h2>
+                  <div className="fr-table-responsive">
+                    <table className="fr-table">
+                      <thead>
+                        <tr>
+                          <th>Fee Component</th>
+                          <th className="fr-text-right">Base Amount</th>
+                          <th className="fr-text-right">GST Rate</th>
+                          {isInterState ? (
+                            <th className="fr-text-right">IGST</th>
+                          ) : (
+                            <>
+                              <th className="fr-text-right">CGST</th>
+                              <th className="fr-text-right">SGST</th>
+                            </>
+                          )}
+                          <th className="fr-text-right">Total Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {receipt.taxDetails.lineItems.map((item, idx) => {
+                          const cRate =
+                            item.cgstRate !== undefined
+                              ? item.cgstRate
+                              : item.gstRate / 2;
+                          const cAmt =
+                            item.cgstAmount !== undefined
+                              ? item.cgstAmount
+                              : item.gstAmount / 2;
+                          const sRate =
+                            item.sgstRate !== undefined
+                              ? item.sgstRate
+                              : item.gstRate / 2;
+                          const sAmt =
+                            item.sgstAmount !== undefined
+                              ? item.sgstAmount
+                              : item.gstAmount / 2;
+                          const iRate =
+                            item.igstRate !== undefined
+                              ? item.igstRate
+                              : item.gstRate;
+                          const iAmt =
+                            item.igstAmount !== undefined
+                              ? item.igstAmount
+                              : item.gstAmount;
+
+                          return (
+                            <tr key={idx}>
+                              <td>
+                                <strong>{item.name}</strong>
+                              </td>
+                              <td className="fr-text-right">
+                                {formatCurrencyINR(item.baseAmount)}
+                              </td>
+                              <td className="fr-text-right">
+                                {item.gstRate}%
+                              </td>
+                              {isInterState ? (
+                                <td className="fr-text-right">
+                                  {formatCurrencyINR(iAmt)}{" "}
+                                  <span className="fr-text-muted">
+                                    ({iRate}%)
+                                  </span>
+                                </td>
+                              ) : (
+                                <>
+                                  <td className="fr-text-right">
+                                    {formatCurrencyINR(cAmt)}{" "}
+                                    <span className="fr-text-muted">
+                                      ({cRate}%)
+                                    </span>
+                                  </td>
+                                  <td className="fr-text-right">
+                                    {formatCurrencyINR(sAmt)}{" "}
+                                    <span className="fr-text-muted">
+                                      ({sRate}%)
+                                    </span>
+                                  </td>
+                                </>
+                              )}
+                              <td className="fr-text-right">
+                                <strong>
+                                  {formatCurrencyINR(item.totalAmount)}
+                                </strong>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
+            {/* 6. FEE SUMMARY STRIP */}
+            {receipt.summary &&
+              (receipt.summary.totalFee !== undefined ||
+                receipt.summary.totalPaid !== undefined) && (
+                <section
+                  className="fr-summary-section"
+                  aria-labelledby="fr-summary-heading"
+                >
+                  <h2 id="fr-summary-heading" className="fr-section-title">
+                    Fee Summary
+                  </h2>
+                  <div className="fr-summary-grid">
+                    <div className="fr-summary-col">
+                      <span className="fr-summary-label">Total Fee</span>
+                      <span className="fr-summary-value">
+                        {formatCurrencyINR(receipt.summary.totalFee)}
+                      </span>
+                    </div>
+                    <div className="fr-summary-col">
+                      <span className="fr-summary-label">Paid So Far</span>
+                      <span className="fr-summary-value fr-value-success">
+                        {formatCurrencyINR(receipt.summary.totalPaid)}
+                      </span>
+                    </div>
+                    <div className="fr-summary-col">
+                      <span className="fr-summary-label">Balance Due</span>
+                      <span
+                        className={`fr-summary-value ${
+                          (receipt.summary.remaining || 0) > 0
+                            ? "fr-value-danger"
+                            : "fr-value-success"
+                        }`}
+                      >
+                        {formatCurrencyINR(receipt.summary.remaining)}
+                      </span>
+                      {receipt.summary.remaining <= 0 && (
+                        <span className="fr-badge-paid">
+                          <FaCheckCircle aria-hidden="true" /> Fully Paid
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              )}
+
+            {/* 7. FOOTER */}
+            <footer className="fr-footer">
+              <p className="fr-footer-text">
+                This is a system-generated receipt. No signature required.
+              </p>
+            </footer>
+          </div>
+        </div>
+
+        {/* ACTIONS TOOLBAR (SCREEN ONLY) */}
+        <div className="fr-toolbar no-print">
+          <button
+            type="button"
+            className="fr-btn fr-btn-secondary"
+            onClick={handleGoBack}
+            aria-label={backButtonLabel}
           >
-            <FaArrowLeft />{" "}
-            {(user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")
-              ? "Back to Payment History"
-              : "Back to Fees"}
+            <FaArrowLeft aria-hidden="true" />
+            <span>{backButtonLabel}</span>
           </button>
-      </div>
 
-      {/* Skip Link for Screen Readers */}
-      <a href="#receipt-content" className="sr-only sr-only-focusable">
-        Skip to receipt content
-      </a>
+          <div className="fr-toolbar-actions">
+            <button
+              type="button"
+              className="fr-btn fr-btn-outline"
+              onClick={() => window.print()}
+              aria-label="Print receipt"
+              disabled={isDownloading}
+            >
+              <FaPrint aria-hidden="true" />
+              <span>Print</span>
+            </button>
 
-      <div className="text-center mb-4" role="banner">
-        <h3 className="fw-bold">
-          <FaReceipt className="me-2 text-primary" aria-hidden="true" />
-          Fee Payment Receipt
-        </h3>
-      </div>
-
-      {/* RECEIPT CARD */}
-      <div
-        ref={receiptRef}
-        className="receipt-card position-relative"
-        id="receipt-content"
-        role="article"
-        aria-label="Payment receipt details"
-      >
-        {/* WATERMARK */}
-        <div className="watermark" aria-hidden="true" role="presentation">
-          PAID
-        </div>
-
-        {/* HEADER */}
-        <header className="text-center mb-4">
-          <h4 className="fw-bold">
-            <FaUniversity className="me-2" aria-hidden="true" />
-            {receipt.college?.name || "College Name Not Available"}
-          </h4>
-          <address className="small text-muted">
-            {receipt.college?.address || "Address Not Available"}
-          </address>
-          <div className="small">
-            {receipt.college?.email && (
-              <a
-                href={`mailto:${receipt.college.email}`}
-                aria-label={`Email: ${receipt.college.email}`}
-              >
-                {receipt.college.email}
-              </a>
-            )}
-            {receipt.college?.email && receipt.college?.contact && " | "}
-            {receipt.college?.contact && (
-              <a
-                href={`tel:${receipt.college.contact}`}
-                aria-label={`Phone: ${receipt.college.contact}`}
-              >
-                {receipt.college.contact}
-              </a>
-            )}
+            <button
+              type="button"
+              className="fr-btn fr-btn-primary"
+              onClick={downloadPDF}
+              disabled={isDownloading}
+              aria-label="Download receipt as PDF"
+            >
+              {isDownloading ? (
+                <FaSpinner className="fr-spin" aria-hidden="true" />
+              ) : (
+                <FaDownload aria-hidden="true" />
+              )}
+              <span>{isDownloading ? "Generating PDF..." : "Download PDF"}</span>
+            </button>
           </div>
-        </header>
-
-        <hr />
-
-        {/* STATUS */}
-        <section className="text-center mb-4" aria-label="Payment status">
-          <FaCheckCircle
-            className="text-success display-5 mb-2"
-            aria-hidden="true"
-            role="img"
-          />
-          <h5 className="text-success fw-bold">Payment Successful</h5>
-          <div className="small text-muted">
-            Receipt No: <strong>{receipt.transactionId}</strong>
-          </div>
-        </section>
-
-        {/* DETAILS GRID */}
-        <div className="row g-4">
-          {/* Student Details */}
-          <section className="col-md-6" aria-label="Student details">
-            <h6 className="section-title">Student Details</h6>
-            <Info label="Name" value={receipt.student?.name} />
-            <Info label="Course" value={receipt.student?.course} />
-            <Info label="Department" value={receipt.student?.department} />
-            <Info label="Academic Year" value={receipt.student?.academicYear} />
-          </section>
-
-          {/* Payment Details */}
-          <section className="col-md-6" aria-label="Payment details">
-            <h6 className="section-title">Payment Details</h6>
-            <Info label="Installment" value={receipt.installmentName} />
-            <Info
-              label="Amount"
-              value={`₹ ${receipt.amount}`}
-            />
-            <Info
-              label="Payment Method"
-              value={(() => {
-                const gateway = receipt.paymentGateway || "STRIPE";
-                const mode = receipt.paymentMode || "ONLINE";
-
-                if (gateway === "OFFLINE") {
-                  // Offline payments
-                  const modeLabels = {
-                    CASH: "💵 Cash",
-                    CHEQUE: "📝 Cheque",
-                    DD: "🏦 Demand Draft",
-                  };
-                  return modeLabels[mode] || "💵 Cash";
-                } else {
-                  // Online payments
-                  const gatewayLabels = {
-                    STRIPE: "💳 Card (Stripe)",
-                    RAZORPAY: "📱 UPI/Card (Razorpay)",
-                    MOCK: "🧪 Mock Payment",
-                  };
-                  return gatewayLabels[gateway] || "💳 Card";
-                }
-              })()}
-            />
-            <Info
-              label="Paid On"
-              value={formatDateTime(receipt.paidAt)}
-            />
-            <Info label="Status" value={receipt.status} />
-          </section>
         </div>
-
-        <hr />
-
-        <p className="text-center small text-muted mt-4">
-          This is a system-generated receipt. No signature required.
-        </p>
       </div>
-
-      {/* ACTION BUTTONS */}
-      <nav
-        className="d-flex justify-content-center gap-3 mt-4 no-print"
-        aria-label="Receipt actions"
-      >
-        <button
-          className="btn btn-outline-primary"
-          onClick={() => window.print()}
-          aria-label="Print receipt"
-          disabled={loading}
-        >
-          <FaPrint className="me-1" aria-hidden="true" /> Print
-        </button>
-
-        <button
-          className="btn btn-success"
-          onClick={downloadPDF}
-          disabled={loading}
-          aria-label="Download receipt as PDF"
-        >
-          <FaDownload className="me-1" aria-hidden="true" /> Download PDF
-        </button>
-      </nav>
-
-      {/* Screen Reader Only Styles */}
-      <style>{`
-        .sr-only {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
-          border: 0;
-        }
-        .sr-only-focusable:focus {
-          position: static;
-          width: auto;
-          height: auto;
-          margin: 0;
-          overflow: visible;
-          clip: auto;
-          white-space: normal;
-        }
-        .receipt-card {
-          background: white;
-          padding: 40px;
-          border-radius: 20px;
-          box-shadow: 0 15px 40px rgba(0,0,0,0.08);
-          overflow: hidden;
-        }
-        
-        /* Back Button Styling */
-        .btn-back-to-fees {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 10px 20px;
-          border: 2px solid #6c757d;
-          background: white;
-          color: #6c757d;
-          border-radius: 10px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-        .btn-back-to-fees:hover {
-          background: #6c757d;
-          color: white;
-          transform: translateY(-2px);
-          box-shadow: 0 6px 15px rgba(108, 117, 125, 0.3);
-        }
-
-        .section-title {
-          font-weight: 700;
-          margin-bottom: 12px;
-          color: #1a4b6d;
-        }
-
-        .info-row {
-          margin-bottom: 10px;
-        }
-
-        .watermark {
-          position: absolute;
-          top: 40%;
-          left: 50%;
-          transform: translate(-50%, -50%) rotate(-30deg);
-          font-size: 120px;
-          font-weight: 900;
-          color: rgba(0, 128, 0, 0.05);
-          pointer-events: none;
-        }
-
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-          body {
-            background: white;
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-/* Helper */
-function Info({ label, value }) {
-  return (
-    <div className="info-row">
-      <strong>{label}:</strong> {value || "N/A"}
     </div>
   );
 }

@@ -30,4 +30,7 @@ notificationReadSchema.index(
   { unique: true }
 );
 
+// Index for user-wise read records query (optimizes student dashboard / unread lookups)
+notificationReadSchema.index({ user_id: 1 });
+
 module.exports = mongoose.model("NotificationRead", notificationReadSchema);

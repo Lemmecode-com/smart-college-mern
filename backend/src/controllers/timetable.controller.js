@@ -5,6 +5,8 @@ const AttendanceSession = require("../models/attendanceSession.model");
 const AuditLog = require("../models/auditLog.model");
 const Department = require("../models/department.model");
 const Course = require("../models/course.model");
+const Student = require("../models/student.model");
+const Notification = require("../models/notification.model");
 const mongoose = require("mongoose");
 const AppError = require("../utils/AppError");
 const {
@@ -16,6 +18,21 @@ const teacherService = require("../services/teacher.service");
 const timetableScheduleService = require("../services/timetableSchedule.service");
 const ApiResponse = require("../utils/ApiResponse");
 const { assertTimetableMutable } = require("../utils/timetableLifecycle.util");
+const logger = require("../utils/logger");
+const { cache: scheduleCache } = require("../services/scheduleCache.service");
+
+/**
+ * Safely invalidate schedule cache for a timetable without throwing errors
+ */
+const safeInvalidateScheduleCache = (timetableId) => {
+  try {
+    if (timetableId && scheduleCache && typeof scheduleCache.invalidateTimetable === "function") {
+      scheduleCache.invalidateTimetable(timetableId);
+    }
+  } catch (cacheErr) {
+    logger.warn(`Failed to invalidate schedule cache for timetable ${timetableId}: ${cacheErr.message}`);
+  }
+};
 
 /* =========================================================
    CREATE TIMETABLE (HOD = Teacher who is department.hod_id)
@@ -70,7 +87,23 @@ exports.createTimetable = async (req, res) => {
         });
       }
 
-      const course = await Course.findById(course_id).select("name yearLabels");
+      const course = await Course.findOne({
+        _id: course_id,
+        college_id: req.college_id,
+        department_id,
+      });
+
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      if (course.status === "INACTIVE" || course.isActive === false) {
+        return res.status(400).json({
+          code: "COURSE_INACTIVE",
+          message: "Cannot create a timetable for an inactive course",
+        });
+      }
+
       const yearLabel = course?.yearLabels?.length
         ? require("../utils/yearLabels").getYearLabelForSemester(semester, course.yearLabels)
         : null;
@@ -167,6 +200,61 @@ exports.publishTimetable = async (req, res) => {
       console.error("Audit log failed for timetable publication:", err.message),
     );
 
+    // Fire-and-forget student notification
+    (async () => {
+      try {
+        const activeStudentStatuses = ["APPROVED", "ENROLLED", "OFFER_MADE", "SEAT_CONFIRMED"];
+        const studentQuery = {
+          college_id: req.college_id,
+          department_id: timetable.department_id,
+          course_id: timetable.course_id,
+          currentSemester: timetable.semester,
+          currentAcademicYear: timetable.academicYear,
+          status: { $in: activeStudentStatuses },
+        };
+
+        if (timetable.division) {
+          studentQuery.division = timetable.division;
+        }
+
+        const affectedStudents = await Student.find(studentQuery)
+          .select("user_id")
+          .lean();
+
+        const userIds = affectedStudents
+          .map((s) => s.user_id)
+          .filter(Boolean);
+
+        if (userIds.length > 0) {
+          await Notification.create({
+            college_id: req.college_id,
+            createdBy: req.user.id,
+            createdByRole: "HOD",
+            createdByDepartment: teacher.department_id,
+            target: "INDIVIDUAL",
+            target_users: userIds,
+            title: "📅 Exam Timetable Published",
+            message: `Exam timetable for ${timetable.name} has been published.`,
+            type: "EXAM",
+            priority: "HIGH",
+            actionUrl: "/student/exam-timetable",
+          });
+          logger.logInfo("Exam timetable notification sent", {
+            collegeId: req.college_id,
+            timetableId: timetable._id,
+            recipientCount: userIds.length,
+          });
+        }
+      } catch (notifErr) {
+        logger.logError("Failed to send exam timetable notification", {
+          error: notifErr.message,
+          timetableId: timetable._id,
+        });
+      }
+    })();
+
+    safeInvalidateScheduleCache(timetable._id);
+
     ApiResponse.success(
       res,
       {
@@ -246,6 +334,8 @@ exports.archiveTimetable = async (req, res) => {
     }).catch((err) =>
       console.error("Audit log failed for timetable archival:", err.message),
     );
+
+    safeInvalidateScheduleCache(timetable._id);
 
     ApiResponse.success(
       res,
@@ -349,6 +439,8 @@ exports.unarchiveTimetable = async (req, res) => {
     }).catch((err) =>
       console.error("Audit log failed for timetable unarchival:", err.message),
     );
+
+    safeInvalidateScheduleCache(timetable._id);
 
     ApiResponse.success(
       res,
@@ -909,6 +1001,8 @@ exports.getStudentTimetable = async (req, res) => {
 
     const filteredSlots = slots.filter((slot) => {
       if (!slot.timetable_id) return false;
+      if (slot.timetable_id.semester !== student.currentSemester) return false;
+      if (slot.timetable_id.academicYear !== student.currentAcademicYear) return false;
       if (slot.timetable_id.division) {
         return student.division && slot.timetable_id.division === student.division;
       }
@@ -1034,10 +1128,14 @@ exports.getStudentTodayTimetable = async (req, res) => {
     const todayDayName = getDayName(today);
     const todayStr = today.toISOString().split("T")[0];
 
-    // Find all PUBLISHED timetables for student's course and division
+    // Find all PUBLISHED timetables matching student's course, current
+    // semester, current academic year, and division.
     const timetableQuery = {
       college_id: req.college_id,
+      department_id: student.department_id,
       course_id: student.course_id,
+      semester: student.currentSemester,
+      academicYear: student.currentAcademicYear,
       status: "PUBLISHED",
     };
     if (student.division) {
@@ -1300,6 +1398,8 @@ exports.deleteTimetable = async (req, res, next) => {
     }).catch((err) =>
       console.error("Audit log failed for timetable deletion:", err.message),
     );
+
+    safeInvalidateScheduleCache(id);
 
     ApiResponse.success(
       res,

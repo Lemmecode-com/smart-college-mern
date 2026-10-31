@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
+import Breadcrumb from "../../../../components/Breadcrumb";
+import Loading from "../../../../components/Loading";
 import { AuthContext } from "../../../../auth/AuthContext";
 import {
   FaCalendarAlt,
@@ -134,7 +136,7 @@ const componentStyles = `
 .schedule-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
-  padding: 1.5rem;
+  padding: 0.5rem 1.5rem 1.5rem;
 }
 .schedule-content {
   width: 100%;
@@ -200,47 +202,61 @@ const componentStyles = `
 .schedule-header {
   margin-bottom: 1.5rem;
   background: white;
-  border-radius: 1.5rem;
+  border-radius: 15px;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(26, 75, 109, 0.15);
+  box-shadow: 0 4px 16px rgba(26, 75, 109, 0.12);
+  height: auto;
 }
+
 .header-top {
-  padding: 1.75rem 2rem;
-  background: linear-gradient(180deg, #0f3a4a, #134952);
+  min-height: 100px;
+  padding: 0.8rem 1.5rem;
+  background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
   color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
+  flex-wrap: nowrap;
+  gap: 1.5rem;
+  height: auto;
 }
 .header-left {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
+  gap: 1rem;
+  min-width: 0;
 }
 .header-icon-wrapper {
-  background: rgba(255, 255, 255, 0.15);
+  width: 52px;
+  height: 52px;
+  min-width: 52px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 1.6rem;
   flex-shrink: 0;
-  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.3);
 }
 .header-title {
-  margin: 0;
-  font-weight: 700;
-  line-height: 1.2;
+            margin: 0;
+            font-size: 1.625rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.25;
 }
 .header-subtitle {
-  margin: 0.5rem 0 0 0;
-  opacity: 0.9;
+.header-subtitle {
+  margin: 0.25rem 0 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.3;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  gap: 0.4rem;
+}
 }
 .header-right {
   display: flex;
@@ -249,11 +265,11 @@ const componentStyles = `
   flex-wrap: wrap;
 }
 .current-time-badge {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 0.6rem 1rem;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.55rem 1rem;
   border-radius: 12px;
   text-align: center;
-  min-width: 100px;
+  min-width: 120px;
 }
 .time-label {
   font-size: 0.75rem;
@@ -265,19 +281,21 @@ const componentStyles = `
   font-weight: 700;
 }
 .btn-refresh {
-  background: white;
-  color: #1a4b6d;
-  border: 2px solid white;
-  padding: 0.6rem 1rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
+  background: #ffffff;
+  color: #0E3746;
+  border: 1px solid #ffffff;
+  min-height: 44px;
+  padding: 0.65rem 1.15rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
   white-space: nowrap;
 }
 .btn-refresh:hover {
@@ -718,7 +736,7 @@ const componentStyles = `
 }
 @media (max-width: 1024px) {
   .schedule-container {
-    padding: 1rem;
+    padding: 0.5rem 1rem 1rem;
   }
   .header-top {
     padding: 1.25rem;
@@ -774,6 +792,86 @@ const componentStyles = `
   }
   .schedule-row {
     padding: 1rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .schedule-container .schedule-header,
+  .schedule-container .header-top {
+    height: auto;
+  }
+
+  .schedule-container .schedule-header {
+    overflow: visible;
+  }
+
+  .schedule-container .header-top {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .schedule-container {
+    padding: 0.5rem !important;
+  }
+
+  .schedule-container .header-top {
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .schedule-container .header-left {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 0.75rem;
+  }
+
+  .schedule-container .header-title {
+    font-size: 1.2rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .schedule-container .header-right {
+    justify-content: space-between;
+  }
+
+  .schedule-container .current-time-badge {
+    flex: 1;
+  }
+
+  .schedule-container .stats-bar {
+    padding: 0.75rem;
+  }
+
+  .schedule-container .stats-items {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .schedule-container .stat-item {
+    min-width: 0;
+  }
+
+  .schedule-container .stat-label {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 450px) {
+  .schedule-container .stats-items {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .schedule-container .stat-info {
+    min-width: 0;
+  }
+
+  .schedule-container .stat-label {
+    overflow-wrap: normal;
+    word-break: normal;
   }
 }
 
@@ -875,13 +973,19 @@ export default function MySchedule() {
     return () => clearInterval(timer);
   }, []);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (scoped by logged-in user id)
   useEffect(() => {
     if (!isClient) return;
+    const uid = user?.id || user?.realId;
+    if (!uid) {
+      setSessionsLoaded(true);
+      return;
+    }
     const today = new Date().toISOString().split("T")[0];
-    const storedSessions = localStorage.getItem(`activeSessions_${today}`);
+    // Read only user-scoped keys (ignore old unscoped keys to prevent cross-user leakage)
+    const storedSessions = localStorage.getItem(`${uid}_activeSessions_${today}`);
     const storedAttendance = localStorage.getItem(
-      `attendanceSessions_${today}`,
+      `${uid}_attendanceSessions_${today}`,
     );
     if (storedSessions) {
       try {
@@ -898,7 +1002,7 @@ export default function MySchedule() {
       }
     }
     setSessionsLoaded(true);
-  }, [isClient]);
+  }, [isClient, user?.id, user?.realId]);
 
   // Fetch current teacher profile for HOD ownership validation
   useEffect(() => {
@@ -968,9 +1072,14 @@ export default function MySchedule() {
     try {
       const res = await api.get("/attendance/today-slots");
       setTodaySlotsData(res.data);
-      // Store today's slots in localStorage for quick access
-      const today = new Date().toISOString().split("T")[0];
-      localStorage.setItem(`todaySlots_${today}`, JSON.stringify(res.data));
+      // Store today's slots in localStorage for quick access (scoped to user)
+      if (isClient) {
+        const uid = user?.id || user?.realId;
+        if (uid) {
+          const today = new Date().toISOString().split("T")[0];
+          localStorage.setItem(`${uid}_todaySlots_${today}`, JSON.stringify(res.data));
+        }
+      }
     } catch (err) {
       // Don't fail the entire load, just use weekly data
     }
@@ -1001,16 +1110,19 @@ export default function MySchedule() {
       }
       setActiveSessions(sessionsMap);
       setAttendanceSessions(attendanceMap);
-      // Store in localStorage
+      // Store in localStorage (scoped to user)
       if (isClient) {
-        localStorage.setItem(
-          `activeSessions_${todayStr}`,
-          JSON.stringify(sessionsMap),
-        );
-        localStorage.setItem(
-          `attendanceSessions_${todayStr}`,
-          JSON.stringify(attendanceMap),
-        );
+        const uid = user?.id || user?.realId;
+        if (uid) {
+          localStorage.setItem(
+            `${uid}_activeSessions_${todayStr}`,
+            JSON.stringify(sessionsMap),
+          );
+          localStorage.setItem(
+            `${uid}_attendanceSessions_${todayStr}`,
+            JSON.stringify(attendanceMap),
+          );
+        }
       }
     } catch (err) {
       // Don't show error toast for this, just use empty state
@@ -1181,17 +1293,20 @@ export default function MySchedule() {
       setActiveSessions(newActiveSessions);
       setAttendanceSessions(newAttendanceSessions);
 
-      // Store in localStorage
+      // Store in localStorage (scoped to user)
       if (isClient) {
-        const todayStr = today.toISOString().split("T")[0];
-        localStorage.setItem(
-          `activeSessions_${todayStr}`,
-          JSON.stringify(newActiveSessions),
-        );
-        localStorage.setItem(
-          `attendanceSessions_${todayStr}`,
-          JSON.stringify(newAttendanceSessions),
-        );
+        const uid = user?.id || user?.realId;
+        if (uid) {
+          const todayStr = today.toISOString().split("T")[0];
+          localStorage.setItem(
+            `${uid}_activeSessions_${todayStr}`,
+            JSON.stringify(newActiveSessions),
+          );
+          localStorage.setItem(
+            `${uid}_attendanceSessions_${todayStr}`,
+            JSON.stringify(newAttendanceSessions),
+          );
+        }
       }
 
       toast.success("Attendance session started successfully! Redirecting...", {
@@ -1240,15 +1355,18 @@ export default function MySchedule() {
         setActiveSessions(newActiveSessions);
         setAttendanceSessions(newAttendanceSessions);
         if (isClient) {
-          const todayStr = today.toISOString().split("T")[0];
-          localStorage.setItem(
-            `activeSessions_${todayStr}`,
-            JSON.stringify(newActiveSessions),
-          );
-          localStorage.setItem(
-            `attendanceSessions_${todayStr}`,
-            JSON.stringify(newAttendanceSessions),
-          );
+          const uid = user?.id || user?.realId;
+          if (uid) {
+            const todayStr = today.toISOString().split("T")[0];
+            localStorage.setItem(
+              `${uid}_activeSessions_${todayStr}`,
+              JSON.stringify(newActiveSessions),
+            );
+            localStorage.setItem(
+              `${uid}_attendanceSessions_${todayStr}`,
+              JSON.stringify(newAttendanceSessions),
+            );
+          }
         }
       }
 
@@ -1288,20 +1406,20 @@ export default function MySchedule() {
     const isTablet = width >= 768 && width < 1024;
     return {
       container: {
-        maxWidth: isMobile ? "100%" : isTablet ? "95%" : "1200px",
+        maxWidth: isMobile ? "100%" : "none",
         padding: isMobile ? "0.75rem" : "1.5rem",
       },
-      headerTitle: {
-        fontSize: isMobile ? "1.5rem" : "2rem",
-      },
-      headerSubtitle: {
-        fontSize: isMobile ? "0.9rem" : "1.1rem",
-      },
-      headerIcon: {
-        width: isMobile ? "50px" : "72px",
-        height: isMobile ? "50px" : "72px",
-        fontSize: isMobile ? "1.5rem" : "2rem",
-      },
+headerTitle: {
+  fontSize: isMobile ? "1.2rem" : "1.5rem",
+},
+headerSubtitle: {
+  fontSize: isMobile ? "0.85rem" : "0.9rem",
+},
+headerIcon: {
+  width: isMobile ? "44px" : "52px",
+  height: isMobile ? "44px" : "52px",
+  fontSize: isMobile ? "1.3rem" : "1.6rem",
+},
       statsLabel: {
         fontSize: isMobile ? "0.75rem" : "0.85rem",
       },
@@ -1322,26 +1440,23 @@ export default function MySchedule() {
   };
   const styles = getResponsiveStyles();
 
-  if (loading || !sessionsLoaded) {
-    return (
-      <div className="schedule-container">
-        <div className="loading-wrapper">
-          <div className="loading-spinner">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="spinner-icon"
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h3>Loading Today's Schedule...</h3>
-            <p>Fetching your teaching schedule for {currentDayName}</p>
-          </div>
-        </div>
-        <style>{componentStyles}</style>
+// Loading State
+if (loading || !sessionsLoaded) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Today's Schedule..."
+        />
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <AnimatePresence mode="wait">
@@ -1357,23 +1472,22 @@ export default function MySchedule() {
           style={{ maxWidth: styles.container.maxWidth }}
         >
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="breadcrumb"
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/teacher/dashboard")}
-              className="btn-breadcrumb"
+            <div
+              style={{
+                width: "100%",
+                margin: "0 auto",
+                paddingTop: 0,
+              }}
             >
-              <FaArrowLeft /> Back to Dashboard
-            </motion.button>
-            <span className="breadcrumb-separator">›</span>
-            <span className="breadcrumb-current">Today's Schedule</span>
-          </motion.div>
+              <div style={{ width: "100%" }}>
+                <Breadcrumb
+                  items={[
+                    { label: "Dashboard", path: "/hod/dashboard" },
+                    { label: "Today's Schedule" },
+                  ]}
+                />
+              </div>
+            </div>
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
@@ -1429,10 +1543,9 @@ export default function MySchedule() {
                 </div>
                 <motion.button
                   whileHover={{
-                    scale: 1.05,
-                    boxShadow: "0 8px 20px rgba(26, 75, 109, 0.4)",
+                    y: -2,
                   }}
-                  whileTap={{ scale: 0.95 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={async () => {
                     setLoading(true);
                     await loadActiveSessions();

@@ -32,19 +32,23 @@ const dropdownVariants = {
 };
 
 export default function SearchableSelect({
-   value,
-   onChange,
-   fetchOptions,
-   placeholder = "Select...",
-   searchPlaceholder = "Search...",
-   className = "",
-   style = {},
-   "aria-label": ariaLabel,
-   name,
- }) {
+  value,
+  onChange,
+  fetchOptions,
+  options: propOptions,
+  placeholder = "Select...",
+  searchPlaceholder = "Search...",
+  className = "",
+  style = {},
+  "aria-label": ariaLabel,
+  name,
+  disabled = false,
+  isInvalid = false,
+  renderOption,
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [options, setOptions] = useState([]);
+  const [asyncOptions, setAsyncOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -54,8 +58,11 @@ export default function SearchableSelect({
     width: 0,
   });
 
+  const isAsync = typeof fetchOptions === "function";
+  const activeOptions = isAsync ? asyncOptions : (propOptions || []);
+
   useEffect(() => {
-    if (isOpen && fetchOptions) {
+    if (isOpen && isAsync) {
       if (searchInputRef.current) {
         searchInputRef.current.focus();
       }
@@ -63,17 +70,19 @@ export default function SearchableSelect({
         setLoading(true);
         try {
           const results = await fetchOptions(searchQuery);
-          setOptions(results || []);
+          setAsyncOptions(results || []);
         } catch (err) {
           console.error("Failed to fetch options:", err);
-          setOptions([]);
+          setAsyncOptions([]);
         } finally {
           setLoading(false);
         }
       }, 300);
       return () => clearTimeout(searchTimer);
+    } else if (isOpen && !isAsync && searchInputRef.current) {
+      searchInputRef.current.focus();
     }
-  }, [isOpen, searchQuery, fetchOptions]);
+  }, [isOpen, searchQuery, fetchOptions, isAsync]);
 
   useEffect(() => {
     if (isOpen && dropdownRef.current) {
@@ -84,7 +93,7 @@ export default function SearchableSelect({
         width: rect.width,
       });
     }
-}, [isOpen]);
+  }, [isOpen]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -118,14 +127,20 @@ export default function SearchableSelect({
     setSearchQuery("");
   };
 
-  const selectedOption = options.find((opt) => opt.value === value);
+  const selectedOption = activeOptions.find((opt) => String(opt.value) === String(value));
   const displayText = selectedOption?.label || placeholder;
 
-  const filteredOptions = searchQuery
-    ? options.filter((opt) =>
-        opt.label.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : options;
+  const filteredOptions = isAsync
+    ? activeOptions
+    : searchQuery
+    ? activeOptions.filter((opt) => {
+        const q = searchQuery.toLowerCase();
+        const matchLabel = (opt.label || "").toLowerCase().includes(q);
+        const matchSub = (opt.subLabel || "").toLowerCase().includes(q);
+        const matchKeywords = (opt.keywords || "").toLowerCase().includes(q);
+        return matchLabel || matchSub || matchKeywords;
+      })
+    : activeOptions;
 
   const dropdownMenu = (
     <AnimatePresence>
@@ -229,64 +244,105 @@ export default function SearchableSelect({
                 No results found
               </div>
             ) : (
-              filteredOptions.map((option, index) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => handleSelect(option.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 16px",
-                    border: "none",
-                    borderBottom:
-                      index < filteredOptions.length - 1
-                        ? "1px solid #f1f5f9"
-                        : "none",
-                    backgroundColor:
-                      value === option.value ? "#f0f9ff" : "transparent",
-                    color: "#1e293b",
-                    fontSize: "0.95rem",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "0.5rem",
-                    textAlign: "left",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (value !== option.value) {
-                      e.target.style.backgroundColor = "#f8fafc";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (value !== option.value) {
-                      e.target.style.backgroundColor = "transparent";
-                    }
-                  }}
-                >
-                  <span
+              filteredOptions.map((option, index) =>
+                renderOption ? (
+                  renderOption(
+                    option,
+                    String(value) === String(option.value),
+                    () => handleSelect(option.value)
+                  )
+                ) : (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleSelect(option.value)}
                     style={{
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      flex: 1,
-                      fontWeight: value === option.value ? 600 : 400,
+                      width: "100%",
+                      padding: "10px 14px",
+                      border: "none",
+                      borderBottom:
+                        index < filteredOptions.length - 1
+                          ? "1px solid #f1f5f9"
+                          : "none",
+                      backgroundColor:
+                        String(value) === String(option.value) ? "#f0f9ff" : "transparent",
+                      color: "#1e293b",
+                      fontSize: "0.92rem",
+                      cursor: "pointer",
+                      transition: "all 0.15s ease",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "0.75rem",
+                      textAlign: "left",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (String(value) !== String(option.value)) {
+                        e.currentTarget.style.backgroundColor = "#f8fafc";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (String(value) !== String(option.value)) {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }
                     }}
                   >
-                    {option.label}
-                  </span>
-                  {value === option.value && (
-                    <FaCheck
-                      style={{
-                        fontSize: "0.85rem",
-                        flexShrink: 0,
-                        color: "#1a4b6d",
-                      }}
-                    />
-                  )}
-                </button>
-              ))
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontWeight: String(value) === String(option.value) ? 600 : 500,
+                            color: "#0c2b47",
+                          }}
+                        >
+                          {option.label}
+                        </span>
+                        {option.badge && (
+                          <span
+                            style={{
+                              fontSize: "0.72rem",
+                              fontWeight: 600,
+                              padding: "2px 8px",
+                              borderRadius: "999px",
+                              backgroundColor: option.badgeBg || "#eef2f6",
+                              color: option.badgeColor || "#55677c",
+                            }}
+                          >
+                            {option.badge}
+                          </span>
+                        )}
+                      </div>
+                      {option.subLabel && (
+                        <div
+                          style={{
+                            fontSize: "0.78rem",
+                            color: "#64748b",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {option.subLabel}
+                        </div>
+                      )}
+                    </div>
+                    {String(value) === String(option.value) && (
+                      <FaCheck
+                        style={{
+                          fontSize: "0.85rem",
+                          flexShrink: 0,
+                          color: "#0e93ab",
+                        }}
+                      />
+                    )}
+                  </button>
+                )
+              )
             )}
           </div>
         </MotionDiv>
@@ -307,18 +363,22 @@ export default function SearchableSelect({
     >
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) setIsOpen(!isOpen);
+        }}
         aria-label={ariaLabel}
         aria-expanded={isOpen}
         style={{
           width: "100%",
           padding: "0.75rem 2.5rem 0.75rem 1rem",
-          border: "2px solid #e2e8f0",
+          border: isInvalid ? "2px solid #e5484d" : "2px solid #e2e8f0",
           borderRadius: "10px",
           fontSize: "0.95rem",
-          backgroundColor: "white",
-          cursor: "pointer",
-          transition: "all 0.3s ease",
+          backgroundColor: disabled ? "#f8fafc" : "white",
+          cursor: disabled ? "not-allowed" : "pointer",
+          opacity: disabled ? 0.7 : 1,
+          transition: "all 0.25s ease",
           boxSizing: "border-box",
           display: "flex",
           alignItems: "center",
@@ -328,10 +388,14 @@ export default function SearchableSelect({
           minHeight: "44px",
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = "#1a4b6d";
+          if (!disabled && !isInvalid) {
+            e.currentTarget.style.borderColor = "#1a4b6d";
+          }
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "#e2e8f0";
+          if (!disabled && !isInvalid) {
+            e.currentTarget.style.borderColor = "#e2e8f0";
+          }
         }}
       >
         <span

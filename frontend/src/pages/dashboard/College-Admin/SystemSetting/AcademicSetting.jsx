@@ -4,11 +4,12 @@ import {
   FaClipboardCheck,
   FaStar,
   FaClock,
-  FaSave,
   FaUndo,
   FaInfoCircle,
   FaCheck,
 } from "react-icons/fa";
+import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 
 const AcademicSetting = () => {
   const [formData, setFormData] = useState({
@@ -38,6 +39,7 @@ const AcademicSetting = () => {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isModified, setIsModified] = useState(false);
+  const [activeSection, setActiveSection] = useState("attendance");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -146,9 +148,9 @@ const AcademicSetting = () => {
         }
 
         .header-icon-wrapper {
-          width: 56px;
-          height: 56px;
-          border-radius: var(--as-radius-lg);
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
           background: linear-gradient(135deg, var(--as-cyan-primary), var(--as-cyan-light));
           display: flex;
           align-items: center;
@@ -267,7 +269,7 @@ const AcademicSetting = () => {
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 1.5rem;
           margin-bottom: 1.5rem;
-          align-items: start;
+          align-items: strech;
         }
 
         .card-session {
@@ -285,12 +287,16 @@ const AcademicSetting = () => {
         }
 
         .settings-card {
-          background: var(--as-bg-card);
-          border-radius: var(--as-radius-xl);
-          box-shadow: var(--as-shadow-md);
-          overflow: hidden;
-          transition: all var(--as-transition-slow);
-          border: 1px solid rgba(0, 0, 0, 0.04);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+
+        background: var(--as-bg-card);
+        border-radius: var(--as-radius-xl);
+        box-shadow: var(--as-shadow-md);
+        overflow: hidden;
+        transition: all var(--as-transition-slow);
+        border: 1px solid rgba(0, 0, 0, 0.04);
         }
 
         .settings-card:hover {
@@ -355,6 +361,7 @@ const AcademicSetting = () => {
 
         .card-body-custom {
           padding: 1.5rem;
+          flex: 1;
         }
 
         .form-group {
@@ -381,12 +388,25 @@ const AcademicSetting = () => {
 
         .form-label {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           gap: 0.25rem;
+          min-height: 40px;
+          margin-bottom: 0.5rem;
+
           font-size: 0.875rem;
           font-weight: 600;
+          line-height: 1.4;
           color: var(--as-text-primary);
-          margin-bottom: 0.5rem;
+        }
+
+        .form-row-aligned .form-label {
+          min-height: 4.2em;
+        }
+
+        .form-row-aligned .form-input,
+        .form-row-aligned .form-select {
+          box-sizing: border-box;
+          height: 40px;
         }
 
         .info-icon {
@@ -406,7 +426,7 @@ const AcademicSetting = () => {
         }
 
         .input-wrapper .form-input {
-          padding-right: 2.75rem;
+          padding-right: 3.2rem;
         }
 
         .form-input {
@@ -474,6 +494,7 @@ const AcademicSetting = () => {
 
         .form-hint {
           display: block;
+          min-height: 17px;
           font-size: 0.75rem;
           color: var(--as-text-muted);
           margin-top: 0.25rem;
@@ -669,72 +690,1222 @@ const AcademicSetting = () => {
           outline: 2px solid var(--as-cyan-primary);
           outline-offset: 2px;
         }
+
+        /* =========================================================
+   ACADEMIC SETTINGS
+   MOBILE + TABLET RESPONSIVE
+   Desktop remains unchanged
+   ========================================================= */
+
+
+/* =========================================================
+   TABLET
+   769px - 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .academic-settings-page {
+    padding: 1rem;
+    overflow-x: hidden;
+  }
+
+  /* ---------------- Breadcrumb ---------------- */
+
+  .academic-settings-page > div:first-of-type {
+    width: 100% !important;
+    height: auto !important;
+    margin: 0.75rem auto 1.25rem !important;
+    overflow: hidden;
+  }
+
+  .academic-settings-page > div:first-of-type > div {
+    width: 100% !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .academic-settings-page > div:first-of-type > div::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------------- Main Banner ---------------- */
+
+  .settings-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: row;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    padding: 1.25rem;
+
+    margin-bottom: 1.25rem;
+
+    border-radius: 1rem;
+
+    overflow: hidden;
+  }
+
+  .header-content {
+    min-width: 0;
+
+    display: flex;
+    align-items: center;
+
+    gap: 0.85rem;
+  }
+
+  .header-icon-wrapper {
+    width: 58px;
+    height: 58px;
+    min-width: 58px;
+  }
+
+  .header-icon {
+    font-size: 1.45rem;
+  }
+
+  .header-text {
+    min-width: 0;
+  }
+
+  .settings-title {
+    font-size: 1.5rem;
+    line-height: 1.2;
+
+    white-space: normal;
+  }
+
+  .settings-subtitle {
+    max-width: 420px;
+
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  /* Buttons stay compact and side-by-side */
+
+  .header-actions {
+    width: auto;
+
+    flex-shrink: 0;
+
+    display: flex;
+    flex-direction: row;
+
+    gap: 0.5rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: auto;
+
+    min-width: 105px;
+    min-height: 42px;
+
+    padding: 0.6rem 0.7rem;
+
+    font-size: 0.78rem;
+
+    justify-content: center;
+
+    white-space: nowrap;
+  }
+
+
+  /* ---------------- Overview Card ---------------- */
+
+  .as-info-card {
+    padding: 1rem;
+
+    gap: 0.8rem;
+
+    margin-bottom: 1.25rem;
+  }
+
+  .as-info-card-icon {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    font-size: 1.1rem;
+  }
+
+  .as-info-card-title {
+    font-size: 0.95rem;
+  }
+
+  .as-info-card-text {
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+
+  /* ---------------- Settings Grid ---------------- */
+
+  /*
+     Override the existing max-width:1024px rule.
+     Tablet gets 2 columns.
+  */
+
+  .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 1rem;
+
+    align-items: stretch;
+  }
+
+  .card-session {
+    grid-column: 1 / -1;
+  }
+
+
+  /* ---------------- Cards ---------------- */
+
+  .settings-card {
+    min-width: 0;
+
+    border-radius: 0.9rem;
+  }
+
+  .card-header-custom {
+    padding: 0.9rem 1rem;
+
+    gap: 0.65rem;
+  }
+
+  .card-icon-wrapper {
+    width: 42px;
+    height: 42px;
+
+    min-width: 42px;
+  }
+
+  .card-icon {
+    font-size: 1.1rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .card-body-custom {
+    padding: 1rem;
+  }
+
+
+  /* ---------------- Forms ---------------- */
+
+  .form-row,
+  .form-row-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.65rem;
+  }
+
+  .form-group {
+    min-width: 0;
+
+    margin-bottom: 1rem;
+  }
+
+  .form-label {
+    min-height: 34px;
+
+    font-size: 0.78rem;
+
+    line-height: 1.3;
+
+    margin-bottom: 0.4rem;
+  }
+
+  .form-input,
+  .form-select {
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 40px;
+
+    padding: 0.6rem 0.65rem;
+
+    font-size: 0.82rem;
+  }
+
+  .input-wrapper .form-input {
+    padding-right: 3rem;
+  }
+
+  .input-suffix {
+    right: 0.65rem;
+
+    font-size: 0.72rem;
+  }
+
+  .form-hint {
+    font-size: 0.68rem;
+  }
+
+  .badge-info {
+    max-width: 100%;
+    box-sizing: border-box;
+
+    font-size: 0.7rem;
+
+    padding: 0.25rem 0.45rem;
+
+    white-space: normal;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .academic-settings-page {
+    padding: 0.7rem;
+
+    overflow-x: hidden;
+  }
+
+
+  /* ---------------- Breadcrumb ---------------- */
+
+  .academic-settings-page > div:first-of-type {
+    width: 100% !important;
+
+    height: auto !important;
+
+    margin: 0.5rem auto 1rem !important;
+
+    overflow: hidden;
+  }
+
+  .academic-settings-page > div:first-of-type > div {
+    width: 100% !important;
+
+    overflow-x: auto;
+
+    scrollbar-width: none;
+  }
+
+  .academic-settings-page > div:first-of-type > div::-webkit-scrollbar {
+    display: none;
+  }
+
+
+  /* ---------------- Main Banner ---------------- */
+
+  .settings-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: stretch;
+
+    gap: 0.9rem;
+
+    padding: 1rem;
+
+    margin-bottom: 1rem;
+
+    border-radius: 0.9rem;
+
+    overflow: hidden;
+  }
+
+
+  /* Header content */
+
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 0.55rem;
+
+    text-align: center;
+  }
+
+  .header-icon-wrapper {
+    width: 52px;
+    height: 52px;
+
+    min-width: 52px;
+
+    border-radius: 0.7rem;
+  }
+
+  .header-icon {
+    font-size: 1.3rem;
+  }
+
+  .header-text {
+    width: 100%;
+  }
+
+  .settings-title {
+    margin: 0;
+
+    font-size: 1.35rem;
+
+    line-height: 1.2;
+
+    text-align: center;
+  }
+
+  .settings-subtitle {
+    width: 100%;
+    max-width: 100%;
+
+    margin-top: 0.3rem;
+
+    font-size: 0.78rem;
+
+    line-height: 1.45;
+
+    text-align: center;
+  }
+
+
+  /* ---------------- Banner Buttons ---------------- */
+
+  .header-actions {
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.55rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: 100%;
+
+    min-width: 0;
+
+    min-height: 42px;
+
+    padding: 0.55rem 0.35rem;
+
+    font-size: 0.72rem;
+
+    gap: 0.3rem;
+
+    justify-content: center;
+
+    white-space: nowrap;
+  }
+
+  .btn-icon {
+    font-size: 0.78rem;
+  }
+
+
+  /* ---------------- Overview ---------------- */
+
+  .as-info-card {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 0.75rem;
+
+    padding: 0.9rem;
+
+    margin-bottom: 1rem;
+
+    border-radius: 0.8rem;
+  }
+
+  .as-info-card-icon {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    font-size: 1rem;
+
+    border-radius: 0.6rem;
+  }
+
+  .as-info-card-content {
+    min-width: 0;
+  }
+
+  .as-info-card-title {
+    margin-bottom: 0.3rem;
+
+    font-size: 0.9rem;
+
+    line-height: 1.3;
+  }
+
+  .as-info-card-text {
+    font-size: 0.75rem;
+
+    line-height: 1.5;
+  }
+
+
+  /* ---------------- Cards ---------------- */
+
+  .settings-grid {
+    display: grid;
+
+    grid-template-columns: 1fr;
+
+    gap: 0.85rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .settings-card {
+    width: 100%;
+
+    min-width: 0;
+
+    border-radius: 0.85rem;
+  }
+
+  .card-session {
+    grid-column: auto;
+  }
+
+
+  /* ---------------- Card Header ---------------- */
+
+  .card-header-custom {
+    padding: 0.8rem 0.9rem;
+
+    gap: 0.6rem;
+  }
+
+  .card-icon-wrapper {
+    width: 40px;
+    height: 40px;
+
+    min-width: 40px;
+
+    border-radius: 0.6rem;
+  }
+
+  .card-icon {
+    font-size: 1rem;
+  }
+
+  .card-title {
+    font-size: 0.95rem;
+
+    line-height: 1.25;
+  }
+
+
+  /* ---------------- Card Body ---------------- */
+
+  .card-body-custom {
+    padding: 0.9rem;
+  }
+
+
+  /* ---------------- Info Badge ---------------- */
+
+  .badge-info {
+    display: inline-flex;
+
+    max-width: 100%;
+    box-sizing: border-box;
+
+    padding: 0.25rem 0.45rem;
+
+    margin-bottom: 0.7rem;
+
+    font-size: 0.68rem;
+
+    line-height: 1.3;
+
+    white-space: normal;
+  }
+
+
+  /* ---------------- Forms ---------------- */
+
+  .form-row,
+  .form-row-4 {
+    grid-template-columns: 1fr;
+
+    gap: 0;
+
+    margin-bottom: 0;
+  }
+
+  .form-group {
+    margin-bottom: 0.9rem;
+  }
+
+  .form-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .form-label {
+    min-height: auto;
+
+    font-size: 0.78rem;
+
+    line-height: 1.35;
+
+    margin-bottom: 0.35rem;
+  }
+
+  .form-input,
+  .form-select {
+    width: 100%;
+    box-sizing: border-box;
+
+    min-height: 40px;
+
+    padding: 0.6rem 0.65rem;
+
+    font-size: 0.8rem;
+  }
+
+  .input-wrapper .form-input {
+    padding-right: 3rem;
+  }
+
+  .input-suffix {
+    right: 0.6rem;
+
+    font-size: 0.7rem;
+  }
+
+  .form-select {
+    padding-right: 2.5rem;
+  }
+
+  .form-hint {
+    min-height: auto;
+
+    font-size: 0.68rem;
+
+    line-height: 1.3;
+
+    margin-top: 0.2rem;
+  }
+
+
+  /* ---------------- Modified Indicator ---------------- */
+
+  .modified-indicator {
+    left: 0.7rem;
+    right: 0.7rem;
+
+    bottom: 0.7rem;
+
+    width: auto;
+
+    box-sizing: border-box;
+
+    padding: 0.65rem 0.75rem;
+
+    gap: 0.6rem;
+
+    flex-direction: row;
+
+    justify-content: space-between;
+
+    text-align: left;
+
+    border-radius: 0.7rem;
+
+    transform: none;
+  }
+
+  .indicator-content {
+    min-width: 0;
+
+    font-size: 0.72rem;
+  }
+
+  .btn-save-small {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.7rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   0px - 420px
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .academic-settings-page {
+    padding: 0.55rem;
+  }
+
+
+  /* Banner */
+
+  .settings-header {
+    padding: 0.85rem;
+
+    gap: 0.75rem;
+
+    border-radius: 0.8rem;
+  }
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+
+    min-width: 48px;
+  }
+
+  .header-icon {
+    font-size: 1.15rem;
+  }
+
+  .settings-title {
+    font-size: 1.2rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.7rem;
+
+    line-height: 1.4;
+  }
+
+  .header-actions {
+    gap: 0.45rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 40px;
+
+    padding: 0.5rem 0.25rem;
+
+    font-size: 0.65rem;
+  }
+
+  .btn-icon {
+    font-size: 0.7rem;
+  }
+
+
+  /* Overview */
+
+  .as-info-card {
+    padding: 0.75rem;
+
+    gap: 0.6rem;
+  }
+
+  .as-info-card-icon {
+    width: 34px;
+    height: 34px;
+
+    min-width: 34px;
+  }
+
+  .as-info-card-title {
+    font-size: 0.82rem;
+  }
+
+  .as-info-card-text {
+    font-size: 0.7rem;
+  }
+
+
+  /* Cards */
+
+  .settings-grid {
+    gap: 0.75rem;
+  }
+
+  .card-header-custom {
+    padding: 0.7rem 0.8rem;
+  }
+
+  .card-icon-wrapper {
+    width: 36px;
+    height: 36px;
+
+    min-width: 36px;
+  }
+
+  .card-title {
+    font-size: 0.88rem;
+  }
+
+  .card-body-custom {
+    padding: 0.8rem;
+  }
+
+  .badge-info {
+    font-size: 0.64rem;
+  }
+
+  .form-input,
+  .form-select {
+    min-height: 38px;
+
+    font-size: 0.76rem;
+  }
+
+  .form-label {
+    font-size: 0.74rem;
+  }
+
+  .form-hint {
+    font-size: 0.64rem;
+  }
+}
+
+  .academic-settings-page {
+    min-height: auto;
+    padding: 12px 20px 92px;
+    background: #f3f6fa;
+    font-family: inherit;
+    color: #18313c;
+  }
+
+  .academic-settings-page .academic-settings-page-header {
+    min-height: 82px;
+    margin: 0 0 14px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
+    box-shadow: 0 4px 14px rgba(14, 55, 70, 0.16);
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-content {
+    min-height: 82px;
+    padding: 14px 20px;
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-main {
+    gap: 14px;
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    background: rgba(255, 255, 255, 0.14);
+    font-size: 20px;
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-title {
+    font-size: 21px;
+  }
+
+  .academic-settings-page .academic-settings-page-header .standard-page-header-subtitle {
+    margin-top: 3px;
+    font-size: 0.82rem;
+  }
+
+  .as-section-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    margin-bottom: 12px;
+    padding: 4px;
+    border: 1px solid #dce7eb;
+    border-radius: 10px;
+    background: #fff;
+    scrollbar-width: thin;
+  }
+
+  .as-section-tab {
+    display: inline-flex;
+    flex: 1 0 auto;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 7px 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #536a75;
+    font-size: 0.86rem;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+
+  .as-section-tab:hover {
+    border: 1px solid #9dcbd0;
+    background: #eaf5f6;
+    color: #0e3746;
+  }
+
+  .as-section-tab.is-active {
+    background: #0e3746;
+    color: #fff;
+    box-shadow: inset 0 0 0 1px #168b9a;
+  }
+
+  .as-section-tab.is-active svg {
+    color: #fff;
+  }
+
+  .settings-grid {
+    display: block;
+    margin: 0;
+  }
+
+  .academic-settings-page .settings-card,
+  .academic-settings-page .card-attendance,
+  .academic-settings-page .card-grading,
+  .academic-settings-page .card-session {
+    border: 1px solid #d6e0e8;
+    border-top: 1px solid #d6e0e8;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(14, 55, 70, 0.08);
+  }
+
+  .academic-settings-page .settings-card:hover {
+    transform: none;
+    box-shadow: 0 4px 14px rgba(14, 55, 70, 0.08);
+  }
+
+  .academic-settings-page .as-section-hidden {
+    display: none;
+  }
+
+  .academic-settings-page .card-header-custom {
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #dce7eb;
+    background: #f4f8fa;
+  }
+
+  .academic-settings-page .card-icon-wrapper {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 50%;
+    background: #0e3746;
+    color: #fff;
+    box-shadow: none;
+  }
+
+  .academic-settings-page .card-icon-wrapper .card-icon {
+    color: #fff;
+    font-size: 0.95rem;
+  }
+
+  .academic-settings-page .card-attendance,
+  .academic-settings-page .card-grading,
+  .academic-settings-page .card-session {
+    border-top: 3px solid #168b9a;
+  }
+
+  .academic-settings-page .card-title {
+    margin: 0;
+    color: #0f3a4a;
+    font-size: 0.98rem;
+  }
+
+  .academic-settings-page .card-body-custom {
+    padding: 14px 16px 16px;
+  }
+
+  .academic-settings-page .badge-info {
+    margin-bottom: 12px;
+    padding: 0;
+    background: none;
+    color: #647985;
+    font-size: 0.78rem;
+  }
+
+  .academic-settings-page .form-row,
+  .academic-settings-page .form-row-4 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    min-width: 0;
+    gap: 12px 16px;
+    margin-bottom: 4px;
+  }
+
+  .academic-settings-page .settings-grid,
+  .academic-settings-page .settings-card,
+  .academic-settings-page .card-body-custom,
+  .academic-settings-page .form-group,
+  .academic-settings-page .input-wrapper,
+  .academic-settings-page .select-wrapper {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .academic-settings-page .settings-card {
+    width: 100%;
+  }
+
+  .academic-settings-page .form-group {
+    margin-bottom: 8px;
+  }
+
+  .academic-settings-page .form-label {
+    min-width: 0;
+    min-height: 0;
+    margin-bottom: 5px;
+    color: #314d58;
+    font-size: 0.81rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+  }
+
+  .academic-settings-page .form-input,
+  .academic-settings-page .form-select {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 39px;
+    padding: 7px 10px;
+    box-sizing: border-box;
+    border: 1px solid #cbd9df;
+    border-radius: 7px;
+    background-color: #fff;
+    color: #18313c;
+    font-size: 0.84rem;
+  }
+
+  .academic-settings-page .form-input:focus,
+  .academic-settings-page .form-select:focus {
+    border-color: #168b9a;
+    box-shadow: 0 0 0 3px rgba(22, 139, 154, 0.12);
+    outline: 0;
+  }
+
+  .academic-settings-page .form-hint {
+    display: block;
+    min-height: 0;
+    margin-top: 4px;
+    color: #647985;
+    font-size: 0.74rem;
+  }
+
+  .academic-settings-page .input-suffix {
+    right: 2.15rem;
+    color: #647985;
+    font-size: 0.75rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .academic-settings-page .input-wrapper .form-input {
+    padding-right: 4.35rem;
+  }
+
+  .academic-settings-page .select-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  .academic-settings-page .form-select {
+    padding-right: 2.75rem;
+    background-position: right 0.75rem center;
+    text-overflow: ellipsis;
+  }
+
+  .academic-settings-page .form-hint {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .academic-settings-page .form-label {
+    color: #233f4a;
+  }
+
+  .academic-settings-page .form-input,
+  .academic-settings-page .form-select {
+    border-color: #b9cbd3;
+  }
+
+  .as-action-bar {
+    position: sticky;
+    z-index: 5;
+    bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: 14px -20px -92px;
+    padding: 10px 20px;
+    border-top: 1px solid #dce7eb;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 -3px 12px rgba(15, 58, 74, 0.06);
+  }
+
+  .as-save-state {
+    color: #647985;
+    font-size: 0.82rem;
+  }
+
+  .as-action-buttons {
+    display: flex;
+    gap: 8px;
+  }
+
+  .as-action-bar .btn-reset,
+  .as-action-bar .btn-save {
+    min-height: 38px;
+    padding: 7px 13px;
+    border: 1px solid #cbd9df;
+    border-radius: 7px;
+    background: #fff;
+    color: #314d58;
+    font-size: 0.82rem;
+    box-shadow: none;
+  }
+
+  .as-action-bar .btn-save {
+    border-color: #0e3746;
+    background: #0e3746;
+    color: #fff;
+  }
+
+  .as-action-bar .btn-save:hover:not(:disabled) {
+    border-color: #168b9a;
+    background: #125063;
+  }
+
+  .as-action-bar .btn-reset:hover:not(:disabled) {
+    border-color: #168b9a;
+    background: #eaf5f6;
+    color: #0e3746;
+  }
+
+  .as-action-bar .btn-save:disabled,
+  .as-action-bar .btn-reset:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  @media (max-width: 600px) {
+    .academic-settings-page {
+      padding: 10px 12px 84px;
+    }
+
+    .academic-settings-page .academic-settings-page-header .standard-page-header-content {
+      padding: 12px 14px;
+    }
+
+    .academic-settings-page .academic-settings-page-header .standard-page-header-title {
+      font-size: 18px;
+    }
+
+    .academic-settings-page .academic-settings-page-header .standard-page-header-subtitle {
+      font-size: 0.76rem;
+    }
+
+    .academic-settings-page .card-body-custom {
+      padding: 12px;
+    }
+
+    .academic-settings-page .form-row,
+    .academic-settings-page .form-row-4 {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 2px;
+    }
+
+    .as-action-bar {
+      margin: 14px -12px -84px;
+      padding: 9px 12px;
+    }
+
+    .as-save-state {
+      font-size: 0.72rem;
+    }
+
+    .as-action-bar .btn-reset,
+    .as-action-bar .btn-save {
+      padding: 7px 10px;
+      font-size: 0.76rem;
+    }
+  }
       `}</style>
 
-      <div className="academic-settings-page">
-        {/* ================= PAGE HEADER ================= */}
-        <div className="settings-header">
-          <div className="header-content">
-            <div className="header-icon-wrapper">
-              <FaBookOpen className="header-icon" />
-            </div>
-            <div className="header-text">
-              <h2 className="settings-title">Academic Settings</h2>
-              <p className="settings-subtitle">
-                Configure academic rules, attendance policies, grading, and
-                session management
-              </p>
-            </div>
-          </div>
-          <div className="header-actions">
-            <button
-              className="btn-reset"
-              onClick={handleReset}
-              disabled={isSaving || !isModified}
-            >
-              <FaUndo className="btn-icon" />
-              <span>Reset</span>
-            </button>
-            <button
-              className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
-              onClick={handleSave}
-              disabled={isSaving || !isModified}
-            >
-              {isSaving ? (
-                <>
-                  <span className="spinner-icon" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <FaCheck className="btn-icon" />
-                  <span>Save Changes</span>
-                </>
-              )}
-            </button>
+      <div className="academic-settings-page" style={{ paddingTop: "0.5rem" }}>
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "0 auto",
+            paddingTop: 0,
+            height: "auto",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "Academic Settings" },
+              ]}
+            />
           </div>
         </div>
 
-        {/* ================= OVERVIEW ================= */}
-        <div className="as-info-card">
-          <div className="as-info-card-icon">
-            <FaInfoCircle />
-          </div>
-          <div className="as-info-card-content">
-            <h3 className="as-info-card-title">
-              Manage core academic policies from one place
-            </h3>
-            <p className="as-info-card-text">
-              Define attendance, grading, and session/timetable rules that apply
-              across the institution. Changes are applied globally once saved.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          className="academic-settings-page-header"
+          icon={FaBookOpen}
+          title="Academic Settings"
+          subtitle="Manage institution-wide academic policies"
+        />
+
+        <nav className="as-section-tabs" aria-label="Academic settings sections">
+          {[
+            { id: "attendance", label: "Attendance", icon: <FaClipboardCheck /> },
+            { id: "grading", label: "Grading", icon: <FaStar /> },
+            { id: "sessions", label: "Sessions & Timetable", icon: <FaClock /> },
+          ].map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={`as-section-tab ${activeSection === section.id ? "is-active" : ""}`}
+              aria-pressed={activeSection === section.id}
+              onClick={() => setActiveSection(section.id)}
+            >
+              {section.icon}
+              {section.label}
+            </button>
+          ))}
+        </nav>
 
         {/* ================= SETTINGS CARDS ================= */}
         <div className="settings-grid">
           {/* ================= ATTENDANCE RULES ================= */}
-          <div className="settings-card card-attendance">
+          <div className={`settings-card card-attendance ${activeSection !== "attendance" ? "as-section-hidden" : ""}`}>
             <div className="card-header-custom">
               <div className="card-icon-wrapper icon-attendance">
                 <FaClipboardCheck className="card-icon" />
@@ -830,7 +2001,7 @@ const AcademicSetting = () => {
                 </div>
               </div>
 
-              <div className="form-row">
+              <div className="form-row form-row-aligned">
                 <div className="form-group">
                   <label className="form-label" htmlFor="lateAttendanceTime">
                     <span>Late Attendance Time</span>
@@ -877,7 +2048,7 @@ const AcademicSetting = () => {
           </div>
 
           {/* ================= GRADING RULES ================= */}
-          <div className="settings-card card-grading">
+          <div className={`settings-card card-grading ${activeSection !== "grading" ? "as-section-hidden" : ""}`}>
             <div className="card-header-custom">
               <div className="card-icon-wrapper icon-grading">
                 <FaStar className="card-icon" />
@@ -991,7 +2162,7 @@ const AcademicSetting = () => {
           </div>
 
           {/* ================= SESSION & TIMETABLE ================= */}
-          <div className="settings-card card-session">
+          <div className={`settings-card card-session ${activeSection !== "sessions" ? "as-section-hidden" : ""}`}>
             <div className="card-header-custom">
               <div className="card-icon-wrapper icon-session">
                 <FaClock className="card-icon" />
@@ -1081,7 +2252,7 @@ const AcademicSetting = () => {
                 </div>
               </div>
 
-              <div className="form-row">
+              <div className="form-row form-row-aligned">
                 <div className="form-group">
                   <label className="form-label" htmlFor="teacherSessionEdit">
                     <span>Teacher Session Edit</span>
@@ -1132,19 +2303,38 @@ const AcademicSetting = () => {
           </div>
         </div>
 
-        {/* ================= MODIFIED INDICATOR ================= */}
-        {isModified && (
-          <div className="modified-indicator">
-            <div className="indicator-content">
-              <FaInfoCircle className="indicator-icon" />
-              <span>You have unsaved changes</span>
-            </div>
-            <button className="btn-save-small" onClick={handleSave}>
-              <FaSave className="btn-icon-small" />
-              <span>Save Now</span>
+        <div className="as-action-bar">
+          <span className="as-save-state">
+            {isModified ? "Unsaved changes" : "All changes saved"}
+          </span>
+          <div className="as-action-buttons">
+            <button
+              className="btn-reset"
+              onClick={handleReset}
+              disabled={isSaving || !isModified}
+            >
+              <FaUndo className="btn-icon" />
+              <span>Reset</span>
+            </button>
+            <button
+              className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
+              onClick={handleSave}
+              disabled={isSaving || !isModified}
+            >
+              {isSaving ? (
+                <>
+                  <span className="spinner-icon" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <FaCheck className="btn-icon" />
+                  <span>Save Changes</span>
+                </>
+              )}
             </button>
           </div>
-        )}
+        </div>
       </div>
     </>
   );

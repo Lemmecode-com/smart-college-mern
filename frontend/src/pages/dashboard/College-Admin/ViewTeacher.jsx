@@ -6,6 +6,7 @@ import { getDocumentViewUrl, getDocumentDownloadUrl } from "../../../utils/docum
 import { toast } from "react-toastify";
 import Breadcrumb from "../../../components/Breadcrumb";
 import ApiError from "../../../components/ApiError";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import { logger } from "../../../utils/logger";
 import useRole from "../../../hooks/useRole";
 
@@ -484,22 +485,20 @@ export default function ViewTeacher() {
                           </td>
                           <td>
                             <div className="d-flex gap-2">
-                              <button
+                              <ActionIconButton
+                                icon={FaEye}
                                 onClick={() => handleViewDocument(doc.documentId)}
                                 className="btn btn-sm btn-outline-primary"
-                                title="Preview"
-                                type="button"
-                              >
-                                <FaEye />
-                              </button>
-                              <button
+                                ariaLabel={`Preview ${doc.name || "document"}`}
+                                tooltip={`Preview ${doc.name || "document"}`}
+                              />
+                              <ActionIconButton
+                                icon={FaDownload}
                                 onClick={() => handleDownloadDocument(doc.documentId)}
                                 className="btn btn-sm btn-outline-success"
-                                title="Download"
-                                type="button"
-                              >
-                                <FaDownload />
-                              </button>
+                                ariaLabel={`Download ${doc.name || "document"}`}
+                                tooltip={`Download ${doc.name || "document"}`}
+                              />
                             </div>
                           </td>
                         </tr>

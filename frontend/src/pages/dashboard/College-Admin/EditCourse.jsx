@@ -3,13 +3,16 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 
 import {
   FaBookOpen,
   FaSave,
-  FaArrowLeft
+  FaArrowLeft,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 export default function EditCourse() {
@@ -127,9 +130,22 @@ export default function EditCourse() {
   };
 
   /* ================= LOADING ================= */
-  if (loading) {
-    return <Loading fullScreen size="lg" text="Loading course details..." />;
-  }
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text="Loading Course Details..."
+        />
+      </div>
+    </div>
+  );
+}
 
   if (error && typeof error === 'object') {
     return (
@@ -149,17 +165,73 @@ export default function EditCourse() {
   }
 
   return (
-    <div className="container-fluid">
-      {/* HEADER */}
-      <div className="gradient-header p-4 rounded-4 text-white shadow mb-4">
-        <h3 className="fw-bold">
-          <FaBookOpen className="blink me-2" />
-          Edit Course
-        </h3>
-        <p className="opacity-75 mb-0">
-          Update course details
-        </p>
+    <div className="container-fluid pt-2">
+      {/* ================= BREADCRUMB ================= */}
+    <div
+      className="edit-course-breadcrumb"
+      style={{
+        width: "100%",
+        margin: "0 auto",
+        paddingTop: 0,
+      }}
+    >
+      <div style={{ width: "100%" }}>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/dashboard/college-admin" },
+            { label: "Courses", path: "/courses" },
+            { label: "Edit Course" },
+          ]}
+        />
       </div>
+    </div>
+
+    {/* PAGE HEADER */}
+    <PageHeader
+      icon={FaBookOpen}
+      title="Edit Course"
+      subtitle="Update course details"
+      actions={
+        <button
+          type="button"
+          onClick={() => navigate("/courses")}
+          aria-label="Back to courses"
+          title="Back to courses"
+          style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",    
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow =
+              "0 4px 10px rgba(0, 0, 0, 0.15)";
+            e.currentTarget.style.background =
+              "rgba(255, 255, 255, 0.18)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+            e.currentTarget.style.background =
+              "rgba(255, 255, 255, 0.12)";
+          }}
+        >
+          <FaArrowLeft size={15} />
+          <span>Back</span>
+        </button>
+      }
+    />
 
       {/* ERROR */}
       {error && typeof error === 'string' && (
@@ -184,7 +256,44 @@ export default function EditCourse() {
               <Select label="Program Level" name="programLevel" value={formData.programLevel} onChange={handleChange}
                 options={["UG", "PG", "DIPLOMA", "PHD"]} />
 
-              <Input label="Program Duration (Semesters)" type="number" name="durationSemesters" value={formData.durationSemesters} onChange={handleChange} min="1" max="8" />
+              <div className="col-md-6">
+                <label className="form-label fw-semibold">Program Duration (Semesters)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  name="durationSemesters"
+                  value={formData.durationSemesters}
+                  onChange={handleChange}
+                  min="1"
+                  max="8"
+                  required
+                />
+                {(() => {
+                  const semNum = Number(formData.durationSemesters);
+                  const years = formData.durationYears ? Number(formData.durationYears) : Math.ceil(semNum / 2);
+                  if (!semNum || isNaN(semNum)) return null;
+
+                  let warningMsg = null;
+                  if (formData.durationYears && semNum < 2 * Number(formData.durationYears)) {
+                    warningMsg = `Warning: Duration (${semNum} semesters) is less than 2 × durationYears (${2 * Number(formData.durationYears)} semesters).`;
+                  } else if (semNum <= 2) {
+                    warningMsg = `Warning: ${semNum} semester(s) (${years} year) is unusually low. Degree programs like B.Tech typically require 8 semesters (4 years). Please verify you did not enter years instead of semesters.`;
+                  } else if (formData.programLevel === "UG" && semNum < 6) {
+                    warningMsg = `Warning: ${semNum} semester(s) is lower than typical undergraduate programs (usually 6–8 semesters).`;
+                  }
+
+                  if (!warningMsg) return null;
+                  return (
+                    <div
+                      className="alert alert-warning py-2 px-3 mt-2 d-flex align-items-center gap-2"
+                      style={{ fontSize: "12px", borderRadius: "8px", border: "1px solid #fcd34d", background: "#fef3c7", color: "#92400e" }}
+                    >
+                      <FaExclamationTriangle className="flex-shrink-0" />
+                      <span>{warningMsg}</span>
+                    </div>
+                  );
+                })()}
+              </div>
               <Input label="Credits" type="number" name="credits" value={formData.credits} onChange={handleChange} />
               <Input label="Max Students" type="number" name="maxStudents" value={formData.maxStudents} onChange={handleChange} min="1" step="1" />
             </div>
@@ -193,14 +302,14 @@ export default function EditCourse() {
 
           {/* FOOTER */}
           <div className="card-footer bg-white border-0 d-flex justify-content-between p-3">
-            <button
+            {/* <button
               type="button"
               className="btn btn-outline-secondary"
               onClick={() => navigate("/courses")}
             >
               <FaArrowLeft className="me-1" />
               Back
-            </button>
+            </button> */}
 
             <button
               className="btn btn-success px-4"
@@ -212,23 +321,6 @@ export default function EditCourse() {
           </div>
         </div>
       </form>
-
-      {/* CSS */}
-      <style>{`
-        .gradient-header {
-          background: linear-gradient(180deg, #0f3a4a, #134952);
-        }
-
-        .blink {
-          animation: blink 1.5s infinite;
-        }
-
-        @keyframes blink {
-          0% {opacity:1}
-          50% {opacity:0.4}
-          100% {opacity:1}
-        }
-      `}</style>
     </div>
   );
 }
