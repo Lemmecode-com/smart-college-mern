@@ -714,7 +714,7 @@ export default function WeeklyTimetable() {
                 animate="visible"
                 style={{
                   marginBottom: "1.5rem",
-                  backgroundColor: "#0E3746",
+                  backgroundColor: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
                   borderRadius: "15px",
                   overflow: "hidden",
                   boxShadow: "0 10px 30px rgba(14, 55, 70, 0.18)",
@@ -726,7 +726,7 @@ export default function WeeklyTimetable() {
                 style={{
                   minHeight: "104px",
                   padding: "1.5rem 2rem",
-                  background: "#0E3746",
+                  background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
                   color: "white",
                   display: "flex",
                   justifyContent: "space-between",

@@ -147,7 +147,7 @@ const NotificationSetting = () => {
           align-items: center;
           margin-bottom: 1.5rem;
           padding: 1.25rem;
-          background: linear-gradient(135deg, var(--ns-teal-dark) 0%, var(--ns-teal-medium) 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
           border-radius: var(--ns-radius-xl);
           box-shadow: var(--ns-shadow-lg);
           position: relative;

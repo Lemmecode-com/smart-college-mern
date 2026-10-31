@@ -380,7 +380,7 @@ export default function DocumentSettings() {
           align-items: center;
           margin-bottom: 1.5rem;
           padding: 1.25rem;
-          background: linear-gradient(135deg, var(--ds-teal-dark) 0%, var(--ds-teal-medium) 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
           border-radius: var(--ds-radius-xl);
           box-shadow: var(--ds-shadow-lg);
           position: relative;

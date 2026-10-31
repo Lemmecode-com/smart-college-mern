@@ -679,7 +679,7 @@ if (loading) {
       <div
         className="my-timetable-header mb-4"
         style={{
-          background: "#0E3746",
+          background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
         }}
       >
               <div className="my-timetable-header-content text-white">

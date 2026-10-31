@@ -104,7 +104,7 @@ const FeeSetting = () => {
           align-items: center;
           margin-bottom: 1.5rem;
           padding: 1.25rem;
-          background: linear-gradient(135deg, var(--fs-teal-dark) 0%, var(--fs-teal-medium) 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
           border-radius: var(--fs-radius-xl);
           box-shadow: var(--fs-shadow-lg);
           position: relative;

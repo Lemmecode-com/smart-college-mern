@@ -694,7 +694,7 @@ const renderPagination = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
-          background: "#0E3746",
+          background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
           padding: "2rem",
           borderRadius: "20px",
           marginBottom: "1.5rem",

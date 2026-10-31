@@ -39,10 +39,12 @@ import {
  * @returns {UseSidebarReturn} Sidebar state and handlers
  */
 export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
+  const collapsedStateKey = `${STORAGE_KEYS.COLLAPSED_STATE}-${role}`;
+
   // Initialize collapsed state from localStorage or default
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.COLLAPSED_STATE);
+      const saved = localStorage.getItem(collapsedStateKey);
 
       if (saved !== null) {
         return JSON.parse(saved);
@@ -51,7 +53,7 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
       // Failed to parse sidebar collapsed state from localStorage
     }
 
-    return initialState.isCollapsed ?? false;
+    return initialState.isCollapsed ?? role === 'EXAM_COORDINATOR';
   });
 
   const [isMobileOpen, setIsMobileOpen] = useState(
@@ -121,13 +123,13 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
   useEffect(() => {
     try {
       localStorage.setItem(
-        STORAGE_KEYS.COLLAPSED_STATE,
+        collapsedStateKey,
         JSON.stringify(isCollapsed)
       );
     } catch (error) {
       // Failed to save sidebar collapsed state to localStorage
     }
-  }, [isCollapsed]);
+  }, [collapsedStateKey, isCollapsed]);
 
   /**
    * Toggle sidebar collapsed state

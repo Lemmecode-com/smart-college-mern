@@ -1498,7 +1498,7 @@ const AcademicSetting = () => {
     min-height: 82px;
     margin: 0 0 14px;
     border-radius: 12px;
-    background: #0e3746;
+    background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
     box-shadow: 0 4px 14px rgba(14, 55, 70, 0.16);
   }
 

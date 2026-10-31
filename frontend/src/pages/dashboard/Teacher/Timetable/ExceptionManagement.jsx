@@ -378,7 +378,7 @@ if (loading && exceptions.length === 0) {
           className="position-relative overflow-hidden exception-management-banner"
           style={{
             background:
-              "linear-gradient(135deg, var(--sidebar-bg-gradient-start, #0f3a4a) 0%, var(--sidebar-bg-gradient-end, #0c2d3a) 100%)",
+              "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
             borderRadius: "18px",
             border: "1px solid rgba(255, 255, 255, 0.08)",
             boxShadow: "0 10px 30px rgba(15, 58, 74, 0.18)",

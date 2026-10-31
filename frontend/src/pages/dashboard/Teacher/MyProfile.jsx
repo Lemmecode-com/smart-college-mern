@@ -468,7 +468,7 @@ if (loading) {
             animate="visible"
           style={{
   marginBottom: '1.5rem',
-  backgroundColor: '#0E3746',
+  backgroundColor: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
   borderRadius: '15px',
   overflow: 'hidden',
   boxShadow: '0 8px 24px rgba(15, 55, 70, 0.18)'
@@ -476,7 +476,7 @@ if (loading) {
           >
 <div className="teacher-profile-banner" style={{
   padding: '1.5rem 2rem',
-  background: '#0E3746',
+  background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
   color: 'white',
   display: 'flex',
   alignItems: 'center',
