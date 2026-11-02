@@ -11,12 +11,9 @@ import {
   FaTimesCircle,
   FaPercentage,
   FaSyncAlt,
-  FaDownload,
   FaPrint,
   FaInfoCircle,
   FaSearch,
-  FaEye,
-  FaFileExport,
   FaClock,
   FaUniversity,
   FaListUl,
@@ -26,6 +23,7 @@ import { toast } from "react-toastify";
 import Pagination from "../../../../components/Pagination";
 import Breadcrumb from "../../../../components/Breadcrumb";
 import Loading from "../../../../components/Loading";
+import PageHeader from "../../../../components/PageHeader";
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -461,200 +459,30 @@ if (loading && !report) {
           />
 
           {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: "1rem",
-              backgroundColor: "#0E3746",
-              borderRadius: "15px",
-              overflow: "hidden",
-              boxShadow: "0 6px 20px rgba(26, 75, 109, 0.12)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0rem",
-            }}
-          >
-            <div
-            className="attendance-report-banner"
-              style={{
-                background: "#0E3746",
-                borderRadius: "15px",
-                padding: "1rem 1.5rem",
-                marginBottom: 0,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: "1rem",
-                boxShadow: "0 8px 24px rgba(15, 69, 83, 0.18)",
-                color: "white",
-                height: "auto",
-                marginTop: "30px",
-              
-              }}
-            >
-              <div
-                className="attendance-report-banner-content"
-                style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
-              >
-                <motion.div
-                  className="attendance-report-banner-icon"
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    minWidth: '52px',
-                    background: 'rgba(255, 255, 255, 0.12)',
-                    border: '1px solid rgba(255, 255, 255, 0.18)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.7rem',
-                  }}
-                >
-                  <FaChartBar />
-                </motion.div>
-                <div>
-                  <h1
-                    className="attendance-report-banner-title"
-                    style={{
-                      margin: 0,
-                      fontSize: "1.625rem",
-                      fontWeight: 700,
-                      letterSpacing: "-0.02em",
-                      lineHeight: 1.25,
-                    }}
-                  >
-                    Attendance Analytics Report
-                  </h1>
-                  <p
-                    className="attendance-report-banner-description"
-                    style={{
-                      margin: 0,
-                      opacity: 0.8,
-                      fontSize: "0.9rem",
-                      fontWeight: 400,
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    Comprehensive insights into student attendance patterns
-                  </p>
-                </div>
-              </div>
-              {/* <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={exportToCSV}
-                  disabled={generatingCSV || sessions.length === 0}
-                  style={{
-                    backgroundColor: (generatingCSV || sessions.length === 0) ? '#cbd5e1' : BRAND_COLORS.success.main,
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    cursor: (generatingCSV || sessions.length === 0) ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: (generatingCSV || sessions.length === 0) ? 'none' : '0 4px 15px rgba(40, 167, 69, 0.3)'
-                  }}
-                >
-                  {generatingCSV ? (
-                    <>
-                      <motion.div variants={spinVariants} animate="animate">
-                        <FaSyncAlt size={14} />
-                      </motion.div>
-                      Exporting...
-                    </>
-                  ) : (
-                    <>
-                      <FaFileExport /> Export to CSV
-                    </>
-                  )}
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={printReport}
-                  disabled={sessions.length === 0}
-                  style={{
-                    backgroundColor: sessions.length === 0 ? '#cbd5e1' : BRAND_COLORS.info.main,
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    cursor: sessions.length === 0 ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: sessions.length === 0 ? 'none' : '0 4px 15px rgba(23, 162, 184, 0.3)'
-                  }}
-                >
-                  <FaPrint /> Print Report
-                </motion.button>
-              </div> */}
-            </div>
-
-            {/* Info Banner */}
-            <div
-              style={{
-                padding: "1rem 2rem",
-                backgroundColor: "#dbeafe",
-                borderTop: "1px solid #bfdbfe",
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                flexWrap: "wrap",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  flex: 1,
-                }}
-              >
-                <FaInfoCircle
-                  style={{
-                    color: BRAND_COLORS.primary.main,
-                    fontSize: "1.25rem",
-                  }}
-                />
-                <span style={{ color: "#1e293b", fontWeight: 500 }}>
-                  Use filters to generate custom reports. Data updates in
-                  real-time based on your selections.
-                </span>
-              </div>
+          <PageHeader
+            icon={FaChartBar}
+            title="Attendance Analytics Report"
+            subtitle="Comprehensive insights into student attendance patterns"
+            actions={
               <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={fetchReport}
                 disabled={fetchingReport}
                 style={{
-                  backgroundColor: BRAND_COLORS.primary.main,
+                  backgroundColor: "rgba(255,255,255,0.16)",
                   color: "white",
-                  border: "none",
-                  padding: "0.5rem 1.25rem",
-                  borderRadius: "8px",
+                  border: "1px solid rgba(255,255,255,0.28)",
+                  padding: "0.5rem 1.1rem",
+                  borderRadius: "10px",
                   fontSize: "0.9rem",
                   fontWeight: 600,
                   cursor: fetchingReport ? "not-allowed" : "pointer",
                   display: "flex",
                   alignItems: "center",
                   gap: "0.5rem",
-                  transition: "all 0.3s ease",
+                  transition: "all 0.2s ease",
+                  boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
                 }}
               >
                 {fetchingReport ? (
@@ -670,127 +498,8 @@ if (loading && !report) {
                   </>
                 )}
               </motion.button>
-            </div>
-          </motion.div>
-          
-          <style>{`
-  /* =========================================
-     ATTENDANCE REPORT BANNER
-     MOBILE + TABLET ONLY
-     ========================================= */
-
-  @media (max-width: 991px) {
-
-    .attendance-report-banner {
-      padding: 1.25rem !important;
-      gap: 0 !important;
-      min-height: auto !important;
-    }
-
-    .attendance-report-banner-content {
-      gap: 1rem !important;
-      align-items: center !important;
-    }
-
-    .attendance-report-banner-icon {
-      width: 64px !important;
-      height: 64px !important;
-      min-width: 64px !important;
-      font-size: 1.6rem !important;
-      border-radius: 18px !important;
-      box-shadow: 0 6px 18px rgba(255, 255, 255, 0.2) !important;
-    }
-
-    .attendance-report-banner-title {
-      font-size: 1.65rem !important;
-      line-height: 1.15 !important;
-      margin: 0 !important;
-    }
-
-    .attendance-report-banner-description {
-      font-size: 0.9rem !important;
-      line-height: 1.35 !important;
-      margin: 0.4rem 0 0 0 !important;
-    }
-
-    /* Info section below banner */
-    .attendance-report-banner + div {
-      padding: 0.85rem 1.25rem !important;
-      gap: 0.75rem !important;
-    }
-
-    .attendance-report-banner + div > div {
-      gap: 0.4rem !important;
-    }
-
-    .attendance-report-banner + div span {
-      font-size: 0.82rem !important;
-      line-height: 1.4 !important;
-    }
-
-    .attendance-report-banner + div svg {
-      font-size: 1rem !important;
-      flex-shrink: 0 !important;
-    }
-
-    .attendance-report-banner + div button {
-      padding: 0.5rem 1rem !important;
-      font-size: 0.8rem !important;
-      border-radius: 8px !important;
-    }
-  }
-
-
-  /* =========================================
-     SMALL MOBILE
-     ========================================= */
-
-  @media (max-width: 575px) {
-
-    .attendance-report-banner {
-      padding: 1rem !important;
-    }
-
-    .attendance-report-banner-content {
-      gap: 0.75rem !important;
-    }
-
-    .attendance-report-banner-icon {
-      width: 54px !important;
-      height: 54px !important;
-      min-width: 54px !important;
-      font-size: 1.35rem !important;
-      border-radius: 15px !important;
-    }
-
-    .attendance-report-banner-title {
-      font-size: 1.3rem !important;
-      line-height: 1.15 !important;
-    }
-
-    .attendance-report-banner-description {
-      font-size: 0.76rem !important;
-      line-height: 1.35 !important;
-      margin-top: 0.3rem !important;
-    }
-
-    .attendance-report-banner + div {
-      padding: 0.75rem 1rem !important;
-      gap: 0.6rem !important;
-    }
-
-    .attendance-report-banner + div span {
-      font-size: 0.72rem !important;
-      line-height: 1.35 !important;
-    }
-
-    .attendance-report-banner + div button {
-      padding: 0.45rem 0.8rem !important;
-      font-size: 0.72rem !important;
-      white-space: nowrap !important;
-    }
-  }
-`}</style>
+            }
+          />
 
 
 
@@ -801,15 +510,26 @@ if (loading && !report) {
             initial="hidden"
             animate="visible"
             style={{
-              marginBottom: "1.5rem",
+              marginBottom: "1.25rem",
               backgroundColor: "white",
-              borderRadius: "1.5rem",
-              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
-              padding: "1.5rem",
+              borderRadius: "12px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)",
+              border: "1px solid #e5e7eb",
+              padding: "1rem 1.25rem",
               position: "relative",
               overflow: "hidden",
             }}
           >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                height: "2px",
+                background: BRAND_COLORS.primary.gradient,
+              }}
+            />
             <div
               style={{
                 position: "absolute",
@@ -826,54 +546,54 @@ if (loading && !report) {
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "0.75rem",
-                marginBottom: "1.25rem",
+                gap: "0.6rem",
+                marginBottom: "0.9rem",
                 flexWrap: "wrap",
               }}
             >
               <FaFilter
                 style={{
                   color: BRAND_COLORS.primary.main,
-                  fontSize: "1.25rem",
+                  fontSize: "1rem",
                 }}
               />
               <h3
                 style={{
                   margin: 0,
-                  fontSize: "1.35rem",
-                  fontWeight: 700,
+                  fontSize: "1rem",
+                  fontWeight: 600,
                   color: "#1e293b",
                 }}
               >
-                Filter Report Parameters
+                Filters
               </h3>
               <div
                 style={{
                   marginLeft: "auto",
                   display: "flex",
                   alignItems: "center",
-                  gap: "0.5rem",
-                  backgroundColor: "#dbeafe",
-                  color: BRAND_COLORS.primary.main,
-                  padding: "0.25rem 0.75rem",
-                  borderRadius: "20px",
-                  fontSize: "0.85rem",
+                  gap: "0.4rem",
+                  backgroundColor: "#f1f5f9",
+                  color: "#475569",
+                  padding: "0.2rem 0.6rem",
+                  borderRadius: "999px",
+                  fontSize: "0.78rem",
                   fontWeight: 500,
                 }}
               >
-                <FaSearch size={14} />
-                Filters apply automatically
+                <FaSearch size={12} />
+                Auto-applies
               </div>
             </div>
 
             <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))",
-                gap: "0.85rem",
-                marginBottom: "0",
-              }}
-            >
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "0.75rem",
+              marginBottom: "0",
+            }}
+          >
               {/* Course Filter */}
               <FilterField label="Course" icon={<FaGraduationCap />}>
                 <select
@@ -970,26 +690,36 @@ if (loading && !report) {
             animate="visible"
             style={{ marginBottom: "1.5rem" }}
           >
-            <h3
+            <div
               style={{
-                fontSize: "1.5rem",
-                fontWeight: 700,
-                color: "#1e293b",
-                marginBottom: "1.25rem",
                 display: "flex",
                 alignItems: "center",
                 gap: "0.75rem",
+                marginBottom: "1rem",
+                flexWrap: "wrap",
               }}
             >
-              <FaChartBar style={{ color: BRAND_COLORS.primary.main }} /> Report
-              Summary
-            </h3>
+              <h3
+                style={{
+                  fontSize: "1.05rem",
+                  fontWeight: 600,
+                  color: "#1e293b",
+                  margin: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                }}
+              >
+                <FaChartBar style={{ color: BRAND_COLORS.primary.main }} /> Report
+                Summary
+              </h3>
+            </div>
 
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-                gap: "1.25rem",
+                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                gap: "0.9rem",
               }}
             >
               <SummaryCard
@@ -1041,31 +771,33 @@ if (loading && !report) {
             animate="visible"
             style={{
               backgroundColor: "white",
-              borderRadius: "1.5rem",
-              boxShadow: "0 10px 40px rgba(0, 0, 0, 0.08)",
+              borderRadius: "12px",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)",
+              border: "1px solid #e5e7eb",
               overflow: "hidden",
             }}
           >
             <div
               style={{
-                padding: "1.5rem",
-                borderBottom: "1px solid #e2e8f0",
+                padding: "1rem 1.25rem",
+                borderBottom: "1px solid #e5e7eb",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 flexWrap: "wrap",
-                gap: "1rem",
+                gap: "0.75rem",
+                background: "linear-gradient(180deg, #ffffff 0%, #fafafa 100%)",
               }}
             >
               <h2
                 style={{
                   margin: 0,
-                  fontSize: "1.5rem",
-                  fontWeight: 700,
+                  fontSize: "1.05rem",
+                  fontWeight: 600,
                   color: "#1e293b",
                   display: "flex",
                   alignItems: "center",
-                  gap: "0.75rem",
+                  gap: "0.5rem",
                 }}
               >
                 <FaListUl style={{ color: BRAND_COLORS.primary.main }} />{" "}
@@ -1075,33 +807,34 @@ if (loading && !report) {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "0.5rem",
-                  backgroundColor: "#ffedd5",
-                  color: "#c2410c",
-                  padding: "0.5rem 1rem",
-                  borderRadius: "20px",
-                  fontSize: "0.9rem",
+                  gap: "0.4rem",
+                  backgroundColor: "#f8fafc",
+                  color: "#475569",
+                  padding: "0.2rem 0.6rem",
+                  borderRadius: "999px",
+                  fontSize: "0.78rem",
                   fontWeight: 500,
+                  border: "1px solid #e5e7eb",
                 }}
               >
-                <FaInfoCircle /> {sessions.length} session
+                {sessions.length} session
                 {sessions.length !== 1 ? "s" : ""} found
               </div>
             </div>
 
-            <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  minWidth: "900px",
-                }}
-              >
+      <div style={{ overflowX: "auto" }}>
+        <table
+          style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            minWidth: "880px",
+          }}
+        >
                 <thead>
                   <tr
                     style={{
-                      backgroundColor: "#f1f5f9",
-                      borderBottom: "2px solid #e2e8f0",
+                    backgroundColor: "#f8fafc",
+                    borderBottom: "1px solid #e5e7eb",
                     }}
                   >
                     <th style={headerCellStyle}>Date</th>
@@ -1132,25 +865,26 @@ if (loading && !report) {
                       <td
                         colSpan="8"
                         style={{
-                          padding: "3rem 1rem",
+                          padding: "1.75rem 1rem",
                           textAlign: "center",
-                          color: "#64748b",
+                          color: "#6b7280",
                         }}
                       >
                         <div
                           style={{
-                            fontSize: "4rem",
-                            marginBottom: "1rem",
-                            opacity: 0.3,
+                            fontSize: "2.5rem",
+                            marginBottom: "0.75rem",
+                            opacity: 0.4,
                           }}
                         >
                           <FaChartBar />
                         </div>
                         <h3
                           style={{
-                            margin: "0 0 0.5rem 0",
+                            margin: "0 0 0.4rem 0",
                             fontWeight: 600,
-                            color: "#1e293b",
+                            color: "#111827",
+                            fontSize: "0.95rem",
                           }}
                         >
                           No Attendance Data Found
@@ -1158,8 +892,9 @@ if (loading && !report) {
                         <p
                           style={{
                             margin: "0 auto",
-                            color: "#64748b",
-                            maxWidth: "600px",
+                            color: "#6b7280",
+                            maxWidth: "520px",
+                            fontSize: "0.85rem",
                           }}
                         >
                           No attendance data found for the selected filters.
@@ -1176,20 +911,21 @@ if (loading && !report) {
             {/* Table Footer */}
             {sessions.length > 0 && (
               <div
-                style={{
-                  padding: "1.25rem",
-                  borderTop: "1px solid #e2e8f0",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "1rem",
-                  backgroundColor: "#f8fafc",
-                }}
+            style={{
+              padding: "0.75rem 1.25rem",
+              borderTop: "1px solid #e5e7eb",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+              backgroundColor: "#fafafa",
+            }}
               >
-                <div style={{ color: "#64748b", fontSize: "0.95rem" }}>
-                  <strong>{sessions.length}</strong> session
-                  {sessions.length !== 1 ? "s" : ""} displayed • Last updated:{" "}
+                <div style={{ color: "#6b7280", fontSize: "0.8rem" }}>
+                  <strong style={{ color: "#111827" }}>{sessions.length}</strong>{" "}
+                  session
+                  {sessions.length !== 1 ? "s" : ""} • Last updated:{" "}
                   {new Date().toLocaleTimeString()}
                 </div>
                 <div
@@ -1200,19 +936,19 @@ if (loading && !report) {
                     whileTap={{ scale: 0.95 }}
                     onClick={printReport}
                     style={{
-                      backgroundColor: BRAND_COLORS.info.main,
-                      color: "white",
-                      border: "none",
-                      padding: "0.5rem 1.25rem",
-                      borderRadius: "8px",
-                      fontSize: "0.9rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      transition: "all 0.3s ease",
-                    }}
+                    backgroundColor: BRAND_COLORS.primary.main,
+                    color: "white",
+                    border: "none",
+                    padding: "0.4rem 0.9rem",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    transition: "all 0.2s ease",
+                  }}
                   >
                     <FaPrint size={14} /> Print Report
                   </motion.button>
@@ -1239,15 +975,15 @@ if (loading && !report) {
 /* ================= FILTER FIELD COMPONENT ================= */
 function FilterField({ label, icon, children, disabled = false }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
       <label
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "0.5rem",
-          fontWeight: 600,
-          color: "#1e293b",
-          fontSize: "0.95rem",
+          gap: "0.4rem",
+          fontWeight: 500,
+          color: "#374151",
+          fontSize: "0.8rem",
         }}
       >
         {icon}
@@ -1255,9 +991,9 @@ function FilterField({ label, icon, children, disabled = false }) {
         {disabled && (
           <span
             style={{
-              marginLeft: "0.5rem",
-              color: "#94a3b8",
-              fontSize: "0.85rem",
+              marginLeft: "0.3rem",
+              color: "#9ca3af",
+              fontSize: "0.75rem",
               fontStyle: "italic",
             }}
           >
@@ -1274,30 +1010,30 @@ function FilterField({ label, icon, children, disabled = false }) {
 function SummaryCard({ title, value, icon, color, subtitle, trend }) {
   return (
     <motion.div
-      whileHover={{ y: -5, boxShadow: "0 15px 35px rgba(0, 0, 0, 0.12)" }}
+      whileHover={{ y: -2, boxShadow: "0 8px 24px rgba(0, 0, 0, 0.06)" }}
       style={{
         backgroundColor: "white",
-        borderRadius: "16px",
-        padding: "1.5rem",
-        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+        borderRadius: "12px",
+        padding: "0.9rem 1rem",
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)",
         display: "flex",
         alignItems: "center",
-        gap: "1.25rem",
-        borderLeft: `4px solid ${color}`,
-        transition: "all 0.3s ease",
+        gap: "0.9rem",
+        border: "1px solid #e5e7eb",
+        transition: "all 0.2s ease",
       }}
     >
       <div
         style={{
-          width: "56px",
-          height: "56px",
-          borderRadius: "14px",
+          width: "44px",
+          height: "44px",
+          borderRadius: "10px",
           background: `${color}10`,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           color: color,
-          fontSize: "1.75rem",
+          fontSize: "1.35rem",
           flexShrink: 0,
         }}
       >
@@ -1306,67 +1042,50 @@ function SummaryCard({ title, value, icon, color, subtitle, trend }) {
       <div style={{ flex: 1 }}>
         <div
           style={{
-            fontSize: "0.9rem",
-            color: "#64748b",
-            fontWeight: 600,
-            marginBottom: "0.25rem",
+            fontSize: "0.8rem",
+            color: "#6b7280",
+            fontWeight: 500,
+            marginBottom: "0.2rem",
             display: "flex",
             alignItems: "center",
             gap: "0.375rem",
           }}
         >
           {title}
-          <div
-            title={subtitle}
-            style={{
-              width: "16px",
-              height: "16px",
-              borderRadius: "50%",
-              backgroundColor: "#e2e8f0",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "0.75rem",
-              color: "#4a5568",
-              cursor: "help",
-            }}
-          >
-            ?
-          </div>
         </div>
         <div
           style={{
-            fontSize: "2rem",
-            fontWeight: 800,
-            color: "#1e293b",
+            fontSize: "1.6rem",
+            fontWeight: 700,
+            color: "#111827",
             lineHeight: 1,
             display: "flex",
             alignItems: "center",
-            gap: "0.5rem",
+            gap: "0.4rem",
           }}
         >
           {value}
           {trend && (
             <span
-              style={{
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                color: trend.includes("+")
-                  ? BRAND_COLORS.success.main
-                  : BRAND_COLORS.danger.main,
-              }}
+            style={{
+              fontSize: "0.75rem",
+              fontWeight: 600,
+              color: trend.includes("+")
+                ? BRAND_COLORS.success.main
+                : BRAND_COLORS.danger.main,
+            }}
             >
               {trend}
             </span>
           )}
         </div>
         <div
-          style={{
-            fontSize: "0.85rem",
-            color: "#94a3b8",
-            marginTop: "0.25rem",
-          }}
-        >
+            style={{
+              fontSize: "0.78rem",
+              color: "#9ca3af",
+              marginTop: "0.2rem",
+            }}
+          >
           {subtitle}
         </div>
       </div>
@@ -1384,20 +1103,19 @@ function SessionRow({ session, delay = 0 }) {
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: delay, duration: 0.5 }}
-      whileHover={{ backgroundColor: "#f8fafc" }}
+      whileHover={{ backgroundColor: "#f9fafb" }}
       style={{
-        borderBottom: "1px solid #e2e8f0",
-        transition: "background-color 0.2s ease",
+        borderBottom: "1px solid #f1f5f9",
+        transition: "background-color 0.15s ease",
       }}
     >
-      <td style={{ ...cellStyle, fontWeight: 600 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+      <td style={{ ...cellStyle, fontWeight: 500 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
           <FaCalendarAlt
-            size={16}
+            size={14}
             style={{ color: BRAND_COLORS.primary.main }}
           />
           {new Date(session.date).toLocaleDateString("en-US", {
-            weekday: "short",
             month: "short",
             day: "numeric",
             year: "numeric",
@@ -1405,32 +1123,32 @@ function SessionRow({ session, delay = 0 }) {
         </div>
       </td>
       <td style={cellStyle}>
-        <div style={{ fontWeight: 600, color: "#1e293b" }}>
+        <div style={{ fontWeight: 500, color: "#111827" }}>
           {session.subject}
         </div>
         <div
           style={{
-            fontSize: "0.85rem",
-            color: "#64748b",
-            marginTop: "0.25rem",
+            fontSize: "0.75rem",
+            color: "#6b7280",
+            marginTop: "0.15rem",
           }}
         >
           {session.subjectCode || "N/A"}
         </div>
       </td>
       <td style={cellStyle}>
-        <div style={{ fontWeight: 500, color: "#4a5568" }}>
+        <div style={{ color: "#374151", whiteSpace: "nowrap" }}>
           {session.course || "N/A"}
         </div>
       </td>
       <td style={cellStyle}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <FaClock size={16} style={{ color: BRAND_COLORS.warning.main }} />
-          Lecture {session.lectureNumber}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", color: "#374151" }}>
+          <FaClock size={13} style={{ color: "#9ca3af" }} />
+          {session.lectureNumber}
         </div>
       </td>
       <td style={cellStyle}>
-        <div style={{ fontWeight: 600, color: "#1e293b" }}>
+        <div style={{ color: "#374151" }}>
           {session.totalStudents || 0}
         </div>
       </td>
@@ -1438,7 +1156,7 @@ function SessionRow({ session, delay = 0 }) {
         style={{
           ...cellStyle,
           color: BRAND_COLORS.success.main,
-          fontWeight: 600,
+          fontWeight: 500,
         }}
       >
         {session.present || 0}
@@ -1447,7 +1165,7 @@ function SessionRow({ session, delay = 0 }) {
         style={{
           ...cellStyle,
           color: BRAND_COLORS.danger.main,
-          fontWeight: 600,
+          fontWeight: 500,
         }}
       >
         {session.absent || 0}
@@ -1457,18 +1175,18 @@ function SessionRow({ session, delay = 0 }) {
           style={{
             display: "inline-flex",
             alignItems: "center",
-            gap: "0.375rem",
-            padding: "0.25rem 0.75rem",
-            borderRadius: "20px",
+            gap: "0.25rem",
+            padding: "0.15rem 0.5rem",
+            borderRadius: "999px",
             backgroundColor: isGoodAttendance
-              ? `${BRAND_COLORS.success.main}15`
-              : `${BRAND_COLORS.danger.main}15`,
+              ? "rgba(40, 167, 69, 0.08)"
+              : "rgba(220, 53, 69, 0.08)",
             color: isGoodAttendance
               ? BRAND_COLORS.success.main
               : BRAND_COLORS.danger.main,
-            fontSize: "0.85rem",
+            fontSize: "0.75rem",
             fontWeight: 600,
-            border: `1px solid ${isGoodAttendance ? BRAND_COLORS.success.main : BRAND_COLORS.danger.main}30`,
+            border: `1px solid ${isGoodAttendance ? "rgba(40,167,69,0.25)" : "rgba(220,53,69,0.25)"}`,
           }}
         >
           <FaPercentage size={12} />
@@ -1482,49 +1200,49 @@ function SessionRow({ session, delay = 0 }) {
 /* ================= STYLES ================= */
 const filterSelectStyle = {
   width: "100%",
-  padding: "0.75rem 1rem",
-  borderRadius: "12px",
-  border: "1px solid #e2e8f0",
-  fontSize: "0.95rem",
-  backgroundColor: "white",
-  color: "#1e293b",
-  fontWeight: 500,
-  appearance: "none",
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%234a5568' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
-  backgroundRepeat: "no-repeat",
-  backgroundPosition: "right 0.75rem center",
-  backgroundSize: "16px",
-};
+    padding: "0.6rem 0.85rem",
+    borderRadius: "10px",
+    border: "1px solid #e5e7eb",
+    fontSize: "0.875rem",
+    backgroundColor: "white",
+    color: "#111827",
+    fontWeight: 500,
+    appearance: "none",
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 0.7rem center",
+    backgroundSize: "14px",
+  };
 
 const filterInputStyle = {
   width: "100%",
-  padding: "0.75rem 1rem",
-  borderRadius: "12px",
-  border: "1px solid #e2e8f0",
-  fontSize: "0.95rem",
+  padding: "0.6rem 0.85rem",
+  borderRadius: "10px",
+  border: "1px solid #e5e7eb",
+  fontSize: "0.875rem",
   backgroundColor: "white",
-  color: "#1e293b",
+  color: "#111827",
   fontWeight: 500,
 };
 
 const headerCellStyle = {
-  padding: "1rem",
+  padding: "0.625rem 0.875rem",
   textAlign: "left",
-  fontWeight: 700,
-  color: "#1e293b",
-  fontSize: "0.9rem",
+  fontWeight: 600,
+  color: "#475569",
+  fontSize: "0.75rem",
   textTransform: "uppercase",
-  letterSpacing: "0.5px",
+  letterSpacing: "0.04em",
   position: "sticky",
   top: 0,
   zIndex: 10,
-  backgroundColor: "#f1f5f9",
+  backgroundColor: "#f8fafc",
 };
 
 const cellStyle = {
-  padding: "1rem",
-  fontSize: "0.95rem",
-  color: "#1e293b",
-  borderBottom: "1px solid #e2e8f0",
+  padding: "0.625rem 0.875rem",
+  fontSize: "0.875rem",
+  color: "#1f2937",
+  borderBottom: "1px solid #f1f5f9",
   verticalAlign: "middle",
 };
