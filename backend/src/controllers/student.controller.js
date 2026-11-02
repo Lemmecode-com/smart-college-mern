@@ -907,7 +907,7 @@ exports.updateMyProfile = async (req, res, next) => {
 };
 
 /**
- * COLLEGE ADMIN: Update student profile (SAFE)
+ * COLLEGE ADMIN / ADMISSION_OFFICER: Update student profile (SAFE)
  */
 exports.updateStudentByAdmin = async (req, res, next) => {
   try {
@@ -1059,7 +1059,7 @@ exports.updateStudentByAdmin = async (req, res, next) => {
 };
 
 /**
- * COLLEGE ADMIN: Get valid divisions for a student's academic context
+ * COLLEGE ADMIN / ADMISSION_OFFICER: Get valid divisions for a student's academic context
  * GET /api/students/:id/valid-divisions
  */
 exports.getValidDivisionsForStudent = async (req, res, next) => {

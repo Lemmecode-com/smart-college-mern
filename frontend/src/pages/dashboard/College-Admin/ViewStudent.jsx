@@ -1126,7 +1126,7 @@ if (loading) {
                 <FaBook className="card-title-icon" />
                 <h3 className="card-title">Academic Information</h3>
               </div>
-              {isCollegeAdmin && ["APPROVED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(student.status) && (
+              {(isCollegeAdmin || user?.role === "ADMISSION_OFFICER") && ["APPROVED", "OFFER_MADE", "SEAT_CONFIRMED"].includes(student.status) && (
                 <button
                   className="btn-assign-division"
                   onClick={handleOpenDivisionModal}

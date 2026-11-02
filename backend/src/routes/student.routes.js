@@ -146,22 +146,22 @@ router.put(
   updateMyProfile,
 );
 
-// 🏛️ ADMIN: Update student
+// 🏛️ ADMIN / ADMISSION_OFFICER: Update student
 router.put(
   "/:id",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   validateStudentId,
   validateStudentUpdateByAdmin,
   updateStudentByAdmin,
 );
 
-// 🏛️ ADMIN: Get valid divisions for a student's academic context
+// 🏛️ ADMIN / ADMISSION_OFFICER: Get valid divisions for a student's academic context
 router.get(
   "/:id/valid-divisions",
   auth,
-  role("COLLEGE_ADMIN"),
+  role(ROLE.COLLEGE_ADMIN, ROLE.ADMISSION_OFFICER),
   collegeMiddleware,
   validateStudentId,
   getValidDivisionsForStudent,
