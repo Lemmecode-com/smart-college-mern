@@ -18,6 +18,8 @@ import {
   FaArrowLeft,
   FaSave,
   FaUsers,
+  FaSpinner,
+  FaCheckCircle,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -179,7 +181,7 @@ const styles = `
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
   box-shadow: 0 2px 6px rgba(12, 43, 71, 0.18);
 }
-.marks-entry .btn-me-primary:hover {
+.marks-entry .btn-me-primary:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(23, 174, 203, 0.28);
   background: linear-gradient(135deg, var(--me-navy-800), var(--me-cyan-600));
@@ -189,6 +191,33 @@ const styles = `
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+}
+.marks-entry .btn-me-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, var(--me-green-600), #27ae60) !important;
+  color: #fff !important;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  box-shadow: 0 2px 6px rgba(39, 174, 96, 0.25);
+  cursor: default;
+}
+.marks-entry .btn-me-success:disabled {
+  opacity: 0.92 !important;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+@keyframes me-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.marks-entry .me-spin {
+  animation: me-spin 0.9s linear infinite;
 }
 
 .marks-entry .btn-me-outline {
@@ -254,6 +283,10 @@ export default function MarksEntry() {
 
   if (!user) return <Navigate to="/login" />;
 
+  const isHOD = user?.role === "HOD";
+  const dashboardPath = isHOD ? "/hod/dashboard" : "/teacher/dashboard";
+  const dashboardLabel = isHOD ? "HOD Dashboard" : "Teacher Dashboard";
+
   const [exams, setExams] = useState([]);
   const [selectedExamId, setSelectedExamId] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
@@ -261,10 +294,15 @@ export default function MarksEntry() {
   const [loadingExams, setLoadingExams] = useState(true);
   const [loadingRoster, setLoadingRoster] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [error, setError] = useState(null);
   const [saveError, setSaveError] = useState(null);
 
   const [marksMap, setMarksMap] = useState({});
+
+  // Synchronous mutex to prevent duplicate clicks / API calls before React re-render
+  const isSavingRef = useRef(false);
 
   // Monotonic token so a late/in-flight roster response cannot overwrite a
   // newer selection. Incremented on every new loadRoster call and on resets.
@@ -303,10 +341,14 @@ export default function MarksEntry() {
   const handleExamChange = (e) => {
     const examId = e.target.value;
     rosterRequestRef.current += 1;
+    isSavingRef.current = false;
     setSelectedExamId(examId);
     setSelectedSubjectId("");
     setRoster(null);
     setLoadingRoster(false);
+    setSaving(false);
+    setSaveSuccess(false);
+    setHasUnsavedChanges(false);
     setMarksMap({});
     setError(null);
     setSaveError(null);
@@ -340,6 +382,8 @@ export default function MarksEntry() {
         };
       }
       setMarksMap(initialMarks);
+      setHasUnsavedChanges(false);
+      setSaveSuccess(false);
     } catch (err) {
       if (requestId !== rosterRequestRef.current) return;
 
@@ -357,13 +401,19 @@ export default function MarksEntry() {
       }
     }
   };
+
   const handleBackClick = () => {
-    navigate("/teacher/dashboard");
+    navigate(dashboardPath);
   };
+
   const handleSubjectChange = async (e) => {
     const subjectId = e.target.value;
+    isSavingRef.current = false;
     setSelectedSubjectId(subjectId);
     setMarksMap({});
+    setSaving(false);
+    setSaveSuccess(false);
+    setHasUnsavedChanges(false);
     setSaveError(null);
 
     if (!subjectId || !selectedExamId) {
@@ -384,29 +434,100 @@ export default function MarksEntry() {
         [field]: value,
       },
     }));
+    setHasUnsavedChanges(true);
+    setSaveSuccess(false);
+    setSaveError(null);
   };
 
   const handleSave = async () => {
+    // 1. Synchronous mutex: drop any duplicate/concurrent clicks immediately
+    if (isSavingRef.current || saving) {
+      return;
+    }
+
     if (!selectedExamId || !selectedSubjectId) {
       toast.warning("Please select an exam and subject first.");
       return;
     }
 
+    if (!roster?.roster || roster.roster.length === 0) {
+      toast.warning("No students available to save marks for.");
+      return;
+    }
+
+    // Client-side marks bounds validation against snapshot max marks
+    for (const entry of roster.roster) {
+      const studentMarks = marksMap[String(entry.studentId)] || {};
+      if (
+        studentMarks.internalMarks !== "" &&
+        studentMarks.internalMarks !== null &&
+        studentMarks.internalMarks !== undefined
+      ) {
+        const val = Number(studentMarks.internalMarks);
+        if (isNaN(val) || val < 0) {
+          toast.error(`Invalid internal marks for ${entry.fullName}`);
+          return;
+        }
+        if (
+          roster.internalMaxMarks !== undefined &&
+          roster.internalMaxMarks !== null &&
+          val > roster.internalMaxMarks
+        ) {
+          toast.error(
+            `Internal marks for ${entry.fullName} cannot exceed maximum (${roster.internalMaxMarks})`,
+          );
+          return;
+        }
+      }
+      if (
+        studentMarks.externalMarks !== "" &&
+        studentMarks.externalMarks !== null &&
+        studentMarks.externalMarks !== undefined
+      ) {
+        const val = Number(studentMarks.externalMarks);
+        if (isNaN(val) || val < 0) {
+          toast.error(`Invalid external marks for ${entry.fullName}`);
+          return;
+        }
+        if (
+          roster.externalMaxMarks !== undefined &&
+          roster.externalMaxMarks !== null &&
+          val > roster.externalMaxMarks
+        ) {
+          toast.error(
+            `External marks for ${entry.fullName} cannot exceed maximum (${roster.externalMaxMarks})`,
+          );
+          return;
+        }
+      }
+    }
+
     const marksPayload = [];
-    for (const entry of roster?.roster || []) {
+    for (const entry of roster.roster) {
       const studentMarks = marksMap[String(entry.studentId)] || {};
       marksPayload.push({
         studentId: entry.studentId,
         internalMarks:
-          studentMarks.internalMarks !== "" ? Number(studentMarks.internalMarks) : null,
+          studentMarks.internalMarks !== "" &&
+          studentMarks.internalMarks !== null &&
+          studentMarks.internalMarks !== undefined
+            ? Number(studentMarks.internalMarks)
+            : null,
         externalMarks:
-          studentMarks.externalMarks !== "" ? Number(studentMarks.externalMarks) : null,
+          studentMarks.externalMarks !== "" &&
+          studentMarks.externalMarks !== null &&
+          studentMarks.externalMarks !== undefined
+            ? Number(studentMarks.externalMarks)
+            : null,
       });
     }
 
     try {
+      isSavingRef.current = true;
       setSaving(true);
       setSaveError(null);
+      setSaveSuccess(false);
+
       await saveMarks({
         examId: selectedExamId,
         subjectId: selectedSubjectId,
@@ -420,13 +541,17 @@ export default function MarksEntry() {
         surfaceError: false,
       });
 
+      setSaveSuccess(true);
+      setHasUnsavedChanges(false);
       toast.success("Marks saved successfully");
     } catch (err) {
       const message = err.response?.data?.message || "Failed to save marks.";
       setSaveError(message);
       toast.error(message);
+      setSaveSuccess(false);
       logger.error("Error saving marks:", err);
     } finally {
+      isSavingRef.current = false;
       setSaving(false);
     }
   };
@@ -435,13 +560,13 @@ export default function MarksEntry() {
     return (
       <div className="marks-entry container-fluid px-4 pb-4 pt-2">
         <style>{styles}</style>
-        <Breadcrumb items={[{ label: "Marks Entry", path: "/teacher/marks-entry" }]} />
+        <Breadcrumb items={[{ label: dashboardLabel, path: dashboardPath }, { label: "Marks Entry" }]} />
         <div className="fallback-wrap" style={{ maxWidth: 560, margin: "2rem auto" }}>
           <div className="alert-me alert-me-danger mb-3">
             <FaEdit />
             {error}
           </div>
-          <button className="btn-me-outline" onClick={() => navigate("/teacher/dashboard")}>
+          <button className="btn-me-outline" onClick={() => navigate(dashboardPath)}>
             <FaArrowLeft />
             Back to Dashboard
           </button>
@@ -454,7 +579,7 @@ export default function MarksEntry() {
     <div className="marks-entry container-fluid px-4 pb-4 pt-2">
       <style>{styles}</style>
 
-      <Breadcrumb items={[{ label: "Teacher Dashboard", path: "/teacher/dashboard" }, { label: "Marks Entry" }]} />
+      <Breadcrumb items={[{ label: dashboardLabel, path: dashboardPath }, { label: "Marks Entry" }]} />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -639,6 +764,7 @@ style={{
                             max={roster.internalMaxMarks ?? undefined}
                             placeholder={roster.internalMaxMarks !== undefined ? `Max ${roster.internalMaxMarks}` : "0"}
                             value={marksMap[String(entry.studentId)]?.internalMarks ?? ""}
+                            disabled={saving}
                             onChange={(e) =>
                               handleMarksChange(entry.studentId, "internalMarks", e.target.value)
                             }
@@ -654,6 +780,7 @@ style={{
                                max={roster.externalMaxMarks ?? undefined}
                                placeholder={roster.externalMaxMarks !== undefined ? `Max ${roster.externalMaxMarks}` : "0"}
                                value={marksMap[String(entry.studentId)]?.externalMarks ?? ""}
+                               disabled={saving}
                                onChange={(e) =>
                                  handleMarksChange(entry.studentId, "externalMarks", e.target.value)
                                }
@@ -689,19 +816,42 @@ style={{
 
               <div className="d-flex justify-content-between mt-4">
                 <button
+                  type="button"
                   className="btn-me-outline"
-                  onClick={() => navigate("/teacher/dashboard")}
+                  onClick={() => navigate(dashboardPath)}
                 >
                   <FaArrowLeft />
                   Back
                 </button>
                 <button
-                  className="btn-me-primary"
+                  type="button"
+                  className={`btn-me-primary ${saveSuccess && !hasUnsavedChanges ? "btn-me-success" : ""}`}
                   onClick={handleSave}
-                  disabled={saving}
+                  disabled={saving || (saveSuccess && !hasUnsavedChanges) || !roster?.roster?.length}
+                  title={
+                    saving
+                      ? "Saving marks..."
+                      : saveSuccess && !hasUnsavedChanges
+                      ? "Marks saved successfully. Modify marks to save again."
+                      : "Save Marks"
+                  }
                 >
-                  <FaSave />
-                  {saving ? "Saving..." : "Save Marks"}
+                  {saving ? (
+                    <>
+                      <FaSpinner className="me-spin" />
+                      Saving...
+                    </>
+                  ) : saveSuccess && !hasUnsavedChanges ? (
+                    <>
+                      <FaCheckCircle />
+                      Marks Saved
+                    </>
+                  ) : (
+                    <>
+                      <FaSave />
+                      Save Marks
+                    </>
+                  )}
                 </button>
               </div>
             </>
