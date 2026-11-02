@@ -575,25 +575,26 @@ addToast("Filters reset successfully!", "info");
             className="student-attendance-report-hero"
             style={{
               marginBottom: '1.5rem',
-              backgroundColor: '#0E3746',
+              backgroundColor: "white",
               borderRadius: '12px',
               overflow: 'hidden',
               boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '1.5rem'
+              gap: '1.5rem',
+              height: '90px',
             }}
           >
             <div className="student-attendance-report-hero-content" style={{
               padding: '1.2rem 1.75rem',
-              background: '#0E3746',
+              background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
               color: 'white',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
               gap: '1.5rem',
-              height: '80px',
+              height: '100px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                 <motion.div

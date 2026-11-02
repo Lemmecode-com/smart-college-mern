@@ -1081,7 +1081,7 @@ if (loading) {
         }
 
         .bg-gradient-primary {
-          background: #0E3746;
+          background: linear-gradient(135deg, #0b2f3c 0%, #0f3a4a 50%, #1b6b87 100%);
           // background-size: 200% 200%;
           // animation: gradientShift 8s ease infinite;
         }
