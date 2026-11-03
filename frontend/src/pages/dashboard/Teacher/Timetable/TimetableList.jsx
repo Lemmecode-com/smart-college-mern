@@ -5,6 +5,7 @@ import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
 import ActionIconButton from "../../../../components/common/ActionIconButton";
@@ -50,23 +51,6 @@ const fadeInVariants = {
     y: 0,
     transition: { delay: i * 0.05, duration: 0.5, ease: "easeOut" }
   })
-};
-
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
-};
-
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-  }
 };
 
 export default function TimetableList() {
@@ -455,320 +439,78 @@ if (
                 </div>
               </div>
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            className="erp-timetable-hero-card"
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.25rem',
-              backgroundColor: 'white',
-              borderRadius: '14px',
-              overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              // padding: '1.5rem 2rem',
-              // gap: '1.5rem',
-              // paddingBottom: '2rem',
-              height: '165px',
-   
-            }}
-          >
-            <div className="erp-timetable-hero-inner" style={{
-              padding: '1.5rem 2rem',
-              background: '#0E3746',
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1.5rem',
-              height: '92px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="erp-timetable-hero-icon"
-                  style={{
-                    width: '52px',
-                    height: '52px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '1.6rem',
-                    flexShrink: 0,
-                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
-                  }}
-                >
-                  <FaCalendarAlt />
-                </motion.div>
-                <div className="erp-timetable-hero-text">
-                  <h1 className="erp-timetable-hero-title" style={{
-                    margin: 0,
-                    fontSize: '1.625rem',
-                    fontWeight: 700,
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1.25,
-                  }}>
-                    Timetable Management
-                  </h1>
-                  <p className="erp-timetable-hero-desc" style={{
-                    margin: 0,
-                    opacity: 0.8,
-                    fontSize: '0.9rem',
-                    fontWeight: 400,
-                    lineHeight: 1.5,
-                  }}>
-                    View, manage, and publish academic schedules
-                  </p>
-                </div>
-              </div>
-              {isHOD && (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate('/timetable/create-timetable')}
-                  className="erp-timetable-hero-cta"
-                      style={{
-                    minHeight: "48px",
-                    padding: "0 20px",
-                    border: "1px solid rgba(255, 255, 255, 0.35)",
-                    borderRadius: "12px",
-                    background: "rgb(255, 255, 255)",
-                    color: "#0E3746",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "9px",
-                    fontSize: "15px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",       
-                }}
-                  onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 10px rgba(20, 27, 41, 0.18)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-                >
-                  <FaPlus /> Create Timetable
-                </motion.button>
-              )}
+          <PageHeader
+            icon={FaCalendarAlt}
+            title="Timetable Management"
+            subtitle="View, manage, and publish academic schedules"
+            actions={isHOD && (
+              <button
+                type="button"
+                className="erp-timetable-create-btn"
+                onClick={() => navigate('/timetable/create-timetable')}
+              >
+                <FaPlus />
+                Create Timetable
+              </button>
+            )}
+          />
+
+          <div className="erp-timetable-summary">
+            <div className="erp-timetable-stats-grid">
+              <StatItem icon={<FaCalendarAlt />} label="Total" value={stats.total} color="#1a4b6d" />
+              <StatItem icon={<FaCheckCircle />} label="Published" value={stats.published} color="#218838" />
+              <StatItem icon={<FaClock />} label="Draft" value={stats.draft} color="#d49a12" />
+              <StatItem icon={<FaArchive />} label="Archived" value={stats.archived} color="#6c757d" />
             </div>
-            
-            {/* Stats Bar */}
-            <div className="erp-timetable-stats" style={{
-              padding: '1rem 2rem',
-              backgroundColor: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '1.5rem'
-            }}>
-              <div className="erp-timetable-stats-grid" style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-                <StatItem 
-                  icon={<FaCalendarAlt />} 
-                  label="Total" 
-                  value={stats.total} 
-                  color={BRAND_COLORS.primary.main} 
-                />
-                <StatItem 
-                  icon={<FaCheckCircle />} 
-                  label="Published" 
-                  value={stats.published} 
-                  color={BRAND_COLORS.success.main} 
-                />
-                <StatItem 
-                  icon={<FaClock />} 
-                  label="Draft" 
-                  value={stats.draft} 
-                  color={BRAND_COLORS.warning.main} 
-                />
-                <StatItem 
-                  icon={<FaArchive />} 
-                  label="Archived" 
-                  value={stats.archived} 
-                  color={BRAND_COLORS.secondary.main} 
-                />
-              </div>
-              <div className="erp-timetable-stats-tip" style={{ 
-                padding: '0.5rem 1.25rem',
-                borderRadius: '20px',
-                backgroundColor: '#dbeafe',
-                color: BRAND_COLORS.primary.main,
-                fontWeight: 600,
-                fontSize: '0.95rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <FaInfoCircle size={14} />
-                {isTeacher ? "Teacher View" : "Admin View"}
-              </div>
+            <div className="erp-timetable-stats-tip">
+              <FaInfoCircle size={14} />
+              {isTeacher ? "Teacher View" : "Admin View"}
             </div>
-          </motion.div>
+          </div>
 
           {/* ================= TIMETABLES CARD ================= */}
           <motion.div
+            className="erp-timetable-card"
             variants={fadeInVariants}
             custom={0}
             initial="hidden"
             animate="visible"
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '20px',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-              overflow: 'hidden'
-            }}
-          />
-            <div className="erp-timetable-section-header" style={{
-              padding: '1.75rem',
-              borderBottom: '1px solid #e2e8f0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1rem'
-              
-            }}>
-              <h2 style={{
-                margin: 0,
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: '#1e293b',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
+          >
+            <div className="erp-timetable-section-header">
+              <h2>
                 <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main }} /> 
                 Academic Timetables
               </h2>
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                backgroundColor: '#dbeafe',
-                color: BRAND_COLORS.primary.main,
-                padding: '0.5rem 1rem',
-                borderRadius: '20px',
-                fontSize: '0.9rem',
-                fontWeight: 500
-                
-              }}>
+              <div className="erp-timetable-section-hint">
                 <FaInfoCircle size={14} />
-                Click on any timetable to view weekly schedule
+                {activeTab === "active" ? "Select a timetable to view its weekly schedule" : "Archived timetables are read-only records"}
               </div>
             </div>
 
             {/* ================= TAB SWITCHER ================= */}
             <div className="erp-timetable-tabs" style={{
-              padding: '0 1.75rem',
-              borderBottom: '1px solid #e2e8f0',
               display: 'flex',
               gap: '0.5rem'
             }}>
               <motion.button
-                className="erp-timetable-tab"
+                className={`erp-timetable-tab ${activeTab === "active" ? "active" : ""}`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab("active")}
-                style={{
-                  padding: '0.75rem 1.25rem',
-                  border: 'none',
-                  borderBottom: activeTab === "active" ? '3px solid ' + BRAND_COLORS.primary.main : '3px solid transparent',
-                  backgroundColor: 'transparent',
-                  color: activeTab === "active" ? BRAND_COLORS.primary.main : '#64748b',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
               >
                 Active Timetables
               </motion.button>
               <motion.button
-                className="erp-timetable-tab"
+                className={`erp-timetable-tab ${activeTab === "archived" ? "active" : ""}`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => setActiveTab("archived")}
-                style={{
-                  padding: '0.75rem 1.25rem',
-                  border: 'none',
-                  borderBottom: activeTab === "archived" ? '3px solid ' + BRAND_COLORS.secondary.main : '3px solid transparent',
-                  backgroundColor: 'transparent',
-                  color: activeTab === "archived" ? BRAND_COLORS.secondary.main : '#64748b',
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
               >
                 Archived Timetables
               </motion.button>
             </div>
 
-            {/* ================= TIMETABLES CARD ================= */}
-            <motion.div
-              variants={fadeInVariants}
-              custom={0}
-              initial="hidden"
-              animate="visible"
-              style={{
-                backgroundColor: 'white',
-                borderRadius: '20px',
-                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-                overflow: 'hidden'
-              }}
-            >
-              <div style={{
-                padding: '1.75rem',
-                borderBottom: '1px solid #e2e8f0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem'
-              }}>
-                <h2 style={{
-                  margin: 0,
-                  fontSize: '1.5rem',
-                  fontWeight: 700,
-                  color: '#1e293b',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem'
-                }}>
-                  <FaCalendarAlt style={{ color: BRAND_COLORS.primary.main }} /> 
-                  {activeTab === "active" ? "Active Timetables" : "Archived Timetables"}
-                </h2>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem',
-                  backgroundColor: '#dbeafe',
-                  color: BRAND_COLORS.primary.main,
-                  padding: '0.5rem 1rem',
-                  borderRadius: '20px',
-                  fontSize: '0.9rem',
-                  fontWeight: 500
-                }}>
-                  <FaInfoCircle size={14} />
-                  {activeTab === "active" ? "Click on any timetable to view weekly schedule" : "Archived timetables are read-only records"}
-                </div>
-              </div>
-              
+            <div className="erp-timetable-table-content">
               {(activeTab === "active" ? timetables : archivedTimetables).length > 0 ? (
                 <div className="erp-timetable-responsive">
                   <table style={tableStyle}>
@@ -997,23 +739,24 @@ if (
               )}
               
               <div style={{ 
-                padding: '1.5rem',
+                padding: '1rem 1.25rem',
                 borderTop: '1px solid #f1f5f9',
                 backgroundColor: '#f8fafc',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                gap: '1rem',
+                gap: '0.75rem',
                 flexWrap: 'wrap'
               }}>
                 <FaInfoCircle style={{ color: BRAND_COLORS.primary.main }} />
-                <div style={{ color: '#4a5568', fontSize: '0.95rem' }}>
+                <div style={{ color: '#4a5568', fontSize: '0.875rem' }}>
                   <strong>Tip:</strong> Timetables in <span style={{ color: BRAND_COLORS.success.main, fontWeight: 600 }}>Published</span> status are visible to students. 
                   <span style={{ display: 'block', marginTop: '0.25rem' }}>
                     {isHOD ? "As HOD, you can publish draft timetables after finalizing the schedule." : "As an admin, you can manage all timetables across departments."}
                   </span>
                 </div>
               </div>
+            </div>
             </motion.div>
         </div>
       </motion.div>
@@ -1060,24 +803,13 @@ if (
 /* ================= STAT ITEM COMPONENT ================= */
 function StatItem({ icon, label, value, color }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-      <div style={{
-        width: '36px',
-        height: '36px',
-        borderRadius: '10px',
-        backgroundColor: `${color}15`,
-        color: color,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '1.1rem',
-        flexShrink: 0
-      }}>
+    <div className="erp-timetable-stat">
+      <div className="erp-timetable-stat-icon" style={{ backgroundColor: `${color}15`, color }}>
         {icon}
       </div>
-      <div>
-        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b' }}>{value}</div>
+      <div className="erp-timetable-stat-content">
+        <div className="erp-timetable-stat-label">{label}</div>
+        <div className="erp-timetable-stat-value">{value}</div>
       </div>
     </div>
   );
@@ -1144,15 +876,15 @@ function EmptyState({ icon, title, message, actionText, onAction }) {
 const tableStyle = {
   width: '100%',
   borderCollapse: 'collapse',
-  minWidth: '900px'
+  minWidth: '860px'
 };
 
 const headerCellStyle = {
-  padding: '1rem 1.25rem',
+  padding: '0.8rem 1rem',
   textAlign: 'left',
   fontWeight: 700,
   color: '#1e293b',
-  fontSize: '0.95rem',
+  fontSize: '0.82rem',
   textTransform: 'uppercase',
   letterSpacing: '0.5px',
   backgroundColor: '#f8fafc',
@@ -1160,8 +892,8 @@ const headerCellStyle = {
 };
 
 const cellStyle = {
-  padding: '1rem 1.25rem',
-  fontSize: '0.95rem',
+  padding: '0.8rem 1rem',
+  fontSize: '0.9rem',
   color: '#1e293b',
   borderBottom: '1px solid #f1f5f9',
   verticalAlign: 'middle'
