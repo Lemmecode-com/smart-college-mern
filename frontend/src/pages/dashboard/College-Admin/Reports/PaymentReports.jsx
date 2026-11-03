@@ -355,7 +355,7 @@ export default function PaymentReports() {
         title="Payment Summary Report"
         subtitle="Comprehensive overview of fee collection status across all students"
         actions={
-          <>
+          <div className="payment-header-actions">
             <ExportButtons
               title="Payment Summary Report"
               columns={[
@@ -369,39 +369,15 @@ export default function PaymentReports() {
             />
 
             <button
-              className="erp-btn erp-btn-secondary"
+              type="button"
+              className="erp-btn erp-btn-secondary payment-refresh-action"
               onClick={() => setShouldFetchSummary(true)}
               title="Refresh report data"
-              style={{ 
-                    minHeight: "38px",
-                    padding: "0 20px",
-                    border: "1px solid rgba(255, 255, 255, 0.35)",
-                    borderRadius: "8px",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    color: "#ffffff",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    fontSize: "15px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",      
-               }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 10px rgba(20, 27, 41, 0.18)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
             >
               <FaSyncAlt className="erp-btn-icon spin" />
               <span>Refresh</span>
             </button>
-          </>
+          </div>
         }
       />
       {/* INFO BANNER */}
@@ -417,7 +393,7 @@ export default function PaymentReports() {
       </div>
 
       {/* DATE FILTER CONTROLS */}
-      <div className="erp-card animate-fade-in" style={{ marginBottom: '1.5rem' }}>
+      <div className="erp-card date-filter-card animate-fade-in">
         <div className="erp-card-header">
           <h3>
             <FaFilter className="erp-card-icon" />
@@ -425,38 +401,43 @@ export default function PaymentReports() {
           </h3>
         </div>
         <div className="erp-card-body">
-          <div className="filter-controls" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="filter-controls">
             <div className="filter-group">
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#1a4b6d' }}>
+              <label className="quick-filter-label">
                 Quick Filters:
               </label>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <div className="quick-filter-buttons">
                 <button
                   className={`btn ${dateFilter === 'all' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  aria-pressed={dateFilter === "all"}
                   onClick={() => { setDateFilter('all'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   All Time
                 </button>
                 <button
                   className={`btn ${dateFilter === 'thisMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  aria-pressed={dateFilter === "thisMonth"}
                   onClick={() => { setDateFilter('thisMonth'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   This Month
                 </button>
                 <button
                   className={`btn ${dateFilter === 'lastMonth' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  aria-pressed={dateFilter === "lastMonth"}
                   onClick={() => { setDateFilter('lastMonth'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   Last Month
                 </button>
                 <button
                   className={`btn ${dateFilter === 'thisYear' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  aria-pressed={dateFilter === "thisYear"}
                   onClick={() => { setDateFilter('thisYear'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   This Year
                 </button>
                 <button
                   className={`btn ${dateFilter === 'custom' ? 'btn-primary' : 'btn-outline-primary'} btn-sm`}
+                  aria-pressed={dateFilter === "custom"}
                   onClick={() => { setDateFilter('custom'); setDateError(""); setShouldFetchSummary(true); }}
                 >
                   Custom Range
@@ -468,22 +449,16 @@ export default function PaymentReports() {
               <>
                 <div
                   className="date-inputs"
-                  style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
                 <div>
-                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                  <label className="date-input-label">
                     Start Date:
                   </label>
                   <input
                     type="date"
                     className="form-control form-control-sm"
-                    style={{
-                      width: '140px',
-                      pointerEvents: 'auto',
-                      zIndex: 10
-                    }}
                     value={startDate}
                      onChange={(e) => {
                        e.preventDefault();
@@ -514,17 +489,12 @@ export default function PaymentReports() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                  <label className="date-input-label">
                     End Date:
                   </label>
                   <input
                     type="date"
                     className="form-control form-control-sm"
-                    style={{
-                      width: '140px',
-                      pointerEvents: 'auto',
-                      zIndex: 10
-                    }}
                     value={endDate}
                      onChange={(e) => {
                        e.preventDefault();
@@ -555,15 +525,14 @@ export default function PaymentReports() {
                   />
                 </div>
                   <button
-                    className="btn btn-success btn-sm"
+                    className="btn btn-success btn-sm apply-date-filter"
                     onClick={() => setShouldFetchSummary(true)}
-                    style={{ alignSelf: 'flex-end' }}
                   >
                     <FaSyncAlt /> Apply Filter
                   </button>
                 </div>
                 {dateError && (
-                  <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: '500' }}>
+                  <div className="date-filter-error">
                     {dateError}
                   </div>
                 )}
@@ -572,9 +541,8 @@ export default function PaymentReports() {
 
             {dateFilter !== 'custom' && dateFilter !== 'all' && (
               <button
-                className="btn btn-success btn-sm"
+                className="btn btn-success btn-sm apply-date-filter"
                 onClick={() => setShouldFetchSummary(true)}
-                style={{ alignSelf: 'flex-end' }}
               >
                 <FaSyncAlt /> Apply Filter
               </button>
@@ -582,8 +550,8 @@ export default function PaymentReports() {
           </div>
 
           {data?.dateRange && (
-            <div style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
-              <small style={{ color: '#6c757d' }}>
+            <div className="current-filter-summary">
+              <small>
                 <strong>Current Filter:</strong> {data.dateRange.startDate || 'Start'} to {data.dateRange.endDate || 'End'}
               </small>
             </div>
@@ -3951,6 +3919,383 @@ export default function PaymentReports() {
             text-align: left;
           }
         }
+
+        .erp-container .payment-header-actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 0.65rem;
+          flex-wrap: wrap;
+        }
+
+        .erp-container .payment-refresh-action {
+          min-height: 38px;
+          padding: 0 1rem;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.12);
+          color: #fff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          font-size: 0.9rem;
+          font-weight: 600;
+          transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .erp-container .payment-refresh-action:hover {
+          background: rgba(255, 255, 255, 0.2);
+          transform: translateY(-1px);
+        }
+
+        .erp-container .info-banner,
+        .erp-container .date-filter-card,
+        .erp-container > .erp-card,
+        .erp-container .trend-analysis-section > .erp-card {
+          border: 1px solid #e4ebef;
+          border-radius: 14px;
+          box-shadow: 0 5px 18px rgba(15, 58, 74, 0.06);
+        }
+
+        .erp-container .info-banner {
+          margin: 0 0 1rem;
+          padding: 0.9rem 1.1rem;
+          background: #f3f8f9;
+          border-color: #dfebed;
+          border-radius: 12px;
+        }
+
+        .erp-container .date-filter-card {
+          margin-bottom: 1rem;
+        }
+
+        .erp-container .erp-card-header {
+          padding: 1.15rem 1.35rem;
+          border-bottom-color: #edf1f3;
+        }
+
+        .erp-container .erp-card-body {
+          padding: 1.25rem 1.35rem;
+        }
+
+        .erp-container .filter-controls {
+          display: flex;
+          align-items: flex-end;
+          flex-wrap: wrap;
+          gap: 1rem 1.25rem;
+        }
+
+        .erp-container .filter-group {
+          min-width: 0;
+          flex: 1 1 460px;
+        }
+
+        .erp-container .quick-filter-label,
+        .erp-container .date-input-label {
+          display: block;
+          margin-bottom: 0.45rem;
+          color: #315361;
+          font-size: 0.82rem;
+          font-weight: 650;
+        }
+
+        .erp-container .quick-filter-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .erp-container .quick-filter-buttons .btn,
+        .erp-container .apply-date-filter {
+          min-height: 36px;
+          padding: 0.4rem 0.8rem;
+          border-radius: 8px;
+          font-weight: 600;
+        }
+
+        .erp-container .quick-filter-buttons .btn-primary {
+          background: #0f5360;
+          border-color: #0f5360;
+          box-shadow: 0 2px 6px rgba(15, 83, 96, 0.18);
+        }
+
+        .erp-container .quick-filter-buttons .btn-outline-primary {
+          color: #315361;
+          border-color: #d3dfe3;
+          background: #fff;
+        }
+
+        .erp-container .quick-filter-buttons .btn-outline-primary:hover {
+          color: #0f5360;
+          border-color: #0f5360;
+          background: #f3f8f9;
+        }
+
+        .erp-container .date-inputs {
+          display: flex;
+          align-items: flex-end;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+        }
+
+        .erp-container .date-inputs > div {
+          flex: 1 1 145px;
+        }
+
+        .erp-container .date-inputs .form-control {
+          width: 100%;
+          min-height: 38px;
+          border-color: #d8e1e5;
+          border-radius: 8px;
+        }
+
+        .erp-container .date-inputs .apply-date-filter {
+          align-self: flex-end;
+        }
+
+        .erp-container .current-filter-summary {
+          margin-top: 0.85rem;
+          padding: 0.65rem 0.8rem;
+          color: #536b75;
+          background: #f6f9fa;
+          border: 1px solid #e7eef0;
+          border-radius: 8px;
+        }
+
+        .erp-container .stats-grid {
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .erp-container .stat-card {
+          min-height: 0;
+          padding: 1.25rem;
+          border: 1px solid #e4ebef;
+          border-radius: 14px;
+          box-shadow: 0 5px 16px rgba(15, 58, 74, 0.06);
+        }
+
+        .erp-container .stat-card-header {
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .erp-container .stat-value {
+          font-size: clamp(1.55rem, 2.2vw, 2rem);
+          line-height: 1.2;
+          overflow-wrap: anywhere;
+        }
+
+        .erp-container .stat-trend {
+          margin-top: 0.55rem;
+          line-height: 1.45;
+        }
+
+        .erp-container .stat-card-footer {
+          margin-top: 1rem;
+          padding-top: 0.75rem;
+          border-top: 1px solid #edf1f3;
+        }
+
+        .erp-container .visual-container {
+          grid-template-columns: minmax(210px, 0.75fr) minmax(0, 1.6fr);
+          align-items: center;
+          gap: 1.5rem;
+        }
+
+        .erp-container .circular-progress {
+          padding: 0.5rem;
+        }
+
+        .erp-container .horizontal-bar-container {
+          padding: 1.1rem;
+          background: #fbfcfd;
+          border: 1px solid #e9eff1;
+          border-radius: 12px;
+        }
+
+        .erp-container .horizontal-bar {
+          height: 14px;
+          overflow: hidden;
+          border-radius: 999px;
+        }
+
+        .erp-container .bar-metrics {
+          gap: 0.7rem;
+          margin-top: 1rem;
+        }
+
+        .erp-container .bar-metrics .metric-item {
+          min-width: 0;
+          padding: 0.75rem;
+          background: #fff;
+          border: 1px solid #edf1f3;
+          border-radius: 10px;
+        }
+
+        .erp-container .metric-card {
+          min-height: 0;
+          padding: 1.2rem;
+          border-radius: 14px;
+          box-shadow: 0 4px 14px rgba(15, 58, 74, 0.05);
+        }
+
+        .erp-container .metrics-grid {
+          gap: 1rem;
+        }
+
+        .erp-container .metrics-footer,
+        .erp-container .footer-note {
+          margin-top: 1rem;
+          padding: 0.75rem 0.9rem;
+          border-radius: 10px;
+          line-height: 1.5;
+        }
+
+        .erp-container .trend-analysis-section {
+          margin-top: 1rem;
+        }
+
+        .erp-container .trend-header {
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 0.8rem;
+        }
+
+        .erp-container .trend-title {
+          margin: 0;
+          color: #183f4d;
+          font-size: 1.05rem;
+          font-weight: 700;
+        }
+
+        .erp-container .year-select {
+          min-height: 38px;
+          border: 1px solid #d5e0e4;
+          border-radius: 8px;
+        }
+
+        .erp-container .trend-chart-container {
+          width: 100%;
+          min-width: 0;
+          padding: 0.4rem 0;
+        }
+
+        .erp-container .trend-summary-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 0.8rem;
+          margin-top: 1rem;
+        }
+
+        .erp-container .trend-summary-card {
+          min-width: 0;
+          padding: 0.9rem;
+          text-align: center;
+          background: #f8fafb;
+          border: 1px solid #e7eef0;
+          border-radius: 10px;
+        }
+
+        .erp-container .trend-summary-value {
+          overflow-wrap: anywhere;
+          color: #0f5360;
+          font-size: 1.25rem;
+          font-weight: 700;
+          line-height: 1.3;
+        }
+
+        .erp-container .trend-summary-value.positive {
+          color: #16804a;
+        }
+
+        .erp-container .trend-summary-value.negative {
+          color: #c74343;
+        }
+
+        .erp-container .trend-summary-label {
+          margin-top: 0.25rem;
+          color: #617680;
+          font-size: 0.82rem;
+        }
+
+        .erp-container .no-data {
+          padding: 2rem !important;
+          background: #f8fafb;
+          border: 1px dashed #d7e2e6;
+          border-radius: 12px;
+        }
+
+        @media (max-width: 900px) {
+          .erp-container .visual-container {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .erp-container {
+            padding: 1rem;
+          }
+
+          .erp-container .payment-header-actions {
+            width: 100%;
+            justify-content: flex-start;
+          }
+
+          .erp-container .payment-header-actions > * {
+            max-width: 100%;
+          }
+
+          .erp-container .erp-card-header,
+          .erp-container .erp-card-body {
+            padding: 1rem;
+          }
+
+          .erp-container .filter-group {
+            flex-basis: 100%;
+          }
+
+          .erp-container .quick-filter-buttons .btn {
+            flex: 1 1 calc(50% - 0.5rem);
+          }
+
+          .erp-container .date-inputs {
+            width: 100%;
+          }
+
+          .erp-container .date-inputs > div {
+            flex-basis: 100%;
+          }
+
+          .erp-container .date-inputs .apply-date-filter {
+            width: 100%;
+          }
+
+          .erp-container .stats-grid,
+          .erp-container .metrics-grid,
+          .erp-container .trend-summary-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .erp-container .stat-card,
+          .erp-container .metric-card {
+            padding: 1rem;
+          }
+
+          .erp-container .bar-metrics {
+            grid-template-columns: 1fr;
+          }
+
+          .erp-container .trend-summary-grid {
+            gap: 0.6rem;
+          }
+
+          .erp-container .trend-chart-container {
+            margin-left: -0.5rem;
+            width: calc(100% + 1rem);
+          }
+        }
       `}</style>
 
       {/* TREND ANALYSIS SECTION */}
@@ -4051,28 +4396,24 @@ export default function PaymentReports() {
 
             {/* Computed statistics from actual payment data */}
             {trendData && (
-              <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#28a745' }}>
+              <div className="trend-summary-grid">
+                <div className="trend-summary-card best-month">
+                  <div className="trend-summary-value">
                     {trendData.bestMonth ? `₹${trendData.bestMonth.totalCollected.toLocaleString()}` : '₹0'}
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Best Month Collection</div>
+                  <div className="trend-summary-label">Best Month Collection</div>
                 </div>
-                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#17a2b8' }}>
+                <div className="trend-summary-card peak-month">
+                  <div className="trend-summary-value">
                     {trendData.bestMonth?.monthName || 'N/A'}
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Peak Collection Month</div>
+                  <div className="trend-summary-label">Peak Collection Month</div>
                 </div>
-                <div style={{ padding: '1rem', background: '#f8f9fa', borderRadius: '8px', textAlign: 'center' }}>
-                  <div style={{
-                    fontSize: '1.5rem',
-                    fontWeight: '700',
-                    color: trendData?.yoyGrowth !== undefined && trendData.yoyGrowth >= 0 ? '#28a745' : '#dc3545'
-                  }}>
+                <div className="trend-summary-card growth">
+                  <div className={`trend-summary-value ${trendData?.yoyGrowth !== undefined && trendData.yoyGrowth >= 0 ? "positive" : "negative"}`}>
                     {trendData.yoyGrowth !== undefined ? `${trendData.yoyGrowth >= 0 ? '+' : ''}${trendData.yoyGrowth}%` : 'N/A'}
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: '#6c757d' }}>Growth vs Last Year</div>
+                  <div className="trend-summary-label">Growth vs Last Year</div>
                 </div>
               </div>
             )}
