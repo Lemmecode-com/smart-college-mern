@@ -367,7 +367,7 @@ const executeToggleActive = async () => {
 
   const tableActions = {
   label: "Actions",
-  width: "260px",
+  width: "14%",
   text: "Actions",
 
   items: [
@@ -471,14 +471,14 @@ const executeToggleActive = async () => {
     key: "fullName",
     label: "Student Name",
     sortable: false,
-    width: "240px",
+    width: "22%",
     render: (student) => (
       <div className="student-info">
-        <span className="student-name-cell" style={{ fontSize: "14px" }}>
+        <span className="student-name-cell" title={student.fullName}>
           {student.fullName}
         </span>
 
-        <span className="student-email" style={{ fontSize: "12px" }}>
+        <span className="student-email" title={student.email}>
           {student.email}
         </span>
       </div>
@@ -489,34 +489,40 @@ const executeToggleActive = async () => {
     key: "course",
     label: "Course",
     sortable: false,
-    width: "185px",
+    width: "24%",
 
-    render: (student) => (
-      <span className="badge badge-course" style={{ fontSize: "10px" }}>
-        {student.course_id?.name || "N/A"}
-      </span>
-    ),
+    render: (student) => {
+      const courseName = student.course_id?.name || "N/A";
+      return (
+        <span className="badge badge-course" title={courseName}>
+          {courseName}
+        </span>
+      );
+    },
   },
 
   {
     key: "department",
     label: "Department",
     sortable: false,
-    width: "180px",
-    render: (student) => (
-      <span className="department-name" style={{ fontSize: "12px" }}>
-        {student.department_id?.name || "N/A"}
-      </span>
-    ),
+    width: "18%",
+    render: (student) => {
+      const deptName = student.department_id?.name || "N/A";
+      return (
+        <span className="department-name" title={deptName}>
+          {deptName}
+        </span>
+      );
+    },
   },
 
   {
     key: "admissionYear",
     label: "Admission Year",
     sortable: false,
-    width: "120px",
+    width: "10%",
     render: (student) => (
-      <span className="badge badge-graduation-year" style={{ fontSize: "10px" }}>
+      <span className="badge badge-graduation-year" title={student.admissionYear || "N/A"}>
         <FaCalendarAlt className="badge-icon" />
         {student.admissionYear || "N/A"}
       </span>
@@ -527,11 +533,11 @@ const executeToggleActive = async () => {
     key: "status",
     label: "Status",
     sortable: false,
-    width: "130px",
+    width: "12%",
     render: (student) => {
       if (student.status === STUDENT_STATUS.OFFER_MADE) {
         return (
-          <span className="badge badge-offer-made" >
+          <span className="badge badge-offer-made" title="Offer Made">
             <FaEnvelope className="badge-icon" />
             OFFER MADE
           </span>
@@ -540,7 +546,7 @@ const executeToggleActive = async () => {
 
       if (student.status === STUDENT_STATUS.ENROLLED) {
         return (
-          <span className="badge badge-enrolled">
+          <span className="badge badge-enrolled" title="Enrolled">
             <FaCheckDouble className="badge-icon" />
             ENROLLED
           </span>
@@ -548,7 +554,7 @@ const executeToggleActive = async () => {
       }
 
       return (
-        <span className="badge badge-status">
+        <span className="badge badge-status" title="Approved">
           <FaCheckCircle className="badge-icon" />
           APPROVED
         </span>
@@ -684,7 +690,7 @@ const executeToggleActive = async () => {
               <FaSearch className="search-icon" />
               <input
                 type="text"
-                placeholder="Search approved students by name, email, department, or course..."
+                placeholder="Search by name, email, department or course"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -743,45 +749,89 @@ const executeToggleActive = async () => {
           animation: fadeIn 0.6s ease;
         }
 
-/* ================= APPROVED STUDENTS TABLE ACTIONS ================= */
+/* ================= APPROVED STUDENTS TABLE & LAYOUT ================= */
 
-.approve-students-list .standard-table-actions-cell {
-  min-width: 420px;
-  padding: 18px 20px;
+/* Table container horizontal scrolling */
+.approve-students-list .standard-table-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
-.approve-students-list .standard-table-actions-cell > div {
+/* Fixed table layout with min-width */
+.approve-students-list .standard-table {
+  width: 100%;
+  min-width: 900px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Cell padding and vertical alignment */
+.approve-students-list .standard-table thead th {
+  padding: 14px 16px;
+  vertical-align: middle;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.approve-students-list .standard-table tbody td {
+  padding: 14px 16px;
+  vertical-align: middle;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+/* Alignments */
+.approve-students-list .standard-table thead th.standard-table-actions-header,
+.approve-students-list .standard-table tbody td.standard-table-actions-cell {
+  text-align: center !important;
+  width: 14%;
+  min-width: 156px;
+  padding: 12px 8px;
+}
+
+/* Actions cell buttons */
+.approve-students-list .standard-table-actions-cell > div,
+.approve-students-list .standard-table-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
+  justify-content: center;
+  gap: 8px;
   flex-wrap: nowrap;
+  width: 100%;
 }
 
 /* Common action button */
 .approve-students-list .standard-action-btn {
   box-sizing: border-box;
-  width: 44px;
-  min-width: 44px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
   padding: 0;
-  flex: 0 0 44px;
+  flex: 0 0 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   overflow: visible;
 }
 
 /* Icon */
 .approve-students-list .standard-action-btn svg {
-  font-size: 12px;
-  width: 15px;
-  height: 15px;
+  font-size: 13px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
   margin: 0;
-  
 }
 
 /* View */
 .approve-students-list .standard-action-btn.view-btn {
   min-width: 0;
-  width: 44px;
+  width: 32px;
 }
 
 .approve-students-list .standard-action-btn.view-btn:hover:not(:disabled) {
@@ -792,9 +842,8 @@ const executeToggleActive = async () => {
 /* Assign Division */
 .approve-students-list .standard-action-btn.edit-btn {
   min-width: 0;
-  width: 44px;
+  width: 32px;
 }
-
 
 .approve-students-list .standard-action-btn.edit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
@@ -804,8 +853,8 @@ const executeToggleActive = async () => {
 /* Confirm Enrollment */
 .approve-students-list .standard-action-btn.approve-btn {
   min-width: 0;
-  width: 44px;
-   background: linear-gradient(135deg, #123978 0%, #475d8d 100%);
+  width: 32px;
+  background: linear-gradient(135deg, #123978 0%, #475d8d 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.28);
 }
@@ -827,8 +876,8 @@ const executeToggleActive = async () => {
 /* Deactivate */
 .approve-students-list .standard-action-btn.warning-btn {
   min-width: 0;
-  width: 44px;
-    background: linear-gradient(135deg, #d40000 0%, #d63737 100%);
+  width: 32px;
+  background: linear-gradient(135deg, #d40000 0%, #d63737 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.28);
 }
@@ -848,22 +897,84 @@ const executeToggleActive = async () => {
   transform: translateY(0);
 }
 
-/* Small screen */
-@media (max-width: 768px) {
-  .approve-students-list .standard-table-actions-cell > div {
-    gap: 8px;
-  }
-
-  .approve-students-list .standard-action-btn {
-    min-height: 44px;
-    padding: 0 16px;
-    font-size: 13px;
-  }
+/* Student Info Cell */
+.approve-students-list .student-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
-@media (max-width: 1400px) {
+.approve-students-list .student-name-cell {
+  font-weight: 700;
+  color: #0f3a4a;
+  font-size: 14px;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.approve-students-list .student-email {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.3;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+/* Department Cell */
+.approve-students-list .department-name {
+  display: inline-block;
+  max-width: 100%;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Course Badge Overflow Fix */
+.approve-students-list .badge-course,
+.badge-course {
+  display: inline-block !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  white-space: normal !important;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.35;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+/* Badges common styling */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Small screen / Mobile stacked cards below 768px */
+@media (max-width: 768px) {
   .approve-students-list .standard-table-container {
-    overflow-x: hidden;
+    overflow-x: visible;
   }
 
   .approve-students-list .standard-table,
@@ -881,17 +992,17 @@ const executeToggleActive = async () => {
     display: block;
     width: 100%;
     box-sizing: border-box;
-    margin: 0 0 12px;
-    padding: 8px 12px;
+    margin: 0 0 14px;
+    padding: 12px 14px;
     border: 1px solid #e4ebf1;
-    border-radius: 12px;
+    border-radius: 14px;
     background: #fff;
     box-shadow: 0 2px 8px rgba(15, 58, 74, 0.06);
   }
 
   .approve-students-list .standard-table tbody td {
     display: grid;
-    grid-template-columns: minmax(82px, 30%) minmax(0, 1fr);
+    grid-template-columns: minmax(90px, 32%) minmax(0, 1fr);
     align-items: center;
     gap: 8px;
     width: 100%;
@@ -900,13 +1011,16 @@ const executeToggleActive = async () => {
     padding: 9px 0;
     border-bottom: 1px solid #edf2f6;
     overflow-wrap: anywhere;
+    text-align: left !important;
   }
 
   .approve-students-list .standard-table tbody td::before {
     content: attr(data-label);
     color: #64748b;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .approve-students-list .standard-table tbody td:last-child {
@@ -914,22 +1028,25 @@ const executeToggleActive = async () => {
   }
 
   .approve-students-list .standard-table-actions-cell {
-    min-width: 0;
-    padding: 9px 0;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 9px 0 !important;
   }
 
-  .approve-students-list .standard-table-actions-cell > div {
+  .approve-students-list .standard-table-actions-cell > div,
+  .approve-students-list .standard-table-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     min-width: 0;
   }
 
   .approve-students-list .standard-action-btn {
-    flex: 0 0 38px;
-    width: 38px;
-    min-width: 38px;
-    min-height: 38px;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
     padding: 0;
   }
 }
@@ -1059,8 +1176,9 @@ const executeToggleActive = async () => {
         .search-box {
           position: relative;
           flex: 1;
-          min-width: 320px;
-          max-width: 500px;
+          width: 100%;
+          min-width: 280px;
+          max-width: 600px;
         }
 
         .search-icon {
@@ -1208,23 +1326,38 @@ const executeToggleActive = async () => {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 8px 16px;
-          border-radius: 24px;
-          font-size: 12px;
+          padding: 6px 10px;
+          border-radius: 16px;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.3px;
           text-transform: uppercase;
           font-family: 'Inter', sans-serif;
+          max-width: 100%;
+          box-sizing: border-box;
         }
 
         .badge-icon {
-          font-size: 12px;
+          font-size: 11px;
         }
 
         .badge-course {
+          display: inline-block !important;
+          max-width: 100% !important;
+          box-sizing: border-box;
+          white-space: normal !important;
+          word-break: break-word;
+          overflow-wrap: break-word;
+          line-height: 1.35;
+          padding: 6px 10px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.2px;
           background: linear-gradient(135deg, #0f3a4a 0%, #1a5263 100%);
           color: #ffffff;
           box-shadow: 0 2px 6px rgba(15, 58, 74, 0.3);
+          text-align: left;
         }
 
         .badge-graduation-year {
@@ -1240,9 +1373,14 @@ const executeToggleActive = async () => {
         }
 
         .department-name {
+          display: inline-block;
+          max-width: 100%;
           color: #475569;
           font-weight: 600;
-          font-size: 14px;
+          font-size: 13px;
+          line-height: 1.35;
+          word-break: break-word;
+          overflow-wrap: anywhere;
           font-family: 'Inter', sans-serif;
         }
 

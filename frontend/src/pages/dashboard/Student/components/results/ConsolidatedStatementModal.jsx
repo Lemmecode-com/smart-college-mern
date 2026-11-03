@@ -287,7 +287,7 @@ export default function ConsolidatedStatementModal({
 
                 <div className="csm-banner-wrapper">
                   <span className="csm-statement-banner">
-                    FINAL CONSOLIDATED STATEMENT OF MARKS
+                    FINAL STATEMENT OF MARKS
                   </span>
                 </div>
 
@@ -470,7 +470,7 @@ export default function ConsolidatedStatementModal({
                   aria-label="Supplementary Examination Clearance History"
                 >
                   <div className="csm-clearance-header">
-                    Supplementary / Backlog Examination Clearance History
+                    Backlog Examination Clearance History
                   </div>
                   <table className="csm-table csm-clearance-table">
                     <thead>
@@ -523,7 +523,7 @@ export default function ConsolidatedStatementModal({
                     </tbody>
                   </table>
                   <p className="csm-clearance-note">
-                    * Supplementary/backlog clearance marks are recorded separately and are not added to regular course grand totals or aggregate percentage.
+                    *backlog clearance marks are recorded separately and are not added to regular course grand totals or aggregate percentage.
                   </p>
                 </section>
               )}
@@ -542,7 +542,7 @@ export default function ConsolidatedStatementModal({
                   </div>
 
                   <div className="csm-grand-item">
-                    <span className="csm-grand-label">Aggregate Percentage:</span>
+                    <span className="csm-grand-label">Percentage:</span>
                     <span className="csm-grand-val percentage">
                       {percentageDisplay}
                     </span>
@@ -576,18 +576,18 @@ export default function ConsolidatedStatementModal({
                   <div className="csm-sign-box">
                     <div className="csm-sign-line"></div>
                     <span className="csm-sign-role">Controller of Examinations</span>
-                    <span className="csm-sign-sub">NOVAA Academic Cell</span>
+                    <span className="csm-sign-sub">Academic Cell</span>
                   </div>
 
                   <div className="csm-sign-box">
                     <div className="csm-sign-line"></div>
-                    <span className="csm-sign-role">Principal / Registrar</span>
+                    <span className="csm-sign-role">Principal</span>
                     <span className="csm-sign-sub">{college.name || "Institution"}</span>
                   </div>
                 </div>
 
                 <div className="csm-legal-note">
-                  This document serves as an authentic consolidated statement of examination marks across all academic semesters of the prescribed course.
+                  This document serves as an authentic statement of examination marks across all academic semesters of the prescribed course.
                 </div>
               </footer>
             </div>
