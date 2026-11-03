@@ -1,5 +1,6 @@
 const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
+const { getActiveStudentFee } = require("../services/studentFee.service");
 const PromotionHistory = require("../models/promotionHistory.model");
 const {
   getAttendanceDataForStudents,
@@ -168,10 +169,10 @@ exports.getPromotionEligibleStudents = async (req, res, next) => {
     // Attach fee information for each student
     const studentsWithFee = await Promise.all(
       students.map(async (student) => {
-        const fee = await StudentFee.findOne({
-          student_id: student._id,
-          college_id: req.college_id,
-        }).select("totalFee paidAmount installments");
+        const fee = await getActiveStudentFee(student._id, req.college_id, {
+          student,
+          select: "totalFee paidAmount installments academicYear",
+        });
 
         // Calculate fee status
         let feeStatus = "PENDING";
@@ -291,11 +292,11 @@ exports.getStudentPromotionDetails = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // Get fee details
-    const fee = await StudentFee.findOne({
-      student_id: studentId,
-      college_id: req.college_id,
-    }).select("totalFee paidAmount installments");
+    // Get fee details via authoritative reader
+    const fee = await getActiveStudentFee(studentId, req.college_id, {
+      student,
+      select: "totalFee paidAmount installments",
+    });
 
     // Get promotion history
     const promotionHistory = await PromotionHistory.find({

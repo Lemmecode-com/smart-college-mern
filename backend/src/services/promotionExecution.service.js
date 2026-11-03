@@ -35,6 +35,7 @@ const { createBacklogsForPromotionDecision } = require("./backlog.service");
 const {
   checkTimetableAvailabilityAfterPromotion,
 } = require("./promotionTimetable.service");
+const { normalizeAcademicYear } = require("./studentFee.service");
 const logger = require("../utils/logger");
 
 const assertExecutionRole = (actorRole) => {
@@ -138,6 +139,9 @@ const revalidateDecision = async ({ decision, student, session }) => {
     );
   }
 
+  // Phase 3: Initiate independent read-only attendance aggregation outside the session concurrently
+  const attendancePromise = getAttendanceDataForStudents([student], decision.college_id);
+
   const result = await loadAuthoritativeResult(decision, session);
   const policy = await getCurrentPolicy(
     decision.college_id,
@@ -237,20 +241,22 @@ const revalidateDecision = async ({ decision, student, session }) => {
     }
   }
 
-  const attendanceData = (
-    await getAttendanceDataForStudents([student], decision.college_id)
-  )[0];
+  const [attendanceDataRaw, fee] = await Promise.all([
+    attendancePromise,
+    StudentFee.findOne({
+      student_id: decision.student_id,
+      college_id: decision.college_id,
+    })
+      .select("totalFee paidAmount installments")
+      .session(session)
+      .exec(),
+  ]);
+
+  const attendanceData = (attendanceDataRaw || [])[0];
   const attendance = evaluateAttendanceData({
     attendanceData,
     requiredPercentage: policy.minAttendancePercentage,
   });
-  const fee = await StudentFee.findOne({
-    student_id: decision.student_id,
-    college_id: decision.college_id,
-  })
-    .select("totalFee paidAmount installments")
-    .session(session)
-    .exec();
   const feeClearance = calculateFeeClearanceData(
     fee,
     false,
@@ -301,72 +307,19 @@ const calculateNextAcademicYear = (semester, academicYear) => {
  * administrators can assign fees manually.  Any unexpected DB error IS re-thrown
  * so the outer transaction can roll back cleanly.
  */
-const assignNewSemesterFee = async ({
-  student,
-  decision,
-  newAcademicYear,
-  session,
-}) => {
-  const courseId = decision.course_id || student.course_id;
-  const collegeId = decision.college_id;
-  const category = student.category;
-
-  const baseQuery = {
-    college_id: collegeId,
-    course_id: courseId,
-    category,
-  };
-
-  // Prefer academic-year-specific structure; fall back to the generic one.
-  const feeStructure =
-    (await FeeStructure.findOne({ ...baseQuery, academicYear: newAcademicYear })
-      .session(session)
-      .exec()) ||
-    (await FeeStructure.findOne(baseQuery).session(session).exec());
-
-  if (!feeStructure) {
-    return {
-      newFeeAssigned: false,
-      newFeeStructureId: null,
-      newStudentFeeId: null,
-      feeAssignmentWarning:
-        `No fee structure found for course and category "${category}" for ` +
-        `academic year ${newAcademicYear}. Please assign fees manually.`,
-    };
-  }
-
-  // Create the new StudentFee record with all installments in PENDING state.
-  // StudentFee.create() inside a session requires the array form.
-  const [newStudentFee] = await StudentFee.create(
-    [
-      {
-        student_id: student._id,
-        college_id: collegeId,
-        course_id: courseId,
-        totalFee: feeStructure.totalFee,
-        baseFee: feeStructure.baseFee !== undefined ? feeStructure.baseFee : feeStructure.totalFee,
-        totalTax: feeStructure.totalTax !== undefined ? feeStructure.totalTax : 0,
-        paidAmount: 0,
-        installments: feeStructure.installments.map((inst) => ({
-          name: inst.name,
-          amount: inst.amount,
-          order: inst.order,
-          dueDate: inst.dueDate,
-          status: "PENDING",
-          baseAmount: inst.baseAmount !== undefined ? inst.baseAmount : inst.amount,
-          gstAmount: inst.gstAmount !== undefined ? inst.gstAmount : 0,
-          taxBreakdown: inst.taxBreakdown ? { ...inst.taxBreakdown } : null,
-        })),
-      },
-    ],
-    { session },
-  );
-
+/**
+ * Never creates a new StudentFee on promotion.
+ * Authoritative Business Rule: A fee structure applies for the ENTIRE duration
+ * of the course (e.g. 3 years / 6 semesters). Promotion (semester change, year change, any)
+ * must NEVER create a new StudentFee or new installments. One StudentFee per student per course.
+ */
+const assignNewSemesterFee = async () => {
   return {
-    newFeeAssigned: true,
-    newFeeStructureId: feeStructure._id,
-    newStudentFeeId: newStudentFee._id,
+    newFeeAssigned: false,
+    newFeeStructureId: null,
+    newStudentFeeId: null,
     feeAssignmentWarning: null,
+    reason: "Course fee applies for entire duration; no new fee created on promotion",
   };
 };
 
@@ -560,6 +513,7 @@ const executePromotion = async ({
       const feeAssignment = await assignNewSemesterFee({
         student,
         decision,
+        fromAcademicYear: decision.academicYear || student.currentAcademicYear,
         newAcademicYear,
         session,
       });

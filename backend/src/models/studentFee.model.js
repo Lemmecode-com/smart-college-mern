@@ -17,6 +17,17 @@ const studentFeeSchema = new mongoose.Schema({
     required: true,
   },
 
+  feeStructure_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "FeeStructure",
+    default: null,
+  },
+
+  academicYear: {
+    type: String,
+    default: null,
+  },
+
   totalFee: {
     type: Number,
     required: true,
@@ -215,7 +226,7 @@ const studentFeeSchema = new mongoose.Schema({
       },
     },
   ],
-});
+}, { timestamps: true });
 
 // ⚡ PERFORMANCE: Indexes for common queries
 studentFeeSchema.index({ student_id: 1, college_id: 1 }); // Student-wise fee

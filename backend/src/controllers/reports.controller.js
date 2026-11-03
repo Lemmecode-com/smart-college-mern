@@ -252,13 +252,19 @@ exports.getStudentPaymentHistory = async (req, res) => {
   try {
     const { role, college_id } = req.user;
     const { studentId } = req.params;
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, academicYear } = req.query;
 
     if (!["COLLEGE_ADMIN", "ACCOUNTANT", "PRINCIPAL"].includes(role)) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const data = await reportsService.studentSpecificPaymentHistory(college_id, studentId, startDate, endDate);
+    const data = await reportsService.studentSpecificPaymentHistory(
+      college_id,
+      studentId,
+      startDate,
+      endDate,
+      academicYear,
+    );
 
     res.json({
       success: true,

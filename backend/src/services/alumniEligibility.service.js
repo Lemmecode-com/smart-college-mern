@@ -13,6 +13,7 @@ const {
   getCumulativeAttendanceForStudent,
 } = require("./attendance.service");
 const { calculatePreviousAcademicYear } = require("./promotionDecision.service");
+const { getActiveStudentFee } = require("./studentFee.service");
 
 /**
  * Evaluates a student's eligibility to transition to Alumni status based on
@@ -116,15 +117,52 @@ exports.checkAlumniEligibility = async (studentId, collegeId, options = {}) => {
     });
   }
 
-  // 3. Result Check via authoritative result service
-  const authoritativeResult = await resolveAuthoritativeResult({
-    collegeId,
-    studentId: student._id,
-    courseId: course._id,
-    semester: student.currentSemester,
-    academicYear: student.currentAcademicYear,
-  });
+  // Phase 3: Parallelize independent read checks (Result, Attendance, Fee, Backlogs)
+  const previousAcademicYear = policy.backlogRule?.requirePreviousYearClearance
+    ? calculatePreviousAcademicYear(student.currentAcademicYear)
+    : null;
 
+  const [
+    authoritativeResult,
+    rawAttendanceData,
+    fee,
+    unclearedPrevious,
+    allUncleared,
+  ] = await Promise.all([
+    resolveAuthoritativeResult({
+      collegeId,
+      studentId: student._id,
+      courseId: course._id,
+      semester: student.currentSemester,
+      academicYear: student.currentAcademicYear,
+    }),
+    policy.attendanceRule?.enabled
+      ? getAttendanceDataForStudents([student], collegeId)
+      : Promise.resolve(null),
+    policy.feeRule?.enabled
+      ? getActiveStudentFee(student._id, collegeId, {
+          student,
+          select: "totalFee paidAmount installments",
+        })
+      : Promise.resolve(null),
+    previousAcademicYear
+      ? Backlog.find({
+          student_id: student._id,
+          college_id: collegeId,
+          academicYear: previousAcademicYear,
+          status: { $ne: "CLEARED" },
+        }).lean()
+      : Promise.resolve([]),
+    !policy.backlogRule?.allowCurrentBacklog
+      ? Backlog.find({
+          student_id: student._id,
+          college_id: collegeId,
+          status: { $ne: "CLEARED" },
+        }).lean()
+      : Promise.resolve([]),
+  ]);
+
+  // 3. Result Check via authoritative result service
   const authorityStatus = authoritativeResult?.status;
   const result = authoritativeResult?.result;
 
@@ -211,9 +249,7 @@ exports.checkAlumniEligibility = async (studentId, collegeId, options = {}) => {
     const allowCumulativeFallback = Boolean(
       policy.attendanceRule.allowCumulativeFallback
     );
-    const attendanceData = (
-      await getAttendanceDataForStudents([student], collegeId)
-    )[0];
+    const attendanceData = (rawAttendanceData || [])[0];
 
     const finalSemesterTotal = attendanceData?.totalSessions || 0;
     const finalSemesterPresent = attendanceData?.presentSessions || 0;
@@ -322,11 +358,6 @@ exports.checkAlumniEligibility = async (studentId, collegeId, options = {}) => {
 
   // 5. Fee Clearance Check
   if (policy.feeRule?.enabled) {
-    const fee = await StudentFee.findOne({
-      student_id: student._id,
-      college_id: collegeId,
-    }).select("totalFee paidAmount installments");
-
     const totalFee = Number(fee?.totalFee || 0);
     const paidAmount = Number(fee?.paidAmount || 0);
     const pendingAmount = Math.max(0, totalFee - paidAmount);
@@ -369,17 +400,7 @@ exports.checkAlumniEligibility = async (studentId, collegeId, options = {}) => {
   let totalBacklogsCount = 0;
 
   if (policy.backlogRule?.requirePreviousYearClearance) {
-    const previousAcademicYear = calculatePreviousAcademicYear(
-      student.currentAcademicYear,
-    );
     if (previousAcademicYear) {
-      const unclearedPrevious = await Backlog.find({
-        student_id: student._id,
-        college_id: collegeId,
-        academicYear: previousAcademicYear,
-        status: { $ne: "CLEARED" },
-      }).lean();
-
       previousBacklogsCount = unclearedPrevious.length;
       if (previousBacklogsCount > 0) {
         backlogPassed = false;
@@ -392,12 +413,6 @@ exports.checkAlumniEligibility = async (studentId, collegeId, options = {}) => {
   }
 
   if (!policy.backlogRule?.allowCurrentBacklog) {
-    const allUncleared = await Backlog.find({
-      student_id: student._id,
-      college_id: collegeId,
-      status: { $ne: "CLEARED" },
-    }).lean();
-
     totalBacklogsCount = allUncleared.length;
     if (totalBacklogsCount > 0 && !blockers.some((b) => b.code === "PREVIOUS_BACKLOG_NOT_CLEARED")) {
       backlogPassed = false;

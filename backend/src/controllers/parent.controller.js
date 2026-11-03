@@ -14,6 +14,7 @@ const {
 } = require("../services/email.service");
 const logger = require("../utils/logger");
 const { buildFrontendUrl } = require("../utils/urlBuilder");
+const { getActiveStudentFee } = require("../services/studentFee.service");
 
 function normalizeStatus(status) {
   return String(status || "").toUpperCase();
@@ -249,8 +250,10 @@ exports.getChildFees = async (req, res, next) => {
       return next(new AppError("Student not found", 404, "STUDENT_NOT_FOUND"));
     }
 
-    const feeRecord = await StudentFee.findOne({ student_id: studentId })
-      .populate("course_id", "name");
+    const feeRecord = await getActiveStudentFee(studentId, student.college_id, {
+      student,
+      populate: [{ path: "course_id", select: "name" }],
+    });
 
     if (!feeRecord) {
       return res.json({
@@ -300,8 +303,8 @@ exports.createParentPaymentOrder = async (req, res, next) => {
       return next(new AppError("Student not found", 404, "STUDENT_NOT_FOUND"));
     }
 
-    const studentFee = await StudentFee.findOne({
-      student_id: student._id,
+    const studentFee = await getActiveStudentFee(student._id, student.college_id, {
+      student,
     });
 
     if (!studentFee) {
@@ -402,7 +405,10 @@ exports.confirmParentPayment = async (req, res, next) => {
       return next(new AppError("Access denied: Student not linked to your account", 403, "NOT_AUTHORIZED"));
     }
 
-    const studentFee = await StudentFee.findOne({ student_id: metadataStudentId });
+    const studentFee = await getActiveStudentFee(
+      metadataStudentId,
+      req.user?.college_id,
+    );
 
     if (!studentFee) {
       return next(new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND"));

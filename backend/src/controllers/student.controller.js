@@ -21,6 +21,7 @@ const auditLogService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
 const { createPromotionDecision } = require("../services/promotionDecision.service");
 const { checkAlumniEligibility } = require("../services/alumniEligibility.service");
+const { getActiveStudentFee } = require("../services/studentFee.service");
 
 const {
   processUploadsWithStorage,
@@ -1231,10 +1232,11 @@ exports.getStudentById = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // 🔧 OPTIMIZATION: Use Promise.race to prevent hanging on fee query
-    const feePromise = StudentFee.findOne({
-      student_id: student._id,
-    }).select("totalFee paidAmount installments");
+    // Use authoritative reader for student fee details
+    const feePromise = getActiveStudentFee(student._id, student.college_id, {
+      student,
+      select: "totalFee paidAmount installments",
+    });
 
     // Timeout after 5 seconds to prevent hanging
     const timeoutPromise = new Promise((resolve) => {

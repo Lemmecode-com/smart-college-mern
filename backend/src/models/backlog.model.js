@@ -83,6 +83,10 @@ const backlogSchema = new mongoose.Schema(
 backlogSchema.index({ student_id: 1, status: 1 });
 backlogSchema.index({ college_id: 1, student_id: 1, status: 1 });
 backlogSchema.index(
+  { college_id: 1, student_id: 1, academicYear: 1, status: 1 },
+  { background: true }
+);
+backlogSchema.index(
   {
     student_id: 1,
     course_id: 1,

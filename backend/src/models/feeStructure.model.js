@@ -212,4 +212,9 @@ feeStructureSchema.pre("validate", function () {
   }
 });
 
+feeStructureSchema.index(
+  { college_id: 1, course_id: 1, category: 1, academicYear: 1 },
+  { background: true }
+);
+
 module.exports = mongoose.model("FeeStructure", feeStructureSchema);

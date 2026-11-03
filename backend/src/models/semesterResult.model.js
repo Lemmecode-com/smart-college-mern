@@ -257,5 +257,9 @@ semesterResultSchema.index({ college_id: 1, exam_id: 1 });
 semesterResultSchema.index({ college_id: 1, student_id: 1 });
 semesterResultSchema.index({ college_id: 1, status: 1 });
 semesterResultSchema.index({ overallResult: 1 });
+semesterResultSchema.index(
+  { college_id: 1, student_id: 1, course_id: 1, semester: 1, status: 1 },
+  { background: true }
+);
 
 module.exports = mongoose.model("SemesterResult", semesterResultSchema);

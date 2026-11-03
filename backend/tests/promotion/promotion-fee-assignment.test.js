@@ -1,15 +1,18 @@
 /**
- * Regression tests – Phase 1: fee-assignment inside promotionExecution.service.js
+ * Regression tests – fee-assignment behavior inside promotionExecution.service.js
+ *
+ * AUTHORITATIVE BUSINESS RULE:
+ * A fee structure is created by college admin per course (+ category).
+ * Once assigned (at admission approval), that fee and installments apply for the
+ * ENTIRE duration of the course. Promotion (semester change, year change, any)
+ * must NEVER create a new StudentFee or new installments.
  *
  * Tests cover:
- *  1. FeeStructure found (generic)          → StudentFee created, PromotionHistory populated
- *  2. FeeStructure found (year-specific)    → year-specific record preferred
- *  3. FeeStructure not found                → promotion succeeds with warning, no StudentFee created
- *  4. Transaction rollback                  → if StudentFee.create() throws, full txn rolls back
- *  5. Wrong college FeeStructure            → not matched
- *  6. Wrong category FeeStructure           → not matched
- *  7. FeeStructure with no installments     → StudentFee created with empty array
- *  8. Idempotent second execution           → no duplicate StudentFee created
+ *  1. Promotion across academic years never creates a new StudentFee (newFeeAssigned: false)
+ *  2. Promotion within the same academic year never creates a new StudentFee (newFeeAssigned: false)
+ *  3. PromotionHistory records newFeeAssigned: false and newStudentFeeId: null
+ *  4. Transaction rollback when student update throws
+ *  5. Idempotent second execution preserves single StudentFee invariant
  */
 
 const mongoose = require("mongoose");
@@ -31,10 +34,9 @@ const Student = require("../../src/models/student.model");
 const StudentFee = require("../../src/models/studentFee.model");
 const {
   executePromotion,
-  calculateNextAcademicYear,
 } = require("../../src/services/promotionExecution.service");
 
-describe("Phase 1 – fee assignment inside executePromotion()", () => {
+describe("Phase 1 – Authoritative course fee rule inside executePromotion()", () => {
   beforeAll(async () => {
     await connectTestDb();
   });
@@ -52,9 +54,9 @@ describe("Phase 1 – fee assignment inside executePromotion()", () => {
 
   /**
    * Creates a minimal approved PromotionDecision + Student + fully-paid
-   * current-semester StudentFee ready for executePromotion().
+   * course StudentFee ready for executePromotion().
    */
-  const createApprovedCase = async ({ category = "GEN" } = {}) => {
+  const createApprovedCase = async ({ category = "GEN", semester = 2 } = {}) => {
     const collegeId = new mongoose.Types.ObjectId();
     const courseId = new mongoose.Types.ObjectId();
 
@@ -72,8 +74,8 @@ describe("Phase 1 – fee assignment inside executePromotion()", () => {
       state: "Maharashtra",
       pincode: "411001",
       admissionYear: 2024,
-      currentSemester: 3,
-      currentAcademicYear: "2026-27",
+      currentSemester: semester,
+      currentAcademicYear: "2026-2027",
       category,
       status: "APPROVED",
     });
@@ -83,8 +85,8 @@ describe("Phase 1 – fee assignment inside executePromotion()", () => {
       student_id: student._id,
       exam_id: new mongoose.Types.ObjectId(),
       course_id: courseId,
-      semester: 3,
-      academicYear: "2026-27",
+      semester,
+      academicYear: "2026-2027",
       subjects: [
         {
           subject: new mongoose.Types.ObjectId(),
@@ -108,8 +110,8 @@ describe("Phase 1 – fee assignment inside executePromotion()", () => {
       student_id: student._id,
       college_id: collegeId,
       course_id: courseId,
-      semester: 3,
-      academicYear: "2026-27",
+      semester,
+      academicYear: "2026-2027",
       source_result_id: result._id,
       source_exam_id: result.exam_id,
       result_status: "PUBLISHED",
@@ -144,14 +146,17 @@ describe("Phase 1 – fee assignment inside executePromotion()", () => {
       createdBy: new mongoose.Types.ObjectId(),
     });
 
-    // Current-semester fee (already fully paid – satisfies revalidateDecision)
+    // Course fee created at admission approval
     await StudentFee.create({
       student_id: student._id,
       college_id: collegeId,
       course_id: courseId,
       totalFee: 10000,
       paidAmount: 10000,
-      installments: [],
+      paymentStatus: "PAID",
+      installments: [
+        { name: "Term 1", amount: 10000, status: "PAID", paidAmount: 10000, dueDate: new Date("2026-12-31") },
+      ],
     });
 
     return { collegeId, courseId, student, result, decision };
@@ -167,118 +172,49 @@ describe("Phase 1 – fee assignment inside executePromotion()", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Test 1 – generic FeeStructure found → StudentFee created
+  // Test 1 – Promotion across academic years (Sem 2 -> Sem 3) never creates a fee
   // ─────────────────────────────────────────────────────────────────────────
-  it("creates a new StudentFee when a generic FeeStructure is found", async () => {
-    const tc = await createApprovedCase();
+  it("never creates a StudentFee when promoting across academic years (Sem 2 -> Sem 3)", async () => {
+    const tc = await createApprovedCase({ semester: 2 });
 
-    const feeStructure = await FeeStructure.create({
-      college_id: tc.collegeId,
-      course_id: tc.courseId,
-      category: "GEN",
-      academicYear: null,
-      totalFee: 12000,
-      installments: [
-        { name: "Term 1", amount: 6000, order: 1, dueDate: new Date("2027-07-01") },
-        { name: "Term 2", amount: 6000, order: 2, dueDate: new Date("2027-12-01") },
-      ],
+    const feeCountBefore = await StudentFee.countDocuments({
+      student_id: tc.student._id,
     });
-
-    const executed = await executePromotion(execInput(tc));
-
-    expect(executed.executionStatus).toBe("PROMOTED");
-    expect(executed.newFeeAssigned).toBe(true);
-    expect(String(executed.newFeeStructureId)).toBe(String(feeStructure._id));
-    expect(executed.newStudentFeeId).toBeTruthy();
-    expect(executed.feeAssignmentWarning).toBeNull();
-
-    // Verify the created StudentFee record
-    const newFee = await StudentFee.findById(executed.newStudentFeeId);
-    expect(newFee).not.toBeNull();
-    expect(newFee.student_id.toString()).toBe(tc.student._id.toString());
-    expect(newFee.college_id.toString()).toBe(tc.collegeId.toString());
-    expect(newFee.course_id.toString()).toBe(tc.courseId.toString());
-    expect(newFee.totalFee).toBe(12000);
-    expect(newFee.paidAmount).toBe(0);
-    expect(newFee.installments).toHaveLength(2);
-    expect(newFee.installments.every((i) => i.status === "PENDING")).toBe(true);
-
-    // Verify PromotionHistory has fee references
-    const history = await PromotionHistory.findOne({
-      promotion_decision_id: tc.decision._id,
-    });
-    expect(history.newFeeAssigned).toBe(true);
-    expect(String(history.newFeeStructureId)).toBe(String(feeStructure._id));
-    expect(String(history.newStudentFeeId)).toBe(String(executed.newStudentFeeId));
-    expect(history.feeAssignmentWarning).toBeNull();
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Test 2 – year-specific FeeStructure preferred over generic
-  // ─────────────────────────────────────────────────────────────────────────
-  it("prefers year-specific FeeStructure over generic", async () => {
-    const tc = await createApprovedCase();
-    // Use the same function the service uses so the academicYear format always matches.
-    const nextAcademicYear = calculateNextAcademicYear(
-      tc.student.currentSemester,
-      tc.student.currentAcademicYear,
-    );
-
-    await FeeStructure.create({
-      college_id: tc.collegeId,
-      course_id: tc.courseId,
-      category: "GEN",
-      academicYear: null,
-      totalFee: 10000,
-      installments: [],
-    });
-
-    const yearSpecificFee = await FeeStructure.create({
-      college_id: tc.collegeId,
-      course_id: tc.courseId,
-      category: "GEN",
-      academicYear: nextAcademicYear,
-      totalFee: 13000,
-      installments: [],
-    });
-
-    const executed = await executePromotion(execInput(tc));
-
-    expect(executed.newFeeAssigned).toBe(true);
-    expect(String(executed.newFeeStructureId)).toBe(String(yearSpecificFee._id));
-    const newFee = await StudentFee.findById(executed.newStudentFeeId);
-    expect(newFee.totalFee).toBe(13000);
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Test 3 – no FeeStructure found: promotion succeeds with warning
-  // ─────────────────────────────────────────────────────────────────────────
-  it("succeeds with feeAssignmentWarning when no FeeStructure exists", async () => {
-    const tc = await createApprovedCase();
+    expect(feeCountBefore).toBe(1);
 
     const executed = await executePromotion(execInput(tc));
 
     expect(executed.executionStatus).toBe("PROMOTED");
     expect(executed.newFeeAssigned).toBe(false);
-    expect(executed.newFeeStructureId).toBeNull();
     expect(executed.newStudentFeeId).toBeNull();
-    expect(typeof executed.feeAssignmentWarning).toBe("string");
-    expect(executed.feeAssignmentWarning.length).toBeGreaterThan(0);
+    expect(executed.newFeeStructureId).toBeNull();
 
-    // Student was still promoted
-    const updatedStudent = await Student.findById(tc.student._id);
-    expect(updatedStudent.currentSemester).toBe(4);
+    // Still exactly 1 StudentFee exists
+    const feeCountAfter = await StudentFee.countDocuments({
+      student_id: tc.student._id,
+    });
+    expect(feeCountAfter).toBe(1);
 
-    // PromotionHistory records the warning
+    // PromotionHistory has null fee references
     const history = await PromotionHistory.findOne({
       promotion_decision_id: tc.decision._id,
     });
     expect(history.newFeeAssigned).toBe(false);
-    expect(history.newFeeStructureId).toBeNull();
     expect(history.newStudentFeeId).toBeNull();
-    expect(history.feeAssignmentWarning).toBeTruthy();
+  });
 
-    // Only the original current-semester StudentFee exists (no new one)
+  // ─────────────────────────────────────────────────────────────────────────
+  // Test 2 – Promotion within same academic year (Sem 1 -> Sem 2) never creates a fee
+  // ─────────────────────────────────────────────────────────────────────────
+  it("never creates a StudentFee when promoting within same academic year (Sem 1 -> Sem 2)", async () => {
+    const tc = await createApprovedCase({ semester: 1 });
+
+    const executed = await executePromotion(execInput(tc));
+
+    expect(executed.executionStatus).toBe("PROMOTED");
+    expect(executed.newFeeAssigned).toBe(false);
+    expect(executed.newStudentFeeId).toBeNull();
+
     const feeCount = await StudentFee.countDocuments({
       student_id: tc.student._id,
     });
@@ -286,34 +222,24 @@ describe("Phase 1 – fee assignment inside executePromotion()", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Test 4 – StudentFee.create() throws → full transaction rolls back
+  // Test 3 – Transaction rollback when Student.findByIdAndUpdate throws
   // ─────────────────────────────────────────────────────────────────────────
-  it("rolls back the full promotion when StudentFee.create() throws", async () => {
-    const tc = await createApprovedCase();
+  it("rolls back the full promotion when student update fails", async () => {
+    const tc = await createApprovedCase({ semester: 2 });
 
-    await FeeStructure.create({
-      college_id: tc.collegeId,
-      course_id: tc.courseId,
-      category: "GEN",
-      academicYear: null,
-      totalFee: 12000,
-      installments: [],
-    });
-
-    // Spy on StudentFee.create – force a failure on the next call
-    const createSpy = jest
-      .spyOn(StudentFee, "create")
-      .mockRejectedValueOnce(new Error("StudentFee write failed"));
+    const updateSpy = jest
+      .spyOn(Student, "updateOne")
+      .mockRejectedValueOnce(new Error("Student update failed"));
 
     await expect(executePromotion(execInput(tc))).rejects.toThrow(
-      "StudentFee write failed",
+      "Student update failed",
     );
 
-    createSpy.mockRestore();
+    updateSpy.mockRestore();
 
     // Semester must NOT have changed
     const student = await Student.findById(tc.student._id);
-    expect(student.currentSemester).toBe(3);
+    expect(student.currentSemester).toBe(2);
 
     // No PromotionHistory should have been created
     const historyCount = await PromotionHistory.countDocuments({
@@ -327,95 +253,19 @@ describe("Phase 1 – fee assignment inside executePromotion()", () => {
   });
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Test 5 – FeeStructure for wrong college is not matched
-  // ─────────────────────────────────────────────────────────────────────────
-  it("does not match a FeeStructure belonging to a different college", async () => {
-    const tc = await createApprovedCase();
-    const wrongCollegeId = new mongoose.Types.ObjectId();
-
-    await FeeStructure.create({
-      college_id: wrongCollegeId,
-      course_id: tc.courseId,
-      category: "GEN",
-      academicYear: null,
-      totalFee: 9999,
-      installments: [],
-    });
-
-    const executed = await executePromotion(execInput(tc));
-
-    expect(executed.newFeeAssigned).toBe(false);
-    expect(executed.feeAssignmentWarning).toBeTruthy();
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Test 6 – FeeStructure for wrong category is not matched
-  // ─────────────────────────────────────────────────────────────────────────
-  it("does not match a FeeStructure for a different student category", async () => {
-    const tc = await createApprovedCase({ category: "SC" });
-
-    // Only GEN fee exists – should NOT match SC student
-    await FeeStructure.create({
-      college_id: tc.collegeId,
-      course_id: tc.courseId,
-      category: "GEN",
-      academicYear: null,
-      totalFee: 11000,
-      installments: [],
-    });
-
-    const executed = await executePromotion(execInput(tc));
-
-    expect(executed.newFeeAssigned).toBe(false);
-    expect(executed.feeAssignmentWarning).toBeTruthy();
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Test 7 – FeeStructure with no installments: StudentFee created with empty array
-  // ─────────────────────────────────────────────────────────────────────────
-  it("creates StudentFee with empty installments when FeeStructure has none", async () => {
-    const tc = await createApprovedCase();
-
-    await FeeStructure.create({
-      college_id: tc.collegeId,
-      course_id: tc.courseId,
-      category: "GEN",
-      academicYear: null,
-      totalFee: 8000,
-      installments: [],
-    });
-
-    const executed = await executePromotion(execInput(tc));
-
-    expect(executed.newFeeAssigned).toBe(true);
-    const newFee = await StudentFee.findById(executed.newStudentFeeId);
-    expect(newFee.totalFee).toBe(8000);
-    expect(newFee.paidAmount).toBe(0);
-    expect(newFee.installments).toHaveLength(0);
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Test 8 – Idempotent second execution does not create duplicate StudentFee
+  // Test 4 – Idempotent second execution does not create duplicate StudentFee
   // ─────────────────────────────────────────────────────────────────────────
   it("does not create duplicate StudentFee on idempotent second execution", async () => {
-    const tc = await createApprovedCase();
-
-    await FeeStructure.create({
-      college_id: tc.collegeId,
-      course_id: tc.courseId,
-      category: "GEN",
-      academicYear: null,
-      totalFee: 12000,
-      installments: [],
-    });
+    const tc = await createApprovedCase({ semester: 2 });
 
     const first = await executePromotion(execInput(tc));
     expect(first.executionStatus).toBe("PROMOTED");
-    expect(first.newFeeAssigned).toBe(true);
+    expect(first.newFeeAssigned).toBe(false);
 
     const feeCountAfterFirst = await StudentFee.countDocuments({
       student_id: tc.student._id,
     });
+    expect(feeCountAfterFirst).toBe(1);
 
     const second = await executePromotion(execInput(tc));
     expect(second.executionStatus).toBe("ALREADY_PROMOTED");
@@ -423,6 +273,6 @@ describe("Phase 1 – fee assignment inside executePromotion()", () => {
     const feeCountAfterSecond = await StudentFee.countDocuments({
       student_id: tc.student._id,
     });
-    expect(feeCountAfterSecond).toBe(feeCountAfterFirst);
+    expect(feeCountAfterSecond).toBe(1);
   });
 });

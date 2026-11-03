@@ -1,4 +1,4 @@
-﻿'use strict';
+'use strict';
 
 /**
  * testDb.js — Hardened Test Database Setup
@@ -200,15 +200,15 @@ const connectTestDb = async () => {
   const useInMemory  = !rawUri || process.env.USE_IN_MEMORY_DB === 'true';
 
   if (useInMemory) {
-    const { MongoMemoryServer } = require('mongodb-memory-server');
-    _memoryServer = await MongoMemoryServer.create({
-      instance: { dbName: REQUIRED_DB_NAME },
+    const { MongoMemoryReplSet } = require('mongodb-memory-server');
+    _memoryServer = await MongoMemoryReplSet.create({
+      replSet: { count: 1, dbName: REQUIRED_DB_NAME },
     });
     const memUri = _memoryServer.getUri(REQUIRED_DB_NAME);
     await mongoose.connect(memUri, { dbName: REQUIRED_DB_NAME });
     verifyConnectedInstance();
     console.log(
-      `✅ Connected to in-memory test MongoDB [${_safeConnectionSummary()}]`,
+      `✅ Connected to in-memory test MongoDB replica set [${_safeConnectionSummary()}]`,
     );
   } else {
     // Validate URI before touching the network.

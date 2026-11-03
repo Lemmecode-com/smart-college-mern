@@ -3,6 +3,7 @@ const Course = require("../../src/models/course.model");
 const Student = require("../../src/models/student.model");
 const StudentFee = require("../../src/models/studentFee.model");
 const PromotionHistory = require("../../src/models/promotionHistory.model");
+const { getActiveStudentFee } = require("../services/studentFee.service");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
@@ -657,60 +658,17 @@ async function syncCurrentStudentFeeWithFeeStructure(
   // and synchronize totalFee + installments.
   for (const student of affectedStudents) {
     try {
-      // Find the StudentFee linked to the student's CURRENT semester via
-      // the most recent ACTIVE PromotionHistory record.
-      const currentPromotion = await PromotionHistory.findOne({
-        student_id: student._id,
-        status: "ACTIVE",
-        toSemester: student.currentSemester,
-        toAcademicYear: student.currentYear,
-        newStudentFeeId: { $ne: null },
-      })
-        .sort({ promotionDate: -1 })
-        .select("newStudentFeeId toSemester toAcademicYear")
-        .lean();
+      // Find the StudentFee for the student's CURRENT academic year
+      const studentFee = await getActiveStudentFee(student._id, collegeId, {
+        student,
+        lean: true,
+      });
 
-      let studentFeeId = null;
-
-      if (currentPromotion && currentPromotion.newStudentFeeId) {
-        // Student has been promoted — use the fee linked to the current semester.
-        studentFeeId = currentPromotion.newStudentFeeId;
-      } else {
-        // Student has NOT been promoted — find the initial enrollment fee.
-        // This is the StudentFee created during approveStudent() with no
-        // matching PromotionHistory.newStudentFeeId.
-        const initialFee = await StudentFee.findOne({
-          student_id: student._id,
-          college_id: collegeId,
-          course_id: courseId,
-        })
-          .sort({ createdAt: 1 })
-          .select("_id")
-          .lean();
-
-        if (initialFee) {
-          // Verify this fee is NOT already linked to a promotion (i.e., it is
-          // the initial enrollment fee, not a historical semester fee).
-          const linkedPromotion = await PromotionHistory.findOne({
-            newStudentFeeId: initialFee._id,
-            status: "ACTIVE",
-          }).select("_id").lean();
-
-          if (!linkedPromotion) {
-            studentFeeId = initialFee._id;
-          }
-        }
-      }
-
-      if (!studentFeeId) {
-        continue;
-      }
-
-      // ── Step 3: Fetch the StudentFee with its installments ──────────
-      const studentFee = await StudentFee.findById(studentFeeId).lean();
       if (!studentFee) {
         continue;
       }
+
+      const studentFeeId = studentFee._id;
 
       // ── Step 4: Synchronize totalFee ────────────────────────────────
       // Preserve paidAmount — it is derived from PAID installments.

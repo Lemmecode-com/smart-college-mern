@@ -17,6 +17,9 @@ const {
    buildFeeRecord,
    filterInstallmentsByDate,
 } = require("../services/reports.service");
+const {
+   selectAuthoritativeFee,
+} = require("../services/studentFee.service");
 
 /**
  * COLLEGE ADMIN: Payment report with date filtering support
@@ -60,13 +63,15 @@ exports.getCollegePaymentReport = async (req, res) => {
      }
 
       const fees = await StudentFee.find(matchConditions)
-        .populate("student_id", "fullName email enrollment_number")
+        .populate(
+          "student_id",
+          "fullName email enrollment_number currentSemester currentYear currentAcademicYear admissionYear",
+        )
         .populate("course_id", "name code")
         .lean();
 
-      // Consolidate StudentFee records by student_id so each student appears once.
-      // Semester (fee-record) details are preserved in feeRecords, while all
-      // installments are flattened into the installments array for receipt access.
+      // Consolidate StudentFee records by student_id so each student appears once per academic year.
+      // Semester (fee-record) details are preserved in feeRecords.
       const semesterMap = await getSemesterMap(collegeId, fees.map((f) => f._id));
 
       const endDateTime = endDate
@@ -99,19 +104,16 @@ exports.getCollegePaymentReport = async (req, res) => {
       const report = [];
 
       for (const group of grouped.values()) {
-        const totalFee = group.fees.reduce(
-          (sum, f) => sum + (Number(f.totalFee) || 0),
-          0,
-        );
-        const paidAmount = group.fees.reduce(
-          (sum, f) => sum + (Number(f.paidAmount) || 0),
-          0,
-        );
-        const pendingAmount = totalFee - paidAmount;
+        const student = group.student;
+        const activeFee = selectAuthoritativeFee(group.fees);
+
+        const totalFee = activeFee ? Number(activeFee.totalFee) || 0 : 0;
+        const paidAmount = activeFee ? Number(activeFee.paidAmount) || 0 : 0;
+        const pendingAmount = Math.max(0, totalFee - paidAmount);
 
         totalCollected += paidAmount;
 
-        const feeRecords = group.fees.map((fee) => {
+        const feeRecords = (activeFee ? [activeFee] : []).map((fee) => {
           const record = buildFeeRecord(fee, semesterMap);
           if (hasDateFilter) {
             record.installments = filterInstallmentsByDate(
@@ -124,17 +126,17 @@ exports.getCollegePaymentReport = async (req, res) => {
           return record;
         });
 
-        const allInstallments = group.fees.reduce((acc, fee) => {
-          const insts = hasDateFilter
-            ? filterInstallmentsByDate(
-                fee.installments,
-                startDate,
-                endDate,
-                endDateTime,
-              )
-            : fee.installments || [];
-          return acc.concat(insts);
-        }, []);
+        // Show strictly the authoritative fee's installments (never append duplicate/other docs)
+        const installments = activeFee
+          ? (hasDateFilter
+              ? filterInstallmentsByDate(
+                  activeFee.installments,
+                  startDate,
+                  endDate,
+                  endDateTime,
+                )
+              : activeFee.installments || [])
+          : [];
 
         report.push({
           student: group.student,
@@ -144,7 +146,7 @@ exports.getCollegePaymentReport = async (req, res) => {
           paidAmount,
           pendingAmount,
           status: deriveStatus(totalFee, paidAmount),
-          installments: allInstallments,
+          installments,
           feeRecords,
         });
       }
@@ -538,6 +540,42 @@ exports.getDefaulters = async (req, res, next) => {
       .populate("student_id", "fullName email enrollment_number")
       .populate("course_id", "name code")
       .lean();
+
+    // To prevent duplicate or legacy docs from falsely marking a student as a defaulter,
+    // verify each candidate against their single authoritative StudentFee
+    const studentIds = [
+      ...new Set(
+        fees
+          .map((f) => f.student_id?._id || f.student_id)
+          .filter(Boolean)
+          .map(String),
+      ),
+    ];
+
+    if (studentIds.length > 0) {
+      const allStudentFees = await StudentFee.find({
+        college_id: collegeId,
+        student_id: { $in: studentIds },
+      }).lean();
+
+      const feesByStudent = new Map();
+      for (const f of allStudentFees) {
+        const sId = String(f.student_id);
+        if (!feesByStudent.has(sId)) feesByStudent.set(sId, []);
+        feesByStudent.get(sId).push(f);
+      }
+
+      const authoritativeFeeIds = new Set();
+      for (const sFees of feesByStudent.values()) {
+        const authFee = selectAuthoritativeFee(sFees);
+        if (authFee) {
+          authoritativeFeeIds.add(String(authFee._id));
+        }
+      }
+
+      // Filter to include only authoritative fees
+      fees = fees.filter((fee) => authoritativeFeeIds.has(String(fee._id)));
+    }
 
     let defaulters = [];
 

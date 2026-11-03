@@ -5,46 +5,11 @@ const logger = require("../utils/logger");
 
 const getCourseId = (student) => student.course_id?._id || student.course_id;
 
-const getAttendanceDataForStudents = async (students, collegeId) => {
-  const normalizedStudents = students.map((student) => ({
-    student_id: student._id,
-    courseId: getCourseId(student),
-    semester: Number(student.currentSemester),
-    academicYear: typeof student.currentAcademicYear === "string"
-      ? student.currentAcademicYear.trim()
-      : student.currentAcademicYear,
-  }));
-
-  const scopedStudents = normalizedStudents.filter((student) => (
-    student.courseId &&
-    Number.isFinite(student.semester) &&
-    typeof student.academicYear === "string" &&
-    student.academicYear.length > 0
-  ));
-
-  if (scopedStudents.length === 0) {
-    return normalizedStudents.map((student) => ({
-      student_id: student.student_id,
-      percentage: 0,
-      totalSessions: 0,
-    }));
-  }
-
-  const courseIds = [
-    ...new Set(
-      scopedStudents
-        .map((student) => student.courseId.toString()),
-    ),
-  ];
-  const courseObjectIds = courseIds.map((courseId) => new mongoose.Types.ObjectId(courseId));
-  const semesterValues = [
-    ...new Set(scopedStudents.map((student) => student.semester)),
-  ];
-  const academicYearValues = [
-    ...new Set(scopedStudents.map((student) => student.academicYear)),
-  ];
-
-  // Detect orphan sessions referencing missing timetable slots without crashing
+/**
+ * Diagnostic utility to detect orphan sessions referencing missing timetable slots.
+ * Kept available for administrative/diagnostic use outside the hot evaluation path.
+ */
+const checkOrphanAttendanceSessions = async (collegeId, courseObjectIds) => {
   try {
     const orphanCount = await AttendanceSession.aggregate([
       {
@@ -78,8 +43,62 @@ const getAttendanceDataForStudents = async (students, collegeId) => {
         `[AttendanceService] Found ${orphanCount.length} AttendanceSession(s) referencing missing timetable slot(s) in college ${collegeId}: ${orphanCount.map((s) => s._id).join(", ")}`
       );
     }
+    return orphanCount;
   } catch (err) {
     logger.warn(`[AttendanceService] Error checking for orphan attendance sessions: ${err.message}`);
+    return [];
+  }
+};
+
+const getAttendanceDataForStudents = async (
+  students,
+  collegeId,
+  options = {},
+) => {
+  const checkOrphans = Boolean(options?.checkOrphans);
+
+  const normalizedStudents = students.map((student) => ({
+    student_id: student._id,
+    courseId: getCourseId(student),
+    semester: Number(student.currentSemester),
+    academicYear: typeof student.currentAcademicYear === "string"
+      ? student.currentAcademicYear.trim()
+      : student.currentAcademicYear,
+  }));
+
+  const scopedStudents = normalizedStudents.filter((student) => (
+    student.courseId &&
+    Number.isFinite(student.semester) &&
+    typeof student.academicYear === "string" &&
+    student.academicYear.length > 0
+  ));
+
+  if (scopedStudents.length === 0) {
+    return normalizedStudents.map((student) => ({
+      student_id: student.student_id,
+      percentage: 0,
+      totalSessions: 0,
+      presentSessions: 0,
+    }));
+  }
+
+  const courseIds = [
+    ...new Set(
+      scopedStudents
+        .map((student) => student.courseId.toString()),
+    ),
+  ];
+  const courseObjectIds = courseIds.map((courseId) => new mongoose.Types.ObjectId(courseId));
+  const semesterValues = [
+    ...new Set(scopedStudents.map((student) => student.semester)),
+  ];
+  const academicYearValues = [
+    ...new Set(scopedStudents.map((student) => student.academicYear)),
+  ];
+
+  // Optional orphan session detection (omitted by default on hot paths)
+  if (checkOrphans) {
+    await checkOrphanAttendanceSessions(collegeId, courseObjectIds);
   }
 
   const scopedSessions = await AttendanceSession.aggregate([
@@ -143,6 +162,17 @@ const getAttendanceDataForStudents = async (students, collegeId) => {
   ]);
 
   const sessionIds = scopedSessions.flatMap((row) => row.sessionIds);
+
+  // Early exit: if no sessions are found for the semester/year, return immediately
+  if (sessionIds.length === 0) {
+    return normalizedStudents.map((student) => ({
+      student_id: student.student_id,
+      percentage: 0,
+      totalSessions: 0,
+      presentSessions: 0,
+    }));
+  }
+
   const sessionScopeMap = new Map();
   scopedSessions.forEach((row) => {
     const scopeKey = `${row._id.course_id.toString()}|${row._id.semester}|${row._id.academicYear}`;
@@ -151,11 +181,18 @@ const getAttendanceDataForStudents = async (students, collegeId) => {
     });
   });
 
+  const studentObjectIds = scopedStudents.map((student) =>
+    student.student_id instanceof mongoose.Types.ObjectId
+      ? student.student_id
+      : new mongoose.Types.ObjectId(student.student_id)
+  );
+
   const presentRows = sessionIds.length > 0
     ? await AttendanceRecord.aggregate([
       {
         $match: {
           college_id: collegeId,
+          student_id: { $in: studentObjectIds },
           session_id: { $in: sessionIds },
           status: "PRESENT",
         },
@@ -275,4 +312,5 @@ const getCumulativeAttendanceForStudent = async (studentId, collegeId) => {
 module.exports = {
   getAttendanceDataForStudents,
   getCumulativeAttendanceForStudent,
+  checkOrphanAttendanceSessions,
 };

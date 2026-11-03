@@ -14,6 +14,7 @@ const AppError = require("../utils/AppError");
 const logger = require("../utils/logger");
 const { randomUUID } = require("crypto");
 const { buildFrontendUrl } = require("../utils/urlBuilder");
+const { getActiveStudentFee } = require("../services/studentFee.service");
 
 /**
  * Create Stripe checkout session using college-specific Stripe configuration
@@ -48,10 +49,8 @@ exports.createCheckoutSession = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // ✅ Step 2: Find student fee record using student._id
-    const studentFee = await StudentFee.findOne({
-      student_id: student._id,
-    });
+    // ✅ Step 2: Find authoritative student fee record
+    const studentFee = await getActiveStudentFee(student._id, collegeId, { student });
 
     logger.logInfo("🟢 StudentFee lookup result", {
       found: !!studentFee,
@@ -318,8 +317,8 @@ exports.confirmStripePayment = async (req, res, next) => {
       throw new AppError("Unauthorized", 403, "UNAUTHORIZED");
     }
 
-    // Find student fee record
-    const studentFee = await StudentFee.findOne({ student_id: student._id });
+    // Find authoritative student fee record
+    const studentFee = await getActiveStudentFee(student._id, student.college_id, { student });
 
     if (!studentFee) {
       throw new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND");

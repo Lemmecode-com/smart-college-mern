@@ -1040,7 +1040,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       if (alumniRes) {
         setAlumniEligibilityData(alumniRes.data || alumniRes);
       }
-      fetchBacklogs(student._id, "ALL");
+      // Note: backlogs are reactively loaded once by useEffect([showEligibilityModal, eligibilityStudent?._id])
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -1289,6 +1289,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
         setEligibilityStudent(synchronizedStudent);
 
+        // Update local state table row directly without refetching the whole table
         setStudents((prev) =>
           prev.map((s) =>
             s._id === synchronizedStudent._id
@@ -1297,13 +1298,21 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
           )
         );
 
-        fetchEligibleStudents();
+        // Update local eligibility decision status without duplicate refetching
+        setEligibilityData((prev) =>
+          prev
+            ? {
+                ...prev,
+                ...(response?.decision || response?.data?.decision || {}),
+                workflow_status: "PROMOTED",
+              }
+            : prev
+        );
+
         if (showHistory) {
           await fetchPromotionHistory();
         }
       }
-
-      await refreshEligibility();
     } catch (err) {
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
@@ -1449,7 +1458,15 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
 
       setSuccessMessage(`${alumniStudent.fullName} has been moved to Alumni successfully`);
       setShowAlumniModal(false);
-      fetchEligibleStudents();
+
+      // Remove the graduated student from the active list locally without whole-table re-fetching
+      setStudents((prev) => prev.filter((s) => s._id !== alumniStudent._id));
+      if (eligibilityStudent?._id === alumniStudent._id) {
+        setShowEligibilityModal(false);
+        setEligibilityStudent(null);
+        setEligibilityData(null);
+      }
+
       setTimeout(() => setSuccessMessage(""), 5000);
       toast.success("Student moved to Alumni successfully!", {
         position: "top-right",

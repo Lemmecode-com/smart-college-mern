@@ -1,5 +1,6 @@
 const Student = require("../models/student.model");
 const StudentFee = require("../models/studentFee.model");
+const { getActiveStudentFee } = require("./studentFee.service");
 const PromotionDecision = require("../models/promotionDecision.model");
 const Backlog = require("../models/backlog.model");
 const BacklogAttempt = require("../models/backlogAttempt.model");
@@ -209,11 +210,12 @@ const evaluateFeeClearance = async ({
   collegeId,
   overrideFeeCheck = false,
   minimumFeePaidPercentage = DEFAULT_MIN_FEE_PAID_PERCENTAGE,
+  student = null,
 }) => {
-  const fee = await StudentFee.findOne({
-    student_id: studentId,
-    college_id: collegeId,
-  }).select("totalFee paidAmount installments");
+  const fee = await getActiveStudentFee(studentId, collegeId, {
+    student,
+    select: "totalFee paidAmount installments academicYear",
+  });
 
   return calculateFeeClearanceData(
     fee,
@@ -438,20 +440,25 @@ const createPromotionDecision = async ({
     semester: student.currentSemester,
     academicYear: student.currentAcademicYear,
   };
-  const authoritativeResult = await resolveAuthoritativeResult(identity);
-  const attendance = await evaluateAttendance({
-    student,
-    collegeId,
-    requiredPercentage: policy.snapshot.minAttendancePercentage,
-    overrideAttendanceCheck,
-    overrideAttendanceReason,
-  });
-  const feeClearance = await evaluateFeeClearance({
-    studentId: student._id,
-    collegeId,
-    overrideFeeCheck,
-    minimumFeePaidPercentage: policy.snapshot.minimumFeePaidPercentage,
-  });
+
+  // Phase 3: Parallelize independent checks once student and policy are loaded
+  const [authoritativeResult, attendance, feeClearance] = await Promise.all([
+    resolveAuthoritativeResult(identity),
+    evaluateAttendance({
+      student,
+      collegeId,
+      requiredPercentage: policy.snapshot.minAttendancePercentage,
+      overrideAttendanceCheck,
+      overrideAttendanceReason,
+    }),
+    evaluateFeeClearance({
+      studentId: student._id,
+      collegeId,
+      student,
+      overrideFeeCheck,
+      minimumFeePaidPercentage: policy.snapshot.minimumFeePaidPercentage,
+    }),
+  ]);
   const calculated = await calculatePromotionDecision({
     authoritativeResult,
     policy,

@@ -130,8 +130,11 @@ exports.approveStudent = async (req, res, next) => {
     }
 
     // 4️⃣ Prevent duplicate fee record
+    const admissionAcademicYear = student.currentAcademicYear || `${student.admissionYear}-${student.admissionYear + 1}`;
     let studentFee = await StudentFee.findOne({
       student_id: student._id,
+      college_id: student.college_id,
+      academicYear: admissionAcademicYear,
     });
 
     if (!studentFee) {
@@ -170,6 +173,8 @@ exports.approveStudent = async (req, res, next) => {
         student_id: student._id,
         college_id: student.college_id,
         course_id: student.course_id,
+        academicYear: admissionAcademicYear,
+        feeStructure_id: feeStructure._id,
         totalFee: feeStructure.totalFee,
         baseFee: feeStructure.baseFee !== undefined ? feeStructure.baseFee : feeStructure.totalFee,
         totalTax: feeStructure.totalTax !== undefined ? feeStructure.totalTax : 0,
@@ -461,21 +466,37 @@ exports.bulkApproveStudents = async (req, res, next) => {
         student.enrollmentNumber = `${collegeData.code}-${courseData.code}${student.admissionYear}-${sequence}`;
 
         // ── 8. Create student fee ──
-        const installments = feeStructure.installments.map((inst) => ({
-          name: inst.name,
-          amount: inst.amount,
-          dueDate: inst.dueDate,
-          status: "PENDING",
-        }));
-
-        await StudentFee.create({
+        const admissionAcademicYear = student.currentAcademicYear || `${student.admissionYear}-${student.admissionYear + 1}`;
+        const existingEnrollmentFee = await StudentFee.findOne({
           student_id: student._id,
           college_id: student.college_id,
-          course_id: student.course_id,
-          totalFee: feeStructure.totalFee,
-          paidAmount: 0,
-          installments,
+          academicYear: admissionAcademicYear,
         });
+
+        if (!existingEnrollmentFee) {
+          const installments = feeStructure.installments.map((inst) => ({
+            name: inst.name,
+            amount: inst.amount,
+            dueDate: inst.dueDate,
+            status: "PENDING",
+            baseAmount: inst.baseAmount !== undefined ? inst.baseAmount : inst.amount,
+            gstAmount: inst.gstAmount !== undefined ? inst.gstAmount : 0,
+            taxBreakdown: inst.taxBreakdown ? { ...inst.taxBreakdown } : null,
+          }));
+
+          await StudentFee.create({
+            student_id: student._id,
+            college_id: student.college_id,
+            course_id: student.course_id,
+            academicYear: admissionAcademicYear,
+            feeStructure_id: feeStructure._id,
+            totalFee: feeStructure.totalFee,
+            baseFee: feeStructure.baseFee !== undefined ? feeStructure.baseFee : feeStructure.totalFee,
+            totalTax: feeStructure.totalTax !== undefined ? feeStructure.totalTax : 0,
+            paidAmount: 0,
+            installments,
+          });
+        }
 
         // ── 9. Approve student ──
         student.status = "APPROVED";

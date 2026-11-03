@@ -14,6 +14,7 @@ const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const { getNotificationVisibilityQuery } = require("../services/notificationVisibility.service");
 const { parseLocalDateSafe, getDayName } = require("../utils/date.utils");
+const { getActiveStudentFee } = require("../services/studentFee.service");
 
 /**
  * 👨‍🎓 STUDENT DASHBOARD
@@ -208,13 +209,13 @@ exports.studentDashboard = async (req, res, next) => {
       }
     };
 
-    // ⚡ Sub-query 3: Fee summary lookup
+    // ⚡ Sub-query 3: Fee summary lookup via authoritative reader
     const fetchFeeSummary = async () => {
-      const fee = await StudentFee.findOne({
-        student_id: student._id,
-      })
-        .select("college_id totalFee paidAmount")
-        .lean();
+      const fee = await getActiveStudentFee(student._id, collegeId, {
+        student,
+        select: "college_id totalFee paidAmount",
+        lean: true,
+      });
 
       if (!fee) return null;
 

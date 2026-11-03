@@ -4,6 +4,7 @@ const Student = require("../models/student.model");
 const College = require("../models/college.model");
 const Course = require("../models/course.model");
 const emailService = require("../services/email.service");
+const { getActiveStudentFee } = require("../services/studentFee.service");
 const AppError = require("../utils/AppError");
 const crypto = require("crypto");
 const logger = require("../utils/logger");
@@ -325,10 +326,8 @@ exports.createRazorpayOrder = async (req, res, next) => {
       throw new AppError("Student not found", 404, "STUDENT_NOT_FOUND");
     }
 
-    // ✅ Step 2: Find student fee record using student._id
-    const studentFee = await StudentFee.findOne({
-      student_id: student._id,
-    });
+    // ✅ Step 2: Find active student fee record using student._id
+    const studentFee = await getActiveStudentFee(student._id, collegeId, { student });
 
     logger.logInfo("🟢 StudentFee lookup result", {
       found: !!studentFee,
@@ -1191,9 +1190,11 @@ exports.handleRazorpayPaymentFailure = async (req, res, next) => {
     }
 
     // Find student fee record
-    const studentFee = await StudentFee.findOne({
-      student_id: student._id,
-    });
+    const studentFee =
+      (await StudentFee.findOne({
+        student_id: student._id,
+        "installments.razorpayOrderId": razorpay_order_id,
+      })) || (await getActiveStudentFee(student._id, collegeId, { student }));
 
     if (!studentFee) {
       throw new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND");

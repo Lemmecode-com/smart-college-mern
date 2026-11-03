@@ -4,6 +4,12 @@ const StudentFee = require("../models/studentFee.model");
 const AttendanceRecord = require("../models/attendanceRecord.model");
 const College = require("../models/college.model");
 const PromotionHistory = require("../models/promotionHistory.model");
+const {
+  getActiveStudentFee,
+  normalizeAcademicYear,
+  getStudentActiveAcademicYear,
+  selectAuthoritativeFee,
+} = require("./studentFee.service");
 const logger = require("../utils/logger");
 const AppError = require("../utils/AppError");
 
@@ -146,47 +152,7 @@ async function consolidateStudentFees(fees, collegeId, options) {
   for (const group of grouped.values()) {
     // ── Identify the CURRENT applicable StudentFee ──────────────────────────
     const student = group.student;
-    const studentIdStr = student._id
-      ? student._id.toString()
-      : String(student._id);
-
-    let currentFee = null;
-
-    // Case A: Student has been promoted — find the fee linked to the current semester.
-    if (student.currentSemester !== undefined && student.currentSemester !== null) {
-      for (const fee of group.fees) {
-        const feeIdStr = fee._id ? fee._id.toString() : null;
-        const promo = feeIdStr ? feeIdToPromo.get(feeIdStr) : null;
-        if (
-          promo &&
-          promo.toSemester === student.currentSemester &&
-          promo.toAcademicYear === student.currentYear
-        ) {
-          currentFee = fee;
-          break;
-        }
-      }
-    }
-
-    // Case B: Student has NOT been promoted — use the initial enrollment fee
-    // (the StudentFee that is NOT linked to any PromotionHistory).
-    if (!currentFee) {
-      for (const fee of group.fees) {
-        const feeIdStr = fee._id ? fee._id.toString() : null;
-        if (feeIdStr && promotedFeeIds.has(feeIdStr)) {
-          // This fee is linked to a promotion → historical semester fee, skip.
-          continue;
-        }
-        // First non-promoted fee is the initial enrollment fee.
-        currentFee = fee;
-        break;
-      }
-    }
-
-    // Fallback: if no current fee identified, use the first fee in the group.
-    if (!currentFee && group.fees.length > 0) {
-      currentFee = group.fees[0];
-    }
+    const currentFee = selectAuthoritativeFee(group.fees);
 
     // ── Primary row uses ONLY the current applicable StudentFee ─────────────
     const totalFee = currentFee
@@ -195,9 +161,9 @@ async function consolidateStudentFees(fees, collegeId, options) {
     const paidAmount = currentFee
       ? Number(currentFee.paidAmount) || 0
       : 0;
-    const pendingAmount = totalFee - paidAmount;
+    const pendingAmount = Math.max(0, totalFee - paidAmount);
 
-    const feeRecords = group.fees.map((f) => {
+    const feeRecords = (currentFee ? [currentFee] : []).map((f) => {
       const record = buildFeeRecord(f, semesterMap);
       if (hasDateFilter) {
         record.installments = filterInstallmentsByDate(
@@ -210,29 +176,29 @@ async function consolidateStudentFees(fees, collegeId, options) {
       return record;
     });
 
-    const allInstallments = group.fees.reduce((acc, f) => {
-      const insts = hasDateFilter
-        ? filterInstallmentsByDate(
-            f.installments,
-            startDate,
-            endDate,
-            endDateTime,
-          )
-        : f.installments || [];
-      return acc.concat(insts);
-    }, []);
+    const activeInstallments = currentFee
+      ? (hasDateFilter
+          ? filterInstallmentsByDate(
+              currentFee.installments,
+              startDate,
+              endDate,
+              endDateTime,
+            )
+          : currentFee.installments || [])
+      : [];
 
     results.push({
       _id: group.student._id,
       studentId: group.student._id,
       student: group.student,
       course: group.course,
+      student_id: group.student,
       totalFee,
       paidAmount,
       pendingAmount,
       status: deriveStatus(totalFee, paidAmount),
       feeRecords,
-      installments: allInstallments,
+      installments: activeInstallments,
     });
   }
 
@@ -323,25 +289,31 @@ exports.courseWiseAdmissions = async (college_id) => {
  * PAYMENT SUMMARY (COLLEGE)
  */
 exports.paymentSummary = async (college_id) => {
-  const result = await StudentFee.aggregate([
-    {
-      $match: {
-        college_id: new mongoose.Types.ObjectId(college_id),
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        totalExpected: { $sum: { $ifNull: ["$totalFee", 0] } },
-        totalPaid: { $sum: { $ifNull: ["$paidAmount", 0] } },
-      },
-    },
-  ]);
+  const fees = await StudentFee.find({
+    college_id: new mongoose.Types.ObjectId(college_id),
+  })
+    .select("totalFee paidAmount student_id course_id")
+    .lean();
 
-  const data = result[0] || { totalExpected: 0, totalPaid: 0 };
-  const total = data.totalExpected;
-  const collected = data.totalPaid;
-  const pending = total - collected;
+  const feesByStudent = new Map();
+  for (const f of fees) {
+    if (!f.student_id) continue;
+    const sId = String(f.student_id);
+    if (!feesByStudent.has(sId)) feesByStudent.set(sId, []);
+    feesByStudent.get(sId).push(f);
+  }
+
+  let total = 0;
+  let collected = 0;
+  for (const sFees of feesByStudent.values()) {
+    const authFee = selectAuthoritativeFee(sFees);
+    if (authFee) {
+      total += Number(authFee.totalFee) || 0;
+      collected += Number(authFee.paidAmount) || 0;
+    }
+  }
+
+  const pending = Math.max(0, total - collected);
   const collectionRate = total > 0 ? Math.round((collected / total) * 100) : 0;
 
   return {
@@ -539,22 +511,32 @@ exports.admissionSummaryAll = async ({ month, year } = {}) => {
  * PAYMENT SUMMARY (ALL COLLEGES)
  */
 exports.paymentSummaryAll = async () => {
-  const result = await StudentFee.aggregate([
-    {
-      $group: {
-        _id: null,
-        totalExpected: { $sum: "$totalFee" },
-        totalPaid: { $sum: "$paidAmount" },
-      },
-    },
-  ]);
+  const fees = await StudentFee.find({})
+    .select("totalFee paidAmount student_id course_id")
+    .lean();
 
-  const data = result[0] || { totalExpected: 0, totalPaid: 0 };
+  const feesByStudent = new Map();
+  for (const f of fees) {
+    if (!f.student_id) continue;
+    const sId = String(f.student_id);
+    if (!feesByStudent.has(sId)) feesByStudent.set(sId, []);
+    feesByStudent.get(sId).push(f);
+  }
+
+  let totalExpected = 0;
+  let totalPaid = 0;
+  for (const sFees of feesByStudent.values()) {
+    const authFee = selectAuthoritativeFee(sFees);
+    if (authFee) {
+      totalExpected += Number(authFee.totalFee) || 0;
+      totalPaid += Number(authFee.paidAmount) || 0;
+    }
+  }
 
   return {
-    totalExpectedFee: data.totalExpected,
-    totalCollected: data.totalPaid,
-    totalPending: data.totalExpected - data.totalPaid,
+    totalExpectedFee: totalExpected,
+    totalCollected: totalPaid,
+    totalPending: Math.max(0, totalExpected - totalPaid),
   };
 };
 
@@ -694,21 +676,29 @@ exports.paymentSummaryWithDateRange = async (college_id, startDate, endDate) => 
     };
   }
 
-  const result = await StudentFee.aggregate([
-    { $match: matchConditions },
-    {
-      $group: {
-        _id: null,
-        totalExpected: { $sum: { $ifNull: ["$totalFee", 0] } },
-        totalPaid: { $sum: { $ifNull: ["$paidAmount", 0] } },
-      },
-    },
-  ]);
+  const fees = await StudentFee.find(matchConditions)
+    .select("totalFee paidAmount student_id course_id")
+    .lean();
 
-  const data = result[0] || { totalExpected: 0, totalPaid: 0 };
-  const total = data.totalExpected;
-  const collected = data.totalPaid;
-  const pending = total - collected;
+  const feesByStudent = new Map();
+  for (const f of fees) {
+    if (!f.student_id) continue;
+    const sId = String(f.student_id);
+    if (!feesByStudent.has(sId)) feesByStudent.set(sId, []);
+    feesByStudent.get(sId).push(f);
+  }
+
+  let total = 0;
+  let collected = 0;
+  for (const sFees of feesByStudent.values()) {
+    const authFee = selectAuthoritativeFee(sFees);
+    if (authFee) {
+      total += Number(authFee.totalFee) || 0;
+      collected += Number(authFee.paidAmount) || 0;
+    }
+  }
+
+  const pending = Math.max(0, total - collected);
   const collectionRate = total > 0 ? Math.round((collected / total) * 100) : 0;
 
   return {
@@ -716,14 +706,14 @@ exports.paymentSummaryWithDateRange = async (college_id, startDate, endDate) => 
     totalCollected: collected,
     totalPending: pending,
     collectionRate,
-    dateRange: { startDate, endDate }
+    dateRange: { startDate, endDate },
   };
 };
 
 /**
  * STUDENT SPECIFIC PAYMENT HISTORY WITH DATE FILTERING
  */
-exports.studentSpecificPaymentHistory = async (college_id, studentId, startDate, endDate) => {
+exports.studentSpecificPaymentHistory = async (college_id, studentId, startDate, endDate, targetAcademicYear) => {
   if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
     throw new AppError("Start date must be before end date", 400, "INVALID_DATE_RANGE");
   }
@@ -753,26 +743,31 @@ exports.studentSpecificPaymentHistory = async (college_id, studentId, startDate,
   }
 
   const fees = await StudentFee.find(matchConditions)
-    .populate("student_id", "fullName email currentSemester currentYear")
+    .populate("student_id", "fullName email currentSemester currentYear currentAcademicYear admissionYear")
     .populate("course_id", "name")
-    .select("totalFee paidAmount paymentStatus installments");
+    .select("totalFee paidAmount paymentStatus installments academicYear feeStructure_id");
 
   if (fees.length === 0) return [];
 
   const semesterMap = await getSemesterMap(college_id, fees.map((f) => f._id));
+  const activeFee = selectAuthoritativeFee(fees);
 
-  const totalFee = fees.reduce(
-    (sum, f) => sum + (Number(f.totalFee) || 0),
-    0,
-  );
-  const paidAmount = fees.reduce(
-    (sum, f) => sum + (Number(f.paidAmount) || 0),
-    0,
-  );
-  const pendingAmount = totalFee - paidAmount;
+  const totalFee = Number(activeFee.totalFee) || 0;
+  const paidAmount = Number(activeFee.paidAmount) || 0;
+  const pendingAmount = Math.max(0, totalFee - paidAmount);
 
-  const feeRecords = fees.map((fee) => {
+  const activeInstallments = hasDateFilter
+    ? filterInstallmentsByDate(
+        activeFee.installments,
+        startDate,
+        endDate,
+        endDateTime,
+      )
+    : activeFee.installments || [];
+
+  const feeRecords = (activeFee ? [activeFee] : []).map((fee) => {
     const record = buildFeeRecord(fee, semesterMap);
+    record.academicYear = fee.academicYear || "Course Fee";
     if (hasDateFilter) {
       record.installments = filterInstallmentsByDate(
         fee.installments,
@@ -784,27 +779,16 @@ exports.studentSpecificPaymentHistory = async (college_id, studentId, startDate,
     return record;
   });
 
-  const allInstallments = fees.reduce((acc, fee) => {
-    const insts = hasDateFilter
-      ? filterInstallmentsByDate(
-          fee.installments,
-          startDate,
-          endDate,
-          endDateTime,
-        )
-      : fee.installments || [];
-    return acc.concat(insts);
-  }, []);
-
   return [
     {
       student: fees[0].student_id,
       course: fees[0].course_id,
+      academicYear: activeFee.academicYear || "Course Fee",
       totalFee,
       paidAmount,
       pendingAmount,
-      status: fees[0].paymentStatus || deriveStatus(totalFee, paidAmount),
-      installments: allInstallments,
+      status: activeFee.paymentStatus || deriveStatus(totalFee, paidAmount),
+      installments: activeInstallments,
       feeRecords,
     },
   ];
