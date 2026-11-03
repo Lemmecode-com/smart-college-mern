@@ -4,6 +4,7 @@ import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import ConfirmModal from "../../../../components/ConfirmModal";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import Loading from "../../../../components/Loading";
 import { AuthContext } from "../../../../auth/AuthContext";
 import {
@@ -72,21 +73,6 @@ const fadeInVariants = {
     y: 0,
     transition: { delay: i * 0.05, duration: 0.6, ease: "easeOut" },
   }),
-};
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
-  },
-};
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-  },
 };
 const floatVariants = {
   initial: { y: 0 },
@@ -199,108 +185,6 @@ const componentStyles = `
   font-weight: 600;
   font-size: 1rem;
 }
-.schedule-header {
-  margin-bottom: 1.5rem;
-  background: white;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(26, 75, 109, 0.12);
-  height: auto;
-}
-
-.header-top {
-  min-height: 100px;
-  padding: 0.8rem 1.5rem;
-  background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: nowrap;
-  gap: 1.5rem;
-  height: auto;
-}
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  min-width: 0;
-}
-.header-icon-wrapper {
-  width: 52px;
-  height: 52px;
-  min-width: 52px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  flex-shrink: 0;
-}
-.header-title {
-            margin: 0;
-            font-size: 1.625rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            line-height: 1.25;
-}
-.header-subtitle {
-.header-subtitle {
-  margin: 0.25rem 0 0;
-  opacity: 0.8;
-  font-size: 0.9rem;
-  font-weight: 400;
-  line-height: 1.3;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-}
-.header-right {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-.current-time-badge {
-  background: rgba(255, 255, 255, 0.12);
-  padding: 0.55rem 1rem;
-  border-radius: 12px;
-  text-align: center;
-  min-width: 120px;
-}
-.time-label {
-  font-size: 0.75rem;
-  opacity: 0.85;
-  margin-bottom: 0.25rem;
-}
-.time-value {
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-.btn-refresh {
-  background: #ffffff;
-  color: #0E3746;
-  border: 1px solid #ffffff;
-  min-height: 44px;
-  padding: 0.65rem 1.15rem;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
-  white-space: nowrap;
-}
-.btn-refresh:hover {
-  transform: translateY(-2px);
-}
 .btn-text {
   display: none;
 }
@@ -310,31 +194,42 @@ const componentStyles = `
   }
 }
 .stats-bar {
-  padding: 1rem 2rem;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(15, 58, 74, 0.06);
 }
 .stats-items {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
 }
 .stat-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.875rem;
+  min-width: 0;
+  padding: 1rem 1.125rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.stat-item:hover {
+  transform: translateY(-2px);
+  border-color: #cbdde5;
+  box-shadow: 0 6px 16px rgba(15, 58, 74, 0.08);
 }
 .stat-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -345,26 +240,78 @@ const componentStyles = `
   flex-direction: column;
 }
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #64748b;
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.35;
 }
 .stat-value {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #1e293b;
+  margin-top: 0.15rem;
+  font-size: 1.35rem;
+  line-height: 1.15;
+  font-weight: 750;
+  color: #0f3a4a;
 }
 .day-badge {
-  padding: 0.5rem 1rem;
+  padding: 0.55rem 0.85rem;
   border-radius: 20px;
-  background: rgba(40, 167, 69, 0.1);
-  color: #28a745;
-  font-weight: 600;
-  font-size: 0.85rem;
-  display: flex;
+  background: #e8f4ec;
+  color: #20734a;
+  font-weight: 650;
+  font-size: 0.82rem;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   white-space: nowrap;
+}
+.schedule-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.schedule-current-time {
+  min-width: 116px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+.schedule-current-time-label {
+  margin-bottom: 0.15rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.7rem;
+}
+.schedule-current-time-value {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.schedule-refresh {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid #ffffff;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #0e3746;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.schedule-refresh:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 13px rgba(0, 0, 0, 0.16);
+}
+.schedule-refresh:focus-visible,
+.btn-action:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
 }
 .error-banner {
   margin-bottom: 1.5rem;
@@ -387,24 +334,25 @@ const componentStyles = `
 }
 .schedule-card {
   background: white;
-  border-radius: 1.5rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  box-shadow: 0 8px 26px rgba(15, 58, 74, 0.07);
   overflow: hidden;
   margin-bottom: 1.5rem;
 }
 .card-header {
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  background: linear-gradient(135deg, #f8fbfc 0%, #eef6f8 100%);
 }
 .card-header h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #1e293b;
   display: flex;
@@ -418,19 +366,23 @@ const componentStyles = `
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #dbeafe;
-  color: #1a4b6d;
-  padding: 0.4rem 0.875rem;
+  background: #e8f2f5;
+  color: #164e63;
+  border: 1px solid #d5e6eb;
+  padding: 0.5rem 0.8rem;
   border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 .info-text {
   display: inline;
 }
 @media (max-width: 480px) {
-  .info-text {
-    display: none;
+  .info-badge {
+    justify-content: center;
+    flex-wrap: wrap;
+    white-space: normal;
+    text-align: center;
   }
 }
 .slots-list {
@@ -441,7 +393,7 @@ const componentStyles = `
 .schedule-row {
   background: white;
   border: 1px solid;
-  border-radius: 16px;
+  border-radius: 15px;
   padding: 1.25rem;
   display: flex;
   transition: all 0.3s ease;
@@ -466,12 +418,14 @@ const componentStyles = `
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem;
-  border-radius: 8px;
+  padding: 0.875rem;
+  border-radius: 12px;
   margin-bottom: 0;
 }
 .time-start {
-  font-weight: 700;
+  font-size: 1.05rem;
+  color: #123f50;
+  font-weight: 750;
   margin-bottom: 0.25rem;
 }
 .time-end {
@@ -518,8 +472,10 @@ const componentStyles = `
 }
 .subject-name {
   font-weight: 700;
-  font-size: 1.25rem;
-  margin-bottom: 0.25rem;
+  font-size: 1.2rem;
+  line-height: 1.35;
+  color: #172f3a;
+  margin-bottom: 0.55rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -537,7 +493,7 @@ const componentStyles = `
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.375rem 0.875rem;
+  padding: 0.4rem 0.75rem;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -565,8 +521,8 @@ const componentStyles = `
   min-width: 150px;
 }
 .timetable-name {
-  font-size: 0.95rem;
-  color: #4a5568;
+  font-size: 0.9rem;
+  color: #334e5a;
   font-weight: 600;
   margin-bottom: 0.25rem;
 }
@@ -575,7 +531,7 @@ const componentStyles = `
   color: #64748b;
 }
 .content-bottom {
-  padding-top: 0.75rem;
+  padding-top: 1rem;
   border-top: 1px dashed #e2e8f0;
   display: flex;
   flex-direction: column;
@@ -593,8 +549,9 @@ const componentStyles = `
 }
 .btn-action {
   width: 100%;
-  padding: 0.875rem;
-  border-radius: 12px;
+  min-height: 48px;
+  padding: 0.8rem 1rem;
+  border-radius: 11px;
   border: none;
   font-size: 1.05rem;
   font-weight: 600;
@@ -633,18 +590,19 @@ const componentStyles = `
   border: 1px solid #bae6fd;
 }
 .btn-start {
-  background: #28a745;
+  background: linear-gradient(135deg, #16814a 0%, #116b40 100%);
   color: white;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.35);
+  box-shadow: 0 4px 12px rgba(22, 129, 74, 0.22);
 }
 .btn-start:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.45);
+  box-shadow: 0 7px 16px rgba(22, 129, 74, 0.3);
 }
 .info-message {
-  padding: 0.75rem;
-  border-radius: 10px;
-  font-size: 0.9rem;
+  padding: 0.8rem 0.9rem;
+  border-radius: 11px;
+  font-size: 0.88rem;
+  line-height: 1.45;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -738,24 +696,6 @@ const componentStyles = `
   .schedule-container {
     padding: 0.5rem 1rem 1rem;
   }
-  .header-top {
-    padding: 1.25rem;
-    flex-direction: column;
-    text-align: center;
-  }
-  .header-left {
-    flex-direction: column;
-  }
-  .header-right {
-    width: 100%;
-    justify-content: center;
-  }
-  .stats-bar {
-    padding: 0.75rem 1rem;
-  }
-  .stats-items {
-    gap: 0.75rem;
-  }
 }
 @media (max-width: 768px) {
   .card-header {
@@ -776,17 +716,6 @@ const componentStyles = `
   }
 }
 @media (max-width: 480px) {
-  .header-title {
-    font-size: 1.5rem;
-  }
-  .header-subtitle {
-    font-size: 0.9rem;
-  }
-  .header-icon-wrapper {
-    width: 50px;
-    height: 50px;
-    font-size: 1.5rem;
-  }
   .subject-name {
     font-size: 1.1rem;
   }
@@ -795,66 +724,28 @@ const componentStyles = `
   }
 }
 
-@media (max-width: 1024px) {
-  .schedule-container .schedule-header,
-  .schedule-container .header-top {
-    height: auto;
-  }
-
-  .schedule-container .schedule-header {
-    overflow: visible;
-  }
-
-  .schedule-container .header-top {
-    min-height: 0;
-  }
-}
-
 @media (max-width: 767.98px) {
   .schedule-container {
     padding: 0.5rem !important;
   }
-
-  .schedule-container .header-top {
-    align-items: stretch;
-    gap: 1rem;
-    padding: 1rem;
-  }
-
-  .schedule-container .header-left {
-    flex-direction: row;
-    align-items: center;
-    text-align: left;
-    gap: 0.75rem;
-  }
-
-  .schedule-container .header-title {
-    font-size: 1.2rem !important;
-    overflow-wrap: anywhere;
-  }
-
-  .schedule-container .header-right {
+  .schedule-container .schedule-header-actions {
+    width: 100%;
     justify-content: space-between;
   }
-
-  .schedule-container .current-time-badge {
+  .schedule-container .schedule-current-time {
     flex: 1;
   }
-
   .schedule-container .stats-bar {
+    grid-template-columns: minmax(0, 1fr);
     padding: 0.75rem;
   }
-
   .schedule-container .stats-items {
-    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
   }
-
   .schedule-container .stat-item {
-    min-width: 0;
+    padding: 0.85rem;
   }
-
   .schedule-container .stat-label {
     overflow-wrap: anywhere;
   }
@@ -864,14 +755,24 @@ const componentStyles = `
   .schedule-container .stats-items {
     grid-template-columns: minmax(0, 1fr);
   }
-
   .schedule-container .stat-info {
     min-width: 0;
   }
-
   .schedule-container .stat-label {
-    overflow-wrap: normal;
-    word-break: normal;
+    overflow-wrap: anywhere;
+  }
+  .schedule-container .day-badge {
+    justify-self: start;
+  }
+  .schedule-container .schedule-header-actions {
+    gap: 0.5rem;
+  }
+  .schedule-container .schedule-refresh {
+    min-width: 44px;
+    padding: 0.65rem;
+  }
+  .schedule-container .btn-text {
+    display: none;
   }
 }
 
@@ -1409,17 +1310,6 @@ export default function MySchedule() {
         maxWidth: isMobile ? "100%" : "none",
         padding: isMobile ? "0.75rem" : "1.5rem",
       },
-headerTitle: {
-  fontSize: isMobile ? "1.2rem" : "1.5rem",
-},
-headerSubtitle: {
-  fontSize: isMobile ? "0.85rem" : "0.9rem",
-},
-headerIcon: {
-  width: isMobile ? "44px" : "52px",
-  height: isMobile ? "44px" : "52px",
-  fontSize: isMobile ? "1.3rem" : "1.6rem",
-},
       statsLabel: {
         fontSize: isMobile ? "0.75rem" : "0.85rem",
       },
@@ -1488,52 +1378,20 @@ if (loading || !sessionsLoaded) {
                 />
               </div>
             </div>
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            className="schedule-header"
-          >
-            <div className="header-top">
-              <div className="header-left">
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  className="header-icon-wrapper"
-                  style={{
-                    width: styles.headerIcon.width,
-                    height: styles.headerIcon.height,
-                    fontSize: styles.headerIcon.fontSize,
-                  }}
-                >
-                  <FaCalendarAlt />
-                </motion.div>
-                <div>
-                  <h1
-                    className="header-title"
-                    style={{ fontSize: styles.headerTitle.fontSize }}
-                  >
-                    Today's Schedule
-                  </h1>
-                  <p
-                    className="header-subtitle"
-                    style={{ fontSize: styles.headerSubtitle.fontSize }}
-                  >
-                    <FaSun /> {currentDayName},{" "}
-                    {today.toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-              </div>
-              <div className="header-right">
-                <div className="current-time-badge">
-                  <div className="time-label">Current Time</div>
-                  <div className="time-value">
+          <PageHeader
+            icon={FaCalendarAlt}
+            title="Today's Schedule"
+            subtitle={`${currentDayName}, ${today.toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}`}
+            className="schedule-page-header"
+            actions={
+              <div className="schedule-header-actions">
+                <div className="schedule-current-time">
+                  <div className="schedule-current-time-label">Current Time</div>
+                  <div className="schedule-current-time-value">
                     {currentTime.toLocaleTimeString("en-US", {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -1542,9 +1400,8 @@ if (loading || !sessionsLoaded) {
                   </div>
                 </div>
                 <motion.button
-                  whileHover={{
-                    y: -2,
-                  }}
+                  type="button"
+                  whileHover={{ y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={async () => {
                     setLoading(true);
@@ -1556,49 +1413,48 @@ if (loading || !sessionsLoaded) {
                       icon: <FaSyncAlt />,
                     });
                   }}
-                  className="btn-refresh"
+                  className="schedule-refresh"
                 >
                   <FaSyncAlt className={loading ? "spin" : ""} />
                   <span className="btn-text">Refresh</span>
                 </motion.button>
               </div>
+            }
+          />
+          <div className="stats-bar">
+            <div className="stats-items">
+              <StatItem
+                icon={<FaUniversity />}
+                label="Total Classes"
+                value={todaysSlots.length}
+                color={BRAND_COLORS.primary.main}
+                styles={styles}
+              />
+              <StatItem
+                icon={<FaCheckCircle />}
+                label="Available for Attendance"
+                value={
+                  todaySlotsData?.availableForAttendance ||
+                  todaysSlots.filter(
+                    (s) => s.timetable_id?.status === "PUBLISHED",
+                  ).length
+                }
+                color={BRAND_COLORS.success.main}
+                styles={styles}
+              />
+              <StatItem
+                icon={<FaBell />}
+                label="Active Sessions"
+                value={Object.keys(activeSessions).length}
+                color={BRAND_COLORS.warning.main}
+                styles={styles}
+              />
             </div>
-            {/* Stats Bar */}
-            <div className="stats-bar">
-              <div className="stats-items">
-                <StatItem
-                  icon={<FaUniversity />}
-                  label="Total Classes"
-                  value={todaysSlots.length}
-                  color={BRAND_COLORS.primary.main}
-                  styles={styles}
-                />
-                <StatItem
-                  icon={<FaCheckCircle />}
-                  label="Available for Attendance"
-                  value={
-                    todaySlotsData?.availableForAttendance ||
-                    todaysSlots.filter(
-                      (s) => s.timetable_id?.status === "PUBLISHED",
-                    ).length
-                  }
-                  color={BRAND_COLORS.success.main}
-                  styles={styles}
-                />
-                <StatItem
-                  icon={<FaBell />}
-                  label="Active Sessions"
-                  value={Object.keys(activeSessions).length}
-                  color={BRAND_COLORS.warning.main}
-                  styles={styles}
-                />
-              </div>
-              <div className="day-badge">
-                <FaCalendarAlt size={14} />
-                {currentDayName}
-              </div>
+            <div className="day-badge">
+              <FaCalendarAlt size={14} />
+              {currentDayName}
             </div>
-          </motion.div>
+          </div>
           {/* ================= ERROR STATE ================= */}
           {error && (
             <motion.div
