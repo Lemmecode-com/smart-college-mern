@@ -58,7 +58,7 @@ const subjectSchema = new mongoose.Schema(
     // coerced to null, matching existing NOVAA schema conventions.
     subjectType: {
       type: String,
-      enum: ["THEORY", "PRACTICAL", "COMPOSITE"],
+      enum: ["THEORY", "PRACTICAL"],
       required: false,
     },
 

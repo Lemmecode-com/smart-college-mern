@@ -325,7 +325,6 @@ export default function EditSubject() {
                       <option value="">Not configured</option>
                       <option value="THEORY">THEORY</option>
                       <option value="PRACTICAL">PRACTICAL</option>
-                      <option value="COMPOSITE">COMPOSITE</option>
                     </select>
                   </div>
 
@@ -355,23 +354,6 @@ export default function EditSubject() {
                       <div className="col-md-6">
                         <label className="form-label fw-semibold">Applicable Maximum Marks</label>
                         <input className="form-control" type="number" min="0" name="internalMaxMarks" value={formData.internalMaxMarks} onChange={handleChange} />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label fw-semibold">Pass Marks</label>
-                        <input className="form-control" type="number" min="0" name="passMarks" value={formData.passMarks} onChange={handleChange} />
-                      </div>
-                    </>
-                  )}
-
-                  {formData.subjectType === "COMPOSITE" && (
-                    <>
-                      <div className="col-md-6">
-                        <label className="form-label fw-semibold">Internal Max Marks</label>
-                        <input className="form-control" type="number" min="0" name="internalMaxMarks" value={formData.internalMaxMarks} onChange={handleChange} />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label fw-semibold">External Max Marks</label>
-                        <input className="form-control" type="number" min="0" name="externalMaxMarks" value={formData.externalMaxMarks} onChange={handleChange} />
                       </div>
                       <div className="col-md-6">
                         <label className="form-label fw-semibold">Pass Marks</label>

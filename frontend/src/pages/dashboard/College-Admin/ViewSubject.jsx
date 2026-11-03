@@ -394,26 +394,6 @@ if (loading) {
                     />
                   </>
                 )}
-
-                {subject.subjectType === "COMPOSITE" && (
-                  <>
-                    <InfoItem
-                      icon={<FaBookOpen />}
-                      label="Internal Max Marks"
-                      value={subject.internalMaxMarks}
-                    />
-                    <InfoItem
-                      icon={<FaUniversity />}
-                      label="External Max Marks"
-                      value={subject.externalMaxMarks}
-                    />
-                    <InfoItem
-                      icon={<FaCreditCard />}
-                      label="Pass Marks"
-                      value={subject.passMarks}
-                    />
-                  </>
-                )}
               </div>
             ) : (
               <p className="text-muted mb-0">

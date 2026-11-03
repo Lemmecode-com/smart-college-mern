@@ -12,7 +12,7 @@ const AuditService = require("../services/auditLog.service");
 const { RESULT_STATUS } = require("../utils/constants");
 const teacherSubjectAssignmentService = require("../services/teacherSubjectAssignment.service");
 
-const SUBJECT_TYPES = ["THEORY", "PRACTICAL", "COMPOSITE"];
+const SUBJECT_TYPES = ["THEORY", "PRACTICAL"];
 
 /**
  * Validate the optional exam / marks configuration block.
@@ -20,13 +20,11 @@ const SUBJECT_TYPES = ["THEORY", "PRACTICAL", "COMPOSITE"];
  * Rules:
  * - If no exam configuration keys are supplied at all, validation is skipped
  *   (backward compatibility with legacy subjects that have no exam config).
- * - subjectType must be one of THEORY / PRACTICAL / COMPOSITE.
+ * - subjectType must be one of THEORY / PRACTICAL.
  * - THEORY requires internalMaxMarks, externalMaxMarks, internalPassMarks,
  *   externalPassMarks; internal pass <= internal max; external pass <= external max.
  * - PRACTICAL requires internalMaxMarks (applicable maximum) and passMarks;
  *   passMarks <= internalMaxMarks. External/internalPass/externalPass not required.
- * - COMPOSITE requires internalMaxMarks, externalMaxMarks, passMarks (overall);
- *   passMarks <= internalMaxMarks + externalMaxMarks.
  * - No marks value may be negative.
  *
  * This is configuration-only validation; no student pass/fail calculation.
@@ -53,7 +51,7 @@ const validateExamMarksConfig = (body = {}) => {
 
   if (!subjectType || !SUBJECT_TYPES.includes(subjectType)) {
     throw new AppError(
-      "subjectType must be one of THEORY, PRACTICAL, or COMPOSITE",
+      "subjectType must be one of THEORY or PRACTICAL",
       400,
       "INVALID_SUBJECT_TYPE",
     );
@@ -105,18 +103,6 @@ const validateExamMarksConfig = (body = {}) => {
     if (pass > internalMax) {
       throw new AppError(
         "passMarks cannot exceed the applicable maximum marks",
-        400,
-        "PASS_EXCEEDS_MAX",
-      );
-    }
-  } else if (subjectType === "COMPOSITE") {
-    const internalMax = requireNonNegative("internalMaxMarks", internalMaxMarks);
-    const externalMax = requireNonNegative("externalMaxMarks", externalMaxMarks);
-    const pass = requireNonNegative("passMarks", passMarks);
-
-    if (pass > internalMax + externalMax) {
-      throw new AppError(
-        "passMarks cannot exceed total (internal + external) maximum marks",
         400,
         "PASS_EXCEEDS_MAX",
       );

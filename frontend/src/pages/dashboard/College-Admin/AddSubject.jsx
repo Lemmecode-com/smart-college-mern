@@ -251,7 +251,7 @@ export default function AddSubject() {
 
     // Exam / Marks Configuration validation (UI only; backend is authoritative)
     if (formData.subjectType) {
-      const VALID_TYPES = ["THEORY", "PRACTICAL", "COMPOSITE"];
+      const VALID_TYPES = ["THEORY", "PRACTICAL"];
       if (!VALID_TYPES.includes(formData.subjectType)) {
         errors.subjectType = "Select a valid subject type";
         isValid = false;
@@ -277,10 +277,6 @@ export default function AddSubject() {
           numField("externalPassMarks", "External Pass Marks");
         } else if (formData.subjectType === "PRACTICAL") {
           numField("internalMaxMarks", "Applicable Maximum Marks");
-          numField("passMarks", "Pass Marks");
-        } else if (formData.subjectType === "COMPOSITE") {
-          numField("internalMaxMarks", "Internal Max Marks");
-          numField("externalMaxMarks", "External Max Marks");
           numField("passMarks", "Pass Marks");
         }
       }
@@ -1358,7 +1354,6 @@ if (loadingDepartments) {
                             <option value="">Select subject type</option>
                             <option value="THEORY">THEORY</option>
                             <option value="PRACTICAL">PRACTICAL</option>
-                            <option value="COMPOSITE">COMPOSITE</option>
                           </select>
                         </FormField>
                       </div>
@@ -1474,65 +1469,6 @@ if (loadingDepartments) {
                                 onChange={handleChange}
                                 className="form-control"
                                 placeholder="40"
-                                min="0"
-                              />
-                            </FormField>
-                          </div>
-                        </>
-                      )}
-
-                      {formData.subjectType === "COMPOSITE" && (
-                        <>
-                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
-                            <FormField
-                              icon={<FaBookOpen />}
-                              label="Internal Max Marks"
-                              required
-                              error={validationErrors.internalMaxMarks}
-                            >
-                              <input
-                                type="number"
-                                name="internalMaxMarks"
-                                value={formData.internalMaxMarks}
-                                onChange={handleChange}
-                                className="form-control"
-                                placeholder="40"
-                                min="0"
-                              />
-                            </FormField>
-                          </div>
-                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
-                            <FormField
-                              icon={<FaUniversity />}
-                              label="External Max Marks"
-                              required
-                              error={validationErrors.externalMaxMarks}
-                            >
-                              <input
-                                type="number"
-                                name="externalMaxMarks"
-                                value={formData.externalMaxMarks}
-                                onChange={handleChange}
-                                className="form-control"
-                                placeholder="60"
-                                min="0"
-                              />
-                            </FormField>
-                          </div>
-                          <div className="col-12 col-md-6 col-lg-4 exam-field-no-helper">
-                            <FormField
-                              icon={<FaCreditCard />}
-                              label="Pass Marks"
-                              required
-                              error={validationErrors.passMarks}
-                            >
-                              <input
-                                type="number"
-                                name="passMarks"
-                                value={formData.passMarks}
-                                onChange={handleChange}
-                                className="form-control"
-                                placeholder="50"
                                 min="0"
                               />
                             </FormField>
@@ -1801,19 +1737,6 @@ if (loadingDepartments) {
 
   .exam-practical-pass {
     grid-column: 3 !important;
-    grid-row: 1 !important;
-  }
-
-
-  /* ================= COMPOSITE ================= */
-
-  .exam-marks-body > .row
-  > .exam-field-no-helper:not(
-    .exam-theory-pass-internal,
-    .exam-theory-pass-external,
-    .exam-practical-max,
-    .exam-practical-pass
-  ) {
     grid-row: 1 !important;
   }
 }

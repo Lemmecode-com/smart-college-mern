@@ -125,7 +125,7 @@ describe("SUB-TC-001 — Subject Exam / Marks Configuration", () => {
     expect(res.body.subject.passMarks).toBe(40);
   });
 
-  it("3. creates a COMPOSITE subject with valid configuration", async () => {
+  it("3. rejects a COMPOSITE subject type as invalid", async () => {
     const { agent, course } = await baseSetup();
 
     const res = await agent
@@ -141,12 +141,9 @@ describe("SUB-TC-001 — Subject Exam / Marks Configuration", () => {
         externalMaxMarks: 60,
         passMarks: 50,
       })
-      .expect(201);
+      .expect(400);
 
-    expect(res.body.subject.subjectType).toBe("COMPOSITE");
-    expect(res.body.subject.internalMaxMarks).toBe(40);
-    expect(res.body.subject.externalMaxMarks).toBe(60);
-    expect(res.body.subject.passMarks).toBe(50);
+    expect(res.body.error.code).toBe("INVALID_SUBJECT_TYPE");
   });
 
   it("4. rejects negative marks", async () => {
@@ -281,17 +278,15 @@ describe("SUB-TC-001 — Subject Exam / Marks Configuration", () => {
     const updated = await agent
       .put(`/api/subjects/${subjectId}`)
       .send({
-        subjectType: "COMPOSITE",
-        internalMaxMarks: 40,
-        externalMaxMarks: 60,
-        passMarks: 50,
+        subjectType: "PRACTICAL",
+        internalMaxMarks: 50,
+        passMarks: 20,
       })
       .expect(200);
 
-    expect(updated.body.subjectType).toBe("COMPOSITE");
-    expect(updated.body.internalMaxMarks).toBe(40);
-    expect(updated.body.externalMaxMarks).toBe(60);
-    expect(updated.body.passMarks).toBe(50);
+    expect(updated.body.subjectType).toBe("PRACTICAL");
+    expect(updated.body.internalMaxMarks).toBe(50);
+    expect(updated.body.passMarks).toBe(20);
   });
 
   it("10. reads a Subject and returns the configuration", async () => {
