@@ -6,6 +6,7 @@ import { getExams } from "../../../api/exam";
 import { getStudentRoster, saveMarks } from "../../../api/marks";
 import Loading from "../../../components/Loading";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { toast } from "react-toastify";
 import { logger } from "../../../utils/logger";
@@ -20,6 +21,7 @@ import {
   FaUsers,
   FaSpinner,
   FaCheckCircle,
+  FaInfoCircle,
 } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -76,48 +78,75 @@ const styles = `
   color: var(--me-slate-900);
 }
 
+.marks-entry .marks-page-header {
+  margin: 0 0 1.25rem !important;
+}
+.marks-entry .marks-page-back {
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.marks-entry .marks-page-back:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.2);
+}
+.marks-entry .marks-page-back:focus-visible {
+  outline: 3px solid #7dd3fc;
+  outline-offset: 3px;
+}
 .marks-entry .me-card {
   background: #fff;
   border-radius: 16px;
-  border: 1px solid var(--me-slate-100);
-  box-shadow: 0 4px 18px rgba(12, 43, 71, 0.08);
+  border: 1px solid var(--me-slate-200);
+  box-shadow: 0 6px 22px rgba(12, 43, 71, 0.07);
   overflow: hidden;
 }
-.marks-entry .me-card-header {
-  background: #0E3746;
-  padding: 1.25rem 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.marks-entry .me-card-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  min-width: 0;
-}
-.marks-entry .me-card-header-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.12);
-  color: var(--me-cyan-500);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.05rem;
-  flex-shrink: 0;
-}
-.marks-entry .me-card-title {
-  color: #fff;
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
 .marks-entry .me-card-body { padding: 1.75rem; }
+.marks-entry .selection-field {
+  height: 100%;
+  padding: 1rem;
+  border: 1px solid var(--me-slate-200);
+  border-radius: 13px;
+  background: #fff;
+}
+.marks-entry .selection-field .form-label {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: var(--me-navy-900);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.marks-entry .selection-field .form-select {
+  min-height: 46px;
+  background-color: #fbfcfd;
+  color: var(--me-slate-900);
+  font-weight: 550;
+}
+.marks-entry .selection-field .form-select:disabled {
+  border-color: #e2e8ee;
+  background-color: #f1f4f7;
+  color: #7b8998;
+  opacity: 1;
+  cursor: not-allowed;
+}
+.marks-entry .selection-help {
+  display: block;
+  margin-top: 0.55rem;
+  color: var(--me-slate-600);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
 
 .marks-entry .form-label {
   font-weight: 600;
@@ -249,6 +278,18 @@ const styles = `
   border: 1px solid transparent;
 }
 .marks-entry .alert-me-warning { background: var(--me-amber-50); color: var(--me-amber-600); border-color: rgba(232, 165, 49, 0.3); }
+.marks-entry .alert-me-info {
+  align-items: center;
+  padding: 1rem 1.1rem;
+  border-color: #d3e8ef;
+  background: linear-gradient(135deg, #f3fafc 0%, #eaf5f8 100%);
+  color: #285768;
+  box-shadow: 0 3px 10px rgba(12, 43, 71, 0.035);
+}
+.marks-entry .alert-me-info svg {
+  margin-top: 0;
+  color: #17718b;
+}
 .marks-entry .alert-me-danger { background: var(--me-red-50); color: var(--me-red-500); border-color: rgba(229, 72, 77, 0.25); }
 .marks-entry .alert-me svg { margin-top: 0.15rem; flex-shrink: 0; }
 
@@ -274,6 +315,15 @@ const styles = `
   .marks-entry .me-card-body { padding: 1.25rem; }
   .marks-entry .btn-me-primary,
   .marks-entry .btn-me-outline { width: 100%; justify-content: center; }
+}
+@media (max-width: 767px) {
+  .marks-entry {
+    padding-right: 1rem !important;
+    padding-left: 1rem !important;
+  }
+  .marks-entry .selection-field {
+    padding: 0.9rem;
+  }
 }
 `;
 
@@ -581,99 +631,91 @@ export default function MarksEntry() {
 
       <Breadcrumb items={[{ label: dashboardLabel, path: dashboardPath }, { label: "Marks Entry" }]} />
 
+      <PageHeader
+        icon={FaEdit}
+        title="Marks Entry"
+        subtitle="Select an exam and subject to enter student marks."
+        className="marks-page-header"
+        actions={
+          <button
+            type="button"
+            className="marks-page-back"
+            onClick={handleBackClick}
+          >
+            <FaArrowLeft />
+            Back
+          </button>
+        }
+      />
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="me-card mt-3"
+        className="me-card"
       >
-        <div className="me-card-header">
-          <div className="me-card-header-left">
-            <div className="me-card-header-icon">
-              <FaEdit />
-            </div>
-            <h4 className="me-card-title">Marks Entry</h4>
-          </div>
-                <button
-                onClick={handleBackClick}
-style={{
-                    minHeight: "48px",
-                    padding: "0 20px",
-                    border: "1px solid rgba(255, 255, 255, 0.35)",
-                    borderRadius: "12px",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    color: "#ffffff",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "9px",
-                    fontSize: "15px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",
-                    marginRight: "15px",       
-                }}
-                  onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 10px rgba(20, 27, 41, 0.18)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
-              >
-                <FaArrowLeft size={12} /> Back
-              </button>
-        </div>
         <div className="me-card-body">
           <div className="row g-3 mb-4">
             <div className="col-md-6">
-              <label className="form-label">Exam</label>
-              <select
-                className="form-select"
-                value={selectedExamId}
-                onChange={handleExamChange}
-                disabled={loadingExams}
-              >
-                <option value="">Select Exam</option>
-                {exams.map((exam) => (
-                  <option key={exam._id} value={exam._id}>
-                    {exam.name} ({exam.academicYear})
-                  </option>
-                ))}
-              </select>
-              <small className="text-muted d-block mt-1" style={{ fontSize: "0.8rem" }}>
-                Only published exams are available for marks entry.
-              </small>
-              {!loadingExams && exams.length === 0 && (
-                <div className="alert alert-info py-2 px-3 mt-2 mb-0" style={{ fontSize: "0.82rem" }}>
-                  No published exams found for your assigned subjects.
-                </div>
-              )}
+              <div className="selection-field">
+                <label className="form-label" htmlFor="marks-exam-select">
+                  Exam
+                </label>
+                <select
+                  id="marks-exam-select"
+                  className="form-select"
+                  value={selectedExamId}
+                  onChange={handleExamChange}
+                  disabled={loadingExams}
+                >
+                  <option value="">Select Exam</option>
+                  {exams.map((exam) => (
+                    <option key={exam._id} value={exam._id}>
+                      {exam.name} ({exam.academicYear})
+                    </option>
+                  ))}
+                </select>
+                <small className="selection-help">
+                  Only published exams are available for marks entry.
+                </small>
+                {!loadingExams && exams.length === 0 && (
+                  <div className="alert alert-info py-2 px-3 mt-2 mb-0">
+                    No published exams found for your assigned subjects.
+                  </div>
+                )}
+              </div>
             </div>
             <div className="col-md-6">
-              <label className="form-label">Subject</label>
-              <select
-                className="form-select"
-                value={selectedSubjectId}
-                onChange={handleSubjectChange}
-                disabled={!selectedExamId || loadingRoster}
-              >
-                <option value="">Select Subject</option>
-                {subjects.map((sub) => {
-                  const subjectId = sub.subject?._id || sub.subject;
-                  const subjectName = sub.subject?.name || sub.subject;
-                  const subjectType = sub.subjectType || "N/A";
-                  const isBacklog = sub.category === "BACKLOG";
-                  const originalSem = sub.originalSemester;
-                  return (
-                    <option key={subjectId} value={subjectId}>
-                      {subjectName} [{subjectType}]{isBacklog ? ` — BACKLOG (Sem ${originalSem})` : ""}
-                    </option>
-                  );
-                })}
-              </select>
+              <div className="selection-field">
+                <label className="form-label" htmlFor="marks-subject-select">
+                  Subject
+                </label>
+                <select
+                  id="marks-subject-select"
+                  className="form-select"
+                  value={selectedSubjectId}
+                  onChange={handleSubjectChange}
+                  disabled={!selectedExamId || loadingRoster}
+                >
+                  <option value="">Select Subject</option>
+                  {subjects.map((sub) => {
+                    const subjectId = sub.subject?._id || sub.subject;
+                    const subjectName = sub.subject?.name || sub.subject;
+                    const subjectType = sub.subjectType || "N/A";
+                    const isBacklog = sub.category === "BACKLOG";
+                    const originalSem = sub.originalSemester;
+                    return (
+                      <option key={subjectId} value={subjectId}>
+                        {subjectName} [{subjectType}]
+                        {isBacklog ? ` — BACKLOG (Sem ${originalSem})` : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+                <small className="selection-help">
+                  Choose a subject from the selected exam.
+                </small>
+              </div>
             </div>
           </div>
 
@@ -861,8 +903,8 @@ style={{
               No students found for the selected exam and subject.
             </div>
           ) : (
-            <div className="alert-me alert-me-warning">
-              <FaBookOpen />
+            <div className="alert-me alert-me-info">
+              <FaInfoCircle />
               Select an exam and subject to view the student roster.
             </div>
           )}

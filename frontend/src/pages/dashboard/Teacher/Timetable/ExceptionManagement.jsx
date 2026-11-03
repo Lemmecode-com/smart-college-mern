@@ -5,6 +5,7 @@ import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -344,14 +345,7 @@ if (loading && exceptions.length === 0) {
   }
 
   return (
-    <div
-      className="container-fluid p-0"
-      style={{
-        minHeight: "100vh",
-        paddingTop: "0.5rem",
-        background: "linear-gradient(135deg, #f0f4f8 0%, #e8edf2 100%)",
-      }}
-    >
+    <div className="container-fluid p-0 exception-management-page">
             {/* ================= BREADCRUMB ================= */}   
                       <div
                   style={{
@@ -370,132 +364,47 @@ if (loading && exceptions.length === 0) {
                   </div>
                 </div>
 
-      {/* ================= HEADER ================= */}
-
-        <MotionDiv
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="position-relative overflow-hidden exception-management-banner"
-          style={{
-            background:
-              "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
-            borderRadius: "18px",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            boxShadow: "0 10px 30px rgba(15, 58, 74, 0.18)",
-            margin: "16px",
-          }}
-     >
-      
-        {/* Background Pattern */}
-        <div
-          className="position-absolute top-0 end-0"
-          style={{
-            width: "400px",
-            height: "100%",
-            opacity: 0.03,
-            background:
-              "radial-gradient(circle at 70% 50%, var(--sidebar-accent, #3db5e6) 0%, transparent 70%)",
-          }}
-        />
-
-        <div className="p-4 text-white position-relative">
-          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div className="d-flex align-items-center gap-3">
-              <MotionDiv
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{
-                  duration: 2.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-                className="d-flex align-items-center justify-content-center"
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  background:
-                    "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                  borderRadius: "50%",
-                  fontSize: "1.5rem",
-                  boxShadow: "0 4px 12px rgba(61, 181, 230, 0.3)",
-                }}
+      <PageHeader
+        icon={FaExclamationTriangle}
+        title="Exception Management"
+        subtitle="Manage holidays, cancellations, and special events"
+        className="exception-page-header"
+        actions={
+          <div className="exception-header-actions">
+            {pendingCount > 0 && (
+              <MotionSpan
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="exception-pending-count"
               >
                 <FaExclamationTriangle />
-              </MotionDiv>
-              <div>
-                <h3 className="fw-bold mb-1" style={{ letterSpacing: "0.5px" }}>
-                  Exception Management
-                </h3>
-                <p className="mb-0 opacity-75" style={{ fontSize: "0.875rem" }}>
-                  Manage holidays, cancellations, and special events
-                </p>
-              </div>
-            </div>
-
-            <div className="d-flex align-items-center gap-2">
-              {pendingCount > 0 && (
-                <MotionSpan
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="badge fw-medium px-3 py-2"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
-                    color: "#78350f",
-                    boxShadow: "0 2px 8px rgba(251, 191, 36, 0.3)",
-                  }}
-                >
-                  <FaExclamationTriangle className="me-1" />
-                  {pendingCount} Pending
-                </MotionSpan>
-              )}
-              <MotionButton
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate("/timetable/create/exceptions")}
-                className="btn btn-sm fw-bold px-3 py-2 border-0"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                  color: "white",
-                  boxShadow: "0 2px 8px rgba(61, 181, 230, 0.3)",
-                  transition: "all 0.2s ease",
-                }}
-              >
-                <FaPlus className="me-1" /> Add Exception
-              </MotionButton>
-            </div>
+                {pendingCount} Pending
+              </MotionSpan>
+            )}
+            <MotionButton
+              type="button"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate("/timetable/create/exceptions")}
+              className="exception-add-button"
+            >
+              <FaPlus /> <span>Add Exception</span>
+            </MotionButton>
           </div>
-        </div>
+        }
+      />
 
-        {/* Controls Bar */}
-        <div
-          className="px-4 py-3"
-          style={{
-            background: "rgba(255, 255, 255, 0.95)",
-            backdropFilter: "blur(10px)",
-            borderTop: "1px solid rgba(0, 0, 0, 0.05)",
-          }}
-        >
-          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 exception-controls">
+      <div className="exception-controls-panel">
+          <div className="exception-controls">
             {/* Timetable Selector */}
-            <div className="d-flex align-items-center gap-2 exception-timetable-selector">
-              <label className="fw-medium text-muted small mb-0">
-                <FaCalendarAlt
-                  className="me-1"
-                  style={{ color: "var(--sidebar-accent, #3db5e6)" }}
-                />
-                Timetable:
+            <div className="exception-timetable-selector">
+              <label className="exception-timetable-label" htmlFor="exception-timetable">
+                <FaCalendarAlt />
+                Timetable
               </label>
               <select
-                className="form-select form-select-sm fw-medium border-0"
-                style={{
-                  width: "auto",
-                  minWidth: "250px",
-                  background: "#f8fafc",
-                  borderRadius: "8px",
-                  padding: "0.5rem 1rem",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
-                }}
+                id="exception-timetable"
+                className="form-select exception-timetable-select"
                 value={selectedTimetable?._id || ""}
                 onChange={(e) => {
                   const tt = timetables.find((t) => t._id === e.target.value);
@@ -511,357 +420,343 @@ if (loading && exceptions.length === 0) {
             </div>
 
             {/* Date Navigation */}
-            <div className="d-flex align-items-center gap-2 exception-date-navigation">
+            <div className="exception-date-navigation">
               <MotionButton
+                type="button"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={goToPreviousMonth}
-                className="btn btn-sm d-flex align-items-center justify-content-center"
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  padding: 0,
-                  borderRadius: "8px",
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  transition: "all 0.2s ease",
-                }}
+                className="exception-month-button"
+                aria-label="Previous month"
               >
-                <FaChevronLeft style={{ fontSize: "0.75rem" }} />
+                <FaChevronLeft />
               </MotionButton>
-              <span
-                className="text-dark fw-semibold small px-3 py-2 rounded"
-                style={{
-                  background: "#f8fafc",
-                  borderRadius: "8px",
-                  minWidth: "150px",
-                  textAlign: "center",
-                  border: "1px solid #e2e8f0",
-                }}
-              >
+              <span className="exception-month-label">
                 {new Date(dateRange.startDate).toLocaleDateString("en-US", {
                   month: "long",
                   year: "numeric",
                 })}
               </span>
               <MotionButton
+                type="button"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={goToNextMonth}
-                className="btn btn-sm d-flex align-items-center justify-content-center"
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  padding: 0,
-                  borderRadius: "8px",
-                  background: "#f8fafc",
-                  border: "1px solid #e2e8f0",
-                  transition: "all 0.2s ease",
-                }}
+                className="exception-month-button"
+                aria-label="Next month"
               >
-                <FaChevronRight style={{ fontSize: "0.75rem" }} />
+                <FaChevronRight />
               </MotionButton>
             </div>
           </div>
-        </div>
-      </MotionDiv>
+      </div>
 
 <style>{`
-  /* =========================================
-     EXCEPTION MANAGEMENT
-     MOBILE + TABLET ONLY
-     ========================================= */
-
-  @media (max-width: 991px) {
-
-  /* =========================================
-   EMPTY EXCEPTION STATE
-   ========================================= */
-
+.exception-management-page {
+  min-height: 100vh;
+  padding: 0.5rem 0 1.5rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #edf4f6 100%);
+}
+.exception-page-header {
+  margin: 0 16px 16px !important;
+}
+.exception-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.exception-pending-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 13px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 10px;
+  background: rgba(251, 191, 36, 0.16);
+  color: #ffdf83;
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.exception-add-button,
+.exception-empty-add-button {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1685a2 0%, #116b80 100%);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(4, 33, 45, 0.18);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.exception-add-button:hover,
+.exception-empty-add-button:hover {
+  color: #ffffff;
+  box-shadow: 0 7px 16px rgba(4, 33, 45, 0.24);
+}
+.exception-add-button:focus-visible,
+.exception-empty-add-button:focus-visible,
+.exception-month-button:focus-visible,
+.exception-timetable-select:focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
+.exception-controls-panel {
+  margin: 0 16px 18px;
+  padding: 16px 18px;
+  border: 1px solid #e1e9ed;
+  border-radius: 15px;
+  background: #ffffff;
+  box-shadow: 0 5px 18px rgba(15, 58, 74, 0.06);
+}
+.exception-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+}
+.exception-timetable-selector {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.exception-timetable-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #415866;
+  font-size: 0.87rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.exception-timetable-label svg {
+  color: #17637b;
+}
+.exception-timetable-select {
+  width: min(360px, 52vw);
+  min-width: 240px;
+  min-height: 44px;
+  border: 1px solid #dce6eb;
+  border-radius: 10px;
+  background-color: #f8fafb;
+  color: #263f4a;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+.exception-timetable-select:focus {
+  border-color: #5b9aad;
+  box-shadow: 0 0 0 3px rgba(22, 99, 123, 0.12);
+}
+.exception-date-navigation {
+  display: grid;
+  grid-template-columns: 42px minmax(160px, auto) 42px;
+  align-items: center;
+  gap: 9px;
+}
+.exception-month-button {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid #dce6eb;
+  border-radius: 10px;
+  background: #f8fafb;
+  color: #164e63;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.exception-month-button:hover {
+  border-color: #b7d0d9;
+  background: #edf5f7;
+}
+.exception-month-label {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #dce6eb;
+  border-radius: 10px;
+  background: #f8fafb;
+  color: #234452;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.94rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
 .exception-list-container {
-  padding: 12px !important;
+  padding: 0 16px 16px;
 }
-
 .exception-empty-state {
-  width: 100% !important;
-  max-width: none !important;
-  margin: 0 auto !important;
-
-  padding: 3rem 2rem !important;
-  box-sizing: border-box !important;
-
-  border-radius: 18px !important;
-
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
+  width: 100%;
+  min-height: 330px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  border: 1px solid #e1e9ed !important;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #ffffff 0%, #f9fbfc 100%);
+  box-shadow: 0 8px 26px rgba(15, 58, 74, 0.07);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
-
-/* Icon */
-.exception-empty-state > div:first-child {
-  width: 72px !important;
-  height: 72px !important;
-  margin-bottom: 1.5rem !important;
+.exception-empty-icon {
+  width: 76px;
+  height: 76px;
+  margin-bottom: 1.25rem;
+  border: 1px solid #d6e8ed;
+  border-radius: 22px;
+  background: linear-gradient(145deg, #eaf5f7 0%, #dceef2 100%);
+  color: #17637b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 18px rgba(22, 99, 123, 0.1);
 }
-
-.exception-empty-state > div:first-child svg {
-  width: 32px !important;
-  height: 32px !important;
+.exception-empty-icon svg {
+  width: 31px;
+  height: 31px;
 }
-
-/* Heading */
-.exception-empty-state h5 {
-  font-size: 1.6rem !important;
-  line-height: 1.25 !important;
-  margin-bottom: 0.75rem !important;
+.exception-empty-title {
+  margin-bottom: 0.55rem;
+  color: #173c4a;
+  font-size: 1.35rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
 }
-
-/* Description */
-.exception-empty-state p {
-  max-width: 500px !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-
-  font-size: 1rem !important;
-  line-height: 1.5 !important;
+.exception-empty-description {
+  max-width: 490px;
+  margin: 0 0 1.5rem;
+  color: #647783;
+  font-size: 0.96rem;
+  line-height: 1.6;
 }
-
-/* Add Exception button */
-.exception-empty-state button {
-  min-width: 240px !important;
-  max-width: 280px !important;
-
-  font-size: 1rem !important;
-  padding: 0.75rem 1.25rem !important;
-
-  white-space: normal !important;
+.exception-empty-add-button {
+  min-width: 190px;
+  border: 0;
+  background: linear-gradient(135deg, #1a7188 0%, #125569 100%);
 }
-
-    /* Main banner */
-    .exception-management-banner {
-      margin: 12px !important;
-      border-radius: 16px !important;
-    }
-
-    .exception-management-banner > .p-4 {
-      padding: 1.25rem !important;
-    }
-
-    /* Banner content */
-    .exception-management-banner h3 {
-      font-size: 1.5rem !important;
-      line-height: 1.2 !important;
-    }
-
-    .exception-management-banner p {
-      font-size: 0.9rem !important;
-      line-height: 1.45 !important;
-    }
-
-    /* Banner icon */
-    .exception-management-banner .d-flex.align-items-center.justify-content-center {
-      flex-shrink: 0 !important;
-    }
-
-    /* Banner buttons */
-    .exception-management-banner > .p-4 > .d-flex {
-      gap: 12px !important;
-    }
-
-    .exception-management-banner > .p-4 > .d-flex > div:last-child {
-      width: 100% !important;
-      justify-content: flex-start !important;
-      flex-wrap: wrap !important;
-      margin-top: 8px !important;
-    }
-
-    .exception-management-banner button {
-      white-space: nowrap !important;
-    }
-
-    /* =========================================
-       CONTROLS BAR
-       ========================================= */
-
-    .exception-controls {
-      display: flex !important;
-      flex-direction: column !important;
-      align-items: stretch !important;
-      gap: 14px !important;
-    }
-
-    /* =========================================
-       TIMETABLE SELECTOR
-       ========================================= */
-
-    .exception-timetable-selector {
-      width: 100% !important;
-      display: flex !important;
-      align-items: center !important;
-      gap: 8px !important;
-    }
-
-    .exception-timetable-selector label {
-      flex-shrink: 0 !important;
-      white-space: nowrap !important;
-    }
-
-    .exception-timetable-selector select {
-      width: 100% !important;
-      min-width: 0 !important;
-      max-width: 100% !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-    }
-
-    /* =========================================
-       MONTH NAVIGATION
-       ========================================= */
-
-    .exception-date-navigation {
-      width: 100% !important;
-      display: grid !important;
-      grid-template-columns: 42px minmax(0, 1fr) 42px !important;
-      align-items: center !important;
-      gap: 8px !important;
-    }
-
-    .exception-date-navigation button {
-      width: 42px !important;
-      min-width: 42px !important;
-      height: 42px !important;
-      padding: 0 !important;
-    }
-
-    .exception-date-navigation span {
-      width: 100% !important;
-      min-width: 0 !important;
-      height: 42px !important;
-
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-
-      box-sizing: border-box !important;
-      padding: 0 8px !important;
-
-      font-size: 0.95rem !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-    }
+.exception-empty-back-button {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid #d7e3e8;
+  border-radius: 10px;
+  background: #f4f8fa;
+  color: #315564;
+  font-weight: 700;
+}
+.exception-card-column {
+  display: flex;
+}
+.exception-card {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #e1e9ed !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 14px rgba(15, 58, 74, 0.055);
+}
+.exception-card-body {
+  padding: 1.15rem !important;
+}
+@media (max-width: 991px) {
+  .exception-controls {
+    align-items: stretch;
   }
-
-  /* =========================================
-     SMALL MOBILE
-     ========================================= */
-
-  @media (max-width: 575px) {
-
-    .exception-management-banner {
-      margin: 10px !important;
-      border-radius: 14px !important;
-    }
-
-    .exception-management-banner > .p-4 {
-      padding: 1rem !important;
-    }
-
-    .exception-management-banner h3 {
-      font-size: 1.35rem !important;
-    }
-
-    .exception-management-banner p {
-      font-size: 0.82rem !important;
-    }
-
-    .exception-management-banner > .p-4 > .d-flex > div:last-child {
-      margin-top: 6px !important;
-    }
-
-    .exception-management-banner button {
-      font-size: 0.8rem !important;
-      padding: 0.55rem 0.8rem !important;
-    }
-
-    /* Timetable */
-    .exception-timetable-selector {
-      flex-direction: column !important;
-      align-items: stretch !important;
-      gap: 5px !important;
-    }
-
-    .exception-timetable-selector label {
-      font-size: 0.8rem !important;
-    }
-
-    .exception-timetable-selector select {
-      height: 42px !important;
-      font-size: 0.82rem !important;
-    }
-
-    /* Month navigation */
-    .exception-date-navigation {
-      grid-template-columns: 40px minmax(0, 1fr) 40px !important;
-      gap: 8px !important;
-    }
-
-    .exception-date-navigation button {
-      width: 40px !important;
-      min-width: 40px !important;
-      height: 40px !important;
-    }
-
-    .exception-date-navigation span {
-      height: 40px !important;
-      font-size: 0.85rem !important;
-    }
+  .exception-timetable-select {
+    flex: 1;
+    width: auto;
+    min-width: 0;
   }
+  .exception-date-navigation {
+    align-self: flex-start;
+  }
+}
+@media (max-width: 575px) {
+  .exception-page-header {
+    margin: 0 10px 12px !important;
+  }
+  .exception-header-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .exception-add-button {
+    flex: 1;
+  }
+  .exception-controls-panel {
+    margin: 0 10px 14px;
+    padding: 14px;
+  }
+  .exception-controls {
+    gap: 14px;
+  }
+  .exception-timetable-selector {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 7px;
+  }
+  .exception-timetable-select {
+    width: 100%;
+  }
+  .exception-date-navigation {
+    width: 100%;
+    grid-template-columns: 42px minmax(0, 1fr) 42px;
+  }
+  .exception-list-container {
+    padding: 0 10px 12px;
+  }
+  .exception-empty-state {
+    min-height: 300px;
+    padding: 2rem 1.25rem;
+  }
+  .exception-empty-title {
+    font-size: 1.2rem;
+  }
+  .exception-empty-description {
+    font-size: 0.9rem;
+  }
+  .exception-card-body {
+    padding: 1rem !important;
+  }
+}
 `}</style>
 
 
       {/* ================= EXCEPTIONS LIST ================= */}
-      <div className="p-4 exception-list-container">
+      <div className="exception-list-container">
         {timetables.length === 0 && !selectedTimetable ? (
           <MotionDiv
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="card shadow-lg border-0 text-center p-5 exception-empty-state"
-            style={{
-              background: "white",
-              borderRadius: "16px",
-              border: "1px solid #e2e8f0",
-            }}
+            className="card border-0 exception-empty-state"
           >
             <div
-              className="d-flex align-items-center justify-content-center mx-auto mb-4"
-              style={{
-                width: "80px",
-                height: "80px",
-                background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
-                borderRadius: "50%",
-              }}
+              className="exception-empty-icon"
             >
-              <FaCalendarAlt size={36} style={{ color: "#94a3b8" }} />
+              <FaCalendarAlt />
             </div>
-            <h5 className="fw-bold text-dark mb-2">No Timetables Available</h5>
-            <p className="text-muted mb-4">
+            <h5 className="exception-empty-title">No Timetables Available</h5>
+            <p className="exception-empty-description">
               You don't have any timetables assigned. Please contact your administrator.
             </p>
             <MotionButton
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate("/teacher/dashboard")}
-              className="btn fw-bold px-4 py-2"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                color: "white",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(61, 181, 230, 0.3)",
-              }}
+              className="exception-empty-back-button"
             >
               <FaChevronLeft className="me-1" /> Back to Dashboard
             </MotionButton>
@@ -870,40 +765,22 @@ if (loading && exceptions.length === 0) {
           <MotionDiv
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="card shadow-lg border-0 text-center p-5 exception-empty-state"
-            style={{
-              background: "white",
-              borderRadius: "16px",
-              border: "1px solid #e2e8f0",
-            }}
+            className="card border-0 exception-empty-state"
           >
             <div
-              className="d-flex align-items-center justify-content-center mx-auto mb-4"
-              style={{
-                width: "80px",
-                height: "80px",
-                background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
-                borderRadius: "50%",
-              }}
+              className="exception-empty-icon"
             >
-              <FaExclamationTriangle size={36} style={{ color: "#94a3b8" }} />
+              <FaCalendarAlt />
             </div>
-            <h5 className="fw-bold text-dark mb-2">No Exceptions Found</h5>
-            <p className="text-muted mb-4">
+            <h5 className="exception-empty-title">No Exceptions Found</h5>
+            <p className="exception-empty-description">
               No holidays, cancellations, or special events for this period.
             </p>
             <MotionButton
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate("/timetable/create/exceptions")}
-              className="btn fw-bold px-4 py-2"
-              style={{
-                background:
-                  "linear-gradient(135deg, var(--sidebar-accent, #3db5e6) 0%, var(--sidebar-accent-light, #4fc3f7) 100%)",
-                color: "white",
-                borderRadius: "8px",
-                boxShadow: "0 2px 8px rgba(61, 181, 230, 0.3)",
-              }}
+              className="exception-empty-add-button"
             >
               <FaPlus className="me-1" /> Add First Exception
             </MotionButton>
@@ -916,6 +793,7 @@ if (loading && exceptions.length === 0) {
 
               return (
                 <MotionDiv
+                  className="col-12 col-md-6 exception-card-column"
                   key={exc._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -923,7 +801,7 @@ if (loading && exceptions.length === 0) {
                 >
                   <MotionDiv
                     whileHover={{ y: -2 }}
-                    className="card shadow-sm border-0"
+                    className="card exception-card"
                     style={{
                       borderRadius: "12px",
                       overflow: "hidden",
@@ -940,7 +818,7 @@ if (loading && exceptions.length === 0) {
                       }}
                     />
 
-                    <div className="card-body p-3">
+                    <div className="card-body exception-card-body">
                       <div className="d-flex align-items-start justify-content-between gap-3">
                         <div className="flex-grow-1">
                           {/* Header with Type and Status */}
@@ -1197,4 +1075,3 @@ if (loading && exceptions.length === 0) {
     </div>
   );
 }
-
