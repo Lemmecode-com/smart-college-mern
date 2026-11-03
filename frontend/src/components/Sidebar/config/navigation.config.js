@@ -967,6 +967,7 @@ export const navigationConfig = {
         title: "Exam Management",
         icon: FaClipboardList,
         defaultOpen: true,
+        matchPath: "/dashboard/exam",
         items: [
           {
             path: "/dashboard/exam/create",
@@ -1228,7 +1229,7 @@ export const navigationConfig = {
     dashboard: {
       path: "/hod/dashboard",
       icon: FaChalkboardTeacher,
-      label: "HOD Dashboard",
+      label: "Dashboard",
     },
 
     sections: [
@@ -1241,7 +1242,7 @@ export const navigationConfig = {
           {
             path: "/hod/profile",
             icon: FaUser,
-            label: "HOD Profile",
+            label: "Profile",
             exact: true,
           },
         ],

@@ -188,7 +188,7 @@ export default function StudentExamTimetable() {
             <PageHeader
               icon={FaCalendarAlt}
               title="Published Exam Timetable"
-              subtitle="View your upcoming and past examination schedules below."
+              subtitle="View your current semester examination schedule below."
               actions={
                 <button
                   type="button"
@@ -251,14 +251,13 @@ export default function StudentExamTimetable() {
 
       <style>{`
         .student-exam-timetable-page {
-          padding: 0.5rem 1.5rem 1.5rem;
-          width: 100%;
-          max-width: none;
+          padding: 1.5rem;
+          max-width: 1200px;
           margin: 0 auto;
         }
 
         .student-exam-timetable-header {
-          margin-bottom: 0;
+          margin-bottom: 1.25rem;
         }
 
         .student-exam-timetable-content {
@@ -380,7 +379,7 @@ export default function StudentExamTimetable() {
 
         @media (max-width: 768px) {
           .student-exam-timetable-page {
-            padding: 0.5rem 1rem 1rem;
+            padding: 1rem;
           }
         }
       `}</style>

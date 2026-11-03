@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../../../api/axios";
 import { publishExam } from "../../../api/exam";
 import Loading from "../../../components/Loading";
@@ -132,8 +132,79 @@ const listStyles = `
 .exam-list-page .search-clear:hover { background: var(--edx-slate-400); color: #fff; }
 
 .exam-list-page .select-box {
-  flex: 0 1 210px;
+  flex: 1 1 180px;
+  min-width: 150px;
   position: relative;
+}
+.exam-list-page .select-box.is-disabled select {
+  background: var(--edx-slate-100);
+  color: var(--edx-slate-400);
+  cursor: not-allowed;
+  border-color: var(--edx-slate-200);
+}
+.exam-list-page .select-box.is-disabled::after {
+  border-color: var(--edx-slate-300);
+}
+.exam-list-page .active-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--edx-slate-100);
+}
+.exam-list-page .active-filter-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--edx-slate-600);
+}
+.exam-list-page .filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.65rem;
+  background: var(--edx-cyan-50);
+  border: 1px solid rgba(14, 147, 171, 0.25);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  color: var(--edx-navy-800);
+  font-weight: 500;
+}
+.exam-list-page .filter-chip-remove {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--edx-cyan-600);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 0.75rem;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+.exam-list-page .filter-chip-remove:hover {
+  color: var(--edx-red-500);
+}
+.exam-list-page .btn-clear-filters {
+  background: transparent;
+  border: none;
+  color: var(--edx-cyan-600);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+.exam-list-page .btn-clear-filters:hover {
+  color: var(--edx-navy-900);
+  background: var(--edx-slate-100);
 }
 .exam-list-page .select-box select {
   width: 100%;
@@ -353,12 +424,30 @@ const listStyles = `
 
 export default function ExamList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const initialDept = searchParams.get("dept") || "";
+  const initialCourse = searchParams.get("course") || "";
+  const initialSem = searchParams.get("sem") || "";
+  const initialStatus = searchParams.get("status") || "ALL";
+  const initialSearch = searchParams.get("q") || "";
 
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [selectedDept, setSelectedDept] = useState(initialDept);
+  const [selectedCourse, setSelectedCourse] = useState(initialCourse);
+  const [selectedSemester, setSelectedSemester] = useState(initialSem);
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [, setCurrentPage] = useState(1);
+
+  const [departments, setDepartments] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+
   const [actionBusy, setActionBusy] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
@@ -380,44 +469,288 @@ export default function ExamList() {
     window.matchMedia &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /* ================= FETCH EXAMS ================= */
+  /* ================= DEBOUNCE SEARCH (300ms) ================= */
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  /* ================= SYNC FROM URL PARAMS (Browser Back/Forward) ================= */
+  useEffect(() => {
+    const urlDept = searchParams.get("dept") || "";
+    const urlCourse = searchParams.get("course") || "";
+    const urlSem = searchParams.get("sem") || "";
+    const urlStatus = searchParams.get("status") || "ALL";
+    const urlQ = searchParams.get("q") || "";
+
+    if (urlDept !== selectedDept) setSelectedDept(urlDept);
+    if (urlCourse !== selectedCourse) setSelectedCourse(urlCourse);
+    if (urlSem !== selectedSemester) setSelectedSemester(urlSem);
+    if (urlStatus !== statusFilter) setStatusFilter(urlStatus);
+    if (urlQ !== debouncedSearch) {
+      setSearchTerm(urlQ);
+      setDebouncedSearch(urlQ);
+    }
+  }, [searchParams]);
+
+  /* ================= SYNC STATE TO URL PARAMS ================= */
+  useEffect(() => {
+    const params = {};
+    if (selectedDept) params.dept = selectedDept;
+    if (selectedCourse) params.course = selectedCourse;
+    if (selectedSemester) params.sem = selectedSemester;
+    if (statusFilter && statusFilter !== "ALL") params.status = statusFilter;
+    if (debouncedSearch.trim()) params.q = debouncedSearch.trim();
+
+    const currentDept = searchParams.get("dept") || "";
+    const currentCourse = searchParams.get("course") || "";
+    const currentSem = searchParams.get("sem") || "";
+    const currentStatus = searchParams.get("status") || "ALL";
+    const currentQ = searchParams.get("q") || "";
+
+    if (
+      currentDept !== (params.dept || "") ||
+      currentCourse !== (params.course || "") ||
+      currentSem !== (params.sem || "") ||
+      currentStatus !== (params.status || "ALL") ||
+      currentQ !== (params.q || "")
+    ) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [
+    selectedDept,
+    selectedCourse,
+    selectedSemester,
+    statusFilter,
+    debouncedSearch,
+    searchParams,
+    setSearchParams,
+  ]);
+
+  /* ================= LOAD DEPARTMENTS ================= */
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDepartments = async () => {
+      setLoadingDepartments(true);
+      try {
+        const res = await api.get("/departments");
+        const list = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.departments)
+          ? res.data.departments
+          : [];
+        if (isMounted) {
+          setDepartments(
+            list.filter((d) => d.status !== "INACTIVE" && d.isActive !== false),
+          );
+        }
+      } catch (err) {
+        logger.error("Failed to load departments:", err);
+      } finally {
+        if (isMounted) setLoadingDepartments(false);
+      }
+    };
+    fetchDepartments();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  /* ================= LOAD COURSES BY DEPARTMENT ================= */
+  useEffect(() => {
+    let isMounted = true;
+    if (!selectedDept) {
+      setCourses([]);
+      return;
+    }
+
+    const fetchCourses = async () => {
+      setLoadingCourses(true);
+      try {
+        const res = await api.get("/courses", {
+          params: { departmentId: selectedDept },
+        });
+        const list = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.courses)
+          ? res.data.courses
+          : [];
+        if (isMounted) {
+          setCourses(
+            list.filter((c) => c.status !== "INACTIVE" && c.isActive !== false),
+          );
+        }
+      } catch (err) {
+        logger.error("Failed to load courses:", err);
+        if (isMounted) setCourses([]);
+      } finally {
+        if (isMounted) setLoadingCourses(false);
+      }
+    };
+    fetchCourses();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedDept]);
+
+  /* ================= DYNAMIC SEMESTER OPTIONS ================= */
+  const selectedCourseObj = useMemo(() => {
+    return courses.find((c) => String(c._id) === String(selectedCourse));
+  }, [courses, selectedCourse]);
+
+  const semesterOptions = useMemo(() => {
+    if (!selectedCourse) return [];
+    const duration = selectedCourseObj?.durationSemesters || 8;
+    return Array.from({ length: duration }, (_, i) => i + 1);
+  }, [selectedCourse, selectedCourseObj]);
+
+  /* ================= HANDLERS FOR CASCADING FILTERS ================= */
+  const handleDeptChange = (e) => {
+    const val = e.target.value;
+    setSelectedDept(val);
+    setSelectedCourse("");
+    setSelectedSemester("");
+    setCurrentPage(1);
+  };
+
+  const handleCourseChange = (e) => {
+    const val = e.target.value;
+    setSelectedCourse(val);
+    setSelectedSemester("");
+    setCurrentPage(1);
+  };
+
+  const handleSemesterChange = (e) => {
+    const val = e.target.value;
+    setSelectedSemester(val);
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (e) => {
+    const val = e.target.value;
+    setStatusFilter(val);
+    setCurrentPage(1);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setCurrentPage(1);
+  };
+
+  const handleClearAllFilters = () => {
+    setSearchTerm("");
+    setDebouncedSearch("");
+    setSelectedDept("");
+    setSelectedCourse("");
+    setSelectedSemester("");
+    setStatusFilter("ALL");
+    setCourses([]);
+    setCurrentPage(1);
+  };
+
+  /* ================= FETCH EXAMS (SERVER-SIDE FILTERING) ================= */
+  useEffect(() => {
+    let isMounted = true;
     const fetchExams = async () => {
       try {
-        const res = await api.get("/exam");
-        const examsData = Array.isArray(res.data) ? res.data :
-                          Array.isArray(res.data.data) ? res.data.data : [];
-        setExams(examsData);
+        setLoading(true);
+        const params = {};
+        if (selectedDept) params.departmentId = selectedDept;
+        if (selectedCourse) params.courseId = selectedCourse;
+        if (selectedSemester) params.semester = selectedSemester;
+        if (statusFilter && statusFilter !== "ALL") params.status = statusFilter;
+        if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+
+        const res = await api.get("/exam", { params });
+        const examsData = Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res.data?.data)
+          ? res.data.data
+          : [];
+        if (isMounted) {
+          setExams(examsData);
+          setError(null);
+        }
       } catch (err) {
+        if (!isMounted) return;
         const statusCode = err.response?.status;
         const errorCode = err.response?.data?.code;
         const backendMessage = err.response?.data?.message;
-        const errorMessage = backendMessage || "Failed to load exams. Please try again.";
+        const errorMessage =
+          backendMessage || "Failed to load exams. Please try again.";
 
         logger.error("Error fetching exams:", statusCode, errorCode);
 
         if (AUTH_ERROR_CODES.has(errorCode)) {
-          setError({ message: errorMessage, statusCode, errorCode, isAuthError: true });
+          setError({
+            message: errorMessage,
+            statusCode,
+            errorCode,
+            isAuthError: true,
+          });
         } else {
           setError({ message: errorMessage, statusCode, errorCode });
         }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchExams();
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    selectedDept,
+    selectedCourse,
+    selectedSemester,
+    statusFilter,
+    debouncedSearch,
+  ]);
 
-  /* ================= FILTERED EXAMS ================= */
+  /* ================= CLIENT-SIDE FALLBACK / REFINED FILTERING ================= */
   const filteredExams = useMemo(() => {
     let result = exams;
 
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
+    if (selectedDept) {
+      result = result.filter((exam) => {
+        const deptId =
+          exam.course_id?.department_id?._id || exam.course_id?.department_id;
+        return deptId ? String(deptId) === String(selectedDept) : true;
+      });
+    }
+
+    if (selectedCourse) {
+      result = result.filter((exam) => {
+        const cId = exam.course_id?._id || exam.course_id;
+        return cId ? String(cId) === String(selectedCourse) : true;
+      });
+    }
+
+    if (selectedSemester) {
+      result = result.filter(
+        (exam) => String(exam.semester) === String(selectedSemester),
+      );
+    }
+
+    if (statusFilter !== "ALL") {
+      result = result.filter((exam) => exam.status === statusFilter);
+    }
+
+    if (debouncedSearch.trim()) {
+      const term = debouncedSearch.toLowerCase();
       result = result.filter((exam) => {
         const courseName = exam.course_id?.name || "";
         const courseCode = exam.course_id?.code || "";
+        const deptName =
+          exam.course_id?.department_id?.name ||
+          exam.course_id?.department_id?.code ||
+          "";
         const matchesSubject = (exam.subjects || []).some((s) => {
           const subjectName = s.subject?.name || "";
           const subjectCode = s.subject?.code || "";
@@ -430,17 +763,41 @@ export default function ExamList() {
           exam.name?.toLowerCase().includes(term) ||
           courseName.toLowerCase().includes(term) ||
           courseCode.toLowerCase().includes(term) ||
+          deptName.toLowerCase().includes(term) ||
           matchesSubject
         );
       });
     }
 
-    if (statusFilter !== "ALL") {
-      result = result.filter((exam) => exam.status === statusFilter);
-    }
-
     return result;
-  }, [exams, searchTerm, statusFilter]);
+  }, [
+    exams,
+    selectedDept,
+    selectedCourse,
+    selectedSemester,
+    statusFilter,
+    debouncedSearch,
+  ]);
+
+  const selectedDeptName = useMemo(() => {
+    if (!selectedDept) return "";
+    const dept = departments.find((d) => String(d._id) === String(selectedDept));
+    return dept ? dept.name : "Department";
+  }, [departments, selectedDept]);
+
+  const selectedCourseName = useMemo(() => {
+    if (!selectedCourse) return "";
+    const course = courses.find((c) => String(c._id) === String(selectedCourse));
+    return course ? `${course.name} (${course.code})` : "Course";
+  }, [courses, selectedCourse]);
+
+  const hasActiveFilters = Boolean(
+    debouncedSearch.trim() ||
+      selectedDept ||
+      selectedCourse ||
+      selectedSemester ||
+      (statusFilter && statusFilter !== "ALL"),
+  );
 
   /* ================= ACTIONS ================= */
   const handleViewExam = (examId) => {
@@ -614,9 +971,22 @@ export default function ExamList() {
 
       {/* Filters */}
       <div className="filter-card mb-4">
-        <div className="filter-card-label">
-          <FaFilter />
-          Search &amp; filter exams
+        <div className="d-flex align-items-center justify-content-between mb-2">
+          <div className="filter-card-label mb-0">
+            <FaFilter />
+            Search &amp; filter exams
+          </div>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="btn-clear-filters"
+              onClick={handleClearAllFilters}
+              title="Reset all filters"
+            >
+              <FaTimes size={10} />
+              Clear filters
+            </button>
+          )}
         </div>
         <div className="filter-row">
           <div className="search-box">
@@ -631,17 +1001,89 @@ export default function ExamList() {
               <button
                 type="button"
                 className="search-clear"
-                onClick={() => setSearchTerm("")}
+                onClick={handleClearSearch}
                 title="Clear search"
+                aria-label="Clear search"
               >
                 <FaTimes />
               </button>
             )}
           </div>
+
+          {/* 1. Department Filter */}
+          <div className="select-box">
+            <select
+              value={selectedDept}
+              onChange={handleDeptChange}
+              aria-label="Filter by Department"
+            >
+              <option value="">All Departments</option>
+              {loadingDepartments ? (
+                <option value="" disabled>
+                  Loading departments...
+                </option>
+              ) : (
+                departments.map((dept) => (
+                  <option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* 2. Course Filter */}
+          <div
+            className={`select-box ${
+              !selectedDept || loadingCourses ? "is-disabled" : ""
+            }`}
+          >
+            <select
+              value={selectedCourse}
+              onChange={handleCourseChange}
+              disabled={!selectedDept || loadingCourses}
+              aria-label="Filter by Course"
+            >
+              <option value="">All Courses</option>
+              {loadingCourses ? (
+                <option value="" disabled>
+                  Loading courses...
+                </option>
+              ) : (
+                courses.map((course) => (
+                  <option key={course._id} value={course._id}>
+                    {course.name} ({course.code})
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* 3. Semester Filter */}
+          <div
+            className={`select-box ${!selectedCourse ? "is-disabled" : ""}`}
+          >
+            <select
+              value={selectedSemester}
+              onChange={handleSemesterChange}
+              disabled={!selectedCourse}
+              aria-label="Filter by Semester"
+            >
+              <option value="">All Semesters</option>
+              {semesterOptions.map((sem) => (
+                <option key={sem} value={sem}>
+                  Semester {sem}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Status Filter */}
           <div className="select-box">
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={handleStatusChange}
+              aria-label="Filter by Status"
             >
               <option value="ALL">All status</option>
               <option value="DRAFT">Draft</option>
@@ -649,6 +1091,91 @@ export default function ExamList() {
             </select>
           </div>
         </div>
+
+        {/* Active Filter Chips */}
+        {hasActiveFilters && (
+          <div className="active-filters-bar">
+            <span className="active-filter-label">Active filters:</span>
+            {debouncedSearch.trim() && (
+              <span className="filter-chip">
+                Search: &quot;{debouncedSearch.trim()}&quot;
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={handleClearSearch}
+                  title="Remove search filter"
+                  aria-label="Remove search filter"
+                >
+                  <FaTimes />
+                </button>
+              </span>
+            )}
+            {selectedDept && (
+              <span className="filter-chip">
+                Dept: {selectedDeptName}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => handleDeptChange({ target: { value: "" } })}
+                  title="Remove department filter"
+                  aria-label="Remove department filter"
+                >
+                  <FaTimes />
+                </button>
+              </span>
+            )}
+            {selectedCourse && (
+              <span className="filter-chip">
+                Course: {selectedCourseName}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => handleCourseChange({ target: { value: "" } })}
+                  title="Remove course filter"
+                  aria-label="Remove course filter"
+                >
+                  <FaTimes />
+                </button>
+              </span>
+            )}
+            {selectedSemester && (
+              <span className="filter-chip">
+                Semester: {selectedSemester}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => handleSemesterChange({ target: { value: "" } })}
+                  title="Remove semester filter"
+                  aria-label="Remove semester filter"
+                >
+                  <FaTimes />
+                </button>
+              </span>
+            )}
+            {statusFilter !== "ALL" && (
+              <span className="filter-chip">
+                Status: {statusFilter === "DRAFT" ? "Draft" : "Published"}
+                <button
+                  type="button"
+                  className="filter-chip-remove"
+                  onClick={() => handleStatusChange({ target: { value: "ALL" } })}
+                  title="Remove status filter"
+                  aria-label="Remove status filter"
+                >
+                  <FaTimes />
+                </button>
+              </span>
+            )}
+            <button
+              type="button"
+              className="btn-clear-filters"
+              onClick={handleClearAllFilters}
+            >
+              <FaTimes size={10} />
+              Clear filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Exams Table */}
@@ -658,19 +1185,37 @@ export default function ExamList() {
             <div className="empty-icon">
               <FaClock size={26} />
             </div>
-            <h5 className="empty-title">No examinations found</h5>
+            <h5 className="empty-title">
+              {hasActiveFilters
+                ? "No exams found for these filters"
+                : "No examinations found"}
+            </h5>
             <p className="empty-text">
-              {exams.length === 0
+              {hasActiveFilters
+                ? "Try adjusting or clearing your filters to see more examinations."
+                : exams.length === 0
                 ? "Create an exam to get started."
                 : "No exams match your search criteria."}
             </p>
-            {exams.length === 0 && (
-              <button className="create-first-exam-btn"
- onClick={handleCreateExam}>
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                className="create-first-exam-btn"
+                onClick={handleClearAllFilters}
+                style={{ marginTop: "1rem" }}
+              >
+                <FaTimes />
+                Clear filters
+              </button>
+            ) : exams.length === 0 ? (
+              <button
+                className="create-first-exam-btn"
+                onClick={handleCreateExam}
+              >
                 <FaPlus />
                 Create Your First Exam
               </button>
-            )}
+            ) : null}
           </div>
         ) : (
           <div className="table-responsive">
@@ -705,7 +1250,16 @@ export default function ExamList() {
                             {exam.course_id?.name || "N/A"}
                           </div>
                           <div className="course-code">
-                            {exam.course_id?.code || ""}
+                            {exam.course_id?.code &&
+                            (exam.course_id?.department_id?.name ||
+                              exam.course_id?.department_id?.code)
+                              ? `${exam.course_id.code} · ${
+                                  exam.course_id.department_id.name ||
+                                  exam.course_id.department_id.code
+                                }`
+                              : exam.course_id?.code ||
+                                exam.course_id?.department_id?.name ||
+                                ""}
                           </div>
                         </div>
                       </div>

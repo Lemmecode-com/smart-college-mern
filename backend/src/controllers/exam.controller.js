@@ -374,13 +374,93 @@ const filterExamsForTeacher = async (exams, req) => {
  */
 exports.getExams = async (req, res, next) => {
   try {
+    const {
+      status,
+      departmentId,
+      department,
+      dept,
+      courseId,
+      course,
+      semester,
+      sem,
+      search,
+      q,
+    } = req.query;
+
     const filter = { college_id: req.college_id };
-    if (req.query.status) {
-      filter.status = req.query.status;
+
+    if (status && status !== "ALL") {
+      filter.status = status;
+    }
+
+    const selectedSemester = semester || sem;
+    if (selectedSemester && selectedSemester !== "ALL") {
+      const parsedSem = Number(selectedSemester);
+      if (!Number.isNaN(parsedSem)) {
+        filter.semester = parsedSem;
+      }
+    }
+
+    const selectedCourseId = courseId || course;
+    const selectedDeptId = departmentId || department || dept;
+
+    if (selectedCourseId && selectedCourseId !== "ALL") {
+      filter.course_id = selectedCourseId;
+    } else if (selectedDeptId && selectedDeptId !== "ALL") {
+      const deptCourses = await Course.find({
+        department_id: selectedDeptId,
+        college_id: req.college_id,
+      }).select("_id");
+      const courseIds = deptCourses.map((c) => c._id);
+      filter.course_id = { $in: courseIds };
+    }
+
+    const searchTerm = (search || q || "").trim();
+    if (searchTerm) {
+      const regex = new RegExp(
+        searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        "i",
+      );
+
+      const matchingCourses = await Course.find({
+        college_id: req.college_id,
+        $or: [{ name: regex }, { code: regex }],
+      }).select("_id");
+      const matchingCourseIds = matchingCourses.map((c) => c._id);
+
+      const matchingSubjects = await Subject.find({
+        college_id: req.college_id,
+        $or: [{ name: regex }, { code: regex }],
+      }).select("_id");
+      const matchingSubjectIds = matchingSubjects.map((s) => s._id);
+
+      const searchOr = [
+        { name: regex },
+        { course_id: { $in: matchingCourseIds } },
+        { "subjects.subject": { $in: matchingSubjectIds } },
+      ];
+
+      if (filter.course_id) {
+        const existingCourseFilter = filter.course_id;
+        delete filter.course_id;
+        filter.$and = [
+          { course_id: existingCourseFilter },
+          { $or: searchOr },
+        ];
+      } else {
+        filter.$or = searchOr;
+      }
     }
 
     const exams = await Exam.find(filter)
-      .populate("course_id", "name code")
+      .populate({
+        path: "course_id",
+        select: "name code department_id durationSemesters",
+        populate: {
+          path: "department_id",
+          select: "name code",
+        },
+      })
       .populate("subjects.subject", "name code teacher_id subjectType")
       .sort({ createdAt: -1 });
 
