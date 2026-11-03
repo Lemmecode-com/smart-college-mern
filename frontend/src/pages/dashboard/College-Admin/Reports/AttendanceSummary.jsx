@@ -9,6 +9,7 @@ import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ExportButtons from "../../../../components/ExportButtons";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import {
   FaClipboardList,
   FaChartPie,
@@ -208,7 +209,7 @@ if (loading) {
 }
 
   return (
-    <div className="erp-container" style={{ paddingTop: "0.5rem" }}>
+    <div className="erp-container attendance-summary-page" style={{ paddingTop: "0.5rem" }}>
       {/* BREADCRUMBS */}
       <Breadcrumb
         items={[
@@ -218,44 +219,37 @@ if (loading) {
         ]}
       />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse">
-            <FaClipboardList />
+      <PageHeader
+        className="attendance-summary-header"
+        icon={FaClipboardList}
+        title="Attendance Summary Report"
+        subtitle="Comprehensive overview of student attendance records across all sessions"
+        actions={
+          <div className="attendance-summary-header-actions">
+            <div className="export-actions-group">
+              <ExportButtons
+                title="Attendance Summary Report"
+                columns={[
+                  { header: "Metric", key: "metric", dataKey: "metric" },
+                  { header: "Value", key: "value", dataKey: "value" },
+                ]}
+                data={getExportData()}
+                filename="attendance_summary_report"
+                showPDF={true}
+                showExcel={true}
+              />
+            </div>
+            <button
+              className="erp-btn erp-btn-secondary"
+              onClick={fetchAttendanceSummary}
+              title="Refresh report data"
+            >
+              <FaSyncAlt className="erp-btn-icon spin" />
+              <span>Refresh</span>
+            </button>
           </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Attendance Summary Report</h1>
-            <p className="erp-page-subtitle">
-              Comprehensive overview of student attendance records across all
-              sessions
-            </p>
-          </div>
-        </div>
-        <div className="erp-header-actions">
-          <div className="export-actions-group">
-            <ExportButtons
-              title="Attendance Summary Report"
-              columns={[
-                { header: "Metric", key: "metric", dataKey: "metric" },
-                { header: "Value", key: "value", dataKey: "value" },
-              ]}
-              data={getExportData()}
-              filename="attendance_summary_report"
-              showPDF={true}
-              showExcel={true}
-            />
-          </div>
-          <button
-            className="erp-btn erp-btn-secondary"
-            onClick={fetchAttendanceSummary}
-            title="Refresh report data"
-          >
-            <FaSyncAlt className="erp-btn-icon spin" />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* INFO BANNER */}
       <div className="info-banner animate-fade-in">
@@ -2126,6 +2120,825 @@ if (loading) {
 
   .footer-note {
     align-items: flex-start;
+  }
+}
+
+.attendance-summary-page {
+  padding: 1.25rem 1.5rem;
+  background: #f4f7f9;
+}
+
+.attendance-summary-page > nav {
+  margin-bottom: 1rem;
+}
+
+.attendance-summary-page .erp-page-header {
+  padding: 1.35rem 1.6rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #0e3746 0%, #164e63 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(15, 58, 74, 0.14);
+}
+
+.attendance-summary-page .erp-header-content {
+  gap: 1rem;
+}
+
+.attendance-summary-page .erp-header-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  font-size: 1.4rem;
+  animation: none;
+}
+
+.attendance-summary-page .erp-page-title {
+  font-size: clamp(1.35rem, 2vw, 1.65rem);
+}
+
+.attendance-summary-page .erp-page-subtitle {
+  margin-top: 0.3rem;
+  font-size: 0.88rem;
+}
+
+.attendance-summary-page .erp-header-actions {
+  gap: 0.65rem;
+}
+
+.attendance-summary-page .export-buttons {
+  gap: 0.5rem;
+}
+
+.attendance-summary-page .btn-export {
+  min-width: 0;
+  padding: 0.55rem 0.85rem;
+  border-width: 1px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.attendance-summary-page .erp-header-actions .erp-btn {
+  min-height: 38px;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  box-shadow: none;
+  font-size: 0.85rem;
+}
+
+.attendance-summary-page .erp-header-actions .erp-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
+}
+
+.attendance-summary-page .info-banner {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  background: #edf6f8;
+  border: 1px solid #dcebed;
+  border-left: 3px solid #27839a;
+  border-radius: 11px;
+  box-shadow: 0 3px 10px rgba(15, 58, 74, 0.04);
+}
+
+.attendance-summary-page .info-icon {
+  width: 36px;
+  height: 36px;
+  color: #176779;
+  background: rgba(39, 131, 154, 0.12);
+}
+
+.attendance-summary-page .info-content {
+  color: #3d5d68;
+  font-size: 0.87rem;
+}
+
+.attendance-summary-page .stats-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.attendance-summary-page .stat-card {
+  min-height: 194px;
+  border-color: #e2e9ed;
+  border-radius: 13px;
+  box-shadow: 0 4px 14px rgba(15, 58, 74, 0.055);
+}
+
+.attendance-summary-page .stat-card-header {
+  min-height: 70px;
+  padding: 1rem 1.2rem;
+  gap: 0.85rem;
+}
+
+.attendance-summary-page .stat-icon-wrapper {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  font-size: 1.25rem;
+}
+
+.attendance-summary-page .stat-icon-wrapper.records {
+  background: linear-gradient(135deg, #1a6c85 0%, #164e63 100%);
+}
+
+.attendance-summary-page .stat-title {
+  color: #294b58;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.attendance-summary-page .stat-card-body {
+  padding: 0.9rem 1.2rem 1rem;
+}
+
+.attendance-summary-page .stat-value {
+  margin: 0.2rem 0 0.5rem;
+  font-size: clamp(1.65rem, 2.5vw, 2.1rem);
+}
+
+.attendance-summary-page .stat-trend {
+  font-size: 0.84rem;
+}
+
+.attendance-summary-page .stat-card-footer {
+  padding: 0.7rem 1.2rem;
+}
+
+.attendance-summary-page > .erp-card {
+  margin-bottom: 1rem;
+  border: 1px solid #e3eaee;
+  border-radius: 13px;
+  box-shadow: 0 4px 15px rgba(15, 58, 74, 0.055);
+}
+
+.attendance-summary-page .erp-card-header {
+  padding: 1rem 1.25rem;
+  background: #fbfcfd;
+  border-bottom-color: #e9eff2;
+}
+
+.attendance-summary-page .erp-card-header h3 {
+  color: #174755;
+  font-size: 1.1rem;
+}
+
+.attendance-summary-page .erp-card-icon {
+  color: #1b7083;
+  font-size: 1.05rem;
+}
+
+.attendance-summary-page .erp-card-subtitle {
+  margin: 0.3rem 0 0 1.8rem;
+  color: #71828a;
+  font-size: 0.8rem;
+}
+
+.attendance-summary-page .erp-card-body {
+  padding: 1.25rem;
+}
+
+.attendance-summary-page .visual-container {
+  grid-template-columns: minmax(230px, 0.8fr) minmax(0, 1.4fr);
+  gap: 1.5rem;
+}
+
+.attendance-summary-page .circular-progress {
+  gap: 1rem;
+  padding: 0.75rem;
+  background: #fbfcfd;
+  border: 1px solid #e9eff2;
+  border-radius: 13px;
+}
+
+.attendance-summary-page .progress-circle {
+  width: 164px;
+  height: 164px;
+  box-shadow: 0 5px 16px rgba(15, 58, 74, 0.12);
+}
+
+.attendance-summary-page .progress-circle::before {
+  width: 146px;
+  height: 146px;
+}
+
+.attendance-summary-page .progress-value {
+  color: #164e63;
+  font-size: 2.25rem;
+}
+
+.attendance-summary-page .progress-label {
+  color: #647981;
+  font-size: 0.82rem;
+  white-space: normal;
+}
+
+.attendance-summary-page .progress-legend {
+  max-width: 260px;
+  gap: 0.55rem;
+}
+
+.attendance-summary-page .legend-item {
+  padding: 0.55rem 0.65rem;
+  color: #405b65;
+  background: #fff;
+  border: 1px solid #e9eff2;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.attendance-summary-page .legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: 0 0 12px;
+}
+
+.attendance-summary-page .progress-note {
+  justify-content: center;
+  margin-top: 0;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.attendance-summary-page .metrics-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.attendance-summary-page .metric-item {
+  min-width: 0;
+  min-height: 112px;
+  padding: 0.9rem;
+  gap: 0.75rem;
+  background: #f8fafb;
+  border-color: #e6edf0;
+  border-radius: 11px;
+}
+
+.attendance-summary-page .metric-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 1.05rem;
+}
+
+.attendance-summary-page .metric-content {
+  min-width: 0;
+}
+
+.attendance-summary-page .metric-label {
+  color: #566d76;
+  font-size: 0.8rem;
+}
+
+.attendance-summary-page .metric-value {
+  color: #174755;
+  font-size: 1.3rem;
+}
+
+.attendance-summary-page .metric-description {
+  font-size: 0.76rem;
+}
+
+.attendance-summary-page .analysis-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.attendance-summary-page .analysis-card {
+  min-width: 0;
+  min-height: 142px;
+  padding: 1rem;
+  gap: 0.8rem;
+  background: #fff;
+  border: 1px solid #e6edf0;
+  border-left-width: 3px;
+  border-radius: 11px;
+  box-shadow: 0 2px 8px rgba(15, 58, 74, 0.035);
+}
+
+.attendance-summary-page .analysis-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(15, 58, 74, 0.08);
+}
+
+.attendance-summary-page .analysis-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  font-size: 1.1rem;
+}
+
+.attendance-summary-page .analysis-content {
+  min-width: 0;
+}
+
+.attendance-summary-page .analysis-title {
+  color: #304d58;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.attendance-summary-page .analysis-value {
+  margin-bottom: 0.35rem;
+  font-size: 1.25rem;
+}
+
+.attendance-summary-page .analysis-description {
+  color: #6b7d85;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.attendance-summary-page .analysis-footer {
+  padding-top: 0.85rem;
+  margin-top: 0.75rem;
+  border-color: #e9eff2;
+}
+
+.attendance-summary-page .analysis-footer-note,
+.attendance-summary-page .footer-disclaimer {
+  color: #73828a;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.attendance-summary-page > .footer-note {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #e3eaee;
+  border-left: 3px solid #1b7083;
+  background: #f8fafb;
+  color: #64757d;
+  font-size: 0.75rem;
+}
+
+.attendance-summary-page > .footer-note .note-icon {
+  color: #1b7083;
+  font-size: 1rem;
+}
+
+.attendance-summary-page .refresh-btn {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  color: #176779;
+  background: rgba(27, 112, 131, 0.1);
+}
+
+@media (max-width: 1024px) {
+  .attendance-summary-page .analysis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-summary-page .visual-container {
+    grid-template-columns: minmax(200px, 0.75fr) minmax(0, 1.25fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .attendance-summary-page {
+    padding: 0.75rem;
+  }
+
+  .attendance-summary-page .erp-page-header {
+    padding: 1rem;
+  }
+
+  .attendance-summary-page .erp-header-actions {
+    justify-content: flex-start;
+  }
+
+  .attendance-summary-page .btn-export {
+    flex: 0 1 auto;
+  }
+
+  .attendance-summary-page .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .attendance-summary-page .stat-card {
+    min-height: 0;
+  }
+
+  .attendance-summary-page .stat-card-header,
+  .attendance-summary-page .stat-card-body {
+    padding-right: 0.9rem;
+    padding-left: 0.9rem;
+  }
+
+  .attendance-summary-page .stat-card-footer {
+    padding-right: 0.9rem;
+    padding-left: 0.9rem;
+  }
+
+  .attendance-summary-page .visual-container {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-summary-page .circular-progress {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: center;
+    align-items: center;
+    column-gap: 1rem;
+  }
+
+  .attendance-summary-page .progress-circle {
+    grid-row: span 2;
+  }
+
+  .attendance-summary-page .progress-legend {
+    width: 100%;
+  }
+
+  .attendance-summary-page .progress-note {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .attendance-summary-page .analysis-footer {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .attendance-summary-page .erp-header-content {
+    align-items: flex-start;
+  }
+
+  .attendance-summary-page .erp-header-icon {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    font-size: 1.15rem;
+  }
+
+  .attendance-summary-page .erp-page-title {
+    font-size: 1.2rem;
+  }
+
+  .attendance-summary-page .erp-page-subtitle {
+    font-size: 0.78rem;
+  }
+
+  .attendance-summary-page .erp-header-actions,
+  .attendance-summary-page .export-actions-group,
+  .attendance-summary-page .export-buttons {
+    width: 100%;
+  }
+
+  .attendance-summary-page .erp-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .attendance-summary-page .export-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-summary-page .erp-header-actions .erp-btn {
+    justify-content: center;
+  }
+
+  .attendance-summary-page .stats-grid,
+  .attendance-summary-page .metrics-grid,
+  .attendance-summary-page .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-summary-page .stat-card-header {
+    min-height: 0;
+  }
+
+  .attendance-summary-page .circular-progress {
+    display: flex;
+  }
+
+  .attendance-summary-page .progress-note {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .attendance-summary-page .analysis-card {
+    min-height: 0;
+  }
+
+  .attendance-summary-page > .footer-note {
+    align-items: flex-start;
+  }
+}
+
+.attendance-summary-page {
+  padding-right: 1.15rem;
+  padding-left: 1.15rem;
+  background: #f3f6f8;
+}
+
+.attendance-summary-page > nav {
+  margin-bottom: 0.65rem;
+}
+
+.attendance-summary-page .attendance-summary-header {
+  margin-bottom: 0.85rem;
+}
+
+.attendance-summary-page .attendance-summary-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.attendance-summary-page .attendance-summary-header-actions .erp-btn {
+  min-height: 36px;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.attendance-summary-page .info-banner {
+  margin-bottom: 0.85rem;
+  padding: 0.7rem 0.9rem;
+  background: #edf5f7;
+  border-color: #dce9ec;
+  border-left-width: 3px;
+  box-shadow: none;
+}
+
+.attendance-summary-page .info-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.attendance-summary-page .info-content {
+  font-size: 0.82rem;
+}
+
+.attendance-summary-page .stats-grid {
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.attendance-summary-page .stat-card {
+  min-height: 0;
+  border-radius: 12px;
+  box-shadow: 0 3px 11px rgba(15, 58, 74, 0.045);
+}
+
+.attendance-summary-page .stat-card-header {
+  min-height: 0;
+  padding: 0.75rem 1rem 0.65rem;
+  gap: 0.7rem;
+}
+
+.attendance-summary-page .stat-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  font-size: 1.05rem;
+}
+
+.attendance-summary-page .stat-icon-wrapper.records {
+  background: linear-gradient(135deg, #287c91 0%, #164e63 100%);
+}
+
+.attendance-summary-page .stat-card-body {
+  padding: 0.65rem 1rem 0.75rem;
+}
+
+.attendance-summary-page .stat-value {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.55rem, 2vw, 1.9rem);
+}
+
+.attendance-summary-page .stat-trend {
+  font-size: 0.78rem;
+}
+
+.attendance-summary-page .stat-card-footer {
+  padding: 0.55rem 1rem;
+  font-size: 0.74rem;
+}
+
+.attendance-summary-page > .erp-card {
+  margin-bottom: 0.85rem;
+  border-radius: 12px;
+  box-shadow: 0 3px 12px rgba(15, 58, 74, 0.045);
+}
+
+.attendance-summary-page .erp-card-header {
+  padding: 0.8rem 1rem;
+}
+
+.attendance-summary-page .erp-card-header h3 {
+  font-size: 1rem;
+}
+
+.attendance-summary-page .erp-card-subtitle {
+  margin-top: 0.2rem;
+  font-size: 0.74rem;
+}
+
+.attendance-summary-page .erp-card-body {
+  padding: 0.9rem 1rem;
+}
+
+.attendance-summary-page .visual-container {
+  grid-template-columns: minmax(205px, 0.65fr) minmax(0, 1.35fr);
+  gap: 1rem;
+}
+
+.attendance-summary-page .circular-progress {
+  gap: 0.65rem;
+  padding: 0.65rem;
+}
+
+.attendance-summary-page .progress-circle {
+  width: 142px;
+  height: 142px;
+  box-shadow: 0 4px 12px rgba(15, 58, 74, 0.1);
+}
+
+.attendance-summary-page .progress-circle::before {
+  width: 126px;
+  height: 126px;
+}
+
+.attendance-summary-page .progress-value {
+  font-size: 1.95rem;
+}
+
+.attendance-summary-page .progress-label {
+  font-size: 0.75rem;
+}
+
+.attendance-summary-page .progress-legend {
+  max-width: 100%;
+  gap: 0.4rem;
+}
+
+.attendance-summary-page .legend-item {
+  padding: 0.42rem 0.55rem;
+  font-size: 0.76rem;
+}
+
+.attendance-summary-page .progress-note {
+  font-size: 0.69rem;
+}
+
+.attendance-summary-page .metrics-grid {
+  gap: 0.65rem;
+}
+
+.attendance-summary-page .metric-item {
+  min-height: 0;
+  padding: 0.7rem;
+  gap: 0.6rem;
+  box-shadow: none;
+}
+
+.attendance-summary-page .metric-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 0.95rem;
+}
+
+.attendance-summary-page .metric-label {
+  margin-bottom: 0.15rem;
+  font-size: 0.74rem;
+}
+
+.attendance-summary-page .metric-value {
+  font-size: 1.18rem;
+}
+
+.attendance-summary-page .metric-description {
+  font-size: 0.7rem;
+}
+
+.attendance-summary-page .analysis-grid {
+  gap: 0.65rem;
+  margin-bottom: 0.25rem;
+}
+
+.attendance-summary-page .analysis-card {
+  min-height: 0;
+  padding: 0.8rem;
+  gap: 0.65rem;
+  box-shadow: none;
+}
+
+.attendance-summary-page .analysis-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 0.95rem;
+}
+
+.attendance-summary-page .analysis-title {
+  margin-bottom: 0.15rem;
+  font-size: 0.82rem;
+}
+
+.attendance-summary-page .analysis-value {
+  margin-bottom: 0.2rem;
+  font-size: 1.1rem;
+}
+
+.attendance-summary-page .analysis-description {
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.attendance-summary-page .analysis-footer {
+  margin-top: 0.55rem;
+  padding-top: 0.6rem;
+  gap: 0.6rem;
+}
+
+.attendance-summary-page > .footer-note {
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.7rem;
+}
+
+@media (max-width: 900px) {
+  .attendance-summary-page .visual-container {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-summary-page .circular-progress {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    justify-items: center;
+    column-gap: 0.8rem;
+  }
+
+  .attendance-summary-page .progress-circle {
+    grid-row: span 2;
+  }
+
+  .attendance-summary-page .progress-legend {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .attendance-summary-page {
+    padding-right: 0.7rem;
+    padding-left: 0.7rem;
+  }
+
+  .attendance-summary-page .standard-page-header-actions,
+  .attendance-summary-page .attendance-summary-header-actions,
+  .attendance-summary-page .export-actions-group,
+  .attendance-summary-page .export-buttons {
+    width: 100%;
+  }
+
+  .attendance-summary-page .attendance-summary-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .attendance-summary-page .export-buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-summary-page .attendance-summary-header-actions .erp-btn {
+    justify-content: center;
+  }
+
+  .attendance-summary-page .stats-grid,
+  .attendance-summary-page .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-summary-page .analysis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .attendance-summary-page .analysis-card {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 420px) {
+  .attendance-summary-page .analysis-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-summary-page .circular-progress {
+    display: flex;
   }
 }
       `}</style>

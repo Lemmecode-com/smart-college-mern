@@ -2480,7 +2480,384 @@ to {
   }
 }
 
-      `}</style>
+.payment-history-container .standard-page-header-actions,
+.payment-history-container .payment-history-header-actions {
+display: flex;
+align-items: center;
+justify-content: flex-end;
+flex-wrap: wrap;
+gap: 10px;
+}
+
+.payment-history-container .payment-history-refresh {
+min-height: 42px;
+padding: 0 16px;
+border: 1px solid rgba(255, 255, 255, 0.35);
+border-radius: 9px;
+background: rgba(255, 255, 255, 0.12);
+color: #fff;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+font: inherit;
+font-size: 14px;
+font-weight: 600;
+cursor: pointer;
+transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.payment-history-container .payment-history-refresh:hover {
+background: rgba(255, 255, 255, 0.2);
+transform: translateY(-1px);
+}
+
+.payment-history-container .payment-history-refresh:focus-visible,
+.payment-history-container .filter-toggle-btn:focus-visible,
+.payment-history-container .apply-filter-btn:focus-visible,
+.payment-history-container .clear-filter-btn:focus-visible {
+outline: 3px solid rgba(61, 181, 230, 0.4);
+outline-offset: 2px;
+}
+
+.payment-history-container .summary-grid {
+grid-template-columns: repeat(4, minmax(0, 1fr));
+gap: 14px;
+margin-bottom: 16px;
+}
+
+.payment-history-container .stat-card {
+min-height: 96px;
+padding: 16px;
+gap: 13px;
+border: 1px solid #e4ebef;
+border-left: 3px solid #0f5360;
+border-radius: 13px;
+box-shadow: 0 4px 14px rgba(15, 58, 74, 0.06);
+}
+
+.payment-history-container .stat-card.collected {
+border-left-color: #16804a;
+}
+
+.payment-history-container .stat-card.partial {
+border-left-color: #d49114;
+}
+
+.payment-history-container .stat-card.due {
+border-left-color: #c74343;
+}
+
+.payment-history-container .stat-card:hover {
+transform: translateY(-2px);
+box-shadow: 0 7px 18px rgba(15, 58, 74, 0.1);
+}
+
+.payment-history-container .stat-icon {
+width: 42px;
+height: 42px;
+border-radius: 11px;
+font-size: 1rem;
+}
+
+.payment-history-container .stat-label {
+color: #60737c;
+font-size: 0.8rem;
+font-weight: 600;
+line-height: 1.35;
+}
+
+.payment-history-container .stat-value {
+color: #153f4d;
+font-size: clamp(1.05rem, 1.5vw, 1.35rem);
+font-weight: 700;
+line-height: 1.3;
+}
+
+.payment-history-container .payment-controls-card {
+margin-bottom: 16px;
+border: 1px solid #e4ebef;
+border-radius: 13px;
+box-shadow: 0 4px 14px rgba(15, 58, 74, 0.06);
+}
+
+.payment-history-container .payment-controls-body {
+display: grid;
+grid-template-columns: minmax(240px, 1fr) minmax(150px, 190px) auto;
+align-items: center;
+gap: 12px;
+padding: 16px;
+}
+
+.payment-history-container .payment-search-box,
+.payment-history-container .payment-filter-dropdown {
+width: 100%;
+min-width: 0;
+}
+
+.payment-history-container .payment-search-input,
+.payment-history-container .payment-filter-select {
+box-sizing: border-box;
+width: 100%;
+min-height: 42px;
+padding-top: 9px;
+padding-bottom: 9px;
+border: 1px solid #d6e0e4;
+border-radius: 9px;
+background: #fff;
+color: #294652;
+font-size: 0.88rem;
+}
+
+.payment-history-container .payment-search-input {
+padding-left: 40px;
+}
+
+.payment-history-container .payment-search-icon {
+left: 14px;
+color: #67818b;
+font-size: 0.9rem;
+}
+
+.payment-history-container .payment-search-input:focus,
+.payment-history-container .payment-filter-select:focus {
+border-color: #1a6875;
+box-shadow: 0 0 0 3px rgba(26, 104, 117, 0.12);
+}
+
+.payment-history-container .date-filter-controls {
+justify-content: flex-end;
+}
+
+.payment-history-container .filter-toggle-btn,
+.payment-history-container .apply-filter-btn,
+.payment-history-container .clear-filter-btn {
+min-height: 42px;
+padding: 0 14px;
+border-radius: 9px;
+font-size: 0.85rem;
+font-weight: 600;
+}
+
+.payment-history-container .filter-toggle-btn {
+background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
+}
+
+.payment-history-container .date-filters-row {
+align-items: flex-end;
+flex-wrap: wrap;
+gap: 12px;
+margin: 0 16px 16px;
+padding: 14px;
+background: #f7fafb;
+border-color: #e4ebef;
+border-radius: 10px;
+}
+
+.payment-history-container .date-input-group {
+flex: 1 1 180px;
+min-width: 0;
+}
+
+.payment-history-container .date-input {
+box-sizing: border-box;
+width: 100%;
+min-height: 40px;
+border: 1px solid #d6e0e4;
+border-radius: 8px;
+}
+
+.payment-history-container .date-actions {
+display: flex;
+flex-wrap: wrap;
+gap: 8px;
+}
+
+.payment-history-container .payment-history-list {
+border: 1px solid #e4ebef;
+border-radius: 13px;
+box-shadow: 0 4px 16px rgba(15, 58, 74, 0.07);
+}
+
+.payment-history-container .payment-history-list .standard-list-header {
+padding: 14px 18px;
+}
+
+.payment-history-container .payment-history-list .standard-table-container {
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
+}
+
+.payment-history-container .payment-history-list .standard-table {
+min-width: 1120px;
+}
+
+.payment-history-container .payment-history-list .standard-table thead th {
+padding: 13px 15px;
+letter-spacing: 0.04em;
+}
+
+.payment-history-container .payment-history-list .standard-table tbody td {
+padding: 13px 15px;
+line-height: 1.45;
+}
+
+.payment-history-container .payment-history-list .standard-table tbody tr:nth-child(even) {
+background: #f8fbfc;
+}
+
+.payment-history-container .payment-history-list .standard-table tbody tr:hover {
+background: #eef7f8;
+}
+
+.payment-history-container .payment-student-info {
+gap: 4px;
+}
+
+.payment-history-container .payment-student-name {
+color: #173f4c;
+font-size: 0.86rem;
+line-height: 1.35;
+}
+
+.payment-history-container .payment-student-email {
+font-size: 0.76rem;
+overflow-wrap: anywhere;
+}
+
+.payment-history-container .payment-course-badge {
+padding: 6px 10px;
+border-radius: 8px;
+font-size: 0.74rem;
+box-shadow: none;
+}
+
+.payment-history-container .payment-amount-cell {
+font-size: 0.82rem;
+white-space: nowrap;
+}
+
+.payment-history-container .payment-status-badge {
+padding: 6px 10px;
+border-radius: 7px;
+font-size: 0.7rem;
+letter-spacing: 0.02em;
+white-space: nowrap;
+box-shadow: none;
+}
+
+.payment-history-container .receipt-dropdown-btn {
+min-height: 36px;
+padding: 7px 10px !important;
+border-radius: 8px !important;
+font-size: 0.76rem !important;
+}
+
+.payment-history-container .receipt-count-badge {
+min-width: 19px;
+height: 19px;
+}
+
+.payment-history-container .standard-action-btn.report-btn {
+min-height: 36px;
+padding: 7px 10px !important;
+border-radius: 8px !important;
+font-size: 0.76rem !important;
+}
+
+.payment-history-container .erp-pagination {
+justify-content: center;
+margin: 14px 0 0 !important;
+border-color: #e4ebef;
+border-radius: 11px;
+background: #fff;
+}
+
+@media (max-width: 900px) {
+.payment-history-container .summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.payment-history-container .payment-controls-body {
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.55fr);
+}
+
+.payment-history-container .date-filter-controls {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+}
+}
+
+@media (max-width: 600px) {
+.payment-history-container {
+  padding: 0.85rem;
+}
+
+.payment-history-container .standard-page-header-actions {
+  width: 100%;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.payment-history-container .payment-history-header-actions {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.payment-history-container .payment-history-refresh {
+  min-height: 40px;
+  padding: 0 12px;
+  font-size: 0.82rem;
+}
+
+.payment-history-container .summary-grid {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.payment-history-container .stat-card {
+  min-height: 82px;
+  padding: 12px;
+}
+
+.payment-history-container .payment-controls-body {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 12px;
+  gap: 10px;
+}
+
+.payment-history-container .date-filter-controls {
+  grid-column: auto;
+  justify-content: stretch;
+}
+
+.payment-history-container .filter-toggle-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.payment-history-container .date-filters-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0 12px 12px;
+}
+
+.payment-history-container .date-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.payment-history-container .payment-history-list .standard-list-header {
+  align-items: flex-start;
+  padding: 12px;
+}
+
+.payment-history-container .payment-history-list .standard-table {
+  min-width: 1040px;
+}
+}
+
+    `}</style>
 
       {/* ================= BREADCRUMB ================= */}
       <Breadcrumb
@@ -2500,36 +2877,12 @@ to {
         title="Payment History"
         subtitle="View and manage all student fee payment records"
         actions={
-          <>
+          <div className="payment-history-header-actions">
             <button
-             
+              type="button"
+              className="payment-history-refresh"
               onClick={() => setShouldFetch(true)}
               title="Refresh payment history"
-                 style={{
-                    minHeight: "48px",
-                    padding: "0 20px",
-                    border: "1px solid rgba(255, 255, 255, 0.35)",
-                    borderRadius: "12px",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    color: "#ffffff",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "9px",
-                    fontSize: "15px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",       
-                }}
-                  onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 10px rgba(20, 27, 41, 0.18)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
             >
               <FaSyncAlt />
               Refresh
@@ -2545,7 +2898,7 @@ to {
               showExcel
               
             />
-          </>
+          </div>
         }
       />
 
