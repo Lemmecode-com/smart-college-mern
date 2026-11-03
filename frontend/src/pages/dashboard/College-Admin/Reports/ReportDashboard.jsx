@@ -54,10 +54,10 @@ import { logger } from "../../../../utils/logger";
 const CONFIG = {
   ITEMS_PER_PAGE: 5,
   CHART: {
-    PIE: { innerRadius: 70, outerRadius: 110, height: "auto" },
-    BAR: { height: "auto" },
-    AREA: { height: "auto", domain: [0, 100] },
-    LINE: { height: "auto" },
+    PIE: { innerRadius: 70, outerRadius: 110, height: 300 },
+    BAR: { height: 300 },
+    AREA: { height: 300, domain: [0, 100] },
+    LINE: { height: 300 },
   },
   // Sidebar-matched theme colors
   THEME: {
@@ -595,34 +595,9 @@ export default function ReportDashboard() {
         subtitle="Comprehensive overview of college performance metrics"
         actions={
           <button
-            className="btn-refresh"
+            className="btn-refresh reports-refresh-button"
             onClick={fetchAllReports}
             aria-label="Refresh report data"
-             style={{
-                    minHeight: "48px",
-                    padding: "0 20px",
-                    border: "1px solid rgba(255, 255, 255, 0.35)",
-                    borderRadius: "12px",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    color: "#ffffff",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "9px",
-                    fontSize: "15px",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.2s ease",       
-                }}
-                  onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 10px rgba(20, 27, 41, 0.18)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
           >
             <FaSyncAlt className="spin-icon" />
             Refresh Data
@@ -704,6 +679,7 @@ export default function ReportDashboard() {
           <button
             key={tab.id}
             className={`tab-btn${activeTab === tab.id ? " tab-btn--active" : ""}`}
+            aria-pressed={activeTab === tab.id}
             onClick={() => {
               setActiveTab(tab.id);
               if (tab.id === "payment-status") setCurrentPaymentPage(1);
@@ -994,6 +970,7 @@ export default function ReportDashboard() {
                 <input
                   type="text"
                   placeholder="Search by student name..."
+                  aria-label="Search by student name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="search-input"
@@ -1001,6 +978,7 @@ export default function ReportDashboard() {
               </div>
 
               <select
+                aria-label="Filter payment status by course"
                 value={courseFilter}
                 onChange={(e) => setCourseFilter(e.target.value)}
                 className="filter-select"
@@ -1015,6 +993,7 @@ export default function ReportDashboard() {
               </select>
 
               <select
+                aria-label="Filter by payment status"
                 value={paymentStatusFilter}
                 onChange={(e) => setPaymentStatusFilter(e.target.value)}
                 className="filter-select"
@@ -1048,7 +1027,20 @@ export default function ReportDashboard() {
                   </tr>
                 </thead>
                  <tbody>
-                   {paymentPagination.data.map((student) => (
+                   {paymentPagination.data.length === 0 ? (
+                     <tr>
+                       <td className="payment-empty-cell" colSpan="6">
+                         <div className="payment-empty-state">
+                           <FaWallet />
+                         <span>
+                           {studentPayments.length === 0
+                             ? "No student payment records are available."
+                             : "No payment records match these filters."}
+                         </span>
+                         </div>
+                       </td>
+                     </tr>
+                   ) : paymentPagination.data.map((student) => (
                      <>
                        <tr key={student._id}>
                          <td className="student-name" data-label="Student Name">{student.name}</td>
@@ -1416,18 +1408,19 @@ export default function ReportDashboard() {
           <div className="card-body">
             {lowAttendancePagination.data.length === 0 ? (
               <div
-                className="empty-state"
+                className="empty-state report-empty-state"
                 style={{ padding: "3rem", textAlign: "center" }}
               >
                 <FaExclamationTriangle
+                  className="report-empty-icon"
                   style={{
                     fontSize: "3rem",
                     color: "#ffc107",
                     marginBottom: "1rem",
                   }}
                 />
-                <h3>No Low Attendance Students</h3>
-                <p style={{ color: "#6c757d" }}>
+                <h3 className="report-empty-title">No Low Attendance Students</h3>
+                <p className="report-empty-description">
                   {(() => {
                     const totalSessions =
                       attendanceData?.totalSessions ?? attendanceData?.totalRecords ?? 0;
@@ -2938,6 +2931,382 @@ export default function ReportDashboard() {
     min-width: 0;
     padding: 0.4rem 0.5rem;
     font-size: 0.72rem;
+  }
+}
+
+.report-dashboard-container {
+  box-sizing: border-box;
+  padding: 1rem 1.5rem 1.5rem;
+  background: linear-gradient(135deg, #f7fafb 0%, #edf3f5 100%);
+}
+.report-dashboard-container .report-tabs,
+.report-dashboard-container .tab-content,
+.report-dashboard-container .report-card,
+.report-dashboard-container .summary-cards-grid,
+.report-dashboard-container .summary-card,
+.report-dashboard-container .chart-container,
+.report-dashboard-container .filters-row,
+.report-dashboard-container .filter-group,
+.report-dashboard-container .filter-select,
+.report-dashboard-container .search-input,
+.report-dashboard-container .results-count,
+.report-dashboard-container .card-footer-pagination,
+.report-dashboard-container .data-table,
+.report-dashboard-container .empty-state {
+  box-sizing: border-box;
+}
+.report-dashboard-container > .standard-page-header {
+  margin-bottom: 1.15rem;
+}
+.report-dashboard-container .reports-refresh-button {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  box-shadow: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.report-dashboard-container .reports-refresh-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.2);
+}
+.report-dashboard-container .summary-cards-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+}
+.report-dashboard-container .summary-card {
+  min-width: 0;
+  min-height: 106px;
+  gap: 1rem;
+  padding: 1.1rem;
+  border: 1px solid #e1e9ed;
+  border-left: 3px solid rgba(15, 58, 74, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(15, 58, 74, 0.055);
+}
+.report-dashboard-container .summary-card.warning {
+  border-left-color: #e6b23c;
+}
+.report-dashboard-container .summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(15, 58, 74, 0.09);
+}
+.report-dashboard-container .card-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  font-size: 1.25rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.report-dashboard-container .card-content {
+  min-width: 0;
+}
+.report-dashboard-container .card-content h3 {
+  font-size: clamp(1.15rem, 1.7vw, 1.55rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.report-dashboard-container .card-content p {
+  margin-top: 0.25rem;
+  line-height: 1.35;
+}
+.report-dashboard-container .report-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  padding: 0.45rem;
+  border: 1px solid #e0e8ec;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(15, 58, 74, 0.045);
+}
+.report-dashboard-container .tab-btn {
+  min-width: 0;
+  padding: 0.65rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 0.86rem;
+}
+.report-dashboard-container .tab-btn:focus-visible {
+  outline: 3px solid #6bb5c8;
+  outline-offset: 2px;
+}
+.report-dashboard-container .tab-content {
+  min-height: 0;
+}
+.report-dashboard-container .report-card {
+  border: 1px solid #e0e8ec;
+  border-radius: 15px;
+  box-shadow: 0 5px 18px rgba(15, 58, 74, 0.06);
+}
+.report-dashboard-container .report-card:hover {
+  transform: none;
+  box-shadow: 0 7px 21px rgba(15, 58, 74, 0.075);
+}
+.report-dashboard-container .card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e4ecef;
+  background: linear-gradient(135deg, #f8fbfc 0%, #f1f7f8 100%);
+}
+.report-dashboard-container .card-title-wrapper {
+  gap: 0.7rem;
+  min-width: 0;
+}
+.report-dashboard-container .card-icon {
+  color: #17637b;
+}
+.report-dashboard-container .card-header h3 {
+  font-size: 1.05rem;
+}
+.report-dashboard-container .card-body {
+  padding: 1.25rem;
+}
+.report-dashboard-container .stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.report-dashboard-container .stat-box,
+.report-dashboard-container .payment-stat,
+.report-dashboard-container .stat-item {
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e5ecef;
+  border-radius: 11px;
+  background: #f8fafb;
+}
+.report-dashboard-container .payment-stat.collected {
+  background: #f0f8f3;
+  border-color: #d7eadc;
+}
+.report-dashboard-container .payment-stat.pending {
+  background: #fff9eb;
+  border-color: #f1e4c2;
+}
+.report-dashboard-container .payment-stat.rate {
+  background: #eff8fa;
+  border-color: #d6e9ed;
+}
+.report-dashboard-container .payment-overview {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.report-dashboard-container .attendance-stats {
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.report-dashboard-container .chart-container {
+  width: 100%;
+  height: 300px;
+  min-height: 0;
+  margin-top: 0.75rem;
+  aspect-ratio: auto;
+}
+.report-dashboard-container .chart-container > .recharts-responsive-container {
+  height: 300px !important;
+}
+.report-dashboard-container .filters-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.5fr) repeat(2, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+.report-dashboard-container .filter-group {
+  width: 100%;
+  min-width: 0;
+}
+.report-dashboard-container .filter-icon {
+  left: 14px;
+  color: #718493;
+}
+.report-dashboard-container .search-input,
+.report-dashboard-container .filter-select,
+.report-dashboard-container .filter-select-small {
+  min-height: 44px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #dce6eb;
+  border-radius: 9px;
+  background-color: #fff;
+  color: #2b4653;
+  font-size: 0.88rem;
+}
+.report-dashboard-container .search-input {
+  padding-left: 2.5rem;
+}
+.report-dashboard-container .search-input:focus,
+.report-dashboard-container .filter-select:focus,
+.report-dashboard-container .filter-select-small:focus {
+  border-color: #4a91a6;
+  box-shadow: 0 0 0 3px rgba(23, 99, 123, 0.11);
+}
+.report-dashboard-container .results-count {
+  width: fit-content;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #deeaee;
+  border-radius: 8px;
+  background: #f4f9fa;
+  color: #345b69;
+  font-size: 0.82rem;
+}
+.report-dashboard-container .table-responsive {
+  border: 1px solid #e2e9ed;
+  border-radius: 10px;
+}
+.report-dashboard-container .data-table th {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #dce7eb;
+  background: #f4f8f9;
+  color: #315564;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+.report-dashboard-container .data-table td {
+  padding: 0.8rem 1rem;
+  border-bottom-color: #edf1f3;
+  font-size: 0.86rem;
+}
+.report-dashboard-container .data-table tbody tr:nth-child(even) {
+  background: #fcfdfe;
+}
+.report-dashboard-container .data-table tbody tr:hover {
+  background: #f2f8fa;
+}
+.report-dashboard-container .payment-empty-cell {
+  padding: 0 !important;
+}
+.report-dashboard-container .payment-table-card .payment-empty-cell {
+  display: block !important;
+}
+.report-dashboard-container .payment-empty-state {
+  min-height: 140px;
+  padding: 1.5rem;
+  color: #657b87;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  text-align: center;
+}
+.report-dashboard-container .payment-empty-state svg {
+  color: #398198;
+}
+.report-dashboard-container .card-footer-pagination {
+  justify-content: center;
+  margin: 0.85rem 0 0;
+  padding: 0.75rem 0.5rem 0;
+  border-top: 1px solid #e8eef1;
+  background: transparent;
+}
+.report-dashboard-container .empty-state.report-empty-state {
+  min-height: 220px;
+  padding: 2rem 1.25rem !important;
+  border: 1px dashed #d4e1e6;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #fbfdfe 0%, #f5f9fa 100%);
+}
+.report-dashboard-container .report-empty-icon {
+  margin-bottom: 0.65rem !important;
+  color: #b38a2c !important;
+  font-size: 2.25rem !important;
+}
+.report-dashboard-container .report-empty-title {
+  margin: 0 0 0.4rem;
+  color: #244653;
+  font-size: 1.1rem;
+}
+.report-dashboard-container .report-empty-description {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  color: #657b87 !important;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  text-align: center;
+}
+@media (max-width: 1024px) {
+  .report-dashboard-container .summary-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-dashboard-container .stats-grid,
+  .report-dashboard-container .payment-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-dashboard-container .filters-row {
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(150px, 0.75fr));
+  }
+  .report-dashboard-container .chart-container,
+  .report-dashboard-container .chart-container > .recharts-responsive-container {
+    height: 280px !important;
+  }
+}
+@media (max-width: 768px) {
+  .report-dashboard-container {
+    padding: 0.75rem;
+  }
+  .report-dashboard-container .report-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .report-dashboard-container .tab-btn {
+    flex: 0 0 auto;
+    padding: 0.6rem 0.85rem;
+  }
+  .report-dashboard-container .filters-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .report-dashboard-container .filter-group,
+  .report-dashboard-container .filter-select,
+  .report-dashboard-container .search-input {
+    width: 100%;
+  }
+  .report-dashboard-container .chart-container,
+  .report-dashboard-container .chart-container > .recharts-responsive-container {
+    height: 260px !important;
+  }
+}
+@media (max-width: 480px) {
+  .report-dashboard-container {
+    padding: 0.6rem;
+  }
+  .report-dashboard-container .summary-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+  }
+  .report-dashboard-container .summary-card {
+    min-height: 88px;
+    padding: 0.75rem;
+    gap: 0.65rem;
+    border-radius: 11px;
+  }
+  .report-dashboard-container .card-icon-wrapper {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
+  .report-dashboard-container .card-content h3 {
+    font-size: 1.05rem;
+  }
+  .report-dashboard-container .card-content p {
+    font-size: 0.72rem;
+  }
+  .report-dashboard-container .stats-grid,
+  .report-dashboard-container .payment-overview,
+  .report-dashboard-container .attendance-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-dashboard-container .card-body {
+    padding: 0.85rem;
   }
 }
       `}</style>
