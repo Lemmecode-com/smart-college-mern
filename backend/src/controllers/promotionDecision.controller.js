@@ -127,73 +127,8 @@ exports.executePromotionDecision = async (req, res, next) => {
     const actorId = req.user.id;
     const actorRole = req.user.role;
 
-    // ── Pre-flight: load the decision to determine whether an auto-approve is
-    //    needed before handing off to executePromotion().
-    const decision = await PromotionDecision.findOne({
-      _id: decisionId,
-      college_id: collegeId,
-    }).select("workflow_status promotion_outcome");
-
-    if (!decision) {
-      throw new AppError(
-        "Promotion decision not found.",
-        404,
-        "NO_DECISION",
-      );
-    }
-
-    // Hard-stop statuses — these can never be executed.
-    if (decision.workflow_status === "REJECTED") {
-      throw new AppError(
-        "A rejected promotion decision cannot be executed.",
-        409,
-        "PROMOTION_REJECTED",
-      );
-    }
-    if (
-      !["DRAFT", "RECOMMENDED", "UNDER_REVIEW", "APPROVED", "PROMOTED"].includes(
-        decision.workflow_status,
-      )
-    ) {
-      throw new AppError(
-        `Promotion decision in status "${decision.workflow_status}" cannot be executed.`,
-        409,
-        "PROMOTION_NOT_APPROVABLE",
-      );
-    }
-
-    // ── Auto-approve: bridge DRAFT or RECOMMENDED to APPROVED so
-    //    executePromotion() can proceed without its guard firing.
-    //    approvePromotionDecision() handles RECOMMENDED and UNDER_REVIEW.
-    //    For DRAFT we first recommend then approve.
-    if (
-      decision.workflow_status === "DRAFT" ||
-      decision.workflow_status === "RECOMMENDED" ||
-      decision.workflow_status === "UNDER_REVIEW"
-    ) {
-      if (decision.workflow_status === "DRAFT") {
-        // DRAFT → RECOMMENDED (required step before APPROVED)
-        await submitPromotionRecommendation({
-          decisionId,
-          collegeId,
-          actorId,
-          actorRole,
-          comment: "Auto-recommended as part of direct promotion confirmation.",
-          request: req,
-        });
-      }
-      // RECOMMENDED / UNDER_REVIEW → APPROVED
-      await approvePromotionDecision({
-        decisionId,
-        collegeId,
-        actorId,
-        actorRole,
-        comment: "Auto-approved as part of direct promotion confirmation.",
-        request: req,
-      });
-    }
-
-    // ── Execute: decision is now APPROVED (or was already APPROVED/PROMOTED).
+    // ── Execute: executePromotion handles all status guards and direct auto-confirmation
+    //    within a single session query, eliminating redundant pre-flight round-trips.
     const result = await executePromotion({
       decisionId,
       collegeId,
@@ -201,6 +136,7 @@ exports.executePromotionDecision = async (req, res, next) => {
       actorRole,
       actorName: req.user.name || req.user.email || "Admin",
       request: req,
+      isDirectAutoConfirmation: true,
     });
 
     ApiResponse.success(res, result, "Promotion executed successfully");

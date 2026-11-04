@@ -102,11 +102,18 @@ export const rejectPromotionDecision = async (decisionId, reason) => {
 /**
  * Execute a promotion decision
  * @param {string} decisionId - Decision ID
+ * @param {Object} [options] - Optional config/payload (e.g. headers, data)
  * @returns {Promise}
  */
-export const executePromotionDecision = async (decisionId) => {
+export const executePromotionDecision = async (decisionId, options = {}) => {
+  const { headers, data, ...restOptions } = options;
   const response = await api.post(
-    `${PROMOTION_BASE_URL}/decisions/${decisionId}/execute`
+    `${PROMOTION_BASE_URL}/decisions/${decisionId}/execute`,
+    data || {},
+    {
+      headers: headers || {},
+      ...restOptions,
+    }
   );
   return response.data;
 };

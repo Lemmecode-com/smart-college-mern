@@ -287,4 +287,8 @@ auditLogSchema.statics.findByIdDecrypted = function (id) {
   });
 };
 
-module.exports = mongoose.model("AuditLog", auditLogSchema);
+const AuditLog = mongoose.model("AuditLog", auditLogSchema);
+AuditLog.encryptField = encryptField;
+AuditLog.decryptField = decryptField;
+
+module.exports = AuditLog;

@@ -1528,8 +1528,8 @@ exports.moveToAlumni = async (req, res, next) => {
       ? "cumulative (fallback)"
       : "final-semester";
 
-    try {
-      await auditLogService.logAudit({
+    auditLogService
+      .logAudit({
         collegeId: req.college_id,
         userId: req.user?.id || req.user?._id,
         userEmail: req.user?.email || "admin@college.com",
@@ -1546,10 +1546,10 @@ exports.moveToAlumni = async (req, res, next) => {
           attendancePercentage: eligibility.checks?.attendance?.actualPercentage,
           attendanceStatus: eligibility.checks?.attendance?.status,
         },
+      })
+      .catch((auditErr) => {
+        logger.warn(`Failed to create audit log for moveToAlumni: ${auditErr.message}`);
       });
-    } catch (auditErr) {
-      logger.warn(`Failed to create audit log for moveToAlumni: ${auditErr.message}`);
-    }
 
     ApiResponse.success(
       res,

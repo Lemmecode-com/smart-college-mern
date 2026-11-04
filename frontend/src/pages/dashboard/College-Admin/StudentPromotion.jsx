@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { AuthContext } from "../../../auth/AuthContext";
@@ -924,6 +924,7 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
   // Workflow action state
   const [actionLoading, setActionLoading] = useState(false);
   const [showExecuteModal, setShowExecuteModal] = useState(false);
+  const inFlightPromotionsRef = useRef(new Set());
 
   // Bulk Result Modal State
   const [showBulkResultModal, setShowBulkResultModal] = useState(false);
@@ -1241,55 +1242,71 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
       toast.error("Promotion decision not available.");
       return;
     }
+
+    // Double submission prevention: ignore if already executing for this decision
+    if (inFlightPromotionsRef.current.has(decisionId)) {
+      return;
+    }
+    inFlightPromotionsRef.current.add(decisionId);
     setActionLoading(true);
+
+    // Save snapshot of previous state for rollback on API failure
+    const rollbackStudent = eligibilityStudent;
+    const rollbackStudents = students;
+    const rollbackEligibilityData = eligibilityData;
+
+    // Optimistically compute next semester, year, and academic year label
+    const currentSemester = rollbackStudent?.currentSemester || 0;
+    const nextSemester = currentSemester + 1;
+    const nextYear = Math.ceil(nextSemester / 2);
+    const nextAcademicYearLabel = getAcademicYearLabel(nextSemester, nextYear);
+    const isYearIncrement = nextSemester % 2 === 1;
+    const nextAcademicYear =
+      isYearIncrement && rollbackStudent?.currentAcademicYear
+        ? getNextAcademicYear(rollbackStudent.currentAcademicYear)
+        : rollbackStudent?.currentAcademicYear;
+
+    const optimisticStudent = {
+      ...rollbackStudent,
+      currentSemester: nextSemester,
+      currentYear: nextYear,
+      currentAcademicYear: nextAcademicYear,
+      academicYearLabel: nextAcademicYearLabel,
+    };
+
+    // Close both modals immediately so UI feels instantaneous
+    setShowExecuteModal(false);
+    setShowEligibilityModal(false);
+
+    // Update row and student state immediately
+    setEligibilityStudent(optimisticStudent);
+    setStudents((prev) =>
+      prev.map((s) =>
+        s._id === optimisticStudent._id ? { ...s, ...optimisticStudent } : s
+      )
+    );
+    setEligibilityData((prev) =>
+      prev ? { ...prev, workflow_status: "PROMOTED" } : prev
+    );
+
+    // Send API call in background with idempotency key
+    const idempotencyKey = `promo_${decisionId}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
     try {
-      const response = await executePromotionDecision(decisionId);
-      const responseStatus =
-        response?.decision?.workflow_status ||
-        response?.executionStatus ||
-        eligibilityData?.workflow_status;
-      toast.success("Promotion executed successfully.");
-      setShowExecuteModal(false);
+      const response = await executePromotionDecision(decisionId, {
+        headers: { "x-idempotency-key": idempotencyKey },
+        data: { idempotencyKey },
+      });
 
-      if (
-        (responseStatus === "PROMOTED" ||
-          response?.executionStatus === "PROMOTED" ||
-          response?.data?.executionStatus === "PROMOTED") &&
-        eligibilityStudent
-      ) {
-        const updatedStudentData =
-          response?.student ||
-          response?.data?.student;
+      const updatedStudentData =
+        response?.student || response?.data?.student;
 
-        const nextSemester =
-          response?.newSemester ||
-          response?.data?.newSemester ||
-          updatedStudentData?.currentSemester ||
-          ((eligibilityStudent?.currentSemester || 0) + 1);
-
-        const nextYear =
-          updatedStudentData?.currentYear ||
-          Math.ceil(nextSemester / 2);
-
-        const nextAcademicYear =
-          updatedStudentData?.currentAcademicYear ||
-          eligibilityStudent?.currentAcademicYear;
-
-        const nextAcademicYearLabel =
-          getAcademicYearLabel(nextSemester, nextYear);
-
+      if (updatedStudentData) {
         const synchronizedStudent = {
-          ...eligibilityStudent,
-          ...(updatedStudentData || {}),
-          currentSemester: nextSemester,
-          currentYear: nextYear,
-          currentAcademicYear: nextAcademicYear,
-          academicYearLabel: nextAcademicYearLabel,
+          ...optimisticStudent,
+          ...updatedStudentData,
         };
-
         setEligibilityStudent(synchronizedStudent);
-
-        // Update local state table row directly without refetching the whole table
         setStudents((prev) =>
           prev.map((s) =>
             s._id === synchronizedStudent._id
@@ -1297,33 +1314,44 @@ export default function StudentPromotion({ admissionOfficerMode = false }) {
               : s
           )
         );
+      }
 
-        // Update local eligibility decision status without duplicate refetching
+      if (response?.decision || response?.data?.decision) {
         setEligibilityData((prev) =>
           prev
             ? {
                 ...prev,
-                ...(response?.decision || response?.data?.decision || {}),
+                ...(response?.decision || response?.data?.decision),
                 workflow_status: "PROMOTED",
               }
             : prev
         );
+      }
 
-        if (showHistory) {
-          await fetchPromotionHistory();
-        }
+      toast.success("Promotion executed successfully.");
+
+      if (showHistory) {
+        await fetchPromotionHistory();
       }
     } catch (err) {
+      // Rollback table row and student state to previous state on failure
+      setEligibilityStudent(rollbackStudent);
+      setStudents(rollbackStudents);
+      setEligibilityData(rollbackEligibilityData);
+
       const statusCode = err.response?.status;
       const errorCode = err.response?.data?.code;
-      const backendMessage = err.response?.data?.message;
-      const errorMessage = backendMessage || "Failed to execute promotion decision.";
+      const backendMessage =
+        err.response?.data?.message || err.response?.data?.error;
+      const errorMessage =
+        backendMessage || err.message || "Failed to execute promotion decision.";
 
-      logger.error("Error executing promotion:", statusCode, errorCode);
+      logger.error("Error executing promotion:", statusCode, errorCode, errorMessage);
       if (statusCode !== 401 && (!errorCode || !AUTH_ERROR_CODES.has(errorCode))) {
         toast.error(errorMessage);
       }
     } finally {
+      inFlightPromotionsRef.current.delete(decisionId);
       setActionLoading(false);
     }
   };
@@ -2420,7 +2448,7 @@ if (error && !loading && students.length === 0) {
                              <button
                                onClick={openExecuteModal}
                                className="btn btn-sm btn-confirm-promotion"
-                               disabled={actionLoading}
+                               disabled={actionLoading || (eligibilityData?._id && inFlightPromotionsRef.current.has(eligibilityData._id))}
                                id="confirm-promotion-btn"
                                title={`Promote ${eligibilityStudent?.fullName} from Sem ${eligibilityStudent?.currentSemester} to Sem ${(eligibilityStudent?.currentSemester || 0) + 1}`}
                              >
@@ -2783,7 +2811,7 @@ if (error && !loading && students.length === 0) {
               {showConfirmPromotion && (
                 <button
                   onClick={openExecuteModal}
-                  disabled={actionLoading}
+                  disabled={actionLoading || (eligibilityData?._id && inFlightPromotionsRef.current.has(eligibilityData._id))}
                   className="btn btn-success"
                   style={{ flex: 1 }}
                   id="confirm-promotion-footer-btn"
@@ -3033,7 +3061,7 @@ if (error && !loading && students.length === 0) {
           type="warning"
           confirmText="Confirm Promotion"
           cancelText="Cancel"
-          isLoading={actionLoading}
+          isLoading={actionLoading || (eligibilityData?._id && inFlightPromotionsRef.current.has(eligibilityData._id))}
         />
       )}
 

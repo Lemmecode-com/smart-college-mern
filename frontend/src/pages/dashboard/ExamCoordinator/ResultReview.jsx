@@ -1141,7 +1141,7 @@ export default function ResultReview() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th style={{ width: "48px" }}>#</th>
+                      <th style={{ width: "48px" }}>Sr.No.</th>
                       <th>Subject Name</th>
                       <th>Code</th>
                       <th>Type</th>

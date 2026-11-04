@@ -130,7 +130,8 @@ const loadAuthoritativeResult = async (decision, session) => {
 const revalidateDecision = async ({ decision, student, session }) => {
   if (
     student.currentSemester !== decision.semester ||
-    student.currentAcademicYear !== decision.academicYear
+    student.currentAcademicYear !== decision.academicYear ||
+    !["APPROVED", "ENROLLED"].includes(student.status)
   ) {
     throw new AppError(
       "Student academic state no longer matches the approved decision.",
@@ -139,11 +140,71 @@ const revalidateDecision = async ({ decision, student, session }) => {
     );
   }
 
-  // Phase 3: Initiate independent read-only attendance aggregation outside the session concurrently
+  // ── Rule 1: Reuse modal eligibility result if under 60 seconds old AND live checks pass
+  const decisionAgeMs = Date.now() - new Date(decision.updatedAt || decision.createdAt).getTime();
+  const isRecentUnder60s = decisionAgeMs <= 60000 && decision.workflow_status !== "REJECTED";
+
+  let fastPathEligible = false;
+  let policy = null;
+  let currentFee = null;
+
+  if (isRecentUnder60s) {
+    const [existingPromo, feeDoc, currentPolicy, authoritativeResult] =
+      await Promise.all([
+        PromotionHistory.exists({
+          student_id: student._id,
+          fromSemester: decision.semester,
+        }).session(session),
+        StudentFee.findOne({
+          student_id: student._id,
+          college_id: decision.college_id,
+        })
+          .select("totalFee paidAmount installments")
+          .session(session)
+          .lean(),
+        getCurrentPolicy(
+          decision.college_id,
+          resolveDecisionCourseId(decision),
+          session,
+        ),
+        loadAuthoritativeResult(decision, session),
+      ]);
+
+    const feeUnchanged = Boolean(
+      feeDoc &&
+        feeDoc.totalFee === decision.fee_clearance_snapshot?.totalFee &&
+        feeDoc.paidAmount === decision.fee_clearance_snapshot?.paidAmount,
+    );
+
+    const policyUnchanged = Boolean(
+      currentPolicy &&
+        currentPolicy.policyVersion === decision.policy_version &&
+        currentPolicy.minAttendancePercentage ===
+          decision.policy_snapshot?.minAttendancePercentage &&
+        currentPolicy.maxAllowedKTs ===
+          decision.policy_snapshot?.maxAllowedKTs,
+    );
+
+    if (!existingPromo && feeUnchanged && policyUnchanged) {
+      // Fast path: Reuse modal eligibility result without running heavy multi-table attendance aggregations
+      return {
+        result: authoritativeResult,
+        policy: currentPolicy,
+        attendance: decision.attendance_snapshot,
+        fee: feeDoc,
+        feeClearance: decision.fee_clearance_snapshot,
+      };
+    }
+
+    currentFee = feeDoc;
+    policy = currentPolicy;
+  }
+
+  // Fallback to full evaluation if > 60s or any live check failed
   const attendancePromise = getAttendanceDataForStudents([student], decision.college_id);
 
   const result = await loadAuthoritativeResult(decision, session);
-  const policy = await getCurrentPolicy(
+  policy = await getCurrentPolicy(
     decision.college_id,
     resolveDecisionCourseId(decision),
     session,
@@ -327,11 +388,59 @@ const createExecutionAudit = async ({
   decision,
   actorId,
   actorRole,
-  request,
   fromSemester,
   toSemester,
+  promotionDate,
+  preEncryptedAudit,
+  isDirectAutoConfirmation,
   session,
 }) => {
+  const transitions = isDirectAutoConfirmation
+    ? [
+        {
+          action: "RECOMMEND",
+          actorId,
+          actorRole,
+          timestamp: decision.recommendation?.at || promotionDate,
+          comment: "Auto-recommended as part of direct promotion confirmation",
+        },
+        {
+          action: "APPROVE",
+          actorId,
+          actorRole,
+          timestamp: decision.approval?.at || promotionDate,
+          comment: "Auto-approved as part of direct promotion confirmation",
+        },
+        {
+          action: "EXECUTE",
+          actorId,
+          actorRole,
+          timestamp: promotionDate,
+          comment: "Promotion executed",
+        },
+      ]
+    : [
+        {
+          action: "RECOMMEND",
+          actorId: decision.recommendation?.user_id || actorId,
+          timestamp: decision.recommendation?.at || promotionDate,
+          comment: decision.recommendation?.comment || null,
+        },
+        {
+          action: "APPROVE",
+          actorId: decision.approval?.user_id || actorId,
+          timestamp: decision.approval?.at || promotionDate,
+          comment: decision.approval?.comment || null,
+        },
+        {
+          action: "EXECUTE",
+          actorId,
+          actorRole,
+          timestamp: promotionDate,
+          comment: "Promotion executed",
+        },
+      ];
+
   await AuditLog.create(
     [
       {
@@ -341,10 +450,11 @@ const createExecutionAudit = async ({
         action: "PROMOTION_EXECUTED",
         resourceType: "PromotionDecision",
         resourceId: decision._id,
-        ipAddress: request?.ip || request?.socket?.remoteAddress || "internal",
-        userAgent: request?.get?.("user-agent"),
-        endpoint: request?.originalUrl,
-        method: request?.method || "POST",
+        ipAddress: preEncryptedAudit.ipAddress,
+        userAgent: preEncryptedAudit.userAgent,
+        endpoint: preEncryptedAudit.endpoint,
+        userEmail: preEncryptedAudit.userEmail,
+        method: "POST",
         statusCode: 200,
         metadata: {
           studentId: decision.student_id,
@@ -355,6 +465,7 @@ const createExecutionAudit = async ({
           fromSemester,
           toSemester,
           actorId,
+          transitions,
         },
       },
     ],
@@ -407,8 +518,24 @@ const executePromotion = async ({
   actorRole,
   actorName = "Admin",
   request,
+  isDirectAutoConfirmation = false,
 }) => {
   assertExecutionRole(actorRole);
+
+  // Pre-encrypt sensitive audit fields BEFORE opening the database transaction lock
+  // to eliminate heavy PBKDF2 crypto overhead during the transaction.
+  const rawIp = request?.ip || request?.socket?.remoteAddress || "127.0.0.1";
+  const rawUserAgent = request?.get?.("user-agent") || "";
+  const rawEndpoint = request?.originalUrl || "/api/v1/promotions/execute";
+  const rawUserEmail = request?.user?.email || "";
+
+  const preEncryptedAudit = {
+    ipAddress: AuditLog.encryptField(rawIp),
+    userAgent: rawUserAgent ? AuditLog.encryptField(rawUserAgent) : undefined,
+    endpoint: rawEndpoint ? AuditLog.encryptField(rawEndpoint) : undefined,
+    userEmail: rawUserEmail ? AuditLog.encryptField(rawUserEmail) : undefined,
+  };
+
   const session = await mongoose.startSession();
   let result;
   let shouldNotify = false;
@@ -420,7 +547,32 @@ const executePromotion = async ({
         result = await getExistingPromotion(decision, session);
         return;
       }
-      if (decision.workflow_status !== "APPROVED") {
+      if (isDirectAutoConfirmation) {
+        if (decision.workflow_status === "REJECTED") {
+          throw new AppError(
+            "A rejected promotion decision cannot be executed.",
+            409,
+            "PROMOTION_REJECTED",
+          );
+        }
+        if (
+          !["DRAFT", "RECOMMENDED", "UNDER_REVIEW", "APPROVED"].includes(
+            decision.workflow_status,
+          )
+        ) {
+          throw new AppError(
+            `Promotion decision in status "${decision.workflow_status}" cannot be executed.`,
+            409,
+            "PROMOTION_NOT_APPROVABLE",
+          );
+        }
+      }
+
+      const allowedStatuses = isDirectAutoConfirmation
+        ? ["DRAFT", "RECOMMENDED", "UNDER_REVIEW", "APPROVED"]
+        : ["APPROVED"];
+
+      if (!allowedStatuses.includes(decision.workflow_status)) {
         throw new AppError(
           "Only an approved promotion decision can be executed.",
           409,
@@ -435,12 +587,17 @@ const executePromotion = async ({
         );
       }
 
-      const student = await Student.findOne({
-        _id: decision.student_id,
-        college_id: decision.college_id,
-        course_id: decision.course_id,
-        status: { $in: ["APPROVED", "ENROLLED"] },
-      }).session(session);
+      const [student, course] = await Promise.all([
+        Student.findOne({
+          _id: decision.student_id,
+          college_id: decision.college_id,
+          course_id: decision.course_id,
+          status: { $in: ["APPROVED", "ENROLLED"] },
+        }).session(session),
+        Course.findById(decision.course_id)
+          .select("durationSemesters")
+          .session(session),
+      ]);
       if (!student) {
         throw new AppError(
           "Student not found in the decision college.",
@@ -450,9 +607,6 @@ const executePromotion = async ({
       }
 
       const current = await revalidateDecision({ decision, student, session });
-      const course = await Course.findById(decision.course_id)
-        .select("durationSemesters")
-        .session(session);
       const maxSemester = course?.durationSemesters || 8;
       if (student.currentSemester >= maxSemester) {
         throw new AppError(
@@ -483,30 +637,6 @@ const executePromotion = async ({
       }
 
       const promotionDate = new Date();
-      const studentUpdate = await Student.updateOne(
-        {
-          _id: student._id,
-          college_id: decision.college_id,
-          currentSemester: decision.semester,
-          currentAcademicYear: decision.academicYear,
-        },
-        {
-          $set: {
-            currentSemester: toSemester,
-            currentYear: Math.ceil(toSemester / 2),
-            currentAcademicYear: newAcademicYear,
-            lastPromotionDate: promotionDate,
-          },
-        },
-        { session },
-      );
-      if (studentUpdate.modifiedCount !== 1) {
-        throw new AppError(
-          "Student state changed before promotion could execute.",
-          409,
-          "STUDENT_STATE_CHANGED",
-        );
-      }
 
       // Assign new-semester fee structure inside the transaction so that any
       // DB error rolls back the full promotion atomically.
@@ -558,35 +688,109 @@ const executePromotion = async ({
       );
       const promotionHistory = history[0];
 
+      // Atomic single update for student: sets new semester/year/academic year and
+      // pushes promotion history in one DB trip instead of two sequential writes.
+      const studentUpdate = await Student.updateOne(
+        {
+          _id: student._id,
+          college_id: decision.college_id,
+          currentSemester: decision.semester,
+          currentAcademicYear: decision.academicYear,
+        },
+        {
+          $set: {
+            currentSemester: toSemester,
+            currentYear: Math.ceil(toSemester / 2),
+            currentAcademicYear: newAcademicYear,
+            lastPromotionDate: promotionDate,
+          },
+          $push: { promotionHistory: promotionHistory._id },
+        },
+        { session },
+      );
+      if (studentUpdate.modifiedCount !== 1) {
+        throw new AppError(
+          "Student state changed before promotion could execute.",
+          409,
+          "STUDENT_STATE_CHANGED",
+        );
+      }
+
+      const historyEntries = [];
+      const updateSet = {
+        workflow_status: "PROMOTED",
+        promotedAt: promotionDate,
+        promotedBy: actorId,
+        executionAt: promotionDate,
+        executionBy: actorId,
+        promotion_history_id: promotionHistory._id,
+        backlog_ids: backlogs.map((backlog) => backlog._id),
+      };
+
+      if (isDirectAutoConfirmation) {
+        if (decision.workflow_status === "DRAFT") {
+          updateSet.recommendation = {
+            user_id: actorId,
+            at: promotionDate,
+            comment: "Auto-recommended as part of direct promotion confirmation",
+          };
+          historyEntries.push({
+            action: "RECOMMEND",
+            performedBy: actorId,
+            performedAt: promotionDate,
+            previousStatus: "DRAFT",
+            newStatus: "RECOMMENDED",
+            comment: "Auto-recommended as part of direct promotion confirmation",
+          });
+        }
+        if (
+          ["DRAFT", "RECOMMENDED", "UNDER_REVIEW"].includes(
+            decision.workflow_status,
+          )
+        ) {
+          updateSet.approval = {
+            user_id: actorId,
+            at: promotionDate,
+            comment: "Auto-approved as part of direct promotion confirmation",
+          };
+          historyEntries.push({
+            action: "APPROVE",
+            performedBy: actorId,
+            performedAt: promotionDate,
+            previousStatus:
+              decision.workflow_status === "DRAFT"
+                ? "RECOMMENDED"
+                : decision.workflow_status,
+            newStatus: "APPROVED",
+            comment: "Auto-approved as part of direct promotion confirmation",
+          });
+        }
+      }
+
+      historyEntries.push({
+        action: "APPROVE",
+        performedBy: actorId,
+        performedAt: promotionDate,
+        previousStatus: "APPROVED",
+        newStatus: "PROMOTED",
+        comment: "Promotion executed",
+      });
+
       const promotedDecision = await PromotionDecision.findOneAndUpdate(
         {
           _id: decision._id,
           college_id: decision.college_id,
-          workflow_status: "APPROVED",
+          workflow_status: { $in: allowedStatuses },
         },
         {
-          $set: {
-            workflow_status: "PROMOTED",
-            promotedAt: promotionDate,
-            promotedBy: actorId,
-            executionAt: promotionDate,
-            executionBy: actorId,
-            promotion_history_id: promotionHistory._id,
-            backlog_ids: backlogs.map((backlog) => backlog._id),
-          },
+          $set: updateSet,
           $push: {
-            workflow_history: {
-              action: "APPROVE",
-              performedBy: actorId,
-              performedAt: promotionDate,
-              previousStatus: "APPROVED",
-              newStatus: "PROMOTED",
-              comment: "Promotion executed",
-            },
+            workflow_history: { $each: historyEntries },
           },
         },
         { new: true, runValidators: true, session },
       );
+
       if (!promotedDecision) {
         throw new AppError(
           "Promotion decision was changed before execution completed.",
@@ -595,24 +799,29 @@ const executePromotion = async ({
         );
       }
 
-      await Student.updateOne(
-        { _id: student._id, college_id: decision.college_id },
-        { $push: { promotionHistory: promotionHistory._id } },
-        { session },
-      );
       await createExecutionAudit({
         decision: promotedDecision,
         actorId,
         actorRole,
-        request,
         fromSemester,
         toSemester,
+        promotionDate,
+        preEncryptedAudit,
+        isDirectAutoConfirmation,
         session,
       });
 
+      student.currentSemester = toSemester;
+      student.currentYear = Math.ceil(toSemester / 2);
+      student.currentAcademicYear = newAcademicYear;
+      student.lastPromotionDate = promotionDate;
+      if (Array.isArray(student.promotionHistory)) {
+        student.promotionHistory.push(promotionHistory._id);
+      }
+
       result = {
         decision: promotedDecision,
-        student: await Student.findById(student._id).session(session),
+        student,
         promotionHistory,
         previousSemester: fromSemester,
         newSemester: toSemester,
@@ -629,13 +838,17 @@ const executePromotion = async ({
     });
 
     if (shouldNotify && result?.student) {
-      await sendPromotionNotification({
+      sendPromotionNotification({
         student: result.student,
         decision: result.decision,
         actorId,
         actorRole,
         toSemester: result.newSemester,
         newAcademicYear: result.student.currentAcademicYear,
+      }).catch((err) => {
+        logger.logError("[EXECUTE_PROMOTION] Promotion notification failed", {
+          error: err?.message,
+        });
       });
 
       // Issue #533: Non-blocking timetable availability check & HOD notification
@@ -649,7 +862,7 @@ const executePromotion = async ({
       }).catch((err) => {
         logger.logError(
           "[EXECUTE_PROMOTION] Timetable availability check failed",
-          { error: err.message },
+          { error: err?.message },
         );
       });
     }
