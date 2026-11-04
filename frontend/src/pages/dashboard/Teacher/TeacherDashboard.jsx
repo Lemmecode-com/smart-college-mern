@@ -140,6 +140,8 @@ export default function TeacherDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [weeklySchedule, setWeeklySchedule] = useState(null);
+  const [scheduleError, setScheduleError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -162,6 +164,22 @@ export default function TeacherDashboard() {
       }
     };
     fetchDashboard();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    api.get("/timetable/weekly")
+      .then((res) => {
+        if (active) setWeeklySchedule(res.data?.weekly || {});
+      })
+      .catch((err) => {
+        if (active) {
+          setScheduleError(
+            err.response?.data?.message || "Today's teaching schedule is unavailable."
+          );
+        }
+      });
+    return () => { active = false; };
   }, []);
 
 if (loading) {
@@ -188,6 +206,14 @@ if (loading) {
   if (!data) return null;
 
   const { teacher, stats, recentLectures } = data;
+  const todayKey = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][currentTime.getDay()];
+  const todaySchedule = [...(weeklySchedule?.[todayKey] || [])]
+    .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+  const nextScheduledIndex = todaySchedule.findIndex((slot) => {
+    if (!slot.startTime || !slot.endTime || ["CANCELLED", "HOLIDAY"].includes(slot.status)) return false;
+    const [hour, minute] = slot.startTime.split(":").map(Number);
+    return currentTime.getHours() * 60 + currentTime.getMinutes() < hour * 60 + minute;
+  });
 
   return (
     <AnimatePresence mode="wait">
@@ -195,7 +221,7 @@ if (loading) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="erp-page erp-viewport-min-100"
+        className="erp-page erp-viewport-min-100 teacher-dashboard-page"
         style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)' }}
       >
         <div className="container-fluid px-3 px-md-4 pt-2 pb-3 pb-md-4">
@@ -392,30 +418,34 @@ if (loading) {
     gap: .85rem;
     margin: 0 0 1.25rem !important;
   }
-  .teacher-dashboard-stats > [class*="col-"] { width: auto; max-width: none; padding: 0; }
+  .teacher-dashboard-stats > [class*="col-"],
+  .teacher-dashboard-stats > div { width: auto; min-width: 0; max-width: none; padding: 0; }
   .teacher-stat-card {
-    height: 100%;
-    min-height: 142px;
-    padding: 1.1rem;
+    height: 12px;
+    min-height: 90px;
+    padding: 14px !important;
     border: 1px solid #e0e9ee;
     border-radius: 15px !important;
     background: linear-gradient(145deg, #fff 0%, #fbfdfe 100%);
     box-shadow: 0 4px 14px rgba(15,58,74,.06) !important;
     transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    font-weight: 400;
   }
   .teacher-stat-card:hover { transform: translateY(-4px); border-color: #b7d1d9; box-shadow: 0 12px 24px rgba(15,58,74,.11) !important; }
-  .teacher-stat-card .card-body { display: flex; align-items: center; padding: 0 !important; }
-  .teacher-stat-card .card-body > .d-flex { width: 100%; gap: .9rem !important; }
+  .teacher-stat-card .card-body { display: flex; align-items: center; min-width: 0; padding: 0 !important; }
+  .teacher-stat-card .card-body > .d-flex { width: 100%; min-width: 0; gap: .7rem !important; }
   .teacher-stat-card .teacher-stat-icon {
-    width: 48px !important;
-    height: 48px !important;
+    width: 47px !important;
+    height: 47px !important;
+    flex: 0 0 47px;
     border-radius: 14px !important;
     box-shadow: none !important;
-    font-size: 1.2rem !important;
+    font-size: 1.1rem !important;
   }
-  .teacher-stat-card .teacher-stat-label { color: #627681; font-size: .73rem !important; font-weight: 700 !important; letter-spacing: .045em; text-transform: uppercase; }
-  .teacher-stat-card .teacher-stat-value { color: #163d4b !important; font-size: 2.15rem !important; line-height: 1.05; letter-spacing: -.035em; }
-  .teacher-stat-card .teacher-stat-subtitle { color: #82929a; font-size: .75rem !important; }
+  .teacher-stat-card .card-body .flex-grow-1 { min-width: 0; }
+  .teacher-stat-card .teacher-stat-label { margin: 0 0 .1rem !important; color: #627681; font-size: .66rem !important; font-weight: 600 !important; letter-spacing: .025em; line-height: 1.15; text-transform: uppercase; white-space: nowrap; }
+  .teacher-stat-card .teacher-stat-value { margin: 0 !important; color: #163d4b !important; font-size: 1.55rem !important; line-height: 1; letter-spacing: -.035em; white-space: nowrap; }
+  .teacher-stat-card .teacher-stat-subtitle { margin-top: .15rem !important; color: #82929a; font-size: .72rem !important; line-height: 1.2; }
   .teacher-dashboard-quick-section,
   .teacher-dashboard-recent {
     overflow: hidden;
@@ -531,17 +561,200 @@ if (loading) {
     .teacher-banner-description { font-size: .78rem !important; }
     .teacher-dashboard-recent table { min-width: 740px; }
   }
+  .teacher-content-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    margin: .15rem 0 .75rem;
+  }
+  .teacher-content-section-heading span {
+    color: #173f4e;
+    font-size: 1.05rem;
+    font-weight: 750;
+    letter-spacing: -.015em;
+  }
+  .teacher-content-section-heading p {
+    margin: .2rem 0 0;
+    color: #748792;
+    font-size: .78rem;
+  }
+  .teacher-dashboard-stats { margin-bottom: 1.15rem !important; }
+  .teacher-dashboard-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, .9fr);
+    gap: 1rem;
+    align-items: stretch;
+    margin-bottom: 1rem;
+  }
+  .teacher-dashboard-lower-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, .78fr) minmax(0, 1.75fr);
+    gap: 1rem;
+    align-items: stretch;
+    margin-top: 1rem;
+  }
+  .teacher-dashboard-page .teacher-dashboard-panel {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #dfe8ed !important;
+    border-radius: 14px !important;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(15,58,74,.055) !important;
+  }
+  .teacher-dashboard-page .teacher-section-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: .85rem 1rem !important;
+    background: #fff !important;
+    border-bottom: 1px solid #e8eef1 !important;
+  }
+  .teacher-dashboard-page .teacher-section-card-header h3 {
+    color: #173f4e !important;
+    font-size: .96rem !important;
+  }
+  .teacher-dashboard-page .teacher-section-card-header p { color: #7a8c96; font-size: .72rem; }
+  .teacher-panel-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    flex-shrink: 0;
+    color: #17647a;
+    font-size: .73rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .teacher-panel-link:hover { color: #0f3a4a; }
+  .teacher-panel-link svg { font-size: .65rem; }
+  .teacher-schedule-body { padding: .35rem 1rem .75rem; }
+  .teacher-schedule-timeline { position: relative; }
+  .teacher-schedule-timeline::before {
+    position: absolute;
+    top: 1.1rem;
+    bottom: 1.1rem;
+    left: 91px;
+    width: 1px;
+    background: #dce7eb;
+    content: "";
+  }
+  .teacher-schedule-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 72px 22px minmax(0, 1fr);
+    gap: .65rem;
+    align-items: start;
+    min-height: 76px;
+    padding: .8rem 0;
+  }
+  .teacher-schedule-time { display: flex; flex-direction: column; gap: .15rem; padding-top: .05rem; text-align: right; }
+  .teacher-schedule-time strong { color: #244b59; font-size: .78rem; }
+  .teacher-schedule-time span { color: #8a9aa2; font-size: .68rem; }
+  .teacher-schedule-marker { z-index: 1; display: flex; justify-content: center; padding-top: .25rem; }
+  .teacher-schedule-marker span { width: 10px; height: 10px; border: 2px solid #fff; border-radius: 50%; background: #4aa3b5; box-shadow: 0 0 0 2px #b8dce2; }
+  .teacher-schedule-item.is-completed .teacher-schedule-marker span { background: #3a9a70; box-shadow: 0 0 0 2px #c5e7d5; }
+  .teacher-schedule-item.is-upcoming .teacher-schedule-marker span,
+  .teacher-schedule-item.is-in-progress .teacher-schedule-marker span { background: #d19a2c; box-shadow: 0 0 0 2px #f4e3ba; }
+  .teacher-schedule-item.is-cancelled .teacher-schedule-marker span,
+  .teacher-schedule-item.is-holiday .teacher-schedule-marker span { background: #c56b70; box-shadow: 0 0 0 2px #f0d1d2; }
+  .teacher-schedule-details { min-width: 0; }
+  .teacher-schedule-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+  .teacher-schedule-heading h4 { margin: 0; color: #183f4d; font-size: .84rem; font-weight: 700; line-height: 1.35; }
+  .teacher-schedule-status { flex-shrink: 0; padding: .2rem .45rem; border-radius: 999px; background: #edf5f6; color: #397888; font-size: .62rem; font-weight: 700; white-space: nowrap; }
+  .is-completed .teacher-schedule-status { background: #eaf5ee; color: #39805b; }
+  .is-upcoming .teacher-schedule-status,
+  .is-in-progress .teacher-schedule-status { background: #fbf3df; color: #946e1c; }
+  .is-cancelled .teacher-schedule-status,
+  .is-holiday .teacher-schedule-status { background: #f9eded; color: #a64c55; }
+  .teacher-schedule-meta { display: flex; flex-wrap: wrap; gap: .25rem .75rem; margin-top: .4rem; }
+  .teacher-schedule-meta span { display: inline-flex; align-items: center; gap: .3rem; color: #7b8d96; font-size: .67rem; }
+  .teacher-schedule-meta svg { color: #7fa8b2; font-size: .65rem; }
+  .teacher-schedule-message { display: flex; align-items: center; justify-content: center; gap: .55rem; min-height: 120px; color: #7b8d96; font-size: .8rem; text-align: center; }
+  .teacher-schedule-message svg { color: #85aab4; }
+  .teacher-schedule-error { color: #a64c55; }
+  .teacher-action-list { padding: .3rem .85rem .55rem; }
+  .teacher-dashboard-action-item {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: .68rem .25rem;
+    border-bottom: 1px solid #edf1f3;
+    color: inherit;
+    text-decoration: none;
+    transition: padding .16s ease, background .16s ease;
+  }
+  .teacher-dashboard-action-item:last-child { border-bottom: 0; }
+  .teacher-dashboard-action-item:hover { padding-right: .4rem; padding-left: .4rem; border-radius: 8px; background: #f6fafb; }
+  .teacher-dashboard-action-icon { display: grid; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 9px; background: #eaf3f5; color: #17647a; font-size: .88rem; }
+  .teacher-dashboard-action-item:nth-child(2) .teacher-dashboard-action-icon { background: #eef4f7; color: #39738a; }
+  .teacher-dashboard-action-item:nth-child(3) .teacher-dashboard-action-icon { background: #f1f3f8; color: #66779b; }
+  .teacher-dashboard-action-item:nth-child(4) .teacher-dashboard-action-icon { background: #f4f1f8; color: #78689a; }
+  .teacher-dashboard-action-copy { flex: 1; min-width: 0; }
+  .teacher-dashboard-action-copy strong { display: block; color: #244b59; font-size: .78rem; }
+  .teacher-dashboard-action-copy small { display: block; margin-top: .12rem; color: #84939a; font-size: .66rem; }
+  .teacher-dashboard-action-arrow { color: #8aa0a8; font-size: .7rem; }
+  .teacher-academic-work { margin-top: .15rem; }
+  .teacher-academic-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+  .teacher-academic-link {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    min-width: 0;
+    padding: .85rem .95rem;
+    border: 1px solid #e1e9ed;
+    border-radius: 12px;
+    background: rgba(255,255,255,.92);
+    box-shadow: 0 3px 11px rgba(15,58,74,.04);
+    color: inherit;
+    text-decoration: none;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .teacher-academic-link:hover { transform: translateY(-2px); border-color: #b7d5dd; box-shadow: 0 8px 18px rgba(15,58,74,.08); }
+  .teacher-academic-link-icon { display: grid; flex: 0 0 38px; width: 38px; height: 38px; place-items: center; border-radius: 10px; background: #eaf3f5; color: #17647a; }
+  .teacher-academic-link-copy { min-width: 0; flex: 1; }
+  .teacher-academic-link-copy strong { display: block; color: #244b59; font-size: .8rem; }
+  .teacher-academic-link-copy small { display: block; margin-top: .15rem; color: #82929a; font-size: .67rem; }
+  .teacher-academic-link > svg:last-child { color: #8aa0a8; font-size: .7rem; }
+  .teacher-activity-list { padding: .25rem .9rem; }
+  .teacher-activity-item { display: flex; align-items: center; gap: .6rem; padding: .75rem 0; border-bottom: 1px solid #edf1f3; }
+  .teacher-activity-item:last-child { border-bottom: 0; }
+  .teacher-activity-icon { display: grid; flex: 0 0 32px; width: 32px; height: 32px; place-items: center; border-radius: 9px; background: #eaf3f5; color: #24788a; font-size: .8rem; }
+  .teacher-activity-item > div { min-width: 0; flex: 1; }
+  .teacher-activity-item strong,
+  .teacher-activity-item span:not(.teacher-activity-icon) { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .teacher-activity-item strong { color: #244b59; font-size: .75rem; }
+  .teacher-activity-item > div span { margin-top: .12rem; color: #87969d; font-size: .66rem; }
+  .teacher-activity-item time { color: #8998a0; font-size: .63rem; white-space: nowrap; }
+  @media (max-width: 991px) {
+    .teacher-dashboard-main-grid { grid-template-columns: minmax(0, 1fr); }
+    .teacher-dashboard-lower-grid { grid-template-columns: minmax(0, 1fr); }
+    .teacher-academic-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 575px) {
+    .teacher-dashboard-stats { grid-template-columns: minmax(0, 1fr); }
+    .teacher-academic-links { grid-template-columns: minmax(0, 1fr); }
+    .teacher-schedule-timeline::before { left: 75px; }
+    .teacher-schedule-item { grid-template-columns: 58px 18px minmax(0, 1fr); gap: .45rem; }
+    .teacher-schedule-heading { flex-direction: column; gap: .3rem; }
+    .teacher-dashboard-page .teacher-section-card-header { padding: .75rem .8rem !important; }
+  }
 `}</style>
 
-          {/* ================= STATS GRID ================= */}
+          <div className="teacher-content-section-heading">
+            <div>
+              <span>Teaching Overview</span>
+              <p>Your teaching activity at a glance</p>
+            </div>
+          </div>
+
           <motion.div
             variants={fadeInVariants}
             custom={0}
             initial="hidden"
             animate="visible"
           >
-            <div className="row g-3 g-md-4 mb-3 mb-md-4 teacher-dashboard-stats">
-              <div className="col-12 col-sm-6 col-lg-3">
+            <div className="teacher-dashboard-stats">
+              <div>
                 <StatCard
                   icon={FaCalendarAlt}
                   label="Total Lectures"
@@ -551,7 +764,7 @@ if (loading) {
                   subtitle="Lectures conducted"
                 />
               </div>
-              <div className="col-12 col-sm-6 col-lg-3">
+              <div>
                 <StatCard
                   icon={FaQrcode}
                   label="Open Sessions"
@@ -561,7 +774,7 @@ if (loading) {
                   subtitle="Active attendance sessions"
                 />
               </div>
-              <div className="col-12 col-sm-6 col-lg-3">
+              <div>
                 <StatCard
                   icon={FaCheckCircle}
                   label="Closed Sessions"
@@ -571,10 +784,10 @@ if (loading) {
                   subtitle="Completed sessions"
                 />
               </div>
-              <div className="col-12 col-sm-6 col-lg-3">
+              <div>
                 <StatCard
                   icon={FaChartBar}
-                  label="Attendance %"
+                  label="Attendance Percentage"
                   value={`${stats.attendancePercentage || 0}%`}
                   color={BRAND_COLORS.warning.main}
                   gradient={BRAND_COLORS.warning.gradient}
@@ -584,79 +797,124 @@ if (loading) {
             </div>
           </motion.div>
 
-          {/* ================= QUICK ACTIONS GRID ================= */}
-          <motion.div
-            variants={fadeInVariants}
-            custom={1}
-            initial="hidden"
-            animate="visible"
-            className="mb-3 mb-md-4"
-          >
+          <div className="teacher-dashboard-main-grid">
             <SectionCard
-              className="teacher-dashboard-quick-section"
-              title="Quick Actions"
-              icon={<FaArrowRight />}
-              subtitle="Frequently used operations"
+              className="teacher-dashboard-schedule"
+              title="Today's Teaching Schedule"
+              icon={<FaCalendarAlt />}
+              subtitle={currentTime.toLocaleDateString(undefined, {
+                weekday: "long", month: "long", day: "numeric"
+              })}
               color={BRAND_COLORS.primary.main}
+              action={<Link className="teacher-panel-link" to="/timetable/weekly-timetable">Full Timetable <FaArrowRight /></Link>}
             >
-              <div className="teacher-dashboard-actions">
-                <div>
-                  <ActionCard
-                    icon={FaQrcode}
-                    title="Create Attendance Session"
-                    desc="Start a new lecture attendance session"
-                    link="/attendance/my-sessions-list"
-                    color={BRAND_COLORS.success.main}
-                    gradient={BRAND_COLORS.success.gradient}
-                  />
-                </div>
-                <div>
-                  <ActionCard
-                    icon={FaUsers}
-                    title="Mark Attendance"
-                    desc="Record student attendance for active sessions"
-                    link="/timetable/weekly-timetable"
-                    color={BRAND_COLORS.info.main}
-                    gradient={BRAND_COLORS.info.gradient}
-                  />
-                </div>
-                <div>
-                  <ActionCard
-                    icon={FaChartBar}
-                    title="View Attendance Report"
-                    desc="Analyze your attendance statistics and trends"
-                    link="/attendance/report"
-                    color={BRAND_COLORS.warning.main}
-                    gradient={BRAND_COLORS.warning.gradient}
-                  />
-                </div>
-                <div>
-                  <ActionCard
-                    icon={FaBell}
-                    title="Send Notifications"
-                    desc="Communicate with students and parents"
-                    link="/teacher/notifications/create"
-                    color={BRAND_COLORS.danger.main}
-                    gradient={BRAND_COLORS.danger.gradient}
-                  />
-                </div>
+              <div className="teacher-schedule-body">
+                {scheduleError ? (
+                  <div className="teacher-schedule-message teacher-schedule-error"><FaInfoCircle />{scheduleError}</div>
+                ) : weeklySchedule === null ? (
+                  <div className="teacher-schedule-message">Loading today's schedule…</div>
+                ) : todaySchedule.length === 0 ? (
+                  <div className="teacher-schedule-message">
+                    <FaCalendarAlt />
+                    <span>No lectures are scheduled for today.</span>
+                  </div>
+                ) : (
+                  <div className="teacher-schedule-timeline">
+                    {todaySchedule.map((slot, index) => {
+                      const status = getScheduleStatus(slot, index, nextScheduledIndex, currentTime);
+                      const courseName = slot.timetable_id?.course_id?.name
+                        || slot.course_id?.name
+                        || slot.timetable_id?.name;
+                      const departmentName = slot.department_id?.name || slot.department_id?.code;
+                      return (
+                        <article className={`teacher-schedule-item is-${status.key}`} key={slot._id || `${slot.startTime}-${index}`}>
+                          <div className="teacher-schedule-time">
+                            <strong>{formatScheduleTime(slot.startTime)}</strong>
+                            <span>{formatScheduleTime(slot.endTime)}</span>
+                          </div>
+                          <div className="teacher-schedule-marker"><span /></div>
+                          <div className="teacher-schedule-details">
+                            <div className="teacher-schedule-heading">
+                              <h4>{slot.subject_id?.name || "Subject details unavailable"}</h4>
+                              <span className="teacher-schedule-status">{status.label}</span>
+                            </div>
+                            <div className="teacher-schedule-meta">
+                              {courseName && <span><FaGraduationCap />{courseName}</span>}
+                              {departmentName && <span><FaUniversity />{departmentName}</span>}
+                              {slot.room && <span><FaDatabase />Room {slot.room}</span>}
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </SectionCard>
-          </motion.div>
 
-          {/* ================= RECENT LECTURES ================= */}
-          <motion.div
-            variants={fadeInVariants}
-            custom={2}
-            initial="hidden"
-            animate="visible"
-          >
+            <SectionCard
+              className="teacher-dashboard-action-centre"
+              title="Action Centre"
+              icon={<FaArrowRight />}
+              subtitle="Frequently used teaching tools"
+              color={BRAND_COLORS.info.main}
+            >
+              <div className="teacher-action-list">
+                <DashboardAction icon={FaUsers} title="Mark Attendance" description="Record attendance for a class" to="/timetable/weekly-timetable" />
+                <DashboardAction icon={FaEdit} title="Enter Marks" description="Open the student marks roster" to="/teacher/marks-entry" />
+                <DashboardAction icon={FaCalendarAlt} title="Manage Exceptions" description="Review timetable changes" to="/timetable/exceptions" />
+                <DashboardAction icon={FaBell} title="Notifications" description="Communicate with students and parents" to="/teacher/notifications/create" />
+                <DashboardAction icon={FaQrcode} title="Create Attendance Session" description="Start a new lecture attendance session" to="/attendance/my-sessions-list" />
+              </div>
+            </SectionCard>
+          </div>
+
+          <section className="teacher-academic-work">
+            <div className="teacher-content-section-heading">
+              <div>
+                <span>Academic Work</span>
+                <p>Quick access to assessment and attendance tools</p>
+              </div>
+            </div>
+            <div className="teacher-academic-links">
+              <AcademicLink icon={FaCalendarAlt} title="Exam Timetable" description="View published exam schedules" to="/teacher/exam-timetable" />
+              <AcademicLink icon={FaEdit} title="Marks Entry" description="Enter and review student marks" to="/teacher/marks-entry" />
+              <AcademicLink icon={FaChartBar} title="Attendance Report" description="Review attendance records and trends" to="/attendance/report" />
+            </div>
+          </section>
+
+          <div className="teacher-dashboard-lower-grid">
+            <SectionCard
+              className="teacher-dashboard-activity"
+              title="Recent Teaching Activity"
+              icon={<FaClock />}
+              subtitle="Latest teaching sessions"
+              color={BRAND_COLORS.info.main}
+            >
+              <div className="teacher-activity-list">
+                {recentLectures?.length ? recentLectures.slice(0, 4).map((lecture) => (
+                  <div className="teacher-activity-item" key={`activity-${lecture._id}`}>
+                    <span className="teacher-activity-icon"><FaChalkboardTeacher /></span>
+                    <div>
+                      <strong>{lecture.subject_id?.name || lecture.course_id?.name || "Teaching session"}</strong>
+                      <span>{lecture.course_id?.name || lecture.department_id?.name || "Recent session"}</span>
+                    </div>
+                    <time>{lecture.lectureDate ? new Date(lecture.lectureDate).toLocaleDateString() : ""}</time>
+                  </div>
+                )) : (
+                  <div className="teacher-schedule-message">No recent teaching activity is available.</div>
+                )}
+              </div>
+            </SectionCard>
+
+            {/* ================= RECENT LECTURES ================= */}
             <SectionCard
               className="teacher-dashboard-recent"
-              title="Recent Lectures"
+              title="Recent Sessions"
               icon={<FaCalendarAlt />}
-              subtitle="Your latest teaching sessions"
+              subtitle="Your latest attendance sessions"
               color={BRAND_COLORS.info.main}
+              action={<Link className="teacher-panel-link" to="/attendance/my-sessions-list">View All <FaArrowRight /></Link>}
             >
               <div className="p-3 p-md-4 teacher-recent-body">
                 {recentLectures && recentLectures.length > 0 ? (
@@ -692,7 +950,7 @@ if (loading) {
                 )}
               </div>
             </SectionCard>
-          </motion.div>
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>
@@ -806,10 +1064,10 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
 }
 
 /* ================= SECTION CARD ================= */
-function SectionCard({ title, icon, subtitle, color, children, className = "" }) {
+function SectionCard({ title, icon, subtitle, color, children, className = "", action }) {
   return (
     <div
-      className={`card border-0 h-100 ${className}`}
+      className={`card border-0 h-100 teacher-dashboard-panel ${className}`}
       style={{
         borderRadius: '16px',
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
@@ -817,25 +1075,72 @@ function SectionCard({ title, icon, subtitle, color, children, className = "" })
       }}
     >
       <div
-        className="px-4 py-3"
+        className="px-4 py-3 teacher-section-card-header"
         style={{
           background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
           borderBottom: '1px solid #eaeaea'
         }}
       >
-        <h3 className="mb-0 fw-bold" style={{ fontSize: '1.125rem', color: '#1e293b' }}>
-          <span className="me-2" style={{ color: color, fontSize: '1.1rem' }}>{icon}</span>
-          {title}
-        </h3>
-        {subtitle && (
-          <p className="text-muted small mb-0 mt-1 ms-4">
-            {subtitle}
-          </p>
-        )}
+        <div className="teacher-section-card-title">
+          <h3 className="mb-0 fw-bold" style={{ fontSize: '1.125rem', color: '#1e293b' }}>
+            <span className="me-2" style={{ color: color, fontSize: '1.1rem' }}>{icon}</span>
+            {title}
+          </h3>
+          {subtitle && <p className="text-muted small mb-0 mt-1 ms-4">{subtitle}</p>}
+        </div>
+        {action}
       </div>
       {children}
     </div>
   );
+}
+
+function DashboardAction({ icon: Icon, title, description, to }) {
+  return (
+    <Link className="teacher-dashboard-action-item" to={to}>
+      <span className="teacher-dashboard-action-icon"><Icon /></span>
+      <span className="teacher-dashboard-action-copy">
+        <strong>{title}</strong>
+        <small>{description}</small>
+      </span>
+      <FaArrowRight className="teacher-dashboard-action-arrow" />
+    </Link>
+  );
+}
+
+function AcademicLink({ icon: Icon, title, description, to }) {
+  return (
+    <Link className="teacher-academic-link" to={to}>
+      <span className="teacher-academic-link-icon"><Icon /></span>
+      <span className="teacher-academic-link-copy">
+        <strong>{title}</strong>
+        <small>{description}</small>
+      </span>
+      <FaArrowRight />
+    </Link>
+  );
+}
+
+function formatScheduleTime(value) {
+  if (!value || !/^\d{1,2}:\d{2}$/.test(value)) return "--";
+  const [hours, minutes] = value.split(":").map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function getScheduleStatus(slot, index, nextIndex, now) {
+  if (slot.status === "CANCELLED") return { key: "cancelled", label: "Cancelled" };
+  if (slot.status === "HOLIDAY") return { key: "holiday", label: "Holiday" };
+  const [startHour, startMinute] = (slot.startTime || "").split(":").map(Number);
+  const [endHour, endMinute] = (slot.endTime || "").split(":").map(Number);
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const startMinutes = startHour * 60 + startMinute;
+  const endMinutes = endHour * 60 + endMinute;
+  if (slot.startTime && slot.endTime && currentMinutes >= endMinutes) return { key: "completed", label: "Completed" };
+  if (slot.startTime && slot.endTime && currentMinutes >= startMinutes) return { key: "in-progress", label: "In progress" };
+  if (index === nextIndex) return { key: "upcoming", label: "Upcoming" };
+  return { key: "scheduled", label: "Scheduled" };
 }
 
 /* ================= ACTION CARD ================= */
