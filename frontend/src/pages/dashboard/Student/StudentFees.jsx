@@ -1,4 +1,4 @@
-﻿import { useContext, useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -110,6 +110,21 @@ export default function StudentFees() {
       }
     };
     fetchProfile();
+  }, []);
+
+  /* ================= PRELOAD RAZORPAY SCRIPT ================= */
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.Razorpay) {
+      const existing = document.querySelector(
+        'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
+      );
+      if (!existing) {
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.async = true;
+        document.body.appendChild(script);
+      }
+    }
   }, []);
 
   /* ================= CLEANUP TIMEOUT ================= */

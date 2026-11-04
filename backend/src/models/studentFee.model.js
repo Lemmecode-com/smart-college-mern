@@ -47,6 +47,12 @@ const studentFeeSchema = new mongoose.Schema({
     default: 0,
   },
 
+  paymentStatus: {
+    type: String,
+    enum: ["PENDING", "PARTIAL", "PAID"],
+    default: "PENDING",
+  },
+
   installments: [
     {
       name: String,

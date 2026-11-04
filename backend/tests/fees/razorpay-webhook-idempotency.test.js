@@ -911,6 +911,7 @@ describe("Issue #194 — Razorpay Webhook Idempotency & Duplicate Payment Protec
           razorpay_order_id: orderId,
           razorpay_payment_id: paymentId,
           razorpay_signature: signature,
+          amount: 3000,
         },
         user: { id: studentUserA._id },
         college_id: collegeA._id,
@@ -1103,6 +1104,164 @@ describe("Issue #194 — Razorpay Webhook Idempotency & Duplicate Payment Protec
       expect(emailArgs.installment.gstAmount).toBe(762.71);
       expect(emailArgs.installment.taxBreakdown).toEqual(taxBreakdown);
       expect(emailArgs.installment.amount).toBe(5000);
+    });
+  });
+
+  describe("8. Direct verifyRazorpayPayment Lifecycle & Partial-Then-Full Validation", () => {
+    let multiFee;
+
+    beforeEach(async () => {
+      multiFee = await StudentFee.create({
+        student_id: studentA._id,
+        college_id: collegeA._id,
+        course_id: courseA._id,
+        totalFee: 10000,
+        paidAmount: 0,
+        paymentStatus: "PENDING",
+        installments: [
+          {
+            name: "Semester 1",
+            amount: 4000,
+            dueDate: new Date(),
+            status: "PENDING",
+            razorpayOrderId: "order_sem_1",
+          },
+          {
+            name: "Semester 2",
+            amount: 6000,
+            dueDate: new Date(),
+            status: "PENDING",
+            razorpayOrderId: "order_sem_2",
+          },
+        ],
+      });
+    });
+
+    test("tampered signature is rejected with 400 INVALID_SIGNATURE", async () => {
+      const { req, res, next } = createMockReqRes({
+        body: {
+          razorpay_order_id: "order_sem_1",
+          razorpay_payment_id: "pay_sem_1",
+          razorpay_signature: "tampered_invalid_signature_hex_1234567890abcdef",
+        },
+        user: { id: studentUserA._id },
+        college_id: collegeA._id,
+      });
+
+      await verifyRazorpayPayment(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      const err = next.mock.calls[0][0];
+      expect(err.statusCode).toBe(400);
+      expect(err.code).toBe("INVALID_SIGNATURE");
+    });
+
+    test("wrong orderId is rejected with 404 INSTALLMENT_NOT_FOUND", async () => {
+      const orderId = "order_non_existent";
+      const paymentId = "pay_valid";
+      const signature = crypto
+        .createHmac("sha256", PLAIN_KEY_SECRET)
+        .update(`${orderId}|${paymentId}`)
+        .digest("hex");
+
+      const { req, res, next } = createMockReqRes({
+        body: {
+          razorpay_order_id: orderId,
+          razorpay_payment_id: paymentId,
+          razorpay_signature: signature,
+        },
+        user: { id: studentUserA._id },
+        college_id: collegeA._id,
+      });
+
+      await verifyRazorpayPayment(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      const err = next.mock.calls[0][0];
+      expect(err.statusCode).toBe(404);
+      expect(err.code).toBe("INSTALLMENT_NOT_FOUND");
+    });
+
+    test("partial payment then full payment correctly updates paidAmount and paymentStatus", async () => {
+      // 1. Pay Semester 1 (4000 of 10000) -> status PARTIAL
+      const order1 = "order_sem_1";
+      const pay1 = "pay_sem_1_success";
+      const sig1 = crypto
+        .createHmac("sha256", PLAIN_KEY_SECRET)
+        .update(`${order1}|${pay1}`)
+        .digest("hex");
+
+      const reqRes1 = createMockReqRes({
+        body: {
+          razorpay_order_id: order1,
+          razorpay_payment_id: pay1,
+          razorpay_signature: sig1,
+        },
+        user: { id: studentUserA._id },
+        college_id: collegeA._id,
+      });
+
+      await verifyRazorpayPayment(reqRes1.req, reqRes1.res, reqRes1.next);
+
+      expect(reqRes1.res.statusCode).toBe(200);
+      expect(reqRes1.res.body.valid).toBe(true);
+      expect(reqRes1.res.body.paidAmount).toBe(4000);
+      expect(reqRes1.res.body.remainingAmount).toBe(6000);
+
+      const feeAfterPart1 = await StudentFee.findById(multiFee._id);
+      expect(feeAfterPart1.installments[0].status).toBe("PAID");
+      expect(feeAfterPart1.installments[0].transactionId).toBe(pay1);
+      expect(feeAfterPart1.paidAmount).toBe(4000);
+      expect(feeAfterPart1.paymentStatus).toBe("PARTIAL");
+
+      // 2. Calling verify again on Semester 1 returns alreadyPaid: true and doesn't double count
+      const reqResRepeat = createMockReqRes({
+        body: {
+          razorpay_order_id: order1,
+          razorpay_payment_id: pay1,
+          razorpay_signature: sig1,
+        },
+        user: { id: studentUserA._id },
+        college_id: collegeA._id,
+      });
+
+      await verifyRazorpayPayment(reqResRepeat.req, reqResRepeat.res, reqResRepeat.next);
+      expect(reqResRepeat.res.statusCode).toBe(200);
+      expect(reqResRepeat.res.body.alreadyPaid).toBe(true);
+      expect(reqResRepeat.res.body.paidAmount).toBe(4000);
+
+      const feeAfterRepeat = await StudentFee.findById(multiFee._id);
+      expect(feeAfterRepeat.paidAmount).toBe(4000);
+
+      // 3. Pay Semester 2 (6000 of 10000) -> status PAID
+      const order2 = "order_sem_2";
+      const pay2 = "pay_sem_2_success";
+      const sig2 = crypto
+        .createHmac("sha256", PLAIN_KEY_SECRET)
+        .update(`${order2}|${pay2}`)
+        .digest("hex");
+
+      const reqRes2 = createMockReqRes({
+        body: {
+          razorpay_order_id: order2,
+          razorpay_payment_id: pay2,
+          razorpay_signature: sig2,
+        },
+        user: { id: studentUserA._id },
+        college_id: collegeA._id,
+      });
+
+      await verifyRazorpayPayment(reqRes2.req, reqRes2.res, reqRes2.next);
+
+      expect(reqRes2.res.statusCode).toBe(200);
+      expect(reqRes2.res.body.valid).toBe(true);
+      expect(reqRes2.res.body.paidAmount).toBe(10000);
+      expect(reqRes2.res.body.remainingAmount).toBe(0);
+
+      const feeAfterFull = await StudentFee.findById(multiFee._id);
+      expect(feeAfterFull.installments[1].status).toBe("PAID");
+      expect(feeAfterFull.paidAmount).toBe(10000);
+      expect(feeAfterFull.paymentStatus).toBe("PAID");
     });
   });
 });
