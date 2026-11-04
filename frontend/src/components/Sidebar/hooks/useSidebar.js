@@ -64,6 +64,10 @@ export function useSidebar(initialState = {}, role = 'COLLEGE_ADMIN') {
 
   // Initialize open sections with all sections collapsed
   const [openSections, setOpenSections] = useState(() => {
+    if (role === 'EXAM_COORDINATOR') {
+      return {};
+    }
+
     const defaultSections = getDefaultOpenSections(role);
 
     const collapsedSections = Object.keys(defaultSections).reduce(

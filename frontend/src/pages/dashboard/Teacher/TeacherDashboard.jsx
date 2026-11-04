@@ -219,14 +219,13 @@ if (loading) {
             initial="hidden"
             animate="visible"
             className="card shadow-lg border-0 mb-3 mb-md-4 overflow-hidden teacher-dashboard-banner"
-            style={{ borderRadius: '1rem' }}
           >
             <div
-              className="p-3 p-md-4 text-white"
+              className="p-3 p-md-4 text-white teacher-banner-hero"
               style={{ background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)"}}
             >
               <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-md-between gap-3 teacher-banner-main">
-                <div className="d-flex align-items-center gap-3">
+                <div className="d-flex align-items-center gap-3 teacher-welcome">
                   <motion.div
                     variants={pulseVariants}
                     initial="initial"
@@ -251,7 +250,7 @@ if (loading) {
                     </p>
                   </div>
                 </div>
-                <div className="d-flex gap-2 align-items-center">
+                <div className="d-flex gap-2 align-items-center teacher-banner-metadata">
                   <div
                     className="text-center px-3 py-2 teacher-banner-stat"
                     style={{
@@ -282,18 +281,15 @@ if (loading) {
                   </div>
                 </div>
               </div>
-            </div>
-
-{/* Teacher Info Bar */}
-             <div className="px-3 px-md-4 py-3 bg-light border-top">
+              <div className="teacher-banner-footer">
                <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-                 <div className="d-flex align-items-center gap-2">
-                   <FaShieldAlt style={{ color: BRAND_COLORS.info.main }} />
+                 <div className="d-flex align-items-center gap-2 teacher-designation">
+                   <FaShieldAlt />
                    <span
                      className="px-3 py-1 rounded-pill fw-semibold small"
                      style={{
-                       backgroundColor: teacher.isHod ? '#fef3c7' : '#dcfce7',
-                       color: teacher.isHod ? '#92400e' : '#166534',
+                       backgroundColor: 'rgba(255,255,255,.13)',
+                       color: '#f1fbff',
                        fontSize: '0.8rem'
                      }}
                    >
@@ -308,201 +304,232 @@ if (loading) {
                   style={{
                     borderRadius: '12px',
                     fontWeight: 600,
-                    fontSize: '0.875rem'
+                    fontSize: '0.875rem',
+                    color: '#fff',
+                    borderColor: 'rgba(255,255,255,.55)',
+                    background: 'rgba(255,255,255,.08)'
                   }}
                 >
                   <FaEdit /> <span>Edit Profile</span>
                 </motion.button>
               </div>
             </div>
+            </div>
           </motion.div>
 
 <style>{`
-  /* =========================================
-     TEACHER DASHBOARD BANNER
-     MOBILE + TABLET ONLY
-     ========================================= */
+  .teacher-dashboard-banner {
+    border: 1px solid #d9e5eb !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 24px rgba(15, 58, 74, 0.11) !important;
+    margin-top: -5px;
+  }
+  .teacher-banner-hero {
+    position: relative;
+    overflow: hidden;
+    padding: 1.4rem 1.6rem 1.1rem !important;
+    background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%) !important;
+  }
+  .teacher-banner-main { position: relative; z-index: 1; gap: 1rem !important; }
+  .teacher-welcome { min-width: 0; gap: 1rem !important; }
+  .teacher-banner-icon {
+    width: 58px !important;
+    height: 58px !important;
+    min-width: 58px !important;
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 15px !important;
+    background: rgba(255,255,255,.1) !important;
+    font-size: 1.45rem !important;
+  }
+  .teacher-banner-title { font-size: 1.65rem !important; letter-spacing: -.025em; }
+  .teacher-banner-description { color: rgba(237,247,250,.77); font-size: .88rem !important; }
+  .teacher-banner-metadata {
+    flex-shrink: 0;
+    padding: .4rem;
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 11px;
+    background: rgba(2,27,38,.22);
+  }
+  .teacher-banner-stat {
+    min-width: 112px;
+    padding: .45rem .7rem !important;
+    border-radius: 7px !important;
+    background: transparent !important;
+    text-align: left !important;
+  }
+  .teacher-banner-stat + .teacher-banner-stat { border-left: 1px solid rgba(255,255,255,.18); }
+  .teacher-banner-stat .small { color: rgba(237,247,250,.7); font-size: .65rem !important; text-transform: uppercase; letter-spacing: .07em; }
+  .teacher-banner-stat .fw-bold { font-size: .95rem !important; }
+  .teacher-banner-footer {
+    position: relative;
+    z-index: 1;
+    margin-top: 1rem;
+    padding-top: .8rem;
+    border-top: 1px solid rgba(255,255,255,.18);
+  }
+  .teacher-designation { color: rgba(241,251,255,.82); font-size: .8rem; }
+  .teacher-dashboard-banner .teacher-designation .rounded-pill {
+    padding: .4rem .8rem !important;
+    border: 1px solid rgba(255,255,255,.22);
+    font-size: .74rem !important;
+    letter-spacing: .01em;
+  }
+  .teacher-dashboard-banner .teacher-banner-footer button {
+    min-height: 36px;
+    padding: .4rem .8rem !important;
+    border-radius: 8px !important;
+    color: #fff !important;
+    border-color: rgba(255,255,255,.55) !important;
+    background: rgba(255,255,255,.08);
+  }
+  .teacher-dashboard-banner .teacher-banner-footer button:hover {
+    color: #0f3a4a !important;
+    background: #fff !important;
+  }
+  .teacher-dashboard-stats {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .85rem;
+    margin: 0 0 1.25rem !important;
+  }
+  .teacher-dashboard-stats > [class*="col-"] { width: auto; max-width: none; padding: 0; }
+  .teacher-stat-card {
+    height: 100%;
+    min-height: 142px;
+    padding: 1.1rem;
+    border: 1px solid #e0e9ee;
+    border-radius: 15px !important;
+    background: linear-gradient(145deg, #fff 0%, #fbfdfe 100%);
+    box-shadow: 0 4px 14px rgba(15,58,74,.06) !important;
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  }
+  .teacher-stat-card:hover { transform: translateY(-4px); border-color: #b7d1d9; box-shadow: 0 12px 24px rgba(15,58,74,.11) !important; }
+  .teacher-stat-card .card-body { display: flex; align-items: center; padding: 0 !important; }
+  .teacher-stat-card .card-body > .d-flex { width: 100%; gap: .9rem !important; }
+  .teacher-stat-card .teacher-stat-icon {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+    font-size: 1.2rem !important;
+  }
+  .teacher-stat-card .teacher-stat-label { color: #627681; font-size: .73rem !important; font-weight: 700 !important; letter-spacing: .045em; text-transform: uppercase; }
+  .teacher-stat-card .teacher-stat-value { color: #163d4b !important; font-size: 2.15rem !important; line-height: 1.05; letter-spacing: -.035em; }
+  .teacher-stat-card .teacher-stat-subtitle { color: #82929a; font-size: .75rem !important; }
+  .teacher-dashboard-quick-section,
+  .teacher-dashboard-recent {
+    overflow: hidden;
+    border: 1px solid #dfe8ed !important;
+    border-radius: 14px !important;
+    background: #fff;
+    box-shadow: 0 4px 16px rgba(15,58,74,.055) !important;
+  }
+  .teacher-dashboard-quick-section > div:first-child,
+  .teacher-dashboard-recent > div:first-child {
+    padding: .85rem 1.1rem !important;
+    background: #fff !important;
+    border-bottom: 1px solid #e9eff2 !important;
+  }
+  .teacher-dashboard-quick-section > div:first-child h3,
+  .teacher-dashboard-recent > div:first-child h3 { color: #173f4e !important; font-size: 1rem !important; }
+  .teacher-dashboard-actions {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .8rem !important;
+    padding: .9rem !important;
+    margin: 0 !important;
+  }
+  .teacher-dashboard-actions > [class*="col-"] {
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    padding: 0;
+  }
+  .teacher-action-card {
+    position: relative;
+    min-height: 218px;
+    height: 100%;
+    padding: 1.1rem !important;
+    border: 1px solid #e1e9ed !important;
+    border-radius: 15px !important;
+    background: linear-gradient(145deg, #fff 0%, #fbfdfe 100%);
+    text-align: left !important;
+    box-shadow: 0 3px 12px rgba(15,58,74,.045);
+    cursor: pointer;
+    transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  }
+  .teacher-action-card:hover { border-color: #9ccbd5 !important; background: #fbfefe; box-shadow: 0 11px 22px rgba(15,58,74,.1); }
+  .teacher-action-accent { height: 3px !important; opacity: .58; }
+  .teacher-action-icon {
+    width: 46px !important;
+    height: 46px !important;
+    margin: .15rem 0 .85rem !important;
+    border-radius: 13px !important;
+    box-shadow: none !important;
+    font-size: 1.2rem !important;
+  }
+  .teacher-action-title {
+    min-height: 2.55rem !important;
+    margin-bottom: .45rem !important;
+    color: #193e4c !important;
+    font-size: .98rem !important;
+    line-height: 1.4;
+    text-align: left;
+  }
+  .teacher-action-description {
+    min-height: 2.4rem !important;
+    margin-bottom: .8rem !important;
+    color: #667b86 !important;
+    font-size: .8rem !important;
+    line-height: 1.5 !important;
+  }
+  .teacher-action-link {
+    align-self: flex-start;
+    margin-top: auto;
+    padding: .4rem .65rem !important;
+    border-radius: 8px !important;
+    background: #eef6f7 !important;
+    font-size: .76rem !important;
+    transition: background .2s ease, color .2s ease;
+  }
+  .teacher-action-card:hover .teacher-action-link { background: #dceef1 !important; }
+  .teacher-dashboard-recent .teacher-recent-body { padding: .35rem .85rem .85rem !important; }
+  .teacher-dashboard-recent .table-responsive { border-radius: 0 0 12px 12px; }
+  .teacher-dashboard-recent table { min-width: 790px; border-collapse: separate; border-spacing: 0; }
+  .teacher-dashboard-recent thead th {
+    padding: .75rem .85rem !important;
+    background: #f5f8fa !important;
+    color: #657985 !important;
+    border-bottom: 1px solid #e3eaee !important;
+    font-size: .66rem !important;
+    letter-spacing: .06em;
+    white-space: nowrap;
+  }
+  .teacher-dashboard-recent tbody td { padding: .75rem .85rem !important; border-color: #edf1f4; color: #3e5661; font-size: .8rem; }
+  .teacher-dashboard-recent tbody tr:hover { background: #f7fafb; }
+  .teacher-dashboard-recent .lecture-action-button { width: 34px !important; height: 34px !important; border-radius: 9px !important; box-shadow: none !important; }
 
   @media (max-width: 991px) {
-
-    .teacher-dashboard-banner {
-      border-radius: 16px !important;
-    }
-
-    /* Main dark section */
-    .teacher-dashboard-banner > .p-3 {
-      padding: 1.15rem !important;
-    }
-
-    .teacher-banner-main {
-      gap: 1rem !important;
-    }
-
-    /* Icon */
-    .teacher-banner-icon {
-      width: 58px !important;
-      height: 58px !important;
-      min-width: 58px !important;
-      font-size: 1.5rem !important;
-    }
-
-    /* Welcome text */
-    .teacher-banner-title {
-  font-size: 1.45rem !important;
-  line-height: 1.2 !important;
-  letter-spacing: 0 !important;
-  max-width: 180px !important;
-}
-
-    .teacher-banner-description {
-      font-size: 0.85rem !important;
-      line-height: 1.4 !important;
-      margin-top: 0.35rem !important;
-    }
-
-    /* Time + Employee ID */
-    .teacher-dashboard-banner > .p-3 > .teacher-banner-main > div:last-child {
-      width: 100% !important;
-      display: grid !important;
-      grid-template-columns: 1fr 1fr !important;
-      gap: 10px !important;
-    }
-
-    .teacher-banner-stat {
-      width: 100% !important;
-      min-width: 0 !important;
-      padding: 0.65rem 0.5rem !important;
-      border-radius: 10px !important;
-    }
-
-    .teacher-banner-stat .small {
-      font-size: 0.68rem !important;
-      line-height: 1.2 !important;
-    }
-
-    .teacher-banner-stat .fw-bold {
-      font-size: 0.95rem !important;
-      line-height: 1.3 !important;
-      word-break: break-word !important;
-    }
-
-    /* Teacher info bar */
-    .teacher-dashboard-banner .bg-light {
-      padding: 0.7rem 1rem !important;
-    }
-
-    .teacher-dashboard-banner .bg-light > .d-flex {
-      gap: 0.75rem !important;
-    }
-
-    .teacher-dashboard-banner .bg-light .rounded-pill {
-      font-size: 0.75rem !important;
-      padding: 0.4rem 0.75rem !important;
-    }
-
-    .teacher-dashboard-banner .bg-light button {
-      width: 36px !important;
-      height: 36px !important;
-      padding: 0 !important;
-      justify-content: center !important;
-    }
+    .teacher-dashboard-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .teacher-dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
-
-
-  /* =========================================
-     SMALL MOBILE
-     ========================================= */
-
+  @media (max-width: 767px) {
+    .teacher-banner-hero { padding: 1rem !important; }
+    .teacher-banner-main { align-items: stretch !important; flex-direction: column !important; }
+    .teacher-banner-metadata { width: 100%; }
+    .teacher-banner-stat { flex: 1; min-width: 0; }
+    .teacher-banner-footer { margin-top: .8rem; padding-top: .7rem; }
+    .teacher-dashboard-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   @media (max-width: 575px) {
-
-    .teacher-dashboard-banner {
-      border-radius: 14px !important;
-    }
-
-    .teacher-dashboard-banner > .p-3 {
-      padding: 0.9rem !important;
-    }
-
-    .teacher-banner-main {
-      gap: 0.75rem !important;
-    }
-
-    .teacher-banner-icon {
-      width: 52px !important;
-      height: 52px !important;
-      min-width: 52px !important;
-      font-size: 1.3rem !important;
-    }
-
-    .teacher-banner-title {
-  font-size: 1.25rem !important;
-  line-height: 1.15 !important;
-  max-width: 150px !important;
-}
-
-    .teacher-banner-description {
-      font-size: 0.75rem !important;
-      line-height: 1.35 !important;
-    }
-
-    .teacher-dashboard-banner > .p-3 > .teacher-banner-main > div:last-child {
-      gap: 8px !important;
-    }
-
-    .teacher-banner-stat {
-      padding: 0.55rem 0.35rem !important;
-    }
-
-    .teacher-banner-stat .small {
-      font-size: 0.62rem !important;
-    }
-
-    .teacher-banner-stat .fw-bold {
-      font-size: 0.85rem !important;
-    }
-
-    .teacher-dashboard-banner .bg-light {
-      padding: 0.6rem 0.8rem !important;
-    }
-
-    .teacher-dashboard-banner .bg-light .rounded-pill {
-      font-size: 0.7rem !important;
-      padding: 0.35rem 0.65rem !important;
-    }
-
-    .teacher-dashboard-banner .bg-light button {
-      width: 34px !important;
-      height: 34px !important;
-    }
-  }
-
-  @media (min-width: 270px) and (max-width: 1030px) {
-    .teacher-dashboard-banner .bg-light button {
-      width: auto !important;
-      min-width: max-content !important;
-      height: auto !important;
-      min-height: 36px !important;
-      padding: 0.4rem 0.75rem !important;
-      white-space: nowrap !important;
-    }
-  }
-
-  @media (min-width: 980px) and (max-width: 1400px) {
-    .teacher-dashboard-stats > [class*="col-"] {
-      flex: 0 0 50%;
-      max-width: 50%;
-    }
-  }
-
-  @media (min-width: 980px) and (max-width: 1350px) {
-    .teacher-dashboard-actions > [class*="col-"] {
-      flex: 0 0 50%;
-      max-width: 50%;
-    }
-
-    .teacher-dashboard-actions .teacher-action-card {
-      padding: 1rem !important;
-    }
+    .teacher-dashboard-actions,
+    .teacher-dashboard-stats { grid-template-columns: minmax(0, 1fr); }
+    .teacher-action-card { min-height: 0; }
+    .teacher-action-title,
+    .teacher-action-description { min-height: 0 !important; }
+    .teacher-banner-title { max-width: none !important; font-size: 1.3rem !important; }
+    .teacher-banner-description { font-size: .78rem !important; }
+    .teacher-dashboard-recent table { min-width: 740px; }
   }
 `}</style>
 
@@ -566,13 +593,14 @@ if (loading) {
             className="mb-3 mb-md-4"
           >
             <SectionCard
+              className="teacher-dashboard-quick-section"
               title="Quick Actions"
               icon={<FaArrowRight />}
               subtitle="Frequently used operations"
               color={BRAND_COLORS.primary.main}
             >
-              <div className="row g-3 g-md-4 p-3 p-md-4 teacher-dashboard-actions">
-                <div className="col-12 col-sm-6 col-lg-3">
+              <div className="teacher-dashboard-actions">
+                <div>
                   <ActionCard
                     icon={FaQrcode}
                     title="Create Attendance Session"
@@ -582,7 +610,7 @@ if (loading) {
                     gradient={BRAND_COLORS.success.gradient}
                   />
                 </div>
-                <div className="col-12 col-sm-6 col-lg-3">
+                <div>
                   <ActionCard
                     icon={FaUsers}
                     title="Mark Attendance"
@@ -592,7 +620,7 @@ if (loading) {
                     gradient={BRAND_COLORS.info.gradient}
                   />
                 </div>
-                <div className="col-12 col-sm-6 col-lg-3">
+                <div>
                   <ActionCard
                     icon={FaChartBar}
                     title="View Attendance Report"
@@ -602,7 +630,7 @@ if (loading) {
                     gradient={BRAND_COLORS.warning.gradient}
                   />
                 </div>
-                <div className="col-12 col-sm-6 col-lg-3">
+                <div>
                   <ActionCard
                     icon={FaBell}
                     title="Send Notifications"
@@ -624,12 +652,13 @@ if (loading) {
             animate="visible"
           >
             <SectionCard
+              className="teacher-dashboard-recent"
               title="Recent Lectures"
               icon={<FaCalendarAlt />}
               subtitle="Your latest teaching sessions"
               color={BRAND_COLORS.info.main}
             >
-              <div className="p-3 p-md-4">
+              <div className="p-3 p-md-4 teacher-recent-body">
                 {recentLectures && recentLectures.length > 0 ? (
                   <div className="table-responsive">
                     <table className="table table-hover align-middle mb-0">
@@ -731,9 +760,9 @@ function ErrorDisplay({ message, onRetry }) {
 function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
   return (
     <motion.div
-      whileHover={{ y: -5, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)' }}
+      whileHover={{ y: -3 }}
       whileTap={{ scale: 0.98 }}
-      className="card h-100 border-0"
+      className="card h-100 border-0 teacher-stat-card"
       style={{
         borderRadius: '16px',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.08)',
@@ -744,28 +773,28 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
       <div className="card-body p-4">
         <div className="d-flex align-items-center gap-3">
           <div
-            className="d-flex align-items-center justify-content-center flex-shrink-0"
+            className="d-flex align-items-center justify-content-center flex-shrink-0 teacher-stat-icon"
             style={{
               width: '56px',
               height: '56px',
               borderRadius: '14px',
-              background: gradient,
-              color: 'white',
+              background: `${color}18`,
+              color: color === BRAND_COLORS.warning.main ? '#8a6500' : color,
               fontSize: '1.75rem',
-              boxShadow: `0 4px 12px ${color}30`
+              boxShadow: 'none'
             }}
           >
             <Icon />
           </div>
           <div className="flex-grow-1">
-            <div className="small fw-semibold text-muted mb-1" style={{ fontSize: '0.875rem' }}>
+            <div className="small fw-semibold text-muted mb-1 teacher-stat-label" style={{ fontSize: '0.875rem' }}>
               {label}
             </div>
-            <div className="h2 mb-0 fw-bold" style={{ fontSize: '1.75rem', color: '#1e293b' }}>
+            <div className="h2 mb-0 fw-bold teacher-stat-value" style={{ fontSize: '1.75rem', color: '#1e293b' }}>
               {value}
             </div>
             {subtitle && (
-              <div className="small text-muted mt-1" style={{ fontSize: '0.8rem' }}>
+              <div className="small text-muted mt-1 teacher-stat-subtitle" style={{ fontSize: '0.8rem' }}>
                 {subtitle}
               </div>
             )}
@@ -777,10 +806,10 @@ function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
 }
 
 /* ================= SECTION CARD ================= */
-function SectionCard({ title, icon, subtitle, color, children }) {
+function SectionCard({ title, icon, subtitle, color, children, className = "" }) {
   return (
     <div
-      className="card border-0 h-100"
+      className={`card border-0 h-100 ${className}`}
       style={{
         borderRadius: '16px',
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
@@ -815,7 +844,7 @@ function ActionCard({ icon: Icon, title, desc, link, color, gradient }) {
 
   return (
     <motion.div
-      whileHover={{ y: -8, boxShadow: '0 15px 35px rgba(0, 0, 0, 0.15)' }}
+      whileHover={{ y: -3 }}
       whileTap={{ scale: 0.98 }}
       onClick={() => navigate(link)}
       className="card border-0 h-100 text-center cursor-pointer d-flex flex-column teacher-action-card"
@@ -828,49 +857,46 @@ function ActionCard({ icon: Icon, title, desc, link, color, gradient }) {
       }}
     >
       <div
-        className="position-absolute top-0 start-0 w-100"
+        className="position-absolute top-0 start-0 w-100 teacher-action-accent"
         style={{
-          height: '4px',
-          background: gradient,
-          zIndex: 1
+        height: '4px',
+        background: color,
+        zIndex: 1
         }}
       />
 
       <motion.div
-        variants={pulseVariants}
-        initial="initial"
-        animate="pulse"
-        className="d-flex align-items-center justify-content-center mb-3"
+        className="d-flex align-items-center justify-content-center mb-3 teacher-action-icon"
         style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '16px',
-          background: gradient,
-          color: 'white',
-          fontSize: '2rem',
-          margin: '0 auto',
-          boxShadow: `0 6px 20px ${color}40`
+        width: '64px',
+        height: '64px',
+        borderRadius: '16px',
+        background: `${color}18`,
+        color: color === BRAND_COLORS.warning.main ? '#8a6500' : color,
+        fontSize: '2rem',
+        margin: '0 auto',
+        boxShadow: 'none'
         }}
       >
         <Icon />
       </motion.div>
 
       <h4
-          className="fw-bold mb-2"
+          className="fw-bold mb-2 teacher-action-title"
           style={{
             fontSize: '1.125rem',
             color: '#1e293b',
             minHeight: '54px',
             display: 'flex',
             alignItems: 'flex-start',
-            justifyContent: 'center',
+            justifyContent: 'flex-start',
           }}
         >
         {title}
       </h4>
 
         <p
-          className="text-muted mb-3"
+          className="text-muted mb-3 teacher-action-description"
           style={{
             fontSize: '0.875rem',
             lineHeight: 1.5,
@@ -881,10 +907,10 @@ function ActionCard({ icon: Icon, title, desc, link, color, gradient }) {
       </p>
 
       <span
-       className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill fw-semibold small mt-auto"
+       className="d-inline-flex align-items-center gap-2 px-3 py-2 rounded-pill fw-semibold small mt-auto teacher-action-link"
         style={{
-          backgroundColor: `${color}10`,
-          color: color,
+          backgroundColor: `${color}12`,
+          color: color === BRAND_COLORS.warning.main ? '#8a6500' : color,
           fontSize: '0.8rem'
         }}
       >
@@ -968,7 +994,7 @@ function LectureRow({ lecture, delay = 0 }) {
               e.stopPropagation();
               navigate(`/timetable/weekly-timetable`);
             }}
-            className="d-flex align-items-center justify-content-center flex-shrink-0"
+            className="d-flex align-items-center justify-content-center flex-shrink-0 lecture-action-button"
             aria-label="View attendance"
             title="View attendance"
             style={{

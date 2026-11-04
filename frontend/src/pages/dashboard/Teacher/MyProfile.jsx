@@ -436,6 +436,233 @@ if (loading) {
             font-size: 0.68rem !important;
           }
         }
+        .teacher-profile-page > div { max-width: 100%; }
+        .teacher-profile-header {
+          margin: 0 0 1.25rem;
+          overflow: hidden;
+          border: 1px solid rgba(15, 58, 74, .15);
+          border-radius: 18px;
+          background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
+          color: #fff;
+          box-shadow: 0 12px 30px rgba(15, 58, 74, .15);
+        }
+        .teacher-profile-banner {
+          display: flex;
+          align-items: center;
+          gap: 1.1rem;
+          padding: 1.5rem 1.7rem 1.25rem;
+          background: transparent;
+        }
+        .teacher-profile-icon {
+          display: flex;
+          flex: 0 0 64px;
+          align-items: center;
+          justify-content: center;
+          width: 64px;
+          height: 64px;
+          border: 1px solid rgba(255,255,255,.25);
+          border-radius: 16px;
+          background: rgba(255,255,255,.11);
+          font-size: 1.8rem;
+        }
+        .teacher-profile-identity { flex: 1 1 auto; min-width: 220px; }
+        .teacher-profile-identity h1 {
+          margin: 0 0 .65rem;
+          color: #fff;
+          font-size: clamp(1.45rem, 2.2vw, 2rem);
+          font-weight: 750;
+          letter-spacing: -.03em;
+          line-height: 1.15;
+          overflow-wrap: anywhere;
+        }
+        .teacher-profile-credentials { display: flex; flex-wrap: wrap; gap: .45rem; }
+        .teacher-profile-credentials span {
+          display: inline-flex;
+          align-items: center;
+          gap: .45rem;
+          padding: .36rem .62rem;
+          border: 1px solid rgba(255,255,255,.15);
+          border-radius: 7px;
+          background: rgba(255,255,255,.07);
+          color: rgba(245,251,253,.86);
+          font-size: .78rem;
+        }
+        .teacher-profile-credentials svg { color: #8dd4e3; }
+        .teacher-profile-actions { display: flex; flex: 0 0 auto; gap: .55rem; }
+        .teacher-profile-actions button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: .45rem;
+          min-height: 40px;
+          padding: .55rem .8rem;
+          border: 1px solid rgba(255,255,255,.4);
+          border-radius: 9px;
+          color: #fff;
+          font-size: .8rem;
+          font-weight: 650;
+          white-space: nowrap;
+          cursor: pointer;
+          transition: background .18s ease, color .18s ease, border-color .18s ease;
+        }
+        .teacher-profile-back { background: rgba(255,255,255,.07); }
+        .teacher-profile-edit { border-color: #fff !important; background: #fff; color: #0f3a4a !important; }
+        .teacher-profile-back:hover { background: rgba(255,255,255,.16); }
+        .teacher-profile-edit:hover { background: #e8f5f8; }
+        .teacher-profile-meta {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+          align-items: center;
+          gap: .7rem;
+          margin: 0 1.7rem;
+          padding: .85rem 0 1rem;
+          border-top: 1px solid rgba(255,255,255,.18);
+        }
+        .teacher-profile-meta-item { display: flex; align-items: center; gap: .6rem; min-width: 0; }
+        .teacher-profile-meta-item > svg { flex: 0 0 auto; color: #8dd4e3; font-size: .95rem; }
+        .teacher-profile-meta-item > span { min-width: 0; color: #f3fbfd; font-size: .78rem; font-weight: 600; overflow-wrap: anywhere; }
+        .teacher-profile-meta-item small { display: block; margin-bottom: .15rem; color: rgba(226,242,247,.62); font-size: .62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+        .teacher-profile-status {
+          display: inline-flex;
+          align-items: center;
+          gap: .4rem;
+          padding: .45rem .7rem;
+          border: 1px solid rgba(121,225,171,.35);
+          border-radius: 8px;
+          background: rgba(46,167,105,.17);
+          color: #c3f4d8;
+          font-size: .75rem;
+          font-weight: 700;
+          white-space: nowrap;
+        }
+        .teacher-profile-section {
+          height: 100%;
+          overflow: hidden;
+          border: 1px solid #e0e9ee !important;
+          border-radius: 15px !important;
+          background: #fff;
+          box-shadow: 0 5px 18px rgba(15,58,74,.055) !important;
+          transition: box-shadow .2s ease, transform .2s ease;
+        }
+        .teacher-profile-section-heading {
+          padding: .95rem 1.2rem !important;
+          background: #fff !important;
+          border-bottom: 1px solid #e9eff2 !important;
+        }
+        .teacher-profile-section-heading h3 { color: #183f4d !important; font-size: 1rem !important; }
+        .teacher-profile-section-heading h3 span { color: #16738a !important; }
+        .teacher-profile-section-heading > span { font-size: .75rem !important; }
+        .teacher-profile-panel-body { padding: 1rem !important; }
+        .teacher-profile-personal-panel .teacher-personal-grid {
+          display: grid !important;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: .7rem !important;
+          margin: 0 !important;
+        }
+        .teacher-profile-personal-panel .teacher-personal-grid > div {
+          width: auto !important;
+          min-width: 0;
+          padding: 0 !important;
+        }
+        .teacher-profile-personal-panel .teacher-personal-grid > div > div {
+          height: 100%;
+          min-height: 92px;
+          padding: .8rem !important;
+          gap: .7rem !important;
+          border: 1px solid #e6edf0 !important;
+          border-radius: 11px !important;
+          background: #fbfdfe !important;
+          align-items: center !important;
+          transition: border-color .18s ease, background .18s ease;
+        }
+        .teacher-profile-personal-panel .teacher-personal-grid > div > div:hover { border-color: #b7d5dd !important; background: #f7fbfc !important; }
+        .teacher-profile-personal-panel .teacher-personal-grid > div > div > div:first-child {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex: 0 0 38px;
+          width: 38px !important;
+          height: 38px !important;
+          border-radius: 10px !important;
+          background: #e8f3f5 !important;
+          color: #17647a !important;
+          font-size: 1rem !important;
+        }
+        .teacher-profile-personal-panel .teacher-personal-grid > div > div > div:last-child { min-width: 0; }
+        .teacher-profile-personal-panel .teacher-personal-grid h6 {
+          margin-bottom: .25rem !important;
+          color: #758792 !important;
+          font-size: .64rem !important;
+          font-weight: 700 !important;
+          letter-spacing: .055em !important;
+        }
+        .teacher-profile-personal-panel .teacher-personal-grid h6 + div {
+          color: #183f4d !important;
+          font-size: .88rem !important;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+        .teacher-profile-courses-panel .row,
+        .teacher-profile-subjects-panel .row {
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: .75rem !important;
+          margin: 0 !important;
+        }
+        .teacher-profile-courses-panel .row > div,
+        .teacher-profile-subjects-panel .row > div { width: auto; min-width: 0; padding: 0; }
+        .teacher-profile-course-card,
+        .teacher-profile-subject-card {
+          height: 100%;
+          min-height: 112px;
+          padding: .95rem !important;
+          border: 1px solid #e3eaee !important;
+          border-radius: 12px !important;
+          background: #fff;
+          box-shadow: 0 2px 8px rgba(15,58,74,.035);
+          transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+        .teacher-profile-course-card:hover,
+        .teacher-profile-subject-card:hover { border-color: #b5d3dc !important; box-shadow: 0 8px 18px rgba(15,58,74,.09) !important; }
+        .teacher-profile-course-icon,
+        .teacher-profile-subject-icon {
+          width: 38px !important;
+          height: 38px !important;
+          border-radius: 10px !important;
+          background: #eaf4f6 !important;
+          color: #17647a !important;
+          font-size: 1rem !important;
+        }
+        .teacher-profile-subject-icon { background: #eef4f4 !important; color: #227c7b !important; }
+        .teacher-profile-course-name,
+        .teacher-profile-subject-name { color: #173f4e !important; font-size: .92rem !important; line-height: 1.35; overflow-wrap: anywhere; }
+        .teacher-profile-course-code,
+        .teacher-profile-subject-code { padding: .22rem .5rem !important; border-radius: 6px !important; background: #edf5f7 !important; color: #286879 !important; font-size: .7rem !important; }
+        .teacher-profile-subject-card > div > div:last-child > div > span:last-child { font-size: .75rem !important; }
+
+        @media (max-width: 991px) {
+          .teacher-profile-banner { flex-wrap: wrap; }
+          .teacher-profile-actions { margin-left: auto; }
+          .teacher-profile-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .teacher-profile-personal-panel .teacher-personal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .teacher-profile-courses-panel .row,
+          .teacher-profile-subjects-panel .row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 575px) {
+          .teacher-profile-banner { padding: 1rem !important; gap: .75rem; }
+          .teacher-profile-icon { flex-basis: 48px; width: 48px; height: 48px; border-radius: 12px; font-size: 1.35rem; }
+          .teacher-profile-identity { min-width: calc(100% - 64px); }
+          .teacher-profile-identity h1 { font-size: 1.35rem; }
+          .teacher-profile-credentials { gap: .3rem; }
+          .teacher-profile-credentials span { padding: .3rem .45rem; font-size: .69rem; }
+          .teacher-profile-actions { width: 100%; margin: 0; }
+          .teacher-profile-actions button { flex: 1; padding: .5rem .35rem; font-size: .72rem; }
+          .teacher-profile-meta { grid-template-columns: 1fr; gap: .65rem; margin: 0 1rem; padding: .75rem 0; }
+          .teacher-profile-status { justify-self: start; }
+          .teacher-profile-personal-panel .teacher-personal-grid { grid-template-columns: 1fr; }
+          .teacher-profile-courses-panel .row,
+          .teacher-profile-subjects-panel .row { grid-template-columns: 1fr; }
+        }
       `}</style>
 
 
@@ -443,7 +670,7 @@ if (loading) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="erp-page erp-viewport-min-100"
+        className="erp-page erp-viewport-min-100 teacher-profile-page"
         style={{
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
           paddingTop: '0.5rem',
@@ -466,172 +693,65 @@ if (loading) {
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-          style={{
-  marginBottom: '1.5rem',
-  backgroundColor: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
-  borderRadius: '15px',
-  overflow: 'hidden',
-  boxShadow: '0 8px 24px rgba(15, 55, 70, 0.18)'
-}}
+            className="teacher-profile-header"
           >
-<div className="teacher-profile-banner" style={{
-  padding: '1.5rem 2rem',
-  background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
-  color: 'white',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '1.25rem',
-  flexWrap: 'wrap'
-}}>
+            <div className="teacher-profile-banner">
               <motion.div 
                 className="teacher-profile-icon"
                 variants={pulseVariants}
                 initial="initial"
                 animate="pulse"
-                style={{
-                  width: '72px',
-                  height: '72px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '2.2rem',
-                  flexShrink: 0,
-                  border: '2px solid rgba(255, 255, 255, 0.25)',
-                  boxShadow: 'none'
-                }}
-             
               >
                 <FaUserTie />
               </motion.div>
-              
-<div style={{ flex: 1, minWidth: 0 }}>
-  <h1 style={{
-            margin: 0,
-            fontSize: '1.625rem',
-            fontWeight: 700,
-            letterSpacing: '-0.02em',
-            lineHeight: 1.25,
-  }}>
-                  {profile.name}
-                </h1>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '1.5rem',
-                    flexWrap: 'wrap'
-                  }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FaChalkboardTeacher />
-                    <span style={{ fontSize: '1rem', opacity: 0.65 }}>{profile.designation || 'Faculty Member'}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FaGraduationCap />
-                    <span style={{ fontSize: '1rem', opacity: 0.65 }}>{profile.qualification || 'N/A'}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <FaBriefcase />
-                    <span style={{ fontSize: '1rem', opacity: 0.65 }}>{profile.experienceYears || 0} years experience</span>
-                  </div>
+
+              <div className="teacher-profile-identity">
+                <h1>{profile.name}</h1>
+                <div className="teacher-profile-credentials">
+                  <span><FaChalkboardTeacher />{profile.designation || 'Faculty Member'}</span>
+                  <span><FaGraduationCap />{profile.qualification || 'N/A'}</span>
+                  <span><FaBriefcase />{profile.experienceYears || 0} years experience</span>
                 </div>
               </div>
-              
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+
+              <div className="teacher-profile-actions">
                 <motion.button
-                  whileHover={{
-                    y: -2,
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-                  }}
+                  whileHover={{ y: -2 }}
                   whileTap={{ y: 0 }}
                   onClick={() => navigate('/teacher/dashboard')}
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-                    color: 'white',
-                    border: '2px solid rgba(255, 255, 255, 0.35)',
-                    padding: '0.65rem 1.2rem',
-                    borderRadius: '12px',
-                    fontSize: '0.9rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    // transition: 'all 0.25s ease'
-                  }}
+                  className="teacher-profile-back"
                 >
                   <FaArrowLeft /> Back to Dashboard
                 </motion.button>
                 <motion.button
-whileHover={{
-  y: -2,
-  boxShadow: '0 5px 14px rgba(0, 0, 0, 0.18)'
-}}
-whileTap={{ y: 0 }}
+                  whileHover={{ y: -2 }}
+                  whileTap={{ y: 0 }}
                   onClick={() => navigate('/profile/edit-profile')}
-                  
-style={{
-  backgroundColor: 'white',
-  color: '#0E3746',
-  border: '2px solid white',
-  padding: '0.65rem 1.2rem',
-  borderRadius: '12px',
-  fontSize: '0.95rem',
-  fontWeight: 600,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '0.5rem',
-  // transition: 'all 0.25s ease'
-}}
-            
+                  className="teacher-profile-edit"
                 >
                   <FaEdit /> Edit Profile
                 </motion.button>
               </div>
             </div>
-            
-            {/* Status Bar */}
-            <div style={{
-              padding: '1rem 2rem',
-              backgroundColor: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '1rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <FaIdBadge style={{ color: BRAND_COLORS.primary.main }} />
-                  <span style={{ color: '#4a5568', fontWeight: 500 }}>Employee ID: {profile.employeeId}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <FaUniversity style={{ color: BRAND_COLORS.info.main }} />
-                   <span style={{ color: '#4a5568', fontWeight: 500 }}>Department: {profile.department_id?.name || profile.department_id?.code || "Not Assigned"}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <FaBuilding style={{ color: BRAND_COLORS.success.main }} />
-                  <span style={{ color: '#4a5568', fontWeight: 500 }}>College: {profile.college_id?.name || 'N/A'}</span>
-                </div>
+
+            <div className="teacher-profile-meta">
+              <div className="teacher-profile-meta-item">
+                <FaIdBadge />
+                <span><small>Employee ID</small>{profile.employeeId}</span>
+              </div>
+              <div className="teacher-profile-meta-item">
+                <FaUniversity />
+                <span><small>Department</small>{profile.department_id?.name || profile.department_id?.code || "Not Assigned"}</span>
+              </div>
+              <div className="teacher-profile-meta-item">
+                <FaBuilding />
+                <span><small>College</small>{profile.college_id?.name || 'N/A'}</span>
               </div>
               <motion.div
                 variants={blinkVariants}
                 initial="initial"
                 animate="blink"
-                style={{
-                  padding: '0.5rem 1.25rem',
-                  borderRadius: '20px',
-                  backgroundColor: `${BRAND_COLORS.success.main}15`,
-                  color: BRAND_COLORS.success.main,
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  border: `1px solid ${BRAND_COLORS.success.main}30`
-                }}
+                className="teacher-profile-status"
               >
                 <FaCheckCircle /> {profile.status || 'ACTIVE'}
               </motion.div>
@@ -649,11 +769,12 @@ style={{
               className="col-12"
             >
               <SectionCard
+                className="teacher-profile-personal-panel"
                 title="Personal Information"
                 icon={<FaUserTie />}
                 color={BRAND_COLORS.primary.main}
               >
-                <div className="p-4">
+                <div className="p-4 teacher-profile-panel-body">
                   <div className="row g-3 teacher-personal-grid">
                     <div className="col-12 col-sm-6 col-lg-4">
                       <InfoItem
@@ -728,12 +849,13 @@ style={{
               className="col-12"
             >
               <SectionCard
+                className="teacher-profile-courses-panel"
                 title="Assigned Courses"
                 icon={<FaGraduationCap />}
                 color={BRAND_COLORS.info.main}
                 subtitle={`${profile.courses?.length || 0} course${(profile.courses?.length || 0) !== 1 ? 's' : ''} assigned`}
               >
-                <div className="p-4">
+                <div className="p-4 teacher-profile-panel-body">
                   {profile.courses && profile.courses.length > 0 ? (
                     <div className="row g-3">
                       {profile.courses.map((course, idx) => (
@@ -766,12 +888,13 @@ style={{
               className="col-12"
             >
               <SectionCard
+                className="teacher-profile-subjects-panel"
                 title="Teaching Subjects"
                 icon={<FaChalkboardTeacher />}
                 color={BRAND_COLORS.warning.main}
                 subtitle={`${profile.subjects?.length || 0} subject${(profile.subjects?.length || 0) !== 1 ? 's' : ''} taught`}
               >
-                <div className="p-4">
+                <div className="p-4 teacher-profile-panel-body">
                   {profile.subjects && profile.subjects.length > 0 ? (
                     <div className="row g-3">
                       {profile.subjects.map((subject, idx) => (
@@ -878,16 +1001,16 @@ function EmptyState() {
 }
 
 /* ================= SECTION CARD ================= */
-function SectionCard({ title, icon, color, subtitle, children }) {
+function SectionCard({ title, icon, color, subtitle, children, className = "" }) {
   return (
-    <div style={{
+    <div className={`teacher-profile-section ${className}`} style={{
       backgroundColor: 'white',
       borderRadius: '16px',
       boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
       overflow: 'hidden',
       transition: 'all 0.3s ease'
     }}>
-      <div style={{
+      <div className="teacher-profile-section-heading" style={{
         padding: '1.25rem 1.5rem',
         background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
         borderBottom: '1px solid #eaeaea'
@@ -1002,6 +1125,7 @@ function CourseCard({ course, delay = 0 }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: delay, duration: 0.5 }}
       whileHover={{ y: -5, boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)' }}
+      className="teacher-profile-course-card"
       style={{
         backgroundColor: 'white',
         border: '1px solid #e2e8f0',
@@ -1011,7 +1135,7 @@ function CourseCard({ course, delay = 0 }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-        <div style={{
+        <div className="teacher-profile-course-icon" style={{
           width: '44px',
           height: '44px',
           borderRadius: '10px',
@@ -1026,7 +1150,7 @@ function CourseCard({ course, delay = 0 }) {
           <FaGraduationCap />
         </div>
         <div style={{ flex: 1 }}>
-          <h5 style={{
+          <h5 className="teacher-profile-course-name" style={{
             margin: '0 0 0.25rem 0',
             color: '#1e293b',
             fontWeight: 700,
@@ -1035,7 +1159,7 @@ function CourseCard({ course, delay = 0 }) {
             {course.name}
           </h5>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <span style={{
+            <span className="teacher-profile-course-code" style={{
               backgroundColor: `${BRAND_COLORS.info.main}15`,
               color: BRAND_COLORS.info.main,
               padding: '0.25rem 0.75rem',
@@ -1076,6 +1200,7 @@ function SubjectCard({ subject, delay = 0 }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: delay, duration: 0.5 }}
       whileHover={{ y: -5, boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)' }}
+      className="teacher-profile-subject-card"
       style={{
         backgroundColor: 'white',
         border: '1px solid #e2e8f0',
@@ -1085,7 +1210,7 @@ function SubjectCard({ subject, delay = 0 }) {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-        <div style={{
+        <div className="teacher-profile-subject-icon" style={{
           width: '44px',
           height: '44px',
           borderRadius: '10px',
@@ -1100,7 +1225,7 @@ function SubjectCard({ subject, delay = 0 }) {
           <FaChalkboardTeacher />
         </div>
         <div style={{ flex: 1 }}>
-          <h5 style={{
+          <h5 className="teacher-profile-subject-name" style={{
             margin: '0 0 0.25rem 0',
             color: '#1e293b',
             fontWeight: 700,
@@ -1109,7 +1234,7 @@ function SubjectCard({ subject, delay = 0 }) {
             {subject.name}
           </h5>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <span style={{
+            <span className="teacher-profile-subject-code" style={{
               backgroundColor: `${BRAND_COLORS.warning.main}15`,
               color: BRAND_COLORS.warning.main,
               padding: '0.25rem 0.75rem',

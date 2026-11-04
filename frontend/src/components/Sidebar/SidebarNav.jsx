@@ -55,6 +55,49 @@ export default function SidebarNav({
   useEffect(() => {
     if (!navigation) return;
 
+    // Exam Coordinator: keep submenus independent - only auto-open based on route,
+    // don't force-close others on navigation between child routes
+    if (role === "EXAM_COORDINATOR") {
+      const dashboardPath = navigation.dashboard?.path;
+      // Do not auto-expand submenus when on dashboard
+      if (dashboardPath && location.pathname === dashboardPath) {
+        const allCollapsed = {};
+        navigation.sections
+          .filter((section) => section.items?.length > 1)
+          .forEach((section) => {
+            allCollapsed[section.id] = false;
+          });
+        setOpenSections(allCollapsed);
+        return;
+      }
+
+      // Only auto-expand if route matches a specific child item (not dashboard, not section.matchPath alone)
+      const expandedSection = navigation.sections.find(
+        (section) =>
+          section.items?.length > 1 &&
+          section.items.some((item) => isActiveRoute(item.path, location.pathname)),
+      );
+
+      const matchesNavigationRoute =
+        isActiveRoute(navigation.dashboard.path, location.pathname) ||
+        navigation.sections.some((section) =>
+          section.items?.some((item) =>
+            isActiveRoute(item.path, location.pathname),
+          ),
+        );
+
+      if (!expandedSection && !matchesNavigationRoute) return;
+
+      // Only open the section that matches current route's child items; do not close other sections
+      if (expandedSection) {
+        setOpenSections((prev) => ({
+          ...prev,
+          [expandedSection.id]: true,
+        }));
+      }
+      return;
+    }
+
     const expandedSection = navigation.sections.find(
       (section) =>
         section.items?.length > 1 &&
@@ -78,7 +121,7 @@ export default function SidebarNav({
         .map((section) => [section.id, section.id === expandedSection?.id]),
     );
     setOpenSections(nextOpenSections);
-  }, [location.pathname, navigation, setOpenSections]);
+  }, [location.pathname, navigation, setOpenSections, role]);
 
   if (!navigation) return null;
 

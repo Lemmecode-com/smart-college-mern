@@ -61,9 +61,7 @@ export default function SidebarContainer({
 
   // Close mobile sidebar on route change
   useEffect(() => {
-    if (isMobileOpen) {
-      setIsMobileOpen(false);
-    }
+    setIsMobileOpen(false);
   }, [location.pathname]);
 
   // Scroll active menu item into view when mobile/tablet sidebar opens
