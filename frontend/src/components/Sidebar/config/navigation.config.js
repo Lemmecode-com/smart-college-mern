@@ -873,7 +873,7 @@ export const navigationConfig = {
           {
             path: "/accountant/defaulters",
             icon: FaUserTimes,
-            label: "Defaulter List",
+            label: "Pending Dues",
             exact: true,
           },
           {

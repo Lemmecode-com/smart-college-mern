@@ -345,7 +345,7 @@ export default function AccountantDashboard() {
             <FaMoneyBillWave />
           </div>
           <div className="stat-content">
-            <div className="stat-label">Pending from Defaulters</div>
+            <div className="stat-label">Total Overdue Dues</div>
             <div className="stat-value">{formatCurrency(stats?.pendingAmountFromDefaulters || 0)}</div>
           </div>
         </div>
@@ -403,7 +403,7 @@ export default function AccountantDashboard() {
                  className="action-btn secondary"
                  onClick={() => handleNavigate("/accountant/defaulters")}
                >
-                 <FaTimesCircle /> Defaulter List
+                 <FaTimesCircle /> Pending Dues
                </button>
              </div>
            </div>

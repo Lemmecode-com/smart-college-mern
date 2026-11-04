@@ -47,13 +47,13 @@ export default function DefaulterList() {
       setDefaulters(res.data?.defaulters || []);
       setSummary(res.data?.summary || null);
 
-      toast.success("Defaulter list loaded successfully!", {
+      toast.success("Pending dues list loaded successfully!", {
         position: "top-right",
         autoClose: 3000,
         toastId: PAGE_LOAD_TOAST_ID,
       });
     } catch (err) {
-      const errorMsg = err.response?.data?.message || "Failed to load defaulters list";
+      const errorMsg = err.response?.data?.message || "Failed to load pending dues list";
       setError({ message: errorMsg, statusCode: err.response?.status, errorCode: err.response?.data?.code });
       toast.error(errorMsg, {
         position: "top-right",
@@ -164,7 +164,7 @@ export default function DefaulterList() {
           <Loading
             size="md"
             color="primary"
-            text="Loading Defaulters List..."
+            text="Loading Pending Dues..."
           />
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function DefaulterList() {
   if (error) {
     return (
       <ApiError
-        title="Error Loading Defaulters"
+        title="Error Loading Pending Dues"
         message={error.message}
         statusCode={error.statusCode}
         errorCode={error.errorCode}
@@ -189,14 +189,14 @@ export default function DefaulterList() {
        <Breadcrumb
          items={[
            { label: "Accountant Dashboard", path: "/dashboard/accountant" },
-           { label: "Defaulter List" },
+           { label: "Pending Dues" },
          ]}
        />
 
  {/* ================= HEADER ================= */}
 <PageHeader
   icon={FaUserTimes}
-  title="Defaulter List"
+  title="Pending Dues"
   subtitle="View and manage students with overdue fee payments"
 />
 
@@ -207,7 +207,7 @@ export default function DefaulterList() {
                <FaUserTimes />
              </div>
              <div className="stat-content">
-               <div className="stat-label">Total Defaulters</div>
+               <div className="stat-label">Students with Dues</div>
                <div className="stat-value">{summary.totalDefaulters}</div>
              </div>
            </div>
@@ -225,7 +225,7 @@ export default function DefaulterList() {
                <FaExclamationTriangle />
              </div>
              <div className="stat-content">
-               <div className="stat-label">Critical Defaulters</div>
+               <div className="stat-label">Critical Dues</div>
                <div className="stat-value">{summary.byEscalation.CRITICALLY_OVERDUE || 0}</div>
              </div>
            </div>
@@ -234,7 +234,7 @@ export default function DefaulterList() {
                <FaCalendarAlt />
              </div>
              <div className="stat-content">
-               <div className="stat-label">Severe Defaulters</div>
+               <div className="stat-label">Severe Dues</div>
                <div className="stat-value">{summary.byEscalation.SEVERELY_OVERDUE || 0}</div>
              </div>
            </div>
@@ -266,10 +266,10 @@ export default function DefaulterList() {
            </select>
 
           <ExportButtons
-            title="Defaulter List"
+            title="Pending Dues"
             columns={exportColumns}
             data={getExportData()}
-            filename={`defaulters_${new Date().toISOString().split("T")[0]}`}
+            filename={`pending_dues_${new Date().toISOString().split("T")[0]}`}
             showCSV
             showPDF
           />
@@ -280,14 +280,14 @@ export default function DefaulterList() {
         <div className="p-4 border-bottom">
           <h5 className="mb-0">
             <FaFileInvoiceDollar className="me-2" />
-            Defaulters ({filteredDefaulters.length})
+            Pending Dues ({filteredDefaulters.length})
           </h5>
         </div>
 
         {paginatedDefaulters.length === 0 ? (
           <div className="empty-state">
             <FaUserTimes style={{ fontSize: "3rem", color: "#cbd5e1", marginBottom: "1rem" }} />
-            <h4>No Defaulters Found</h4>
+            <h4>No Pending Dues Found</h4>
             <p>Students with overdue payments will appear here.</p>
           </div>
         ) : (
