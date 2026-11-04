@@ -623,6 +623,13 @@ if (loading && !report) {
                   disabled={!filters.courseId}
                   style={{
                     ...filterSelectStyle,
+                    boxSizing: "border-box",
+                    minWidth: 0,
+                    maxWidth: "100%",
+                    paddingRight: "2.25rem",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
                     backgroundColor: !filters.courseId ? "#f1f5f9" : "white",
                     color: !filters.courseId ? "#94a3b8" : "#1e293b",
                   }}

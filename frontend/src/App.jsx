@@ -518,6 +518,13 @@ function AppContent({
     typeof window !== "undefined" ? navigator.onLine : true,
   );
 
+  // Close mobile sidebar on route change or auth state change
+  useEffect(() => {
+    if (isMobileDevice && isMobileOpen) {
+      setIsMobileOpen(false);
+    }
+  }, [location.pathname, user?.id]);
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
