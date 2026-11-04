@@ -4,6 +4,7 @@ import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import Breadcrumb from "../../../../components/Breadcrumb";
 import ApiError from "../../../../components/ApiError";
+import PageHeader from "../../../../components/PageHeader";
 import { logger } from "../../../../utils/logger";
 import {
   FaFileAlt,
@@ -2137,6 +2138,416 @@ export default function DocumentSettings() {
           outline: 2px solid var(--ds-cyan-primary);
           outline-offset: 2px;
         }
+
+        .document-settings-page {
+          padding: 0.75rem 1.25rem 1.5rem !important;
+          color: var(--ds-text-primary);
+        }
+
+        .document-settings-page .standard-page-header {
+          margin: 0 0 1.25rem;
+          border-radius: 14px;
+          box-shadow: 0 5px 16px rgba(15, 58, 74, 0.14);
+        }
+
+        .document-header-actions {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.65rem;
+        }
+
+        .document-settings-page .btn-reset,
+        .document-settings-page .btn-save {
+          min-height: 42px;
+          padding: 0.55rem 0.9rem;
+          border-radius: 9px;
+          font-size: 0.84rem;
+          box-shadow: none;
+        }
+
+        .document-settings-page .btn-reset {
+          border: 1px solid rgba(255, 255, 255, 0.42);
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .document-settings-page .btn-reset:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.18);
+        }
+
+        .document-settings-page .btn-save {
+          border: 1px solid #3db5e6;
+          background: #3db5e6;
+        }
+
+        .document-settings-page .stats-row {
+          gap: 0.85rem;
+          margin-bottom: 1rem;
+        }
+
+        .document-settings-page .stat-card {
+          min-height: 88px;
+          padding: 1rem 1.15rem;
+          border: 1px solid #e5edf2;
+          border-left: 3px solid var(--ds-cyan-primary);
+          border-radius: 12px;
+          box-shadow: 0 3px 12px rgba(15, 58, 74, 0.06);
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .document-settings-page .stat-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 7px 18px rgba(15, 58, 74, 0.1);
+        }
+
+        .document-settings-page .stat-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 10px;
+          font-size: 1.15rem;
+        }
+
+        .document-settings-page .stat-value {
+          font-size: 1.55rem;
+        }
+
+        .document-settings-page .stat-label {
+          font-size: 0.8rem;
+        }
+
+        .document-settings-page .info-card {
+          gap: 0.8rem;
+          padding: 0.95rem 1.1rem;
+          margin-bottom: 1rem;
+          border-radius: 12px;
+        }
+
+        .document-settings-page .info-card-icon {
+          width: 34px;
+          height: 34px;
+          font-size: 1rem;
+        }
+
+        .document-settings-page .info-card-content h6 {
+          margin-bottom: 0.35rem;
+          font-size: 0.92rem;
+        }
+
+        .document-settings-page .info-card-content ul {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.1rem 1.25rem;
+          font-size: 0.8rem;
+          line-height: 1.45;
+        }
+
+        .document-settings-page .documents-card,
+        .document-settings-page .description-card {
+          border: 1px solid #e5edf2;
+          border-radius: 13px;
+          box-shadow: 0 4px 14px rgba(15, 58, 74, 0.07);
+        }
+
+        .document-settings-page .card-header-custom,
+        .document-settings-page .description-header {
+          padding: 0.95rem 1.15rem;
+          background: #f8fafc;
+          border-bottom: 1px solid #e8eef2;
+        }
+
+        .document-settings-page .card-header-custom h5,
+        .document-settings-page .description-header h5 {
+          margin: 0;
+          color: #173c4a;
+          font-size: 1rem;
+          font-weight: 700;
+        }
+
+        .document-settings-page .btn-add-document {
+          min-height: 38px;
+          padding: 0.5rem 0.8rem;
+          border: 1px solid #0f7189;
+          border-radius: 8px;
+          background: #0f7189;
+          color: #fff;
+          font-size: 0.8rem;
+          font-weight: 600;
+          transition: background 0.18s ease, transform 0.18s ease;
+        }
+
+        .document-settings-page .btn-add-document:hover {
+          transform: translateY(-1px);
+          background: #0c5d72;
+        }
+
+        .document-settings-page .table-responsive {
+          overflow-x: auto;
+          overscroll-behavior-x: contain;
+        }
+
+        .document-settings-page .documents-table {
+          width: 100%;
+          min-width: 1080px;
+          border-collapse: separate;
+          border-spacing: 0;
+          table-layout: fixed;
+        }
+
+        .document-settings-page .documents-table th {
+          padding: 0.75rem 0.55rem;
+          background: #f3f7f9;
+          color: #45606b;
+          font-size: 0.72rem;
+          letter-spacing: 0.035em;
+          text-transform: uppercase;
+          border-bottom: 1px solid #e2eaf0;
+        }
+
+        .document-settings-page .documents-table td {
+          padding: 0.7rem 0.55rem;
+          vertical-align: middle;
+          border-bottom: 1px solid #edf1f4;
+        }
+
+        .document-settings-page .documents-table tbody tr {
+          transition: background 0.16s ease;
+        }
+
+        .document-settings-page .documents-table tbody tr:hover {
+          background: #f8fbfc;
+        }
+
+        .document-settings-page .doc-type-badge {
+          max-width: 100%;
+          padding: 0.35rem 0.5rem;
+          border: 1px solid #dce8ed;
+          border-radius: 7px;
+          background: #f5f9fb;
+          color: #315564;
+          font-size: 0.72rem;
+          overflow-wrap: anywhere;
+        }
+
+        .document-settings-page .label-input,
+        .document-settings-page .size-input,
+        .document-settings-page .description-input {
+          min-height: 38px;
+          border: 1px solid #d7e0e6;
+          border-radius: 7px;
+          background: #fff;
+          font-size: 0.82rem;
+        }
+
+        .document-settings-page .label-input {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .document-settings-page .size-input {
+          width: 64px;
+        }
+
+        .document-settings-page .format-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.3rem;
+        }
+
+        .document-settings-page .format-btn {
+          min-height: 27px;
+          padding: 0.25rem 0.4rem;
+          border-radius: 6px;
+          font-size: 0.66rem;
+          white-space: nowrap;
+        }
+
+        .document-settings-page .action-btn {
+          width: 34px;
+          height: 34px;
+          margin: 0 auto;
+        }
+
+        .document-settings-page .description-card {
+          margin-top: 1rem;
+        }
+
+        .document-settings-page .description-header p {
+          margin: 0.25rem 0 0 !important;
+          font-size: 0.8rem !important;
+        }
+
+        .document-settings-page .description-body {
+          padding: 1rem 1.15rem;
+        }
+
+        .document-settings-page .description-grid {
+          gap: 0.85rem;
+        }
+
+        .document-settings-page .description-group label {
+          margin-bottom: 0.35rem;
+          color: #405967;
+          font-size: 0.78rem;
+        }
+
+        @media (min-width: 769px) and (max-width: 1400px) {
+          .document-settings-page .documents-card .table-responsive {
+            overflow: visible;
+          }
+
+          .document-settings-page .documents-table,
+          .document-settings-page .documents-table tbody {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          .document-settings-page .documents-table thead {
+            display: none;
+          }
+
+          .document-settings-page .documents-table tbody {
+            display: grid;
+            gap: 0.7rem;
+            padding: 0.75rem;
+          }
+
+          .document-settings-page .documents-table tbody tr {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.3rem 0.75rem;
+            padding: 0.7rem;
+            border: 1px solid #e4ebef;
+            border-radius: 10px;
+            background: #fff;
+          }
+
+          .document-settings-page .documents-table td,
+          .document-settings-page .documents-table td.text-center {
+            display: grid;
+            grid-template-columns: minmax(6.5rem, 0.75fr) minmax(0, 1.25fr);
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem !important;
+            border: 0;
+            text-align: left;
+          }
+
+          .document-settings-page .documents-table td::before {
+            content: attr(data-label);
+            color: #536a75;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+
+          .document-settings-page .documents-table td[data-label="Allowed Formats"] {
+            grid-column: 1 / -1;
+          }
+
+          .document-settings-page .documents-table .format-buttons {
+            justify-content: flex-start;
+          }
+
+          .document-settings-page .documents-table .label-input {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .document-settings-page {
+            padding: 0.5rem 0.65rem 1rem !important;
+          }
+
+          .document-settings-page .stats-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .document-settings-page .stat-card {
+            min-height: 76px;
+            padding: 0.75rem;
+            gap: 0.6rem;
+          }
+
+          .document-settings-page .stat-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+          }
+
+          .document-settings-page .stat-value {
+            font-size: 1.35rem;
+          }
+
+          .document-settings-page .stat-label {
+            font-size: 0.7rem;
+          }
+
+          .document-settings-page .info-card-content ul {
+            grid-template-columns: 1fr;
+          }
+
+          .document-settings-page .card-header-custom {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .document-settings-page .btn-add-document {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .document-settings-page .documents-table tbody tr {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .document-settings-page .documents-table td[data-label="Allowed Formats"] {
+            grid-column: auto;
+          }
+
+          .document-settings-page .documents-table td,
+          .document-settings-page .documents-table td.text-center {
+            grid-template-columns: minmax(6.25rem, 0.7fr) minmax(0, 1.3fr);
+          }
+
+          .document-settings-page .description-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .document-header-actions {
+            width: 100%;
+          }
+
+          .document-header-actions .btn-reset,
+          .document-header-actions .btn-save {
+            flex: 1 1 145px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .document-settings-page .stats-row {
+            grid-template-columns: 1fr;
+          }
+
+          .document-settings-page .documents-table td,
+          .document-settings-page .documents-table td.text-center {
+            grid-template-columns: 1fr;
+            gap: 0.35rem;
+          }
+
+          .document-settings-page .documents-table td::before {
+            font-size: 0.65rem;
+          }
+
+          .document-settings-page .documents-table .format-buttons {
+            justify-content: flex-start;
+          }
+
+          .document-header-actions .btn-reset,
+          .document-header-actions .btn-save {
+            flex-basis: 100%;
+          }
+        }
       `}</style>
 
       <div className="document-settings-page" style={{ paddingTop: "0.5rem" }}>
@@ -2161,22 +2572,15 @@ export default function DocumentSettings() {
           </div>
         </div>
 
-        {/* ================= PAGE HEADER ================= */}
-        <div className="settings-header">
-          <div className="header-content">
-            <div className="header-icon-wrapper">
-              <FaFileAlt className="header-icon" />
-            </div>
-            <div className="header-text">
-              <h2 className="settings-title">Document Settings</h2>
-              <p className="settings-subtitle">
-                Configure which documents students need to upload during
-                registration
-              </p>
-            </div>
-          </div>
-          <div className="header-actions">
+        <PageHeader
+          className="document-page-header"
+          icon={FaFileAlt}
+          title="Document Settings"
+          subtitle="Configure which documents students need to upload during registration"
+          actions={(
+            <div className="document-header-actions">
             <button
+              type="button"
               className="btn-reset"
               onClick={handleReset}
               disabled={saving}
@@ -2185,6 +2589,7 @@ export default function DocumentSettings() {
               <span>Reset to Empty</span>
             </button>
             <button
+              type="button"
               className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
               onClick={handleSave}
               disabled={saving || !isModified}
@@ -2201,8 +2606,9 @@ export default function DocumentSettings() {
                 </>
               )}
             </button>
-          </div>
-        </div>
+            </div>
+          )}
+        />
 
         {/* ================= MESSAGE ALERT ================= */}
         {message.text && (

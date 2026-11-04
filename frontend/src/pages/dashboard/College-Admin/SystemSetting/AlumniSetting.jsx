@@ -18,6 +18,7 @@ import {
 import Breadcrumb from "../../../../components/Breadcrumb";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import PageHeader from "../../../../components/PageHeader";
 import "./AlumniSetting.css";
 
 const DEFAULT_ATTENDANCE = 75;
@@ -182,37 +183,32 @@ export default function AlumniSetting() {
         ]}
       />
 
-      <div className="alumni-header">
-        <div className="alumni-header-content">
-          <div className="alumni-header-icon-wrapper">
-            <FaGraduationCap className="alumni-header-icon" />
+      <PageHeader
+        className="alumni-page-header"
+        icon={FaGraduationCap}
+        title="Alumni Settings"
+        subtitle="Configure graduation and Alumni eligibility criteria independently from regular promotion rules"
+        actions={(
+          <div className="alumni-header-actions">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="btn-secondary-alumni"
+              disabled={saving || loadingPolicy}
+            >
+              <FaUndo /> Reset
+            </button>
+            <button
+              type="submit"
+              form="alumni-settings-form"
+              className="btn-primary-alumni"
+              disabled={saving || loadingPolicy}
+            >
+              <FaSave /> {saving ? "Saving..." : "Save Settings"}
+            </button>
           </div>
-          <div className="alumni-header-text">
-            <h1>Alumni Settings</h1>
-            <p>
-              Configure graduation and Alumni eligibility criteria independently from regular promotion rules
-            </p>
-          </div>
-        </div>
-        <div className="alumni-header-actions">
-          <button
-            type="button"
-            onClick={handleReset}
-            className="btn-secondary-alumni"
-            disabled={saving || loadingPolicy}
-          >
-            <FaUndo /> Reset
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="btn-primary-alumni"
-            disabled={saving || loadingPolicy}
-          >
-            <FaSave /> {saving ? "Saving..." : "Save Settings"}
-          </button>
-        </div>
-      </div>
+        )}
+      />
 
       {error && <ApiError error={error} onDismiss={() => setError(null)} />}
 
@@ -288,7 +284,7 @@ export default function AlumniSetting() {
       {loadingPolicy ? (
         <Loading message="Loading Alumni Settings..." />
       ) : (
-        <form onSubmit={handleSave}>
+        <form id="alumni-settings-form" className="alumni-settings-form" onSubmit={handleSave}>
           {/* Master Enable Toggle */}
           <div className={`alumni-toggle-container ${!enabled ? "disabled" : ""}`}>
             <div className="alumni-toggle-label">
@@ -316,15 +312,13 @@ export default function AlumniSetting() {
                 <FaGraduationCap /> Academic & Result Requirements
               </div>
 
-              <div
+              <label
                 className="alumni-checkbox-group"
-                onClick={() => setRequireFinalSemester(!requireFinalSemester)}
               >
                 <input
                   type="checkbox"
                   checked={requireFinalSemester}
                   onChange={(e) => setRequireFinalSemester(e.target.checked)}
-                  onClick={(e) => e.stopPropagation()}
                 />
                 <div>
                   <div className="alumni-checkbox-label">Require Final Semester</div>
@@ -332,17 +326,15 @@ export default function AlumniSetting() {
                     Only students in the final semester of their course can graduate.
                   </div>
                 </div>
-              </div>
+              </label>
 
-              <div
+              <label
                 className="alumni-checkbox-group"
-                onClick={() => setRequirePublished(!requirePublished)}
               >
                 <input
                   type="checkbox"
                   checked={requirePublished}
                   onChange={(e) => setRequirePublished(e.target.checked)}
-                  onClick={(e) => e.stopPropagation()}
                 />
                 <div>
                   <div className="alumni-checkbox-label">Require Published Result</div>
@@ -350,7 +342,7 @@ export default function AlumniSetting() {
                     Final semester exam result must be calculated and published.
                   </div>
                 </div>
-              </div>
+              </label>
 
               <div className="alumni-form-group" style={{ marginTop: "1rem" }}>
                 <label htmlFor="outcome-select">Required Result Outcome</label>
@@ -374,15 +366,13 @@ export default function AlumniSetting() {
                 <FaCheck /> Backlog Requirements
               </div>
 
-              <div
+              <label
                 className="alumni-checkbox-group"
-                onClick={() => setRequirePreviousBacklog(!requirePreviousBacklog)}
               >
                 <input
                   type="checkbox"
                   checked={requirePreviousBacklog}
                   onChange={(e) => setRequirePreviousBacklog(e.target.checked)}
-                  onClick={(e) => e.stopPropagation()}
                 />
                 <div>
                   <div className="alumni-checkbox-label">Require Previous-Year Clearance</div>
@@ -390,17 +380,15 @@ export default function AlumniSetting() {
                     All prior academic year backlogs must be completely cleared.
                   </div>
                 </div>
-              </div>
+              </label>
 
-              <div
+              <label
                 className="alumni-checkbox-group"
-                onClick={() => setAllowCurrentBacklog(!allowCurrentBacklog)}
               >
                 <input
                   type="checkbox"
                   checked={allowCurrentBacklog}
                   onChange={(e) => setAllowCurrentBacklog(e.target.checked)}
-                  onClick={(e) => e.stopPropagation()}
                 />
                 <div>
                   <div className="alumni-checkbox-label">Allow Current Backlog</div>
@@ -408,7 +396,7 @@ export default function AlumniSetting() {
                     Allow graduation even if uncleared backlogs exist (Default: False).
                   </div>
                 </div>
-              </div>
+              </label>
             </div>
 
             {/* Attendance Requirements */}
@@ -417,15 +405,13 @@ export default function AlumniSetting() {
                 <FaCalendarCheck /> Attendance Requirements
               </div>
 
-              <div
+              <label
                 className="alumni-checkbox-group"
-                onClick={() => setAttendanceEnabled(!attendanceEnabled)}
               >
                 <input
                   type="checkbox"
                   checked={attendanceEnabled}
                   onChange={(e) => setAttendanceEnabled(e.target.checked)}
-                  onClick={(e) => e.stopPropagation()}
                 />
                 <div>
                   <div className="alumni-checkbox-label">Enable Attendance Requirement</div>
@@ -433,7 +419,7 @@ export default function AlumniSetting() {
                     Enforce minimum final-semester session attendance percentage.
                   </div>
                 </div>
-              </div>
+              </label>
 
               {attendanceEnabled && (
                 <>
@@ -453,16 +439,14 @@ export default function AlumniSetting() {
                     </span>
                   </div>
 
-                  <div
+                  <label
                     className="alumni-checkbox-group"
                     style={{ marginTop: "1rem" }}
-                    onClick={() => setAllowCumulativeFallback(!allowCumulativeFallback)}
                   >
                     <input
                       type="checkbox"
                       checked={allowCumulativeFallback}
                       onChange={(e) => setAllowCumulativeFallback(e.target.checked)}
-                      onClick={(e) => e.stopPropagation()}
                     />
                     <div>
                       <div className="alumni-checkbox-label">Allow Cumulative Attendance Fallback</div>
@@ -470,7 +454,7 @@ export default function AlumniSetting() {
                         When enabled, if no attendance sessions exist for the final semester, eligibility will fall back to the student's cumulative overall attendance across all semesters instead of blocking.
                       </div>
                     </div>
-                  </div>
+                  </label>
                 </>
               )}
             </div>
@@ -481,15 +465,13 @@ export default function AlumniSetting() {
                 <FaMoneyBillWave /> Fee Clearance Requirements
               </div>
 
-              <div
+              <label
                 className="alumni-checkbox-group"
-                onClick={() => setFeeEnabled(!feeEnabled)}
               >
                 <input
                   type="checkbox"
                   checked={feeEnabled}
                   onChange={(e) => setFeeEnabled(e.target.checked)}
-                  onClick={(e) => e.stopPropagation()}
                 />
                 <div>
                   <div className="alumni-checkbox-label">Enable Fee Clearance Requirement</div>
@@ -497,7 +479,7 @@ export default function AlumniSetting() {
                     Enforce that student fees are paid before graduation.
                   </div>
                 </div>
-              </div>
+              </label>
 
               {feeEnabled && (
                 <div className="alumni-form-group" style={{ marginTop: "1rem" }}>
@@ -519,23 +501,6 @@ export default function AlumniSetting() {
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "1rem", marginTop: "1rem" }}>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="btn-secondary-alumni"
-              disabled={saving}
-            >
-              <FaUndo /> Reset
-            </button>
-            <button
-              type="submit"
-              className="btn-primary-alumni"
-              disabled={saving}
-            >
-              <FaSave /> {saving ? "Saving..." : "Save Settings"}
-            </button>
-          </div>
         </form>
       )}
     </div>

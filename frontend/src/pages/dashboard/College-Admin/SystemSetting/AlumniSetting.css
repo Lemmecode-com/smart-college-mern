@@ -386,3 +386,186 @@
     padding: 0.75rem;
   }
 }
+
+.alumni-setting-page {
+  padding: 0.5rem 1.25rem 1.5rem;
+  background: #f5f7fb;
+}
+
+.alumni-setting-page .alumni-page-header {
+  margin-bottom: 1rem;
+}
+
+.alumni-setting-page .alumni-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.alumni-setting-page .alumni-header-actions button {
+  min-height: 42px;
+  padding: 0 0.9rem;
+  border-radius: 9px;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+
+.alumni-setting-page .btn-primary-alumni {
+  background: #16809a;
+  box-shadow: 0 3px 10px rgba(22, 128, 154, 0.2);
+}
+
+.alumni-setting-page .btn-primary-alumni:hover:not(:disabled) {
+  background: #116b82;
+  box-shadow: 0 4px 12px rgba(22, 128, 154, 0.26);
+}
+
+.alumni-setting-page .alumni-card {
+  min-width: 0;
+  padding: 1.1rem;
+  margin-bottom: 0;
+  border-radius: 12px;
+  box-shadow: 0 3px 14px rgba(15, 58, 74, 0.06);
+}
+
+.alumni-setting-page .alumni-card-title {
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.65rem;
+  font-size: 1rem;
+}
+
+.alumni-setting-page .alumni-card-title svg {
+  color: #16809a;
+  font-size: 0.95rem;
+}
+
+.alumni-setting-page .alumni-grid-2 {
+  align-items: start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.alumni-setting-page .alumni-form-group {
+  min-width: 0;
+  margin-bottom: 0.85rem;
+}
+
+.alumni-setting-page .alumni-form-group:last-child {
+  margin-bottom: 0;
+}
+
+.alumni-setting-page .alumni-form-group label {
+  margin-bottom: 0.4rem;
+  font-size: 0.82rem;
+}
+
+.alumni-setting-page .alumni-form-control {
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.alumni-setting-page .alumni-form-control:focus {
+  border-color: #16809a;
+  box-shadow: 0 0 0 3px rgba(22, 128, 154, 0.13);
+}
+
+.alumni-setting-page .alumni-form-control:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.alumni-setting-page .alumni-card > .alumni-grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.alumni-setting-page .alumni-checkbox-group {
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  margin-bottom: 0.6rem;
+  border-radius: 8px;
+  transition: border-color 0.18s ease, background 0.18s ease;
+}
+
+.alumni-setting-page .alumni-checkbox-group:hover {
+  border-color: #9ccbd6;
+  background: #f3fafb;
+}
+
+.alumni-setting-page .alumni-checkbox-group:focus-within {
+  outline: 2px solid rgba(22, 128, 154, 0.3);
+  outline-offset: 2px;
+}
+
+.alumni-setting-page .alumni-checkbox-group input[type="checkbox"] {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.alumni-setting-page .alumni-checkbox-label {
+  font-size: 0.86rem;
+}
+
+.alumni-setting-page .alumni-checkbox-desc {
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.alumni-setting-page .alumni-toggle-container {
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  margin: 0 0 1rem;
+  border-radius: 10px;
+}
+
+.alumni-setting-page .alumni-toggle-label h3 {
+  font-size: 0.98rem;
+}
+
+.alumni-setting-page .alumni-toggle-label p {
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.alumni-setting-page .alumni-form-group > span {
+  font-size: 0.75rem !important;
+  line-height: 1.4;
+}
+
+@media (max-width: 767px) {
+  .alumni-setting-page {
+    padding: 0.5rem 0.7rem 1rem;
+  }
+
+  .alumni-setting-page .alumni-header-actions {
+    width: 100%;
+  }
+
+  .alumni-setting-page .alumni-header-actions button {
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+    padding: 0 0.45rem;
+    font-size: 0.78rem;
+  }
+
+  .alumni-setting-page .alumni-card {
+    padding: 0.9rem;
+  }
+
+  .alumni-setting-page .alumni-card > .alumni-grid-2,
+  .alumni-setting-page .alumni-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .alumni-setting-page .alumni-toggle-container {
+    align-items: center;
+  }
+}

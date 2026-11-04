@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import {
   FaCreditCard,
   FaWallet,
@@ -314,10 +315,10 @@ const FeeSetting = () => {
           font-weight: 700;
         }
 
-        .card-icon {
-          font-size: 1.25rem;
-          opacity: 0.9;
-        }
+        // .card-icon {
+        //   font-size: 1.25rem;
+        //   opacity: 0.9;
+        // }
 
         .card-body-custom {
           padding: 1.5rem;
@@ -1199,11 +1200,11 @@ const FeeSetting = () => {
     overflow-wrap: anywhere;
   }
 
-  .card-icon {
-    font-size: 1.05rem;
+  // .card-icon {
+  //   font-size: 1.05rem;
 
-    flex-shrink: 0;
-  }
+  //   flex-shrink: 0;
+  // }
 
 
   .card-body-custom {
@@ -1526,6 +1527,132 @@ const FeeSetting = () => {
     font-size: 0.62rem;
   }
 }
+
+.fee-settings-page {
+  padding: 0.5rem 1.25rem 1.5rem;
+  background: #f5f7fb;
+}
+
+.fee-settings-page .fee-page-header { margin-bottom: 1rem; }
+.fee-settings-page .fee-header-actions { display: flex; align-items: center; }
+.fee-settings-page .btn-save {
+  min-height: 42px;
+  padding: 0 1rem;
+  border-radius: 9px;
+  background: #16809a;
+  box-shadow: 0 3px 10px rgba(22, 128, 154, 0.2);
+  white-space: nowrap;
+}
+
+.fee-settings-page .info-card {
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border-color: #d7e7ee;
+  border-radius: 10px;
+  background: #f3f9fb;
+  box-shadow: none;
+}
+.fee-settings-page .info-card-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  background: #e2f1f5;
+  color: #0f6177;
+  box-shadow: none;
+  font-size: 1rem;
+}
+.fee-settings-page .info-card-content h6 { margin-bottom: 0.25rem; font-size: 0.9rem; }
+.fee-settings-page .info-card-content ul {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 1.5rem;
+  row-gap: 0.1rem;
+  padding-left: 1rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.fee-settings-page .gateway-tabs { gap: 0.65rem; margin-bottom: 1rem; }
+.fee-settings-page .gateway-tab {
+  min-width: 180px;
+  justify-content: flex-start;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #dce5eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(15, 58, 74, 0.04);
+}
+.fee-settings-page .gateway-tab.active {
+  border-color: #16809a;
+  background: #edf7f9;
+  color: #0f5264;
+  box-shadow: 0 0 0 1px #16809a;
+}
+.fee-settings-page .gateway-tab-icon { font-size: 1.1rem; }
+.fee-settings-page .gateway-tab-status.active { background: #e7f6ed; color: #21834d; }
+
+.fee-settings-page .settings-grid {
+  grid-template-columns: minmax(0, 1.8fr) minmax(230px, 0.8fr);
+  gap: 1rem;
+  align-items: start;
+}
+.fee-settings-page .settings-card,
+.fee-settings-page .sidebar-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 3px 14px rgba(15, 58, 74, 0.06);
+}
+.fee-settings-page .card-header-custom,
+.fee-settings-page .sidebar-header {
+  padding: 0.9rem 1.1rem;
+  background: #f8fafc;
+  color: #123f4e;
+  border-bottom: 1px solid #e6edf2;
+}
+.fee-settings-page .card-header-custom h5,
+.fee-settings-page .sidebar-header h6 { font-size: 1rem; color: #123f4e; }
+// .fee-settings-page .card-icon { color: #16809a; font-size: 0.05rem; }
+.fee-settings-page .card-body-custom,
+.fee-settings-page .sidebar-body { padding: 1rem; }
+.fee-settings-page .status-banner { padding: 0.75rem 0.9rem; margin-bottom: 1rem; }
+.fee-settings-page .status-banner-icon { font-size: 1.2rem; }
+.fee-settings-page .stripe-preview-card > div[style*="text-align: center"] { padding: 1rem !important; }
+.fee-settings-page .stripe-preview-card > div > div[style*="width: 80px"] {
+  width: 52px !important;
+  height: 52px !important;
+  margin-bottom: 0.8rem !important;
+  font-size: 1.35rem !important;
+}
+.fee-settings-page .stripe-preview-card h3 { font-size: 1.15rem !important; }
+.fee-settings-page .stripe-preview-card p { margin-bottom: 1rem !important; font-size: 0.85rem !important; }
+.fee-settings-page .stripe-preview-card .btn-action {
+  min-height: 42px;
+  padding: 0.65rem 1rem !important;
+  border-radius: 8px;
+  border: 1px solid #acacac;
+  background: #2a9ab6;
+  font-size: 0.88rem !important;
+}
+.fee-settings-page .stripe-preview-card .btn-action:focus-visible {
+  outline: 2px solid #94a3b8;
+  outline-offset: 2px;
+}
+.fee-settings-page .gateway-list-item { padding: 0.75rem; border: 1px solid #e8edf2; border-radius: 9px; }
+.fee-settings-page .gateway-list-item.active { border-color: #16809a; background: #eff8fa; }
+
+@media (max-width: 850px) {
+  .fee-settings-page .settings-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 767px) {
+  .fee-settings-page { padding: 0.5rem 0.7rem 1rem; }
+  .fee-settings-page .fee-header-actions,
+  .fee-settings-page .fee-header-actions .btn-save { width: 100%; justify-content: center; }
+  .fee-settings-page .gateway-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fee-settings-page .gateway-tab { min-width: 0; padding: 0.65rem; flex-wrap: wrap; gap: 0.4rem; }
+  .fee-settings-page .info-card-content ul { display: block; }
+}
       `}</style>
 
       <div className="fee-settings-page" style={{ paddingTop: "0.5rem" }}>
@@ -1549,20 +1676,13 @@ const FeeSetting = () => {
           </div>
         </div>
 
-        {/* ================= PAGE HEADER ================= */}
-        <div className="settings-header">
-          <div className="header-content">
-            <div className="header-icon-wrapper">
-              <FaCreditCard className="header-icon" />
-            </div>
-            <div className="header-text">
-              <h2 className="settings-title">Fee & Payment Settings</h2>
-              <p className="settings-subtitle">
-                Configure payment gateways and processing fees
-              </p>
-            </div>
-          </div>
-          <div className="header-actions">
+        <PageHeader
+          className="fee-page-header"
+          icon={FaCreditCard}
+          title="Fee & Payment Settings"
+          subtitle="Configure payment gateways and processing fees"
+          actions={(
+            <div className="fee-header-actions">
             <button
               className="btn-save"
               onClick={handleSave}
@@ -1580,8 +1700,9 @@ const FeeSetting = () => {
                 </>
               )}
             </button>
-          </div>
-        </div>
+            </div>
+          )}
+        />
 
         {/* ================= INFO CARD ================= */}
         <div className="info-card">
@@ -1625,7 +1746,7 @@ const FeeSetting = () => {
           {/* LEFT - Configuration Form */}
           <div className="settings-card">
             <div className="card-header-custom">
-              <FaCog className="card-icon" />
+              <FaCog className="card-icon"/>
               <h5>{activeGatewayData?.label} Configuration</h5>
             </div>
             <div className="card-body-custom">
@@ -1719,6 +1840,7 @@ const FeeSetting = () => {
                         padding: "0.875rem 2rem",
                         fontSize: "1rem",
                         fontWeight: "600",
+                        color: "#ffffff",
                       }}
                     >
                       <FaCog />

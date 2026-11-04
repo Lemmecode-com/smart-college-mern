@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import {
   FaBell,
   FaEnvelope,
@@ -1472,6 +1473,199 @@ const NotificationSetting = () => {
     min-width: 0;
   }
 }
+
+.notification-settings-page {
+  padding: 0.5rem 1.25rem 1.5rem;
+  background: #f5f7fb;
+}
+.notification-settings-page .notification-page-header { margin-bottom: 1rem; }
+.notification-settings-page .notification-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.notification-settings-page .notification-header-actions button {
+  min-height: 42px;
+  padding: 0 0.9rem;
+  border-radius: 9px;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+.notification-settings-page .btn-save { background: #16809a; box-shadow: none; }
+.notification-settings-page .btn-save:hover:not(:disabled) { background: #116b82; box-shadow: 0 4px 12px rgba(22,128,154,.25); }
+.notification-settings-page .btn-save-modified { animation: none; }
+.notification-settings-page .info-card {
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #d7e7ee;
+  border-radius: 10px;
+  background: #f3f9fb;
+}
+.notification-settings-page .info-card-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  background: #e2f1f5;
+  color: #0f6177;
+  box-shadow: none;
+  font-size: 1rem;
+}
+.notification-settings-page .info-card-content h6 { margin-bottom: 0.2rem; font-size: 0.9rem; }
+.notification-settings-page .info-card-content ul { font-size: 0.78rem; line-height: 1.4; }
+.notification-settings-page .settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+.notification-settings-page .notification-sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  min-width: 0;
+}
+.notification-settings-page .settings-grid > .settings-card:not(.notification-rules) {
+  grid-column: 1;
+  grid-row: 1;
+}
+.notification-settings-page .notification-sidebar > .sidebar-card {
+  width: 100%;
+  margin: 0;
+}
+.notification-settings-page .notification-quick-stats {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+.notification-settings-page .notification-rules {
+  margin-top: 0 !important;
+}
+.notification-settings-page .settings-card,
+.notification-settings-page .sidebar-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 3px 14px rgba(15,58,74,.06);
+}
+.notification-settings-page .card-header-custom,
+.notification-settings-page .sidebar-header {
+  padding: 0.85rem 1.1rem;
+  background: #f8fafc;
+  color: #123f4e;
+  border-bottom: 1px solid #e6edf2;
+}
+.notification-settings-page .card-header-custom h5,
+.notification-settings-page .sidebar-header h6 { color: #123f4e; font-size: 0.98rem; }
+.notification-settings-page .card-icon,
+.notification-settings-page .sidebar-header h6 svg { color: #16809a; }
+.notification-settings-page .card-body-custom,
+.notification-settings-page .sidebar-body { padding: 1rem; }
+.notification-settings-page .channels-grid { gap: 0.7rem; margin-bottom: 0; }
+.notification-settings-page .channel-card {
+  padding: 0.9rem;
+  border: 1px solid #dce5eb;
+  border-radius: 10px;
+  background: #fff;
+}
+.notification-settings-page .channel-card.enabled {
+  border-color: #9bd4b0;
+  background: #f5fbf7;
+}
+.notification-settings-page .channel-card:hover { transform: translateY(-1px); }
+.notification-settings-page .channel-icon-wrapper {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  font-size: 1.1rem;
+}
+.notification-settings-page .channel-name { font-size: 0.9rem; }
+.notification-settings-page .channel-description { font-size: 0.75rem; line-height: 1.4; }
+.notification-settings-page .channel-status { font-size: 0.65rem; }
+.notification-settings-page .sidebar-card { margin-bottom: 0.85rem; }
+.notification-settings-page .sidebar-header { padding: 0.8rem 1rem; }
+.notification-settings-page .sidebar-body { padding: 0.9rem; }
+.notification-settings-page .test-tabs { gap: 0.45rem; margin-bottom: 0.75rem; }
+.notification-settings-page .test-tab {
+  min-height: 38px;
+  padding: 0.5rem;
+  border: 1px solid #d5e0e8;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-family: inherit;
+}
+.notification-settings-page .test-tab.active { border-color: #16809a; background: #eaf5f8; color: #0f6177; }
+.notification-settings-page .test-preview { padding: 0.9rem; border: 1px solid #e8edf2; }
+.notification-settings-page .test-preview-icon { font-size: 2rem; margin-bottom: 0.45rem; }
+.notification-settings-page .test-preview-title { font-size: 0.9rem; margin-bottom: 0.3rem; }
+.notification-settings-page .test-preview-text { font-size: 0.76rem; line-height: 1.4; }
+.notification-settings-page .btn-test {
+  min-height: 40px;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  background: #16809a;
+}
+.notification-settings-page .stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 0;
+}
+.notification-settings-page .stat-item {
+  padding: 0.7rem 0.5rem;
+  border: 1px solid #e7edf2;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+.notification-settings-page .stat-value { font-size: 1.25rem; color: #0f6177; }
+.notification-settings-page .stat-label { font-size: 0.7rem; }
+.notification-settings-page > .settings-card[style] { margin-top: 1rem !important; }
+.notification-settings-page > .settings-card[style] .card-header-custom { background: #f8fafc; }
+.notification-settings-page .rules-list { gap: 0.55rem; }
+.notification-settings-page .rule-item {
+  gap: 0.9rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 9px;
+}
+.notification-settings-page .rule-content { min-width: 0; gap: 0.7rem; }
+.notification-settings-page .rule-icon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+}
+.notification-settings-page .rule-name { font-size: 0.86rem; }
+.notification-settings-page .rule-description { font-size: 0.73rem; line-height: 1.35; }
+.notification-settings-page .rule-select {
+  min-height: 38px;
+  min-width: 130px;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+.notification-settings-page .rule-select:focus { border-color: #16809a; box-shadow: 0 0 0 3px rgba(22,128,154,.12); }
+
+@media (max-width: 900px) {
+  .notification-settings-page .settings-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .notification-settings-page .notification-sidebar,
+  .notification-settings-page .settings-grid > .settings-card:not(.notification-rules),
+  .notification-settings-page .notification-quick-stats { grid-column: 1; grid-row: auto; }
+  .notification-settings-page .stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .notification-settings-page { padding: 0.5rem 0.7rem 1rem; }
+  .notification-settings-page .notification-header-actions { width: 100%; }
+  .notification-settings-page .notification-header-actions button { flex: 1; justify-content: center; }
+  .notification-settings-page .rule-item { flex-direction: row; align-items: center; }
+  .notification-settings-page .rule-select { width: 38%; min-width: 110px; }
+  .notification-settings-page .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 430px) {
+  .notification-settings-page .rule-item { align-items: stretch; flex-direction: column; }
+  .notification-settings-page .rule-select { width: 100%; }
+  .notification-settings-page .channel-card { padding: 0.7rem; }
+  .notification-settings-page .channel-status { font-size: 0.58rem; }
+}
       `}</style>
 
       <div className="notification-settings-page" style={{ paddingTop: "0.5rem" }}>
@@ -1496,48 +1690,43 @@ const NotificationSetting = () => {
           </div>
         </div>
 
-        {/* ================= PAGE HEADER ================= */}
-        <div className="settings-header">
-          <div className="header-content">
-            <div className="header-icon-wrapper">
-              <FaBell className="header-icon" />
+        <PageHeader
+          className="notification-page-header"
+          icon={FaBell}
+          title="Notification Settings"
+          subtitle="Control how system notifications are sent to students, teachers, and staff"
+          actions={(
+            <div className="notification-header-actions">
+              <button
+                type="button"
+                className="btn-reset"
+                onClick={handleReset}
+                disabled={isSaving || !isModified}
+              >
+                <FaUndo className="btn-icon" />
+                <span>Reset</span>
+              </button>
+              <button
+                type="button"
+                className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
+                onClick={handleSave}
+                disabled={isSaving || !isModified}
+              >
+                {isSaving ? (
+                  <>
+                    <span className="spinner-icon" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <FaSave className="btn-icon" />
+                    <span>Save Settings</span>
+                  </>
+                )}
+              </button>
             </div>
-            <div className="header-text">
-              <h2 className="settings-title">Notification Settings</h2>
-              <p className="settings-subtitle">
-                Control how system notifications are sent to students, teachers,
-                and staff
-              </p>
-            </div>
-          </div>
-          <div className="header-actions">
-            <button
-              className="btn-reset"
-              onClick={handleReset}
-              disabled={isSaving || !isModified}
-            >
-              <FaUndo className="btn-icon" />
-              <span>Reset</span>
-            </button>
-            <button
-              className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
-              onClick={handleSave}
-              disabled={isSaving || !isModified}
-            >
-              {isSaving ? (
-                <>
-                  <span className="spinner-icon" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <FaSave className="btn-icon" />
-                  <span>Save Settings</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+          )}
+        />
 
         {/* ================= INFO CARD ================= */}
         <div className="info-card">
@@ -1682,7 +1871,7 @@ const NotificationSetting = () => {
           </div>
 
           {/* RIGHT - Sidebar */}
-          <div>
+          <div className="notification-sidebar">
             {/* Test Notification */}
             <div className="sidebar-card">
               <div className="sidebar-header">
@@ -1693,20 +1882,22 @@ const NotificationSetting = () => {
               </div>
               <div className="sidebar-body">
                 <div className="test-tabs">
-                  <div
+                  <button
+                    type="button"
                     className={`test-tab ${activeTestTab === "email" ? "active" : ""}`}
                     onClick={() => setActiveTestTab("email")}
                   >
                     <FaEnvelope />
                     Email
-                  </div>
-                  <div
+                  </button>
+                  <button
+                    type="button"
                     className={`test-tab ${activeTestTab === "sms" ? "active" : ""}`}
                     onClick={() => setActiveTestTab("sms")}
                   >
                     <FaSms />
                     SMS
-                  </div>
+                  </button>
                 </div>
 
                 <div className="test-preview">
@@ -1739,8 +1930,10 @@ const NotificationSetting = () => {
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="sidebar-card">
+          </div>
+
+          {/* Quick Stats */}
+          <div className="sidebar-card notification-quick-stats">
               <div className="sidebar-header">
                 <h6>
                   <FaChartBar />
@@ -1771,13 +1964,11 @@ const NotificationSetting = () => {
                     <div className="stat-label">Active</div>
                   </div>
                 </div>
-              </div>
             </div>
           </div>
         </div>
-
         {/* ================= NOTIFICATION RULES ================= */}
-        <div className="settings-card" style={{ marginTop: "1.5rem" }}>
+        <div className="settings-card notification-rules" style={{ marginTop: "1.5rem" }}>
           <div className="card-header-custom">
             <FaBell className="card-icon" />
             <h5>Notification Rules</h5>

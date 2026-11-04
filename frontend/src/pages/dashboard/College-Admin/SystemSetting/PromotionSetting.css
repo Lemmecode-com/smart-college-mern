@@ -1238,3 +1238,363 @@
     font-size: 0.76rem !important;
   }
 }
+
+/* Promotion settings page refinements */
+.promotion-setting-page {
+  padding: 0.5rem 1.25rem 1.5rem;
+  background: #f5f7fb;
+}
+
+.promotion-setting-page .promotion-page-header {
+  margin-bottom: 1rem;
+}
+
+.promotion-setting-page .promotion-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.promotion-setting-page .promotion-header-actions .btn-reset,
+.promotion-setting-page .promotion-header-actions .btn-save {
+  min-height: 42px;
+  padding: 0 0.9rem;
+  border-radius: 9px;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+
+.promotion-setting-page .promotion-header-actions .btn-reset {
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.promotion-setting-page .promotion-header-actions .btn-save {
+  background: #25a7cf;
+  box-shadow: 0 3px 10px rgba(37, 167, 207, 0.22);
+}
+
+.promotion-setting-page .promotion-header-actions .btn-save:hover:not(:disabled) {
+  background: #168db4;
+  box-shadow: 0 4px 12px rgba(37, 167, 207, 0.28);
+}
+
+.promotion-setting-page .settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.promotion-setting-page .settings-card {
+  min-width: 0;
+  padding: 1.1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 13px;
+  box-shadow: 0 3px 14px rgba(15, 58, 74, 0.06);
+}
+
+.promotion-setting-page .settings-card:hover {
+  box-shadow: 0 6px 18px rgba(15, 58, 74, 0.09);
+}
+
+.promotion-setting-page .settings-card-wide {
+  grid-column: 1 / -1;
+}
+
+.promotion-setting-page .attendance-threshold-card {
+  grid-row: span 2;
+}
+
+.promotion-setting-page .semester-scope-card {
+  grid-column: 2;
+}
+
+.promotion-setting-page .card-header {
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.7rem;
+}
+
+.promotion-setting-page .card-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 9px;
+  background: #e8f5f8;
+  color: #0f6177;
+  font-size: 1rem;
+}
+
+.promotion-setting-page .card-title {
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.promotion-setting-page .form-group {
+  margin-bottom: 0.9rem;
+}
+
+.promotion-setting-page .form-group:last-child {
+  margin-bottom: 0;
+}
+
+.promotion-setting-page .form-label {
+  color: #334155;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  margin-bottom: 0.4rem;
+}
+
+.promotion-setting-page .form-input,
+.promotion-setting-page .course-select {
+  min-height: 42px;
+  box-sizing: border-box;
+  border-color: #cbd5e1;
+  border-radius: 8px;
+  color: #1e293b;
+  font-size: 0.88rem;
+}
+
+.promotion-setting-page .form-input:focus,
+.promotion-setting-page .course-select:focus,
+.promotion-setting-page .kt-rule-input:focus {
+  border-color: #16809a;
+  box-shadow: 0 0 0 3px rgba(22, 128, 154, 0.13);
+}
+
+.promotion-setting-page .form-input:disabled,
+.promotion-setting-page .course-select:disabled,
+.promotion-setting-page .kt-rule-input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.promotion-setting-page .info-box,
+.promotion-setting-page .fallback-banner {
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  margin-top: 0.75rem;
+  border: 1px solid #d5eaf2;
+  border-radius: 8px;
+  background: #f0f8fb;
+  color: #28566a;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.promotion-setting-page .info-box svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.promotion-setting-page .course-duration-badge {
+  min-height: 42px;
+  border-radius: 8px;
+  background: #e8f5f8;
+  color: #0f6177;
+  box-shadow: none;
+  font-size: 0.86rem;
+}
+
+.promotion-setting-page .course-summary {
+  padding: 0.65rem 0.85rem;
+  margin-top: 0.8rem;
+  border-left-width: 3px;
+  border-radius: 8px;
+  font-size: 0.84rem;
+}
+
+.promotion-setting-page .semester-grid {
+  grid-template-columns: repeat(auto-fit, minmax(115px, 1fr));
+  gap: 0.55rem;
+}
+
+.promotion-setting-page .semester-chip {
+  min-height: 40px;
+  padding: 0.5rem 0.65rem;
+  border-color: #d7e0e8;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.promotion-setting-page .semester-chip:hover {
+  border-color: #16809a;
+  background: #f2f9fb;
+}
+
+.promotion-setting-page .semester-chip:focus-visible {
+  outline: 2px solid #16809a;
+  outline-offset: 2px;
+}
+
+.promotion-setting-page .semester-chip.active {
+  border-color: #0f6177;
+  background: #0f6177;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(15, 97, 119, 0.18);
+}
+
+.promotion-setting-page .kt-rules-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.promotion-setting-page .kt-rules-table {
+  min-width: 880px;
+  font-size: 0.82rem;
+}
+
+.promotion-setting-page .kt-rules-table th,
+.promotion-setting-page .kt-rules-table td {
+  padding: 0.6rem 0.7rem;
+  vertical-align: middle;
+}
+
+.promotion-setting-page .kt-rules-table th {
+  background: #f5f8fa;
+  color: #334155;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.promotion-setting-page .kt-rules-table td:first-child {
+  color: #173f4c;
+  white-space: nowrap;
+}
+
+.promotion-setting-page .kt-rule-input {
+  width: 62px;
+  min-height: 34px;
+  padding: 0.35rem;
+  border-color: #cbd5e1;
+  border-radius: 7px;
+}
+
+.promotion-setting-page .kt-rule-toggle {
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.promotion-setting-page .kt-rule-toggle-label {
+  font-size: 0.78rem;
+}
+
+.promotion-setting-page .subject-type-inputs {
+  gap: 0.45rem;
+}
+
+.promotion-setting-page .subject-type-input-group {
+  align-items: center;
+}
+
+.promotion-setting-page .subject-type-input-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.03em;
+}
+
+.promotion-setting-page .kt-rule-actions {
+  justify-content: center;
+}
+
+.promotion-setting-page .kt-rule-actions .standard-action-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.promotion-setting-page .kt-rule-actions .standard-action-btn > svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  color: currentColor;
+  fill: currentColor;
+  opacity: 1;
+  visibility: visible;
+}
+
+.promotion-setting-page .kt-rule-actions .standard-action-btn.btn-add-rule {
+  background: #25a7cf;
+}
+
+.promotion-setting-page .kt-rule-actions .standard-action-btn.btn-remove-rule {
+  background: #c53030;
+  color: #fff;
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .promotion-setting-page .settings-grid {
+    gap: 0.85rem !important;
+  }
+}
+
+@media (min-width: 851px) and (max-width: 1024px) {
+  .promotion-setting-page .settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 850px) {
+  .promotion-setting-page .settings-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .promotion-setting-page .attendance-threshold-card {
+    grid-row: auto;
+  }
+
+  .promotion-setting-page .semester-scope-card {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 767px) {
+  .promotion-setting-page {
+    padding: 0.5rem 0.65rem 1rem !important;
+  }
+
+  .promotion-setting-page .settings-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .promotion-setting-page .settings-card {
+    padding: 0.9rem !important;
+  }
+
+  .promotion-setting-page .attendance-threshold-card {
+    grid-row: auto;
+  }
+
+  .promotion-setting-page .promotion-header-actions {
+    width: 100%;
+  }
+
+  .promotion-setting-page .promotion-header-actions .btn-reset,
+  .promotion-setting-page .promotion-header-actions .btn-save {
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+    padding: 0 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .promotion-setting-page .semester-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .promotion-setting-page .kt-rules-table {
+    min-width: 820px;
+  }
+}
