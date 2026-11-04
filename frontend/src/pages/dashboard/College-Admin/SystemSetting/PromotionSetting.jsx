@@ -22,6 +22,7 @@ import ConfirmModal from "../../../../components/ConfirmModal";
 import ActionIconButton from "../../../../components/common/ActionIconButton";
 import { logger } from "../../../../utils/logger";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import "./PromotionSetting.css";
 
 const DEFAULT_MIN_ATTENDANCE_PERCENTAGE = 75;
@@ -614,19 +615,13 @@ const PromotionSetting = () => {
         </div>
 
 
-        <div className="settings-header">
-          <div className="header-content">
-            <div className="header-icon-wrapper">
-              <FaGraduationCap className="header-icon" />
-            </div>
-            <div className="header-text">
-              <h1 className="settings-title">Promotion Settings</h1>
-              <p className="settings-subtitle">
-                Configure attendance, fee, and ATKT rules for student promotion eligibility
-              </p>
-            </div>
-          </div>
-          <div className="header-actions">
+        <PageHeader
+          className="promotion-page-header"
+          icon={FaGraduationCap}
+          title="Promotion Settings"
+          subtitle="Configure attendance, fee, and ATKT rules for student promotion eligibility"
+          actions={(
+            <div className="promotion-header-actions">
             <button
               className="btn-reset"
               onClick={handleReset}
@@ -647,11 +642,12 @@ const PromotionSetting = () => {
                 </>
               )}
             </button>
-          </div>
-        </div>
+            </div>
+          )}
+        />
 
         <div className="settings-grid">
-          <div className="settings-card">
+          <div className="settings-card settings-card-wide">
             <div className="card-header">
               <div className="card-icon">
                 <FaGraduationCap />
@@ -679,7 +675,7 @@ const PromotionSetting = () => {
           </div>
         ) : selectedCourseId ? (
           <div className="settings-grid">
-            <div className="settings-card">
+            <div className="settings-card attendance-threshold-card">
               <div className="card-header">
                 <div className="card-icon">
                   <FaGraduationCap />
@@ -800,7 +796,7 @@ const PromotionSetting = () => {
               </div>
             </div>
 
-            <div className="settings-card">
+            <div className="settings-card semester-scope-card">
               <div className="card-header">
                 <div className="card-icon">
                   <FaClipboardCheck />
@@ -814,17 +810,19 @@ const PromotionSetting = () => {
                 </label>
                 <div className="semester-grid">
                   {semesterOptions.map((sem) => (
-                    <div
+                    <button
+                      type="button"
                       key={sem.value}
                       className={`semester-chip ${
                         (formData.scopedSemesters || []).includes(sem.value)
                           ? "active"
                           : ""
                       }`}
+                      aria-pressed={(formData.scopedSemesters || []).includes(sem.value)}
                       onClick={() => handleSemesterToggle(sem.value)}
                     >
                       {sem.label}
-                    </div>
+                    </button>
                   ))}
                 </div>
                 <div className="info-box">
@@ -850,7 +848,7 @@ const PromotionSetting = () => {
                 <label className="form-label">
                   Configure maximum allowed KTs and subject-type limits for each promotion transition
                 </label>
-                <div style={{ overflowX: "auto" }}>
+                <div className="kt-rules-table-scroll">
                   <table className="kt-rules-table">
                     <thead>
                       <tr>

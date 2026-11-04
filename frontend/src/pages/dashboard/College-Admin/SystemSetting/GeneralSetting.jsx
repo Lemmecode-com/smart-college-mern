@@ -13,6 +13,7 @@ import { getGeneralSettings, updateGeneralSettings } from "../../../../api/gener
 import { showSuccess, showError } from "../../../../utils/toast";
 import Breadcrumb from "../../../../components/Breadcrumb";
 import Loading from "../../../../components/Loading";
+import PageHeader from "../../../../components/PageHeader";
 
 const GeneralSetting = () => {
   const [formData, setFormData] = useState({
@@ -147,7 +148,7 @@ const GeneralSetting = () => {
     <>
       <style>{`
         /* General Settings - Enterprise SaaS Professional UI */
-        :root {
+        .general-settings-page {
           --gs-teal-dark: #0f3a4a;
           --gs-teal-medium: #0c2d3a;
           --gs-cyan-primary: #3db5e6;
@@ -1237,6 +1238,190 @@ const GeneralSetting = () => {
   }
 }
 
+        .general-settings-page {
+          padding: 0.75rem 1.25rem 2rem;
+          background: #f5f7fb;
+          color: #1a202c;
+        }
+
+        .general-settings-page .settings-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .general-settings-page .settings-card {
+          border: 1px solid #e2e8f0;
+          border-top: 3px solid var(--gs-users-accent);
+          border-radius: 12px;
+          box-shadow: 0 3px 14px rgba(15, 58, 74, 0.06);
+        }
+
+        .general-settings-page .card-security { border-top-color: var(--gs-security-accent); }
+        .general-settings-page .card-data { border-top-color: var(--gs-data-accent); }
+        .general-settings-page .card-ui { border-top-color: var(--gs-ui-accent); }
+
+        .general-settings-page .settings-card:hover {
+          box-shadow: 0 6px 20px rgba(15, 58, 74, 0.09);
+          transform: translateY(-2px);
+        }
+
+        .general-settings-page .card-header-custom {
+          gap: 0.65rem;
+          padding: 0.85rem 1.1rem;
+          background: #fbfcfe;
+        }
+
+        .general-settings-page .card-icon-wrapper {
+          width: 36px;
+          height: 36px;
+          border-radius: 9px;
+          box-shadow: none;
+        }
+
+        .general-settings-page .card-icon {
+          font-size: 1rem;
+        }
+
+        .general-settings-page .settings-card:hover .card-icon-wrapper {
+          transform: none;
+        }
+
+        .general-settings-page .card-title {
+          font-size: 1rem;
+          letter-spacing: 0;
+        }
+
+        .general-settings-page .card-body-custom {
+          padding: 1rem 1.1rem;
+        }
+
+        .general-settings-page .form-group {
+          margin-bottom: 0.9rem;
+        }
+
+        .general-settings-page .form-row {
+          gap: 0.8rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .general-settings-page .form-label {
+          margin-bottom: 0.35rem;
+          font-size: 0.82rem;
+        }
+
+        .general-settings-page .form-input,
+        .general-settings-page .form-select {
+          min-height: 42px;
+          box-sizing: border-box;
+          padding-top: 0.55rem;
+          padding-bottom: 0.55rem;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          font-size: 0.875rem;
+        }
+
+        .general-settings-page .form-input {
+          padding-right: 4.5rem;
+        }
+
+        .general-settings-page .form-input:focus,
+        .general-settings-page .form-select:focus {
+          border-color: #16809a;
+          box-shadow: 0 0 0 3px rgba(22, 128, 154, 0.14);
+        }
+
+        .general-settings-page .form-input:disabled,
+        .general-settings-page .form-select:disabled {
+          background: #f1f5f9;
+          color: #64748b;
+          cursor: not-allowed;
+        }
+
+        .general-settings-page .form-hint {
+          margin-top: 0.3rem;
+          font-size: 0.72rem;
+          line-height: 1.35;
+        }
+
+        .general-settings-page .input-suffix {
+          right: 0.75rem;
+          font-size: 0.75rem;
+        }
+
+        .general-settings-page .general-settings-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.65rem;
+        }
+
+        .general-settings-page .btn-reset,
+        .general-settings-page .btn-save {
+          min-height: 42px;
+          padding: 0.55rem 0.9rem;
+          border-radius: 9px;
+          font-size: 0.85rem;
+          white-space: nowrap;
+        }
+
+        .general-settings-page .btn-reset {
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          background: rgba(255, 255, 255, 0.12);
+        }
+
+        .general-settings-page .btn-save {
+          background: #16809a;
+          box-shadow: 0 3px 9px rgba(22, 128, 154, 0.22);
+        }
+
+        .general-settings-page .btn-save:hover:not(:disabled) {
+          background: #116b82;
+          box-shadow: 0 4px 12px rgba(22, 128, 154, 0.28);
+          transform: translateY(-1px);
+        }
+
+        .general-settings-page .btn-save-modified {
+          animation: none;
+        }
+
+        @media (max-width: 767.98px) {
+          .general-settings-page {
+            padding: 0.5rem 0.75rem 1.5rem;
+          }
+
+          .general-settings-page .settings-grid {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .general-settings-page .form-row {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0;
+            margin-bottom: 0;
+          }
+
+          .general-settings-page .general-settings-header-actions {
+            width: 100%;
+          }
+
+          .general-settings-page .general-settings-header-actions button {
+            flex: 1;
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .general-settings-page .general-settings-header-actions {
+            gap: 0.4rem;
+          }
+
+          .general-settings-page .btn-reset,
+          .general-settings-page .btn-save {
+            min-height: 40px;
+            padding: 0.45rem 0.55rem;
+            font-size: 0.76rem;
+          }
+        }
+
       `}</style>
 
       <div className="general-settings-page" style={{ paddingTop: "0.5rem" }}>
@@ -1260,48 +1445,40 @@ const GeneralSetting = () => {
           </div>
         </div>
 
-        {/* ================= PAGE HEADER ================= */}
-        <div className="settings-header">
-          <div className="header-content">
-            <div className="header-icon-wrapper">
-              <FaPalette className="header-icon" />
+        <PageHeader
+          icon={FaPalette}
+          title="General Settings"
+          subtitle="Configure global system behavior, security policies, and default preferences"
+          actions={(
+            <div className="general-settings-header-actions">
+              <button
+                className="btn-reset"
+                onClick={handleReset}
+                disabled={isSaving || !isModified}
+              >
+                <FaUndo className="btn-icon" />
+                <span>Reset</span>
+              </button>
+              <button
+                className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
+                onClick={handleSave}
+                disabled={isSaving || !isModified}
+              >
+                {isSaving ? (
+                  <>
+                    <span className="spinner-icon" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <FaCheck className="btn-icon" />
+                    <span>Save Changes</span>
+                  </>
+                )}
+              </button>
             </div>
-            <div className="header-text">
-              <h2 className="settings-title">General Settings</h2>
-              <p className="settings-subtitle">
-                Configure global system behavior, security policies, and default
-                preferences
-              </p>
-            </div>
-          </div>
-          <div className="header-actions">
-            <button
-              className="btn-reset"
-              onClick={handleReset}
-              disabled={isSaving || !isModified}
-            >
-              <FaUndo className="btn-icon" />
-              <span>Reset</span>
-            </button>
-            <button
-              className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
-              onClick={handleSave}
-              disabled={isSaving || !isModified}
-            >
-              {isSaving ? (
-                <>
-                  <span className="spinner-icon" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <FaCheck className="btn-icon" />
-                  <span>Save Changes</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
+          )}
+        />
 
         {/* ================= SETTINGS CARDS ================= */}
         <div className="settings-grid">

@@ -1486,48 +1486,6 @@ const AcademicSetting = () => {
   }
 }
 
-  .academic-settings-page {
-    min-height: auto;
-    padding: 12px 20px 92px;
-    background: #f3f6fa;
-    font-family: inherit;
-    color: #18313c;
-  }
-
-  .academic-settings-page .academic-settings-page-header {
-    min-height: 82px;
-    margin: 0 0 14px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
-    box-shadow: 0 4px 14px rgba(14, 55, 70, 0.16);
-  }
-
-  .academic-settings-page .academic-settings-page-header .standard-page-header-content {
-    min-height: 82px;
-    padding: 14px 20px;
-  }
-
-  .academic-settings-page .academic-settings-page-header .standard-page-header-main {
-    gap: 14px;
-  }
-
-  .academic-settings-page .academic-settings-page-header .standard-page-header-icon {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    background: rgba(255, 255, 255, 0.14);
-    font-size: 20px;
-  }
-
-  .academic-settings-page .academic-settings-page-header .standard-page-header-title {
-    font-size: 21px;
-  }
-
-  .academic-settings-page .academic-settings-page-header .standard-page-header-subtitle {
-    margin-top: 3px;
-    font-size: 0.82rem;
-  }
-
   .as-section-tabs {
     display: flex;
     gap: 4px;

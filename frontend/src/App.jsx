@@ -8,7 +8,7 @@ import {
 import { useContext, useState, useEffect, Suspense, lazy } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import "./components/GlobalToast.css";
+// import "./components/GlobalToast.css";
 
 // Suppress specific React Router development warnings and excessive console logs for cleaner output
 if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {

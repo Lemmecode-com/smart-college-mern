@@ -5,9 +5,9 @@ import { toast } from "react-toastify";
 import { logger } from "../../../../utils/logger";
 import ApiError from "../../../../components/ApiError";
 import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import {
   FaEnvelope,
-  FaArrowLeft,
   FaSave,
   FaCheckCircle,
   FaTrash,
@@ -1842,6 +1842,274 @@ const EmailConfigurations = () => {
            color: var(--sc-text-muted);
            margin-top: 0.25rem;
          }
+
+        .email-settings-page {
+          padding: 0.75rem 1.25rem 1.5rem !important;
+          color: var(--sc-text-primary);
+        }
+
+        .email-settings-page .standard-page-header {
+          margin: 0 0 1rem;
+          border-radius: 14px;
+          box-shadow: 0 5px 16px rgba(15, 58, 74, 0.14);
+        }
+
+        .email-header-actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          flex-wrap: wrap;
+          gap: 0.65rem;
+        }
+
+        .email-settings-page .btn-back {
+          min-height: 40px;
+          margin: 0;
+          padding: 0.5rem 0.8rem;
+          border-radius: 8px;
+          font-size: 0.8rem;
+        }
+
+        .email-settings-page .standard-page-header-back {
+          min-height: 40px;
+          padding: 0 0.8rem;
+          border-radius: 8px;
+          font-size: 0.8rem;
+        }
+
+        .email-settings-page .header-badge {
+          position: static;
+          display: inline-flex;
+          align-items: center;
+          padding: 0.5rem 0.75rem;
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.1);
+          font-size: 0.76rem;
+          white-space: nowrap;
+        }
+
+        .email-settings-page .settings-card {
+          margin-bottom: 1rem;
+          border: 1px solid #e3ebef;
+          border-radius: 12px;
+          box-shadow: 0 4px 14px rgba(15, 58, 74, 0.07);
+        }
+
+        .email-settings-page .card-header-custom {
+          min-height: 48px;
+          padding: 0.75rem 1rem;
+          background: #f3f7f9;
+          color: #173c4a;
+          border-bottom: 1px solid #e4ebef;
+        }
+
+        .email-settings-page .card-header-custom h5 {
+          font-size: 0.96rem;
+        }
+
+        .email-settings-page .card-body-custom {
+          padding: 1rem 1.15rem;
+        }
+
+        .email-settings-page .verification-status-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 0.75rem 1rem;
+        }
+
+        .email-settings-page .verification-status-item {
+          min-width: 0;
+          gap: 0.3rem;
+        }
+
+        .email-settings-page .status-item-label {
+          font-size: 0.68rem;
+        }
+
+        .email-settings-page .status-item-value {
+          font-size: 0.82rem;
+          line-height: 1.4;
+          overflow-wrap: anywhere;
+        }
+
+        .email-settings-page .verification-badge {
+          padding: 0.3rem 0.6rem;
+          border-radius: 999px;
+          font-size: 0.75rem;
+        }
+
+        .email-settings-page .info-card {
+          gap: 0.75rem;
+          padding: 0.85rem 1rem;
+          margin-bottom: 1rem;
+          border-color: #d7e8ee;
+          border-radius: 11px;
+          background: #f5fafc;
+        }
+
+        .email-settings-page .info-card-icon {
+          width: 34px;
+          height: 34px;
+          font-size: 1rem;
+          background: #0f7189;
+        }
+
+        .email-settings-page .info-card-content h6 {
+          margin-bottom: 0.3rem;
+          font-size: 0.9rem;
+        }
+
+        .email-settings-page .info-card-content ul {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.1rem 1rem;
+          font-size: 0.78rem;
+          line-height: 1.45;
+        }
+
+        .email-settings-page .warning-banner,
+        .email-settings-page .error-banner {
+          margin-bottom: 1rem;
+          border-radius: 10px;
+        }
+
+        .email-settings-page .row {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.9rem;
+          margin: 0;
+        }
+
+        .email-settings-page .row:first-child {
+          grid-template-columns: minmax(0, 2fr) minmax(140px, 1fr);
+        }
+
+        .email-settings-page .row .form-group {
+          min-width: 0;
+          margin-bottom: 0.85rem;
+        }
+
+        .email-settings-page .form-group {
+          margin-bottom: 0.85rem;
+        }
+
+        .email-settings-page .form-label {
+          gap: 0.4rem;
+          margin-bottom: 0.4rem;
+          font-size: 0.8rem;
+        }
+
+        .email-settings-page .form-input {
+          box-sizing: border-box;
+          min-height: 42px;
+          padding: 0.6rem 0.75rem;
+          border: 1px solid #d6e0e6;
+          border-radius: 8px;
+          font-size: 0.86rem;
+        }
+
+        .email-settings-page .form-input:focus {
+          border-color: #2588a3;
+          box-shadow: 0 0 0 3px rgba(37, 136, 163, 0.13);
+        }
+
+        .email-settings-page .input-wrapper .form-input {
+          padding-right: 2.8rem;
+        }
+
+        .email-settings-page .input-toggle-btn {
+          right: 0.55rem;
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+        }
+
+        .email-settings-page .input-toggle-btn:hover {
+          background: #eef4f7;
+          color: #173c4a;
+        }
+
+        .email-settings-page .checkbox-label {
+          min-height: 40px;
+          padding: 0.5rem 0.7rem;
+          border: 1px solid #e2eaf0;
+          border-radius: 8px;
+          background: #f8fafb;
+          font-size: 0.8rem;
+        }
+
+        .email-settings-page .action-buttons {
+          gap: 0.6rem;
+          margin-top: 0.4rem;
+          padding-top: 1rem;
+        }
+
+        .email-settings-page .btn-action {
+          min-height: 42px;
+          justify-content: center;
+          padding: 0.6rem 0.9rem;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          box-shadow: none;
+        }
+
+        .email-settings-page .btn-primary {
+          background: #0f7189;
+        }
+
+        .email-settings-page .btn-success {
+          background: #25804f;
+        }
+
+        .email-settings-page .btn-danger {
+          background: #c83d42;
+        }
+
+        @media (max-width: 900px) {
+          .email-settings-page .verification-status-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 768px) {
+          .email-settings-page {
+            padding: 0.5rem 0.65rem 1rem !important;
+          }
+
+          .email-header-actions {
+            justify-content: flex-start;
+          }
+
+          .email-settings-page .info-card-content ul {
+            grid-template-columns: 1fr;
+          }
+
+          .email-settings-page .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .email-settings-page .btn-action {
+            width: 100%;
+          }
+
+          .email-settings-page .btn-danger {
+            grid-column: 1 / -1;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .email-settings-page .verification-status-grid,
+          .email-settings-page .row,
+          .email-settings-page .row:first-child,
+          .email-settings-page .action-buttons {
+            grid-template-columns: 1fr;
+          }
+
+          .email-settings-page .btn-danger {
+            grid-column: auto;
+          }
+        }
        `}</style>
 
       <div className="email-settings-page" style={{ paddingTop: "0.5rem" }}>
@@ -1866,16 +2134,16 @@ const EmailConfigurations = () => {
           </div>
         </div>
 
-        <div className="settings-header">
-          <div className="header-content">
-            <button className="btn-back" onClick={() => navigate("/system-settings/fees")}>
-              <FaArrowLeft />
-              <span>Back to System Settings</span>
-            </button>
-            <h1 className="header-title">Email Configuration</h1>
-            <p className="header-subtitle">Configure custom SMTP for your college emails</p>
-          </div>
-<div className="header-badge">
+        <PageHeader
+          className="email-page-header"
+          icon={FaEnvelope}
+          title="Email Configuration"
+          subtitle="Configure custom SMTP for your college emails"
+          onBack={() => navigate("/system-settings/fees")}
+          backLabel="Back to System Settings"
+          actions={(
+            <div className="email-header-actions">
+              <div className="header-badge">
              {!isConfigured ? (
                <>
                  <span className="status-dot inactive" />
@@ -1892,7 +2160,10 @@ const EmailConfigurations = () => {
                  Configured (Needs Verification)
                </>
              )}
-           </div>
+              </div>
+            </div>
+          )}
+        />
 
 {isConfigured && (
            <div className="settings-card">
@@ -1946,7 +2217,6 @@ const EmailConfigurations = () => {
              </div>
            </div>
          )}
-       </div>
 
        <div className="info-card">
          <div className="info-card-icon">
