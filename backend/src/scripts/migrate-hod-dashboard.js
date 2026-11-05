@@ -54,7 +54,12 @@ function logSection(title) {
 
 async function connectDB() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    if (!mongoUri) {
+      log("MONGO_URI or MONGODB_URI must be set in environment.", "error");
+      process.exit(1);
+    }
+    await mongoose.connect(mongoUri);
     log("Connected to MongoDB", "success");
   } catch (error) {
     log(`Failed to connect to MongoDB: ${error.message}`, "error");

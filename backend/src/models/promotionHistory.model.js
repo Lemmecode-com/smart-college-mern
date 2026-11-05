@@ -1,138 +1,182 @@
 const mongoose = require("mongoose");
 
-const promotionHistorySchema = new mongoose.Schema({
-  student_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Student",
-    required: true,
-  },
-  college_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "College",
-    required: true,
-  },
-  course_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Course",
-    required: true,
-  },
+const promotionHistorySchema = new mongoose.Schema(
+  {
+    student_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      required: true,
+    },
+    college_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "College",
+      required: true,
+    },
+    course_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Course",
+      required: true,
+    },
 
-  // Promotion details
-  fromSemester: {
-    type: Number,
-    required: true,
-  },
-  toSemester: {
-    type: Number,
-    required: true,
-  },
-  fromAcademicYear: {
-    type: String,
-    required: true,
-  },
-  toAcademicYear: {
-    type: String,
-    required: true,
-  },
+    // Promotion details
+    fromSemester: {
+      type: Number,
+      required: true,
+    },
+    toSemester: {
+      type: Number,
+      required: true,
+    },
+    fromAcademicYear: {
+      type: String,
+      required: true,
+    },
+    toAcademicYear: {
+      type: String,
+      required: true,
+    },
 
-  // Fee status at the time of promotion
-  feeStatus: {
-    type: String,
-    enum: ["FULLY_PAID", "PARTIALLY_PAID", "PENDING"],
-    required: true,
-  },
-  totalFee: {
-    type: Number,
-    required: true,
-  },
-  paidAmount: {
-    type: Number,
-    required: true,
-  },
-  pendingAmount: {
-    type: Number,
-    default: 0,
-  },
+    // Fee status at the time of promotion
+    feeStatus: {
+      type: String,
+      enum: ["FULLY_PAID", "PARTIALLY_PAID", "PENDING"],
+      required: true,
+    },
+    totalFee: {
+      type: Number,
+      required: true,
+    },
+    paidAmount: {
+      type: Number,
+      required: true,
+    },
+    pendingAmount: {
+      type: Number,
+      default: 0,
+    },
 
-  attendancePercentage: {
-    type: Number,
-    default: 0,
-  },
-  attendanceStatus: {
-    type: String,
-    enum: ["ELIGIBLE", "NOT_ELIGIBLE", "ATTENDANCE_NOT_AVAILABLE"],
-    required: true,
-    default: "ATTENDANCE_NOT_AVAILABLE",
-  },
-  attendanceCheckedAt: {
-    type: Date,
-    default: Date.now,
-  },
-  attendanceOverridden: {
-    type: Boolean,
-    default: false,
-  },
-  attendanceOverrideReason: {
-    type: String,
-    trim: true,
-    default: null,
-  },
+    attendancePercentage: {
+      type: Number,
+      default: 0,
+    },
+    attendanceStatus: {
+      type: String,
+      enum: ["ELIGIBLE", "NOT_ELIGIBLE", "ATTENDANCE_NOT_AVAILABLE"],
+      required: true,
+      default: "ATTENDANCE_NOT_AVAILABLE",
+    },
+    attendanceCheckedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    attendanceOverridden: {
+      type: Boolean,
+      default: false,
+    },
+    attendanceOverrideReason: {
+      type: String,
+      trim: true,
+      default: null,
+    },
 
-  // Promotion decision
-  promotedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
-  promotedByName: {
-    type: String,
-    required: true,
-  },
-  promotionDate: {
-    type: Date,
-    default: Date.now,
-  },
-  remarks: {
-    type: String,
-    trim: true,
-  },
+    // Promotion decision
+    promotedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    promotedByName: {
+      type: String,
+      required: true,
+    },
+    promotionDate: {
+      type: Date,
+      default: Date.now,
+    },
+    remarks: {
+      type: String,
+      trim: true,
+    },
+    promotion_decision_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PromotionDecision",
+      default: null,
+    },
+    source_result_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SemesterResult",
+      default: null,
+    },
+    promotionOutcome: {
+      type: String,
+      enum: ["PASS", "ATKT"],
+      default: null,
+    },
+    kt_count: {
+      type: Number,
+      min: 0,
+      default: 0,
+    },
+    failed_subject_ids: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Subject",
+      },
+    ],
+    backlog_ids: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Backlog",
+      },
+    ],
 
-  // Status of this promotion record
-  status: {
-    type: String,
-    enum: ["ACTIVE", "REVERSED"],
-    default: "ACTIVE",
-  },
+    // Status of this promotion record
+    status: {
+      type: String,
+      enum: ["ACTIVE", "REVERSED"],
+      default: "ACTIVE",
+    },
 
-  // Whether this promotion moves student to final semester
-  isFinalSemesterPromotion: {
-    type: Boolean,
-    default: false,
-  },
+    // Whether this promotion moves student to final semester
+    isFinalSemesterPromotion: {
+      type: Boolean,
+      default: false,
+    },
 
-  // Fee assignment tracking after promotion
-  newFeeAssigned: {
-    type: Boolean,
-    default: false,
+    // Fee assignment tracking after promotion
+    newFeeAssigned: {
+      type: Boolean,
+      default: false,
+    },
+    newFeeStructureId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FeeStructure",
+      default: null,
+    },
+    newStudentFeeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "StudentFee",
+      default: null,
+    },
+    feeAssignmentWarning: {
+      type: String,
+      default: null,
+    },
   },
-  newFeeStructureId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "FeeStructure",
-    default: null,
-  },
-  newStudentFeeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "StudentFee",
-    default: null,
-  },
-  feeAssignmentWarning: {
-    type: String,
-    default: null,
-  },
-}, { timestamps: true });
+  { timestamps: true },
+);
 
 // Index for quick lookup of student promotion history
 promotionHistorySchema.index({ student_id: 1, promotionDate: -1 });
 promotionHistorySchema.index({ college_id: 1, promotionDate: -1 });
+promotionHistorySchema.index(
+  { promotion_decision_id: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      promotion_decision_id: { $type: "objectId" },
+    },
+  },
+);
 
 module.exports = mongoose.model("PromotionHistory", promotionHistorySchema);

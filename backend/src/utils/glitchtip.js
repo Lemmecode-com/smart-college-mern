@@ -3,7 +3,13 @@ const Sentry = require("@sentry/node");
 let isEnabled = false;
 
 const initGlitchtip = () => {
-  if (!process.env.GLITCHTIP_DSN) {
+  const glitchtipEnabled = process.env.GLITCHTIP_ENABLED === "true";
+  const glitchtipDsnConfigured = !!process.env.GLITCHTIP_DSN;
+
+  console.log(`GlitchTip enabled: ${glitchtipEnabled}`);
+  console.log(`GlitchTip DSN configured: ${glitchtipDsnConfigured}`);
+
+  if (!glitchtipDsnConfigured) {
     console.log("GlitchTip DSN not configured. Error tracking disabled.");
     return;
   }
@@ -11,12 +17,12 @@ const initGlitchtip = () => {
   isEnabled = true;
 
   console.log(
-    `✅ GlitchTip initialized: env=${process.env.NODE_ENV || "development"}, dsn=${process.env.GLITCHTIP_DSN ? "set" : "missing"}`,
+    `✅ GlitchTip initialized: env=${process.env.NODE_ENV || "development"}, dsn=set`,
   );
 
   Sentry.init({
     dsn: process.env.GLITCHTIP_DSN,
-    enabled: process.env.GLITCHTIP_ENABLED === "true",
+    enabled: glitchtipEnabled,
     environment: process.env.NODE_ENV || "development",
     tracesSampleRate: 0,
     debug: false,

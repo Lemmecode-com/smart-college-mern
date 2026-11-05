@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
+import Breadcrumb from "../../../../components/Breadcrumb";
 import ApiError from "../../../../components/ApiError";
+import PageHeader from "../../../../components/PageHeader";
+import ConfirmModal from "../../../../components/ConfirmModal";
 import { logger } from "../../../../utils/logger";
 import {
   FaFileAlt,
@@ -18,6 +21,8 @@ import {
   FaImages,
   FaFilePdf,
   FaFileWord,
+  FaBook,
+  FaLayerGroup,
 } from "react-icons/fa";
 
 export default function DocumentSettings() {
@@ -28,6 +33,8 @@ export default function DocumentSettings() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isModified, setIsModified] = useState(false);
   const [pageError, setPageError] = useState(null);
+  const [selectedStandardDoc, setSelectedStandardDoc] = useState("");
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -98,6 +105,19 @@ export default function DocumentSettings() {
   useEffect(() => {
     loadDocumentConfig();
   }, []);
+
+  // Warn on tab close / reload if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isModified) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isModified]);
 
   const loadDocumentConfig = async () => {
     try {
@@ -190,6 +210,72 @@ export default function DocumentSettings() {
     setIsModified(true);
   };
 
+  const addStandardDocument = (standardType) => {
+    const stdDoc = defaultDocumentTypes.find((d) => d.type === standardType);
+    if (!stdDoc) return;
+
+    const existingIndex = documents.findIndex((d) => d.type === standardType);
+    if (existingIndex !== -1) {
+      const updated = [...documents];
+      updated[existingIndex].enabled = true;
+      setDocuments(updated);
+      setIsModified(true);
+      setMessage({
+        type: "success",
+        text: `"${stdDoc.label}" was already in your list and has now been enabled!`,
+      });
+      return;
+    }
+
+    const newDoc = {
+      type: stdDoc.type,
+      label: stdDoc.label,
+      enabled: true,
+      mandatory: false,
+      allowedFormats: stdDoc.defaultFormats,
+      maxFileSize: 5,
+      description: stdDoc.description || "",
+      order: documents.length,
+    };
+    setDocuments([...documents, newDoc]);
+    setIsModified(true);
+    setMessage({
+      type: "success",
+      text: `Added standard document "${stdDoc.label}". Click "Save Configuration" to apply.`,
+    });
+  };
+
+  const loadAllStandardDefaults = () => {
+    const existingTypes = new Set(documents.map((d) => d.type));
+    const toAdd = defaultDocumentTypes
+      .filter((d) => d.type !== "custom_document" && !existingTypes.has(d.type))
+      .map((d, idx) => ({
+        type: d.type,
+        label: d.label,
+        enabled: true,
+        mandatory: false,
+        allowedFormats: d.defaultFormats,
+        maxFileSize: 5,
+        description: d.description || "",
+        order: documents.length + idx,
+      }));
+
+    if (toAdd.length === 0) {
+      setMessage({
+        type: "info",
+        text: "All standard documents are already in your list!",
+      });
+      return;
+    }
+
+    setDocuments([...documents, ...toAdd]);
+    setIsModified(true);
+    setMessage({
+      type: "success",
+      text: `Added ${toAdd.length} standard documents! Please review and click "Save Configuration".`,
+    });
+  };
+
   const addCustomDocument = () => {
     const newDoc = {
       type: `custom_${Date.now()}`,
@@ -265,27 +351,28 @@ export default function DocumentSettings() {
     }
   };
 
-  const handleReset = async () => {
-    if (
-      !window.confirm(
-        "⚠️ Are you sure you want to remove ALL document requirements?\n\nThis will:\n- Remove all document upload requirements\n- Students will NOT need to upload any files\n- You can reconfigure documents later",
-      )
-    ) {
-      return;
-    }
+  const handleReset = () => {
+    setShowResetConfirm(true);
+  };
 
+  const executeReset = async () => {
     try {
       setSaving(true);
       await api.post("/document-config/admin/college/reset");
+      setShowResetConfirm(false);
       setMessage({
         type: "success",
         text: "Configuration reset! No documents are now required for registration.",
       });
-      loadDocumentConfig();
+      await loadDocumentConfig();
       setIsModified(false);
     } catch (error) {
       logger.error("Error resetting document config:", error.response?.status, error.response?.data?.code);
-      setMessage({ type: "error", text: "Failed to reset configuration" });
+      setMessage({
+        type: "error",
+        text: error.response?.data?.message || "Failed to reset configuration",
+      });
+      setShowResetConfirm(false);
     } finally {
       setSaving(false);
     }
@@ -308,7 +395,20 @@ export default function DocumentSettings() {
   };
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Document Settings..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Document Settings..."
+          />
+        </div>
+      </div>
+    );
   }
 
   if (pageError) {
@@ -366,7 +466,7 @@ export default function DocumentSettings() {
           align-items: center;
           margin-bottom: 1.5rem;
           padding: 1.25rem;
-          background: linear-gradient(135deg, var(--ds-teal-dark) 0%, var(--ds-teal-medium) 100%);
+          background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%);
           border-radius: var(--ds-radius-xl);
           box-shadow: var(--ds-shadow-lg);
           position: relative;
@@ -393,9 +493,9 @@ export default function DocumentSettings() {
         }
 
         .header-icon-wrapper {
-          width: 56px;
-          height: 56px;
-          border-radius: var(--ds-radius-lg);
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
           background: linear-gradient(135deg, var(--ds-cyan-primary), var(--ds-cyan-light));
           display: flex;
           align-items: center;
@@ -948,6 +1048,12 @@ export default function DocumentSettings() {
           border: 1px solid #f5c6cb;
         }
 
+        .message-alert.info {
+          background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+          color: #0c5460;
+          border: 1px solid #bee5eb;
+        }
+
         .message-icon {
           font-size: 1.25rem;
         }
@@ -1032,71 +1138,1079 @@ export default function DocumentSettings() {
           font-size: 0.875rem;
         }
 
-        /* Responsive */
-        @media (max-width: 1024px) {
-          .stats-row {
-            grid-template-columns: 1fr;
-          }
-          
-          .settings-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .header-actions {
-            width: 100%;
-            justify-content: flex-end;
-          }
-          
-          .description-grid {
-            grid-template-columns: 1fr;
-          }
-        }
+/* =========================================================
+   RESPONSIVE DESIGN
+   Desktop remains completely unchanged
+   ========================================================= */
 
-        @media (max-width: 768px) {
-          .document-settings-page {
-            padding: 0.75rem;
-          }
-          
-          .settings-title {
-            font-size: 1.5rem;
-          }
-          
-          .header-content {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .header-actions {
-            flex-direction: column;
-          }
-          
-          .btn-reset,
-          .btn-save {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .documents-table {
-            font-size: 0.75rem;
-          }
-          
-          .documents-table th,
-          .documents-table td {
-            padding: 0.75rem 0.5rem;
-          }
-          
-          .modified-indicator {
-            left: 0.75rem;
-            right: 0.75rem;
-            transform: none;
-            bottom: 0.75rem;
-            flex-direction: column;
-            text-align: center;
-          }
-        }
 
+/* =========================================================
+   TABLET: 769px - 1024px
+   ========================================================= */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  .document-settings-page {
+    padding: 1rem;
+    overflow-x: hidden;
+  }
+
+  /* ---------- Page Header ---------- */
+
+  .settings-header {
+    padding: 1.1rem;
+    gap: 1rem;
+
+    align-items: center;
+  }
+
+  .header-content {
+    width: 100%;
+    min-width: 0;
+    gap: 0.85rem;
+  }
+
+  .header-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+  }
+
+  .header-icon {
+    font-size: 1.35rem;
+  }
+
+  .settings-title {
+    font-size: 1.5rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  /* ---------- Header Buttons ---------- */
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 0.6rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    padding: 0.6rem 0.85rem;
+    font-size: 0.82rem;
+  }
+
+
+  /* ---------- Statistics ---------- */
+
+  .stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    gap: 0.7rem;
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+  }
+
+
+  /* ---------- Info Card ---------- */
+
+  .info-card {
+    padding: 1rem;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.95rem;
+  }
+
+  .info-card-content ul {
+    font-size: 0.8rem;
+  }
+
+
+  /* ---------- Documents ---------- */
+
+  .documents-card {
+    overflow: hidden;
+  }
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .documents-table {
+    min-width: 900px;
+  }
+
+  .card-header-custom {
+    padding: 1rem 1.15rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 1rem;
+  }
+
+  .btn-add-document {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.78rem;
+  }
+
+
+  /* ---------- Description ---------- */
+
+  .description-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .description-body {
+    padding: 1.15rem;
+  }
+}
+
+
+/* =========================================================
+   MOBILE: 0px - 768px
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .document-settings-page {
+    padding: 0.6rem;
+    overflow-x: hidden;
+  }
+
+
+  /* =====================================================
+     HEADER
+     ===================================================== */
+
+  .settings-header {
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+
+    border-radius: 14px;
+
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    gap: 0.7rem;
+  }
+
+  .header-icon-wrapper {
+    width: 44px;
+    height: 44px;
+
+    min-width: 44px;
+
+    border-radius: 10px;
+  }
+
+  .header-icon {
+    font-size: 1.2rem;
+  }
+
+  .header-text {
+    min-width: 0;
+  }
+
+  .settings-title {
+    font-size: 1.25rem;
+    line-height: 1.2;
+
+    letter-spacing: -0.3px;
+  }
+
+  .settings-subtitle {
+    font-size: 0.72rem;
+    line-height: 1.4;
+
+    margin-top: 0.25rem;
+  }
+
+
+  /* =====================================================
+     HEADER ACTIONS
+     ===================================================== */
+
+  .header-actions {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 0.55rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    width: 100%;
+
+    justify-content: center;
+
+    padding: 0.65rem 0.5rem;
+
+    font-size: 0.72rem;
+
+    white-space: nowrap;
+  }
+
+  .btn-icon {
+    font-size: 0.85rem;
+  }
+
+
+  /* =====================================================
+     STATISTICS
+     ===================================================== */
+
+  .stats-row {
+    grid-template-columns: 1fr;
+
+    gap: 0.65rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    min-height: 68px;
+
+    padding: 0.8rem 0.9rem;
+
+    gap: 0.75rem;
+
+    border-left-width: 4px;
+  }
+
+  .stat-icon {
+    width: 42px;
+    height: 42px;
+
+    min-width: 42px;
+
+    font-size: 1.15rem;
+  }
+
+  .stat-value {
+    font-size: 1.45rem;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    margin-top: 0.2rem;
+  }
+
+
+  /* =====================================================
+     INFO CARD
+     ===================================================== */
+
+  .info-card {
+    padding: 0.85rem;
+
+    gap: 0.7rem;
+
+    margin-bottom: 1rem;
+  }
+
+  .info-card-icon {
+    width: 36px;
+    height: 36px;
+
+    min-width: 36px;
+
+    font-size: 1rem;
+  }
+
+  .info-card-content {
+    min-width: 0;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.9rem;
+
+    margin-bottom: 0.35rem;
+  }
+
+  .info-card-content ul {
+    padding-left: 1rem;
+
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+
+
+  /* =====================================================
+     DOCUMENT CONFIGURATION CARD
+     ===================================================== */
+
+  .documents-card {
+    width: 100%;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    margin-bottom: 1rem;
+  }
+
+  .card-header-custom {
+    padding: 0.8rem 0.85rem;
+
+    gap: 0.6rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 0.9rem;
+  }
+
+  .btn-add-document {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.7rem;
+
+    white-space: nowrap;
+  }
+
+
+  /* =====================================================
+     TABLE
+     Keep table usable instead of squeezing columns
+     ===================================================== */
+
+  .table-responsive {
+    width: 100%;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    -webkit-overflow-scrolling: touch;
+
+    scrollbar-width: thin;
+  }
+
+  .documents-table {
+    width: 950px;
+    min-width: 950px;
+
+    font-size: 0.72rem;
+  }
+
+  .documents-table th,
+  .documents-table td {
+    padding: 0.65rem 0.5rem;
+
+    white-space: nowrap;
+  }
+
+  .documents-table th {
+    font-size: 0.68rem;
+  }
+
+  .doc-type-badge {
+    font-size: 0.65rem;
+
+    padding: 0.2rem 0.55rem;
+  }
+
+  .label-input {
+    min-width: 150px;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.75rem;
+  }
+
+  .mandatory-checkbox {
+    width: 18px;
+    height: 18px;
+  }
+
+  .toggle-enabled,
+  .toggle-disabled {
+    font-size: 1.5rem;
+  }
+
+  .format-buttons {
+    gap: 0.25rem;
+    flex-wrap: nowrap;
+  }
+
+  .format-btn {
+    padding: 0.22rem 0.4rem;
+
+    font-size: 0.62rem;
+  }
+
+  .size-input {
+    width: 58px;
+
+    padding: 0.4rem;
+
+    font-size: 0.75rem;
+  }
+
+  .action-btn {
+    padding: 0.4rem;
+  }
+
+
+  /* =====================================================
+     DESCRIPTION CARD
+     ===================================================== */
+
+  .description-card {
+    border-radius: 12px;
+  }
+
+  .description-header {
+    padding: 0.9rem;
+  }
+
+  .description-header h5 {
+    font-size: 0.95rem;
+  }
+
+  .description-header p {
+    font-size: 0.72rem !important;
+
+    line-height: 1.45;
+  }
+
+  .description-body {
+    padding: 0.9rem;
+  }
+
+  .description-grid {
+    grid-template-columns: 1fr;
+
+    gap: 0.8rem;
+  }
+
+  .description-group label {
+    font-size: 0.75rem;
+
+    margin-bottom: 0.35rem;
+  }
+
+  .description-input {
+    padding: 0.55rem 0.65rem;
+
+    font-size: 0.75rem;
+  }
+
+
+  /* =====================================================
+     MESSAGE ALERT
+     ===================================================== */
+
+  .message-alert {
+    padding: 0.75rem 0.8rem;
+
+    gap: 0.55rem;
+
+    margin-bottom: 1rem;
+
+    align-items: flex-start;
+  }
+
+  .message-icon {
+    font-size: 1rem;
+  }
+
+  .message-text {
+    font-size: 0.75rem;
+
+    line-height: 1.4;
+  }
+
+
+  /* =====================================================
+     UNSAVED CHANGES
+     ===================================================== */
+
+  .modified-indicator {
+    left: 0.6rem;
+    right: 0.6rem;
+    bottom: 0.6rem;
+
+    width: auto;
+
+    padding: 0.65rem 0.75rem;
+
+    gap: 0.65rem;
+
+    flex-direction: row;
+
+    justify-content: space-between;
+
+    box-sizing: border-box;
+  }
+
+  .indicator-content {
+    min-width: 0;
+
+    font-size: 0.7rem;
+  }
+
+  .btn-save-small {
+    flex-shrink: 0;
+
+    padding: 0.45rem 0.6rem;
+
+    font-size: 0.68rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE: 0px - 420px
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .document-settings-page {
+    padding: 0.5rem;
+  }
+
+  .settings-header {
+    padding: 0.75rem;
+  }
+
+  .header-content {
+    gap: 0.6rem;
+  }
+
+  .header-icon-wrapper {
+    width: 40px;
+    height: 40px;
+
+    min-width: 40px;
+  }
+
+  .header-icon {
+    font-size: 1rem;
+  }
+
+  .settings-title {
+    font-size: 1.1rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.67rem;
+  }
+
+
+  /* Header buttons stay side-by-side */
+
+  .header-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .btn-reset,
+  .btn-save {
+    padding: 0.6rem 0.35rem;
+
+    font-size: 0.65rem;
+  }
+
+
+  /* Stats */
+
+  .stat-card {
+    min-height: 62px;
+
+    padding: 0.7rem 0.75rem;
+  }
+
+  .stat-icon {
+    width: 38px;
+    height: 38px;
+
+    min-width: 38px;
+
+    font-size: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+
+
+  /* Info */
+
+  .info-card {
+    padding: 0.7rem;
+  }
+
+  .info-card-icon {
+    width: 32px;
+    height: 32px;
+
+    min-width: 32px;
+
+    font-size: 0.85rem;
+  }
+
+  .info-card-content h6 {
+    font-size: 0.82rem;
+  }
+
+  .info-card-content ul {
+    font-size: 0.67rem;
+  }
+
+
+  /* Document card */
+
+  .card-header-custom {
+    padding: 0.7rem;
+  }
+
+  .card-header-custom h5 {
+    font-size: 0.82rem;
+  }
+
+  .btn-add-document {
+    padding: 0.4rem 0.5rem;
+
+    font-size: 0.63rem;
+  }
+
+
+  /* Unsaved indicator */
+
+  .modified-indicator {
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+
+    padding: 0.55rem 0.6rem;
+  }
+
+  .indicator-content {
+    font-size: 0.65rem;
+  }
+
+  .btn-save-small {
+    padding: 0.4rem 0.5rem;
+
+    font-size: 0.62rem;
+  }
+}
+/* =========================================================
+   DOCUMENT SETTINGS BANNER - TABLET & MOBILE
+   Desktop remains unchanged
+   ========================================================= */
+
+@media (max-width: 1024px) {
+
+  /* Main banner */
+  .settings-header {
+    width: 100%;
+    box-sizing: border-box;
+
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+
+    gap: 1.25rem;
+
+    padding: 1.25rem;
+
+    margin-bottom: 1.25rem;
+
+    border-radius: 18px;
+
+    overflow: hidden;
+  }
+
+  /* Banner content */
+  .header-content {
+    width: 100%;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 0.75rem;
+
+    text-align: center;
+  }
+
+  /* Icon */
+  .header-icon-wrapper {
+    width: 58px;
+    height: 58px;
+
+    min-width: 58px;
+
+    border-radius: 14px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header-icon {
+    font-size: 1.45rem;
+  }
+
+  /* Text */
+  .header-text {
+    width: 100%;
+  }
+
+  .settings-title {
+    margin: 0;
+
+    font-size: 1.65rem;
+
+    line-height: 1.2;
+
+    text-align: center;
+  }
+
+  .settings-subtitle {
+    max-width: 520px;
+
+    margin: 0.45rem auto 0;
+
+    font-size: 0.9rem;
+
+    line-height: 1.5;
+
+    text-align: center;
+  }
+
+  /* Buttons container */
+  .header-actions {
+    width: 100%;
+
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 0.75rem;
+
+    margin-top: 0.25rem;
+  }
+
+  /* Buttons */
+  .btn-reset,
+  .btn-save {
+    width: 100%;
+
+    min-height: 48px;
+
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0.7rem 0.8rem;
+
+    font-size: 0.85rem;
+
+    white-space: nowrap;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .settings-header {
+    padding: 1rem;
+
+    gap: 1rem;
+
+    border-radius: 16px;
+  }
+
+  .header-content {
+    gap: 0.65rem;
+  }
+
+  .header-icon-wrapper {
+    width: 52px;
+    height: 52px;
+
+    min-width: 52px;
+
+    border-radius: 12px;
+  }
+
+  .header-icon {
+    font-size: 1.3rem;
+  }
+
+  .settings-title {
+    font-size: 1.4rem;
+
+    line-height: 1.2;
+  }
+
+  .settings-subtitle {
+    max-width: 100%;
+
+    font-size: 0.8rem;
+
+    line-height: 1.45;
+  }
+
+  .header-actions {
+    grid-template-columns: 1fr 1fr;
+
+    gap: 0.6rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 44px;
+
+    padding: 0.6rem 0.45rem;
+
+    font-size: 0.72rem;
+
+    border-radius: 8px;
+  }
+
+  .btn-icon {
+    font-size: 0.85rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .settings-header {
+    padding: 0.85rem;
+
+    gap: 0.85rem;
+
+    border-radius: 14px;
+  }
+
+  .header-icon-wrapper {
+    width: 46px;
+    height: 46px;
+
+    min-width: 46px;
+
+    border-radius: 11px;
+  }
+
+  .header-icon {
+    font-size: 1.15rem;
+  }
+
+  .settings-title {
+    font-size: 1.2rem;
+  }
+
+  .settings-subtitle {
+    font-size: 0.72rem;
+
+    line-height: 1.4;
+  }
+
+  .header-actions {
+    gap: 0.5rem;
+  }
+
+  .btn-reset,
+  .btn-save {
+    min-height: 42px;
+
+    padding: 0.55rem 0.3rem;
+
+    font-size: 0.65rem;
+
+    gap: 0.35rem;
+  }
+
+  .btn-icon {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 1400px) {
+  .documents-card .table-responsive {
+    overflow: visible;
+  }
+
+  .documents-table,
+  .documents-table tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .documents-table thead {
+    display: none;
+  }
+
+  .documents-table tbody {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .documents-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #fff;
+  }
+
+  .documents-table tbody tr.disabled-row {
+    background: #fafbfc;
+  }
+
+  .documents-table td,
+  .documents-table td.text-center {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem !important;
+    text-align: left;
+    border: 0;
+  }
+
+  .documents-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--ds-text-secondary);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .documents-table .label-input {
+    width: min(100%, 220px);
+    min-width: 0;
+  }
+
+  .documents-table .format-buttons {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .documents-table tbody tr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .documents-table td::before {
+    min-width: 7rem;
+  }
+
+  .documents-table .label-input {
+    width: 100%;
+  }
+}
+
+@media (min-width: 740px) and (max-width: 1400px) {
+  .documents-table tbody tr {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .documents-table td,
+  .documents-table td.text-center {
+    display: grid;
+    grid-template-columns: 10rem minmax(0, 1fr);
+  }
+
+  .documents-table td::before {
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .documents-table .label-input {
+    width: 100%;
+    max-width: 320px;
+  }
+
+  .documents-table .format-buttons {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1400px) {
+  .modified-indicator {
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+    max-width: none;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    transform: none;
+    animation: none;
+  }
+
+  .indicator-content {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1400px) {
+  .modified-indicator {
+    left: calc(var(--erp-sidebar-width, 250px) + 1rem);
+  }
+
+  .layout-wrapper.layout-collapsed .modified-indicator {
+    left: calc(var(--erp-sidebar-collapsed-width, 80px) + 1rem);
+  }
+}
         @media (prefers-reduced-motion: reduce) {
           *,
           *::before,
@@ -1115,25 +2229,496 @@ export default function DocumentSettings() {
           outline: 2px solid var(--ds-cyan-primary);
           outline-offset: 2px;
         }
+
+        .document-settings-page {
+          padding: 0.75rem 1.25rem 1.5rem !important;
+          color: var(--ds-text-primary);
+        }
+
+        .document-settings-page .standard-page-header {
+          margin: 0 0 1.25rem;
+          border-radius: 14px;
+          box-shadow: 0 5px 16px rgba(15, 58, 74, 0.14);
+        }
+
+        .document-header-actions {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.65rem;
+        }
+
+        .document-settings-page .btn-reset,
+        .document-settings-page .btn-save {
+          min-height: 42px;
+          padding: 0.55rem 0.9rem;
+          border-radius: 9px;
+          font-size: 0.84rem;
+          box-shadow: none;
+        }
+
+        .document-settings-page .btn-reset {
+          border: 1px solid rgba(255, 255, 255, 0.42);
+          background: rgba(255, 255, 255, 0.1);
+        }
+
+        .document-settings-page .btn-reset:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.18);
+        }
+
+        .document-settings-page .btn-save {
+          border: 1px solid #3db5e6;
+          background: #3db5e6;
+        }
+
+        .document-settings-page .stats-row {
+          gap: 0.85rem;
+          margin-bottom: 1rem;
+        }
+
+        .document-settings-page .stat-card {
+          min-height: 88px;
+          padding: 1rem 1.15rem;
+          border: 1px solid #e5edf2;
+          border-left: 3px solid var(--ds-cyan-primary);
+          border-radius: 12px;
+          box-shadow: 0 3px 12px rgba(15, 58, 74, 0.06);
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .document-settings-page .stat-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 7px 18px rgba(15, 58, 74, 0.1);
+        }
+
+        .document-settings-page .stat-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 10px;
+          font-size: 1.15rem;
+        }
+
+        .document-settings-page .stat-value {
+          font-size: 1.55rem;
+        }
+
+        .document-settings-page .stat-label {
+          font-size: 0.8rem;
+        }
+
+        .document-settings-page .info-card {
+          gap: 0.8rem;
+          padding: 0.95rem 1.1rem;
+          margin-bottom: 1rem;
+          border-radius: 12px;
+        }
+
+        .document-settings-page .info-card-icon {
+          width: 34px;
+          height: 34px;
+          font-size: 1rem;
+        }
+
+        .document-settings-page .info-card-content h6 {
+          margin-bottom: 0.35rem;
+          font-size: 0.92rem;
+        }
+
+        .document-settings-page .info-card-content ul {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 0.1rem 1.25rem;
+          font-size: 0.8rem;
+          line-height: 1.45;
+        }
+
+        .document-settings-page .documents-card,
+        .document-settings-page .description-card {
+          border: 1px solid #e5edf2;
+          border-radius: 13px;
+          box-shadow: 0 4px 14px rgba(15, 58, 74, 0.07);
+        }
+
+        .document-settings-page .card-header-custom,
+        .document-settings-page .description-header {
+          padding: 0.95rem 1.15rem;
+          background: #f8fafc;
+          border-bottom: 1px solid #e8eef2;
+        }
+
+        .document-settings-page .card-header-custom h5,
+        .document-settings-page .description-header h5 {
+          margin: 0;
+          color: #173c4a;
+          font-size: 1rem;
+          font-weight: 700;
+        }
+
+        .document-settings-page .btn-add-document {
+          min-height: 38px;
+          padding: 0.5rem 0.8rem;
+          border: 1px solid #0f7189;
+          border-radius: 8px;
+          background: #0f7189;
+          color: #fff;
+          font-size: 0.8rem;
+          font-weight: 600;
+          transition: background 0.18s ease, transform 0.18s ease;
+        }
+
+        .document-settings-page .btn-add-document:hover {
+          transform: translateY(-1px);
+          background: #0c5d72;
+        }
+
+        .document-settings-page .select-standard-doc {
+          min-height: 38px;
+          padding: 0.45rem 0.85rem;
+          border: 1.5px solid #0f7189;
+          border-radius: 8px;
+          background-color: #ffffff;
+          color: #0c2d3a;
+          font-size: 0.82rem;
+          font-weight: 600;
+          outline: none;
+          cursor: pointer;
+          transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .document-settings-page .select-standard-doc:hover {
+          border-color: #0c5d72;
+          background-color: #f7fbfd;
+        }
+
+        .document-settings-page .select-standard-doc:focus {
+          box-shadow: 0 0 0 3px rgba(15, 113, 137, 0.16);
+        }
+
+        .document-settings-page .btn-load-defaults {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          min-height: 38px;
+          padding: 0.5rem 0.8rem;
+          border: 1.5px solid #0f7189;
+          border-radius: 8px;
+          background: #ffffff;
+          color: #0f7189;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.18s ease;
+        }
+
+        .document-settings-page .btn-load-defaults:hover {
+          background: #e8f4f9;
+          border-color: #0c5d72;
+          transform: translateY(-1px);
+        }
+
+        .document-settings-page .table-responsive {
+          overflow-x: auto;
+          overscroll-behavior-x: contain;
+        }
+
+        .document-settings-page .documents-table {
+          width: 100%;
+          min-width: 1080px;
+          border-collapse: separate;
+          border-spacing: 0;
+          table-layout: fixed;
+        }
+
+        .document-settings-page .documents-table th {
+          padding: 0.75rem 0.55rem;
+          background: #f3f7f9;
+          color: #45606b;
+          font-size: 0.72rem;
+          letter-spacing: 0.035em;
+          text-transform: uppercase;
+          border-bottom: 1px solid #e2eaf0;
+        }
+
+        .document-settings-page .documents-table td {
+          padding: 0.7rem 0.55rem;
+          vertical-align: middle;
+          border-bottom: 1px solid #edf1f4;
+        }
+
+        .document-settings-page .documents-table tbody tr {
+          transition: background 0.16s ease;
+        }
+
+        .document-settings-page .documents-table tbody tr:hover {
+          background: #f8fbfc;
+        }
+
+        .document-settings-page .doc-type-badge {
+          max-width: 100%;
+          padding: 0.35rem 0.5rem;
+          border: 1px solid #dce8ed;
+          border-radius: 7px;
+          background: #f5f9fb;
+          color: #315564;
+          font-size: 0.72rem;
+          overflow-wrap: anywhere;
+        }
+
+        .document-settings-page .label-input,
+        .document-settings-page .size-input,
+        .document-settings-page .description-input {
+          min-height: 38px;
+          border: 1px solid #d7e0e6;
+          border-radius: 7px;
+          background: #fff;
+          font-size: 0.82rem;
+        }
+
+        .document-settings-page .label-input {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .document-settings-page .size-input {
+          width: 64px;
+        }
+
+        .document-settings-page .format-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.3rem;
+        }
+
+        .document-settings-page .format-btn {
+          min-height: 27px;
+          padding: 0.25rem 0.4rem;
+          border-radius: 6px;
+          font-size: 0.66rem;
+          white-space: nowrap;
+        }
+
+        .document-settings-page .action-btn {
+          width: 34px;
+          height: 34px;
+          margin: 0 auto;
+        }
+
+        .document-settings-page .description-card {
+          margin-top: 1rem;
+        }
+
+        .document-settings-page .description-header p {
+          margin: 0.25rem 0 0 !important;
+          font-size: 0.8rem !important;
+        }
+
+        .document-settings-page .description-body {
+          padding: 1rem 1.15rem;
+        }
+
+        .document-settings-page .description-grid {
+          gap: 0.85rem;
+        }
+
+        .document-settings-page .description-group label {
+          margin-bottom: 0.35rem;
+          color: #405967;
+          font-size: 0.78rem;
+        }
+
+        @media (min-width: 769px) and (max-width: 1400px) {
+          .document-settings-page .documents-card .table-responsive {
+            overflow: visible;
+          }
+
+          .document-settings-page .documents-table,
+          .document-settings-page .documents-table tbody {
+            display: block;
+            width: 100%;
+            min-width: 0;
+          }
+
+          .document-settings-page .documents-table thead {
+            display: none;
+          }
+
+          .document-settings-page .documents-table tbody {
+            display: grid;
+            gap: 0.7rem;
+            padding: 0.75rem;
+          }
+
+          .document-settings-page .documents-table tbody tr {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.3rem 0.75rem;
+            padding: 0.7rem;
+            border: 1px solid #e4ebef;
+            border-radius: 10px;
+            background: #fff;
+          }
+
+          .document-settings-page .documents-table td,
+          .document-settings-page .documents-table td.text-center {
+            display: grid;
+            grid-template-columns: minmax(6.5rem, 0.75fr) minmax(0, 1.25fr);
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem !important;
+            border: 0;
+            text-align: left;
+          }
+
+          .document-settings-page .documents-table td::before {
+            content: attr(data-label);
+            color: #536a75;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+
+          .document-settings-page .documents-table td[data-label="Allowed Formats"] {
+            grid-column: 1 / -1;
+          }
+
+          .document-settings-page .documents-table .format-buttons {
+            justify-content: flex-start;
+          }
+
+          .document-settings-page .documents-table .label-input {
+            width: 100%;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .document-settings-page {
+            padding: 0.5rem 0.65rem 1rem !important;
+          }
+
+          .document-settings-page .stats-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .document-settings-page .stat-card {
+            min-height: 76px;
+            padding: 0.75rem;
+            gap: 0.6rem;
+          }
+
+          .document-settings-page .stat-icon {
+            width: 36px;
+            height: 36px;
+            font-size: 1rem;
+          }
+
+          .document-settings-page .stat-value {
+            font-size: 1.35rem;
+          }
+
+          .document-settings-page .stat-label {
+            font-size: 0.7rem;
+          }
+
+          .document-settings-page .info-card-content ul {
+            grid-template-columns: 1fr;
+          }
+
+          .document-settings-page .card-header-custom {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .document-settings-page .select-standard-doc,
+          .document-settings-page .btn-load-defaults,
+          .document-settings-page .btn-add-document {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .document-settings-page .documents-table tbody tr {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .document-settings-page .documents-table td[data-label="Allowed Formats"] {
+            grid-column: auto;
+          }
+
+          .document-settings-page .documents-table td,
+          .document-settings-page .documents-table td.text-center {
+            grid-template-columns: minmax(6.25rem, 0.7fr) minmax(0, 1.3fr);
+          }
+
+          .document-settings-page .description-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .document-header-actions {
+            width: 100%;
+          }
+
+          .document-header-actions .btn-reset,
+          .document-header-actions .btn-save {
+            flex: 1 1 145px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .document-settings-page .stats-row {
+            grid-template-columns: 1fr;
+          }
+
+          .document-settings-page .documents-table td,
+          .document-settings-page .documents-table td.text-center {
+            grid-template-columns: 1fr;
+            gap: 0.35rem;
+          }
+
+          .document-settings-page .documents-table td::before {
+            font-size: 0.65rem;
+          }
+
+          .document-settings-page .documents-table .format-buttons {
+            justify-content: flex-start;
+          }
+
+          .document-header-actions .btn-reset,
+          .document-header-actions .btn-save {
+            flex-basis: 100%;
+          }
+        }
       `}</style>
 
-      <div className="document-settings-page">
-        {/* ================= PAGE HEADER ================= */}
-        <div className="settings-header">
-          <div className="header-content">
-            <div className="header-icon-wrapper">
-              <FaFileAlt className="header-icon" />
-            </div>
-            <div className="header-text">
-              <h2 className="settings-title">Document Settings</h2>
-              <p className="settings-subtitle">
-                Configure which documents students need to upload during
-                registration
-              </p>
-            </div>
+      <div className="document-settings-page" style={{ paddingTop: "0.5rem" }}>
+
+        {/* ================= BREADCRUMB ================= */}
+        <div
+          style={{
+            width: "100%",
+            margin: "0 auto",
+            paddingTop: 0,
+            height: "auto",
+          }}
+        >
+          <div style={{ width: "100%" }}>
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard" },
+                { label: "System Settings" },
+                { label: "Document Settings" },
+              ]}
+            />
           </div>
-          <div className="header-actions">
+        </div>
+
+        <PageHeader
+          className="document-page-header"
+          icon={FaFileAlt}
+          title="Document Settings"
+          subtitle="Configure which documents students need to upload during registration"
+          actions={(
+            <div className="document-header-actions">
             <button
+              type="button"
               className="btn-reset"
               onClick={handleReset}
               disabled={saving}
@@ -1142,6 +2727,7 @@ export default function DocumentSettings() {
               <span>Reset to Empty</span>
             </button>
             <button
+              type="button"
               className={`btn-save ${isModified ? "btn-save-modified" : ""}`}
               onClick={handleSave}
               disabled={saving || !isModified}
@@ -1158,17 +2744,26 @@ export default function DocumentSettings() {
                 </>
               )}
             </button>
-          </div>
-        </div>
+            </div>
+          )}
+        />
 
         {/* ================= MESSAGE ALERT ================= */}
         {message.text && (
           <div
-            className={`message-alert ${message.type === "success" ? "success" : "error"}`}
+            className={`message-alert ${
+              message.type === "success"
+                ? "success"
+                : message.type === "info"
+                ? "info"
+                : "error"
+            }`}
           >
             <span className="message-icon">
               {message.type === "success" ? (
                 <FaCheckCircle />
+              ) : message.type === "info" ? (
+                <FaInfoCircle />
               ) : (
                 <FaExclamationCircle />
               )}
@@ -1241,9 +2836,48 @@ export default function DocumentSettings() {
         <div className="documents-card">
           <div className="card-header-custom">
             <h5>Document Configuration</h5>
-            <button className="btn-add-document" onClick={addCustomDocument}>
-              <FaPlus /> Add Custom Document
-            </button>
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <select
+                className="select-standard-doc"
+                value={selectedStandardDoc}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    addStandardDocument(e.target.value);
+                    setSelectedStandardDoc("");
+                  }
+                }}
+                aria-label="Add standard document"
+              >
+                <option value="">➕ Add Standard Document...</option>
+                {defaultDocumentTypes
+                  .filter((d) => d.type !== "custom_document")
+                  .map((stdDoc) => {
+                    const isAlreadyAdded = documents.some((d) => d.type === stdDoc.type);
+                    return (
+                      <option
+                        key={stdDoc.type}
+                        value={stdDoc.type}
+                        disabled={isAlreadyAdded}
+                      >
+                        {stdDoc.label} {isAlreadyAdded ? "✓ (Added)" : ""}
+                      </option>
+                    );
+                  })}
+              </select>
+
+              <button
+                type="button"
+                className="btn-load-defaults"
+                onClick={loadAllStandardDefaults}
+                title="Populate standard college documents (10th, 12th, Photo, Aadhar, etc.)"
+              >
+                <FaBook /> Load All Presets
+              </button>
+
+              <button className="btn-add-document" onClick={addCustomDocument}>
+                <FaPlus /> Add Custom Document
+              </button>
+            </div>
           </div>
           <div className="table-responsive">
             <table className="documents-table">
@@ -1272,7 +2906,7 @@ export default function DocumentSettings() {
                     key={doc.type}
                     className={!doc.enabled ? "disabled-row" : ""}
                   >
-                    <td className="text-center">
+                    <td className="text-center" data-label="Enable">
                       <button
                         className="toggle-btn"
                         onClick={() => toggleEnabled(index)}
@@ -1285,13 +2919,13 @@ export default function DocumentSettings() {
                         )}
                       </button>
                     </td>
-                    <td>
+                    <td data-label="Document Type">
                       <span className="doc-type-badge">
                         <FaFileAlt />
                         {doc.type}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Label">
                       <input
                         type="text"
                         className="label-input"
@@ -1302,7 +2936,7 @@ export default function DocumentSettings() {
                         placeholder="Document label"
                       />
                     </td>
-                    <td className="text-center">
+                    <td className="text-center" data-label="Mandatory">
                       <input
                         type="checkbox"
                         className="mandatory-checkbox"
@@ -1316,7 +2950,7 @@ export default function DocumentSettings() {
                         }
                       />
                     </td>
-                    <td>
+                    <td data-label="Allowed Formats">
                       <div className="format-buttons">
                         {availableFormats.map((format) => (
                           <button
@@ -1331,7 +2965,7 @@ export default function DocumentSettings() {
                         ))}
                       </div>
                     </td>
-                    <td className="text-center">
+                    <td className="text-center" data-label="Max Size">
                       <input
                         type="number"
                         className="size-input"
@@ -1356,7 +2990,7 @@ export default function DocumentSettings() {
                         MB
                       </div>
                     </td>
-                    <td className="text-center">
+                    <td className="text-center" data-label="Actions">
                       <button
                         className="action-btn"
                         onClick={() => removeDocument(index)}
@@ -1432,6 +3066,19 @@ export default function DocumentSettings() {
             </button>
           </div>
         )}
+
+        {/* ================= RESET CONFIRMATION MODAL ================= */}
+        <ConfirmModal
+          isOpen={showResetConfirm}
+          onClose={() => !saving && setShowResetConfirm(false)}
+          onConfirm={executeReset}
+          title="Reset Configuration to Empty?"
+          message={`Are you sure you want to remove ALL document requirements?\n\nThis will:\n• Remove all document upload requirements\n• Students will NOT need to upload any files\n• You can reconfigure documents later`}
+          type="danger"
+          confirmText="Yes, Reset to Empty"
+          cancelText="Cancel"
+          isLoading={saving}
+        />
       </div>
     </>
   );

@@ -3,8 +3,14 @@ import { Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
+import {
+  validateFeeStructure,
+  splitEqually,
+  mapBackendError,
+} from "../../../utils/validateFeeStructure";
 
 import {
   FaMoneyBillWave,
@@ -40,19 +46,47 @@ export default function CreateFeeStructure() {
   const [category, setCategory] = useState("");
   const [totalFee, setTotalFee] = useState("");
 
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formErrorSummary, setFormErrorSummary] = useState(null);
+
+  // Statutory fee component fields
+  const [tuitionFee, setTuitionFee] = useState("");
+  const [labFee, setLabFee] = useState("");
+  const [sportsFee, setSportsFee] = useState("");
+  const [libraryFee, setLibraryFee] = useState("");
+
+  const numTuition = Number(tuitionFee) || 0;
+  const numLab = Number(labFee) || 0;
+  const numSports = Number(sportsFee) || 0;
+  const numLibrary = Number(libraryFee) || 0;
+
+  const hasStatutoryBreakdown =
+    numTuition > 0 || numLab > 0 || numSports > 0 || numLibrary > 0;
+
+  const totalBaseAmount = numTuition + numLab + numSports + numLibrary;
+  const tuitionGst = 0;
+  const labGst = Math.round(numLab * 0.18 * 100) / 100;
+  const sportsGst = Math.round(numSports * 0.18 * 100) / 100;
+  const libraryGst = 0;
+
+  const totalGstAmount = Math.round((tuitionGst + labGst + sportsGst + libraryGst) * 100) / 100;
+  const grossCalculatedTotal = Math.round((totalBaseAmount + totalGstAmount) * 100) / 100;
+
+  useEffect(() => {
+    if (hasStatutoryBreakdown) {
+      setTotalFee(grossCalculatedTotal > 0 ? grossCalculatedTotal.toString() : "");
+    }
+  }, [hasStatutoryBreakdown, grossCalculatedTotal]);
+
   const [installments, setInstallments] = useState([
-    { name: "", amount: "", dueDate: "", order: 1 }
+    { name: "Installment 1", amount: "", dueDate: "", order: 1 }
   ]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* ================= SECURITY ================= */
-   if (!user) return <Navigate to="/login" />;
-   if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
-
-   const AUTH_ERROR_CODES = new Set([
+  const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
     "TOKEN_EXPIRED",
     "INVALID_TOKEN",
@@ -73,8 +107,10 @@ export default function CreateFeeStructure() {
         setDepartments([]);
       }
     };
-    loadDepartments();
-  }, []);
+    if (user && (user.role === "COLLEGE_ADMIN" || user.role === "ACCOUNTANT")) {
+      loadDepartments();
+    }
+  }, [user]);
 
   /* ================= LOAD COURSES BY DEPARTMENT ================= */
   const loadCourses = async (deptId) => {
@@ -84,66 +120,167 @@ export default function CreateFeeStructure() {
       const coursesData = Array.isArray(res.data?.courses) ? res.data.courses :
                           Array.isArray(res.data) ? res.data : [];
       setCourses(coursesData);
-    } catch (err) {
+    } catch {
       setCourses([]);
     }
   };
 
-  /* ================= INSTALLMENTS ================= */
+  /* ================= SECURITY ================= */
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "COLLEGE_ADMIN" && user.role !== "ACCOUNTANT") return <Navigate to="/dashboard" />;
+
+  /* ================= INSTALLMENTS & VALIDATION ================= */
   const addInstallment = () => {
-    setInstallments([...installments, { name: "", amount: "", dueDate: "" }]);
+    const nextOrder = installments.length + 1;
+    setInstallments([
+      ...installments,
+      { name: `Installment ${nextOrder}`, amount: "", dueDate: "", order: nextOrder },
+    ]);
   };
 
   const removeInstallment = (index) => {
-    setInstallments(installments.filter((_, i) => i !== index));
+    const nextInst = installments.filter((_, i) => i !== index);
+    setInstallments(nextInst);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.installmentTotal;
+      if (next.installments) {
+        delete next.installments;
+      }
+      return next;
+    });
+  };
+
+  const clearFieldError = (fieldName) => {
+    if (fieldErrors[fieldName]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[fieldName];
+        return next;
+      });
+    }
+  };
+
+  const scrollToFirstError = (fieldName) => {
+    if (!fieldName) return;
+    setTimeout(() => {
+      const element = document.querySelector(`[data-field="${fieldName}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (typeof element.focus === "function") {
+          element.focus();
+        }
+      }
+    }, 100);
   };
 
   const handleInstallmentChange = (index, field, value) => {
     const updated = [...installments];
-    updated[index][field] = value;
+    updated[index] = { ...updated[index], [field]: value };
     setInstallments(updated);
+
+    // Clear field-specific error
+    if (fieldErrors.installments?.[index]?.[field]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        if (next.installments?.[index]) {
+          const row = { ...next.installments[index] };
+          delete row[field];
+          if (Object.keys(row).length === 0) {
+            const nextInst = { ...next.installments };
+            delete nextInst[index];
+            if (Object.keys(nextInst).length === 0) {
+              delete next.installments;
+            } else {
+              next.installments = nextInst;
+            }
+          } else {
+            next.installments = { ...next.installments, [index]: row };
+          }
+        }
+        return next;
+      });
+    }
+
+    // Auto-clear installmentTotal error if amount changed and now matches
+    if (field === "amount" && fieldErrors.installmentTotal) {
+      const newSum = updated.reduce((acc, i) => acc + (Number(i.amount) || 0), 0);
+      if (Math.abs(newSum - Number(totalFee)) < 0.01) {
+        setFieldErrors((prev) => {
+          const next = { ...prev };
+          delete next.installmentTotal;
+          return next;
+        });
+      }
+    }
+  };
+
+  const handleSplitEqually = () => {
+    if (!totalFee || Number(totalFee) <= 0 || installments.length === 0) return;
+    const splitAmounts = splitEqually(totalFee, installments.length);
+    const updated = installments.map((inst, idx) => ({
+      ...inst,
+      amount: splitAmounts[idx] !== undefined ? String(splitAmounts[idx]) : inst.amount,
+    }));
+    setInstallments(updated);
+
+    // Clear installmentTotal and all amount errors
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.installmentTotal;
+      if (next.installments) {
+        const nextInst = { ...next.installments };
+        Object.keys(nextInst).forEach((k) => {
+          if (nextInst[k]?.amount) {
+            const row = { ...nextInst[k] };
+            delete row.amount;
+            if (Object.keys(row).length === 0) {
+              delete nextInst[k];
+            } else {
+              nextInst[k] = row;
+            }
+          }
+        });
+        if (Object.keys(nextInst).length === 0) {
+          delete next.installments;
+        } else {
+          next.installments = nextInst;
+        }
+      }
+      return next;
+    });
   };
 
   /* ================= TOTAL CHECK ================= */
-  const installmentSum = installments.reduce(
-    (sum, i) => sum + Number(i.amount || 0),
-    0
-  );
+  const installmentSum = Math.round(
+    installments.reduce((sum, i) => sum + Number(i.amount || 0), 0) * 100
+  ) / 100;
 
   /* ================= SUBMIT ================= */
   const handleSubmit = async () => {
     setError("");
     setSuccess("");
+    setFormErrorSummary(null);
 
-    if (!department_id || !course_id || !category || !totalFee) {
-      const missing = [];
-      if (!department_id) missing.push("Department");
-      if (!course_id) missing.push("Course");
-      if (!category) missing.push("Category");
-      if (!totalFee) missing.push("Total Fee");
-      setError(`Please select: ${missing.join(", ")}`);
+    const validation = validateFeeStructure(
+      {
+        department_id,
+        course_id,
+        category,
+        totalFee,
+        installments,
+      },
+      { requireDepartment: true, isEdit: false }
+    );
+
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      setFormErrorSummary(validation.summaryMessage);
+      scrollToFirstError(validation.firstErrorField);
       return;
     }
 
-    for (let idx = 0; idx < installments.length; idx++) {
-      const inst = installments[idx];
-      if (!inst.dueDate) {
-        setError(`Please enter the Due Date for Installment ${idx + 1}`);
-        return;
-      }
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const selected = new Date(inst.dueDate + "T00:00:00");
-      if (selected < today) {
-        setError(`Installment ${idx + 1} Due Date cannot be earlier than today`);
-        return;
-      }
-    }
-
-    if (installmentSum !== Number(totalFee)) {
-      setError("Installments total must equal Total Fee");
-      return;
-    }
+    setFieldErrors({});
 
     try {
       setLoading(true);
@@ -151,13 +288,17 @@ export default function CreateFeeStructure() {
       await api.post("/fees/structure", {
         course_id,
         category,
+        tuitionFee: numTuition,
+        labFee: numLab,
+        sportsFee: numSports,
+        libraryFee: numLibrary,
         totalFee: Number(totalFee),
         installments: installments.map((i, idx) => ({
-          name: i.name,
+          name: String(i.name).trim(),
           amount: Number(i.amount),
           dueDate: i.dueDate,
           order: i.order || idx + 1,
-        }))
+        })),
       });
 
       setSuccess("Fee structure created successfully");
@@ -165,7 +306,11 @@ export default function CreateFeeStructure() {
       setCourseId("");
       setCategory("");
       setTotalFee("");
-      setInstallments([{ name: "", amount: "", dueDate: "" }]);
+      setTuitionFee("");
+      setLabFee("");
+      setSportsFee("");
+      setLibraryFee("");
+      setInstallments([{ name: "Installment 1", amount: "", dueDate: "", order: 1 }]);
       setCourses([]);
 
     } catch (err) {
@@ -179,7 +324,14 @@ export default function CreateFeeStructure() {
           errorCode,
         });
       } else {
-        setError(err.response?.data?.message || "Failed to create structure");
+        const backendErr = mapBackendError(err);
+        if (Object.keys(backendErr.errors).length > 0) {
+          setFieldErrors(backendErr.errors);
+          setFormErrorSummary(backendErr.message);
+          scrollToFirstError(backendErr.field);
+        } else {
+          setError(backendErr.message);
+        }
       }
     } finally {
       setLoading(false);
@@ -187,7 +339,7 @@ export default function CreateFeeStructure() {
   };
 
   return (
-    <div className="erp-container">
+    <div className="erp-container" style={{ paddingTop: "0.5rem" }}>
       {error && typeof error === 'object' && !loading && (
         <ApiError
           title="Fee Structure Creation Error"
@@ -206,33 +358,67 @@ export default function CreateFeeStructure() {
         ]}
       />
 
-      {/* HEADER */}
-      <div className="erp-page-header">
-        <div className="erp-header-content">
-          <div className="erp-header-icon blink-pulse">
-            <FaMoneyBillWave />
+        {/* HEADER */}
+        <PageHeader
+          icon={FaMoneyBillWave}
+          title="Create Fee Structure"
+          subtitle="Configure course-wise & category-based fee system with flexible installments"
+          actions={
+            <button
+              
+              onClick={() => window.history.back()}
+                  style={{
+                    minHeight: "48px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "12px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+            >
+              <FaArrowLeft className="erp-btn-icon" />
+              <span>Back to Fees</span>
+            </button>
+          }
+        />
+      {/* ALERTS */}
+      {formErrorSummary && (
+        <div className="erp-alert erp-alert-danger animate-slide-in" role="alert">
+          <div className="erp-alert-icon">
+            <FaExclamationTriangle className="shake" />
           </div>
-          <div className="erp-header-text">
-            <h1 className="erp-page-title">Create Fee Structure</h1>
-            <p className="erp-page-subtitle">
-              Configure course-wise & category-based fee system with flexible installments
-            </p>
+          <div className="erp-alert-content">
+            <strong>Validation Error:</strong> {formErrorSummary}
           </div>
-        </div>
-        <div className="erp-header-actions">
           <button
-            className="erp-btn erp-btn-secondary"
-            onClick={() => window.history.back()}
+            type="button"
+            className="erp-alert-close"
+            onClick={() => setFormErrorSummary(null)}
           >
-            <FaArrowLeft className="erp-btn-icon" />
-            <span>Back to Fees</span>
+            ×
           </button>
         </div>
-      </div>
+      )}
 
-      {/* ALERTS */}
       {error && typeof error === 'string' && (
-        <div className="erp-alert erp-alert-danger animate-slide-in">
+        <div className="erp-alert erp-alert-danger animate-slide-in" role="alert">
           <div className="erp-alert-icon">
             <FaExclamationTriangle className="shake" />
           </div>
@@ -283,17 +469,22 @@ export default function CreateFeeStructure() {
             <div className="erp-row">
               <div className="erp-col-4">
                 <div className="erp-form-group">
-                  <label className="erp-label">
+                  <label className="erp-label" htmlFor="field-department">
                     <FaUniversity className="erp-label-icon" />
                     Department <span className="required">*</span>
                   </label>
                   <select
-                    className="erp-select"
+                    id="field-department"
+                    data-field="department_id"
+                    className={`erp-select ${fieldErrors.department_id ? "erp-input-error" : ""}`}
                     value={department_id}
+                    aria-invalid={Boolean(fieldErrors.department_id)}
+                    aria-describedby={fieldErrors.department_id ? "err-dept" : undefined}
                     onChange={(e) => {
                       setDepartmentId(e.target.value);
                       setCourseId("");
                       loadCourses(e.target.value);
+                      clearFieldError("department_id");
                     }}
                   >
                     <option value="">-- Select Department --</option>
@@ -303,23 +494,36 @@ export default function CreateFeeStructure() {
                       </option>
                     ))}
                   </select>
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Select the academic department
-                  </div>
+                  {fieldErrors.department_id ? (
+                    <div id="err-dept" className="erp-field-error" role="alert">
+                      <FaExclamationTriangle /> {fieldErrors.department_id}
+                    </div>
+                  ) : (
+                    <div className="erp-hint-text">
+                      <FaInfoCircle className="erp-hint-icon" />
+                      Select the academic department
+                    </div>
+                  )}
                 </div>
               </div>
               
               <div className="erp-col-4">
                 <div className="erp-form-group">
-                  <label className="erp-label">
+                  <label className="erp-label" htmlFor="field-course">
                     <FaLayerGroup className="erp-label-icon" />
                     Course <span className="required">*</span>
                   </label>
                   <select
-                    className="erp-select"
+                    id="field-course"
+                    data-field="course_id"
+                    className={`erp-select ${fieldErrors.course_id ? "erp-input-error" : ""}`}
                     value={course_id}
-                    onChange={(e) => setCourseId(e.target.value)}
+                    aria-invalid={Boolean(fieldErrors.course_id)}
+                    aria-describedby={fieldErrors.course_id ? "err-course" : undefined}
+                    onChange={(e) => {
+                      setCourseId(e.target.value);
+                      clearFieldError("course_id");
+                    }}
                     disabled={!department_id}
                   >
                     <option value="">-- Select Course --</option>
@@ -329,23 +533,36 @@ export default function CreateFeeStructure() {
                       </option>
                     ))}
                   </select>
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Course must be selected after department
-                  </div>
+                  {fieldErrors.course_id ? (
+                    <div id="err-course" className="erp-field-error" role="alert">
+                      <FaExclamationTriangle /> {fieldErrors.course_id}
+                    </div>
+                  ) : (
+                    <div className="erp-hint-text">
+                      <FaInfoCircle className="erp-hint-icon" />
+                      Course must be selected after department
+                    </div>
+                  )}
                 </div>
               </div>
               
               <div className="erp-col-4">
                 <div className="erp-form-group">
-                  <label className="erp-label">
+                  <label className="erp-label" htmlFor="field-category">
                     <FaUsers className="erp-label-icon" />
                     Category <span className="required">*</span>
                   </label>
                   <select
-                    className="erp-select"
+                    id="field-category"
+                    data-field="category"
+                    className={`erp-select ${fieldErrors.category ? "erp-input-error" : ""}`}
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    aria-invalid={Boolean(fieldErrors.category)}
+                    aria-describedby={fieldErrors.category ? "err-cat" : undefined}
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      clearFieldError("category");
+                    }}
                   >
                     <option value="">-- Select Category --</option>
                     <option>GEN</option>
@@ -354,16 +571,22 @@ export default function CreateFeeStructure() {
                     <option>ST</option>
                     <option>EWS</option>
                   </select>
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Student reservation category
-                  </div>
+                  {fieldErrors.category ? (
+                    <div id="err-cat" className="erp-field-error" role="alert">
+                      <FaExclamationTriangle /> {fieldErrors.category}
+                    </div>
+                  ) : (
+                    <div className="erp-hint-text">
+                      <FaInfoCircle className="erp-hint-icon" />
+                      Student reservation category
+                    </div>
+                  )}
                 </div>
               </div>
               
               <div className="erp-col-4">
                 <div className="erp-form-group">
-                  <label className="erp-label">
+                  <label className="erp-label" htmlFor="field-totalFee">
                     <FaRupeeSign className="erp-label-icon" />
                     Total Fee <span className="required">*</span>
                   </label>
@@ -372,20 +595,164 @@ export default function CreateFeeStructure() {
                       <FaRupeeSign />
                     </span>
                     <input
+                      id="field-totalFee"
                       type="number"
-                      className="erp-input"
+                      data-field="totalFee"
+                      className={`erp-input ${fieldErrors.totalFee ? "erp-input-error" : ""}`}
                       value={totalFee}
-                      onChange={(e) => setTotalFee(e.target.value)}
+                      aria-invalid={Boolean(fieldErrors.totalFee)}
+                      aria-describedby={fieldErrors.totalFee ? "err-totalFee" : undefined}
+                      onChange={(e) => {
+                        setTotalFee(e.target.value);
+                        clearFieldError("totalFee");
+                      }}
                       placeholder="Enter total fee amount"
+                      readOnly={hasStatutoryBreakdown}
+                      style={hasStatutoryBreakdown ? { backgroundColor: "#f8fafc", cursor: "not-allowed" } : {}}
                     />
                   </div>
-                  <div className="erp-hint-text">
-                    <FaInfoCircle className="erp-hint-icon" />
-                    Sum of all installment amounts must equal this value
+                  {fieldErrors.totalFee ? (
+                    <div id="err-totalFee" className="erp-field-error" role="alert">
+                      <FaExclamationTriangle /> {fieldErrors.totalFee}
+                    </div>
+                  ) : (
+                    <div className="erp-hint-text">
+                      <FaInfoCircle className="erp-hint-icon" />
+                      {hasStatutoryBreakdown
+                        ? "Auto-calculated from statutory fee components + GST"
+                        : "Sum of all installment amounts must equal this value"}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* STATUTORY FEE COMPONENTS & GST BREAKDOWN */}
+          <div className="erp-form-section">
+            <h4 className="erp-section-title">
+              <FaPercentage className="erp-section-icon" />
+              Fee Types & Statutory GST Breakdown
+            </h4>
+            <p className="section-description">
+              Enter individual component fees below. GST is automatically calculated based on statutory rates (Tuition 0%, Lab 18%, Sports 18%, Library 0%).
+            </p>
+
+            <div className="erp-row">
+              <div className="erp-col-3">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaRupeeSign className="erp-label-icon" />
+                    Tuition Fee (0% GST - Exempt)
+                  </label>
+                  <div className="erp-input-group">
+                    <span className="erp-input-group-text"><FaRupeeSign /></span>
+                    <input
+                      type="number"
+                      className="erp-input"
+                      value={tuitionFee}
+                      onChange={(e) => setTuitionFee(e.target.value)}
+                      placeholder="e.g. 50000"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="erp-col-3">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaRupeeSign className="erp-label-icon" />
+                    Lab Fee (18% GST)
+                  </label>
+                  <div className="erp-input-group">
+                    <span className="erp-input-group-text"><FaRupeeSign /></span>
+                    <input
+                      type="number"
+                      className="erp-input"
+                      value={labFee}
+                      onChange={(e) => setLabFee(e.target.value)}
+                      placeholder="e.g. 10000"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="erp-col-3">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaRupeeSign className="erp-label-icon" />
+                    Sports Fee (18% GST)
+                  </label>
+                  <div className="erp-input-group">
+                    <span className="erp-input-group-text"><FaRupeeSign /></span>
+                    <input
+                      type="number"
+                      className="erp-input"
+                      value={sportsFee}
+                      onChange={(e) => setSportsFee(e.target.value)}
+                      placeholder="e.g. 5000"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="erp-col-3">
+                <div className="erp-form-group">
+                  <label className="erp-label">
+                    <FaRupeeSign className="erp-label-icon" />
+                    Library Fee (0% GST - Exempt)
+                  </label>
+                  <div className="erp-input-group">
+                    <span className="erp-input-group-text"><FaRupeeSign /></span>
+                    <input
+                      type="number"
+                      className="erp-input"
+                      value={libraryFee}
+                      onChange={(e) => setLibraryFee(e.target.value)}
+                      placeholder="e.g. 2000"
+                      min="0"
+                    />
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* LIVE PREVIEW OF GST AND TOTAL */}
+            {hasStatutoryBreakdown && (
+              <div
+                style={{
+                  background: "#f0f7ff",
+                  border: "1px solid #bfdbfe",
+                  borderRadius: "8px",
+                  padding: "16px",
+                  marginTop: "16px",
+                }}
+              >
+                <h5 style={{ margin: "0 0 12px 0", color: "#1e40af", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FaFileInvoice /> Live GST & Total Fee Preview
+                </h5>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "12px", marginBottom: "12px" }}>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>Base Fee (Pre-tax)</span>
+                    <div style={{ fontSize: "16px", fontWeight: "600", color: "#0f172a" }}>₹{totalBaseAmount.toLocaleString("en-IN")}</div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>Total GST</span>
+                    <div style={{ fontSize: "16px", fontWeight: "600", color: "#2563eb" }}>₹{totalGstAmount.toLocaleString("en-IN")}</div>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: "12px", color: "#64748b" }}>Gross Total (Base + GST)</span>
+                    <div style={{ fontSize: "18px", fontWeight: "700", color: "#16a34a" }}>₹{grossCalculatedTotal.toLocaleString("en-IN")}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: "12px", color: "#475569", borderTop: "1px solid #e2e8f0", paddingTop: "8px" }}>
+                  <strong>Tax Breakdown:</strong> Tuition (0%): ₹0 | Lab (18%): ₹{labGst.toLocaleString("en-IN")} | Sports (18%): ₹{sportsGst.toLocaleString("en-IN")} | Library (0%): ₹0
+                </div>
+              </div>
+            )}
           </div>
 
           {/* INSTALLMENTS SECTION */}
@@ -398,90 +765,121 @@ export default function CreateFeeStructure() {
               Add multiple payment installments with due dates. Total must match the fee amount above.
             </p>
             
-            {installments.map((i, index) => (
-              <div className="installment-row" key={index}>
-                <div className="erp-row">
-                  <div className="erp-col-4">
-                    <div className="erp-form-group">
-                      <label className="erp-label">
-                        <FaPercentage className="erp-label-icon" />
-                        Installment Name
-                      </label>
-                      <input
-                        type="text"
-                        className="erp-input"
-                        placeholder={`Installment ${index + 1} name`}
-                        value={i.name}
-                        onChange={(e) =>
-                          handleInstallmentChange(index, "name", e.target.value)
-                        }
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="erp-col-3">
-                    <div className="erp-form-group">
-                      <label className="erp-label">
-                        <FaRupeeSign className="erp-label-icon" />
-                        Amount
-                      </label>
-                      <div className="erp-input-group">
-                        <span className="erp-input-group-text">
-                          <FaRupeeSign />
-                        </span>
+            {installments.map((i, index) => {
+              const instErr = fieldErrors.installments?.[index] || {};
+              const nameErrId = `err-inst-${index}-name`;
+              const amountErrId = `err-inst-${index}-amount`;
+              const dueErrId = `err-inst-${index}-due`;
+
+              return (
+                <div className="installment-row" key={index}>
+                  <div className="erp-row">
+                    <div className="erp-col-4">
+                      <div className="erp-form-group">
+                        <label className="erp-label">
+                          <FaPercentage className="erp-label-icon" />
+                          Installment Name <span className="required">*</span>
+                        </label>
                         <input
-                          type="number"
-                          className="erp-input"
-                          placeholder="Amount"
-                          value={i.amount}
+                          type="text"
+                          data-field={`installments[${index}].name`}
+                          className={`erp-input ${instErr.name ? "erp-input-error" : ""}`}
+                          placeholder={`Installment ${index + 1} name`}
+                          value={i.name}
+                          aria-invalid={Boolean(instErr.name)}
+                          aria-describedby={instErr.name ? nameErrId : undefined}
                           onChange={(e) =>
-                            handleInstallmentChange(index, "amount", e.target.value)
+                            handleInstallmentChange(index, "name", e.target.value)
                           }
                         />
+                        {instErr.name && (
+                          <div id={nameErrId} className="erp-field-error" role="alert">
+                            <FaExclamationTriangle /> {instErr.name}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="erp-col-3">
-                    <div className="erp-form-group">
-                      <label className="erp-label">
-                        <FaCalendarAlt className="erp-label-icon" />
-                        Due Date
-                      </label>
-                      <div className="erp-input-group">
-                        <span className="erp-input-group-text">
-                          <FaCalendarAlt />
-                        </span>
-                        <input
-                          type="date"
-                          className="erp-input"
-                          value={i.dueDate}
-                          min={new Date().toISOString().split("T")[0]}
-                          onChange={(e) =>
-                            handleInstallmentChange(index, "dueDate", e.target.value)
-                          }
-                        />
+                    
+                    <div className="erp-col-3">
+                      <div className="erp-form-group">
+                        <label className="erp-label">
+                          <FaRupeeSign className="erp-label-icon" />
+                          Amount (₹) <span className="required">*</span>
+                        </label>
+                        <div className="erp-input-group">
+                          <span className="erp-input-group-text">
+                            <FaRupeeSign />
+                          </span>
+                          <input
+                            type="number"
+                            data-field={`installments[${index}].amount`}
+                            className={`erp-input ${instErr.amount ? "erp-input-error" : ""}`}
+                            placeholder="Amount"
+                            value={i.amount}
+                            aria-invalid={Boolean(instErr.amount)}
+                            aria-describedby={instErr.amount ? amountErrId : undefined}
+                            onChange={(e) =>
+                              handleInstallmentChange(index, "amount", e.target.value)
+                            }
+                          />
+                        </div>
+                        {instErr.amount && (
+                          <div id={amountErrId} className="erp-field-error" role="alert">
+                            <FaExclamationTriangle /> {instErr.amount}
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="erp-col-2 d-flex align-items-end pb-3">
-                    {installments.length > 1 && (
-                      <button
-                        type="button"
-                        className="erp-btn erp-btn-danger erp-btn-icon-only"
-                        onClick={() => removeInstallment(index)}
-                        title="Remove installment"
-                      >
-                        <FaTrash className="shake" />
-                      </button>
-                    )}
+                    
+                    <div className="erp-col-3">
+                      <div className="erp-form-group">
+                        <label className="erp-label">
+                          <FaCalendarAlt className="erp-label-icon" />
+                          Due Date <span className="required">*</span>
+                        </label>
+                        <div className="erp-input-group">
+                          <span className="erp-input-group-text">
+                            <FaCalendarAlt />
+                          </span>
+                          <input
+                            type="date"
+                            data-field={`installments[${index}].dueDate`}
+                            className={`erp-input ${instErr.dueDate ? "erp-input-error" : ""}`}
+                            value={i.dueDate}
+                            min={new Date().toISOString().split("T")[0]}
+                            aria-invalid={Boolean(instErr.dueDate)}
+                            aria-describedby={instErr.dueDate ? dueErrId : undefined}
+                            onChange={(e) =>
+                              handleInstallmentChange(index, "dueDate", e.target.value)
+                            }
+                          />
+                        </div>
+                        {instErr.dueDate && (
+                          <div id={dueErrId} className="erp-field-error" role="alert">
+                            <FaExclamationTriangle /> {instErr.dueDate}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="erp-col-2 d-flex align-items-end pb-3">
+                      {installments.length > 1 && (
+                        <button
+                          type="button"
+                          className="erp-btn erp-btn-danger erp-btn-icon-only"
+                          onClick={() => removeInstallment(index)}
+                          title="Remove installment"
+                        >
+                          <FaTrash className="shake" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             
-            <div className="add-installment-btn-container">
+            <div className="add-installment-btn-container" style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "center" }}>
               <button
                 type="button"
                 className="erp-btn erp-btn-outline-primary add-installment-btn"
@@ -490,30 +888,63 @@ export default function CreateFeeStructure() {
                 <FaPlus className="erp-btn-icon pulse" />
                 <span>Add Installment</span>
               </button>
+              <button
+                type="button"
+                className="erp-btn erp-btn-outline-secondary"
+                onClick={handleSplitEqually}
+                disabled={!totalFee || Number(totalFee) <= 0 || installments.length === 0}
+                title="Distribute total fee evenly among installments"
+                style={{
+                  background: "#f8fafc",
+                  border: "2px solid #cbd5e1",
+                  color: "#334155",
+                  fontWeight: 600,
+                  borderRadius: "10px",
+                }}
+              >
+                <FaBolt className="erp-btn-icon" style={{ color: "#d97706" }} />
+                <span>Split Equally</span>
+              </button>
             </div>
             
-            <div className="installment-total-card">
-              <div className="installment-total-label">
-                <FaListOl className="total-icon" />
-                <span>Installment Total:</span>
-              </div>
-              <div className={`installment-total-amount ${
-                installmentSum > 0 && installmentSum !== Number(totalFee) 
-                  ? 'mismatch' 
-                  : installmentSum === Number(totalFee) 
-                  ? 'match' 
-                  : ''
-              }`}>
-                <FaRupeeSign className="rupee-icon" />
-                {installmentSum.toLocaleString()}
-                {installmentSum > 0 && installmentSum !== Number(totalFee) && (
-                  <span className="mismatch-indicator">≠ Total Fee</span>
-                )}
-                {installmentSum === Number(totalFee) && (
-                  <span className="match-indicator">✓ Matches Total</span>
-                )}
-              </div>
-            </div>
+            {(() => {
+              const numTotal = Number(totalFee) || 0;
+              const isMatch = numTotal > 0 && Math.abs(installmentSum - numTotal) < 0.01;
+              const diff = Math.round((numTotal - installmentSum) * 100) / 100;
+
+              return (
+                <div className="installment-total-card" data-field="installmentTotal">
+                  <div className="installment-total-label">
+                    <FaListOl className="total-icon" />
+                    <span>Installment Total:</span>
+                  </div>
+                  <div className={`installment-total-amount ${
+                    isMatch
+                      ? "match installment-total-ok"
+                      : numTotal > 0
+                      ? "mismatch installment-total-bad"
+                      : ""
+                  }`}>
+                    <FaRupeeSign className="rupee-icon" />
+                    {installmentSum.toLocaleString("en-IN")} / ₹{numTotal.toLocaleString("en-IN")}
+                    {isMatch && (
+                      <span className="match-indicator installment-total-ok">✓ Matches Total</span>
+                    )}
+                    {!isMatch && numTotal > 0 && diff > 0 && (
+                      <span className="mismatch-indicator installment-total-bad">Remaining: ₹{diff.toLocaleString("en-IN")}</span>
+                    )}
+                    {!isMatch && numTotal > 0 && diff < 0 && (
+                      <span className="mismatch-indicator installment-total-bad">Exceeds by: ₹{Math.abs(diff).toLocaleString("en-IN")}</span>
+                    )}
+                  </div>
+                  {fieldErrors.installmentTotal && (
+                    <div className="erp-field-error installment-error-banner" role="alert">
+                      <FaExclamationTriangle /> {fieldErrors.installmentTotal}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* FORM ACTIONS */}
@@ -561,64 +992,7 @@ export default function CreateFeeStructure() {
           animation: fadeIn 0.6s ease;
         }
 
-        .erp-page-header {
-          background: linear-gradient(135deg, #1a4b6d 0%, #0f3a4a 100%);
-          padding: 1.75rem;
-          border-radius: 16px;
-          margin-bottom: 1.5rem;
-          box-shadow: 0 8px 32px rgba(26, 75, 109, 0.3);
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          animation: slideDown 0.6s ease;
-        }
 
-        .erp-header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
-        
-        .erp-header-icon {
-          width: 56px;
-          height: 56px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.75rem;
-        }
-        
-        .erp-page-title {
-          margin: 0;
-          font-size: 1.75rem;
-          font-weight: 700;
-        }
-        
-        .erp-page-subtitle {
-          margin: 0.375rem 0 0 0;
-          opacity: 0.85;
-          font-size: 1rem;
-        }
-        
-        .erp-header-actions .erp-btn {
-          background: white;
-          color: #1a4b6d;
-          border: none;
-          padding: 0.75rem 1.5rem;
-          font-weight: 600;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          transition: all 0.3s ease;
-        }
-        
-        .erp-header-actions .erp-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-        }
-        
         .erp-alert {
           padding: 1rem 1.5rem;
           border-radius: 12px;
@@ -1137,91 +1511,517 @@ export default function CreateFeeStructure() {
           animation: slideIn 0.5s ease;
         }
         
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 768px) {
-          .erp-container {
-            padding: 1rem;
-          }
-          
-          .erp-page-header {
-            padding: 1.5rem;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 1rem;
-          }
-          
-          .erp-header-actions {
-            width: 100%;
-            margin-top: 0.5rem;
-          }
-          
-          .erp-header-actions .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .erp-form-header,
-          .erp-form {
-            padding: 1.5rem;
-          }
-          
-          .erp-form-footer {
-            flex-direction: column;
-            gap: 1rem;
-            padding: 1.5rem;
-          }
-          
-          .erp-footer-left,
-          .erp-footer-right {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .erp-btn {
-            width: 100%;
-            justify-content: center;
-          }
-          
-          .installment-total-card {
-            flex-direction: column;
-            text-align: center;
-            gap: 1rem;
-          }
-          
-          .installment-total-label,
-          .installment-total-amount {
-            justify-content: center;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          .erp-section-title {
-            font-size: 1.1rem;
-          }
-          
-          .erp-label {
-            font-size: 0.9rem;
-          }
-          
-          .erp-input,
-          .erp-select {
-            padding: 0.75rem 1rem;
-            font-size: 0.95rem;
-          }
-          
-          .erp-btn-lg {
-            padding: 0.875rem 1.5rem;
-            font-size: 1rem;
-          }
-          
-          .installment-total-amount {
-            font-size: 1.5rem;
-          }
-          
-          .erp-form-title h3 {
-            font-size: 1.35rem;
-          }
-        }
+/* ================= RESPONSIVE DESIGN ================= */
+
+/* TABLET */
+@media (min-width: 769px) and (max-width: 991px) {
+
+  .erp-container {
+    padding: 0.75rem;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  /* Banner */
+  .erp-page-header {
+    padding: 1.5rem 1.75rem;
+    min-height: 155px;
+    border-radius: 16px;
+    gap: 1.25rem;
+  }
+
+  .erp-header-content {
+    gap: 1rem;
+    min-width: 0;
+  }
+
+  .erp-header-icon {
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    font-size: 1.55rem;
+    border-radius: 13px;
+  }
+
+  .erp-page-title {
+    font-size: 1.55rem;
+    line-height: 1.2;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    max-width: 520px;
+  }
+
+  .erp-header-actions .erp-btn {
+    padding: 0.7rem 1rem;
+    white-space: nowrap;
+  }
+
+  /* Form */
+  .erp-container .erp-form-card,
+  .erp-container .erp-form,
+  .erp-container .erp-form-section,
+  .erp-container .erp-row,
+  .erp-container .erp-form-group {
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .erp-form-header {
+    padding: 1rem;
+  }
+
+  .erp-form {
+    padding: 1rem;
+  }
+
+  .erp-container .erp-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .erp-container .erp-col-12,
+  .erp-container .erp-col-6,
+  .erp-container .erp-col-4,
+  .erp-container .erp-col-3,
+  .erp-container .erp-col-2 {
+    grid-column: 1 / -1;
+  }
+
+  .erp-form-title h3 {
+    font-size: 1.35rem;
+  }
+
+  .erp-section-title {
+    font-size: 1.15rem;
+  }
+
+  .erp-input,
+  .erp-select {
+    padding: 0.8rem 1rem;
+  }
+
+  /* Installments */
+  .installment-row {
+    padding: 0.75rem;
+  }
+
+  .erp-form-footer {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  .erp-container .erp-row {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  .erp-container .erp-col-12 { grid-column: span 6; }
+  .erp-container .erp-col-6,
+  .erp-container .erp-col-4 { grid-column: span 3; }
+  .erp-container .erp-col-3,
+  .erp-container .erp-col-2 { grid-column: span 2; }
+
+  .erp-container .erp-form-group,
+  .erp-container .erp-input-group {
+    min-width: 0;
+  }
+}
+
+
+/* MOBILE */
+@media (max-width: 768px) {
+
+  .erp-container {
+    padding: 0.75rem;
+  }
+
+  /* ================= HEADER / BANNER ================= */
+
+  .erp-page-header {
+    padding: 1.25rem;
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .erp-header-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    width: 100%;
+  }
+
+  .erp-header-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+
+  .erp-header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .erp-page-title {
+    font-size: 1.4rem;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.86rem;
+    line-height: 1.5;
+    margin-top: 0.45rem;
+  }
+
+  /* Back button */
+  .erp-header-actions {
+    width: 100%;
+    margin-top: 0.15rem;
+  }
+
+  .erp-header-actions .erp-btn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+  }
+
+
+  /* ================= ALERTS ================= */
+
+  .erp-alert {
+    padding: 0.85rem 1rem;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .erp-alert-icon {
+    font-size: 1.2rem;
+  }
+
+
+  /* ================= FORM CARD ================= */
+
+  .erp-form-card {
+    border-radius: 16px;
+  }
+
+  .erp-form-header {
+    padding: 1.25rem;
+  }
+
+  .erp-form-title {
+    align-items: flex-start;
+    gap: 0.7rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .erp-form-icon {
+    font-size: 1.35rem;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+  }
+
+  .erp-form-title h3 {
+    font-size: 1.25rem;
+    line-height: 1.3;
+  }
+
+  .erp-form-subtitle {
+    font-size: 0.84rem;
+    line-height: 1.55;
+  }
+
+  .erp-form {
+    padding: 1.25rem;
+  }
+
+
+  /* ================= SECTIONS ================= */
+
+  .erp-form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .erp-section-title {
+    font-size: 1.05rem;
+    gap: 0.6rem;
+    margin-bottom: 1.1rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .section-description {
+    font-size: 0.84rem;
+    line-height: 1.55;
+    margin-bottom: 1.1rem;
+  }
+
+
+  /* ================= FORM FIELDS ================= */
+
+  .erp-row {
+    gap: 0;
+  }
+
+  .erp-form-group {
+    margin-bottom: 1.1rem;
+  }
+
+  .erp-label {
+    font-size: 0.88rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .erp-input,
+  .erp-select {
+    min-height: 46px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.9rem;
+    border-radius: 9px;
+  }
+
+  .erp-input-group-text {
+    padding: 0.7rem 0.9rem;
+  }
+
+  .erp-hint-text {
+    font-size: 0.76rem;
+    line-height: 1.4;
+    padding: 0.5rem 0.65rem;
+  }
+
+
+  /* ================= INSTALLMENTS ================= */
+
+  .installment-row {
+    padding: 0.9rem;
+    border-radius: 11px;
+    margin-bottom: 0.8rem;
+  }
+
+  .add-installment-btn-container {
+    margin: 1.1rem 0;
+  }
+
+  .add-installment-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+
+  /* ================= TOTAL CARD ================= */
+
+  .installment-total-card {
+    padding: 1.1rem;
+    border-radius: 13px;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.7rem;
+  }
+
+  .installment-total-label {
+    font-size: 0.9rem;
+  }
+
+  .total-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+
+  .installment-total-amount {
+    font-size: 1.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .mismatch-indicator,
+  .match-indicator {
+    font-size: 0.72rem;
+    margin-left: 0;
+  }
+
+
+  /* ================= FOOTER ================= */
+
+  .erp-form-footer {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    margin-top: 1.5rem;
+  }
+
+  .erp-footer-left,
+  .erp-footer-right {
+    width: 100%;
+  }
+
+  .erp-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .erp-btn-lg {
+    padding: 0.8rem 1rem;
+    font-size: 0.92rem;
+  }
+}
+
+
+/* SMALL MOBILE */
+@media (max-width: 480px) {
+
+  .erp-container {
+    padding: 0.6rem;
+  }
+
+  /* Banner becomes compact */
+  .erp-page-header {
+    padding: 1rem;
+    border-radius: 14px;
+    gap: 0.8rem;
+  }
+
+  .erp-header-content {
+    gap: 0.75rem;
+  }
+
+  .erp-header-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 1.2rem;
+    border-radius: 11px;
+  }
+
+  .erp-page-title {
+    font-size: 1.25rem;
+  }
+
+  .erp-page-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  .erp-header-actions .erp-btn {
+    min-height: 44px;
+    font-size: 0.88rem;
+  }
+
+
+  /* Form */
+  .erp-form-header {
+    padding: 1rem;
+  }
+
+  .erp-form {
+    padding: 1rem;
+  }
+
+  .erp-form-title {
+    gap: 0.6rem;
+  }
+
+  .erp-form-icon {
+    font-size: 1.2rem;
+  }
+
+  .erp-form-title h3 {
+    font-size: 1.15rem;
+  }
+
+  .erp-form-subtitle {
+    font-size: 0.78rem;
+  }
+
+  .erp-section-title {
+    font-size: 1rem;
+  }
+
+  .erp-label {
+    font-size: 0.84rem;
+  }
+
+  .erp-input,
+  .erp-select {
+    min-height: 44px;
+    font-size: 0.86rem;
+  }
+
+  .erp-hint-text {
+    font-size: 0.72rem;
+  }
+
+
+  /* Installment total */
+  .installment-total-card {
+    padding: 1rem;
+  }
+
+  .installment-total-amount {
+    font-size: 1.35rem;
+  }
+}
+
+.erp-input-error {
+  border-color: #ef4444 !important;
+  background-color: #fffbfa !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+.erp-field-error {
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.installment-total-ok {
+  color: #10b981 !important;
+}
+
+.installment-total-bad {
+  color: #ef4444 !important;
+}
+
+.installment-error-banner {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #b91c1c;
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 2px;
+  font-weight: bold;
+}
       `}</style>
     </div>
   );

@@ -9,17 +9,17 @@ const Document = require("../models/document.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
 const auditLogService = require("../services/auditLog.service");
-const { sendStaffCredentialsEmail } = require("../services/email.service");
 const logger = require("../utils/logger");
 const { getStorageProvider } = require("../services/storage");
 const DocumentService = require("../services/document.service");
+const { sendStaffCredentialsEmail } = require("../services/email.service");
 const { processUploadsWithStorage } = require("../middlewares/upload.middleware");
 const {
   reassignTeacherResources,
   getAvailableTeachersForReassignment: fetchAvailableTeachers,
   getTeacherReassignmentData: fetchReassignmentData,
 } = require("../services/teacherReassignment.service");
-const { validateAge, ageValidatorMessage } = require("../utils/validators");
+const teacherCreationService = require("../services/teacherCreation.service");
 
 const generateTempPassword = (length = 10) => {
   const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
@@ -134,7 +134,19 @@ exports.createTeacher = async (req, res, next) => {
     const department = await Department.findOne({
       _id: department_id,
       college_id: req.college_id,
-    });
+      status: "ACTIVE",
+    })
+      .populate({
+        path: "department_id",
+        select: "name code hod_id",
+        populate: {
+          path: "hod_id",
+          select: "name _id",
+        },
+      })
+      .populate("courses", "name code")
+      .populate("college_id", "name code")
+      .select("-__v");
 
     if (!department) {
       throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
@@ -269,7 +281,7 @@ exports.createTeacher = async (req, res, next) => {
    GET MY PROFILE (Logged-in Teacher)
    GET /teachers/my-profile
    ✅ FIXED: Properly populate department_id with hod_id
-========================================================= */
+   ========================================================= */
 exports.getMyProfile = async (req, res, next) => {
   try {
     const teacher = await Teacher.findOne({
@@ -483,8 +495,10 @@ exports.getTeachers = async (req, res) => {
     // Build filter
     const filter = { college_id: req.college_id };
 
+    // Default to ACTIVE teachers only; allow explicit status query to override
+    filter.status = status || "ACTIVE";
+
     if (department_id) filter.department_id = department_id;
-    if (status) filter.status = status;
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -739,7 +753,7 @@ exports.updateTeacher = async (req, res, next) => {
     }
 
     const storageService = getStorageProvider().getAdapter();
-    const newDocuments = await processTeacherDocuments(req.files || {});
+    const newDocuments = await teacherCreationService.processTeacherDocuments(req.files || {});
     let finalDocs = [...(existingTeacher.documents || [])];
     const documentRefs = [...(existingTeacher.documentRefs || [])];
 

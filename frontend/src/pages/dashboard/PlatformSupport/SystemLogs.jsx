@@ -28,6 +28,7 @@ import {
 } from "react-icons/fa";
 import { GiMicroscope } from "react-icons/gi";
 import { Link, useNavigate } from "react-router-dom";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import { toast } from "react-toastify";
 import api from "../../../api/axios";
 import { Modal } from "bootstrap/dist/js/bootstrap.bundle.min";
@@ -325,15 +326,13 @@ export default function SystemLogs() {
                       {log.college_id ? log.college_id.name : "N/A"}
                     </td>
                     <td>
-                      <Button
-                        variant="outline-info"
-                        size="sm"
-                        className="me-1"
+                      <ActionIconButton
+                        icon={FaEye}
+                        className="btn btn-sm btn-outline-info me-1"
                         onClick={() => viewLogDetails(log)}
-                        title="View Details"
-                      >
-                        <FaEye />
-                      </Button>
+                        ariaLabel="View system log details"
+                        tooltip="View system log details"
+                      />
                     </td>
                   </tr>
                 ))}

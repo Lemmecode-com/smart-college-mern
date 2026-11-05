@@ -4,9 +4,9 @@ import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import { logger } from "../../../../utils/logger";
 import ApiError from "../../../../components/ApiError";
+import PageHeader from "../../../../components/PageHeader";
 import {
   FaCreditCard,
-  FaArrowLeft,
   FaSave,
   FaCheckCircle,
   FaPlug,
@@ -1051,25 +1051,157 @@ const StripeConfiguration = () => {
           outline: 2px solid var(--sc-stripe-purple);
           outline-offset: 2px;
         }
+
+        .stripe-settings-page {
+          padding: 0.5rem 1.25rem 1.5rem;
+          background: #f5f7fb;
+        }
+
+        .stripe-settings-page .stripe-page-header { margin-bottom: 1rem; }
+        .stripe-settings-page .stripe-header-actions,
+        .stripe-settings-page .header-badges {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 0.5rem;
+        }
+
+        .stripe-settings-page .status-badge {
+          min-height: 36px;
+          padding: 0.4rem 0.7rem;
+          border: 0;
+          border-radius: 8px;
+          font-size: 0.76rem;
+          white-space: nowrap;
+        }
+
+        .stripe-settings-page .status-badge.active { background: #21834d; }
+        .stripe-settings-page .status-badge.inactive { background: rgba(255,255,255,.14); }
+        .stripe-settings-page .status-badge.not_ready { background: #b7791f; }
+
+        .stripe-settings-page .info-card {
+          gap: 0.8rem;
+          padding: 0.85rem 1rem;
+          margin-bottom: 1rem;
+          border-color: #d7e7ee;
+          border-radius: 10px;
+          background: #f3f9fb;
+          box-shadow: none;
+        }
+
+        .stripe-settings-page .info-card-icon {
+          width: 34px;
+          height: 34px;
+          flex: 0 0 34px;
+          background: #e2f1f5;
+          color: #0f6177;
+          box-shadow: none;
+          font-size: 1rem;
+        }
+
+        .stripe-settings-page .info-card-content h6 { margin-bottom: 0.25rem; font-size: 0.9rem; }
+        .stripe-settings-page .info-card-content ul { font-size: 0.78rem; line-height: 1.45; }
+
+        .stripe-settings-page .settings-grid {
+          grid-template-columns: minmax(0, 1.8fr) minmax(230px, 0.8fr);
+          gap: 1rem;
+          align-items: start;
+        }
+
+        .stripe-settings-page .settings-card,
+        .stripe-settings-page .sidebar-card {
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          box-shadow: 0 3px 14px rgba(15, 58, 74, 0.06);
+        }
+
+        .stripe-settings-page .card-header-custom,
+        .stripe-settings-page .sidebar-header {
+          padding: 0.9rem 1.1rem;
+          background: #f8fafc;
+          color: #123f4e;
+          border-bottom: 1px solid #e6edf2;
+        }
+
+        .stripe-settings-page .card-header-custom h5,
+        .stripe-settings-page .sidebar-header h6 { color: #123f4e; font-size: 1rem; }
+        .stripe-settings-page .card-icon { color: #16809a; font-size: 1.05rem; }
+        .stripe-settings-page .card-body-custom,
+        .stripe-settings-page .sidebar-body { padding: 1rem; }
+
+        .stripe-settings-page .form-group { margin-bottom: 0.9rem; }
+        .stripe-settings-page .form-label { margin-bottom: 0.4rem; font-size: 0.83rem; }
+        .stripe-settings-page .form-input {
+          min-height: 42px;
+          box-sizing: border-box;
+          padding: 0.6rem 2.8rem 0.6rem 0.75rem;
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          font-size: 0.86rem;
+        }
+
+        .stripe-settings-page .form-input:focus {
+          border-color: #16809a;
+          box-shadow: 0 0 0 3px rgba(22, 128, 154, 0.13);
+        }
+
+        .stripe-settings-page .input-toggle-btn {
+          right: 0.6rem;
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .stripe-settings-page .input-toggle-btn:hover { background: #eef5f7; color: #0f6177; }
+        .stripe-settings-page .action-buttons { gap: 0.55rem; margin-top: 1rem; padding-top: 1rem; }
+        .stripe-settings-page .btn-action {
+          min-height: 40px;
+          padding: 0.6rem 0.8rem;
+          border-radius: 8px;
+          font-size: 0.82rem;
+        }
+
+        .stripe-settings-page .btn-action.btn-primary { background: #16809a; box-shadow: none; }
+        .stripe-settings-page .btn-action.btn-success { background: #21834d; }
+        .stripe-settings-page .btn-action.btn-info { background: #256d9b; }
+        .stripe-settings-page .status-list { gap: 0.65rem; }
+        .stripe-settings-page .status-item {
+          padding: 0.65rem 0.7rem;
+          border: 1px solid #e8edf2;
+          border-radius: 8px;
+          gap: 0.25rem;
+        }
+        .stripe-settings-page .status-item-label { font-size: 0.68rem; }
+        .stripe-settings-page .status-item-value { font-size: 0.84rem; overflow-wrap: anywhere; }
+        .stripe-settings-page .status-dot.active { box-shadow: none; }
+        .stripe-settings-page .status-dot.not_ready { background: var(--sc-warning); box-shadow: none; }
+
+        @media (max-width: 900px) {
+          .stripe-settings-page .settings-grid { grid-template-columns: minmax(0, 1fr); }
+        }
+
+        @media (max-width: 767px) {
+          .stripe-settings-page { padding: 0.5rem 0.7rem 1rem; }
+          .stripe-settings-page .stripe-header-actions { width: 100%; }
+          .stripe-settings-page .status-badge { min-height: 34px; font-size: 0.7rem; }
+          .stripe-settings-page .action-buttons { flex-direction: column; }
+          .stripe-settings-page .btn-action { width: 100%; justify-content: center; }
+        }
       `}</style>
 
       <div className="stripe-settings-page">
-        {/* ================= PAGE HEADER ================= */}
-        <div className="settings-header">
-          <div className="header-content">
-            <button
-              className="btn-back"
-              onClick={() => navigate("/system-settings/fees")}
-            >
-              <FaArrowLeft />
-              <span>Back to Fee Settings</span>
-            </button>
-            <h1 className="header-title">Stripe Payment Configuration</h1>
-            <p className="header-subtitle">
-              Configure Stripe payment gateway for your college
-            </p>
-          </div>
-          <div className="header-badges">
+        <PageHeader
+          className="stripe-page-header"
+          icon={FaCreditCard}
+          title="Stripe Payment Configuration"
+          subtitle="Configure Stripe payment gateway for your college"
+          onBack={() => navigate("/system-settings/fees")}
+          backLabel="Back to Fee Settings"
+          actions={(
+            <div className="stripe-header-actions header-badges">
             <button
               className={`status-badge ${gatewayStatus}`}
               onClick={handleToggleGateway}
@@ -1102,8 +1234,9 @@ const StripeConfiguration = () => {
                 </span>
               </>
             )}
-          </div>
-        </div>
+            </div>
+          )}
+        />
 
         {/* ================= INFO CARD ================= */}
         <div className="info-card">

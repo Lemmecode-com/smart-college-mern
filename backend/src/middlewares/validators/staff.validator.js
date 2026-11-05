@@ -1,5 +1,17 @@
 const { body, validationResult } = require("express-validator");
-const { validateEmail, validatePassword, passwordValidationMessage, validateJoiningDate, joiningDateValidatorMessage, validateIndianMobile, mobileValidatorMessage, validateIndianPincode, pincodeValidatorMessage } = require("../../utils/validators");
+const {
+  validateEmail,
+  validatePassword,
+  passwordValidationMessage,
+  validateJoiningDate,
+  joiningDateValidatorMessage,
+  validateIndianMobile,
+  mobileValidatorMessage,
+  validateIndianPincode,
+  pincodeValidatorMessage,
+  validateAge,
+  ageValidatorMessage,
+} = require("../../utils/validators");
 
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -17,6 +29,21 @@ const handleValidationErrors = (req, res, next) => {
   }
   next();
 };
+
+// ─── Teacher-only required fields (mirrors teacher.validator.js business rules) ───
+const TEACHER_REQUIRED_FIELDS = [
+  "designation",
+  "qualification",
+  "departmentId",
+  "courseId",
+  "gender",
+  "bloodGroup",
+  "dateOfBirth",
+  "address",
+  "city",
+  "state",
+  "pincode",
+];
 
 exports.validateStaffCreation = [
   body("name")
@@ -39,6 +66,7 @@ exports.validateStaffCreation = [
       "HOD",
       "EXAM_COORDINATOR",
       "PLATFORM_SUPPORT",
+      "TEACHER",
     ]).withMessage("Invalid role"),
 
   body("departmentId")
@@ -82,6 +110,61 @@ exports.validateStaffCreation = [
       }
       return true;
     }),
+
+  // ─── Conditional TEACHER-specific validation ───
+  // Only enforced when role === "TEACHER". Other staff roles are unaffected.
+  body("role").custom((value, { req }) => {
+    if (value !== "TEACHER") return true;
+
+    for (const field of TEACHER_REQUIRED_FIELDS) {
+      const v = req.body[field];
+      if (v === undefined || v === null || String(v).trim() === "") {
+        throw new Error(
+          `${field.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase())} is required for TEACHER role`,
+        );
+      }
+    }
+
+    // experienceYears: must be a non-negative integer ≤ 50
+    const exp = req.body.experienceYears;
+    if (exp === undefined || exp === null || String(exp).trim() === "") {
+      throw new Error("Experience Years is required for TEACHER role");
+    }
+    const expNum = Number(exp);
+    if (!Number.isFinite(expNum) || expNum < 0 || expNum > 50) {
+      throw new Error("Experience Years must be between 0 and 50");
+    }
+
+    // departmentId must be a valid Mongo ID when required
+    if (req.body["departmentId"] && !/^[a-fA-F0-9]{24}$/.test(String(req.body["departmentId"]))) {
+      throw new Error("Invalid department ID");
+    }
+    // courseId must be a valid Mongo ID when required
+    if (req.body["courseId"] && !/^[a-fA-F0-9]{24}$/.test(String(req.body["courseId"]))) {
+      throw new Error("Invalid course ID");
+    }
+
+     // dateOfBirth age range
+    if (req.body["dateOfBirth"] && !validateAge(req.body["dateOfBirth"], 14, 100)) {
+      throw new Error(ageValidatorMessage(14, 100));
+    }
+
+    // subjectIds: optional array of valid MongoDB ObjectIds for TEACHER role
+    const subjectIds = req.body["subjectIds"];
+    if (subjectIds !== undefined) {
+      const list = Array.isArray(subjectIds) ? subjectIds : [subjectIds];
+      for (const sid of list) {
+        if (sid === undefined || sid === null || String(sid).trim() === "") {
+          throw new Error("subjectIds must not contain empty values");
+        }
+        if (!/^[a-fA-F0-9]{24}$/.test(String(sid))) {
+          throw new Error("One or more subjectIds are invalid");
+        }
+      }
+    }
+
+    return true;
+  }),
 
   handleValidationErrors,
 ];
