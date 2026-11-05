@@ -59,6 +59,7 @@ const BRAND_COLORS = {
 
 // Day display names
 const DAY_NAMES = {
+  SUN: "Sunday", 
   MON: "Monday",
   TUE: "Tuesday",
   WED: "Wednesday",
@@ -75,8 +76,39 @@ const SLOT_TYPE_COLORS = {
   PRACTICAL: { bg: "#ede9fe", text: "#5b21b6", border: "#ddd6fe" },
 };
 
-// Days array for iteration
-const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const WEEKDAY_CODES = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
+const groupScheduleByWeekday = (schedule, assignedTeacherId, startDate, endDate) => {
+  const grouped = Object.fromEntries(WEEKDAY_CODES.map((day) => [day, []]));
+  schedule.forEach((daySchedule) => {
+    if (typeof daySchedule?.date !== "string" || !Array.isArray(daySchedule.slots)) return;
+    const dateKey = daySchedule.date.slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+    const date = parseLocalDate(dateKey);
+    if (Number.isNaN(date.getTime()) || toLocalDateStr(date) !== dateKey) return;
+    if (dateKey < startDate || dateKey > endDate) return;
+    const dayCode = WEEKDAY_CODES[date.getDay()];
+    daySchedule.slots.forEach((slot) => {
+      if (!slot?._id) return;
+      if (assignedTeacherId && !slot.isHolidayOnly) {
+        const slotTeacherId = typeof slot.teacher_id === "string"
+          ? slot.teacher_id
+          : slot.teacher_id?._id;
+        if (String(slotTeacherId || "") !== String(assignedTeacherId)) return;
+      }
+      grouped[dayCode].push(slot);
+    });
+  });
+  return grouped;
+};
+
+const timeToMinutes = (time) => {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(time || "");
+  if (!match) return Number.POSITIVE_INFINITY;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  return hours <= 23 && minutes <= 59 ? hours * 60 + minutes : Number.POSITIVE_INFINITY;
+};
 
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
@@ -104,20 +136,21 @@ export default function MyTimetable() {
   const [dateRange, setDateRange] = useState(() => {
     const today = new Date();
     const dayOfWeek = today.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - dayOfWeek);
 
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
+    const saturday = new Date(sunday);
+    saturday.setDate(sunday.getDate() + 6);
 
     return {
-      startDate: toLocalDateStr(monday),
-      endDate: toLocalDateStr(sunday),
+      startDate: toLocalDateStr(sunday),
+      endDate: toLocalDateStr(saturday),
     };
   });
   const [scheduleSummary, setScheduleSummary] = useState(null);
   const [timetableId, setTimetableId] = useState(null);
+  const [timetableIds, setTimetableIds] = useState([]);
+  const [assignedTeacherId, setAssignedTeacherId] = useState(null);
   const [openSessions, setOpenSessions] = useState({});
   const [closedSessions, setClosedSessions] = useState({});
   const [creatingAttendance, setCreatingAttendance] = useState(null);
@@ -240,22 +273,33 @@ export default function MyTimetable() {
       const res = await api.get("/timetable/weekly");
 
       const weeklyData = res.data.weekly || {};
-      setWeekly(weeklyData);
-
-      if (res.data.weekRange) {
-        setDateRange({
-          startDate: res.data.weekRange.start,
-          endDate: res.data.weekRange.end,
-        });
-      }
-
       const allSlots = Object.values(weeklyData).flat();
-      const firstSlotWithTimetable = allSlots.find((s) => s.timetable_id);
-      if (firstSlotWithTimetable?.timetable_id?._id) {
-        setTimetableId(firstSlotWithTimetable.timetable_id._id);
+      const currentTimetableIds = [...new Set(allSlots
+        .map((slot) => typeof slot.timetable_id === "string" ? slot.timetable_id : slot.timetable_id?._id)
+        .filter(Boolean))];
+      const firstAssignedSlot = allSlots.find((slot) => slot.timetable_id);
+      if (currentTimetableIds.length > 0) {
+        const currentTimetableId = currentTimetableIds[0];
+        const currentTeacherId = typeof firstAssignedSlot.teacher_id === "string"
+          ? firstAssignedSlot.teacher_id
+          : firstAssignedSlot.teacher_id?._id;
+        setTimetableId(currentTimetableId);
+        setTimetableIds(currentTimetableIds);
+        setAssignedTeacherId(currentTeacherId || null);
+        await fetchScheduleForDateRange(
+          dateRange.startDate,
+          dateRange.endDate,
+          { timetableIds: currentTimetableIds, teacherId: currentTeacherId },
+        );
+      } else {
+        setWeekly(Object.fromEntries(WEEKDAY_CODES.map((day) => [day, []])));
+        setTimetableId(null);
+        setTimetableIds([]);
+        setAssignedTeacherId(null);
+        setScheduleSummary(null);
+        setRetryCount(0);
       }
 
-      setRetryCount(0);
     } catch (err) {
       const errorMsg =
         err.response?.data?.message ||
@@ -276,30 +320,39 @@ export default function MyTimetable() {
     }
   };
 
-  const fetchScheduleForDateRange = async (startDate, endDate) => {
-    console.log("[TT] fetchScheduleForDateRange start", { startDate, endDate, timetableId });
+  const fetchScheduleForDateRange = async (startDate, endDate, timetableInfo = null) => {
     try {
       setLoading(true);
       setError(null);
 
-      let currentTimetableId = timetableId;
+      let currentTimetableIds = timetableInfo?.timetableIds || timetableIds;
+      let currentTimetableId = timetableInfo?.timetableId || currentTimetableIds[0] || timetableId;
+      let currentTeacherId = timetableInfo?.teacherId || assignedTeacherId;
 
-      if (!currentTimetableId) {
+      if (currentTimetableIds.length === 0 && !currentTimetableId) {
         const weeklyRes = await api.get("/timetable/weekly");
         const weeklyData = weeklyRes.data.weekly || {};
-        setWeekly(weeklyData);
-
         const allSlots = Object.values(weeklyData).flat();
-        const firstSlotWithTimetable = allSlots.find((s) => s.timetable_id);
-        if (firstSlotWithTimetable?.timetable_id?._id) {
-          currentTimetableId = firstSlotWithTimetable.timetable_id._id;
+        currentTimetableIds = [...new Set(allSlots
+          .map((slot) => typeof slot.timetable_id === "string" ? slot.timetable_id : slot.timetable_id?._id)
+          .filter(Boolean))];
+        const firstAssignedSlot = allSlots.find((slot) => slot.timetable_id);
+        if (currentTimetableIds.length > 0) {
+          currentTimetableId = currentTimetableIds[0];
+          currentTeacherId = typeof firstAssignedSlot.teacher_id === "string"
+            ? firstAssignedSlot.teacher_id
+            : firstAssignedSlot.teacher_id?._id;
           setTimetableId(currentTimetableId);
+          setTimetableIds(currentTimetableIds);
+          setAssignedTeacherId(currentTeacherId || null);
         }
       }
 
-      if (!currentTimetableId) {
-        console.log("[TT] fetchScheduleForDateRange no timetableId");
-        setWeekly({ MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [] });
+      if (currentTimetableIds.length === 0 && !currentTimetableId) {
+        setWeekly(Object.fromEntries(WEEKDAY_CODES.map((day) => [day, []])));
+        setTimetableId(null);
+        setTimetableIds([]);
+        setAssignedTeacherId(null);
         setScheduleSummary({
           totalScheduledSlots: 0,
           workingDays: 0,
@@ -311,108 +364,24 @@ export default function MyTimetable() {
         return;
       }
 
-      const res = await api.get(`/timetable/${currentTimetableId}/schedule`, {
-        params: { startDate, endDate },
+      if (currentTimetableIds.length === 0) currentTimetableIds = [currentTimetableId];
+      const responses = await Promise.all(currentTimetableIds.map((id) =>
+        api.get(`/timetable/${id}/schedule`, { params: { startDate, endDate } })
+      ));
+      const scheduleData = responses.map((response) => response.data);
+      const schedule = scheduleData.flatMap((data) => (data?.schedule || []).map((day) => ({
+        ...day,
+        slots: (day.slots || []).map((slot) => ({
+          ...slot,
+          timetable_id: slot.timetable_id?.status ? slot.timetable_id : data.timetable,
+        })),
+      })));
+      const selectedWeek = groupScheduleByWeekday(schedule, currentTeacherId, startDate, endDate);
+      setWeekly(selectedWeek);
+      setScheduleSummary({
+        timetable: scheduleData[0]?.timetable,
+        timetables: scheduleData.map((data) => data?.timetable).filter(Boolean),
       });
-
-      const schedule = res.data?.data?.schedule || [];
-      console.log("[TT] fetchScheduleForDateRange schedule", { scheduleLength: schedule.length, dates: schedule.map(s => s.date) });
-      console.log("[TT] fetchScheduleForDateRange raw", res.data);
-
-      if (schedule && schedule.length > 0) {
-        const weeklyData = {
-          MON: [],
-          TUE: [],
-          WED: [],
-          THU: [],
-          FRI: [],
-          SAT: [],
-        };
-        const todayStr = new Date().toISOString().split("T")[0];
-        let todaySlotsList = [];
-
-        schedule.forEach((daySchedule) => {
-          if (daySchedule.slots && daySchedule.slots.length > 0) {
-            const date = parseLocalDate(daySchedule.date);
-            const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-            const dayName = days[date.getDay()];
-
-            if (weeklyData[dayName]) {
-              weeklyData[dayName].push(...daySchedule.slots);
-            }
-
-            if (daySchedule.date === todayStr) {
-              todaySlotsList = daySchedule.slots;
-            }
-          }
-        });
-
-        console.log("[TT] fetchScheduleForDateRange weeklyData", weeklyData);
-        setWeekly(weeklyData);
-
-        const totalSlots = Object.values(weeklyData).flat().length;
-        const workingDays = schedule.filter((d) => d.isWorkingDay).length;
-        const cancelledSlots = schedule.reduce(
-          (acc, d) =>
-            acc +
-            (d.slots?.filter((s) => s.status === "CANCELLED")?.length || 0),
-          0,
-        );
-        const extraClasses = schedule.reduce(
-          (acc, d) =>
-            acc + (d.slots?.filter((s) => s.status === "EXTRA")?.length || 0),
-          0,
-        );
-        const holidays = schedule.filter((d) => !d.isWorkingDay).length;
-
-        setScheduleSummary({
-          totalScheduledSlots: totalSlots,
-          workingDays,
-          cancelledSlots,
-          extraClasses,
-          holidays,
-          todaySlots: todaySlotsList,
-        });
-      } else {
-        console.log("[TT] schedule empty, falling back to weekly data for requested range");
-        const weeklyRes = await api.get("/timetable/weekly");
-        const weeklyData = weeklyRes.data.weekly || {};
-
-        const start = parseLocalDate(startDate);
-        const end = parseLocalDate(endDate);
-        const days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
-        const filteredWeekly = {
-          MON: [],
-          TUE: [],
-          WED: [],
-          THU: [],
-          FRI: [],
-          SAT: [],
-        };
-
-        Object.entries(weeklyData).forEach(([dayCode, slots]) => {
-          const matching = slots.filter((slot) => {
-            const slotDate = parseLocalDate(slot.exceptionDate || slot.date || startDate);
-            return slotDate >= start && slotDate <= end;
-          });
-          if (matching.length > 0) {
-            filteredWeekly[dayCode] = matching;
-          }
-        });
-
-        setWeekly(filteredWeekly);
-
-        const totalSlots = Object.values(filteredWeekly).flat().length;
-        const workingDays = totalSlots > 0 ? new Set(Object.entries(filteredWeekly).filter(([, s]) => s.length > 0).map(([d]) => d)).size : 0;
-        setScheduleSummary({
-          totalScheduledSlots: totalSlots,
-          workingDays,
-          cancelledSlots: 0,
-          extraClasses: 0,
-          holidays: 0,
-          todaySlots: [],
-        });
-      }
 
       setRetryCount(0);
     } catch (err) {
@@ -436,51 +405,40 @@ export default function MyTimetable() {
   };
 
   const goToPreviousWeek = async () => {
-    const start = new Date(dateRange.startDate.replace(/-/g, "/"));
+    const start = parseLocalDate(dateRange.startDate);
     start.setDate(start.getDate() - 7);
-    const end = new Date(dateRange.endDate.replace(/-/g, "/"));
+    const end = parseLocalDate(dateRange.endDate);
     end.setDate(end.getDate() - 7);
     const newRange = {
       startDate: toLocalDateStr(start),
       endDate: toLocalDateStr(end),
     };
-    console.log("[TT] goToPreviousWeek", { from: dateRange, to: newRange, timetableId });
     setDateRange(newRange);
     await fetchScheduleForDateRange(newRange.startDate, newRange.endDate);
   };
 
   const goToNextWeek = async () => {
-    const start = new Date(dateRange.startDate.replace(/-/g, "/"));
+    const start = parseLocalDate(dateRange.startDate);
     start.setDate(start.getDate() + 7);
-    const end = new Date(dateRange.endDate.replace(/-/g, "/"));
+    const end = parseLocalDate(dateRange.endDate);
     end.setDate(end.getDate() + 7);
     const newRange = {
       startDate: toLocalDateStr(start),
       endDate: toLocalDateStr(end),
     };
-    console.log("[TT] goToNextWeek", { from: dateRange, to: newRange, timetableId });
     setDateRange(newRange);
     await fetchScheduleForDateRange(newRange.startDate, newRange.endDate);
   };
 
   const goToCurrentWeek = async () => {
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() + mondayOffset);
-
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-
-    const newRange = {
-      startDate: toLocalDateStr(monday),
-      endDate: toLocalDateStr(sunday),
-    };
-    console.log("[TT] goToCurrentWeek", { to: newRange, timetableId });
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - today.getDay());
+    const saturday = new Date(sunday);
+    saturday.setDate(sunday.getDate() + 6);
+    const newRange = { startDate: toLocalDateStr(sunday), endDate: toLocalDateStr(saturday) };
     setDateRange(newRange);
-    setTimetableId(null);
-    await fetchTimetable();
+    await fetchScheduleForDateRange(newRange.startDate, newRange.endDate);
   };
 
   useEffect(() => {
@@ -594,13 +552,6 @@ export default function MyTimetable() {
   };
 
   /* ================= HELPER FUNCTIONS ================= */
-  const getTotalSlots = () => {
-    return Object.values(weekly).reduce(
-      (acc, daySlots) => acc + daySlots.length,
-      0,
-    );
-  };
-
   const formatTime12Hour = (time24) => {
     if (!time24) return "";
     const [hours, minutes] = time24.split(":").map(Number);
@@ -644,8 +595,48 @@ if (loading) {
     );
   }
 
-  const totalSlots = getTotalSlots();
-  console.log("[TT] render", { totalSlots, weeklyKeys: Object.keys(weekly), dateRange });
+  const selectedDates = WEEKDAY_CODES.map((dayCode, offset) => {
+    const date = parseLocalDate(dateRange.startDate);
+    date.setDate(date.getDate() + offset);
+    return { dayCode, date, key: toLocalDateStr(date), slots: weekly[dayCode] || [] };
+  });
+  const weekdayGroups = selectedDates
+    .map((day) => {
+      const slots = [...new Map(day.slots
+        .filter((slot) => slot?._id)
+        .map((slot) => [slot._id, slot])).values()]
+        .sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+      return { ...day, slots };
+    })
+    .filter(({ slots }) => slots.length > 0);
+  const uniqueSlots = [...new Map(weekdayGroups
+    .flatMap((day) => day.slots)
+    .filter((slot) => !slot.isHolidayOnly && slot.status !== "HOLIDAY")
+    .map((slot) => [slot._id, slot])).values()];
+  const totalSlots = uniqueSlots.length;
+  const teachingDays = new Set(weekdayGroups
+    .filter(({ slots }) => slots.some((slot) => !slot.isHolidayOnly && slot.status !== "HOLIDAY"))
+    .map(({ key }) => key)).size;
+  const assignedSubjects = new Set(uniqueSlots.map((slot) => {
+    const subject = slot.subject_id;
+    return typeof subject === "string" ? subject : subject?._id || subject?.code || subject?.name;
+  }).filter(Boolean)).size;
+  const scheduledMinutes = uniqueSlots.reduce((total, slot) => {
+    if (!/^\d{1,2}:\d{2}$/.test(slot.startTime || "") || !/^\d{1,2}:\d{2}$/.test(slot.endTime || "")) return total;
+    const [startHour, startMinute] = slot.startTime.split(":").map(Number);
+    const [endHour, endMinute] = slot.endTime.split(":").map(Number);
+    if (startHour > 23 || startMinute > 59 || endHour > 23 || endMinute > 59) return total;
+    const duration = endHour * 60 + endMinute - (startHour * 60 + startMinute);
+    return total + (duration > 0 ? duration : 0);
+  }, 0);
+  const noClassDays = selectedDates.filter(({ slots }) =>
+    !slots.some((slot) => slot?._id && !slot.isHolidayOnly && slot.status !== "HOLIDAY")
+  );
+  const academicYear = uniqueSlots.find((slot) => slot.timetable_id?.academicYear)?.timetable_id?.academicYear
+    || scheduleSummary?.timetable?.academicYear;
+  const rangeStart = parseLocalDate(dateRange.startDate);
+  const rangeEnd = parseLocalDate(dateRange.endDate);
+  const weekRangeLabel = `${rangeStart.toLocaleDateString(undefined, { month: "short", day: "numeric", ...(rangeStart.getFullYear() !== rangeEnd.getFullYear() && { year: "numeric" }) })} – ${rangeEnd.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
 
   return (
     <motion.div
@@ -679,14 +670,23 @@ if (loading) {
       <PageHeader
         icon={FaCalendarAlt}
         title="My Timetable"
-        subtitle="Weekly lecture schedule assigned to you"
+        subtitle="Your weekly teaching schedule."
+        className="teacher-timetable-header"
         actions={
-          <div className="my-timetable-slot-badge">
-            <FaCheckCircle size={15} />
-            <span>{totalSlots} Total Slots</span>
+          <div className="timetable-header-week">
+            <span>Selected week</span>
+            <strong>{weekRangeLabel}</strong>
+            {academicYear && <small>Academic year {academicYear}</small>}
           </div>
         }
-      />
+      >
+        <div className="timetable-overview-stats">
+          <div><strong>{totalSlots}</strong><span>Lecture slots</span></div>
+          <div><strong>{teachingDays}</strong><span>Teaching days</span></div>
+          <div><strong>{assignedSubjects}</strong><span>Assigned subjects</span></div>
+          <div><strong>{Math.floor(scheduledMinutes / 60)}h {scheduledMinutes % 60}m</strong><span>Scheduled hours</span></div>
+        </div>
+      </PageHeader>
 
       <section className="timetable-toolbar" aria-label="Week navigation">
         <div className="timetable-week-controls">
@@ -716,23 +716,31 @@ if (loading) {
             <FaChevronRight />
           </button>
           <span className="timetable-week-date">
-            {new Date(dateRange.startDate).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}{" "}
-            -{" "}
-            {new Date(dateRange.endDate).toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
+            {weekRangeLabel}
           </span>
         </div>
-        <div className="timetable-slot-summary">
-          <FaCheckCircle aria-hidden="true" />
-          <span>{totalSlots} Total Slots</span>
-        </div>
       </section>
+
+      <nav className="timetable-day-navigator" aria-label="Days of the selected week">
+        {selectedDates.map(({ dayCode, date, key, slots }) => {
+          const count = new Set(slots
+            .filter((slot) => slot?._id && !slot.isHolidayOnly && slot.status !== "HOLIDAY")
+            .map((slot) => slot._id)).size;
+          return (
+            <a
+              key={key}
+              href={`#timetable-day-${dayCode}`}
+              className={`timetable-day-nav-item${count ? " has-slots" : ""}${key === toLocalDateStr(new Date()) ? " is-today" : ""}`}
+            >
+              <span>{dayCode}</span>
+              <strong>{date.getDate()}</strong>
+              {count > 0
+                ? <small>{count} {count === 1 ? "slot" : "slots"}</small>
+                : <small className="no-slot-label">No classes</small>}
+            </a>
+          );
+        })}
+      </nav>
 
       <div className="timetable-info">
         <FaInfoCircle aria-hidden="true" />
@@ -744,19 +752,6 @@ if (loading) {
         .teacher-my-timetable {
           min-width: 0;
           overflow-x: hidden;
-        }
-        .teacher-my-timetable .my-timetable-slot-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 14px;
-          border: 1px solid rgba(255,255,255,.25);
-          border-radius: 10px;
-          background: rgba(255,255,255,.12);
-          color: #fff;
-          font-size: .9rem;
-          font-weight: 600;
-          white-space: nowrap;
         }
         .teacher-my-timetable .timetable-toolbar {
           display: flex;
@@ -815,18 +810,6 @@ if (loading) {
           font-size: .9rem;
           font-weight: 600;
           white-space: nowrap;
-        }
-        .teacher-my-timetable .timetable-slot-summary {
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          color: #526579;
-          font-size: .83rem;
-          font-weight: 600;
-          white-space: nowrap;
-        }
-        .teacher-my-timetable .timetable-slot-summary svg {
-          color: #23804d;
         }
         .teacher-my-timetable .timetable-info {
           display: flex;
@@ -911,13 +894,70 @@ if (loading) {
           color: #748395 !important;
           background: #f8fafc !important;
         }
+        .teacher-my-timetable .timetable-days { align-items: start; }
+        .teacher-my-timetable .timetable-day-column { align-self: start; }
+        .teacher-my-timetable .timetable-day-card { height: auto !important; }
+        .teacher-my-timetable .timetable-day-heading {
+          display: flex;
+          min-width: 0;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+        .teacher-my-timetable .timetable-day-heading-title { min-width: 0; }
+        .teacher-my-timetable .timetable-day-heading-title h6 { overflow-wrap: anywhere; }
+        .teacher-my-timetable .timetable-day-date {
+          display: block;
+          margin-top: 3px;
+          color: rgba(255,255,255,.76);
+          font-size: .72rem;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+        .teacher-my-timetable .timetable-day-header .badge {
+          flex: 0 0 auto;
+          white-space: nowrap;
+        }
+        .teacher-my-timetable .timetable-slot-details {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 9px 12px;
+          min-width: 0;
+          margin: 0;
+        }
+        .teacher-my-timetable .timetable-metadata-item {
+          min-width: 0;
+          max-width: 100%;
+        }
+        .teacher-my-timetable .timetable-metadata-content {
+          display: flex;
+          min-width: 0;
+          align-items: flex-start;
+          gap: 6px;
+          line-height: 1.35;
+        }
+        .teacher-my-timetable .timetable-metadata-content svg {
+          flex: 0 0 13px;
+          margin-top: 2px;
+        }
+        .teacher-my-timetable .timetable-metadata-content span {
+          min-width: 0;
+          overflow-wrap: anywhere;
+          word-break: normal;
+        }
+        .teacher-my-timetable .timetable-metadata-item > .badge {
+          max-width: 100%;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        .teacher-my-timetable .timetable-subject-name { min-width: 0; overflow-wrap: anywhere; }
+        .teacher-my-timetable .timetable-subject-code { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+        .teacher-my-timetable .timetable-lecture-card { min-width: 0; flex: 0 0 auto; padding: 12px !important; }
+        .teacher-my-timetable .timetable-day-body > .d-flex { min-width: 0; }
         @media (max-width: 1024px) {
           .teacher-my-timetable .timetable-toolbar {
             align-items: flex-start;
             flex-direction: column;
-          }
-          .teacher-my-timetable .timetable-slot-summary {
-            padding-left: 2px;
           }
         }
         @media (max-width: 575px) {
@@ -946,6 +986,111 @@ if (loading) {
             padding-right: calc(var(--bs-gutter-x) * .5);
             padding-left: calc(var(--bs-gutter-x) * .5);
           }
+          .teacher-my-timetable .timetable-slot-details { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+          .teacher-my-timetable .timetable-day-heading { align-items: flex-start; gap: 8px; }
+        }
+        .teacher-my-timetable .teacher-timetable-header { margin-bottom: 14px; }
+        .teacher-my-timetable .teacher-timetable-header .standard-page-header-content {
+          position: relative;
+          min-height: 0;
+          padding: 22px 26px 22px;
+          align-items: flex-start;
+          flex-wrap: wrap;
+          row-gap: 16px;
+        }
+        .teacher-my-timetable .teacher-timetable-header .standard-page-header-main { align-self: flex-start; }
+        .teacher-my-timetable .teacher-timetable-header .standard-page-header-actions {
+          align-self: flex-start;
+          justify-content: flex-end;
+          min-width: 220px;
+          padding-top: 2px;
+        }
+        .teacher-my-timetable .teacher-timetable-header .standard-page-header-meta {
+          position: static;
+          flex: 1 0 100%;
+          margin: 0;
+          padding: 12px 0 0;
+          border-top: 1px solid rgba(255,255,255,.2);
+        }
+        .teacher-my-timetable .timetable-header-week {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 3px;
+          text-align: right;
+        }
+        .teacher-my-timetable .timetable-header-week span {
+          color: rgba(235,247,250,.68);
+          font-size: .66rem;
+          font-weight: 700;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+        }
+        .teacher-my-timetable .timetable-header-week strong { color: #fff; font-size: .98rem; }
+        .teacher-my-timetable .timetable-header-week small { color: rgba(235,247,250,.68); font-size: .68rem; }
+        .teacher-my-timetable .timetable-overview-stats {
+          display: grid;
+          width: 100%;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          align-items: center;
+          gap: .6rem;
+        }
+        .teacher-my-timetable .timetable-overview-stats > div { display: flex; flex-direction: column; gap: .1rem; padding-left: .8rem; border-left: 1px solid rgba(255,255,255,.16); }
+        .teacher-my-timetable .timetable-overview-stats > div:first-child { padding-left: 0; border-left: 0; }
+        .teacher-my-timetable .timetable-overview-stats strong { color: #fff; font-size: 1.28rem; line-height: 1.15; white-space: nowrap; }
+        .teacher-my-timetable .timetable-overview-stats span { color: rgba(235,247,250,.68); font-size: .64rem; }
+        .teacher-my-timetable .timetable-toolbar { margin-bottom: 8px; }
+        .teacher-my-timetable .timetable-navigator-label { color: #83929b; font-size: .7rem; }
+        .teacher-my-timetable .timetable-day-navigator { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .55rem; margin-bottom: 10px; padding: .7rem; border: 1px solid #e1e9ed; border-radius: 12px; background: #fff; box-shadow: 0 2px 8px rgba(15,58,74,.035); }
+        .teacher-my-timetable .timetable-day-nav-item { display: flex; min-width: 0; flex-direction: column; align-items: center; gap: .12rem; padding: .45rem .25rem; border: 1px solid transparent; border-radius: 9px; color: #70818a; text-decoration: none; transition: background .15s ease, border-color .15s ease; }
+        .teacher-my-timetable .timetable-day-nav-item > span { font-size: .62rem; font-weight: 750; letter-spacing: .06em; }
+        .teacher-my-timetable .timetable-day-nav-item > strong { color: #425b66; font-size: 1rem; }
+        .teacher-my-timetable .timetable-day-nav-item > small { color: #84949b; font-size: .58rem; }
+        .teacher-my-timetable .timetable-day-nav-item.has-slots { border-color: #d7e9ed; background: #f3f9fa; }
+        .teacher-my-timetable .timetable-day-nav-item.has-slots > span, .teacher-my-timetable .timetable-day-nav-item.has-slots > strong { color: #14566a; }
+        .teacher-my-timetable .timetable-day-nav-item.is-today { box-shadow: inset 0 0 0 1px #247e91; }
+        .teacher-my-timetable .timetable-day-nav-item:hover { border-color: #b8d7de; background: #eef7f8; }
+        .teacher-my-timetable .timetable-day-nav-item .no-slot-label { color: #a0adb3; }
+        .teacher-my-timetable .timetable-days { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+        .teacher-my-timetable .timetable-day-column { min-width: 0; scroll-margin-top: 85px; }
+        .teacher-my-timetable .timetable-day-card { height: auto !important; background: #fff; }
+        .teacher-my-timetable .timetable-day-header { display: flex; align-items: center; background: linear-gradient(135deg, #0f3a4a 0%, #164e63 100%) !important; }
+        .teacher-my-timetable .timetable-day-header h6 { color: #fff; }
+        .teacher-my-timetable .timetable-day-date { display: block; margin-top: .15rem; color: rgba(255,255,255,.7); font-size: .68rem; }
+        .teacher-my-timetable .timetable-lecture-card { min-width: 0; background-color: #f5fafb !important; border-color: #dce9ec !important; border-left-color: #39879a !important; }
+        .teacher-my-timetable .timetable-lecture-card .timetable-subject-name { color: #174b5b !important; }
+        .teacher-my-timetable .timetable-no-class-days { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; margin: 10px 0 20px; padding: .55rem .75rem; border: 1px solid #e5ecef; border-radius: 9px; background: rgba(255,255,255,.72); color: #82919a; font-size: .69rem; }
+        .teacher-my-timetable .timetable-no-class-days strong { margin-right: .25rem; color: #627681; }
+        .teacher-my-timetable .timetable-no-class-days span { padding: .18rem .42rem; border-radius: 99px; background: #f0f4f5; color: #72838b; }
+        @media (max-width: 1024px) {
+          .teacher-my-timetable .teacher-timetable-header .standard-page-header-content {
+            min-height: 0;
+            padding: 18px 20px 20px;
+          }
+          .teacher-my-timetable .teacher-timetable-header .standard-page-header-actions {
+            min-width: 0;
+            justify-content: flex-start;
+          }
+          .teacher-my-timetable .teacher-timetable-header .standard-page-header-meta { right: auto; left: auto; }
+          .teacher-my-timetable .timetable-header-week { align-items: flex-start; text-align: left; }
+        }
+        @media (max-width: 700px) { .teacher-my-timetable .timetable-days { grid-template-columns: minmax(0, 1fr); } }
+        @media (max-width: 575px) {
+          .teacher-my-timetable { padding: .75rem !important; }
+          .teacher-my-timetable .teacher-timetable-header .standard-page-header-content {
+            min-height: 0;
+            padding: 16px;
+            gap: 10px;
+          }
+          .teacher-my-timetable .teacher-timetable-header .standard-page-header-meta { right: auto; left: auto; padding-top: 9px; }
+          .teacher-my-timetable .timetable-overview-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: .55rem; }
+          .teacher-my-timetable .timetable-overview-stats > div:nth-child(odd) { border-left: 0; padding-left: 0; }
+          .teacher-my-timetable .timetable-overview-stats strong { font-size: 1.05rem; }
+          .teacher-my-timetable .timetable-overview-stats span { font-size: .58rem; }
+          .teacher-my-timetable .timetable-header-week strong { font-size: .88rem; }
+          .teacher-my-timetable .timetable-day-navigator { gap: .2rem; padding: .4rem; }
+          .teacher-my-timetable .timetable-day-nav-item { padding: .35rem .1rem; }
+          .teacher-my-timetable .timetable-day-nav-item > small { font-size: .52rem; }
         }
       `}</style>
 
@@ -981,37 +1126,43 @@ if (loading) {
             className="fw-bold mb-2"
             style={{ color: BRAND_COLORS.primary.main }}
           >
-            No Timetable Assigned
+            {timetableId ? "No Lectures This Week" : "No Timetable Assigned"}
           </h4>
           <p className="text-muted mb-3">
-            You don't have any lecture slots assigned yet.
+            {timetableId
+              ? "There are no lecture slots assigned during this week."
+              : "You don't have any lecture slots assigned yet."}
           </p>
           <p className="text-muted small">
-            Once the HOD assigns lectures to you, they will appear here.
+            {timetableId
+              ? "Use the week navigation to check your schedule for another week."
+              : "Once the HOD assigns lectures to you, they will appear here."}
           </p>
         </motion.div>
       )}
 
       {/* ================= TIMETABLE BY DAY ================= */}
       {totalSlots > 0 && (
-        <div className="timetable-days row g-3">
-          {DAYS.map((dayCode, index) => {
-            const daySlots = weekly[dayCode] || [];
+        <div className="timetable-days">
+          {weekdayGroups.map(({ dayCode, date, key, slots: daySlots }, index) => {
 
             // Skip days with no slots AND no holidays
-            const hasHoliday = daySlots.some((s) => s.isHolidayOnly);
-            if (daySlots.length === 0 && !hasHoliday) return null;
+            const hasHoliday = daySlots.some((slot) => slot.isHolidayOnly || slot.status === "HOLIDAY");
+            const dayLectureCount = daySlots.filter((slot) =>
+              !slot.isHolidayOnly && slot.status !== "HOLIDAY"
+            ).length;
 
             return (
               <motion.div
-                key={dayCode}
+                key={key}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="timetable-day-column col-12 col-md-6 col-xl-4"
+                className="timetable-day-column"
               >
                 <div
-                  className={`timetable-day-card card h-100${hasHoliday ? " has-holiday" : ""}`}
+                  id={`timetable-day-${dayCode}`}
+                  className={`timetable-day-card card${hasHoliday ? " has-holiday" : ""}`}
                   style={{
                     background: "white",
                   }}
@@ -1026,11 +1177,16 @@ if (loading) {
                       color: "white",
                     }}
                   >
-                    <div className="d-flex align-items-center justify-content-between">
-                      <h6 className="fw-bold mb-0">
-                        {hasHoliday && "⚠️ "}
-                        {DAY_NAMES[dayCode]}
-                      </h6>
+                    <div className="timetable-day-heading">
+                      <div className="timetable-day-heading-title">
+                        <h6 className="fw-bold mb-0">
+                          {hasHoliday && "⚠️ "}
+                          {DAY_NAMES[dayCode]}
+                        </h6>
+                      <small className="timetable-day-date">
+                        {date.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+                      </small>
+                      </div>
                       <span
                         className="badge"
                         style={{
@@ -1039,8 +1195,8 @@ if (loading) {
                           fontWeight: "600",
                         }}
                       >
-                        {daySlots.filter((s) => !s.isHolidayOnly).length}{" "}
-                        {daySlots.filter((s) => !s.isHolidayOnly).length === 1
+                        {dayLectureCount}{" "}
+                        {dayLectureCount === 1
                           ? "Slot"
                           : "Slots"}
                       </span>
@@ -1080,6 +1236,13 @@ if (loading) {
                       {daySlots
                         .filter((s) => !s.isHolidayOnly)
                         .map((slot, slotIndex) => {
+                          const subjectName = typeof slot.subject_id === "string"
+                            ? slot.subject_id
+                            : slot.subject_id?.name;
+                          const subjectCode = typeof slot.subject_id === "object"
+                            ? slot.subject_id?.code
+                            : null;
+                          const division = slot.division || slot.timetable_id?.division;
                           const slotTypeColors =
                             SLOT_TYPE_COLORS[slot.slotType || "LECTURE"] ||
                             SLOT_TYPE_COLORS.LECTURE;
@@ -1176,7 +1339,7 @@ if (loading) {
                                   }}
                                 />
                                 <div className="flex-grow-1">
-                                  <h6
+                                  {subjectName && <h6
                                     className="timetable-subject-name fw-bold mb-1"
                                     style={{
                                       color: adjustedText,
@@ -1187,9 +1350,9 @@ if (loading) {
                                       opacity: isCancelled ? 0.6 : 1,
                                     }}
                                   >
-                                    {slot.subject_id?.name || "N/A"}
-                                  </h6>
-                                  {slot.subject_id?.code && (
+                                    {subjectName}
+                                  </h6>}
+                                  {subjectCode && (
                                     <span
                                       className="timetable-subject-code badge"
                                       style={{
@@ -1200,7 +1363,7 @@ if (loading) {
                                         fontWeight: "600",
                                       }}
                                     >
-                                      {slot.subject_id.code}
+                                      {subjectCode}
                                     </span>
                                   )}
                                 </div>
@@ -1234,11 +1397,11 @@ if (loading) {
                               )}
 
                               {/* Details Grid */}
-                              <div className="timetable-slot-details row g-2">
+                              <div className="timetable-slot-details">
                                 {/* Time */}
-                                <div className="col-6">
+                                {slot.startTime && slot.endTime && <div className="timetable-metadata-item">
                                   <div
-                                    className="d-flex align-items-center gap-1"
+                                    className="timetable-metadata-content"
                                     style={{
                                       fontSize: "0.8rem",
                                       color: "#64748b",
@@ -1253,46 +1416,48 @@ if (loading) {
                                       {formatTime12Hour(slot.endTime)}
                                     </span>
                                   </div>
-                                </div>
+                                </div>}
 
-                                {/* Room */}
-                                <div className="col-6">
-                                  <div
-                                    className="d-flex align-items-center gap-1"
-                                    style={{
-                                      fontSize: "0.8rem",
-                                      color: "#64748b",
-                                    }}
-                                  >
-                                    <FaDoorOpen
-                                      size={12}
-                                      style={{ color: adjustedText }}
-                                    />
-                                    <span>{slot.room || "N/A"}</span>
+                                {slot.room && (
+                                  <div className="timetable-metadata-item">
+                                    <div className="timetable-metadata-content" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                                      <FaDoorOpen size={12} style={{ color: adjustedText }} />
+                                      <span>{slot.room}</span>
+                                    </div>
                                   </div>
-                                </div>
+                                )}
 
-                                {/* Course/Semester */}
-                                <div className="col-6">
-                                  <div
-                                    className="d-flex align-items-center gap-1"
-                                    style={{
-                                      fontSize: "0.8rem",
-                                      color: "#64748b",
-                                    }}
-                                  >
-                                    <FaUniversity
-                                      size={12}
-                                      style={{ color: adjustedText }}
-                                    />
-                                    <span>
-                                      Sem {slot.timetable_id?.semester || "N/A"}
-                                    </span>
+                                {(slot.timetable_id?.course_id?.name || slot.timetable_id?.course_id?.code) && (
+                                  <div className="timetable-metadata-item">
+                                    <div className="timetable-metadata-content" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                                      <FaUniversity size={12} style={{ color: adjustedText }} />
+                                      <span>
+                                        {[slot.timetable_id.course_id.name, slot.timetable_id.course_id.code].filter(Boolean).join(" · ")}
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
+                                )}
+
+                                {slot.timetable_id?.semester != null && (
+                                  <div className="timetable-metadata-item">
+                                    <div className="timetable-metadata-content" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                                      <FaLayerGroup size={12} style={{ color: adjustedText }} />
+                                      <span>Semester {slot.timetable_id.semester}</span>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {division && (
+                                  <div className="timetable-metadata-item">
+                                    <div className="timetable-metadata-content" style={{ fontSize: "0.8rem", color: "#64748b" }}>
+                                      <FaChalkboardTeacher size={12} style={{ color: adjustedText }} />
+                                      <span>{division}</span>
+                                    </div>
+                                  </div>
+                                )}
 
                                 {/* Type */}
-                                <div className="col-6">
+                                <div className="timetable-metadata-item">
                                   <span
                                     className="badge"
                                     style={{
@@ -1518,6 +1683,13 @@ if (loading) {
               </motion.div>
             );
           })}
+        </div>
+      )}
+
+      {totalSlots > 0 && noClassDays.length > 0 && (
+        <div className="timetable-no-class-days">
+          <strong>Other Days · No Assigned Lectures</strong>
+          {noClassDays.map(({ dayCode }) => <span key={dayCode}>{DAY_NAMES[dayCode]}</span>)}
         </div>
       )}
 

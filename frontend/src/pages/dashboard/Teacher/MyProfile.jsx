@@ -663,6 +663,149 @@ if (loading) {
           .teacher-profile-courses-panel .row,
           .teacher-profile-subjects-panel .row { grid-template-columns: 1fr; }
         }
+        .teacher-profile-content-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1rem;
+        }
+        .teacher-profile-content-grid > * { min-width: 0; }
+        .teacher-profile-assignments-wrap { grid-column: 1 / -1; }
+        .teacher-profile-content-grid .teacher-profile-section-heading {
+          padding: .9rem 1.1rem !important;
+          background: #fff !important;
+          border-bottom: 1px solid #e8eef1 !important;
+        }
+        .teacher-profile-content-grid .teacher-profile-section-heading h3 {
+          color: #173f4e !important;
+          font-size: 1rem !important;
+        }
+        .teacher-profile-content-grid .teacher-profile-section-heading h3 span { color: #18748a !important; }
+        .teacher-profile-content-grid .teacher-profile-section-heading > span {
+          display: inline-block !important;
+          margin: .25rem 0 0 1.8rem !important;
+          color: #7b8d96 !important;
+          font-size: .73rem !important;
+        }
+        .teacher-profile-rows-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          padding: .35rem 1.1rem .7rem;
+        }
+        .teacher-profile-rows-grid .teacher-profile-info-row {
+          display: flex !important;
+          align-items: flex-start !important;
+          min-width: 0;
+          padding: .85rem .25rem !important;
+          border: 0 !important;
+          border-bottom: 1px solid #e9eff2 !important;
+          border-radius: 0 !important;
+          background: #fff !important;
+          gap: .7rem !important;
+          cursor: default !important;
+        }
+        .teacher-profile-rows-grid .teacher-profile-info-row.is-copyable { cursor: pointer !important; }
+        .teacher-profile-rows-grid .teacher-profile-info-row:hover {
+          transform: none !important;
+          background: #fff !important;
+        }
+        .teacher-profile-rows-grid .teacher-profile-info-row:first-child,
+        .teacher-profile-rows-grid .teacher-profile-info-row:nth-child(2) { border-top: 0; }
+        .teacher-profile-rows-grid .teacher-profile-info-row > div:first-child {
+          display: grid !important;
+          flex: 0 0 30px !important;
+          width: 30px !important;
+          height: 30px !important;
+          place-items: center;
+          border-radius: 8px !important;
+          background: #eaf4f5 !important;
+          color: #1b7081 !important;
+          font-size: .82rem !important;
+        }
+        .teacher-profile-rows-grid .teacher-profile-info-row > div:last-child { min-width: 0; }
+        .teacher-profile-rows-grid .teacher-profile-info-row h6 {
+          margin: 0 0 .2rem !important;
+          color: #7a8b94 !important;
+          font-size: .65rem !important;
+          font-weight: 700 !important;
+          letter-spacing: .045em !important;
+        }
+        .teacher-profile-rows-grid .teacher-profile-info-row h6 + div {
+          display: block !important;
+          color: #183f4d !important;
+          font-size: .86rem !important;
+          font-weight: 650 !important;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+        .teacher-profile-assignment-content { padding: .25rem 1.1rem 1rem; }
+        .teacher-profile-assignment-content h4 {
+          margin: .55rem 0 .45rem;
+          color: #667d87;
+          font-size: .68rem;
+          font-weight: 750;
+          letter-spacing: .07em;
+          text-transform: uppercase;
+        }
+        .teacher-profile-course-list {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: .65rem;
+        }
+        .teacher-profile-course-card {
+          min-height: 0 !important;
+          padding: .75rem !important;
+          border-color: #e5ecef !important;
+          border-radius: 10px !important;
+          box-shadow: none !important;
+        }
+        .teacher-profile-course-card > div { gap: .65rem !important; }
+        .teacher-profile-course-card .teacher-profile-course-icon {
+          width: 34px !important;
+          height: 34px !important;
+          border-radius: 8px !important;
+          font-size: .9rem !important;
+        }
+        .teacher-profile-course-card .teacher-profile-course-name { font-size: .82rem !important; }
+        .teacher-profile-course-card .teacher-profile-course-code { font-size: .67rem !important; }
+        .teacher-profile-course-card p { margin-top: .35rem !important; font-size: .72rem !important; }
+        .teacher-subject-table-wrap { max-width: 100%; overflow-x: auto; }
+        .teacher-subject-table { width: 100%; min-width: 440px; border-collapse: collapse; }
+        .teacher-subject-table th {
+          padding: .55rem .65rem;
+          background: #f5f8f9;
+          color: #758892;
+          font-size: .63rem;
+          font-weight: 750;
+          letter-spacing: .055em;
+          text-align: left;
+          text-transform: uppercase;
+        }
+        .teacher-subject-table td { padding: .65rem; border-bottom: 1px solid #e9eff2; color: #244b59; font-size: .78rem; }
+        .teacher-subject-table tr:last-child td { border-bottom: 0; }
+        .teacher-subject-table td strong { display: block; font-size: .79rem; }
+        .teacher-subject-table td small { display: block; margin-top: .13rem; color: #81919a; font-size: .68rem; }
+        .teacher-subject-code,
+        .teacher-semester-badge {
+          display: inline-block;
+          padding: .25rem .5rem;
+          border-radius: 6px;
+          background: #edf5f6;
+          color: #286879;
+          font-size: .68rem;
+          font-weight: 650;
+          white-space: nowrap;
+        }
+        .teacher-semester-badge { background: #f0f3f6; color: #596e78; }
+        @media (max-width: 767px) {
+          .teacher-profile-content-grid { grid-template-columns: minmax(0, 1fr); }
+          .teacher-profile-assignments-wrap { grid-column: auto; }
+        }
+        @media (max-width: 575px) {
+          .teacher-profile-rows-grid { grid-template-columns: minmax(0, 1fr); padding: .2rem .85rem .6rem; }
+          .teacher-profile-rows-grid .teacher-profile-info-row { grid-column: auto !important; }
+          .teacher-profile-course-list { grid-template-columns: minmax(0, 1fr); }
+          .teacher-profile-assignment-content { padding-right: .85rem; padding-left: .85rem; }
+        }
       `}</style>
 
 
@@ -758,162 +901,88 @@ if (loading) {
             </div>
           </motion.div>
 
-          {/* ================= MAIN CONTENT GRID - Bootstrap ================= */}
-          <div className="row g-4">
-            {/* LEFT COLUMN - PERSONAL INFO */}
-            <motion.div
-              variants={fadeInVariants}
-              custom={0}
-              initial="hidden"
-              animate="visible"
-              className="col-12"
-            >
+          <div className="teacher-profile-content-grid">
+            <motion.div variants={fadeInVariants} custom={0} initial="hidden" animate="visible">
               <SectionCard
                 className="teacher-profile-personal-panel"
                 title="Personal Information"
+                subtitle="Contact and personal details"
                 icon={<FaUserTie />}
                 color={BRAND_COLORS.primary.main}
               >
-                <div className="p-4 teacher-profile-panel-body">
-                  <div className="row g-3 teacher-personal-grid">
-                    <div className="col-12 col-sm-6 col-lg-4">
-                      <InfoItem
-                        icon={<FaEnvelope />}
-                        label="Email Address"
-                        value={profile.email}
-                        copyable
-                      />
-                    </div>
-                    <div className="col-12 col-sm-6 col-lg-4">
-                      <InfoItem
-                        icon={<FaPhoneAlt />}
-                        label="Contact Number"
-                        value={profile.mobileNumber || 'Not Set'}
-                        copyable
-                      />
-                    </div>
-                    <div className="col-12 col-sm-6 col-lg-4">
-                      <InfoItem
-                        icon={<FaMapMarkerAlt />}
-                        label="Address"
-                        value={profile.address || 'Not Set'}
-                        fullWidth
-                      />
-                    </div>
-                    <div className="col-12 col-sm-6 col-lg-4">
-                      <InfoItem
-                        icon={<FaCalendarAlt />}
-                        label="Date of Birth"
-                        value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'Not Set'}
-                      />
-                    </div>
-                    <div className="col-12 col-sm-6 col-lg-4">
-                      <InfoItem
-                        icon={<FaGraduationCap />}
-                        label="Highest Qualification"
-                        value={profile.qualification || 'N/A'}
-                      />
-                    </div>
-                    <div className="col-12 col-sm-6 col-lg-4">
-                      <InfoItem
-                        icon={<FaBriefcase />}
-                        label="Total Experience"
-                        value={`${profile.experienceYears || 0} years`}
-                      />
-                    </div>
-                    <div className="col-12 col-sm-6 col-lg-4">
-                      <InfoItem
-                        icon={<FaClock />}
-                        label="Joining Date"
-                        value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Not Set')}
-                      />
-                    </div>
-                    <div className="col-12 col-sm-6 col-lg-4">
-                      <InfoItem
-                        icon={<FaShieldAlt />}
-                        label="Employment Type"
-                        value={profile.employmentType || 'Permanent'}
-                      />
-                    </div>
-                  </div>
+                <div className="teacher-profile-rows-grid">
+                  <InfoItem icon={<FaEnvelope />} label="Email Address" value={profile.email} copyable />
+                  <InfoItem icon={<FaPhoneAlt />} label="Contact Number" value={profile.mobileNumber || 'Not Set'} copyable />
+                  <InfoItem icon={<FaMapMarkerAlt />} label="Residential Address" value={profile.address || 'Not Set'} fullWidth />
+                  <InfoItem icon={<FaCalendarAlt />} label="Date of Birth" value={profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'Not Set'} />
                 </div>
               </SectionCard>
             </motion.div>
 
-            {/* MIDDLE COLUMN - ASSIGNED COURSES */}
-            <motion.div
-              variants={fadeInVariants}
-              custom={1}
-              initial="hidden"
-              animate="visible"
-              className="col-12"
-            >
+            <motion.div variants={fadeInVariants} custom={1} initial="hidden" animate="visible">
               <SectionCard
-                className="teacher-profile-courses-panel"
-                title="Assigned Courses"
+                className="teacher-profile-professional-panel"
+                title="Professional Details"
+                subtitle="Qualifications and employment"
+                icon={<FaBriefcase />}
+                color={BRAND_COLORS.info.main}
+              >
+                <div className="teacher-profile-rows-grid">
+                  <InfoItem icon={<FaGraduationCap />} label="Highest Qualification" value={profile.qualification || 'N/A'} />
+                  <InfoItem icon={<FaBriefcase />} label="Total Experience" value={`${profile.experienceYears || 0} years`} />
+                  <InfoItem icon={<FaClock />} label="Joining Date" value={profile.joiningDate ? new Date(profile.joiningDate).toLocaleDateString() : (profile.createdAt ? new Date(profile.createdAt).toLocaleDateString() : 'Not Set')} />
+                  <InfoItem icon={<FaShieldAlt />} label="Employment Type" value={profile.employmentType || 'Permanent'} />
+                </div>
+              </SectionCard>
+            </motion.div>
+
+            <motion.div className="teacher-profile-assignments-wrap" variants={fadeInVariants} custom={2} initial="hidden" animate="visible">
+              <SectionCard
+                className="teacher-profile-assignments"
+                title="Academic Assignments"
                 icon={<FaGraduationCap />}
                 color={BRAND_COLORS.info.main}
-                subtitle={`${profile.courses?.length || 0} course${(profile.courses?.length || 0) !== 1 ? 's' : ''} assigned`}
+                subtitle={`${profile.courses?.length || 0} course${profile.courses?.length !== 1 ? 's' : ''} · ${profile.subjects?.length || 0} subject${profile.subjects?.length !== 1 ? 's' : ''} assigned`}
               >
-                <div className="p-4 teacher-profile-panel-body">
-                  {profile.courses && profile.courses.length > 0 ? (
-                    <div className="row g-3">
-                      {profile.courses.map((course, idx) => (
-                        <div className="col-12 col-sm-6 col-lg-4" key={course._id}>
-                          <CourseCard
-                            key={course._id}
-                            course={course}
-                            delay={idx * 0.05}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptySection
-                      icon={<FaGraduationCap style={{ color: BRAND_COLORS.info.main }} />}
-                      title="No Courses Assigned"
-                      message="You haven't been assigned any courses yet. Contact your college admin for course allocation."
-                    />
-                  )}
-                </div>
-              </SectionCard>
-            </motion.div>
-
-            {/* RIGHT COLUMN - TEACHING SUBJECTS */}
-            <motion.div
-              variants={fadeInVariants}
-              custom={2}
-              initial="hidden"
-              animate="visible"
-              className="col-12"
-            >
-              <SectionCard
-                className="teacher-profile-subjects-panel"
-                title="Teaching Subjects"
-                icon={<FaChalkboardTeacher />}
-                color={BRAND_COLORS.warning.main}
-                subtitle={`${profile.subjects?.length || 0} subject${(profile.subjects?.length || 0) !== 1 ? 's' : ''} taught`}
-              >
-                <div className="p-4 teacher-profile-panel-body">
-                  {profile.subjects && profile.subjects.length > 0 ? (
-                    <div className="row g-3">
-                      {profile.subjects.map((subject, idx) => (
-                        <div className="col-12 col-sm-6 col-lg-4" key={subject._id}>
-                          <SubjectCard
-                            key={subject._id}
-                            subject={subject}
-                            delay={idx * 0.05}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptySection 
-                      icon={<FaChalkboardTeacher style={{ color: BRAND_COLORS.warning.main }} />} 
-                      title="No Subjects Assigned" 
-                      message="You haven't been assigned any teaching subjects yet."
-                    />
-                  )}
+                <div className="teacher-profile-assignment-content">
+                  <div className="teacher-profile-assigned-courses">
+                    <h4>Assigned Courses</h4>
+                    {profile.courses?.length ? (
+                      <div className="teacher-profile-course-list">
+                        {profile.courses.map((course, idx) => (
+                          <CourseCard key={course._id} course={course} delay={idx * 0.05} />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptySection icon={<FaGraduationCap style={{ color: BRAND_COLORS.info.main }} />} title="No Courses Assigned" message="You haven't been assigned any courses yet. Contact your college admin for course allocation." />
+                    )}
+                  </div>
+                  <div className="teacher-profile-assigned-subjects">
+                    <h4>Teaching Subjects</h4>
+                    {profile.subjects?.length ? (
+                      <div className="table-responsive teacher-subject-table-wrap">
+                        <table className="teacher-subject-table">
+                          <thead>
+                            <tr><th>Subject</th><th>Subject Code</th><th>Semester</th></tr>
+                          </thead>
+                          <tbody>
+                            {profile.subjects.map((subject) => (
+                              <tr key={subject._id}>
+                                <td>
+                                  <strong>{subject.name}</strong>
+                                  {subject.description && <small>{subject.description}</small>}
+                                </td>
+                                <td><span className="teacher-subject-code">{subject.code}</span></td>
+                                <td><span className="teacher-semester-badge">{subject.semester ? `Sem ${subject.semester}` : 'N/A'}</span></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <EmptySection icon={<FaChalkboardTeacher style={{ color: BRAND_COLORS.warning.main }} />} title="No Subjects Assigned" message="You haven't been assigned any teaching subjects yet." />
+                    )}
+                  </div>
                 </div>
               </SectionCard>
             </motion.div>
@@ -1059,6 +1128,7 @@ function InfoItem({ icon, label, value, copyable = false, fullWidth = false }) {
   return (
     <motion.div
       whileHover={{ x: 5, backgroundColor: '#f8fafc' }}
+      className={`teacher-profile-info-row${copyable ? ' is-copyable' : ''}`}
       style={{
         gridColumn: fullWidth ? '1 / -1' : 'span 1',
         padding: '1.25rem',

@@ -344,6 +344,14 @@ if (loading) {
           </motion.div>
 
 <style>{`
+  .teacher-dashboard-page {
+    padding-left: .7rem !important;
+    padding-right: .7rem !important;
+  }
+  .teacher-dashboard-page > .container-fluid {
+    padding-right: .7rem !important;
+    padding-left: .7rem !important;
+  }
   .teacher-dashboard-banner {
     border: 1px solid #d9e5eb !important;
     border-radius: 16px !important;
