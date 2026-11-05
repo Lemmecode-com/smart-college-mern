@@ -62,22 +62,15 @@ export default function AttendanceSessionsList() {
     }
   };
 
-  // ✅ Fetch slots for modal dropdown
+  // ✅ Fetch today's slots for modal dropdown
   const fetchSlots = async () => {
     try {
-      const res = await api.get("/timetable");
-      const allTimetables = res.data || [];
-
-      // Get all slots from all timetables
-      const allSlots = [];
-      for (const timetable of allTimetables) {
-        if (timetable.slots) {
-          allSlots.push(...timetable.slots);
-        }
-      }
-      setSlots(allSlots);
+      const res = await api.get("/attendance/today-slots");
+      const slotsData = res.data?.slots || (Array.isArray(res.data) ? res.data : []);
+      setSlots(slotsData);
     } catch (err) {
-      // Silently fail - slots are optional
+      console.error("Failed to load today's slots:", err);
+      setSlots([]);
     }
   };
 
@@ -201,7 +194,13 @@ export default function AttendanceSessionsList() {
             subtitle="Manage and monitor all your attendance sessions"
             actions={
               <div className="sessions-header-actions">
-                <button type="button" onClick={() => setShowModal(true)}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    fetchSlots();
+                    setShowModal(true);
+                  }}
+                >
                   <FaPlus /> Create Session
                 </button>
                 <button type="button" onClick={fetchSessions}>
@@ -359,6 +358,7 @@ export default function AttendanceSessionsList() {
               onClose={() => setShowModal(false)}
               onSuccess={() => {
                 fetchSessions();
+                fetchSlots();
                 setShowModal(false);
               }}
             />
