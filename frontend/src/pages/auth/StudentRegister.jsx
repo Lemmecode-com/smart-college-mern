@@ -218,29 +218,49 @@ export default function StudentRegister() {
   };
 
   const isDocEnabled = (type) =>
-    documentConfig.some((doc) => doc.type === type && doc.enabled);
+    documentConfig.some((doc) => {
+      if (!doc.enabled) return false;
+      if (doc.type === type) return true;
+      if (type === "10th_marksheet") {
+        const l = (doc.label || "").toLowerCase();
+        return (
+          l.includes("10th") ||
+          l.includes("ssc") ||
+          l.includes("tenth") ||
+          l.includes("class 10") ||
+          l.includes("class x")
+        );
+      }
+      if (type === "12th_marksheet") {
+        const l = (doc.label || "").toLowerCase();
+        return (
+          l.includes("12th") ||
+          l.includes("hsc") ||
+          l.includes("twelfth") ||
+          l.includes("class 12") ||
+          l.includes("class xii")
+        );
+      }
+      return false;
+    });
 
   /* ── Dynamic Steps ── */
   const getStepNumbers = () => {
     const has10th = isDocEnabled("10th_marksheet");
     const has12th = isDocEnabled("12th_marksheet");
+    const hasEducation = has10th || has12th;
     let step = 3;
     const result = {
       personal: 1,
       parent: 2,
       address: 3,
-      ssc: null,
-      hsc: null,
+      education: null,
       course: null,
       documents: null,
     };
-    if (has10th) {
+    if (hasEducation) {
       step++;
-      result.ssc = step;
-    }
-    if (has12th) {
-      step++;
-      result.hsc = step;
+      result.education = step;
     }
     step++;
     result.course = step;
@@ -358,33 +378,35 @@ export default function StudentRegister() {
       addError("pincode", validateField("Pincode", form.pincode, { required: true, pattern: /^\d{6}$/, patternMsg: "Please provide a valid 6-digit Indian pincode" }));
     }
 
-    if (step === steps.ssc) {
-      addError("sscSchoolName", validateField("School Name", form.sscSchoolName, { required: true, minLength: 2, maxLength: 100 }));
-      addError("sscBoard", validateField("Board", form.sscBoard, { required: true, minLength: 2, maxLength: 50 }));
-      addError("sscPassingYear", validateField("Passing Year", form.sscPassingYear, { required: true, custom: (val) => {
-        const year = parseInt(val);
-        if (isNaN(year) || year < 1950) return "Passing Year must be 1950 or later";
-        const currentYear = new Date().getFullYear();
-        if (year > currentYear) return "Passing Year cannot be in the future";
-        return null;
-      }}));
-      addError("sscPercentage", validateField("Percentage", form.sscPercentage, { required: true, min: 0, max: 100, minMsg: "Percentage must be between 0 and 100", maxMsg: "Percentage must be between 0 and 100" }));
-      addError("sscRollNumber", validateField("Roll Number", form.sscRollNumber, { required: true, minLength: 1, maxLength: 30 }));
-    }
+    if (step === steps.education) {
+      if (isDocEnabled("10th_marksheet")) {
+        addError("sscSchoolName", validateField("School Name", form.sscSchoolName, { required: true, minLength: 2, maxLength: 100 }));
+        addError("sscBoard", validateField("Board", form.sscBoard, { required: true, minLength: 2, maxLength: 50 }));
+        addError("sscPassingYear", validateField("Passing Year", form.sscPassingYear, { required: true, custom: (val) => {
+          const year = parseInt(val);
+          if (isNaN(year) || year < 1950) return "Passing Year must be 1950 or later";
+          const currentYear = new Date().getFullYear();
+          if (year > currentYear) return "Passing Year cannot be in the future";
+          return null;
+        }}));
+        addError("sscPercentage", validateField("Percentage", form.sscPercentage, { required: true, min: 0, max: 100, minMsg: "Percentage must be between 0 and 100", maxMsg: "Percentage must be between 0 and 100" }));
+        addError("sscRollNumber", validateField("Roll Number", form.sscRollNumber, { required: true, minLength: 1, maxLength: 30 }));
+      }
 
-    if (step === steps.hsc) {
-      addError("hscSchoolName", validateField("School Name", form.hscSchoolName, { required: true, minLength: 2, maxLength: 100 }));
-      addError("hscBoard", validateField("Board", form.hscBoard, { required: true, minLength: 2, maxLength: 50 }));
-      addError("hscStream", validateField("Stream", form.hscStream, { required: true }));
-      addError("hscPassingYear", validateField("Passing Year", form.hscPassingYear, { required: true, custom: (val) => {
-        const year = parseInt(val);
-        if (isNaN(year) || year < 1950) return "Passing Year must be 1950 or later";
-        const currentYear = new Date().getFullYear();
-        if (year > currentYear) return "Passing Year cannot be in the future";
-        return null;
-      }}));
-      addError("hscPercentage", validateField("Percentage", form.hscPercentage, { required: true, min: 0, max: 100, minMsg: "Percentage must be between 0 and 100", maxMsg: "Percentage must be between 0 and 100" }));
-      addError("hscRollNumber", validateField("Roll Number", form.hscRollNumber, { required: true, minLength: 1, maxLength: 30 }));
+      if (isDocEnabled("12th_marksheet")) {
+        addError("hscSchoolName", validateField("School Name", form.hscSchoolName, { required: true, minLength: 2, maxLength: 100 }));
+        addError("hscBoard", validateField("Board", form.hscBoard, { required: true, minLength: 2, maxLength: 50 }));
+        addError("hscStream", validateField("Stream", form.hscStream, { required: true }));
+        addError("hscPassingYear", validateField("Passing Year", form.hscPassingYear, { required: true, custom: (val) => {
+          const year = parseInt(val);
+          if (isNaN(year) || year < 1950) return "Passing Year must be 1950 or later";
+          const currentYear = new Date().getFullYear();
+          if (year > currentYear) return "Passing Year cannot be in the future";
+          return null;
+        }}));
+        addError("hscPercentage", validateField("Percentage", form.hscPercentage, { required: true, min: 0, max: 100, minMsg: "Percentage must be between 0 and 100", maxMsg: "Percentage must be between 0 and 100" }));
+        addError("hscRollNumber", validateField("Roll Number", form.hscRollNumber, { required: true, minLength: 1, maxLength: 30 }));
+      }
     }
 
     if (step === steps.course) {
@@ -437,8 +459,7 @@ export default function StudentRegister() {
       steps.personal,
       steps.parent,
       steps.address,
-      steps.ssc,
-      steps.hsc,
+      steps.education,
       steps.course,
     ].filter(Boolean);
     if (allStepNums.includes(currentStep)) {
@@ -468,8 +489,7 @@ export default function StudentRegister() {
       steps.personal,
       steps.parent,
       steps.address,
-      steps.ssc,
-      steps.hsc,
+      steps.education,
       steps.course,
     ].filter(Boolean);
     let hasErrors = false;
@@ -523,14 +543,14 @@ export default function StudentRegister() {
       formData.append("motherMobile", form.motherMobile);
       formData.append("motherEmail", form.motherEmail);
 
-      if (steps.ssc) {
+      if (isDocEnabled("10th_marksheet")) {
         formData.append("sscSchoolName", form.sscSchoolName);
         formData.append("sscBoard", form.sscBoard);
         formData.append("sscPassingYear", form.sscPassingYear);
         formData.append("sscPercentage", form.sscPercentage);
         formData.append("sscRollNumber", form.sscRollNumber);
       }
-      if (steps.hsc) {
+      if (isDocEnabled("12th_marksheet")) {
         formData.append("hscSchoolName", form.hscSchoolName);
         formData.append("hscBoard", form.hscBoard);
         formData.append("hscStream", form.hscStream);
@@ -663,8 +683,7 @@ export default function StudentRegister() {
       { num: 2, title: "Parents", icon: "👨‍👩‍👦" },
       { num: 3, title: "Address", icon: "📍" },
     ];
-    if (steps.ssc) items.push({ num: steps.ssc, title: "10th", icon: "📋" });
-    if (steps.hsc) items.push({ num: steps.hsc, title: "12th", icon: "📋" });
+    if (steps.education) items.push({ num: steps.education, title: "Education", icon: "📋" });
     items.push({ num: steps.course, title: "Course", icon: "🎓" });
     items.push({ num: steps.documents, title: "Docs", icon: "📁" });
     return items;
@@ -1121,234 +1140,236 @@ export default function StudentRegister() {
     </div>
   );
 
-  const render10thDetails = () => {
-    if (!isDocEnabled("10th_marksheet"))
-      return (
-        <div className="sr-step-body">
-          <div className="sr-info-banner">
-            <FaInfoCircle />
-            <span>
-              10th academic details are not required for this college.
-            </span>
-          </div>
-        </div>
-      );
-    return (
-      <div className="sr-step-body">
-        <div className="sr-section-head">
-          <div className="sr-section-icon">📋</div>
-          <div>
-            <h3 className="sr-section-title">10th (SSC) Academic Details</h3>
-            <p className="sr-section-sub">
-              Your Secondary School Certificate information
-            </p>
-          </div>
-        </div>
-        <div className="sr-grid sr-grid--2">
-          <div className="sr-field">
-            <label className="sr-label">
-              School Name <span className="sr-req">*</span>
-            </label>
-            <input
-              className={`sr-input ${errors.sscSchoolName ? "sr-input--error" : ""}`}
-              name="sscSchoolName"
-              placeholder="Enter your 10th school name"
-              value={form.sscSchoolName}
-              onChange={handleChange}
-              required
-            />
-            {errors.sscSchoolName && <div className="sr-field-error">{errors.sscSchoolName}</div>}
-          </div>
-          <div className="sr-field">
-            <label className="sr-label">
-              Board <span className="sr-req">*</span>
-            </label>
-            <input
-              className={`sr-input ${errors.sscBoard ? "sr-input--error" : ""}`}
-              name="sscBoard"
-              placeholder="e.g., State Board, CBSE, ICSE"
-              value={form.sscBoard}
-              onChange={handleChange}
-              required
-            />
-            {errors.sscBoard && <div className="sr-field-error">{errors.sscBoard}</div>}
-          </div>
-          <div className="sr-field">
-            <label className="sr-label">
-              Passing Year <span className="sr-req">*</span>
-            </label>
-            <input
-              type="number"
-              className={`sr-input ${errors.sscPassingYear ? "sr-input--error" : ""}`}
-              name="sscPassingYear"
-              placeholder="YYYY"
-              value={form.sscPassingYear}
-              onChange={handleChange}
-              min="1950"
-              max={new Date().getFullYear()}
-              required
-            />
-            {errors.sscPassingYear && <div className="sr-field-error">{errors.sscPassingYear}</div>}
-          </div>
-          <div className="sr-field">
-            <label className="sr-label">
-              Percentage / CGPA <span className="sr-req">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              className={`sr-input ${errors.sscPercentage ? "sr-input--error" : ""}`}
-              name="sscPercentage"
-              placeholder="e.g., 75.50 or 8.5"
-              value={form.sscPercentage}
-              onChange={handleChange}
-              min="0"
-              max="100"
-              required
-            />
-            {errors.sscPercentage && <div className="sr-field-error">{errors.sscPercentage}</div>}
-          </div>
-          <div className="sr-field">
-            <label className="sr-label">
-              Roll Number <span className="sr-req">*</span>
-            </label>
-            <input
-              className={`sr-input ${errors.sscRollNumber ? "sr-input--error" : ""}`}
-              name="sscRollNumber"
-              placeholder="Enter your 10th roll number"
-              value={form.sscRollNumber}
-              onChange={handleChange}
-              required
-            />
-            {errors.sscRollNumber && <div className="sr-field-error">{errors.sscRollNumber}</div>}
-          </div>
-        </div>
-      </div>
-    );
-  };
+  const renderEducationalDetails = () => {
+    const has10th = isDocEnabled("10th_marksheet");
+    const has12th = isDocEnabled("12th_marksheet");
 
-  const render12thDetails = () => {
-    if (!isDocEnabled("12th_marksheet"))
+    if (!has10th && !has12th) {
       return (
         <div className="sr-step-body">
           <div className="sr-info-banner">
             <FaInfoCircle />
             <span>
-              12th academic details are not required for this college.
+              Academic details are not required for this college.
             </span>
           </div>
         </div>
       );
+    }
+
     return (
       <div className="sr-step-body">
         <div className="sr-section-head">
           <div className="sr-section-icon">📋</div>
           <div>
-            <h3 className="sr-section-title">12th (HSC) Academic Details</h3>
+            <h3 className="sr-section-title">Educational Information</h3>
             <p className="sr-section-sub">
-              Your Higher Secondary Certificate information
+              Your 10th (Secondary) and 12th (Higher Secondary) academic details
             </p>
           </div>
         </div>
-        <div className="sr-grid sr-grid--2">
-          <div className="sr-field">
-            <label className="sr-label">
-              School / College Name <span className="sr-req">*</span>
-            </label>
-            <input
-              className={`sr-input ${errors.hscSchoolName ? "sr-input--error" : ""}`}
-              name="hscSchoolName"
-              placeholder="Enter your 12th school/college name"
-              value={form.hscSchoolName}
-              onChange={handleChange}
-              required
-            />
-            {errors.hscSchoolName && <div className="sr-field-error">{errors.hscSchoolName}</div>}
+
+        {/* 10th (SSC) Details */}
+        {has10th && (
+          <div className="sr-subcard">
+            <div className="sr-subcard-header">
+              <div className="sr-subcard-title">
+                <span>📘</span> 10th (SSC) Academic Details
+              </div>
+              <span className="sr-subcard-badge">Secondary School Certificate</span>
+            </div>
+            <div className="sr-grid sr-grid--2">
+              <div className="sr-field">
+                <label className="sr-label">
+                  School Name <span className="sr-req">*</span>
+                </label>
+                <input
+                  className={`sr-input ${errors.sscSchoolName ? "sr-input--error" : ""}`}
+                  name="sscSchoolName"
+                  placeholder="Enter your 10th school name"
+                  value={form.sscSchoolName}
+                  onChange={handleChange}
+                  required
+                />
+                {errors.sscSchoolName && <div className="sr-field-error">{errors.sscSchoolName}</div>}
+              </div>
+              <div className="sr-field">
+                <label className="sr-label">
+                  Board <span className="sr-req">*</span>
+                </label>
+                <input
+                  className={`sr-input ${errors.sscBoard ? "sr-input--error" : ""}`}
+                  name="sscBoard"
+                  placeholder="e.g., State Board, CBSE, ICSE"
+                  value={form.sscBoard}
+                  onChange={handleChange}
+                  required
+                />
+                {errors.sscBoard && <div className="sr-field-error">{errors.sscBoard}</div>}
+              </div>
+              <div className="sr-field">
+                <label className="sr-label">
+                  Passing Year <span className="sr-req">*</span>
+                </label>
+                <input
+                  type="number"
+                  className={`sr-input ${errors.sscPassingYear ? "sr-input--error" : ""}`}
+                  name="sscPassingYear"
+                  placeholder="YYYY"
+                  value={form.sscPassingYear}
+                  onChange={handleChange}
+                  min="1950"
+                  max={new Date().getFullYear()}
+                  required
+                />
+                {errors.sscPassingYear && <div className="sr-field-error">{errors.sscPassingYear}</div>}
+              </div>
+              <div className="sr-field">
+                <label className="sr-label">
+                  Percentage / CGPA <span className="sr-req">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className={`sr-input ${errors.sscPercentage ? "sr-input--error" : ""}`}
+                  name="sscPercentage"
+                  placeholder="e.g., 75.50 or 8.5"
+                  value={form.sscPercentage}
+                  onChange={handleChange}
+                  min="0"
+                  max="100"
+                  required
+                />
+                {errors.sscPercentage && <div className="sr-field-error">{errors.sscPercentage}</div>}
+              </div>
+              <div className="sr-field">
+                <label className="sr-label">
+                  Roll Number <span className="sr-req">*</span>
+                </label>
+                <input
+                  className={`sr-input ${errors.sscRollNumber ? "sr-input--error" : ""}`}
+                  name="sscRollNumber"
+                  placeholder="Enter your 10th roll number"
+                  value={form.sscRollNumber}
+                  onChange={handleChange}
+                  required
+                />
+                {errors.sscRollNumber && <div className="sr-field-error">{errors.sscRollNumber}</div>}
+              </div>
+            </div>
           </div>
-          <div className="sr-field">
-            <label className="sr-label">
-              Board <span className="sr-req">*</span>
-            </label>
-            <input
-              className={`sr-input ${errors.hscBoard ? "sr-input--error" : ""}`}
-              name="hscBoard"
-              placeholder="e.g., State Board, CBSE, ICSE"
-              value={form.hscBoard}
-              onChange={handleChange}
-              required
-            />
-            {errors.hscBoard && <div className="sr-field-error">{errors.hscBoard}</div>}
+        )}
+
+        {/* 12th (HSC) Details */}
+        {has12th && (
+          <div className="sr-subcard">
+            <div className="sr-subcard-header">
+              <div className="sr-subcard-title">
+                <span>🎓</span> 12th (HSC) Academic Details
+              </div>
+              <span className="sr-subcard-badge">Higher Secondary Certificate</span>
+            </div>
+            <div className="sr-grid sr-grid--2">
+              <div className="sr-field">
+                <label className="sr-label">
+                  School / College Name <span className="sr-req">*</span>
+                </label>
+                <input
+                  className={`sr-input ${errors.hscSchoolName ? "sr-input--error" : ""}`}
+                  name="hscSchoolName"
+                  placeholder="Enter your 12th school/college name"
+                  value={form.hscSchoolName}
+                  onChange={handleChange}
+                  required
+                />
+                {errors.hscSchoolName && <div className="sr-field-error">{errors.hscSchoolName}</div>}
+              </div>
+              <div className="sr-field">
+                <label className="sr-label">
+                  Board <span className="sr-req">*</span>
+                </label>
+                <input
+                  className={`sr-input ${errors.hscBoard ? "sr-input--error" : ""}`}
+                  name="hscBoard"
+                  placeholder="e.g., State Board, CBSE, ICSE"
+                  value={form.hscBoard}
+                  onChange={handleChange}
+                  required
+                />
+                {errors.hscBoard && <div className="sr-field-error">{errors.hscBoard}</div>}
+              </div>
+              <div className="sr-field">
+                <label className="sr-label">
+                  Stream <span className="sr-req">*</span>
+                </label>
+                <select
+                  className={`sr-select ${errors.hscStream ? "sr-select--error" : ""}`}
+                  name="hscStream"
+                  value={form.hscStream}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Select Stream</option>
+                  <option value="Science">Science</option>
+                  <option value="Commerce">Commerce</option>
+                  <option value="Arts">Arts</option>
+                  <option value="Vocational">Vocational</option>
+                  <option value="Other">Other</option>
+                </select>
+                {errors.hscStream && <div className="sr-field-error">{errors.hscStream}</div>}
+              </div>
+              <div className="sr-field">
+                <label className="sr-label">
+                  Passing Year <span className="sr-req">*</span>
+                </label>
+                <input
+                  type="number"
+                  className={`sr-input ${errors.hscPassingYear ? "sr-input--error" : ""}`}
+                  name="hscPassingYear"
+                  placeholder="YYYY"
+                  value={form.hscPassingYear}
+                  onChange={handleChange}
+                  min="1950"
+                  max={new Date().getFullYear()}
+                  required
+                />
+                {errors.hscPassingYear && <div className="sr-field-error">{errors.hscPassingYear}</div>}
+              </div>
+              <div className="sr-field">
+                <label className="sr-label">
+                  Percentage / CGPA <span className="sr-req">*</span>
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className={`sr-input ${errors.hscPercentage ? "sr-input--error" : ""}`}
+                  name="hscPercentage"
+                  placeholder="e.g., 75.50 or 8.5"
+                  value={form.hscPercentage}
+                  onChange={handleChange}
+                  min="0"
+                  max="100"
+                  required
+                />
+                {errors.hscPercentage && <div className="sr-field-error">{errors.hscPercentage}</div>}
+              </div>
+              <div className="sr-field">
+                <label className="sr-label">
+                  Roll Number <span className="sr-req">*</span>
+                </label>
+                <input
+                  className={`sr-input ${errors.hscRollNumber ? "sr-input--error" : ""}`}
+                  name="hscRollNumber"
+                  placeholder="Enter your 12th roll number"
+                  value={form.hscRollNumber}
+                  onChange={handleChange}
+                  required
+                />
+                {errors.hscRollNumber && <div className="sr-field-error">{errors.hscRollNumber}</div>}
+              </div>
+            </div>
           </div>
-          <div className="sr-field">
-            <label className="sr-label">
-              Stream <span className="sr-req">*</span>
-            </label>
-            <select
-              className={`sr-select ${errors.hscStream ? "sr-select--error" : ""}`}
-              name="hscStream"
-              value={form.hscStream}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Stream</option>
-              <option value="Science">Science</option>
-              <option value="Commerce">Commerce</option>
-              <option value="Arts">Arts</option>
-              <option value="Vocational">Vocational</option>
-              <option value="Other">Other</option>
-            </select>
-            {errors.hscStream && <div className="sr-field-error">{errors.hscStream}</div>}
-          </div>
-          <div className="sr-field">
-            <label className="sr-label">
-              Passing Year <span className="sr-req">*</span>
-            </label>
-            <input
-              type="number"
-              className={`sr-input ${errors.hscPassingYear ? "sr-input--error" : ""}`}
-              name="hscPassingYear"
-              placeholder="YYYY"
-              value={form.hscPassingYear}
-              onChange={handleChange}
-              min="1950"
-              max={new Date().getFullYear()}
-              required
-            />
-            {errors.hscPassingYear && <div className="sr-field-error">{errors.hscPassingYear}</div>}
-          </div>
-          <div className="sr-field">
-            <label className="sr-label">
-              Percentage / CGPA <span className="sr-req">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              className={`sr-input ${errors.hscPercentage ? "sr-input--error" : ""}`}
-              name="hscPercentage"
-              placeholder="e.g., 75.50 or 8.5"
-              value={form.hscPercentage}
-              onChange={handleChange}
-              min="0"
-              max="100"
-              required
-            />
-            {errors.hscPercentage && <div className="sr-field-error">{errors.hscPercentage}</div>}
-          </div>
-          <div className="sr-field">
-            <label className="sr-label">
-              Roll Number <span className="sr-req">*</span>
-            </label>
-            <input
-              className={`sr-input ${errors.hscRollNumber ? "sr-input--error" : ""}`}
-              name="hscRollNumber"
-              placeholder="Enter your 12th roll number"
-              value={form.hscRollNumber}
-              onChange={handleChange}
-              required
-            />
-            {errors.hscRollNumber && <div className="sr-field-error">{errors.hscRollNumber}</div>}
-          </div>
-        </div>
+        )}
       </div>
     );
   };
@@ -1554,8 +1575,7 @@ export default function StudentRegister() {
     if (currentStep === steps.personal) return renderPersonalInfo();
     if (currentStep === steps.parent) return renderParentDetails();
     if (currentStep === steps.address) return renderAddressDetails();
-    if (currentStep === steps.ssc) return render10thDetails();
-    if (currentStep === steps.hsc) return render12thDetails();
+    if (currentStep === steps.education) return renderEducationalDetails();
     if (currentStep === steps.course) return renderCourseSelection();
     if (currentStep === steps.documents) return renderDocumentUpload();
     return null;
@@ -1955,6 +1975,12 @@ export default function StudentRegister() {
         .sr-section-icon { width:44px; height:44px; border-radius:12px; background:linear-gradient(135deg, rgba(61,181,230,.12) 0%, rgba(61,181,230,.04) 100%); border:1px solid rgba(61,181,230,.22); display:flex; align-items:center; justify-content:center; font-size:1.25rem; flex-shrink:0; box-shadow:0 3px 10px rgba(61,181,230,.1); }
         .sr-section-title { font-size:1rem; font-weight:700; color:var(--rp-text); letter-spacing:-.2px; }
         .sr-section-sub { font-size:.76rem; color:var(--rp-sub); font-weight:300; margin-top:.15rem; }
+
+        /* Subcards (Combined Educational Section) */
+        .sr-subcard { background:rgba(255, 255, 255, 0.72); border:1.5px solid rgba(61, 181, 230, 0.22); border-radius:14px; padding:1.25rem 1.35rem; margin-bottom:1.5rem; box-shadow:0 3px 12px rgba(61, 181, 230, 0.06); }
+        .sr-subcard-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; padding-bottom:.65rem; border-bottom:1px solid rgba(61, 181, 230, 0.14); flex-wrap:wrap; gap:.5rem; }
+        .sr-subcard-title { font-size:.92rem; font-weight:700; color:var(--ocean-600); display:flex; align-items:center; gap:.5rem; }
+        .sr-subcard-badge { font-size:.68rem; font-weight:600; padding:.22rem .65rem; border-radius:6px; background:rgba(61, 181, 230, 0.12); color:var(--cyan-500); }
 
         /* Grid */
         .sr-grid { display:grid; gap:1rem 1.25rem; }

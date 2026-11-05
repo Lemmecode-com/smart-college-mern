@@ -224,21 +224,22 @@ exports.resetToEmpty = async (req, res) => {
   try {
     const college_id = req.college_id;
     const collegeCode = req.collegeCode;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.user?._id;
 
-    // Soft-delete existing active config
-    await DocumentConfig.findOneAndUpdate(
-      { college_id, isActive: true },
-      { isActive: false, updatedAt: new Date() }
+    // In-place update or upsert to avoid duplicate key error on unique college_id index
+    const config = await DocumentConfig.findOneAndUpdate(
+      { college_id },
+      {
+        $set: {
+          documents: [],
+          isActive: true,
+          updatedBy: userId,
+          updatedAt: new Date(),
+          collegeCode,
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
     );
-
-    // Create a brand new EMPTY config (no documents)
-    const config = await DocumentConfig.create({
-      college_id,
-      collegeCode,
-      documents: [],
-      isActive: true
-    });
 
     res.json({
       message: "Configuration reset to empty successfully. No documents are required.",
