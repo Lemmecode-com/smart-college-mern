@@ -78,9 +78,13 @@ export default function NotificationDetails() {
       const found = res.data.notification;
 
       setNotification(found);
+      const creatorId = found?.createdBy?._id || found?.createdBy;
       setIsOwner(
-        String(found.createdBy) === String(user?.id) ||
-        String(found.createdBy) === String(user?._id),
+        Boolean(
+          creatorId &&
+            (String(creatorId) === String(user?.id) ||
+              String(creatorId) === String(user?._id))
+        )
       );
 
       // Call mark-as-read once when opened successfully (ignore failures silently)
@@ -683,31 +687,32 @@ style={{
                 )}
 
                 {/* Created By */}
-                {notification.createdBy && (
-                  <div>
-                    <div
-                      style={{
-                        fontSize: "0.75rem",
-                        color: "#94a3b8",
-                        marginBottom: "0.25rem",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.375rem",
-                      }}
-                    >
-                      <FaUser size={10} /> Created By
-                    </div>
-                    <div
-                      style={{
-                        fontSize: "0.95rem",
-                        color: "#334155",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {notification.createdBy?.name || "Admin"}
-                    </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#94a3b8",
+                      marginBottom: "0.25rem",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.375rem",
+                    }}
+                  >
+                    <FaUser size={10} /> Created By
                   </div>
-                )}
+                  <div
+                    style={{
+                      fontSize: "0.95rem",
+                      color: "#334155",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {notification.createdBy?.name ||
+                      (typeof notification.createdBy === "string" && notification.createdBy.trim().length > 0
+                        ? notification.createdBy
+                        : "System")}
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -428,6 +428,7 @@ exports.getStudentNotifications = async (req, res, next) => {
      const notifications = await Notification.find(visibilityQuery)
        .populate("target_department", "name code")
        .populate("target_course", "name code")
+       .populate({ path: "createdBy", model: "User", select: "name role email" })
        .sort({ createdAt: -1 });
 
      const adminNotifications = [];
@@ -480,6 +481,9 @@ exports.getHodNotifications = async (req, res, next) => {
     });
 
     const notifications = await Notification.find(visibilityQuery)
+      .populate("target_department", "name code")
+      .populate("target_course", "name code")
+      .populate({ path: "createdBy", model: "User", select: "name role email" })
       .sort({ createdAt: -1 });
 
     const myNotifications = [];
@@ -487,7 +491,8 @@ exports.getHodNotifications = async (req, res, next) => {
     const teacherNotifications = [];
 
     notifications.forEach((n) => {
-      if (n.createdByRole === "HOD" && n.createdBy.toString() === req.user.id) {
+      const creatorIdStr = n.createdBy ? String(n.createdBy._id || n.createdBy) : null;
+      if (n.createdByRole === "HOD" && creatorIdStr === req.user.id) {
         myNotifications.push(n);
       } else if (n.createdByRole === "TEACHER") {
         teacherNotifications.push(n);
@@ -531,6 +536,9 @@ exports.getTeacherNotifications = async (req, res, next) => {
     });
 
     const notifications = await Notification.find(visibilityQuery)
+      .populate("target_department", "name code")
+      .populate("target_course", "name code")
+      .populate({ path: "createdBy", model: "User", select: "name role email" })
       .sort({ createdAt: -1 });
 
     const myNotifications = [];
@@ -538,7 +546,8 @@ exports.getTeacherNotifications = async (req, res, next) => {
     const hodNotifications = [];
 
     notifications.forEach((n) => {
-      if (n.createdByRole === "TEACHER" && n.createdBy.toString() === req.user.id) {
+      const creatorIdStr = n.createdBy ? String(n.createdBy._id || n.createdBy) : null;
+      if (n.createdByRole === "TEACHER" && creatorIdStr === req.user.id) {
         myNotifications.push(n);
       } else if (n.createdByRole === "COLLEGE_ADMIN") {
         adminNotifications.push(n);
@@ -573,15 +582,19 @@ exports.getAdminNotifications = async (req, res, next) => {
     });
 
     const notifications = await Notification.find(visibilityQuery)
+      .populate("target_department", "name code")
+      .populate("target_course", "name code")
+      .populate({ path: "createdBy", model: "User", select: "name role email" })
       .sort({ createdAt: -1 });
 
     const myNotifications = [];
     const staffNotifications = [];
 
     notifications.forEach((n) => {
+      const creatorIdStr = n.createdBy ? String(n.createdBy._id || n.createdBy) : null;
       if (
         n.createdByRole === "COLLEGE_ADMIN" &&
-        (n.createdBy.toString() === req.user.id ||
+        (creatorIdStr === req.user.id ||
           (Array.isArray(n.target_users) &&
             n.target_users.some((u) => u.toString() === req.user.id)))
       ) {
@@ -643,7 +656,8 @@ exports.getNotificationById = async (req, res, next) => {
       _id: notificationId,
     })
       .populate("target_department", "name code")
-      .populate("target_course", "name code");
+      .populate("target_course", "name code")
+      .populate({ path: "createdBy", model: "User", select: "name role email" });
 
     if (!notification) {
       return res.status(404).json({
@@ -993,6 +1007,9 @@ exports.getParentNotifications = async (req, res, next) => {
     });
 
     const notifications = await Notification.find(visibilityQuery)
+      .populate("target_department", "name code")
+      .populate("target_course", "name code")
+      .populate({ path: "createdBy", model: "User", select: "name role email" })
       .sort({ createdAt: -1 });
 
     const adminNotifications = [];

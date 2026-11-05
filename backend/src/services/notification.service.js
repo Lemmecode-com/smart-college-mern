@@ -82,7 +82,7 @@ class NotificationService {
    * Send exception notification to HOD
    * TEACHER -> HOD workflow
    */
-  async sendExceptionToHod(collegeId, teacherId, hodUserId) {
+  async sendExceptionToHod(collegeId, teacherId, hodUserId, teacherName = "A teacher", exceptionType = "TIMETABLE", exceptionDate = "") {
     const existing = await this.notificationExists(
       collegeId,
       "INDIVIDUAL",
@@ -96,6 +96,9 @@ class NotificationService {
       return null;
     }
 
+    const dateStr = exceptionDate ? ` for ${exceptionDate}` : "";
+    const message = `${teacherName} has requested a ${exceptionType} exception${dateStr}. Approval required.`;
+
     return await this.createNotification({
       college_id: collegeId,
       createdBy: teacherId,
@@ -103,7 +106,7 @@ class NotificationService {
       target: "INDIVIDUAL",
       target_users: [hodUserId],
       title: "New Timetable Exception Request",
-      message: "A teacher has submitted a timetable exception request requiring your approval.",
+      message,
       type: "ACADEMIC",
       actionUrl: "/hod/exception-approvals",
     });
