@@ -34,7 +34,24 @@ import {
   FaCalendarAlt,
   FaSyncAlt,
   FaBarcode,
+  FaChartBar,
+  FaChartPie,
 } from "react-icons/fa";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
 const AUTH_ERROR_CODES = new Set([
   "TOKEN_MISSING",
@@ -170,6 +187,7 @@ const QUICK_ACTIONS = [
     id: "approve",
     icon: FaUserCheck,
     label: "Approve Students",
+    description: "Review student applications",
     path: "/students/approve",
     ariaLabel: "Review and approve students",
   },
@@ -177,6 +195,7 @@ const QUICK_ACTIONS = [
     id: "staff",
     icon: FaChalkboardTeacher,
     label: "Manage Staff",
+    description: "View and manage faculty",
     path: "/college/staff",
     ariaLabel: "View and manage teaching staff",
   },
@@ -184,6 +203,7 @@ const QUICK_ACTIONS = [
     id: "departments",
     icon: FaLayerGroup,
     label: "Departments",
+    description: "Organize academic departments",
     path: "/departments",
     ariaLabel: "Manage college departments",
   },
@@ -191,6 +211,7 @@ const QUICK_ACTIONS = [
     id: "courses",
     icon: FaGraduationCap,
     label: "Courses",
+    description: "Manage academic offerings",
     path: "/courses",
     ariaLabel: "Manage course offerings",
   },
@@ -198,6 +219,7 @@ const QUICK_ACTIONS = [
     id: "reports",
     icon: FaFileAlt,
     label: "Student Reports",
+    description: "Review student and payment data",
     path: "/college-admin/reports-dashboard",
     ariaLabel: "View student and payment reports",
   },
@@ -205,6 +227,7 @@ const QUICK_ACTIONS = [
     id: "notifications",
     icon: FaBell,
     label: "Notifications",
+    description: "Send institution announcements",
     path: "/notification/create",
     ariaLabel: "Send institution announcement",
   },
@@ -212,6 +235,7 @@ const QUICK_ACTIONS = [
     id: "settings",
     icon: FaCogs,
     label: "System Settings",
+    description: "Manage system preferences",
     path: "/system-settings/general",
     ariaLabel: "Manage system preferences",
   },
@@ -239,6 +263,14 @@ export default function CollegeAdminDashboard() {
   });
   const [recentStudents, setRecentStudents] = useState([]);
   const [pendingAdmissions, setPendingAdmissions] = useState([]);
+  const [admissionAnalytics, setAdmissionAnalytics] = useState(null);
+  const [coursesByDepartment, setCoursesByDepartment] = useState([]);
+  const [dashboardAnalytics, setDashboardAnalytics] = useState(null);
+  const [showAllStudentDepartments, setShowAllStudentDepartments] = useState(false);
+  const [courseDepartmentSearch, setCourseDepartmentSearch] = useState("");
+  const [courseDepartmentSort, setCourseDepartmentSort] = useState("desc");
+  const [teacherDepartmentSearch, setTeacherDepartmentSearch] = useState("");
+  const [teacherDepartmentSort, setTeacherDepartmentSort] = useState("desc");
 
   const isMountedRef = useRef(true);
   const collegeRef = useRef(college);
@@ -287,6 +319,43 @@ export default function CollegeAdminDashboard() {
 
       setRecentStudents(data.recentStudents || []);
       setPendingAdmissions(data.pendingAdmissions || []);
+      setDashboardAnalytics(data.analytics || null);
+
+      const [admissionsResult, coursesResult] = await Promise.allSettled([
+        api.get("/reports/admissions/college-admin-summary", { signal }),
+        api.get("/courses", { signal }),
+      ]);
+      if (signal?.aborted || !isMountedRef.current) return;
+
+      if (admissionsResult.status === "fulfilled") {
+        setAdmissionAnalytics(admissionsResult.value.data);
+      } else {
+        logger.error("College admin admission analytics load error:", admissionsResult.reason);
+        setAdmissionAnalytics(null);
+      }
+
+      if (coursesResult.status === "fulfilled") {
+        const responseData = coursesResult.value.data;
+        const courses = Array.isArray(responseData?.data)
+          ? responseData.data
+          : Array.isArray(responseData)
+            ? responseData
+            : [];
+        const counts = new Map();
+        courses.forEach((course) => {
+          const departmentName = course.department?.name;
+          if (!departmentName) return;
+          counts.set(departmentName, (counts.get(departmentName) || 0) + 1);
+        });
+        setCoursesByDepartment(
+          [...counts.entries()]
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+        );
+      } else {
+        logger.error("College admin course distribution load error:", coursesResult.reason);
+        setCoursesByDepartment([]);
+      }
 
       setStatus("success");
     } catch (err) {
@@ -424,6 +493,123 @@ export default function CollegeAdminDashboard() {
   // Filter pending students out of recent activities
   const nonPendingRecentStudents = recentStudents.filter(
     (student) => (student?.status || "").toUpperCase() !== "PENDING"
+  );
+  const admissionChartData = admissionAnalytics
+    ? [
+        { name: "Active admissions", count: Number(admissionAnalytics.approved) || 0, color: "#0f6b78" },
+        { name: "Pending", count: Number(admissionAnalytics.pending) || 0, color: "#d99a2b" },
+        { name: "Rejected", count: Number(admissionAnalytics.rejected) || 0, color: "#c75b5b" },
+      ]
+    : [];
+  const admissionChartTotal = Number(admissionAnalytics?.totalApplications) || 0;
+  const categorizedAdmissions = admissionChartData.reduce((total, item) => total + item.count, 0);
+  const admissionChartSegments = admissionChartTotal > categorizedAdmissions
+    ? [...admissionChartData, {
+        name: "Other statuses",
+        count: admissionChartTotal - categorizedAdmissions,
+        color: "#94a3b8",
+      }]
+    : admissionChartData;
+  const sortDepartments = (departments, direction = "desc") => [...departments].sort((a, b) => (
+    (direction === "asc" ? a.count - b.count : b.count - a.count)
+      || String(a.name).localeCompare(String(b.name))
+  ));
+  const studentDepartmentData = sortDepartments(dashboardAnalytics?.studentsByDepartment || []);
+  const teacherDepartmentData = sortDepartments(dashboardAnalytics?.teachersByDepartment || []);
+  const courseDepartmentData = sortDepartments(dashboardAnalytics?.coursesByDepartment || coursesByDepartment);
+  const studentDonutDepartments = studentDepartmentData.length > 6
+    ? [
+        ...studentDepartmentData.slice(0, 5),
+        {
+          id: "other",
+          name: "Other",
+          count: studentDepartmentData.slice(5).reduce((sum, department) => sum + department.count, 0),
+          color: "#94a3b8",
+        },
+      ]
+    : studentDepartmentData;
+  const filterDepartments = (departments, query, sort) => {
+    const search = query.trim().toLocaleLowerCase();
+    return sortDepartments(
+      departments.filter((department) => String(department.name).toLocaleLowerCase().includes(search)),
+      sort,
+    );
+  };
+  const visibleCourseDepartments = filterDepartments(courseDepartmentData, courseDepartmentSearch, courseDepartmentSort);
+  const visibleTeacherDepartments = filterDepartments(teacherDepartmentData, teacherDepartmentSearch, teacherDepartmentSort);
+  const statusColorMap = {
+    APPROVED: "#0f766e",
+    PENDING: "#d99a2b",
+    REJECTED: "#c75b5b",
+    OFFER_MADE: "#168aad",
+    SEAT_CONFIRMED: "#5876b7",
+    ENROLLED: "#39845a",
+    ALUMNI: "#7c67a7",
+    INACTIVE: "#7b8794",
+    DELETED: "#9b6b5b",
+    DEACTIVATED: "#596579",
+    UNSPECIFIED: "#94a3b8",
+  };
+  const detailedAdmissionStatuses = (dashboardAnalytics?.studentsByStatus || []).map((item) => ({
+    name: item.status === "UNSPECIFIED"
+      ? "Unspecified"
+      : item.status.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+    count: Number(item.count) || 0,
+    color: statusColorMap[item.status] || "#8b9aa8",
+  }));
+  const detailedAdmissionTotal = detailedAdmissionStatuses.reduce((sum, item) => sum + item.count, 0);
+  const admissionsChart = detailedAdmissionStatuses.length > 0
+    ? detailedAdmissionStatuses
+    : admissionChartSegments;
+  const admissionsTotal = detailedAdmissionStatuses.length > 0
+    ? detailedAdmissionTotal
+    : admissionChartTotal;
+  const departmentColors = ["#0f6b78", "#138496", "#3b82a0", "#5b8fa8", "#758fa0", "#93a4ad", "#537c79", "#78916e"];
+  const admissionsTrend = dashboardAnalytics?.admissionsTrend || [];
+  const renderDepartmentDonut = (data, total, ariaLabel, totalLabel, showPercentages = false) => (
+    <div className="cad-admissions-chart">
+      <div className="cad-donut-wrap">
+        <ResponsiveContainer width="100%" height={174}>
+          <PieChart>
+            <Pie
+              data={data.filter((item) => item.count > 0)}
+              dataKey="count"
+              nameKey="name"
+              innerRadius={52}
+              outerRadius={72}
+              paddingAngle={2}
+              stroke="none"
+              aria-label={ariaLabel}
+            >
+              {data.filter((item) => item.count > 0).map((item, index) => (
+                <Cell key={item.id || item.name} fill={item.color || departmentColors[index % departmentColors.length]} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value, name) => [Number(value).toLocaleString(), name]} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="cad-donut-center">
+          <strong>{total.toLocaleString()}</strong>
+          <span>{totalLabel}</span>
+        </div>
+      </div>
+      <div className="cad-chart-legend">
+        {data.map((item, index) => (
+          <div className="cad-chart-legend-row" key={item.id || item.name}>
+            <span className="cad-chart-legend-label">
+              <i style={{ backgroundColor: item.color || departmentColors[index % departmentColors.length] }} />
+              <span>{item.name}</span>
+            </span>
+            <strong>
+              {item.count.toLocaleString()}
+              {showPercentages && (
+                <small>{total > 0 ? `${((item.count / total) * 100).toFixed(1)}%` : "0.0%"}</small>
+              )}
+            </strong>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 
   return (
@@ -650,49 +836,296 @@ export default function CollegeAdminDashboard() {
           </div>
         </section>
 
+        <section className="cad-section cad-quick-actions-section" aria-labelledby="cad-quick-actions-title">
+          <div className="cad-section-header">
+            <div className="cad-section-title-wrap">
+              <h2 id="cad-quick-actions-title" className="cad-section-title">
+                Quick Actions
+              </h2>
+              <p className="cad-section-subtitle">
+                Frequently used administration workflows
+              </p>
+            </div>
+          </div>
+
+          <div className="cad-section-body">
+            <div className="cad-quick-actions-grid" role="group" aria-label="Action shortcuts">
+              {QUICK_ACTIONS.map((action) => {
+                const IconComponent = action.icon;
+                return (
+                  <Link
+                    key={action.id}
+                    to={action.path}
+                    className="cad-quick-action-tile"
+                    aria-label={action.ariaLabel}
+                  >
+                    <div className="cad-quick-action-icon" aria-hidden="true">
+                      <IconComponent />
+                    </div>
+                    <span className="cad-quick-action-copy">
+                      <span className="cad-quick-action-label">{action.label}</span>
+                      <span className="cad-quick-action-description">{action.description}</span>
+                    </span>
+                    <FaArrowRight className="cad-quick-action-arrow" aria-hidden="true" />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="cad-analytics-grid" aria-label="Institutional analytics">
+          <div className="cad-analytics-column">
+          <section className="cad-section cad-analytics-card" aria-labelledby="cad-admissions-analytics-title">
+            <div className="cad-section-header">
+              <div className="cad-section-title-wrap">
+                <h2 id="cad-admissions-analytics-title" className="cad-section-title">Admissions Analytics</h2>
+                <p className="cad-section-subtitle">Application status and monthly registrations</p>
+              </div>
+              <FaChartPie className="cad-analytics-heading-icon" aria-hidden="true" />
+            </div>
+            <div className="cad-section-body">
+              {admissionsChart.length > 0 && admissionsTotal > 0 ? (
+                <div className="cad-admissions-visuals">
+                  {renderDepartmentDonut(admissionsChart, admissionsTotal, "Admissions by student status", "Records")}
+                  {admissionsTrend.length > 0 && (
+                    <div className="cad-trend-chart">
+                      <div className="cad-trend-heading">
+                        <span>Monthly registrations</span>
+                        <span><i /> New students</span>
+                      </div>
+                      <ResponsiveContainer width="100%" height={112}>
+                        <LineChart data={admissionsTrend} margin={{ top: 8, right: 12, bottom: 0, left: -18 }}>
+                          <CartesianGrid stroke="#edf1f4" vertical={false} />
+                          <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#718096", fontSize: 10 }} />
+                          <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: "#718096", fontSize: 10 }} />
+                          <Tooltip
+                            labelFormatter={(_, payload) => payload?.[0]?.payload
+                              ? `${payload[0].payload.month} ${payload[0].payload.year}`
+                              : ""}
+                            formatter={(value) => [Number(value).toLocaleString(), "New students"]}
+                          />
+                          <Line type="monotone" dataKey="count" stroke="#168496" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="cad-analytics-empty">
+                  <FaChartPie aria-hidden="true" />
+                  <span>{admissionAnalytics ? "No admission applications to display." : "Admission analytics are unavailable."}</span>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="cad-section cad-analytics-card" aria-labelledby="cad-student-distribution-title">
+            <div className="cad-section-header">
+              <div className="cad-section-title-wrap">
+                <h2 id="cad-student-distribution-title" className="cad-section-title">Student Distribution</h2>
+                <p className="cad-section-subtitle">Student count and share by department</p>
+              </div>
+              <FaChartPie className="cad-analytics-heading-icon" aria-hidden="true" />
+            </div>
+            <div className="cad-section-body">
+              {studentDepartmentData.length > 0
+                ? (
+                  <>
+                    {renderDepartmentDonut(studentDonutDepartments, stats.totalStudents, "Students by department", "Students", true)}
+                    {studentDepartmentData.length > 6 && (
+                      <button
+                        type="button"
+                        className="cad-chart-view-all"
+                        aria-expanded={showAllStudentDepartments}
+                        onClick={() => setShowAllStudentDepartments((current) => !current)}
+                      >
+                        {showAllStudentDepartments ? "Show fewer departments" : `View all ${studentDepartmentData.length} departments`}
+                      </button>
+                    )}
+                    {showAllStudentDepartments && (
+                      <div className="cad-student-department-list" aria-label="Complete student department distribution">
+                        {studentDepartmentData.map((department) => (
+                          <div className="cad-chart-legend-row" key={department.id || department.name}>
+                            <span className="cad-chart-legend-label">{department.name}</span>
+                            <strong>
+                              {department.count.toLocaleString()}
+                              <small>{stats.totalStudents > 0 ? `${((department.count / stats.totalStudents) * 100).toFixed(1)}%` : "0.0%"}</small>
+                            </strong>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )
+                : (
+                  <div className="cad-analytics-empty">
+                    <FaUsers aria-hidden="true" />
+                    <span>No student department records are available.</span>
+                  </div>
+                )}
+            </div>
+          </section>
+          </div>
+
+          <div className="cad-analytics-column">
+          <section className="cad-section cad-analytics-card" aria-labelledby="cad-course-distribution-title">
+            <div className="cad-section-header">
+              <div className="cad-section-title-wrap">
+                <h2 id="cad-course-distribution-title" className="cad-section-title">Course Distribution</h2>
+                <p className="cad-section-subtitle">Courses grouped by department</p>
+              </div>
+              <FaChartBar className="cad-analytics-heading-icon" aria-hidden="true" />
+            </div>
+            <div className="cad-section-body">
+              {courseDepartmentData.length > 0 ? (
+                <>
+                  {courseDepartmentData.length > 8 && (
+                    <div className="cad-department-chart-controls">
+                      <label className="cad-department-search">
+                        <span className="cad-sr-only">Search course departments</span>
+                        <input
+                          type="search"
+                          value={courseDepartmentSearch}
+                          onChange={(event) => setCourseDepartmentSearch(event.target.value)}
+                          placeholder="Search departments"
+                        />
+                      </label>
+                      <label className="cad-department-sort">
+                        <span>Sort</span>
+                        <select value={courseDepartmentSort} onChange={(event) => setCourseDepartmentSort(event.target.value)}>
+                          <option value="desc">Most courses</option>
+                          <option value="asc">Fewest courses</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
+                  {visibleCourseDepartments.length > 0 ? (
+                    <div className="cad-course-chart-scroll" aria-label="Course counts by department">
+                      <div className="cad-course-chart" style={{ height: Math.max(180, visibleCourseDepartments.length * 32) }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={visibleCourseDepartments} layout="vertical" margin={{ top: 4, right: 44, left: 4, bottom: 4 }}>
+                            <CartesianGrid stroke="#edf1f4" horizontal={false} />
+                            <XAxis type="number" allowDecimals={false} domain={[0, (max) => Math.max(1, max * 1.12)]} axisLine={false} tickLine={false} tick={{ fill: "#718096", fontSize: 11 }} />
+                            <YAxis
+                              type="category"
+                              dataKey="name"
+                              width={110}
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fill: "#475569", fontSize: 11 }}
+                              tickFormatter={(value) => value.length > 17 ? `${value.slice(0, 16)}…` : value}
+                            />
+                            <Tooltip labelFormatter={(label) => label} formatter={(value) => [Number(value).toLocaleString(), "Courses"]} />
+                            <Bar dataKey="count" fill="#176579" radius={[0, 5, 5, 0]} maxBarSize={18}>
+                              <LabelList dataKey="count" position="right" fill="#475569" fontSize={10} />
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="cad-analytics-empty cad-filter-empty">No departments match this search.</div>
+                  )}
+                  {courseDepartmentData.length > 8 && (
+                    <p className="cad-chart-scroll-hint">
+                      Showing {visibleCourseDepartments.length} of {courseDepartmentData.length} departments. Scroll to view more.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="cad-analytics-empty">
+                  <FaChartBar aria-hidden="true" />
+                  <span>No courses are available for this institution.</span>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="cad-section cad-analytics-card" aria-labelledby="cad-faculty-distribution-title">
+            <div className="cad-section-header">
+              <div className="cad-section-title-wrap">
+                <h2 id="cad-faculty-distribution-title" className="cad-section-title">Faculty Overview</h2>
+                <p className="cad-section-subtitle">Teacher headcount by department</p>
+              </div>
+              <FaChalkboardTeacher className="cad-analytics-heading-icon" aria-hidden="true" />
+            </div>
+            <div className="cad-section-body">
+              {teacherDepartmentData.length > 0 ? (
+                <>
+                  {teacherDepartmentData.length > 8 && (
+                    <div className="cad-department-chart-controls">
+                      <label className="cad-department-search">
+                        <span className="cad-sr-only">Search faculty departments</span>
+                        <input
+                          type="search"
+                          value={teacherDepartmentSearch}
+                          onChange={(event) => setTeacherDepartmentSearch(event.target.value)}
+                          placeholder="Search departments"
+                        />
+                      </label>
+                      <label className="cad-department-sort">
+                        <span>Sort</span>
+                        <select value={teacherDepartmentSort} onChange={(event) => setTeacherDepartmentSort(event.target.value)}>
+                          <option value="desc">Most teachers</option>
+                          <option value="asc">Fewest teachers</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
+                  {visibleTeacherDepartments.length > 0 ? (
+                    <>
+                      <div className="cad-chart-series-label"><i /> Teachers</div>
+                      <div className="cad-course-chart-scroll" aria-label="Teacher counts by department">
+                        <div className="cad-course-chart" style={{ height: Math.max(180, visibleTeacherDepartments.length * 32) }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={visibleTeacherDepartments} layout="vertical" margin={{ top: 4, right: 44, left: 4, bottom: 4 }}>
+                              <CartesianGrid stroke="#edf1f4" horizontal={false} />
+                              <XAxis type="number" allowDecimals={false} domain={[0, (max) => Math.max(1, max * 1.12)]} axisLine={false} tickLine={false} tick={{ fill: "#718096", fontSize: 11 }} />
+                              <YAxis
+                                type="category"
+                                dataKey="name"
+                                width={110}
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: "#475569", fontSize: 11 }}
+                                tickFormatter={(value) => value.length > 17 ? `${value.slice(0, 16)}…` : value}
+                              />
+                              <Tooltip labelFormatter={(label) => label} formatter={(value) => [Number(value).toLocaleString(), "Teachers"]} />
+                              <Bar dataKey="count" fill="#168496" radius={[0, 5, 5, 0]} maxBarSize={18}>
+                                <LabelList dataKey="count" position="right" fill="#475569" fontSize={10} />
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="cad-analytics-empty cad-filter-empty">No departments match this search.</div>
+                  )}
+                  {teacherDepartmentData.length > 8 && (
+                    <p className="cad-chart-scroll-hint">
+                      Showing {visibleTeacherDepartments.length} of {teacherDepartmentData.length} departments. Scroll to view more.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="cad-analytics-empty">
+                  <FaChalkboardTeacher aria-hidden="true" />
+                  <span>No teacher department records are available.</span>
+                </div>
+              )}
+            </div>
+          </section>
+          </div>
+        </section>
+
         {/* ================= MAIN CONTENT AREA ================= */}
         {/* On desktop (>=1200px): 2fr primary (Quick Actions + Recent) / 1fr secondary (Pending). */}
         {/* On mobile (<1200px): Pending Admissions appears FIRST, then Quick Actions, then Recent. */}
         <div className="cad-main-grid">
           {/* PRIMARY COLUMN: Quick Actions & Recent Student Activities */}
           <div className="cad-col-primary">
-            {/* Quick Actions */}
-            <section className="cad-section" aria-labelledby="cad-quick-actions-title">
-              <div className="cad-section-header">
-                <div className="cad-section-title-wrap">
-                  <h2 id="cad-quick-actions-title" className="cad-section-title">
-                    Quick Actions
-                  </h2>
-                  <p className="cad-section-subtitle">
-                    Frequently used administration workflows
-                  </p>
-                </div>
-              </div>
-
-              <div className="cad-section-body">
-                <div className="cad-quick-actions-grid" role="group" aria-label="Action shortcuts">
-                  {QUICK_ACTIONS.map((action) => {
-                    const IconComponent = action.icon;
-                    return (
-                      <Link
-                        key={action.id}
-                        to={action.path}
-                        className="cad-quick-action-tile"
-                        aria-label={action.ariaLabel}
-                      >
-                        <div className="cad-quick-action-icon" aria-hidden="true">
-                          <IconComponent />
-                        </div>
-                        <span className="cad-quick-action-label">
-                          {action.label}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
-
             {/* Recent Student Activities */}
             <section className="cad-section" aria-labelledby="cad-recent-activities-title">
               <div className="cad-section-header">

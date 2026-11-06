@@ -16,6 +16,42 @@ const { getNotificationVisibilityQuery } = require("../services/notificationVisi
 const { parseLocalDateSafe, getDayName } = require("../utils/date.utils");
 const { getActiveStudentFee } = require("../services/studentFee.service");
 
+const aggregateDepartmentDistribution = async (Model, collegeId) => {
+  const [counts, departments] = await Promise.all([
+    Model.aggregate([
+      { $match: { college_id: collegeId } },
+      { $group: { _id: "$department_id", count: { $sum: 1 } } },
+    ]),
+    Department.find({ college_id: collegeId }).select("_id name").lean(),
+  ]);
+  const knownIds = new Set(departments.map((department) => department._id.toString()));
+  const countsByDepartment = new Map();
+  let unassignedCount = 0;
+
+  counts.forEach(({ _id, count }) => {
+    const id = _id?.toString();
+    if (id && knownIds.has(id)) {
+      countsByDepartment.set(id, count);
+    } else {
+      unassignedCount += count;
+    }
+  });
+
+  const distribution = departments.map((department) => ({
+    id: department._id.toString(),
+    name: department.name,
+    count: countsByDepartment.get(department._id.toString()) || 0,
+  }));
+  if (unassignedCount > 0) {
+    distribution.push({
+      id: "unassigned",
+      name: "Unassigned department",
+      count: unassignedCount,
+    });
+  }
+  return distribution.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+};
+
 /**
  * 👨‍🎓 STUDENT DASHBOARD
  */
@@ -452,6 +488,11 @@ exports.collegeAdminDashboard = async (req, res, next) => {
       totalCourses,
       pendingAdmissionsCount,
       activeStudentsCount,
+      studentsByDepartment,
+      teachersByDepartment,
+      coursesByDepartment,
+      studentsByStatus,
+      monthlyAdmissions,
     ] = await Promise.all([
       Student.countDocuments({ college_id: collegeId }),
       Teacher.countDocuments({ college_id: collegeId }),
@@ -459,7 +500,59 @@ exports.collegeAdminDashboard = async (req, res, next) => {
       Course.countDocuments({ college_id: collegeId }),
       Student.countDocuments({ college_id: collegeId, status: "PENDING" }),
       Student.countDocuments({ college_id: collegeId, status: { $in: activeStudentStatuses } }),
+      aggregateDepartmentDistribution(Student, collegeId),
+      aggregateDepartmentDistribution(Teacher, collegeId),
+      aggregateDepartmentDistribution(Course, collegeId),
+      Student.aggregate([
+        { $match: { college_id: collegeId } },
+        {
+          $group: {
+            _id: { $ifNull: ["$status", "UNSPECIFIED"] },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1, _id: 1 } },
+      ]),
+      Student.aggregate([
+        {
+          $match: {
+            college_id: collegeId,
+            createdAt: {
+              $gte: new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() - 11, 1)),
+            },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              year: { $year: "$createdAt" },
+              month: { $month: "$createdAt" },
+            },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
     ]);
+    const monthlyAdmissionsByKey = new Map(
+      monthlyAdmissions.map(({ _id, count }) => [
+        `${_id.year}-${String(_id.month).padStart(2, "0")}`,
+        count,
+      ]),
+    );
+    const currentMonth = new Date();
+    const admissionsTrend = Array.from({ length: 12 }, (_, index) => {
+      const month = new Date(Date.UTC(
+        currentMonth.getUTCFullYear(),
+        currentMonth.getUTCMonth() - 11 + index,
+        1,
+      ));
+      const key = `${month.getUTCFullYear()}-${String(month.getUTCMonth() + 1).padStart(2, "0")}`;
+      return {
+        month: month.toLocaleString("en-US", { month: "short", timeZone: "UTC" }),
+        year: month.getUTCFullYear(),
+        count: monthlyAdmissionsByKey.get(key) || 0,
+      };
+    });
 
     // 🔥 OPTIMIZED: Fetch only last 5 students instead of all
     const recentStudents = await Student.find({ college_id: collegeId })
@@ -500,6 +593,17 @@ exports.collegeAdminDashboard = async (req, res, next) => {
           totalCourses,
           pendingAdmissions: pendingAdmissionsCount,
           activeStudents: activeStudentsCount,
+        },
+
+        analytics: {
+          studentsByDepartment,
+          teachersByDepartment,
+          coursesByDepartment,
+          studentsByStatus: studentsByStatus.map(({ _id, count }) => ({
+            status: _id,
+            count,
+          })),
+          admissionsTrend,
         },
 
         recentStudents,
