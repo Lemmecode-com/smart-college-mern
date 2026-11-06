@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Teacher = require("../models/teacher.model");
 const Student = require("../models/student.model");
 const Subject = require("../models/subject.model");
@@ -205,17 +206,77 @@ exports.getHodDashboardData = async (arg1, arg2) => {
   const pendingDraftTimetables = draftCount;
 
   // Low attendance students (< 75%)
+  // Determine current academic year & date range for scoped action-required metrics
+  const collegeDoc = await College.findById(collegeId).select("currentAcademicYear academicYears");
+  let currentAcademicYear = null;
+  let ayStartDate = null;
+  let ayEndDate = null;
+
+  if (collegeDoc?.currentAcademicYear) {
+    currentAcademicYear = collegeDoc.currentAcademicYear;
+  } else if (Array.isArray(collegeDoc?.academicYears)) {
+    const currentAyDoc = collegeDoc.academicYears.find(
+      (ay) =>
+        ay.isCurrent ||
+        ay.status === "ACTIVE" ||
+        (ay.startDate &&
+          ay.endDate &&
+          now >= new Date(ay.startDate) &&
+          now <= new Date(ay.endDate))
+    );
+    if (currentAyDoc?.year || currentAyDoc?.name) {
+      currentAcademicYear = currentAyDoc.year || currentAyDoc.name;
+    }
+    if (currentAyDoc?.startDate && currentAyDoc?.endDate) {
+      ayStartDate = new Date(currentAyDoc.startDate);
+      ayEndDate = new Date(currentAyDoc.endDate);
+    }
+  }
+
+  // Fallback: derive current academic year by today's date against standard Indian college boundaries (June 1 - May 31)
+  if (!currentAcademicYear) {
+    const currentYearNum = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed: 9 = Oct
+    const startAY = currentMonth >= 5 ? currentYearNum : currentYearNum - 1;
+    currentAcademicYear = `${startAY}-${startAY + 1}`;
+  }
+
+  if (!ayStartDate || !ayEndDate) {
+    if (currentAcademicYear && /^\d{4}-\d{4}$/.test(currentAcademicYear)) {
+      const [sY, eY] = currentAcademicYear.split("-").map(Number);
+      ayStartDate = new Date(sY, 5, 1, 0, 0, 0, 0); // June 1
+      ayEndDate = new Date(eY, 4, 31, 23, 59, 59, 999); // May 31
+    } else {
+      const currentYearNum = now.getFullYear();
+      const currentMonth = now.getMonth();
+      const startAY = currentMonth >= 5 ? currentYearNum : currentYearNum - 1;
+      ayStartDate = new Date(startAY, 5, 1, 0, 0, 0, 0);
+      ayEndDate = new Date(startAY + 1, 4, 31, 23, 59, 59, 999);
+    }
+  }
+
+  // Scoped to closed sessions within current academic year
   const deptSessions = await AttendanceSession.find({
     college_id: collegeId,
     department_id: departmentId,
     status: "CLOSED",
+    lectureDate: { $gte: ayStartDate, $lte: ayEndDate },
   }).select("_id");
 
   let lowAttendanceStudentsCount = 0;
   if (deptSessions.length > 0) {
     const sessionIds = deptSessions.map((s) => s._id);
+    const collegeObjectId = mongoose.Types.ObjectId.isValid(collegeId)
+      ? new mongoose.Types.ObjectId(collegeId)
+      : collegeId;
+
     const studentAggregates = await AttendanceRecord.aggregate([
-      { $match: { session_id: { $in: sessionIds } } },
+      {
+        $match: {
+          college_id: collegeObjectId,
+          session_id: { $in: sessionIds },
+        },
+      },
       {
         $group: {
           _id: "$student_id",
@@ -410,33 +471,7 @@ exports.getHodDashboardData = async (arg1, arg2) => {
     limit: 6,
   });
 
-  // 9. Determine CURRENT Academic Year for header (from records marked current or by today's date against start/end dates)
-  const collegeDoc = await College.findById(collegeId).select("currentAcademicYear academicYears");
-  let currentAcademicYear = null;
-  if (collegeDoc?.currentAcademicYear) {
-    currentAcademicYear = collegeDoc.currentAcademicYear;
-  } else if (Array.isArray(collegeDoc?.academicYears)) {
-    const currentAyDoc = collegeDoc.academicYears.find(
-      (ay) =>
-        ay.isCurrent ||
-        ay.status === "ACTIVE" ||
-        (ay.startDate &&
-          ay.endDate &&
-          now >= new Date(ay.startDate) &&
-          now <= new Date(ay.endDate))
-    );
-    if (currentAyDoc?.year || currentAyDoc?.name) {
-      currentAcademicYear = currentAyDoc.year || currentAyDoc.name;
-    }
-  }
-
-  // Fallback: derive current academic year by today's date against standard Indian college boundaries (June 1 - May 31)
-  if (!currentAcademicYear) {
-    const currentYearNum = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-indexed: 9 = Oct
-    const startAY = currentMonth >= 5 ? currentYearNum : currentYearNum - 1;
-    currentAcademicYear = `${startAY}-${startAY + 1}`;
-  }
+  // 9. Current Academic Year for header (resolved above in Section 5)
 
   return {
     department: {
