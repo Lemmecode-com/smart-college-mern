@@ -176,10 +176,18 @@ exports.getHodRecentActivity = async ({ collegeId, departmentId, limit = 6 }) =>
     "NOTICE_SENT",
   ];
 
-  const auditLogs = await AuditLog.find({
+  let auditLogQuery = AuditLog.find({
     collegeId,
     action: { $in: hodAuditActions },
-  })
+  });
+
+  if (typeof auditLogQuery.select === "function") {
+    auditLogQuery = auditLogQuery.select(
+      "resourceId action resourceType targetId details userName userEmail createdAt"
+    );
+  }
+
+  const auditLogs = await auditLogQuery
     .sort({ createdAt: -1 })
     .limit(30);
 

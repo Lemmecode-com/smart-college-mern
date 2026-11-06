@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Teacher = require("../models/teacher.model");
 const Student = require("../models/student.model");
 const Subject = require("../models/subject.model");
@@ -331,8 +332,17 @@ exports.getHodReportsOverview = async (userId, collegeId, queryFilters = {}) => 
   let lowAttendanceStudents = [];
   if (sessionsHeld > 0) {
     const sessionIds = sessions.map((s) => s._id);
+    const collegeObjectId = mongoose.Types.ObjectId.isValid(collegeId)
+      ? new mongoose.Types.ObjectId(collegeId)
+      : collegeId;
+
     const studentAggregates = await AttendanceRecord.aggregate([
-      { $match: { session_id: { $in: sessionIds } } },
+      {
+        $match: {
+          college_id: collegeObjectId,
+          session_id: { $in: sessionIds },
+        },
+      },
       {
         $group: {
           _id: "$student_id",
