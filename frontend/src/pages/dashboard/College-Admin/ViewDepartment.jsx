@@ -15,12 +15,14 @@ import {
   FaChalkboardTeacher,
   FaInfoCircle,
   FaUserTie,
+  FaUserPlus,
   FaBookOpen,
   FaCheckCircle,
   FaTimesCircle,
 } from "react-icons/fa";
 import Breadcrumb from "../../../components/Breadcrumb";
 import PageHeader from "../../../components/PageHeader";
+import useRole from "../../../hooks/useRole";
 
 /* ==========================================================================
    Design tokens — aligned with NOVAA ERP sidebar/app palette.
@@ -245,6 +247,8 @@ export default function ViewDepartment() {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const { canEdit } = useRole();
+  const canManage = canEdit("departments") || user?.role === "COLLEGE_ADMIN";
 
   const [department, setDepartment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -483,8 +487,27 @@ if (loading) {
                       </div>
                     </div>
                   ) : (
-                    <div style={s.empty}>
-                      <FaUserTie /> Not Assigned
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
+                      <div style={s.empty}>
+                        <FaUserTie /> Not Assigned
+                      </div>
+                      {canManage && isActive && (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary d-inline-flex align-items-center gap-1"
+                          onClick={() => navigate(`/departments/assign-hod/${id}`)}
+                          style={{
+                            background: `linear-gradient(135deg, ${T.primary} 0%, ${T.primaryDark} 100%)`,
+                            borderColor: T.primary,
+                            borderRadius: T.radiusSm,
+                            fontSize: "0.82rem",
+                            fontWeight: 600,
+                            padding: "0.4rem 0.85rem",
+                          }}
+                        >
+                          <FaUserPlus /> Assign HOD
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

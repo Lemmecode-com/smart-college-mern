@@ -110,7 +110,7 @@ module.exports = async (req, res, next) => {
     req.user = {
       id: decoded.id,
       opaqueId: toOpaqueId(decoded.id),
-      role: decoded.role,
+      role: user.role,
       college_id: decoded.college_id || null,
       sessionId,
     };

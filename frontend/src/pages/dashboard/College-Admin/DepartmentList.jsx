@@ -14,6 +14,7 @@ import {
   FaEdit,
   FaUserTie,
   FaUserSlash,
+  FaUserPlus,
   FaSearch,
   FaPlus,
   FaInfoCircle,
@@ -698,6 +699,16 @@ export default function DepartmentList() {
               ariaLabel={`Remove HOD of ${department.name}`}
               tooltip={`Remove HOD of ${department.name}`}
               onClick={() => handleRemoveHodClick(department)}
+            />
+          )}
+
+          {canManage && isDeptActive && !department.hod_id && (
+            <ActionIconButton
+              icon={FaUserPlus}
+              className="assign-btn"
+              ariaLabel={`Assign HOD to ${department.name}`}
+              tooltip={`Assign HOD to ${department.name}`}
+              onClick={() => navigate(`/departments/assign-hod/${department._id}`)}
             />
           )}
 

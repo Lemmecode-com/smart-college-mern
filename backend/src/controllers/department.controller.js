@@ -9,6 +9,37 @@ const AppError = require("../utils/AppError");
 const AuditService = require("../services/auditLog.service");
 const { STUDENT_STATUS } = require("../utils/constants");
 const { reassignTeacherResources } = require("../services/teacherReassignment.service");
+const RefreshToken = require("../models/refreshToken.model");
+const AuthSession = require("../models/authSession.model");
+const logger = require("../utils/logger");
+
+/**
+ * Invalidate all active sessions and refresh tokens for a user when their role changes.
+ * Bumps tokenVersion on User so active access tokens are immediately rejected with 401 TOKEN_INVALIDATED.
+ */
+const invalidateUserSessions = async (userId, reason = "ROLE_CHANGED") => {
+  if (!userId) return;
+  try {
+    await Promise.all([
+      User.findByIdAndUpdate(userId, { $inc: { tokenVersion: 1 } }),
+      RefreshToken.updateMany(
+        { user_id: userId, isRevoked: false },
+        { $set: { isRevoked: true } }
+      ),
+      AuthSession.updateMany(
+        { user_id: userId, isActive: true },
+        { $set: { isActive: false, invalidationReason: reason } }
+      ),
+    ]);
+    logger.logInfo("User sessions invalidated on role change", { userId, reason });
+  } catch (error) {
+    logger.logError("Failed to invalidate sessions on role change", {
+      error: error.message,
+      userId,
+      reason,
+    });
+  }
+};
 
 /**
  * CREATE Department
@@ -380,6 +411,7 @@ exports.assignHOD = async (req, res) => {
     let previousHodId = null;
     let previousUserRole = null;
     let previousHodTeacherForNormalization = null;
+    let previousHodUserId = null;
 
     if (department.hod_id) {
       const previousHodTeacher = await Teacher.findOne({
@@ -388,6 +420,7 @@ exports.assignHOD = async (req, res) => {
       });
 
       if (previousHodTeacher) {
+        previousHodUserId = previousHodTeacher.user_id;
         const previousHodUser = await User.findById(previousHodTeacher.user_id);
         if (previousHodUser && previousHodUser.role === "HOD") {
           previousHodUser.role = "TEACHER";
@@ -425,11 +458,6 @@ exports.assignHOD = async (req, res) => {
         prevTeacherNeedsUpdate = true;
       }
 
-      if (previousHodTeacherForNormalization.designation !== "") {
-        prevUpdateFields.designation = "";
-        prevTeacherNeedsUpdate = true;
-      }
-
       if (prevTeacherNeedsUpdate) {
         await Teacher.findByIdAndUpdate(previousHodTeacherForNormalization._id, prevUpdateFields);
       }
@@ -444,6 +472,16 @@ exports.assignHOD = async (req, res) => {
     if (newUser) {
       newUser.role = "HOD";
       await newUser.save();
+    }
+
+    // Invalidate sessions for both old HOD and new HOD so their active tokens and
+    // sessions are refreshed with their new respective roles on next request/login.
+    const newHodUserId = teacher.user_id;
+    if (previousHodUserId && String(previousHodUserId) !== String(newHodUserId)) {
+      await invalidateUserSessions(previousHodUserId, "ROLE_CHANGED");
+    }
+    if (newHodUserId) {
+      await invalidateUserSessions(newHodUserId, "ROLE_CHANGED");
     }
 
     AuditService.logHODAssigned(
@@ -531,6 +569,7 @@ exports.removeHOD = async (req, res) => {
         oldHodUser.role = "TEACHER";
         await oldHodUser.save();
       }
+      await invalidateUserSessions(oldHodUserId, "ROLE_CHANGED");
     }
 
     // Normalize Teacher profile for converted HOD
@@ -540,11 +579,6 @@ exports.removeHOD = async (req, res) => {
 
       if (!oldHodTeacher.status || oldHodTeacher.status !== "ACTIVE") {
         updateFields.status = "ACTIVE";
-        teacherNeedsUpdate = true;
-      }
-
-      if (oldHodTeacher.designation !== "") {
-        updateFields.designation = "";
         teacherNeedsUpdate = true;
       }
 
