@@ -53,6 +53,7 @@ import {
   FaBolt,
   FaRedo,
   FaSyncAlt,
+  FaExternalLinkAlt,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import LogoImage from "../../../components/common/LogoImage";
@@ -241,45 +242,67 @@ export default function CollegeProfile() {
     {
       icon: <FaUsers />,
       label: "Students",
+      description: "Manage student records",
       path: "/students/pending-approvals",
-      color: "primary",
-      gradient: BRAND_COLORS.primary.gradient,
+      accent: "#2563eb",
+      accentBg: "#eff6ff",
+      accentBorder: "#bfdbfe",
+      accentBgHover: "#dbeafe",
     },
     {
       icon: <FaLayerGroup />,
       label: "Departments",
+      description: "Manage academic departments",
       path: "/departments",
-      color: "success",
-      gradient: BRAND_COLORS.success.gradient,
+      accent: "#7c3aed",
+      accentBg: "#f5f3ff",
+      accentBorder: "#ddd6fe",
+      accentBgHover: "#ede9fe",
     },
     {
       icon: <FaBook />,
       label: "Courses",
+      description: "Manage academic courses",
       path: "/courses",
-      color: "info",
-      gradient: BRAND_COLORS.info.gradient,
+      accent: "#0d9488",
+      accentBg: "#f0fdfa",
+      accentBorder: "#99f6e4",
+      accentBgHover: "#ccfbf1",
     },
     {
       icon: <FaChalkboardTeacher />,
       label: "Staff",
+      description: "Manage faculty and employees",
       path: "/college/staff",
-      color: "warning",
-      gradient: BRAND_COLORS.warning.gradient,
+      accent: "#16a34a",
+      accentBg: "#f0fdf4",
+      accentBorder: "#bbf7d0",
+      accentBgHover: "#dcfce7",
     },
     {
       icon: <FaMoneyBillWave />,
       label: "Fee Structures",
+      description: "Manage fee plans",
       path: "/fees/list",
-      color: "danger",
-      gradient: BRAND_COLORS.danger.gradient,
+      accent: "#d97706",
+      accentBg: "#fffbeb",
+      accentBorder: "#fde68a",
+      accentBgHover: "#fef3c7",
     },
-    ...(user?.role === "COLLEGE_ADMIN" ? [{
-      icon: <FaCogs />,
-      label: "Settings",
-      path: "/system-settings/general",
-      color: "secondary",
-      gradient: BRAND_COLORS.secondary.gradient,
-    }] : []),
+    ...(user?.role === "COLLEGE_ADMIN"
+      ? [
+          {
+            icon: <FaCogs />,
+            label: "Settings",
+            description: "Institution preferences",
+            path: "/system-settings/general",
+            accent: "#4f46e5",
+            accentBg: "#eef2ff",
+            accentBorder: "#c7d2fe",
+            accentBgHover: "#e0e7ff",
+          },
+        ]
+      : []),
   ];
 
   if (loading) {
@@ -383,51 +406,50 @@ export default function CollegeProfile() {
             </div>
           </div>
 
-          {/* ================= TOP NAVIGATION BAR ================= */}
+          {/* ================= PROFILE HEADER ================= */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
+            className="college-profile-banner"
             style={{
-              marginBottom: "1.5rem",
+              marginBottom: "1.25rem",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               flexWrap: "wrap",
-              gap: "1.5rem",
-
+              gap: "1rem",
               background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
-              padding: "1.25rem 1.75rem",
-              borderRadius: "12px",
-              boxShadow: "0 8px 24px rgba(14, 55, 70, 0.18)",
+              padding: "1.25rem 1.5rem",
+              borderRadius: "14px",
+              boxShadow: "0 8px 24px rgba(14, 55, 70, 0.16)",
               color: "#ffffff",
-              minHeight: "80px",
             }}
           >
             <div
+              className="college-profile-banner-main"
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: "1.5rem",
-                flex: 1,
+                gap: "1rem",
+                flex: "1 1 320px",
+                minWidth: 0,
               }}
             >
-              <motion.div
-                variants={pulseVariants}
-                initial="initial"
-                // animate="pulse"
-                style={{ 
-
-                    width: "64px",
-                    height: "64px",
-                    minWidth: "64px",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    border: "1px solid rgba(255, 255, 255, 0.2)",
-                    borderRadius: "10px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "hidden",
+              <div
+                className="college-profile-banner-logo"
+                style={{
+                  width: "64px",
+                  height: "64px",
+                  minWidth: "64px",
+                  background: "rgba(255, 255, 255, 0.12)",
+                  border: "1px solid rgba(255, 255, 255, 0.18)",
+                  borderRadius: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                  flexShrink: 0,
                 }}
               >
                 <LogoImage
@@ -435,99 +457,106 @@ export default function CollegeProfile() {
                     college?.documentRefs?.logo?.documentId ||
                     college?.logoDocumentId
                   }
-                  size={54}
+                  size={52}
                 />
-              </motion.div>
+              </div>
 
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <h1
+                  className="college-profile-banner-title"
                   style={{
                     margin: 0,
-                    marginTop: "0.9rem",
-                    fontSize: "1.8rem",
+                    fontSize: "1.75rem",
                     fontWeight: 700,
                     letterSpacing: "-0.02em",
                     color: "#ffffff",
                     lineHeight: 1.2,
+                    wordBreak: "break-word",
                   }}
                 >
                   {college.name}
                 </h1>
                 <div
+                  className="college-profile-banner-badges"
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "0.75rem",
+                    gap: "0.5rem",
                     flexWrap: "wrap",
+                    marginTop: "0.5rem",
                   }}
                 >
                   <span
                     style={{
-                      background: "rgba(255, 255, 255, 0.08)",
-                      border: "1px solid rgba(255, 255, 255, 0.12)",
-                      padding: "5px 12px",
-                      borderRadius: "9999px",
+                      background: "rgba(255, 255, 255, 0.1)",
+                      border: "1px solid rgba(255, 255, 255, 0.14)",
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: "999px",
                       display: "inline-flex",
                       alignItems: "center",
-                      gap: "7px",
-                      fontSize: "12px",
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
                       color: "rgba(255, 255, 255, 0.95)",
-                      minHeight: "28px",
-                      marginTop: "8px",
+                      minHeight: "26px",
                     }}
                   >
                     {college.code}
                   </span>
                   <span
                     style={{
-                    background: "rgba(34, 197, 94, 0.2)",
-                    color: "#86efac",
-                    border: "1px solid rgba(34, 197, 94, 0.35)",
-                    fontWeight: "600",
-                    borderRadius: "9999px",
-                    padding: "3px 12px",
-                    marginTop: "8px",
-                    
+                      background: college.isActive
+                        ? "rgba(34, 197, 94, 0.18)"
+                        : "rgba(239, 68, 68, 0.18)",
+                      color: college.isActive ? "#86efac" : "#fca5a5",
+                      border: `1px solid ${college.isActive ? "rgba(34,197,94,0.35)" : "rgba(239,68,68,0.35)"}`,
+                      fontWeight: 600,
+                      borderRadius: "999px",
+                      padding: "0.2rem 0.65rem",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.35rem",
+                      fontSize: "0.75rem",
+                      minHeight: "26px",
                     }}
                   >
                     {college.isActive ? (
                       <>
-                        <FaCheckCircle aria-hidden="true"/> Active
+                        <FaCheckCircle aria-hidden="true" size={12} /> Active
                       </>
                     ) : (
                       <>
-                        <FaTimesCircle aria-hidden="true" /> Inactive
+                        <FaTimesCircle aria-hidden="true" size={12} /> Inactive
                       </>
                     )}
                   </span>
                 </div>
               </div>
             </div>
-            {canEdit('college') && (
+            {canEdit("college") && (
               <motion.button
-                whileHover={{
-                  scale: 1.05,
-                  boxShadow: "0 8px 20px rgba(26, 75, 109, 0.3)",
-                }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ y: -1, boxShadow: "0 6px 16px rgba(14,55,70,0.18)" }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => navigate("/college/edit-profile")}
+                className="college-profile-edit-btn"
                 style={{
                   backgroundColor: "#ffffff",
-                  color: "#0E3746",
-                  border: "none",
-                  padding: "0.675rem 1.45rem",
-                  borderRadius: "0.75rem",
-                  fontSize: "1rem",
-                  fontWeight: 500,
+                  color: "#0f3a4a",
+                  border: "1px solid rgba(255,255,255,0.9)",
+                  padding: "0.65rem 1.15rem",
+                  borderRadius: "10px",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
                   cursor: "pointer",
-                  display: "flex",
+                  display: "inline-flex",
                   alignItems: "center",
-                  gap: "0.75rem",
-                  boxShadow: "0 4px 15px rgba(26, 75, 109, 0.3)",
-                  transition: "all 0.3s ease",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  transition: "all 0.2s ease",
+                  flexShrink: 0,
                 }}
               >
-                <FaEdit size={20} /> Edit Profile
+                <FaEdit size={16} style={{ color: "#0f3a4a" }} /> Edit Profile
               </motion.button>
             )}
           </motion.div>
@@ -537,7 +566,7 @@ export default function CollegeProfile() {
             {/* LEFT COLUMN - PROFILE DETAILS */}
             <div className="col-12">
               <div className="row g-4">
-                {/* ================= BASIC INFO CARD ================= */}
+                {/* ================= INSTITUTE INFORMATION ================= */}
                 <motion.div
                   variants={fadeInVariants}
                   custom={0}
@@ -545,181 +574,199 @@ export default function CollegeProfile() {
                   animate="visible"
                   className="col-12"
                 >
-                  <div
+                  <section
+                    className="college-profile-section"
                     style={{
-                      backgroundColor: "white",
-                      borderRadius: "1.5rem",
-                      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.08)",
-                      marginBottom: "1.5rem",
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #dfe7ee",
+                      borderRadius: "14px",
+                      boxShadow: "0 2px 10px rgba(15, 58, 74, 0.04)",
+                      marginBottom: "1.25rem",
                       overflow: "hidden",
                     }}
                   >
                     <div
                       style={{
-                        padding: "1.5rem",
-                        background: "#0E3746",
-                        color: "white",
+                        padding: "1.1rem 1.25rem 0.9rem",
+                        borderBottom: "1px solid #edf2f6",
                       }}
                     >
-                      <h2
+                      <div
                         style={{
-                          margin: 0,
-                          fontSize: "1.25rem",
-                          fontWeight: 700,
                           display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
+                          alignItems: "flex-start",
+                          gap: "0.65rem",
                         }}
                       >
-                        <FaInfoCircle /> Institute Information
-                      </h2>
+                        <span
+                          style={{
+                            width: "36px",
+                            height: "36px",
+                            minWidth: "36px",
+                            borderRadius: "10px",
+                            background: "rgba(15, 58, 74, 0.08)",
+                            color: "#0f3a4a",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          aria-hidden="true"
+                        >
+                          <FaBuilding size={16} />
+                        </span>
+                        <div>
+                          <h2
+                            style={{
+                              margin: 0,
+                              fontSize: "1.1rem",
+                              fontWeight: 700,
+                              color: "#153f50",
+                              lineHeight: 1.25,
+                            }}
+                          >
+                            Institute Information
+                          </h2>
+                          <p
+                            style={{
+                              margin: "0.2rem 0 0",
+                              fontSize: "0.84rem",
+                              color: "#64748b",
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            Official institutional details and contact information
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-4">
-                      <div className="row g-4">
-                        <div className="col-12 col-md-6 col-lg-4">
+                    <div style={{ padding: "1rem 1.25rem 1.25rem" }}>
+                      <div className="row g-3 college-institute-grid">
+                        <div className="col-12 col-md-6 col-lg-4 d-flex">
                           <InfoItem
                             icon={<FaEnvelope />}
                             label="Official Email"
                             value={college.email}
                             copyable
-                            color={BRAND_COLORS.primary.main}
                           />
                         </div>
-                        <div className="col-12 col-md-6 col-lg-4">
+                        <div className="col-12 col-md-6 col-lg-4 d-flex">
                           <InfoItem
                             icon={<FaPhoneAlt />}
                             label="Contact Number"
                             value={college.contactNumber}
                             copyable
-                            color={BRAND_COLORS.success.main}
                           />
                         </div>
-                        <div className="col-12 col-md-6 col-lg-4">
+                        <div className="col-12 col-md-6 col-lg-4 d-flex">
                           <InfoItem
                             icon={<FaMapMarkerAlt />}
                             label="Full Address"
                             value={college.address}
-                            fullWidth
-                            color={BRAND_COLORS.danger.main}
                           />
                         </div>
-                        <div className="col-12 col-md-6 col-lg-4">
+                        <div className="col-12 col-md-6 col-lg-4 d-flex">
                           <InfoItem
                             icon={<FaCalendarAlt />}
                             label="Established Year"
                             value={college.establishedYear?.toString() || "N/A"}
-                            color={BRAND_COLORS.warning.main}
                           />
                         </div>
-                        <div className="col-12 col-md-6 col-lg-4">
+                        <div className="col-12 col-md-6 col-lg-4 d-flex">
                           <InfoItem
-                            icon={<FaShieldAlt />}
+                            icon={<FaBuilding />}
                             label="College Type"
                             value={college.collegeType || "Private"}
-                            color={BRAND_COLORS.info.main}
                           />
                         </div>
-                        <div className="col-12 col-md-6 col-lg-4">
+                        <div className="col-12 col-md-6 col-lg-4 d-flex">
                           <InfoItem
                             icon={<FaCalendarAlt />}
                             label="Member Since"
-                            value={new Date(
-                              college.createdAt,
-                            ).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                            color={BRAND_COLORS.secondary.main}
+                            value={
+                              college.createdAt
+                                ? new Date(college.createdAt).toLocaleDateString(
+                                    "en-US",
+                                    {
+                                      year: "numeric",
+                                      month: "long",
+                                      day: "numeric",
+                                    },
+                                  )
+                                : "N/A"
+                            }
                           />
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </section>
                 </motion.div>
 
-                {/* ================= QUICK ACTIONS CARD ================= */}
+                {/* ================= QUICK ACTIONS ================= */}
                 <motion.div
                   variants={fadeInVariants}
                   custom={1}
                   initial="hidden"
                   animate="visible"
-                  style={{ gridColumn: "1 / -1" }}
+                  className="col-12"
                 >
-                  <div
+                  <section
+                    className="college-profile-section"
                     style={{
-                      backgroundColor: "white",
-                      borderRadius: "1.5rem",
-                      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.08)",
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #dfe7ee",
+                      borderRadius: "14px",
+                      boxShadow: "0 2px 10px rgba(15, 58, 74, 0.04)",
                       overflow: "hidden",
+                      marginTop: "-1.6rem",
                     }}
                   >
                     <div
                       style={{
-                        padding: "1.5rem",
-                        background: BRAND_COLORS.success.gradient,
-                        color: "white",
+                        padding: "1.1rem 1.25rem 0.9rem",
+                        borderBottom: "1px solid #edf2f6",
                       }}
                     >
                       <h2
                         style={{
                           margin: 0,
-                          fontSize: "1.25rem",
+                          fontSize: "1.1rem",
                           fontWeight: 700,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "0.5rem",
+                          color: "#153f50",
+                          lineHeight: 1.25,
                         }}
                       >
-                        <FaBolt /> Quick Actions
+                        Quick Action
                       </h2>
+                      <p
+                        style={{
+                          margin: "0.2rem 0 0",
+                          fontSize: "0.84rem",
+                          color: "#64748b",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        Access frequently used administrative areas
+                      </p>
                     </div>
-                    <div className="p-4">
-                      <div className="row g-3">
+                    <div style={{ padding: "1rem 1.25rem 1.25rem" }}>
+                      <div className="row g-3 college-quick-actions-grid">
                         {quickActions.map((action, idx) => (
-                          <motion.div
-                            key={idx}
-                            whileHover={{
-                              y: -5,
-                              boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-                            }}
-                            whileTap={{ scale: 0.98 }}
-                            className="col-6 col-md-4 col-lg-2"
-                          >
-                            <button
+                          <div key={idx} className="col-12 col-md-6 col-lg-4">
+                            <QuickActionCard
+                              icon={action.icon}
+                              label={action.label}
+                              description={action.description}
                               onClick={() => navigate(action.path)}
-                              style={{
-                                width: "100%",
-                                backgroundColor: "white",
-                                border: `2px solid ${action.color}`,
-                                padding: "1.25rem 1rem",
-                                borderRadius: "1rem",
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                gap: "0.75rem",
-                                cursor: "pointer",
-                                transition: "all 0.3s ease",
-                                color: action.color,
-                                fontWeight: 600,
-                                fontSize: "0.95rem",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  fontSize: "1.75rem",
-                                  color: action.color,
-                                }}
-                              >
-                                {action.icon}
-                              </div>
-                              <span>{action.label}</span>
-                            </button>
-                          </motion.div>
+                              accent={action.accent}
+                              accentBg={action.accentBg}
+                              accentBorder={action.accentBorder}
+                              accentBgHover={action.accentBgHover}
+                            />
+                          </div>
                         ))}
                       </div>
                     </div>
-                  </div>
+                  </section>
                 </motion.div>
               </div>
             </div>
@@ -918,6 +965,38 @@ export default function CollegeProfile() {
           </motion.div> */}
         </div>
         <style>{`
+  .college-profile-responsive .college-profile-section { scroll-margin-top: 1rem; }
+  .college-profile-edit-btn:focus-visible,
+  .college-quick-action-card:focus-visible,
+  .college-info-item:focus-visible {
+    outline: 2px solid #0f3a4a;
+    outline-offset: 2px;
+    
+  }
+  .college-quick-action-card:hover {
+    border-color: var(--qa-border, #b8c8d3) !important;
+    box-shadow: 0 8px 18px rgba(15, 58, 74, 0.08);
+  }
+  .college-quick-action-card:hover .college-quick-action-icon {
+    background: var(--qa-bg-hover, #e2e8f0) !important;
+  }
+  .college-quick-action-card:hover .college-quick-action-arrow {
+    opacity: 1;
+    transform: translate(1px, -1px);
+  }
+  /* Institute Information: equal-height grid, consistent alignment, no overflow */
+  .college-institute-grid > [class*="col-"] { min-width: 0; }
+  .college-institute-grid .college-info-item {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+  @media (max-width: 767px) {
+    .college-profile-banner { padding: 1rem !important; align-items: stretch !important; }
+    .college-profile-banner-main { flex: 1 1 100% !important; }
+    .college-profile-edit-btn { width: 100%; }
+    .college-info-item { padding: 14px 16px !important; min-height: 84px !important; }
+    .college-info-item-icon { width: 44px !important; height: 44px !important; min-width: 44px !important; }
+  }
 
 /* =========================================================
    COLLEGE PROFILE - RESPONSIVE DESIGN
@@ -2241,16 +2320,111 @@ function EmptyState({ onBack }) {
   );
 }
 
-/* ================= INFO ITEM ================= */
-function InfoItem({
+/* ================= QUICK ACTION CARD ================= */
+function QuickActionCard({
   icon,
   label,
-  value,
-  copyable = false,
-  fullWidth = false,
-  color,
+  description,
+  onClick,
+  accent = "#0f3a4a",
+  accentBg = "#f1f5f9",
+  accentBorder = "#cbd5e1",
+  accentBgHover = "#e2e8f0",
 }) {
+  return (
+    <motion.button
+      type="button"
+      whileHover={{ y: -2 }}
+      whileTap={{ scale: 0.99 }}
+      onClick={onClick}
+      className="college-quick-action-card"
+      aria-label={`${label}: ${description}`}
+      style={{
+        "--qa-accent": accent,
+        "--qa-bg": accentBg,
+        "--qa-border": accentBorder,
+        "--qa-bg-hover": accentBgHover,
+        width: "100%",
+        minHeight: "132px",
+        backgroundColor: "#ffffff",
+        border: "1px solid #dfe7ee",
+        borderTop: `3px solid ${accent}`,
+        padding: "1rem",
+        borderRadius: "12px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        textAlign: "left",
+        cursor: "pointer",
+        transition: "border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease",
+        position: "relative",
+        boxShadow: "0 1px 2px rgba(15, 58, 74, 0.03)",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        className="college-quick-action-arrow"
+        style={{
+          position: "absolute",
+          top: "0.85rem",
+          right: "0.85rem",
+          color: accent,
+          display: "inline-flex",
+          opacity: 0.75,
+          transition: "opacity 0.2s ease, transform 0.2s ease",
+        }}
+      >
+        <FaExternalLinkAlt size={12} />
+      </span>
+      <span
+        aria-hidden="true"
+        className="college-quick-action-icon"
+        style={{
+          width: "46px",
+          height: "46px",
+          minWidth: "46px",
+          borderRadius: "12px",
+          background: accentBg,
+          color: accent,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "1.2rem",
+          marginBottom: "0.85rem",
+          transition: "background-color 0.2s ease",
+        }}
+      >
+        {icon}
+      </span>
+      <span
+        style={{
+          fontSize: "0.98rem",
+          fontWeight: 600,
+          color: "#153f50",
+          lineHeight: 1.25,
+          paddingRight: "1.25rem",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          marginTop: "0.3rem",
+          fontSize: "0.82rem",
+          color: "#64748b",
+          lineHeight: 1.4,
+        }}
+      >
+        {description}
+      </span>
+    </motion.button>
+  );
+}
+
+/* ================= INFO ITEM ================= */
+function InfoItem({ icon, label, value, copyable = false }) {
   const [copied, setCopied] = React.useState(false);
+  const displayValue = value || "N/A";
 
   const handleCopy = () => {
     if (copyable && value) {
@@ -2260,68 +2434,113 @@ function InfoItem({
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (copyable && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      handleCopy();
+    }
+  };
+
   return (
     <motion.div
-      whileHover={{ x: 5, backgroundColor: "#f8fafc" }}
+      whileHover={{ backgroundColor: "#f8fafc" }}
+      className="college-info-item"
       style={{
-        gridColumn: fullWidth ? "1 / -1" : "span 1",
-        padding: "1rem",
-        border: "1px solid #e2e8f0",
-        borderRadius: "1rem",
-        backgroundColor: "white",
+        width: "100%",
+        height: "100%",
+        minHeight: "88px",
+        padding: "16px",
+        border: "1px solid #dfe7ee",
+        borderRadius: "12px",
+        backgroundColor: "#fcfdfe",
         cursor: copyable ? "pointer" : "default",
-        transition: "all 0.3s ease",
+        transition: "background-color 0.2s ease, border-color 0.2s ease",
+        boxSizing: "border-box",
+        display: "flex",
+        alignItems: "center",
       }}
       onClick={handleCopy}
+      onKeyDown={handleKeyDown}
+      role={copyable ? "button" : undefined}
+      tabIndex={copyable ? 0 : undefined}
+      aria-label={copyable ? `Copy ${label}: ${displayValue}` : undefined}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", gap: "1rem" }}>
+      <div
+        className="college-info-item-inner"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          width: "100%",
+          minWidth: 0,
+        }}
+      >
         <div
+          className="college-info-item-icon"
           style={{
-            width: "40px",
-            height: "40px",
-            backgroundColor: `${color}15`,
-            color: color,
-            borderRadius: "0.75rem",
+            width: "44px",
+            height: "44px",
+            minWidth: "44px",
+            backgroundColor: "rgba(15, 58, 74, 0.08)",
+            color: "#0f3a4a",
+            borderRadius: "10px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
           }}
+          aria-hidden="true"
         >
           {React.cloneElement(icon, { size: 18 })}
         </div>
-        <div style={{ flex: 1 }}>
-          <h6
+        <div
+          className="college-info-item-text"
+          style={{ flex: 1, minWidth: 0, alignSelf: "center" }}
+        >
+          <div
             style={{
               margin: 0,
-              marginBottom: "0.25rem",
+              marginBottom: "4px",
               color: "#64748b",
-              fontSize: "0.75rem",
-              fontWeight: 500,
+              fontSize: "0.72rem",
+              fontWeight: 600,
               textTransform: "uppercase",
-              letterSpacing: "0.5px",
+              letterSpacing: "0.04em",
+              lineHeight: 1.2,
             }}
           >
             {label}
-          </h6>
-          <h5
+          </div>
+          <div
             style={{
               margin: 0,
               fontWeight: 600,
-              color: "#1e293b",
-              fontSize: "1rem",
-              display: "flex",
-              alignItems: "center",
-              gap: "0.5rem",
+              color: "#153f50",
+              fontSize: "0.94rem",
+              lineHeight: 1.4,
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+              whiteSpace: "normal",
             }}
           >
-            {value || "-"}
+            {displayValue}
             {copyable && copied && (
-              <span style={{ color: "#10b981", fontSize: "0.75rem" }}>
-                <FaCheckCircle size={14} /> Copied!
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                  marginLeft: "0.4rem",
+                  color: "#15803d",
+                  fontSize: "0.72rem",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <FaCheckCircle size={12} /> Copied
               </span>
             )}
-          </h5>
+          </div>
         </div>
       </div>
     </motion.div>

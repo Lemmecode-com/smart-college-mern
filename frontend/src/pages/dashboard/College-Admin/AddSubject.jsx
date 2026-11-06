@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
 import Loading from "../../../components/Loading";
 import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
@@ -463,109 +464,42 @@ if (loadingDepartments) {
           </div>
 
           {/* ================= HEADER ================= */}
+          <PageHeader
+            icon={FaBookOpen}
+            title="Add New Subject"
+            subtitle="Create academic subject with department and course assignment"
+          />
+
+          {/* Info Banner */}
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
             animate="visible"
-            className="add-subject-hero"
+            className="add-subject-workflow"
             style={{
-              marginBottom: "2rem",
-              backgroundColor: "#0E3746",
-              borderRadius: "1.5rem",
-              overflow: "hidden",
-              boxShadow: "0 10px 40px rgba(26, 75, 109, 0.15)",
+              padding: "1rem 2rem",
+              backgroundColor: "#dbeafe",
+              borderTop: "1px solid #bfdbfe",
+              borderRadius: "12px",
+              marginBottom: "1.5rem",
               display: "flex",
-              flexDirection: "column",
+              alignItems: "center",
+              gap: "1rem",
+              flexWrap: "wrap",
             }}
           >
-            <div
+            <FaInfoCircle
               style={{
-                padding: "2rem",
-                background: "linear-gradient(135deg, #0f3a4a 0%, #164e63 100%)",
-                color: "white",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: "1.5rem",
-                marginBottom: "-1.5rem",
+                color: BRAND_COLORS.primary.main,
+                fontSize: "1.2rem",
+                flexShrink: 0,
               }}
-            >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}
-              >
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  style={{
-                    width: "52px",
-                    height: "52px",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    border: "1px solid rgba(255, 255, 255, 0.08)",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "1.35rem",
-                    flexShrink: 0,
-                  }}
-                >
-                  <FaBookOpen />
-                </motion.div>
-                <div>
-                  <h1
-                    style={{
-                      margin: 0,
-                      fontSize: "1.8rem",
-                      fontWeight: 700,
-                      lineHeight: 1.1,
-                    }}
-                  >
-                    Add New Subject
-                  </h1>
-                  <p
-                    style={{
-                      margin: "0.75rem 0 0 0",
-                      opacity: 0.9,
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    Create academic subject with department and course
-                    assignment
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Info Banner */}
+            />
             <div
-              className="add-subject-workflow"
-              style={{
-                padding: "1rem 2rem",
-                backgroundColor: "#dbeafe",
-                borderTop: "1px solid #bfdbfe",
-                display: "flex",
-                alignItems: "center",
-                gap: "1rem",
-                flexWrap: "wrap",
-              }}
-
+              style={{ color: "#1e293b", fontWeight: 500, lineHeight: 1.5, fontSize: "15px" }}
             >
-              <FaInfoCircle
-                style={{
-                  color: BRAND_COLORS.primary.main,
-                  fontSize: "1.5rem",
-                  flexShrink: 0,
-
-                }}
-              />
-                <div
-                  style={{ color: "#1e293b", fontWeight: 500, lineHeight: 1.5,  }}
-                >
-                  <strong>Workflow:</strong> Select Department → Choose Course →
-                  Enter Subject Details → Generate/Enter Subject Code
-                </div>
+              <strong>Workflow:</strong> Select Department → Choose Course →
+              Enter Subject Details → Generate/Enter Subject Code
             </div>
           </motion.div>
 

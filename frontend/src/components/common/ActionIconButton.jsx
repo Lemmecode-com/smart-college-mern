@@ -139,6 +139,7 @@ export default function ActionIconButton({
           <Icon
             className={iconClassName}
             aria-hidden="true"
+            style={{ display: 'inline-block', flexShrink: 0 }}
           />
         )}
         {badge != null && badge !== false && (
@@ -148,6 +149,7 @@ export default function ActionIconButton({
           <TrailingIcon
             className={trailingIconClassName}
             aria-hidden="true"
+            style={{ display: 'inline-block', flexShrink: 0 }}
           />
         )}
       </ButtonComponent>
