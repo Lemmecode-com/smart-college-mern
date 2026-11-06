@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FaExclamationTriangle,
@@ -24,6 +24,80 @@ export default function ConfirmModal({
   inputRows = 3,
   confirmDisabled = false,
 }) {
+  const modalRef = useRef(null);
+
+  // Close on Escape key (not while loading)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && !isLoading) {
+        onClose?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, isLoading, onClose]);
+
+  // Focus trap and auto-focus
+  useEffect(() => {
+    if (!isOpen || !modalRef.current) return;
+
+    const modalElement = modalRef.current;
+    const previouslyFocusedElement = document.activeElement;
+    const focusableSelectors =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+    const focusTimer = setTimeout(() => {
+      const focusables = modalElement.querySelectorAll(focusableSelectors);
+      const textInput = modalElement.querySelector("textarea, input");
+      if (textInput) {
+        textInput.focus();
+      } else if (focusables.length > 0) {
+        focusables[0].focus();
+      }
+    }, 50);
+
+    const handleTabKey = (e) => {
+      if (e.key !== "Tab") return;
+
+      const focusables = Array.from(
+        modalElement.querySelectorAll(focusableSelectors)
+      ).filter((el) => el.offsetParent !== null);
+
+      if (focusables.length === 0) {
+        e.preventDefault();
+        return;
+      }
+
+      const firstElement = focusables[0];
+      const lastElement = focusables[focusables.length - 1];
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    modalElement.addEventListener("keydown", handleTabKey);
+
+    return () => {
+      clearTimeout(focusTimer);
+      modalElement.removeEventListener("keydown", handleTabKey);
+      if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === "function") {
+        previouslyFocusedElement.focus();
+      }
+    };
+  }, [isOpen]);
+
   const typeConfig = {
     warning: {
       icon: FaExclamationTriangle,
@@ -62,10 +136,16 @@ export default function ConfirmModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
+          onClick={!isLoading ? onClose : undefined}
         >
           <motion.div
+            ref={modalRef}
             className="erp-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="erp-modal-title"
+            aria-describedby={message ? "erp-modal-desc" : undefined}
+            tabIndex={-1}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
@@ -98,6 +178,7 @@ export default function ConfirmModal({
                 />
               </motion.div>
               <h3
+                id="erp-modal-title"
                 style={{
                   margin: 0,
                   fontSize: "1.5rem",
@@ -112,6 +193,7 @@ export default function ConfirmModal({
             <div className="erp-modal-body">
               {message && (
                 <div
+                  id="erp-modal-desc"
                   style={{
                     margin: 0,
                     color: "#64748b",

@@ -5,6 +5,7 @@ import Loading from "../../../../components/Loading";
 import Breadcrumb from "../../../../components/Breadcrumb";
 import ApiError from "../../../../components/ApiError";
 import PageHeader from "../../../../components/PageHeader";
+import ConfirmModal from "../../../../components/ConfirmModal";
 import { logger } from "../../../../utils/logger";
 import {
   FaFileAlt,
@@ -20,6 +21,8 @@ import {
   FaImages,
   FaFilePdf,
   FaFileWord,
+  FaBook,
+  FaLayerGroup,
 } from "react-icons/fa";
 
 export default function DocumentSettings() {
@@ -30,6 +33,8 @@ export default function DocumentSettings() {
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isModified, setIsModified] = useState(false);
   const [pageError, setPageError] = useState(null);
+  const [selectedStandardDoc, setSelectedStandardDoc] = useState("");
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const AUTH_ERROR_CODES = new Set([
     "TOKEN_MISSING",
@@ -100,6 +105,19 @@ export default function DocumentSettings() {
   useEffect(() => {
     loadDocumentConfig();
   }, []);
+
+  // Warn on tab close / reload if there are unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isModified) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isModified]);
 
   const loadDocumentConfig = async () => {
     try {
@@ -192,6 +210,72 @@ export default function DocumentSettings() {
     setIsModified(true);
   };
 
+  const addStandardDocument = (standardType) => {
+    const stdDoc = defaultDocumentTypes.find((d) => d.type === standardType);
+    if (!stdDoc) return;
+
+    const existingIndex = documents.findIndex((d) => d.type === standardType);
+    if (existingIndex !== -1) {
+      const updated = [...documents];
+      updated[existingIndex].enabled = true;
+      setDocuments(updated);
+      setIsModified(true);
+      setMessage({
+        type: "success",
+        text: `"${stdDoc.label}" was already in your list and has now been enabled!`,
+      });
+      return;
+    }
+
+    const newDoc = {
+      type: stdDoc.type,
+      label: stdDoc.label,
+      enabled: true,
+      mandatory: false,
+      allowedFormats: stdDoc.defaultFormats,
+      maxFileSize: 5,
+      description: stdDoc.description || "",
+      order: documents.length,
+    };
+    setDocuments([...documents, newDoc]);
+    setIsModified(true);
+    setMessage({
+      type: "success",
+      text: `Added standard document "${stdDoc.label}". Click "Save Configuration" to apply.`,
+    });
+  };
+
+  const loadAllStandardDefaults = () => {
+    const existingTypes = new Set(documents.map((d) => d.type));
+    const toAdd = defaultDocumentTypes
+      .filter((d) => d.type !== "custom_document" && !existingTypes.has(d.type))
+      .map((d, idx) => ({
+        type: d.type,
+        label: d.label,
+        enabled: true,
+        mandatory: false,
+        allowedFormats: d.defaultFormats,
+        maxFileSize: 5,
+        description: d.description || "",
+        order: documents.length + idx,
+      }));
+
+    if (toAdd.length === 0) {
+      setMessage({
+        type: "info",
+        text: "All standard documents are already in your list!",
+      });
+      return;
+    }
+
+    setDocuments([...documents, ...toAdd]);
+    setIsModified(true);
+    setMessage({
+      type: "success",
+      text: `Added ${toAdd.length} standard documents! Please review and click "Save Configuration".`,
+    });
+  };
+
   const addCustomDocument = () => {
     const newDoc = {
       type: `custom_${Date.now()}`,
@@ -267,27 +351,28 @@ export default function DocumentSettings() {
     }
   };
 
-  const handleReset = async () => {
-    if (
-      !window.confirm(
-        "⚠️ Are you sure you want to remove ALL document requirements?\n\nThis will:\n- Remove all document upload requirements\n- Students will NOT need to upload any files\n- You can reconfigure documents later",
-      )
-    ) {
-      return;
-    }
+  const handleReset = () => {
+    setShowResetConfirm(true);
+  };
 
+  const executeReset = async () => {
     try {
       setSaving(true);
       await api.post("/document-config/admin/college/reset");
+      setShowResetConfirm(false);
       setMessage({
         type: "success",
         text: "Configuration reset! No documents are now required for registration.",
       });
-      loadDocumentConfig();
+      await loadDocumentConfig();
       setIsModified(false);
     } catch (error) {
       logger.error("Error resetting document config:", error.response?.status, error.response?.data?.code);
-      setMessage({ type: "error", text: "Failed to reset configuration" });
+      setMessage({
+        type: "error",
+        text: error.response?.data?.message || "Failed to reset configuration",
+      });
+      setShowResetConfirm(false);
     } finally {
       setSaving(false);
     }
@@ -961,6 +1046,12 @@ export default function DocumentSettings() {
           background: linear-gradient(135deg, #f8d7da, #f5c6cb);
           color: #721c24;
           border: 1px solid #f5c6cb;
+        }
+
+        .message-alert.info {
+          background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+          color: #0c5460;
+          border: 1px solid #bee5eb;
         }
 
         .message-icon {
@@ -2280,6 +2371,51 @@ export default function DocumentSettings() {
           background: #0c5d72;
         }
 
+        .document-settings-page .select-standard-doc {
+          min-height: 38px;
+          padding: 0.45rem 0.85rem;
+          border: 1.5px solid #0f7189;
+          border-radius: 8px;
+          background-color: #ffffff;
+          color: #0c2d3a;
+          font-size: 0.82rem;
+          font-weight: 600;
+          outline: none;
+          cursor: pointer;
+          transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .document-settings-page .select-standard-doc:hover {
+          border-color: #0c5d72;
+          background-color: #f7fbfd;
+        }
+
+        .document-settings-page .select-standard-doc:focus {
+          box-shadow: 0 0 0 3px rgba(15, 113, 137, 0.16);
+        }
+
+        .document-settings-page .btn-load-defaults {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          min-height: 38px;
+          padding: 0.5rem 0.8rem;
+          border: 1.5px solid #0f7189;
+          border-radius: 8px;
+          background: #ffffff;
+          color: #0f7189;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.18s ease;
+        }
+
+        .document-settings-page .btn-load-defaults:hover {
+          background: #e8f4f9;
+          border-color: #0c5d72;
+          transform: translateY(-1px);
+        }
+
         .document-settings-page .table-responsive {
           overflow-x: auto;
           overscroll-behavior-x: contain;
@@ -2492,6 +2628,8 @@ export default function DocumentSettings() {
             flex-direction: column;
           }
 
+          .document-settings-page .select-standard-doc,
+          .document-settings-page .btn-load-defaults,
           .document-settings-page .btn-add-document {
             width: 100%;
             justify-content: center;
@@ -2613,11 +2751,19 @@ export default function DocumentSettings() {
         {/* ================= MESSAGE ALERT ================= */}
         {message.text && (
           <div
-            className={`message-alert ${message.type === "success" ? "success" : "error"}`}
+            className={`message-alert ${
+              message.type === "success"
+                ? "success"
+                : message.type === "info"
+                ? "info"
+                : "error"
+            }`}
           >
             <span className="message-icon">
               {message.type === "success" ? (
                 <FaCheckCircle />
+              ) : message.type === "info" ? (
+                <FaInfoCircle />
               ) : (
                 <FaExclamationCircle />
               )}
@@ -2690,9 +2836,48 @@ export default function DocumentSettings() {
         <div className="documents-card">
           <div className="card-header-custom">
             <h5>Document Configuration</h5>
-            <button className="btn-add-document" onClick={addCustomDocument}>
-              <FaPlus /> Add Custom Document
-            </button>
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <select
+                className="select-standard-doc"
+                value={selectedStandardDoc}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    addStandardDocument(e.target.value);
+                    setSelectedStandardDoc("");
+                  }
+                }}
+                aria-label="Add standard document"
+              >
+                <option value="">➕ Add Standard Document...</option>
+                {defaultDocumentTypes
+                  .filter((d) => d.type !== "custom_document")
+                  .map((stdDoc) => {
+                    const isAlreadyAdded = documents.some((d) => d.type === stdDoc.type);
+                    return (
+                      <option
+                        key={stdDoc.type}
+                        value={stdDoc.type}
+                        disabled={isAlreadyAdded}
+                      >
+                        {stdDoc.label} {isAlreadyAdded ? "✓ (Added)" : ""}
+                      </option>
+                    );
+                  })}
+              </select>
+
+              <button
+                type="button"
+                className="btn-load-defaults"
+                onClick={loadAllStandardDefaults}
+                title="Populate standard college documents (10th, 12th, Photo, Aadhar, etc.)"
+              >
+                <FaBook /> Load All Presets
+              </button>
+
+              <button className="btn-add-document" onClick={addCustomDocument}>
+                <FaPlus /> Add Custom Document
+              </button>
+            </div>
           </div>
           <div className="table-responsive">
             <table className="documents-table">
@@ -2881,6 +3066,19 @@ export default function DocumentSettings() {
             </button>
           </div>
         )}
+
+        {/* ================= RESET CONFIRMATION MODAL ================= */}
+        <ConfirmModal
+          isOpen={showResetConfirm}
+          onClose={() => !saving && setShowResetConfirm(false)}
+          onConfirm={executeReset}
+          title="Reset Configuration to Empty?"
+          message={`Are you sure you want to remove ALL document requirements?\n\nThis will:\n• Remove all document upload requirements\n• Students will NOT need to upload any files\n• You can reconfigure documents later`}
+          type="danger"
+          confirmText="Yes, Reset to Empty"
+          cancelText="Cancel"
+          isLoading={saving}
+        />
       </div>
     </>
   );

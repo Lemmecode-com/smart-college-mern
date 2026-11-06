@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const collegeRazorpayService = require("../services/collegeRazorpay.service");
 const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
@@ -23,49 +24,28 @@ async function processPaymentVerification(
   next,
 ) {
   try {
-    // 🔥 If already paid → just return existing data (Layer 1)
-    if (installment.status === "PAID") {
-      logger.logWarning("🟡 Installment already paid", {
-        studentFeeId: studentFee._id,
-        installmentId: installment._id,
-      });
-      // Recalculate paidAmount to ensure consistency and persist
-      studentFee.paidAmount = studentFee.installments
-        .filter((i) => i.status === "PAID")
-        .reduce((sum, i) => sum + i.amount, 0);
-      await studentFee.save();
-      return res.json({
-        valid: true,
-        alreadyPaid: true,
-        installment: {
-          _id: installment._id,
-          installmentName: installment.name,
-          amount: installment.amount,
-          paidAt: installment.paidAt,
-          transactionId: installment.transactionId,
-          status: installment.status,
-          paymentGateway: installment.paymentGateway || "RAZORPAY",
-        },
-        totalFee: studentFee.totalFee,
-        paidAmount: studentFee.paidAmount,
-        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
-      });
-    }
+    const installmentId = installment._id;
+    const installmentObjId = new mongoose.Types.ObjectId(installmentId);
 
-    // 🔥 Additional duplicate protection: check if this exact payment was already processed (Layer 2)
+    // 🔥 If already paid or duplicate payment ID -> return existing data idempotently (Layer 1 & 2)
     if (
+      installment.status === "PAID" ||
       installment.razorpayPaymentId === razorpay_payment_id ||
       installment.transactionId === razorpay_payment_id
     ) {
-      logger.logWarning("🟡 Payment already processed (duplicate payment ID)", {
+      logger.logWarning("🟡 Installment already paid or duplicate payment ID", {
+        studentFeeId: studentFee._id,
         installmentId: installment._id,
-        razorpayPaymentId: razorpay_payment_id,
+        paymentId: razorpay_payment_id,
       });
-      // Recalculate paidAmount and persist
-      studentFee.paidAmount = studentFee.installments
-        .filter((i) => i.status === "PAID")
-        .reduce((sum, i) => sum + i.amount, 0);
-      await studentFee.save();
+
+      const currentPaid =
+        studentFee.paidAmount !== undefined && studentFee.paidAmount !== null
+          ? studentFee.paidAmount
+          : studentFee.installments
+              .filter((i) => i.status === "PAID")
+              .reduce((sum, i) => sum + i.amount, 0);
+
       return res.json({
         valid: true,
         alreadyPaid: true,
@@ -74,19 +54,20 @@ async function processPaymentVerification(
           installmentName: installment.name,
           amount: installment.amount,
           paidAt: installment.paidAt,
-          transactionId: installment.transactionId,
+          transactionId: installment.transactionId || razorpay_payment_id,
           status: "PAID",
           paymentGateway: installment.paymentGateway || "RAZORPAY",
         },
         totalFee: studentFee.totalFee,
-        paidAmount: studentFee.paidAmount,
-        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+        paidAmount: currentPaid,
+        remainingAmount: studentFee.totalFee - currentPaid,
       });
     }
 
     /* =========================
-       ATOMIC UPDATE PAYMENT STATUS (IDEMPOTENT)
-       Uses updateOne with condition to prevent race conditions
+       ATOMIC UPDATE PAYMENT STATUS (IDEMPOTENT & SINGLE ROUND-TRIP)
+       Single findOneAndUpdate with aggregation pipeline conditioned on status PENDING.
+       Recomputes installments, paidAmount, and paymentStatus atomically.
     ========================== */
 
     logger.logInfo("🔒 Performing atomic payment status update", {
@@ -96,100 +77,140 @@ async function processPaymentVerification(
       orderId: razorpay_order_id,
     });
 
-    // ATOMIC UPDATE: Only update if status is still PENDING (prevents race conditions)
-    const updateResult = await StudentFee.updateOne(
+    const updatedStudentFee = await StudentFee.findOneAndUpdate(
       {
         _id: studentFee._id,
-        "installments._id": installment._id,
-        "installments.status": "PENDING", // ← Only update if still PENDING
-      },
-      {
-        $set: {
-          "installments.$.status": "PAID",
-          "installments.$.paidAt": new Date(),
-          "installments.$.transactionId": razorpay_payment_id,
-          "installments.$.paymentGateway": "RAZORPAY",
-          "installments.$.razorpayOrderId": razorpay_order_id,
-          "installments.$.razorpayPaymentId": razorpay_payment_id,
+        college_id: studentFee.college_id,
+        installments: {
+          $elemMatch: {
+            _id: installmentObjId,
+            status: "PENDING",
+          },
         },
       },
+      [
+        {
+          $set: {
+            installments: {
+              $map: {
+                input: "$installments",
+                as: "inst",
+                in: {
+                  $cond: [
+                    { $eq: ["$$inst._id", installmentObjId] },
+                    {
+                      $mergeObjects: [
+                        "$$inst",
+                        {
+                          status: "PAID",
+                          paidAt: "$$NOW",
+                          transactionId: razorpay_payment_id,
+                          paymentGateway: "RAZORPAY",
+                          razorpayOrderId: razorpay_order_id,
+                          razorpayPaymentId: razorpay_payment_id,
+                        },
+                      ],
+                    },
+                    "$$inst",
+                  ],
+                },
+              },
+            },
+          },
+        },
+        {
+          $set: {
+            paidAmount: {
+              $sum: {
+                $map: {
+                  input: {
+                    $filter: {
+                      input: "$installments",
+                      as: "inst",
+                      cond: { $eq: ["$$inst.status", "PAID"] },
+                    },
+                  },
+                  as: "paidInst",
+                  in: "$$paidInst.amount",
+                },
+              },
+            },
+          },
+        },
+        {
+          $set: {
+            paymentStatus: {
+              $cond: [
+                { $gte: ["$paidAmount", "$totalFee"] },
+                "PAID",
+                {
+                  $cond: [
+                    { $gt: ["$paidAmount", 0] },
+                    "PARTIAL",
+                    "PENDING",
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      ],
+      { new: true, updatePipeline: true },
     );
 
-    logger.logInfo("✅ Atomic payment update completed", {
-      matchedCount: updateResult.matchedCount,
-      modifiedCount: updateResult.modifiedCount,
-    });
-
-// Check if update was successful
-    if (updateResult.matchedCount === 0) {
-      // Installment was already paid or not found (race condition prevented)
+    // If update returned null, installment was already paid concurrently (race condition handled)
+    if (!updatedStudentFee) {
       logger.logWarning(
         "⚠️ Payment update skipped - installment already paid or not found",
         {
           studentFeeId: studentFee._id,
           installmentId: installment._id,
-          matchedCount: updateResult.matchedCount,
         },
       );
 
-      // Fetch latest data to return
-      const latestStudentFee = await StudentFee.findById(studentFee._id);
-      const latestInstallment = latestStudentFee.installments.id(
-        installment._id,
-      );
-
-      // Recalculate paidAmount for consistency
-      const paidAmount = latestStudentFee.installments
-        .filter((i) => i.status === "PAID")
-        .reduce((sum, i) => sum + i.amount, 0);
+      const latestFee = await StudentFee.findById(studentFee._id);
+      const latestInst =
+        latestFee?.installments.id(installment._id) || installment;
+      const latestPaidAmount = latestFee?.paidAmount ?? studentFee.paidAmount;
 
       return res.json({
         valid: true,
         alreadyPaid: true,
         installment: {
-          _id: latestInstallment._id,
-          installmentName: latestInstallment.name,
-          amount: latestInstallment.amount,
-          paidAt: latestInstallment.paidAt,
-          transactionId: latestInstallment.transactionId,
-          status: latestInstallment.status,
+          _id: latestInst._id,
+          installmentName: latestInst.name,
+          amount: latestInst.amount,
+          paidAt: latestInst.paidAt,
+          transactionId: latestInst.transactionId || razorpay_payment_id,
+          status: latestInst.status || "PAID",
+          paymentGateway: latestInst.paymentGateway || "RAZORPAY",
         },
-        totalFee: latestStudentFee.totalFee,
-        paidAmount: paidAmount,
+        totalFee: latestFee?.totalFee ?? studentFee.totalFee,
+        paidAmount: latestPaidAmount,
         remainingAmount:
-          latestStudentFee.totalFee - paidAmount,
+          (latestFee?.totalFee ?? studentFee.totalFee) - latestPaidAmount,
       });
     }
 
-    /* =========================
-       Recalculate paid amount (only after successful update)
-       Save the updated paidAmount to database
-    ========================== */
+    const updatedInstallment =
+      updatedStudentFee.installments.id(installment._id) || installment;
+    const paidAmount = updatedStudentFee.paidAmount;
 
-    // Fetch updated data for accurate calculation
-    const updatedStudentFee = await StudentFee.findById(studentFee._id);
-    const paidAmount = updatedStudentFee.installments
-      .filter((i) => i.status === "PAID")
-      .reduce((sum, i) => sum + i.amount, 0);
-
-    // Save the recalculated paidAmount
-    updatedStudentFee.paidAmount = paidAmount;
-    await updatedStudentFee.save();
-
-    logger.logInfo("✅ Payment verified and recorded atomically", {
+    logger.logInfo("✅ Payment verified and recorded atomically in single query", {
       studentId: student._id,
-      studentFeeId: studentFee._id,
+      studentFeeId: updatedStudentFee._id,
       totalFee: updatedStudentFee.totalFee,
       paidAmount: paidAmount,
+      paymentStatus: updatedStudentFee.paymentStatus,
       remaining: updatedStudentFee.totalFee - paidAmount,
     });
 
-    // 📧 Send payment confirmation email (non-blocking)
+    // 📧 Send payment confirmation email (non-blocking in background)
     (async () => {
       try {
         const claimed = await StudentFee.findOneAndUpdate(
           {
-            _id: studentFee._id,
+            _id: updatedStudentFee._id,
             installments: {
               $elemMatch: {
                 _id: installment._id,
@@ -219,7 +240,6 @@ async function processPaymentVerification(
         const college = await College.findById(student.college_id).select(
           "name email gstin state",
         );
-        const course = await Course.findById(student.course_id).select("name");
 
         await emailService.sendPaymentReceiptEmail({
           to: student.email,
@@ -227,10 +247,16 @@ async function processPaymentVerification(
           installment: {
             name: installment.name,
             amount: installment.amount,
-            baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : (installment.taxBreakdown?.taxableBase || installment.amount),
-            gstAmount: installment.gstAmount !== undefined ? installment.gstAmount : (installment.taxBreakdown?.totalTax || 0),
+            baseAmount:
+              installment.baseAmount !== undefined
+                ? installment.baseAmount
+                : installment.taxBreakdown?.taxableBase || installment.amount,
+            gstAmount:
+              installment.gstAmount !== undefined
+                ? installment.gstAmount
+                : installment.taxBreakdown?.totalTax || 0,
             taxBreakdown: installment.taxBreakdown || null,
-            paidAt: new Date(),
+            paidAt: updatedInstallment?.paidAt || new Date(),
             transactionId: razorpay_payment_id,
           },
           totalFee: updatedStudentFee.totalFee,
@@ -251,7 +277,7 @@ async function processPaymentVerification(
       }
     })();
 
-    res.json({
+    return res.json({
       valid: true,
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
@@ -259,7 +285,7 @@ async function processPaymentVerification(
         _id: installment._id,
         installmentName: installment.name,
         amount: installment.amount,
-        paidAt: new Date(),
+        paidAt: updatedInstallment?.paidAt || new Date(),
         transactionId: razorpay_payment_id,
         status: "PAID",
         paymentGateway: "RAZORPAY",
@@ -609,7 +635,6 @@ exports.createRazorpayOrder = async (req, res, next) => {
     );
 
     try {
-      // Method 1: Use save() - most reliable for nested documents
       const installmentToUpdate = studentFee.installments.id(installment._id);
       if (installmentToUpdate) {
         installmentToUpdate.razorpayOrderId = order.id;
@@ -622,33 +647,6 @@ exports.createRazorpayOrder = async (req, res, next) => {
             orderId: order.id,
           },
         );
-
-        // Verify the save worked
-        const verification = await StudentFee.findById(studentFee._id);
-        const verifiedInstallment = verification.installments.id(
-          installment._id,
-        );
-        logger.logInfo(
-          "🔍 [createRazorpayOrder] Verification - razorpayOrderId in DB",
-          {
-            savedOrderId: verifiedInstallment?.razorpayOrderId || "NOT FOUND",
-          },
-        );
-
-        if (verifiedInstallment?.razorpayOrderId !== order.id) {
-          logger.logError(
-            "❌ [createRazorpayOrder] VERIFICATION FAILED! Order ID not saved!",
-            {
-              expectedOrderId: order.id,
-              actualOrderId: verifiedInstallment?.razorpayOrderId,
-            },
-          );
-          throw new AppError(
-            "Failed to save payment order. Please try again.",
-            500,
-            "ORDER_SAVE_FAILED",
-          );
-        }
       } else {
         logger.logError(
           "❌ [createRazorpayOrder] Installment not found in array!",
@@ -901,162 +899,9 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
         {
           orderId: razorpay_order_id,
           studentId: student._id.toString(),
+          collegeId,
         },
       );
-
-      // FALLBACK: Try to find by installment name using Razorpay notes
-      logger.logInfo(
-        "🔵 [verifyRazorpayPayment] FALLBACK: Fetching order from Razorpay to get notes...",
-      );
-
-      try {
-        const razorpay = await collegeRazorpayService.getRazorpayInstance(collegeId);
-        const orderDetails = await razorpay.orders.fetch(razorpay_order_id);
-
-        logger.logInfo(
-          "🟢 [verifyRazorpayPayment] Order fetched from Razorpay",
-          {
-            orderId: orderDetails.id,
-            notes: orderDetails.notes,
-          },
-        );
-
-        if (orderDetails.notes && orderDetails.notes.installmentName) {
-          const installmentName = orderDetails.notes.installmentName;
-          logger.logInfo(
-            "🔵 [verifyRazorpayPayment] FALLBACK: Looking for installment by name",
-            {
-              installmentName,
-            },
-          );
-
-          // Try to find fee record with matching installment name scoped by college_id
-          const fallbackFee = await StudentFee.findOne({
-            student_id: student._id,
-            college_id: collegeId,
-            "installments.name": installmentName,
-          });
-
-          if (fallbackFee) {
-            logger.logInfo(
-              "🟢 [verifyRazorpayPayment] FALLBACK SUCCESS: Found fee record",
-            );
-
-            // Find the specific installment
-            const fallbackInstallment = fallbackFee.installments.find(
-              (i) => i.name === installmentName && i.status === "PENDING",
-            );
-
-            if (fallbackInstallment) {
-              // Validate amount and currency
-              const expectedAmountInPaise = Math.round(
-                fallbackInstallment.amount * 100,
-              );
-              if (
-                orderDetails.amount !== expectedAmountInPaise ||
-                orderDetails.currency !== "INR"
-              ) {
-                logger.logError(
-                  "❌ [verifyRazorpayPayment] FALLBACK: Order amount or currency mismatch",
-                  {
-                    expectedAmount: expectedAmountInPaise,
-                    actualAmount: orderDetails.amount,
-                    expectedCurrency: "INR",
-                    actualCurrency: orderDetails.currency,
-                  },
-                );
-                throw new AppError(
-                  "Payment verification failed. Amount or currency mismatch.",
-                  400,
-                  "PAYMENT_AMOUNT_MISMATCH",
-                );
-              }
-
-              logger.logInfo(
-                "🟢 [verifyRazorpayPayment] FALLBACK: Found installment, updating razorpayOrderId...",
-              );
-
-              // Update the razorpayOrderId for future reference
-              const installmentToUpdate = fallbackFee.installments.id(
-                fallbackInstallment._id,
-              );
-              if (installmentToUpdate) {
-                installmentToUpdate.razorpayOrderId = razorpay_order_id;
-                installmentToUpdate.paymentAttemptAt = new Date();
-                await fallbackFee.save();
-                logger.logInfo(
-                  "✅ [verifyRazorpayPayment] FALLBACK: razorpayOrderId saved for future",
-                );
-              }
-
-              // Continue with this installment
-              logger.logInfo(
-                "🟢 [verifyRazorpayPayment] FALLBACK: Proceeding with payment verification",
-              );
-              return processPaymentVerification(
-                fallbackFee,
-                fallbackInstallment,
-                razorpay_order_id,
-                razorpay_payment_id,
-                student,
-                res,
-                next,
-              );
-            } else {
-              logger.logError(
-                "❌ [verifyRazorpayPayment] FALLBACK: Installment not found or not PENDING",
-                {
-                  installmentName,
-                },
-              );
-            }
-          } else {
-            logger.logError(
-              "❌ [verifyRazorpayPayment] FALLBACK: No fee record found with installment name",
-              {
-                installmentName,
-              },
-            );
-          }
-        } else {
-          logger.logError(
-            "❌ [verifyRazorpayPayment] FALLBACK: No installmentName in order notes",
-          );
-        }
-      } catch (fallbackError) {
-        logger.logError("❌ [verifyRazorpayPayment] FALLBACK failed", {
-          error: fallbackError.message,
-          stack: fallbackError.stack,
-        });
-        // Continue to error handling below
-      }
-
-      // Debug: Check if student has any fee record
-      const anyFee = await StudentFee.findOne({
-        student_id: student._id,
-        college_id: collegeId,
-      });
-      if (!anyFee) {
-        logger.logError(
-          "❌ [verifyRazorpayPayment] Student has NO fee record at all!",
-          {
-            studentId: student._id,
-          },
-        );
-        throw new AppError("Fee record not found", 404, "FEE_RECORD_NOT_FOUND");
-      }
-
-      // Debug: Show all installments for this student
-      logger.logInfo("📋 [verifyRazorpayPayment] Student installments", {
-        installmentsCount: anyFee.installments.length,
-        installments: anyFee.installments.map((inst, idx) => ({
-          index: idx,
-          name: inst.name,
-          status: inst.status,
-          razorpayOrderId: inst.razorpayOrderId || "NOT SET",
-        })),
-      });
-
       throw new AppError(
         "Installment not found. This may happen if the order expired or wasn't saved properly. Please try creating a new payment.",
         404,
@@ -1089,29 +934,26 @@ exports.verifyRazorpayPayment = async (req, res, next) => {
       status: installment.status,
     });
 
-    // Validate order amount and currency against Razorpay order
-    const razorpay = await collegeRazorpayService.getRazorpayInstance(collegeId);
-    const orderDetails = await razorpay.orders.fetch(razorpay_order_id);
-
-    const expectedAmountInPaise = Math.round(installment.amount * 100);
-    if (
-      orderDetails.amount !== expectedAmountInPaise ||
-      orderDetails.currency !== "INR"
-    ) {
-      logger.logError(
-        "❌ [verifyRazorpayPayment] Order amount or currency mismatch",
-        {
-          expectedAmount: expectedAmountInPaise,
-          actualAmount: orderDetails.amount,
-          expectedCurrency: "INR",
-          actualCurrency: orderDetails.currency,
-        },
-      );
-      throw new AppError(
-        "Payment verification failed. Amount or currency mismatch.",
-        400,
-        "PAYMENT_AMOUNT_MISMATCH",
-      );
+    // Validate optional client amount against DB installment record
+    if (req.body.amount !== undefined) {
+      const bodyAmount = Number(req.body.amount);
+      const expectedRupees = installment.amount;
+      const expectedPaise = Math.round(installment.amount * 100);
+      if (bodyAmount !== expectedRupees && bodyAmount !== expectedPaise) {
+        logger.logError(
+          "❌ [verifyRazorpayPayment] Amount mismatch against DB installment",
+          {
+            bodyAmount,
+            expectedRupees,
+            expectedPaise,
+          },
+        );
+        throw new AppError(
+          "Payment verification failed. Amount mismatch.",
+          400,
+          "PAYMENT_AMOUNT_MISMATCH",
+        );
+      }
     }
 
     // Use helper function to process verification

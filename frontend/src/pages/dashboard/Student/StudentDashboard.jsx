@@ -573,25 +573,16 @@ export default function StudentDashboard() {
   // Loading State
   if (status === "loading") {
     return (
-      <div className="sd-page">
-        <ToastContainer position="top-right" autoClose={3000} theme="colored" />
-        <div className="sd-container">
-          <header className="sd-hero">
-            <div className="sd-hero-left">
-              <span className="sd-hero-subtitle">Student Portal</span>
-              <h1 className="sd-hero-title">Loading dashboard...</h1>
-            </div>
-            <div className="sd-hero-right">
-              <LiveClock />
-            </div>
-          </header>
-          <div className="sd-loading-container">
-            <Loading
-              size="md"
-              color="primary"
-              text="Fetching your academic records..."
-            />
-          </div>
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Student Dashboard..."
+          />
         </div>
       </div>
     );

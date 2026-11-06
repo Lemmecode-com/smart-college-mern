@@ -307,6 +307,12 @@ exports.createException = async (req, res, next) => {
             _id: hodDepartment.hod_id,
           }).populate("user_id", "_id");
           if (hodUser && hodUser.user_id) {
+            const teacherName = (teacher?.name || req.user.name || "A teacher").trim();
+            const exceptionType = exception.type || type || "TIMETABLE";
+            const dateObj = exception.exceptionDate ? new Date(exception.exceptionDate) : (exceptionDate ? new Date(exceptionDate) : null);
+            const formattedDate = dateObj && !isNaN(dateObj.getTime())
+              ? dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+              : "the scheduled date";
             await Notification.create({
               college_id: req.college_id,
               createdBy: req.user.id,
@@ -314,7 +320,7 @@ exports.createException = async (req, res, next) => {
               target: "INDIVIDUAL",
               target_users: [hodUser.user_id._id],
               title: "New Timetable Exception Request",
-              message: "A teacher has submitted a timetable exception request requiring your approval.",
+              message: `${teacherName} has requested a ${exceptionType} exception for ${formattedDate}. Approval required.`,
               type: "ACADEMIC",
               actionUrl: "/hod/exception-approvals",
             });
@@ -527,6 +533,12 @@ exports.createBulkExceptions = async (req, res, next) => {
                   _id: hodDept.hod_id,
                 }).populate("user_id", "_id");
                 if (hodUser && hodUser.user_id) {
+                  const teacherName = (teacher?.name || req.user.name || "A teacher").trim();
+                  const exceptionType = createdExc.type || "TIMETABLE";
+                  const dateObj = createdExc.exceptionDate ? new Date(createdExc.exceptionDate) : null;
+                  const formattedDate = dateObj && !isNaN(dateObj.getTime())
+                    ? dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+                    : "the scheduled date";
                   await Notification.create({
                     college_id: req.college_id,
                     createdBy: req.user.id,
@@ -534,7 +546,7 @@ exports.createBulkExceptions = async (req, res, next) => {
                     target: "INDIVIDUAL",
                     target_users: [hodUser.user_id._id],
                     title: "New Timetable Exception Request",
-                    message: "A teacher has submitted a timetable exception request requiring your approval.",
+                    message: `${teacherName} has requested a ${exceptionType} exception for ${formattedDate}. Approval required.`,
                     type: "ACADEMIC",
                     actionUrl: "/hod/exception-approvals",
                   });

@@ -209,7 +209,7 @@ const getNotificationVisibilityQuery = async ({
             {
               createdByRole: "TEACHER",
               $or: [
-                { createdBy: userObjectId },
+                { createdBy: userObjectId, target: { $ne: "INDIVIDUAL" } },
                 ...(teacherProfile
                   ? [
                       { target: "ALL" },
@@ -255,9 +255,9 @@ const getNotificationVisibilityQuery = async ({
               target: "INDIVIDUAL",
               target_users: userObjectId,
             },
-            // Own HOD notifications (HOD-created by this user). These are already
-            // department-scoped at creation time, so no extra dept filter needed.
-            { createdByRole: "HOD", createdBy: userObjectId },
+            // Own HOD notifications (HOD-created broadcasts by this user).
+            // INDIVIDUAL workflow notifications addressed to someone else do not echo.
+            { createdByRole: "HOD", createdBy: userObjectId, target: { $ne: "INDIVIDUAL" } },
             // HOD-created broadcasts from the same department (other HODs in the
             // same dept, or dept-scoped HOD-target notifications).
             ...(teacherProfile
