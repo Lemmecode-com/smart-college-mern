@@ -692,7 +692,10 @@ const styles = `
 .err .btn-sheet-view {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.45rem;
+  min-width: 36px;
+  min-height: 36px;
   padding: 0.42rem 0.85rem;
   font-size: 0.82rem;
   font-weight: 600;
@@ -703,6 +706,12 @@ const styles = `
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+}
+.err .btn-sheet-view svg {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1em;
+  height: 1em;
 }
 .err .btn-sheet-view:hover {
   background: #f0f9ff;
