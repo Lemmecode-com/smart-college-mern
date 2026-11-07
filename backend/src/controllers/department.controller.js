@@ -391,6 +391,10 @@ exports.assignHOD = async (req, res) => {
       return ApiResponse.error(res, "Teacher must belong to the same department", "INVALID_TEACHER_DEPARTMENT", 400);
     }
 
+    if (teacher.status !== "ACTIVE") {
+      return ApiResponse.error(res, "Only active teachers can be assigned as HOD", "TEACHER_INACTIVE", 400);
+    }
+
     // Step 0: Check if teacher is already HOD of another department (uniqueness validation)
     const existingHodAssignment = await Department.findOne({
       college_id: req.college_id,
@@ -527,7 +531,7 @@ exports.removeHOD = async (req, res) => {
     const oldHodTeacher = await Teacher.findOne({
       _id: oldHodId,
       college_id: req.college_id
-    }).select("user_id name");
+    });
 
     let oldHodUserId = null;
     let oldHodName = null;

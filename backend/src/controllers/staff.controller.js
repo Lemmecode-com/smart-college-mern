@@ -861,18 +861,36 @@ exports.updateStaffProfile = async (req, res, next) => {
         await User.findByIdAndUpdate(id, userFields, { session, new: true });
       }
 
-      // Sync Teacher.name with User.name when name changes
-      if (userFields.name && userFields.name !== user.name) {
-        const Teacher = require("../models/teacher.model");
-        const teacher = await Teacher.findOne({
-          user_id: id,
-          college_id: req.user.college_id,
-        });
-        if (teacher) {
+      // Sync Teacher model with updated user & profile fields if teacher exists
+      const Teacher = require("../models/teacher.model");
+      const teacher = await Teacher.findOne({
+        user_id: id,
+        college_id: req.user.college_id,
+      });
+      if (teacher) {
+        const teacherUpdate = {};
+        if (userFields.name) teacherUpdate.name = userFields.name;
+        if (profileFields.designation) teacherUpdate.designation = profileFields.designation;
+        if (profileFields.qualification) teacherUpdate.qualification = profileFields.qualification;
+        if (profileFields.experienceYears !== undefined && profileFields.experienceYears !== "") {
+          teacherUpdate.experienceYears = Number(profileFields.experienceYears);
+        }
+        if (profileFields.mobileNumber !== undefined) teacherUpdate.mobileNumber = profileFields.mobileNumber;
+        if (profileFields.gender) teacherUpdate.gender = profileFields.gender;
+        if (profileFields.bloodGroup) teacherUpdate.bloodGroup = profileFields.bloodGroup;
+        if (profileFields.dateOfBirth) teacherUpdate.dateOfBirth = profileFields.dateOfBirth;
+        if (profileFields.address !== undefined) teacherUpdate.address = profileFields.address;
+        if (profileFields.city !== undefined) teacherUpdate.city = profileFields.city;
+        if (profileFields.state !== undefined) teacherUpdate.state = profileFields.state;
+        if (profileFields.pincode !== undefined) teacherUpdate.pincode = profileFields.pincode;
+        if (profileFields.employmentType) teacherUpdate.employmentType = profileFields.employmentType;
+        if (profileFields.joiningDate) teacherUpdate.joiningDate = profileFields.joiningDate;
+
+        if (Object.keys(teacherUpdate).length > 0) {
           await Teacher.findByIdAndUpdate(
             teacher._id,
-            { name: userFields.name },
-            { session, new: true }
+            teacherUpdate,
+            { session, new: true, runValidators: true }
           );
         }
       }

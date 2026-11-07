@@ -716,15 +716,30 @@ exports.updateTeacher = async (req, res, next) => {
     delete updateData.user_id;
     delete updateData.college_id;
 
+    const existingTeacher = await Teacher.findOne({
+      _id: id,
+      college_id: req.college_id,
+    });
+
+    if (!existingTeacher) {
+      throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
+    }
+
     // 🔐 Email cannot be updated via this endpoint
     // Email changes must go through the centralized secure email-change flow
-    if (updateData.email) {
+    if (
+      updateData.email &&
+      existingTeacher.email &&
+      updateData.email.toLowerCase().trim() !== existingTeacher.email.toLowerCase().trim()
+    ) {
       return res.status(400).json({
         message:
           "Email cannot be updated here. Use the secure email-change flow.",
         code: "EMAIL_CHANGE_NOT_ALLOWED",
       });
     }
+    // Delete email so it does not trigger duplicate key or validator issues
+    delete updateData.email;
 
     // Parse JSON-encoded arrays from FormData
     if (typeof updateData.courses === 'string') {
@@ -741,15 +756,6 @@ exports.updateTeacher = async (req, res, next) => {
       removedDocs.push(...JSON.parse(req.body.removedDocuments || "[]"));
     } catch (e) {
       // ignore invalid JSON
-    }
-
-    const existingTeacher = await Teacher.findOne({
-      _id: id,
-      college_id: req.college_id,
-    });
-
-    if (!existingTeacher) {
-      throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
 
     const storageService = getStorageProvider().getAdapter();
@@ -872,6 +878,13 @@ exports.updateTeacher = async (req, res, next) => {
     if (!teacher) {
       throw new AppError("Teacher not found", 404, "TEACHER_NOT_FOUND");
     }
+
+    if (updateData.name && existingTeacher.user_id) {
+      await User.findByIdAndUpdate(existingTeacher.user_id, {
+        name: updateData.name,
+      });
+    }
+
 
     ApiResponse.success(
       res,
