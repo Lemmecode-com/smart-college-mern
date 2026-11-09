@@ -21,7 +21,10 @@ const auditLogService = require("../services/auditLog.service");
 const { getStorageProvider } = require("../services/storage");
 const { createPromotionDecision } = require("../services/promotionDecision.service");
 const { checkAlumniEligibility } = require("../services/alumniEligibility.service");
-const { getActiveStudentFee } = require("../services/studentFee.service");
+const {
+  getActiveStudentFee,
+  mapAuthoritativeFeesByStudent,
+} = require("../services/studentFee.service");
 
 const {
   processUploadsWithStorage,
@@ -54,7 +57,7 @@ const resolveDocumentRef = async (student, fieldPath) => {
 
   return null;
 };
-
+ 
 // Resolve student's active documents from Document collection
 const resolveActiveStudentDocuments = async (student) => {
   if (!student || !student.documentRefs || student.documentRefs.length === 0) {
@@ -624,7 +627,7 @@ exports.getMyFullProfile = async (req, res, next) => {
             foreignField: "_id",
             as: "subject",
           },
-        },
+        }, 
         {
           $unwind: {
             path: "$subject",
@@ -1193,7 +1196,7 @@ exports.getApprovedStudents = async (req, res) => {
       college_id: req.college_id,
     });
 
-    const feeMap = new Map(fees.map((f) => [f.student_id.toString(), f]));
+    const feeMap = mapAuthoritativeFeesByStudent(fees);
 
     const studentsWithFee = students.map((student) => ({
       ...student.toObject(),

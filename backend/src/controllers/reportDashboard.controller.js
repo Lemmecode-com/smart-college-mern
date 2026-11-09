@@ -39,7 +39,8 @@ exports.getAllReports = async (req, res, next) => {
     });
     const total = await Student.countDocuments({ college_id });
 
-    const approvalPercentage = total > 0 ? Math.round((approvalCount / total) * 100) : 0;
+    const approvedPercentage = total > 0 ? Math.round((approvalCount / total) * 100) : 0;
+    const approvalPercentage = approvedPercentage;
     const pendingPercentage = total > 0 ? Math.round((pending / total) * 100) : 0;
     const rejectedPercentage = total > 0 ? Math.round((rejected / total) * 100) : 0;
 
@@ -130,23 +131,6 @@ exports.getAllReports = async (req, res, next) => {
     }
 
     studentFees = studentFees.slice(0, 100);
-
-    // If no fee records, create from approved students
-    if (studentFees.length === 0 && authoritativeFees.length === 0) {
-      const approvedStudents = await Student.find({ college_id, status: "APPROVED" })
-        .populate("course_id", "name")
-        .select("fullName email course_id")
-        .limit(100);
-      
-      studentFees = approvedStudents.map(student => ({
-        _id: student._id,
-        student_id: student,
-        course_id: student.course_id,
-        totalFee: 50000, // Default fee
-        paidAmount: 0,
-        installments: []
-      }));
-    }
 
     // Filter by course
     if (course && course !== "ALL") {

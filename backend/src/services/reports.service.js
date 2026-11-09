@@ -9,6 +9,7 @@ const {
   normalizeAcademicYear,
   getStudentActiveAcademicYear,
   selectAuthoritativeFee,
+  getAuthoritativeFeeIds,
 } = require("./studentFee.service");
 const logger = require("../utils/logger");
 const AppError = require("../utils/AppError");
@@ -626,6 +627,17 @@ exports.paymentSummaryWithDateRange = async (college_id, startDate, endDate) => 
   const matchConditions = { college_id: new mongoose.Types.ObjectId(college_id) };
 
   if (startDate || endDate) {
+    const authFeeIds = await getAuthoritativeFeeIds(college_id);
+    if (authFeeIds.length === 0) {
+      return {
+        totalExpectedFee: 0,
+        totalCollected: 0,
+        totalPending: 0,
+        collectionRate: 0,
+        dateRange: { startDate, endDate },
+      };
+    }
+
     const paidAt = {};
 
     if (startDate) {
@@ -638,6 +650,7 @@ exports.paymentSummaryWithDateRange = async (college_id, startDate, endDate) => 
       paidAt.$lte = endDateTime;
     }
 
+    matchConditions._id = { $in: authFeeIds };
     matchConditions.installments = { $elemMatch: { paidAt } };
 
     const result = await StudentFee.aggregate([
@@ -801,12 +814,37 @@ exports.paymentTrendsByMonth = async (college_id, year = new Date().getFullYear(
   const startOfYear = new Date(year, 0, 1);
   const endOfYear = new Date(year, 11, 31, 23, 59, 59);
 
+  const authFeeIds = await getAuthoritativeFeeIds(college_id);
+
+  if (authFeeIds.length === 0) {
+    const emptyTrends = [];
+    for (let month = 1; month <= 12; month++) {
+      emptyTrends.push({
+        month: month,
+        monthName: new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' }),
+        totalCollected: 0,
+        transactionCount: 0
+      });
+    }
+
+    return {
+      year,
+      trends: emptyTrends,
+      totalYearCollection: 0,
+      totalYearTransactions: 0,
+      bestMonth: null,
+      previousYearTotal: 0,
+      yoyGrowth: 0
+    };
+  }
+
   const [monthlyTrends, prevYearTrends] = await Promise.all([
     // Current year monthly data
     StudentFee.aggregate([
       {
         $match: {
           college_id: new mongoose.Types.ObjectId(college_id),
+          _id: { $in: authFeeIds },
           "installments.paidAt": {
             $gte: startOfYear,
             $lte: endOfYear
@@ -840,6 +878,7 @@ exports.paymentTrendsByMonth = async (college_id, year = new Date().getFullYear(
       {
         $match: {
           college_id: new mongoose.Types.ObjectId(college_id),
+          _id: { $in: authFeeIds },
           "installments.paidAt": {
             $gte: new Date(year - 1, 0, 1),
             $lte: new Date(year - 1, 11, 31, 23, 59, 59)

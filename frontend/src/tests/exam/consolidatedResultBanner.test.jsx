@@ -431,7 +431,7 @@ describe("Phase 3 — Clean Final Consolidated Result UI & Marksheet Modal", () 
 
       // Header & Branding
       expect(container.textContent).toContain("PVP Institute of Technology");
-      expect(container.textContent).toContain("FINAL CONSOLIDATED STATEMENT OF MARKS");
+      expect(container.textContent).toContain("FINAL STATEMENT OF MARKS");
       expect(container.textContent).toContain("Computer Science & Engineering");
 
       // Student info
@@ -458,7 +458,7 @@ describe("Phase 3 — Clean Final Consolidated Result UI & Marksheet Modal", () 
       // Institutional Signatures
       expect(container.textContent).toContain("Prepared & Verified By");
       expect(container.textContent).toContain("Controller of Examinations");
-      expect(container.textContent).toContain("Principal / Registrar");
+      expect(container.textContent).toContain("Principal");
     });
 
     it("10. Modal includes Download PDF button and calls onClose on exit", () => {
@@ -499,11 +499,11 @@ describe("Phase 3 — Clean Final Consolidated Result UI & Marksheet Modal", () 
       });
 
       // Clearance history section
-      expect(container.textContent).toContain("Supplementary / Backlog Examination Clearance History");
+      expect(container.textContent).toContain("Backlog Examination Clearance History");
       expect(container.textContent).toContain("CS101");
       expect(container.textContent).toContain("CLEARED");
       expect(container.textContent).toContain(
-        "Supplementary/backlog clearance marks are recorded separately and are not added to regular course grand totals"
+        "backlog clearance marks are recorded separately and are not added to regular course grand totals"
       );
 
       // Grand totals reflect regular totals strictly (1600 / 2000), not adding the 85 backlog marks

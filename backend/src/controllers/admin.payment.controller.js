@@ -19,6 +19,7 @@ const {
 } = require("../services/reports.service");
 const {
    selectAuthoritativeFee,
+   recalculateStudentFeePaidAmount,
 } = require("../services/studentFee.service");
 
 /**
@@ -401,8 +402,8 @@ exports.markInstallmentAsPaid = async (req, res, next) => {
       installment.documentId = paymentProofDocumentId;
     }
 
-    // Update total paid amount
-    studentFee.paidAmount += installment.amount;
+    // Recalculate total paid amount from all PAID installments to prevent drift
+    recalculateStudentFeePaidAmount(studentFee);
 
     await studentFee.save();
 
