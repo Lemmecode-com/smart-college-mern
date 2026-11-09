@@ -3,14 +3,14 @@ const StudentFee = require("../models/studentFee.model");
 const Student = require("../models/student.model");
 const College = require("../models/college.model");
 const CollegePaymentConfig = require("../models/collegePaymentConfig.model");
-const { sendPaymentReceiptEmail } = require("../services/email.service");
+const emailService = require("../services/email.service");
 const { decryptRazorpayKey, decrypt } = require("../utils/encryption.util");
 const logger = require("../utils/logger");
 
 /**
  * Get Razorpay instance and webhook secret for a specific college
  * @param {string} collegeId - The college ID
- * @returns {Promise<{razorpay: Object, webhookSecret: string}>}
+ * @returns {Promise<{webhookSecret: string, config: Object}>}
  */
 async function getCollegeRazorpayWebhookConfig(collegeId) {
   const config = await CollegePaymentConfig.findOne({
@@ -23,9 +23,8 @@ async function getCollegeRazorpayWebhookConfig(collegeId) {
     throw new Error(`Razorpay config not found for college ${collegeId}`);
   }
 
-  // Decrypt secret key and webhook secret
-  const keySecret = decryptRazorpayKey(config.credentials.keySecret);
-  const webhookSecret = config.credentials.webhookSecret
+  // Decrypt webhook secret
+  const webhookSecret = config.credentials?.webhookSecret
     ? decrypt(config.credentials.webhookSecret)
     : null;
 
@@ -36,32 +35,59 @@ async function getCollegeRazorpayWebhookConfig(collegeId) {
 }
 
 /**
- * Extract college ID from Razorpay order metadata
- * @param {Object} order - Razorpay order
- * @returns {string} College ID
+ * Atomically claim receipt email sending permission for an installment.
+ * Prevents concurrent webhooks/requests from sending duplicate receipt emails.
+ * @param {string|ObjectId} studentFeeId
+ * @param {string|ObjectId} installmentId
+ * @returns {Promise<Document|null>}
  */
-function extractCollegeIdFromOrder(order) {
-  // Try to get college ID from notes
-  if (order.notes?.collegeId) {
-    return order.notes.collegeId;
-  }
+async function claimReceiptEmail(studentFeeId, installmentId) {
+  return await StudentFee.findOneAndUpdate(
+    {
+      _id: studentFeeId,
+      installments: {
+        $elemMatch: {
+          _id: installmentId,
+          $or: [
+            { receiptEmailSentAt: null },
+            { receiptEmailSentAt: { $exists: false } },
+          ],
+        },
+      },
+    },
+    {
+      $set: {
+        "installments.$.receiptEmailSentAt": new Date(),
+      },
+    },
+    { new: true },
+  );
+}
 
-  // Fallback: Look up from student record
-  if (order.notes?.studentId) {
-    return null; // Will be resolved later
-  }
-
-  throw new Error("Cannot determine college ID from order");
+/**
+ * Recalculate paidAmount from all PAID installments and persist to DB (source of truth).
+ * @param {string|ObjectId} studentFeeId
+ * @returns {Promise<Document|null>}
+ */
+async function recalculateAndPersistPaidAmount(studentFeeId) {
+  const fee = await StudentFee.findById(studentFeeId);
+  if (!fee) return null;
+  const paidAmount = fee.installments
+    .filter((i) => i.status === "PAID")
+    .reduce((sum, i) => sum + i.amount, 0);
+  fee.paidAmount = paidAmount;
+  await fee.save();
+  return fee;
 }
 
 /**
  * Multi-tenant Razorpay Webhook Handler
  *
  * This handler:
- * 1. Extracts college ID from order metadata
+ * 1. Extracts college ID from order/payment metadata or resolves from student fee
  * 2. Fetches college-specific Razorpay configuration
- * 3. Verifies webhook signature using college's webhook secret
- * 4. Processes the event
+ * 3. Verifies webhook signature using timing-safe HMAC comparison with college's secret
+ * 4. Processes the event idempotently
  *
  * Supported events:
  * - payment.captured
@@ -78,9 +104,16 @@ exports.handleRazorpayWebhook = async (req, res) => {
     ip: req.ip,
   });
 
-  // Handle raw body from express.raw() middleware
+  if (!signature) {
+    logger.logError("Missing Razorpay signature header", { ip: req.ip });
+    return res.status(400).json({ error: "Missing signature" });
+  }
+
+  // Handle raw body (captured via express.json verify callback as req.rawBody)
   let rawBody;
-  if (Buffer.isBuffer(req.body)) {
+  if (req.rawBody && Buffer.isBuffer(req.rawBody)) {
+    rawBody = req.rawBody;
+  } else if (Buffer.isBuffer(req.body)) {
     rawBody = req.body;
     try {
       req.body = JSON.parse(rawBody.toString("utf8"));
@@ -92,31 +125,37 @@ exports.handleRazorpayWebhook = async (req, res) => {
       return res.status(400).send("Invalid JSON body");
     }
   } else {
-    rawBody = Buffer.from(JSON.stringify(req.body));
+    rawBody = Buffer.from(JSON.stringify(req.body || {}));
   }
 
   event = req.body;
 
   try {
-    // ✅ Step 1: Extract college ID from order
+    // ✅ Step 1: Extract college ID from order/payment metadata
     if (event.payload?.order?.entity?.notes?.collegeId) {
       collegeId = event.payload.order.entity.notes.collegeId;
       logger.logInfo("College ID extracted from order metadata", { collegeId });
+    } else if (event.payload?.payment?.entity?.notes?.collegeId) {
+      collegeId = event.payload.payment.entity.notes.collegeId;
+      logger.logInfo("College ID extracted from payment notes", { collegeId });
     } else if (event.payload?.payment?.entity?.order_id) {
-      // If collegeId not in notes, look up from order
       const orderId = event.payload.payment.entity.order_id;
       const studentFee = await StudentFee.findOne({
         "installments.razorpayOrderId": orderId,
       });
 
       if (studentFee) {
-        const student = await Student.findById(studentFee.student_id);
-        if (student) {
-          collegeId = student.college_id.toString();
-          logger.logInfo("College ID resolved from student record", {
-            collegeId,
-          });
+        if (studentFee.college_id) {
+          collegeId = studentFee.college_id.toString();
+        } else {
+          const student = await Student.findById(studentFee.student_id);
+          if (student) {
+            collegeId = student.college_id.toString();
+          }
         }
+        logger.logInfo("College ID resolved from fee/student record", {
+          collegeId,
+        });
       }
     }
 
@@ -128,13 +167,27 @@ exports.handleRazorpayWebhook = async (req, res) => {
     // ✅ Step 2: Get college-specific webhook secret
     const { webhookSecret } = await getCollegeRazorpayWebhookConfig(collegeId);
 
-    // ✅ Step 3: Verify webhook signature
+    if (!webhookSecret) {
+      logger.logError("Webhook secret not configured for college", { collegeId });
+      return res.status(400).json({
+        error:
+          "Webhook secret not configured for this college. Please configure webhook secret in college admin dashboard.",
+      });
+    }
+
+    // ✅ Step 3: Verify webhook signature using timing-safe comparison
     const expectedSignature = crypto
       .createHmac("sha256", webhookSecret)
       .update(rawBody)
       .digest("hex");
 
-    if (signature !== expectedSignature) {
+    const sigBuf = Buffer.from(signature, "utf8");
+    const expBuf = Buffer.from(expectedSignature, "utf8");
+
+    if (
+      sigBuf.length !== expBuf.length ||
+      !crypto.timingSafeEqual(sigBuf, expBuf)
+    ) {
       logger.logError("Webhook signature verification failed", {
         providedSignature: signature,
         expectedSignature: expectedSignature,
@@ -189,10 +242,14 @@ exports.handleRazorpayWebhook = async (req, res) => {
  * Handle payment.captured event
  *
  * DUPLICATE PROTECTION LAYERS:
- * 1. Check if installment status is already PAID
- * 2. Check if razorpayPaymentId was already processed (explicit duplicate check)
- * 3. Check if transactionId matches (legacy fallback)
- * 4. Recalculate paidAmount from all PAID installments (source of truth)
+ * 1. Scope query by college_id
+ * 2. Validate amount and currency (INR)
+ * 3. Layer 1: Check if installment status is already PAID -> recalculate paidAmount, claim & send receipt email if unsent
+ * 4. Layer 2: Check if razorpayPaymentId was already processed
+ * 5. Layer 3: Check if transactionId matches
+ * 6. Atomic update with status: PENDING condition
+ * 7. Recalculate paidAmount from all PAID installments (source of truth)
+ * 8. Atomic claim and dispatch for receipt email
  */
 async function handlePaymentCaptured(payload, collegeId) {
   const { payment, order } = payload;
@@ -201,18 +258,21 @@ async function handlePaymentCaptured(payload, collegeId) {
     paymentId: payment.entity.id,
     orderId: order.entity.id,
     amount: payment.entity.amount,
+    currency: payment.entity.currency,
     status: payment.entity.status,
     collegeId,
   });
 
-  // Find student fee record by Razorpay order ID
+  // Find student fee record by Razorpay order ID scoped by college_id
   const studentFee = await StudentFee.findOne({
+    college_id: collegeId,
     "installments.razorpayOrderId": order.entity.id,
   });
 
   if (!studentFee) {
     logger.logError("StudentFee not found for order", {
       orderId: order.entity.id,
+      collegeId,
     });
     return;
   }
@@ -223,6 +283,22 @@ async function handlePaymentCaptured(payload, collegeId) {
 
   if (!installment) {
     logger.logError("Installment not found for order", {
+      orderId: order.entity.id,
+    });
+    return;
+  }
+
+  // Validate payment amount (paise) and currency
+  const expectedAmountInPaise = Math.round(installment.amount * 100);
+  if (
+    payment.entity.amount !== expectedAmountInPaise ||
+    payment.entity.currency !== "INR"
+  ) {
+    logger.logError("Payment amount or currency mismatch", {
+      expectedAmount: expectedAmountInPaise,
+      actualAmount: payment.entity.amount,
+      expectedCurrency: "INR",
+      actualCurrency: payment.entity.currency,
       orderId: order.entity.id,
     });
     return;
@@ -239,41 +315,47 @@ async function handlePaymentCaptured(payload, collegeId) {
       },
     );
 
-    // 📧 WEBHOOK PRIMARY: Ensure receipt email is sent (even if already paid)
-    if (!installment.receiptEmailSentAt) {
+    // Recalculate and persist paidAmount from all PAID installments to ensure consistency
+    const updatedFee = await recalculateAndPersistPaidAmount(studentFee._id);
+
+    // 📧 WEBHOOK PRIMARY: Ensure receipt email is sent atomically (even if already paid)
+    const claimed = await claimReceiptEmail(studentFee._id, installment._id);
+    if (claimed) {
       try {
         const student = await Student.findById(studentFee.student_id).select(
           "email fullName",
         );
+        const college = await College.findById(collegeId).select(
+          "name email gstin state",
+        );
 
         if (student) {
-          await sendPaymentReceiptEmail({
+          await emailService.sendPaymentReceiptEmail({
             to: student.email,
             studentName: student.fullName,
             installment: {
               name: installment.name,
               amount: installment.amount,
+              baseAmount:
+                installment.baseAmount !== undefined
+                  ? installment.baseAmount
+                  : installment.taxBreakdown?.taxableBase || installment.amount,
+              gstAmount:
+                installment.gstAmount !== undefined
+                  ? installment.gstAmount
+                  : installment.taxBreakdown?.totalTax || 0,
+              taxBreakdown: installment.taxBreakdown || null,
               paidAt: installment.paidAt,
-              transactionId: installment.transactionId,
+              transactionId: installment.transactionId || payment.entity.id,
             },
-            totalFee: studentFee.totalFee,
-            paidAmount: studentFee.paidAmount,
-            remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+            totalFee: updatedFee?.totalFee ?? studentFee.totalFee,
+            paidAmount: updatedFee?.paidAmount ?? studentFee.paidAmount,
+            remainingAmount:
+              (updatedFee?.totalFee ?? studentFee.totalFee) -
+              (updatedFee?.paidAmount ?? studentFee.paidAmount),
             collegeId,
+            collegeGstin: college?.gstin || null,
           });
-
-          // Mark email as sent
-          await StudentFee.updateOne(
-            {
-              _id: studentFee._id,
-              "installments._id": installment._id,
-            },
-            {
-              $set: {
-                "installments.$.receiptEmailSentAt": new Date(),
-              },
-            },
-          );
 
           logger.logInfo("✅ Receipt email sent (already paid case)", {
             to: student.email,
@@ -290,9 +372,8 @@ async function handlePaymentCaptured(payload, collegeId) {
         );
       }
     } else {
-      logger.logInfo("ℹ️ Receipt email already sent - skipping", {
+      logger.logInfo("ℹ️ Receipt email already sent/claimed - skipping", {
         installmentId: installment._id,
-        emailSentAt: installment.receiptEmailSentAt,
       });
     }
 
@@ -308,6 +389,7 @@ async function handlePaymentCaptured(payload, collegeId) {
         razorpayPaymentId: payment.entity.id,
       },
     );
+    await recalculateAndPersistPaidAmount(studentFee._id);
     return;
   }
 
@@ -320,6 +402,7 @@ async function handlePaymentCaptured(payload, collegeId) {
         transactionId: payment.entity.id,
       },
     );
+    await recalculateAndPersistPaidAmount(studentFee._id);
     return;
   }
 
@@ -328,9 +411,10 @@ async function handlePaymentCaptured(payload, collegeId) {
   const updateResult = await StudentFee.updateOne(
     {
       _id: studentFee._id,
+      college_id: collegeId,
       "installments._id": installment._id,
       "installments.status": "PENDING", // ← Atomic condition
-      "installments.razorpayPaymentId": { $ne: payment.entity.id }, // ← Prevent duplicate payment ID
+      "installments.razorpayPaymentId": { $ne: payment.entity.id },
     },
     {
       $set: {
@@ -352,73 +436,82 @@ async function handlePaymentCaptured(payload, collegeId) {
     modifiedCount: updateResult.modifiedCount,
   });
 
-  // If no documents matched, another webhook already processed this
+  // If no documents matched, another webhook or verify request already processed this
   if (updateResult.matchedCount === 0) {
     logger.logWarning("⚠️ Webhook race condition prevented", {
       installmentId: installment._id,
       orderId: order.entity.id,
       paymentId: payment.entity.id,
     });
+    await recalculateAndPersistPaidAmount(studentFee._id);
     return; // Exit silently - already processed
   }
+
+  // 🔒 Recalculate paidAmount from all PAID installments (source of truth)
+  const updatedFee = await recalculateAndPersistPaidAmount(studentFee._id);
 
   logger.logInfo("✅ Payment recorded atomically via webhook", {
     installmentId: installment._id,
     orderId: order.entity.id,
     paymentId: payment.entity.id,
+    paidAmount: updatedFee?.paidAmount,
   });
 
-  // 📧 WEBHOOK PRIMARY: Send receipt email (source of truth)
-  try {
-    const student = await Student.findById(studentFee.student_id).select(
-      "email fullName",
-    );
-
-    if (student && !installment.receiptEmailSentAt) {
-      await sendPaymentReceiptEmail({
-        to: student.email,
-        studentName: student.fullName,
-        installment: {
-          name: installment.name,
-          amount: installment.amount,
-          paidAt: new Date(),
-          transactionId: payment.entity.id,
-        },
-        totalFee: studentFee.totalFee,
-        paidAmount: studentFee.paidAmount,
-        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
-        collegeId,
-      });
-
-      // Mark email as sent in database
-      await StudentFee.updateOne(
-        {
-          _id: studentFee._id,
-          "installments._id": installment._id,
-        },
-        {
-          $set: {
-            "installments.$.receiptEmailSentAt": new Date(),
-          },
-        },
+  // 📧 WEBHOOK PRIMARY: Atomically claim and send receipt email (source of truth)
+  const claimed = await claimReceiptEmail(studentFee._id, installment._id);
+  if (claimed) {
+    try {
+      const student = await Student.findById(studentFee.student_id).select(
+        "email fullName",
+      );
+      const college = await College.findById(collegeId).select(
+        "name email gstin state",
       );
 
-      logger.logInfo("✅ Receipt email sent by webhook (primary)", {
-        to: student.email,
+      if (student) {
+        await emailService.sendPaymentReceiptEmail({
+          to: student.email,
+          studentName: student.fullName,
+          installment: {
+            name: installment.name,
+            amount: installment.amount,
+            baseAmount:
+              installment.baseAmount !== undefined
+                ? installment.baseAmount
+                : installment.taxBreakdown?.taxableBase || installment.amount,
+            gstAmount:
+              installment.gstAmount !== undefined
+                ? installment.gstAmount
+                : installment.taxBreakdown?.totalTax || 0,
+            taxBreakdown: installment.taxBreakdown || null,
+            paidAt: new Date(),
+            transactionId: payment.entity.id,
+          },
+          totalFee: updatedFee?.totalFee ?? studentFee.totalFee,
+          paidAmount: updatedFee?.paidAmount ?? studentFee.paidAmount,
+          remainingAmount:
+            (updatedFee?.totalFee ?? studentFee.totalFee) -
+            (updatedFee?.paidAmount ?? studentFee.paidAmount),
+          collegeId,
+          collegeGstin: college?.gstin || null,
+        });
+
+        logger.logInfo("✅ Receipt email sent by webhook (primary)", {
+          to: student.email,
+          installmentId: installment._id,
+        });
+      }
+    } catch (emailError) {
+      logger.logError("⚠️ Failed to send receipt email", {
+        error: emailError.message,
         installmentId: installment._id,
       });
-    } else if (installment.receiptEmailSentAt) {
-      logger.logInfo("ℹ️ Receipt email already sent - skipping", {
-        installmentId: installment._id,
-        emailSentAt: installment.receiptEmailSentAt,
-      });
+      // Don't fail the webhook if email fails - payment is already recorded
     }
-  } catch (emailError) {
-    logger.logError("⚠️ Failed to send receipt email", {
-      error: emailError.message,
+  } else {
+    logger.logInfo("ℹ️ Receipt email already claimed/sent - skipping", {
       installmentId: installment._id,
     });
-    // Don't fail the webhook if email fails - payment is already recorded
   }
 }
 
@@ -426,12 +519,7 @@ async function handlePaymentCaptured(payload, collegeId) {
  * Handle order.paid event
  *
  * NOTE: This event typically fires after payment.captured.
- * We process it the same way to ensure idempotency.
- *
- * DUPLICATE PROTECTION LAYERS:
- * 1. Check if installment status is already PAID
- * 2. Check if razorpayPaymentId was already processed
- * 3. Recalculate paidAmount from all PAID installments
+ * We process it with idempotency guards and atomic email claim.
  */
 async function handleOrderPaid(payload, collegeId) {
   const { order } = payload;
@@ -442,14 +530,16 @@ async function handleOrderPaid(payload, collegeId) {
     collegeId,
   });
 
-  // Find student fee record
+  // Find student fee record scoped by college_id
   const studentFee = await StudentFee.findOne({
+    college_id: collegeId,
     "installments.razorpayOrderId": order.entity.id,
   });
 
   if (!studentFee) {
     logger.logError("StudentFee not found for order", {
       orderId: order.entity.id,
+      collegeId,
     });
     return;
   }
@@ -467,108 +557,186 @@ async function handleOrderPaid(payload, collegeId) {
 
   // 🔒 DUPLICATE PROTECTION - Layer 1: Check if already marked PAID
   if (installment.status === "PAID") {
-    logger.logWarning("Installment already paid - skipping duplicate webhook", {
+    logger.logWarning("Installment already paid - checking receipt email", {
       installmentId: installment._id,
       orderId: order.entity.id,
     });
+
+    // Recalculate paidAmount to ensure consistency
+    const updatedFee = await recalculateAndPersistPaidAmount(studentFee._id);
+
+    // Attempt atomic email claim and send if not yet sent
+    const claimed = await claimReceiptEmail(studentFee._id, installment._id);
+    if (claimed) {
+      try {
+        const student = await Student.findById(studentFee.student_id).select(
+          "email fullName",
+        );
+        const college = await College.findById(collegeId).select(
+          "name email gstin state",
+        );
+
+        if (student) {
+          await emailService.sendPaymentReceiptEmail({
+            to: student.email,
+            studentName: student.fullName,
+            installment: {
+              name: installment.name,
+              amount: installment.amount,
+              baseAmount:
+                installment.baseAmount !== undefined
+                  ? installment.baseAmount
+                  : installment.taxBreakdown?.taxableBase || installment.amount,
+              gstAmount:
+                installment.gstAmount !== undefined
+                  ? installment.gstAmount
+                  : installment.taxBreakdown?.totalTax || 0,
+              taxBreakdown: installment.taxBreakdown || null,
+              paidAt: installment.paidAt,
+              transactionId: installment.transactionId,
+            },
+            totalFee: updatedFee?.totalFee ?? studentFee.totalFee,
+            paidAmount: updatedFee?.paidAmount ?? studentFee.paidAmount,
+            remainingAmount:
+              (updatedFee?.totalFee ?? studentFee.totalFee) -
+              (updatedFee?.paidAmount ?? studentFee.paidAmount),
+            collegeId,
+            collegeGstin: college?.gstin || null,
+          });
+          logger.logInfo("✅ Receipt email sent successfully (order.paid already paid)", {
+            to: student.email,
+            installmentId: installment._id,
+          });
+        }
+      } catch (emailError) {
+        logger.logError("Failed to send receipt email (order.paid already paid)", {
+          error: emailError.message,
+          installmentId: installment._id,
+        });
+      }
+    }
     return;
   }
 
-  // 🔒 DUPLICATE PROTECTION - Layer 2: Check if this exact Razorpay payment was already processed
-  // order.paid event may include payment information - check for duplicate
-  if (order.entity.payments && order.entity.payments.length > 0) {
-    const paymentId = order.entity.payments[0].id;
+  const paymentId =
+    order.entity.payments && order.entity.payments.length > 0
+      ? order.entity.payments[0].id
+      : null;
 
-    if (installment.razorpayPaymentId === paymentId) {
-      logger.logWarning(
-        "Webhook already processed (duplicate razorpayPaymentId) - skipping",
-        {
-          installmentId: installment._id,
-          razorpayPaymentId: paymentId,
-        },
-      );
-      return;
-    }
-
-    if (installment.transactionId === paymentId) {
-      logger.logWarning(
-        "Webhook already processed (duplicate transactionId) - skipping",
-        {
-          installmentId: installment._id,
-          transactionId: paymentId,
-        },
-      );
-      return;
-    }
-
-    // ✅ Update installment with payment info from order
-    installment.status = "PAID";
-    installment.paidAt = new Date(order.entity.paid_at);
-    installment.transactionId = paymentId;
-    installment.paymentGateway = "RAZORPAY";
-    installment.razorpayOrderId = order.entity.id;
-    installment.razorpayPaymentId = paymentId;
-  } else {
-    // Fallback: Mark as paid without specific payment ID
-    // This is rare - usually payment.captured fires first with full payment details
+  if (
+    paymentId &&
+    (installment.razorpayPaymentId === paymentId ||
+      installment.transactionId === paymentId)
+  ) {
     logger.logWarning(
-      "order.paid received without payment details - marking as PAID",
+      "Webhook already processed (duplicate razorpayPaymentId/transactionId) - skipping",
       {
-        orderId: order.entity.id,
+        installmentId: installment._id,
+        paymentId,
       },
     );
-    installment.status = "PAID";
-    installment.paidAt = new Date(order.entity.paid_at);
-    installment.paymentGateway = "RAZORPAY";
-    installment.razorpayOrderId = order.entity.id;
+    await recalculateAndPersistPaidAmount(studentFee._id);
+    return;
   }
 
-  // 🔒 Recalculate paidAmount from all PAID installments (source of truth)
-  studentFee.paidAmount = studentFee.installments
-    .filter((i) => i.status === "PAID")
-    .reduce((sum, i) => sum + i.amount, 0);
+  // Atomic update
+  const updateQuery = {
+    _id: studentFee._id,
+    college_id: collegeId,
+    "installments._id": installment._id,
+    "installments.status": "PENDING",
+  };
+  if (paymentId) {
+    updateQuery["installments.razorpayPaymentId"] = { $ne: paymentId };
+  }
 
-  await studentFee.save();
+  const updateSet = {
+    "installments.$.status": "PAID",
+    "installments.$.paidAt": order.entity.paid_at
+      ? new Date(order.entity.paid_at * 1000)
+      : new Date(),
+    "installments.$.paymentGateway": "RAZORPAY",
+    "installments.$.razorpayOrderId": order.entity.id,
+  };
+  if (paymentId) {
+    updateSet["installments.$.transactionId"] = paymentId;
+    updateSet["installments.$.razorpayPaymentId"] = paymentId;
+  }
+
+  const updateResult = await StudentFee.updateOne(updateQuery, {
+    $set: updateSet,
+  });
+
+  if (updateResult.matchedCount === 0) {
+    logger.logWarning("⚠️ Webhook race condition prevented (order.paid)", {
+      installmentId: installment._id,
+      orderId: order.entity.id,
+    });
+    await recalculateAndPersistPaidAmount(studentFee._id);
+    return;
+  }
+
+  // Recalculate paidAmount
+  const updatedFee = await recalculateAndPersistPaidAmount(studentFee._id);
 
   logger.logInfo("Payment recorded successfully (order.paid)", {
     installmentId: installment._id,
     orderId: order.entity.id,
-    paidAmount: studentFee.paidAmount,
-    remainingAmount: studentFee.totalFee - studentFee.paidAmount,
+    paidAmount: updatedFee?.paidAmount,
+    remainingAmount:
+      (updatedFee?.totalFee ?? studentFee.totalFee) -
+      (updatedFee?.paidAmount ?? studentFee.paidAmount),
   });
 
-  // 📧 Send receipt email
-  try {
-    const student = await Student.findById(studentFee.student_id).select(
-      "email fullName",
-    );
+  // 📧 Send receipt email with atomic claim
+  const claimed = await claimReceiptEmail(studentFee._id, installment._id);
+  if (claimed) {
+    try {
+      const student = await Student.findById(studentFee.student_id).select(
+        "email fullName",
+      );
+      const college = await College.findById(collegeId).select(
+        "name email gstin state",
+      );
 
-    if (student) {
-      await sendPaymentReceiptEmail({
-        to: student.email,
-        studentName: student.fullName,
-        installment: {
-          name: installment.name,
-          amount: installment.amount,
-          paidAt: installment.paidAt,
-          transactionId: installment.transactionId,
-        },
-        totalFee: studentFee.totalFee,
-        paidAmount: studentFee.paidAmount,
-        remainingAmount: studentFee.totalFee - studentFee.paidAmount,
-        collegeId,
-      });
-      logger.logInfo("Receipt email sent successfully (order.paid)", {
-        to: student.email,
+      if (student) {
+        await emailService.sendPaymentReceiptEmail({
+          to: student.email,
+          studentName: student.fullName,
+          installment: {
+            name: installment.name,
+            amount: installment.amount,
+            baseAmount:
+              installment.baseAmount !== undefined
+                ? installment.baseAmount
+                : installment.taxBreakdown?.taxableBase || installment.amount,
+            gstAmount:
+              installment.gstAmount !== undefined
+                ? installment.gstAmount
+                : installment.taxBreakdown?.totalTax || 0,
+            taxBreakdown: installment.taxBreakdown || null,
+            paidAt: new Date(),
+            transactionId: paymentId || order.entity.id,
+          },
+          totalFee: updatedFee?.totalFee ?? studentFee.totalFee,
+          paidAmount: updatedFee?.paidAmount ?? studentFee.paidAmount,
+          remainingAmount:
+            (updatedFee?.totalFee ?? studentFee.totalFee) -
+            (updatedFee?.paidAmount ?? studentFee.paidAmount),
+          collegeId,
+          collegeGstin: college?.gstin || null,
+        });
+        logger.logInfo("Receipt email sent successfully (order.paid)", {
+          to: student.email,
+          installmentId: installment._id,
+        });
+      }
+    } catch (emailError) {
+      logger.logError("Failed to send receipt email (order.paid)", {
+        error: emailError.message,
         installmentId: installment._id,
       });
     }
-  } catch (emailError) {
-    logger.logError("Failed to send receipt email (order.paid)", {
-      error: emailError.message,
-      installmentId: installment._id,
-    });
-    // Don't fail the webhook if email fails
   }
 }
 
@@ -576,6 +744,7 @@ async function handleOrderPaid(payload, collegeId) {
  * Handle payment.failed event
  *
  * Records failure information and keeps status as PENDING for retry.
+ * Prevents reverting an installment that is already PAID.
  */
 async function handlePaymentFailed(payload, collegeId) {
   const { payment } = payload;
@@ -588,14 +757,16 @@ async function handlePaymentFailed(payload, collegeId) {
     collegeId,
   });
 
-  // Find student fee record
+  // Find student fee record scoped by college_id
   const studentFee = await StudentFee.findOne({
+    college_id: collegeId,
     "installments.razorpayOrderId": payment.entity.order_id,
   });
 
   if (!studentFee) {
     logger.logError("StudentFee not found for order", {
       orderId: payment.entity.order_id,
+      collegeId,
     });
     return;
   }
@@ -611,20 +782,53 @@ async function handlePaymentFailed(payload, collegeId) {
     return;
   }
 
-  // Update failure information (keep status as PENDING for retry)
-  installment.status = "PENDING"; // Allow retry
-  installment.paymentFailureReason = `${payment.entity.error_code}: ${payment.entity.error_description}`;
-  installment.paymentAttemptAt = new Date();
-  installment.paymentGateway = "RAZORPAY";
-  installment.razorpayOrderId = payment.entity.order_id;
+  // 🔒 CRITICAL: Prevent reverting an installment that is already PAID
+  if (installment.status === "PAID") {
+    logger.logWarning(
+      "⚠️ Payment failed event received for already PAID installment - ignoring",
+      {
+        orderId: payment.entity.order_id,
+        paymentId: payment.entity.id,
+      },
+    );
+    return;
+  }
 
-  await studentFee.save();
+  // Atomic update: only update if status is NOT PAID
+  const updateResult = await StudentFee.updateOne(
+    {
+      _id: studentFee._id,
+      college_id: collegeId,
+      "installments._id": installment._id,
+      "installments.status": { $ne: "PAID" },
+    },
+    {
+      $set: {
+        "installments.$.status": "PENDING",
+        "installments.$.paymentFailureReason": `${payment.entity.error_code}: ${payment.entity.error_description}`,
+        "installments.$.paymentAttemptAt": new Date(),
+        "installments.$.paymentGateway": "RAZORPAY",
+        "installments.$.razorpayOrderId": payment.entity.order_id,
+      },
+    },
+  );
+
+  if (updateResult.matchedCount === 0) {
+    logger.logWarning(
+      "⚠️ Installment status was already PAID or not matched - skipping failure update",
+      {
+        orderId: payment.entity.order_id,
+        paymentId: payment.entity.id,
+      },
+    );
+    return;
+  }
 
   logger.logInfo("Payment failure recorded", {
     installmentId: installment._id,
     orderId: payment.entity.order_id,
     paymentId: payment.entity.id,
-    reason: installment.paymentFailureReason,
+    reason: `${payment.entity.error_code}: ${payment.entity.error_description}`,
   });
 
   // 📧 Send failure notification email
@@ -634,7 +838,7 @@ async function handlePaymentFailed(payload, collegeId) {
     );
 
     if (student) {
-      await sendPaymentReceiptEmail({
+      await emailService.sendPaymentReceiptEmail({
         to: student.email,
         studentName: student.fullName,
         installment: {
@@ -657,6 +861,5 @@ async function handlePaymentFailed(payload, collegeId) {
       error: emailError.message,
       installmentId: installment._id,
     });
-    // Don't fail the webhook if email fails
   }
 }

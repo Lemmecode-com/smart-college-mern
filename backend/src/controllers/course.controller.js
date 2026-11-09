@@ -1,7 +1,13 @@
 const Course = require("../models/course.model");
 const Department = require("../models/department.model");
+const Student = require("../models/student.model");
+const Subject = require("../models/subject.model");
+const Timetable = require("../models/timetable.model");
+const Exam = require("../models/exam.model");
 const AppError = require("../utils/AppError");
 const ApiResponse = require("../utils/ApiResponse");
+const AuditService = require("../services/auditLog.service");
+const { STUDENT_STATUS } = require("../utils/constants");
 
 /**
  * CREATE Course
@@ -32,6 +38,10 @@ exports.createCourse = async (req, res, next) => {
 
   if (!department) {
     throw new AppError("Invalid department", 404, "DEPARTMENT_NOT_FOUND");
+  }
+
+  if (department.status === "INACTIVE" || department.isActive === false) {
+    throw new AppError("Cannot create a course under an inactive department", 400, "DEPARTMENT_INACTIVE");
   }
 
   // ✅ Validate duration
@@ -108,19 +118,27 @@ exports.createCourse = async (req, res, next) => {
  */
 exports.getCoursesByDepartment = async (req, res, next) => {
   try {
-    console.log('[getCoursesByDepartment] Department ID:', req.params.departmentId);
-    console.log('[getCoursesByDepartment] College ID:', req.college_id);
-    
-    const courses = await Course.find({
+    const { includeInactive, status } = req.query;
+    const filter = {
       department_id: req.params.departmentId,
-      college_id: req.college_id
-    });
-    
-    console.log('[getCoursesByDepartment] Found courses:', courses.length);
+      college_id: req.college_id,
+    };
 
+    if (status) {
+      filter.status = status.toUpperCase();
+      if (filter.status === "ACTIVE") {
+        filter.isActive = { $ne: false };
+      } else if (filter.status === "INACTIVE") {
+        filter.isActive = { $ne: true };
+      }
+    } else if (includeInactive !== "true") {
+      filter.status = "ACTIVE";
+      filter.isActive = { $ne: false };
+    }
+
+    const courses = await Course.find(filter);
     ApiResponse.success(res, { courses }, "Department courses fetched successfully");
   } catch (error) {
-    console.error('[getCoursesByDepartment] Error:', error);
     next(error);
   }
 };
@@ -130,11 +148,10 @@ exports.getCoursesByDepartment = async (req, res, next) => {
  */
 exports.getAllCourses = async (req, res, next) => {
   try {
-    const { status, type, programLevel, departmentId, search } = req.query;
+    const { status, type, programLevel, departmentId, search, includeInactive } = req.query;
 
     const filter = {
       college_id: req.college_id,
-      ...(status && { status: status.toUpperCase() }),
       ...(type && { type: type.toUpperCase() }),
       ...(programLevel && { programLevel: programLevel.toUpperCase() }),
       ...(departmentId && { department_id: departmentId }),
@@ -145,6 +162,18 @@ exports.getAllCourses = async (req, res, next) => {
         ]
       })
     };
+
+    if (status) {
+      filter.status = status.toUpperCase();
+      if (filter.status === "ACTIVE") {
+        filter.isActive = { $ne: false };
+      } else if (filter.status === "INACTIVE") {
+        filter.isActive = { $ne: true };
+      }
+    } else if (includeInactive !== "true") {
+      filter.status = "ACTIVE";
+      filter.isActive = { $ne: false };
+    }
 
     const courses = await Course.find(filter)
       .populate("department_id", "name code")
@@ -265,6 +294,170 @@ exports.deleteCourse = async (req, res, next) => {
     }
 
     ApiResponse.success(res, null, "Course deleted successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * DEACTIVATE Course
+ * PUT /api/courses/:id/deactivate
+ */
+exports.deactivateCourse = async (req, res, next) => {
+  try {
+    const course = await Course.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    });
+
+    if (!course) {
+      return ApiResponse.error(res, "Course not found", "COURSE_NOT_FOUND", 404);
+    }
+
+    if (course.isActive === false || course.status === "INACTIVE") {
+      return ApiResponse.error(
+        res,
+        "Course is already inactive",
+        "COURSE_ALREADY_INACTIVE",
+        400
+      );
+    }
+
+    // 1. Guard against active students enrolled
+    const activeStudentsCount = await Student.countDocuments({
+      college_id: req.college_id,
+      course_id: course._id,
+      status: {
+        $in: [
+          STUDENT_STATUS.APPROVED,
+          STUDENT_STATUS.ENROLLED,
+          STUDENT_STATUS.OFFER_MADE,
+          STUDENT_STATUS.SEAT_CONFIRMED,
+          STUDENT_STATUS.PENDING,
+        ],
+      },
+    });
+    if (activeStudentsCount > 0) {
+      return ApiResponse.error(
+        res,
+        `Cannot deactivate course with ${activeStudentsCount} active student(s). Please graduate, transfer, or process them first.`,
+        "COURSE_HAS_ACTIVE_STUDENTS",
+        400,
+        { activeStudentsCount }
+      );
+    }
+
+    // 2. Guard against active subjects
+    const activeSubjectsCount = await Subject.countDocuments({
+      college_id: req.college_id,
+      course_id: course._id,
+      status: "ACTIVE",
+      isActive: { $ne: false },
+    });
+    if (activeSubjectsCount > 0) {
+      return ApiResponse.error(
+        res,
+        `Cannot deactivate course with ${activeSubjectsCount} active subject(s). Please deactivate or reassign subjects first.`,
+        "COURSE_HAS_ACTIVE_SUBJECTS",
+        400,
+        { activeSubjectsCount }
+      );
+    }
+
+    // 3. Guard against active timetable
+    const activeTimetableCount = await Timetable.countDocuments({
+      college_id: req.college_id,
+      course_id: course._id,
+      status: "PUBLISHED",
+    });
+    if (activeTimetableCount > 0) {
+      return ApiResponse.error(
+        res,
+        `Cannot deactivate course with ${activeTimetableCount} active timetable(s). Please archive or remove them first.`,
+        "COURSE_HAS_ACTIVE_TIMETABLE",
+        400,
+        { activeTimetableCount }
+      );
+    }
+
+    // 4. Guard against active exams
+    const activeExamsCount = await Exam.countDocuments({
+      college_id: req.college_id,
+      course_id: course._id,
+      status: "PUBLISHED",
+    });
+    if (activeExamsCount > 0) {
+      return ApiResponse.error(
+        res,
+        `Cannot deactivate course with ${activeExamsCount} running or published exam(s). Please unpublish or conclude them first.`,
+        "COURSE_HAS_ACTIVE_EXAMS",
+        400,
+        { activeExamsCount }
+      );
+    }
+
+    course.isActive = false;
+    course.status = "INACTIVE";
+    await course.save();
+
+    AuditService.logCourseDeactivated(req.user, course, req).catch((err) =>
+      console.error("Audit log failed:", err.message)
+    );
+
+    ApiResponse.success(res, { course }, "Course deactivated successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * REACTIVATE Course
+ * PUT /api/courses/:id/reactivate
+ */
+exports.reactivateCourse = async (req, res, next) => {
+  try {
+    const course = await Course.findOne({
+      _id: req.params.id,
+      college_id: req.college_id,
+    });
+
+    if (!course) {
+      return ApiResponse.error(res, "Course not found", "COURSE_NOT_FOUND", 404);
+    }
+
+    if (course.isActive === true && course.status === "ACTIVE") {
+      return ApiResponse.error(
+        res,
+        "Course is already active",
+        "COURSE_ALREADY_ACTIVE",
+        400
+      );
+    }
+
+    // Guard: parent department must be active
+    const department = await Department.findOne({
+      _id: course.department_id,
+      college_id: req.college_id,
+    });
+
+    if (!department || department.status === "INACTIVE" || department.isActive === false) {
+      return ApiResponse.error(
+        res,
+        "Cannot reactivate course because its department is inactive. Please reactivate the department first.",
+        "DEPARTMENT_INACTIVE",
+        400
+      );
+    }
+
+    course.isActive = true;
+    course.status = "ACTIVE";
+    await course.save();
+
+    AuditService.logCourseReactivated(req.user, course, req).catch((err) =>
+      console.error("Audit log failed:", err.message)
+    );
+
+    ApiResponse.success(res, { course }, "Course reactivated successfully");
   } catch (error) {
     next(error);
   }

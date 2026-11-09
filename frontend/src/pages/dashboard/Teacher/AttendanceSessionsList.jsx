@@ -3,6 +3,9 @@ import api from "../../../api/axios";
 import CreateSessionModal from "./CreateSessionModal";
 import { useNavigate } from "react-router-dom";
 import Loading from "../../../components/Loading";
+import Breadcrumb from "../../../components/Breadcrumb";
+import PageHeader from "../../../components/PageHeader";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import {
   FaClipboardList,
   FaCheckCircle,
@@ -13,12 +16,9 @@ import {
   FaUsers,
   FaSyncAlt,
   FaPlus,
-  FaArrowLeft,
   FaInfoCircle,
-  FaBell,
   FaQrcode,
   FaClock,
-  FaDatabase
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -42,46 +42,6 @@ const fadeInVariants = {
   })
 };
 
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
-};
-
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-  }
-};
-
-const blinkVariants = {
-  initial: { opacity: 1 },
-  blink: {
-    opacity: [1, 0.5, 1],
-    transition: { duration: 1.5, repeat: Infinity, ease: "easeInOut" }
-  }
-};
-
-const floatVariants = {
-  initial: { y: 0 },
-  float: {
-    y: [-5, 5, -5],
-    transition: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-  }
-};
-
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: { duration: 1, repeat: Infinity, ease: "linear" }
-  }
-};
-
 export default function AttendanceSessionsList() {
   const [sessions, setSessions] = useState([]);
   const [slots, setSlots] = useState([]);
@@ -102,22 +62,15 @@ export default function AttendanceSessionsList() {
     }
   };
 
-  // ✅ Fetch slots for modal dropdown
+  // ✅ Fetch today's slots for modal dropdown
   const fetchSlots = async () => {
     try {
-      const res = await api.get("/timetable");
-      const allTimetables = res.data || [];
-
-      // Get all slots from all timetables
-      const allSlots = [];
-      for (const timetable of allTimetables) {
-        if (timetable.slots) {
-          allSlots.push(...timetable.slots);
-        }
-      }
-      setSlots(allSlots);
+      const res = await api.get("/attendance/today-slots");
+      const slotsData = res.data?.slots || (Array.isArray(res.data) ? res.data : []);
+      setSlots(slotsData);
     } catch (err) {
-      // Silently fail - slots are optional
+      console.error("Failed to load today's slots:", err);
+      setSlots([]);
     }
   };
 
@@ -133,7 +86,20 @@ export default function AttendanceSessionsList() {
   const totalStudents = sessions.reduce((sum, s) => sum + (s.totalStudents || 0), 0);
 
   if (loading) {
-    return <Loading fullScreen size="lg" text="Loading Attendance Sessions..." />;
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Attendance Sessions..."
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -145,217 +111,125 @@ export default function AttendanceSessionsList() {
         className="erp-page erp-viewport-min-100"
         style={{
           background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%)',
-          paddingTop: '1.5rem',
+          paddingTop: '0.5rem',
           paddingBottom: '2rem',
           paddingLeft: '1rem',
           paddingRight: '1rem'
         }}
       >
-        <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+        <div className="teacher-attendance-sessions" style={{ maxWidth: '100%', margin: '0 auto' }}>
+          <style>{`
+            .teacher-attendance-sessions .attendance-stats-grid {
+              display: grid;
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+              gap: 1rem;
+            }
+            .teacher-attendance-sessions .sessions-table-wrap {
+              width: 100%;
+              overflow-x: auto;
+              -webkit-overflow-scrolling: touch;
+            }
+            .teacher-attendance-sessions .sessions-table-wrap th,
+            .teacher-attendance-sessions .sessions-table-wrap td {
+              white-space: nowrap;
+            }
+            .teacher-attendance-sessions .sessions-table-wrap td:nth-child(3) {
+              white-space: normal;
+              min-width: 260px;
+            }
+            .teacher-attendance-sessions .sessions-header-actions {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 0.65rem;
+            }
+            .teacher-attendance-sessions .sessions-header-actions button {
+              min-height: 42px;
+              padding: 0 15px;
+              border: 1px solid rgba(255,255,255,.35);
+              border-radius: 10px;
+              background: rgba(255,255,255,.12);
+              color: white;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+              font-size: .9rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: background .2s ease, transform .2s ease;
+            }
+            .teacher-attendance-sessions .sessions-header-actions button:first-child {
+              background: white;
+              color: #0f3a4a;
+            }
+            .teacher-attendance-sessions .sessions-header-actions button:hover {
+              transform: translateY(-1px);
+              background: rgba(255,255,255,.22);
+            }
+            .teacher-attendance-sessions .sessions-header-actions button:first-child:hover {
+              background: #f1f5f9;
+            }
+            @media (max-width: 900px) {
+              .teacher-attendance-sessions .attendance-stats-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+              }
+            }
+            @media (max-width: 520px) {
+              .teacher-attendance-sessions .attendance-stats-grid {
+                gap: .65rem;
+              }
+            }
+          `}</style>
           {/* ================= BREADCRUMB ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              flexWrap: 'wrap'
-            }}
-          >
-            <motion.button
-              whileHover={{ x: -5 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate('/teacher/dashboard')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                color: BRAND_COLORS.primary.main,
-                background: 'none',
-                border: 'none',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                padding: '0.5rem',
-                borderRadius: '8px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              <FaArrowLeft /> Back to Dashboard
-            </motion.button>
-            <span style={{ color: '#94a3b8' }}>›</span>
-            <span style={{ color: BRAND_COLORS.primary.main, fontWeight: 600, fontSize: '1rem' }}>Attendance Sessions</span>
-          </motion.div>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/teacher/dashboard" },
+              { label: "My Sessions" },
+            ]}
+          />
 
-          {/* ================= HEADER ================= */}
-          <motion.div
-            variants={slideDownVariants}
-            initial="hidden"
-            animate="visible"
-            style={{
-              marginBottom: '1.5rem',
-              backgroundColor: 'white',
-              borderRadius: '1.5rem',
-              overflow: 'hidden',
-              boxShadow: '0 10px 40px rgba(26, 75, 109, 0.15)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.5rem'
-            }}
-          >
-            <div style={{
-              padding: '1.75rem 2rem',
-              background: BRAND_COLORS.primary.gradient,
-              color: 'white',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1.5rem'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-                <motion.div
-                  variants={pulseVariants}
-                  initial="initial"
-                  animate="pulse"
-                  style={{
-                    width: '72px',
-                    height: '72px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '2rem',
-                    flexShrink: 0,
-                    boxShadow: '0 8px 25px rgba(255, 255, 255, 0.3)'
-                  }}
-                >
-                  <FaClipboardList />
-                </motion.div>
-                <div>
-                  <h1 style={{
-                    margin: 0,
-                    fontSize: '2rem',
-                    fontWeight: 700,
-                    lineHeight: 1.2
-                  }}>
-                    Attendance Sessions
-                  </h1>
-                  <p style={{
-                    margin: '0.5rem 0 0 0',
-                    opacity: 0.9,
-                    fontSize: '1.1rem'
-                  }}>
-                    Manage and monitor all your attendance sessions
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <motion.button
-                  whileHover={{ scale: 1.05, boxShadow: '0 8px 20px rgba(40, 167, 69, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowModal(true)}
-                  style={{
-                    backgroundColor: BRAND_COLORS.success.main,
-                    color: 'white',
-                    border: 'none',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 4px 15px rgba(40, 167, 69, 0.3)'
+          <PageHeader
+            icon={FaClipboardList}
+            title="Attendance Sessions"
+            subtitle="Manage and monitor all your attendance sessions"
+            actions={
+              <div className="sessions-header-actions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    fetchSlots();
+                    setShowModal(true);
                   }}
                 >
                   <FaPlus /> Create Session
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={fetchSessions}
-                  style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    border: '2px solid rgba(255, 255, 255, 0.4)',
-                    padding: '0.75rem 1.5rem',
-                    borderRadius: '12px',
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    transition: 'all 0.3s ease'
-                  }}
-                >
+                </button>
+                <button type="button" onClick={fetchSessions}>
                   <FaSyncAlt /> Refresh
-                </motion.button>
+                </button>
               </div>
+            }
+          />
+
+          <section aria-label="Attendance session summary" style={{ marginBottom: '1.25rem' }}>
+            <div className="attendance-stats-grid">
+              <StatItem icon={<FaClipboardList />} label="Total Sessions" value={totalSessions} color={BRAND_COLORS.primary.main} />
+              <StatItem icon={<FaCheckCircle />} label="Open Sessions" value={openSessions} color={BRAND_COLORS.success.main} />
+              <StatItem icon={<FaTimesCircle />} label="Closed Sessions" value={closedSessions} color={BRAND_COLORS.secondary.main} />
+              <StatItem icon={<FaUsers />} label="Total Students" value={totalStudents} color={BRAND_COLORS.info.main} />
             </div>
-            
-            {/* Stats Bar */}
             <div style={{
-              padding: '1rem 2rem',
-              backgroundColor: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '1.5rem'
+              gap: '0.5rem',
+              marginTop: '0.75rem',
+              color: '#526579',
+              fontSize: '0.85rem',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap' }}>
-                <StatItem
-                  icon={<FaClipboardList />}
-                  label="Total Sessions"
-                  value={totalSessions}
-                  color={BRAND_COLORS.primary.main}
-                />
-                <StatItem
-                  icon={<FaCheckCircle />}
-                  label="Open Sessions"
-                  value={openSessions}
-                  color={BRAND_COLORS.success.main}
-                />
-                <StatItem
-                  icon={<FaTimesCircle />}
-                  label="Closed Sessions"
-                  value={closedSessions}
-                  color={BRAND_COLORS.secondary.main}
-                />
-                <StatItem
-                  icon={<FaUsers />}
-                  label="Total Students"
-                  value={totalStudents}
-                  color={BRAND_COLORS.info.main}
-                />
-              </div>
-              <div style={{ 
-                padding: '0.5rem 1.25rem',
-                borderRadius: '20px',
-                backgroundColor: '#dbeafe',
-                color: BRAND_COLORS.primary.main,
-                fontWeight: 600,
-                fontSize: '0.95rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <FaInfoCircle size={14} />
-                Click "View" to manage attendance
-              </div>
+              <FaInfoCircle style={{ color: BRAND_COLORS.primary.main }} />
+              Click "View" to manage attendance
             </div>
-          </motion.div>
+          </section>
+
 
           {/* ================= ERROR STATE ================= */}
           {error && (
@@ -387,54 +261,58 @@ export default function AttendanceSessionsList() {
             animate="visible"
             style={{
               backgroundColor: 'white',
-              borderRadius: '1.5rem',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              boxShadow: '0 4px 16px rgba(15, 58, 74, 0.06)',
               overflow: 'hidden'
             }}
           >
             <div style={{
-              padding: '1.5rem',
+              padding: '1.1rem 1.25rem',
               borderBottom: '1px solid #e2e8f0',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
               flexWrap: 'wrap',
-              gap: '1rem'
+              gap: '0.75rem'
             }}>
               <h2 style={{
                 margin: 0,
-                fontSize: '1.5rem',
-                fontWeight: 700,
-                color: '#1e293b',
+                fontSize: '1.15rem',
+                fontWeight: 650,
+                color: '#173b50',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.75rem'
+                gap: '0.6rem'
               }}>
-                <FaClipboardList style={{ color: BRAND_COLORS.primary.main }} /> Session List
+                <FaClipboardList style={{ color: BRAND_COLORS.primary.main }} />
+                Session List
               </h2>
               <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+                display: 'inline-flex',
+                alignItems: 'center',
                 gap: '0.5rem',
-                backgroundColor: '#ffedd5',
-                color: '#c2410c',
-                padding: '0.5rem 1rem',
-                borderRadius: '20px',
-                fontSize: '0.9rem',
+                backgroundColor: '#fff8e8',
+                color: '#8a5a10',
+                padding: '0.4rem 0.7rem',
+                border: '1px solid #f3dfb2',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
                 fontWeight: 500
               }}>
-                <FaBell /> Open sessions require attendance marking
+                <FaInfoCircle aria-hidden="true" />
+                Open sessions require attendance marking
               </div>
             </div>
             
-            <div style={{ overflowX: 'auto' }}>
+            <div className="sessions-table-wrap">
               <table style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                minWidth: '800px'
+                minWidth: '760px'
               }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
+                  <tr style={{ backgroundColor: '#f5f8fa', borderBottom: '1px solid #dfe7ed' }}>
                     <th style={headerCellStyle}>Date</th>
                     <th style={headerCellStyle}>Lecture No.</th>
                     <th style={headerCellStyle}>Subject</th>
@@ -455,11 +333,11 @@ export default function AttendanceSessionsList() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="7" style={{ padding: '3rem 1rem', textAlign: 'center', color: '#64748b' }}>
-                        <div style={{ fontSize: '4rem', marginBottom: '1rem', opacity: 0.3 }}>
+                      <td colSpan="6" style={{ padding: '2.5rem 1rem', textAlign: 'center', color: '#64748b' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem', opacity: 0.35 }}>
                           <FaClipboardList />
                         </div>
-                        <h3 style={{ margin: '0 0 0.5rem 0', fontWeight: 600, color: '#1e293b' }}>
+                        <h3 style={{ margin: '0 0 0.4rem', fontWeight: 600, color: '#1e293b', fontSize: '1rem' }}>
                           No Attendance Sessions Found
                         </h3>
                         <p style={{ margin: 0, color: '#64748b' }}>
@@ -480,6 +358,7 @@ export default function AttendanceSessionsList() {
               onClose={() => setShowModal(false)}
               onSuccess={() => {
                 fetchSessions();
+                fetchSlots();
                 setShowModal(false);
               }}
             />
@@ -493,24 +372,35 @@ export default function AttendanceSessionsList() {
 /* ================= STAT ITEM ================= */
 function StatItem({ icon, label, value, color }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+    <div style={{
+      minWidth: 0,
+      minHeight: '88px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.8rem',
+      padding: '0.9rem 1rem',
+      background: '#fff',
+      border: '1px solid #e2e8f0',
+      borderRadius: '12px',
+      boxShadow: '0 2px 8px rgba(15, 58, 74, 0.045)',
+    }}>
       <div style={{
-        width: '40px',
-        height: '40px',
+        width: '42px',
+        height: '42px',
         borderRadius: '10px',
         backgroundColor: `${color}15`,
         color: color,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '1.25rem',
+        fontSize: '1.15rem',
         flexShrink: 0
       }}>
         {icon}
       </div>
-      <div>
-        <div style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>{value}</div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500, lineHeight: 1.3 }}>{label}</div>
+        <div style={{ fontSize: '1.45rem', fontWeight: 700, color: '#173b50', lineHeight: 1.2 }}>{value}</div>
       </div>
     </div>
   );
@@ -531,6 +421,9 @@ function SessionRow({ session, delay, onView }) {
 
   const statusColor = getStatusColor(session.status);
   const isToday = new Date(session.lectureDate).toDateString() === new Date().toDateString();
+  const slot = session.slotSnapshot || {};
+  const schedule = [slot.day, slot.startTime && slot.endTime ? `${slot.startTime} - ${slot.endTime}` : null, slot.room ? `Room ${slot.room}` : null]
+    .filter(Boolean);
 
   return (
     <motion.tr
@@ -540,13 +433,13 @@ function SessionRow({ session, delay, onView }) {
       whileHover={{ backgroundColor: '#f8fafc' }}
       style={{
         borderBottom: '1px solid #e2e8f0',
-        transition: 'background-color 0.2s ease',
+        transition: 'background-color 0.15s ease',
         backgroundColor: isToday ? '#dbeafe' : 'white'
       }}
     >
-      <td style={{ ...cellStyle, fontWeight: isToday ? 700 : 500, color: isToday ? BRAND_COLORS.primary.main : '#1e293b' }}>
+      <td style={{ ...cellStyle, fontWeight: isToday ? 650 : 500, color: isToday ? BRAND_COLORS.primary.main : '#1e293b' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FaCalendarAlt size={16} style={{ color: BRAND_COLORS.primary.main }} />
+          <FaCalendarAlt size={14} style={{ color: BRAND_COLORS.primary.main, flexShrink: 0 }} />
           {new Date(session.lectureDate).toLocaleDateString('en-US', {
             weekday: 'short',
             year: 'numeric',
@@ -561,7 +454,7 @@ function SessionRow({ session, delay, onView }) {
               borderRadius: '20px',
               fontSize: '0.75rem',
               fontWeight: 600,
-              marginLeft: '0.5rem'
+              marginLeft: '0.25rem'
             }}>
               Today
             </span>
@@ -570,39 +463,36 @@ function SessionRow({ session, delay, onView }) {
       </td>
       <td style={cellStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FaChalkboardTeacher size={16} style={{ color: BRAND_COLORS.info.main }} />
+          <FaChalkboardTeacher size={15} style={{ color: BRAND_COLORS.info.main }} />
           Lecture {session.lectureNumber}
         </div>
       </td>
       <td style={cellStyle}>
         <div style={{ fontWeight: 600, color: '#1e293b' }}>
-          {/* ✅ Use snapshot data if available (historical accuracy) */}
           {session.subject?.name || session.slotSnapshot?.subject_name || session.subject_id?.name || 'N/A'}
         </div>
-        <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-          {/* ✅ Show teacher from snapshot */}
-          👨‍🏫 {session.slotSnapshot?.teacher_name || session.teacher_id?.name || 'N/A'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8rem', color: '#64748b', marginTop: '0.3rem' }}>
+          <FaChalkboardTeacher size={12} aria-hidden="true" />
+          {session.slotSnapshot?.teacher_name || session.teacher_id?.name || 'N/A'}
         </div>
-        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.25rem' }}>
-          {/* ✅ Show slot details from snapshot */}
-          📅 {session.slotSnapshot?.day} | 🕐 {session.slotSnapshot?.startTime} - {session.slotSnapshot?.endTime}
-          {session.slotSnapshot?.room && ` | 🚪 ${session.slotSnapshot.room}`}
-        </div>
+        {schedule.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: '#8493a3', marginTop: '0.25rem' }}>
+            <FaClock size={11} aria-hidden="true" />
+            {schedule.join(' · ')}
+          </div>
+        )}
       </td>
       <td style={cellStyle}>
         <motion.span
-          variants={session.status === "OPEN" ? blinkVariants : undefined}
-          initial="initial"
-          animate={session.status === "OPEN" ? "blink" : undefined}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.375rem',
-            padding: '0.375rem 0.875rem',
-            borderRadius: '20px',
+            padding: '0.3rem 0.65rem',
+            borderRadius: '999px',
             backgroundColor: `${statusColor}15`,
             color: statusColor,
-            fontSize: '0.85rem',
+            fontSize: '0.78rem',
             fontWeight: 600,
             border: `1px solid ${statusColor}30`
           }}
@@ -613,28 +503,26 @@ function SessionRow({ session, delay, onView }) {
         </motion.span>
       </td>
       <td style={cellStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FaUsers size={16} style={{ color: BRAND_COLORS.info.main }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+          <FaUsers size={14} style={{ color: BRAND_COLORS.info.main }} />
           <span style={{ fontWeight: 600 }}>{session.totalStudents || 0}</span>
-          {session.presentCount !== undefined && (
-            <span style={{ 
-              color: BRAND_COLORS.success.main,
-              fontSize: '0.85rem',
-              marginLeft: '0.5rem'
-            }}>
-              ({session.presentCount} present)
-            </span>
-          )}
         </div>
+        {session.presentCount !== undefined && (
+          <div style={{ color: BRAND_COLORS.success.main, fontSize: '0.75rem', marginTop: '0.2rem' }}>
+            {session.presentCount} present
+          </div>
+        )}
       </td>
       <td style={cellStyle}>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <ActionIconButton
+          icon={FaEye}
+          ariaLabel="View attendance session"
+          tooltip="View attendance session"
           onClick={onView}
           style={{
             width: '36px',
             height: '36px',
+            padding: 0,
             borderRadius: '10px',
             backgroundColor: BRAND_COLORS.primary.main,
             color: 'white',
@@ -647,9 +535,7 @@ function SessionRow({ session, delay, onView }) {
             flexShrink: 0,
             boxShadow: '0 2px 8px rgba(26, 75, 109, 0.3)'
           }}
-        >
-          <FaEye size={16} />
-        </motion.button>
+        />
       </td>
     </motion.tr>
   );
@@ -657,23 +543,20 @@ function SessionRow({ session, delay, onView }) {
 
 /* ================= STYLES ================= */
 const headerCellStyle = {
-  padding: '1rem',
+  padding: '0.8rem 1rem',
   textAlign: 'left',
-  fontWeight: 700,
-  color: '#1e293b',
-  fontSize: '0.9rem',
+  fontWeight: 650,
+  color: '#526579',
+  fontSize: '0.72rem',
   textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  position: 'sticky',
-  top: 0,
-  zIndex: 10,
-  backgroundColor: '#f1f5f9'
+  letterSpacing: '0.045em',
+  backgroundColor: '#f5f8fa'
 };
 
 const cellStyle = {
-  padding: '1rem',
-  fontSize: '0.95rem',
+  padding: '0.85rem 1rem',
+  fontSize: '0.85rem',
   color: '#1e293b',
   borderBottom: '1px solid #e2e8f0',
-  verticalAlign: 'middle'
+  verticalAlign: 'middle',
 };

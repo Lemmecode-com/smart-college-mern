@@ -177,7 +177,7 @@ exports.applyLeave = async (req, res, next) => {
               title: "New Leave Application",
               message: `${teacher.name} has applied for ${leaveType} leave from ${start.toISOString().split("T")[0]} to ${end.toISOString().split("T")[0]}`,
               type: "ACADEMIC",
-              actionUrl: "/hod/leave-approvals",
+              actionUrl: "/hod/dashboard",
             });
           }
         }
@@ -391,7 +391,7 @@ exports.approveLeave = async (req, res, next) => {
             title: "Leave Approved",
             message: `Your ${leave.leaveType} leave from ${leave.startDate.toISOString().split("T")[0]} to ${leave.endDate.toISOString().split("T")[0]} has been approved.`,
             type: "ACADEMIC",
-            actionUrl: "/teacher/leaves",
+            actionUrl: "/teacher/dashboard",
           });
         }
       } catch (notifErr) {
@@ -501,7 +501,7 @@ exports.rejectLeave = async (req, res, next) => {
             title: "Leave Rejected",
             message: `Your ${leave.leaveType} leave from ${leave.startDate.toISOString().split("T")[0]} to ${leave.endDate.toISOString().split("T")[0]} has been rejected. Reason: ${rejectionReason.trim()}`,
             type: "ACADEMIC",
-            actionUrl: "/teacher/leaves",
+            actionUrl: "/teacher/dashboard",
           });
         }
       } catch (notifErr) {

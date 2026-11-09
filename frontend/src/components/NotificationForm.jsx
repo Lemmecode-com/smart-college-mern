@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback, useContext } from "react";
+import React, { useState, useEffect, useCallback, useContext, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
+const _motion = motion;
 import api from "../api/axios";
 import Loading from "../components/Loading";
 import ApiError from "../components/ApiError";
@@ -126,7 +127,7 @@ export default function NotificationForm({
   mode = "create",
 }) {
   const config = ROLE_CONFIG[role] || ROLE_CONFIG["college-admin"];
-  const { user } = useContext(AuthContext);
+  const { user: _user } = useContext(AuthContext);
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -146,6 +147,8 @@ export default function NotificationForm({
   const [originalForm, setOriginalForm] = useState({ ...form });
   const [loading, setLoading] = useState(mode === "edit");
   const [saving, setSaving] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const navigationTimerRef = useRef(null);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -171,16 +174,39 @@ export default function NotificationForm({
     setMessageCount(form.message.length);
   }, [form.title, form.message]);
 
+  /* ================= CLEANUP PENDING NAVIGATION TIMERS ================= */
+  useEffect(() => {
+    return () => {
+      if (navigationTimerRef.current) {
+        clearTimeout(navigationTimerRef.current);
+      }
+    };
+  }, []);
+
   /* ================= FETCH DEPARTMENTS & COURSES ================= */
   useEffect(() => {
     if (config.canTarget) {
       const fetchData = async () => {
         try {
           const deptRes = await api.get("/departments");
-          setDepartments(deptRes.data || []);
+          const deptData = Array.isArray(deptRes.data)
+            ? deptRes.data
+            : Array.isArray(deptRes.data?.data)
+            ? deptRes.data.data
+            : Array.isArray(deptRes.data?.departments)
+            ? deptRes.data.departments
+            : [];
+          setDepartments(deptData);
 
           const courseRes = await api.get("/courses");
-          setCourses(courseRes.data || []);
+          const courseData = Array.isArray(courseRes.data)
+            ? courseRes.data
+            : Array.isArray(courseRes.data?.data)
+            ? courseRes.data.data
+            : Array.isArray(courseRes.data?.courses)
+            ? courseRes.data.courses
+            : [];
+          setCourses(courseData);
         } catch (err) {
           logger.error("Error fetching departments/courses:", err);
         }
@@ -298,9 +324,13 @@ export default function NotificationForm({
     const { name, value, type, checked } = e.target;
     setError(null);
     const updated = { ...form, [name]: type === "checkbox" ? checked : value };
-    if (name === "target" && value !== "INDIVIDUAL") {
-      updated.target_users = [];
-      setRecipientSearch("");
+    if (name === "target") {
+      if (value !== "INDIVIDUAL") {
+        updated.target_users = [];
+        setRecipientSearch("");
+      } else if (!Array.isArray(updated.target_users)) {
+        updated.target_users = [];
+      }
     }
     setForm(updated);
   };
@@ -308,6 +338,10 @@ export default function NotificationForm({
   /* ================= SUBMIT FORM ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isSubmittingRef.current || saving) {
+      return;
+    }
 
     // Validation
     if (!form.title.trim() || !form.message.trim()) {
@@ -347,11 +381,15 @@ export default function NotificationForm({
       return;
     }
 
-    if (form.target === "INDIVIDUAL" && form.target_users.length === 0) {
+    if (
+      form.target === "INDIVIDUAL" &&
+      (!Array.isArray(form.target_users) || form.target_users.length === 0)
+    ) {
       toast.error("Please select at least one recipient.");
       return;
     }
 
+    isSubmittingRef.current = true;
     setSaving(true);
 
     try {
@@ -364,7 +402,12 @@ export default function NotificationForm({
         target_department: form.target_department || undefined,
         target_course: form.target === "COURSE" ? form.target_course || undefined : undefined,
         target_semester: form.target === "SEMESTER" ? form.target_semester || undefined : undefined,
-        target_users: form.target === "INDIVIDUAL" ? form.target_users : undefined,
+        target_users:
+          form.target === "INDIVIDUAL"
+            ? Array.isArray(form.target_users)
+              ? form.target_users
+              : []
+            : undefined,
         expiresAt: form.expiresAt || null,
       };
 
@@ -372,35 +415,24 @@ export default function NotificationForm({
         await api.post(config.createEndpoint, payload);
         toast.success(config.successMessage);
 
-        setTimeout(() => {
-          setForm({
-            title: "",
-            message: "",
-            type: "GENERAL",
-            priority: "LOW",
-            expiresAt: "",
-            target: "STUDENTS",
-            target_department: "",
-            target_course: "",
-            target_semester: "",
-            target_users: [],
-          });
-        }, 2000);
+        navigationTimerRef.current = setTimeout(() => {
+          navigate(config.listRoute);
+        }, 1200);
       } else {
         await api.put(`${config.editEndpoint}${id}`, payload);
         toast.success(config.editSuccessMessage);
         setOriginalForm({ ...form });
 
-        setTimeout(() => {
+        navigationTimerRef.current = setTimeout(() => {
           navigate(config.listRoute);
-        }, 1500);
+        }, 1200);
       }
     } catch (err) {
+      isSubmittingRef.current = false;
+      setSaving(false);
       const errorMsg =
         err.response?.data?.message || `Failed to ${mode} notification`;
       toast.error(errorMsg);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -433,7 +465,18 @@ export default function NotificationForm({
             target_department: "",
           };
 
-    setForm(sample);
+    setForm((prev) => ({
+      ...prev,
+      ...sample,
+      target_department:
+        role === "hod" && hodDepartment
+          ? hodDepartment
+          : sample.target_department || "",
+      target_course: "",
+      target_semester: "",
+      target_users: [],
+    }));
+    setRecipientSearch("");
     setTitleCount(sample.title.length);
     setMessageCount(sample.message.length);
     toast.info("Sample notification loaded");
@@ -448,7 +491,7 @@ export default function NotificationForm({
       form.priority !== originalForm.priority ||
       form.expiresAt !== originalForm.expiresAt ||
       form.target !== originalForm.target ||
-      JSON.stringify(form.target_users) !== JSON.stringify(originalForm.target_users) ||
+      JSON.stringify(form.target_users || []) !== JSON.stringify(originalForm.target_users || []) ||
       form.target_department !== originalForm.target_department ||
       form.target_course !== originalForm.target_course ||
       form.target_semester !== originalForm.target_semester
@@ -492,16 +535,28 @@ export default function NotificationForm({
     BRAND_COLORS.priorities[form.priority] || BRAND_COLORS.priorities.NORMAL;
   const TypeIcon = typeConfig.icon;
 
-  /* ================= LOADING STATE ================= */
-  if (loading) {
-    return (
-      <Loading
-        fullScreen
-        size="lg"
-        text={mode === "edit" ? "Loading notification..." : "Preparing form..."}
-      />
-    );
-  }
+
+/* ================= LOADING STATE ================= */
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "70vh" }}
+      >
+        <Loading
+          size="md"
+          color="primary"
+          text={
+            mode === "edit"
+              ? "Loading Notification..."
+              : "Preparing Notification Form..."
+          }
+        />
+      </div>
+    </div>
+  );
+}
 
   /* ================= ERROR STATE ================= */
   if (error && mode === "edit") {
@@ -530,13 +585,13 @@ export default function NotificationForm({
         style={{
           minHeight: "100vh",
           background: "#f5f7fa",
-          paddingTop: "1.5rem",
+          paddingTop: "0.5rem",
           paddingBottom: "2rem",
           paddingLeft: "1rem",
           paddingRight: "1rem",
         }}
       >
-        <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+        <div style={{ width: "100%", maxWidth: "auto", margin: "0 auto" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -569,6 +624,7 @@ export default function NotificationForm({
               <>
                 {mode === "create" && (
                   <motion.button
+                    type="button"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={loadSample}
@@ -576,9 +632,10 @@ export default function NotificationForm({
                       backgroundColor: "rgba(255, 255, 255, 0.2)",
                       color: "white",
                       border: "2px solid rgba(255, 255, 255, 0.4)",
-                      padding: "0.75rem 1.5rem",
+                      padding: "0 18px",
+                      height: "42px",
                       borderRadius: "12px",
-                      fontSize: "1rem",
+                      fontSize: "0.9rem",
                       fontWeight: 600,
                       cursor: "pointer",
                       display: "flex",
@@ -591,6 +648,7 @@ export default function NotificationForm({
                   </motion.button>
                 )}
                 <motion.button
+                  type="button"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowPreview(!showPreview)}
@@ -598,9 +656,10 @@ export default function NotificationForm({
                     backgroundColor: "rgba(255, 255, 255, 0.2)",
                     color: "white",
                     border: "2px solid rgba(255, 255, 255, 0.4)",
-                    padding: "0.75rem 1.5rem",
+                    padding: "0 18px",
+                    height: "42px",
                     borderRadius: "12px",
-                    fontSize: "1rem",
+                    fontSize: "0.9rem",
                     fontWeight: 600,
                     cursor: "pointer",
                     display: "flex",
@@ -618,23 +677,25 @@ export default function NotificationForm({
           {/* Info Banner */}
           <div
             style={{
-              padding: "1rem 2rem",
+              padding: "0.8rem 2rem",
               backgroundColor: "#dbeafe",
               borderTop: "1px solid #bfdbfe",
               display: "flex",
               alignItems: "center",
               gap: "1rem",
               flexWrap: "wrap",
+              borderRadius: "12px",
+              marginBottom: "1.2rem",
             }}
           >
             <FaInfoCircle
               style={{
                 color: BRAND_COLORS.primary.main,
-                fontSize: "1.5rem",
+                fontSize: "1rem",
                 flexShrink: 0,
               }}
             />
-            <div style={{ color: "#1e293b", fontWeight: 500 }}>
+            <div style={{ color: "#1e293b", fontWeight: 500, fontSize: "0.9rem" }}>
               {mode === "create" ? (
                 <>
                   Notifications will be sent to all {config.placeholder}.
@@ -1255,7 +1316,7 @@ export default function NotificationForm({
                                   fontWeight: 500,
                                 }}
                               >
-                                {departments.find((d) => d._id === hodDepartment)?.name ||
+                                {departments && Array.isArray(departments) && departments.find((d) => d._id === hodDepartment)?.name ||
                                   "Your Department (auto-assigned)"}
                                 <input type="hidden" name="target_department" value={hodDepartment || ""} />
                               </div>
@@ -1273,7 +1334,7 @@ export default function NotificationForm({
                                 }}
                               >
                                 <option value="">Select Department</option>
-                                {departments.map((dept) => (
+                                {(Array.isArray(departments) ? departments : []).map((dept) => (
                                   <option key={dept._id} value={dept._id}>
                                     {dept.name} ({dept.code})
                                   </option>
@@ -1303,7 +1364,7 @@ export default function NotificationForm({
                                 }}
                               >
                                 <option value="">Select Course</option>
-                                {courses.map((course) => (
+                                {(Array.isArray(courses) ? courses : []).map((course) => (
                                   <option key={course._id} value={course._id}>
                                     {course.name} ({course.code})
                                   </option>
@@ -1335,7 +1396,7 @@ export default function NotificationForm({
                                 {Array.from(
                                   {
                                     length:
-                                      courses.find(
+                                      (Array.isArray(courses) ? courses : []).find(
                                         (c) => c._id === form.target_course
                                       )?.durationSemesters || 8,
                                   },
@@ -1503,7 +1564,7 @@ export default function NotificationForm({
                                   {recipientOptions
                                     .filter(
                                       (opt) =>
-                                        !form.target_users.includes(opt._id)
+                                        !(form.target_users || []).includes(opt._id)
                                     )
                                     .map((opt) => (
                                       <div
@@ -1512,7 +1573,7 @@ export default function NotificationForm({
                                           setForm((prev) => ({
                                             ...prev,
                                             target_users: [
-                                              ...prev.target_users,
+                                              ...(prev.target_users || []),
                                               opt._id,
                                             ],
                                           }));
@@ -1563,7 +1624,7 @@ export default function NotificationForm({
                               {!recipientLoading &&
                                 recipientSearch &&
                                 recipientOptions.filter(
-                                  (opt) => !form.target_users.includes(opt._id)
+                                  (opt) => !(form.target_users || []).includes(opt._id)
                                 ).length === 0 && (
                                   <div
                                     style={{
@@ -1576,7 +1637,7 @@ export default function NotificationForm({
                                     No eligible recipients found
                                   </div>
                               )}
-                              {form.target_users.length > 0 && (
+                              {(form.target_users?.length || 0) > 0 && (
                                 <div
                                   style={{
                                     display: "flex",
@@ -1585,7 +1646,7 @@ export default function NotificationForm({
                                     marginTop: "0.75rem",
                                   }}
                                 >
-                                  {form.target_users.map((userId) => {
+                                  {(form.target_users || []).map((userId) => {
                                     const user = recipientOptions.find(
                                       (opt) => opt._id === userId
                                     );
@@ -1610,7 +1671,7 @@ export default function NotificationForm({
                                           onClick={() => {
                                             setForm((prev) => ({
                                               ...prev,
-                                              target_users: prev.target_users.filter(
+                                              target_users: (prev.target_users || []).filter(
                                                 (id) => id !== userId
                                               ),
                                             }));

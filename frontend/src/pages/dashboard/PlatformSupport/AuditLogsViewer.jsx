@@ -32,6 +32,7 @@ import {
   FaArrowLeft,
 } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
+import ActionIconButton from "../../../components/common/ActionIconButton";
 import { toast } from "react-toastify";
 import api from "../../../api/axios";
 import ExportButtons from "../../../components/ExportButtons";
@@ -415,7 +416,7 @@ export default function AuditLogsViewer() {
                     </td>
                     <td>
                       {log.college_id ? (
-                        <Link to={`/colleges/${log.college_id._id}`} className="text-decoration-none">
+                        <Link to={`/super-admin/college/${log.college_id._id}`} className="text-decoration-none">
                           {log.college_id.name || log.college_id.code}
                         </Link>
                       ) : (
@@ -427,37 +428,35 @@ export default function AuditLogsViewer() {
                     </td>
                     <td>
                       {log.changes ? (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="p-0"
+                        <ActionIconButton
+                          icon={FaEye}
+                          className="btn btn-link btn-sm p-0"
                           onClick={() => viewLogDetails(log)}
-                        >
-                          View changes
-                        </Button>
+                          ariaLabel="View audit log changes"
+                          tooltip="View audit log changes"
+                        />
                       ) : (
                         <span className="text-muted">-</span>
                       )}
                     </td>
                     <td>
-                      <Button
-                        variant="outline-info"
-                        size="sm"
-                        className="me-1"
+                      <ActionIconButton
+                        icon={FaEye}
+                        className="btn btn-sm btn-outline-info me-1"
                         onClick={() => viewLogDetails(log)}
-                      >
-                        <FaEye /> Details
-                      </Button>
-                      <Button
-                        variant="outline-warning"
-                        size="sm"
+                        ariaLabel="View audit log details"
+                        tooltip="View audit log details"
+                      />
+                      <ActionIconButton
+                        icon={FaFlag}
+                        className="btn btn-sm btn-outline-warning"
                         onClick={() => {
                           toast.info("Flagging audit log for review");
                           // TODO: Call API to flag
                         }}
-                      >
-                        <FaFlag />
-                      </Button>
+                        ariaLabel="Flag audit log for review"
+                        tooltip="Flag audit log for review"
+                      />
                     </td>
                   </tr>
                 ))}

@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../../../../api/axios";
 import Loading from "../../../../components/Loading";
 import ApiError from "../../../../components/ApiError";
+import Breadcrumb from "../../../../components/Breadcrumb";
+import PageHeader from "../../../../components/PageHeader";
 import ExportButtons from "../../../../components/ExportButtons";
 import Pagination from "../../../../components/Pagination";
 import { showSuccess, showError } from "../../../../utils/toast";
@@ -52,10 +54,10 @@ import { logger } from "../../../../utils/logger";
 const CONFIG = {
   ITEMS_PER_PAGE: 5,
   CHART: {
-    PIE: { innerRadius: 70, outerRadius: 110, height: "auto" },
-    BAR: { height: "auto" },
-    AREA: { height: "auto", domain: [0, 100] },
-    LINE: { height: "auto" },
+    PIE: { innerRadius: 70, outerRadius: 110, height: 300 },
+    BAR: { height: 300 },
+    AREA: { height: 300, domain: [0, 100] },
+    LINE: { height: 300 },
   },
   // Sidebar-matched theme colors
   THEME: {
@@ -134,6 +136,7 @@ export default function ReportDashboard() {
   const [currentPaymentPage, setCurrentPaymentPage] = useState(1);
   const [currentLowAttendancePage, setCurrentLowAttendancePage] = useState(1);
   const [itemsPerPage] = useState(CONFIG.ITEMS_PER_PAGE);
+  const [expandedStudentId, setExpandedStudentId] = useState(null);
 
   // ================= EXPORT HELPER FUNCTIONS =================
   const formatCurrency = (amount) => {
@@ -530,12 +533,18 @@ export default function ReportDashboard() {
   // ================= LOADING STATE =================
   if (loading) {
     return (
-      <Loading
-        size="lg"
-        color="primary"
-        text="Loading reports dashboard..."
-        fullScreen={true}
-      />
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Reports Dashboard..."
+          />
+        </div>
+      </div>
     );
   }
 
@@ -557,31 +566,44 @@ export default function ReportDashboard() {
   }
 
   return (
-    <div className="report-dashboard-container">
-      {/* ================= HEADER ================= */}
-      <div className="dashboard-header">
-        <div className="header-content">
-          <div className="header-icon-wrapper">
-            <FaChartBar />
-          </div>
-          <div className="header-text">
-            <h1 className="dashboard-title">Reports & Analytics Dashboard</h1>
-            <p className="dashboard-subtitle">
-              Comprehensive overview of college performance metrics
-            </p>
-          </div>
-        </div>
-        <div className="header-actions">
-          <button
-            className="btn-refresh"
-            onClick={fetchAllReports}
-            aria-label="Refresh report data"
-          >
-            <FaSyncAlt className="spin-icon" /> Refresh Data
-          </button>
+    <div className="report-dashboard-container" style={{ paddingTop: "0.5rem" }}>
+      {/* ================= BREADCRUMB ================= */}
+      <div
+        style={{
+          width: "100%",
+          margin: "0 auto",
+          paddingTop: 0,
+          height: "auto",
+        }}
+      >
+        <div style={{ width: "100%" }}>
+          <Breadcrumb
+            items={[
+              { label: "Dashboard", path: "/dashboard" },
+              { label: "Reports & Analytics", },
+              { label: "Reports Dashboard" },
+            ]}
+          />
         </div>
       </div>
 
+     
+      {/* ================= PAGE HEADER ================= */}
+      <PageHeader
+        icon={FaChartBar}
+        title="Reports & Analytics Dashboard"
+        subtitle="Comprehensive overview of college performance metrics"
+        actions={
+          <button
+            className="btn-refresh reports-refresh-button"
+            onClick={fetchAllReports}
+            aria-label="Refresh report data"
+          >
+            <FaSyncAlt style={{ marginRight: "0.4rem", }} />
+            Refresh 
+          </button>
+        }
+      />
       {/* ================= DYNAMIC SUMMARY CARDS ================= */}
       <div className="summary-cards-grid">
         {/* Total Applications Card */}
@@ -657,6 +679,7 @@ export default function ReportDashboard() {
           <button
             key={tab.id}
             className={`tab-btn${activeTab === tab.id ? " tab-btn--active" : ""}`}
+            aria-pressed={activeTab === tab.id}
             onClick={() => {
               setActiveTab(tab.id);
               if (tab.id === "payment-status") setCurrentPaymentPage(1);
@@ -920,6 +943,7 @@ export default function ReportDashboard() {
               <h3>Student Payment Status</h3>
             </div>
             <div
+              className="payment-export-actions"
               style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
             >
               <ExportButtons
@@ -946,6 +970,7 @@ export default function ReportDashboard() {
                 <input
                   type="text"
                   placeholder="Search by student name..."
+                  aria-label="Search by student name"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="search-input"
@@ -953,6 +978,7 @@ export default function ReportDashboard() {
               </div>
 
               <select
+                aria-label="Filter payment status by course"
                 value={courseFilter}
                 onChange={(e) => setCourseFilter(e.target.value)}
                 className="filter-select"
@@ -967,6 +993,7 @@ export default function ReportDashboard() {
               </select>
 
               <select
+                aria-label="Filter by payment status"
                 value={paymentStatusFilter}
                 onChange={(e) => setPaymentStatusFilter(e.target.value)}
                 className="filter-select"
@@ -999,30 +1026,242 @@ export default function ReportDashboard() {
                     <th>Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {paymentPagination.data.map((student) => (
-                    <tr key={student._id}>
-                      <td className="student-name">{student.name}</td>
-                      <td>{student.course}</td>
-                      <td>{formatCurrency(student.totalFee)}</td>
-                      <td className="text-success">
-                        {formatCurrency(student.paid)}
-                      </td>
-                      <td className="text-danger">
-                        {formatCurrency(student.pending)}
-                      </td>
-                      <td>
-                        <span
-                          className={`status-badge ${getStatusBadgeClass(
-                            student.calculatedStatus,
-                          )}`}
-                        >
-                          {student.calculatedStatus}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
+                 <tbody>
+                   {paymentPagination.data.length === 0 ? (
+                     <tr>
+                       <td className="payment-empty-cell" colSpan="6">
+                         <div className="payment-empty-state">
+                           <FaWallet />
+                         <span>
+                           {studentPayments.length === 0
+                             ? "No student payment records are available."
+                             : "No payment records match these filters."}
+                         </span>
+                         </div>
+                       </td>
+                     </tr>
+                   ) : paymentPagination.data.map((student) => (
+                     <>
+                       <tr key={student._id}>
+                         <td className="student-name" data-label="Student Name">{student.name}</td>
+                         <td data-label="Course">{student.course}</td>
+                         <td data-label="Total Fee">{formatCurrency(student.totalFee)}</td>
+                         <td className="text-success" data-label="Paid">
+                           {formatCurrency(student.paid)}
+                         </td>
+                         <td className="text-danger" data-label="Pending">
+                           {formatCurrency(student.pending)}
+                         </td>
+                         <td data-label="Status">
+                           <div
+                             style={{
+                               display: "flex",
+                               alignItems: "center",
+                               gap: "0.5rem",
+                             }}
+                           >
+                             <span
+                               className={`status-badge ${getStatusBadgeClass(
+                                 student.calculatedStatus,
+                               )}`}
+                             >
+                               {student.calculatedStatus}
+                             </span>
+                             {student.feeRecords &&
+                               student.feeRecords.length > 1 && (
+                                 <button
+                                   onClick={() =>
+                                     setExpandedStudentId(
+                                       expandedStudentId ===
+                                       student._id?.toString()
+                                         ? null
+                                         : student._id?.toString(),
+                                     )
+                                   }
+                                   style={{
+                                     background: "none",
+                                     border: "none",
+                                     cursor: "pointer",
+                                     padding: "2px 6px",
+                                     fontSize: "0.7rem",
+                                     color: "#6c757d",
+                                   }}
+                                   title="View fee records"
+                                   aria-label="Toggle fee records"
+                                 >
+                                   {expandedStudentId ===
+                                   student._id?.toString()
+                                     ? "▲"
+                                     : "▼"}
+                                 </button>
+                               )}
+                           </div>
+                         </td>
+                       </tr>
+                       {expandedStudentId === student._id?.toString() &&
+                         student.feeRecords && (
+                           <tr className="payment-details-row">
+                             <td
+                               colSpan="6"
+                               style={{
+                                 padding: "8px 12px",
+                                 backgroundColor: "#f8f9fa",
+                               }}
+                             >
+                               <div
+                                 style={{
+                                   fontSize: "0.8rem",
+                                   color: "#495057",
+                                 }}
+                               >
+                                 <div
+                                   style={{
+                                     fontWeight: 600,
+                                     marginBottom: "6px",
+                                   }}
+                                 >
+                                   Fee Records
+                                 </div>
+                                 <table
+                                   className="fee-records-table"
+                                   style={{
+                                     width: "100%",
+                                     borderCollapse: "collapse",
+                                   }}
+                                 >
+                                   <thead>
+                                     <tr>
+                                       <th
+                                         style={{
+                                           textAlign: "left",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Fee Record
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "right",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Total Fee
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "right",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Paid
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "right",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Pending
+                                       </th>
+                                       <th
+                                         style={{
+                                           textAlign: "center",
+                                           padding: "4px 8px",
+                                           borderBottom:
+                                             "1px solid #dee2e6",
+                                         }}
+                                       >
+                                         Status
+                                       </th>
+                                     </tr>
+                                   </thead>
+                                   <tbody>
+                                     {student.feeRecords.map((record) => (
+                                       <tr
+                                         key={
+                                           record._id
+                                             ? record._id.toString()
+                                             : `fee-${record.feeType}`
+                                         }
+                                       >
+                                         <td
+                                           style={{
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {record.feeType === "enrollment"
+                                             ? "Enrollment Fee"
+                                             : `Semester ${record.semester}`}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "right",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {formatCurrency(record.totalFee)}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "right",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {formatCurrency(record.paidAmount)}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "right",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           {formatCurrency(
+                                             record.pendingAmount,
+                                           )}
+                                         </td>
+                                         <td
+                                           style={{
+                                             textAlign: "center",
+                                             padding: "4px 8px",
+                                             borderBottom:
+                                               "1px solid #e9ecef",
+                                           }}
+                                         >
+                                           <span
+                                             className={`status-badge ${getStatusBadgeClass(
+                                               record.status,
+                                             )}`}
+                                           >
+                                             {record.status}
+                                           </span>
+                                         </td>
+                                       </tr>
+                                     ))}
+                                   </tbody>
+                                 </table>
+                               </div>
+                             </td>
+                           </tr>
+                         )}
+                     </>
+                   ))}
+                 </tbody>
               </table>
             </div>
 
@@ -1169,18 +1408,19 @@ export default function ReportDashboard() {
           <div className="card-body">
             {lowAttendancePagination.data.length === 0 ? (
               <div
-                className="empty-state"
+                className="empty-state report-empty-state"
                 style={{ padding: "3rem", textAlign: "center" }}
               >
                 <FaExclamationTriangle
+                  className="report-empty-icon"
                   style={{
                     fontSize: "3rem",
                     color: "#ffc107",
                     marginBottom: "1rem",
                   }}
                 />
-                <h3>No Low Attendance Students</h3>
-                <p style={{ color: "#6c757d" }}>
+                <h3 className="report-empty-title">No Low Attendance Students</h3>
+                <p className="report-empty-description">
                   {(() => {
                     const totalSessions =
                       attendanceData?.totalSessions ?? attendanceData?.totalRecords ?? 0;
@@ -1207,7 +1447,7 @@ export default function ReportDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {lowAttendancePagination.data.map((student) => (
+                    {lowAttendancePagination.data.map((student, index) => (
                       <tr
                         key={student._id || student.name || `student-${index}`}
                         className={
@@ -1350,85 +1590,8 @@ export default function ReportDashboard() {
           box-shadow: var(--shadow-md);
         }
 
-        /* ================= HEADER - ENTERPRISE LAYOUT ================= */
-        .dashboard-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-          padding: 1.75rem;
-          background: var(--primary);
-          border-radius: var(--radius-lg);
-          box-shadow: 0 8px 32px rgba(15, 58, 74, 0.3);
-          color: white;
-        }
 
-        .header-content {
-          display: flex;
-          align-items: center;
-          gap: 1.25rem;
-        }
 
-        .header-icon-wrapper {
-          width: 64px;
-          height: 64px;
-          background: rgba(61, 181, 230, 0.2);
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          color: var(--accent-light);
-        }
-
-        .dashboard-title {
-          margin: 0;
-          font-size: var(--font-size-2xl);
-          font-weight: var(--font-weight-bold);
-          color: white;
-          font-family: var(--font-family-base);
-        }
-
-        .dashboard-subtitle {
-          margin: 0.375rem 0 0;
-          color: rgba(255, 255, 255, 0.9);
-          font-size: var(--font-size-base);
-          font-weight: var(--font-weight-medium);
-          font-family: var(--font-family-base);
-        }
-
-        .header-actions {
-          display: flex;
-          gap: 0.75rem;
-        }
-
-        .btn-refresh,
-        .btn-export {
-          padding: 0.75rem 1.5rem;
-          border-radius: var(--radius-lg);
-          font-weight: var(--font-weight-semibold);
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          cursor: pointer;
-          border: none;
-          transition: all var(--transition-base);
-          font-size: var(--font-size-sm);
-          font-family: var(--font-family-base);
-        }
-
-        .btn-refresh {
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
-          border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-refresh:hover {
-          background: rgba(61, 181, 230, 0.25);
-          border-color: var(--accent);
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(61, 181, 230, 0.3);
-        }
 
         .btn-export {
           background: white;
@@ -1441,14 +1604,9 @@ export default function ReportDashboard() {
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
 
-        .spin-icon {
-          animation: spin 1s linear infinite;
-        }
+      
 
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
+       
 
         /* ================= SUMMARY CARDS - CLEAN DESIGN ================= */
         .summary-cards-grid {
@@ -2151,75 +2309,1003 @@ export default function ReportDashboard() {
           }
         }
 
-        /* ================= RESPONSIVE ================= */
-        @media (max-width: 768px) {
-          .report-dashboard-container {
-            padding: 1rem;
-          }
+ /* ================= RESPONSIVE ================= */
 
-          .dashboard-header {
-            flex-direction: column;
-            gap: 1rem;
-            text-align: center;
-          }
+/* ================= TABLET ================= */
+@media (min-width: 769px) and (max-width: 1024px) {
 
-          .header-content {
-            flex-direction: column;
-          }
+  .report-dashboard-container {
+    padding: 1.25rem;
+  }
 
-          .header-actions {
-            width: 100%;
-            justify-content: center;
-          }
+  /* Header */
+  .dashboard-header {
+    padding: 1.5rem;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
 
-          .summary-cards-grid {
-            grid-template-columns: 1fr;
-          }
+  .header-content {
+    gap: 1rem;
+    min-width: 0;
+  }
 
-          .reports-grid {
-            grid-template-columns: 1fr;
-          }
+  .header-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    font-size: 1.6rem;
+    flex-shrink: 0;
+  }
 
-          .stats-grid,
-          .payment-overview,
-          .attendance-stats {
-            grid-template-columns: 1fr;
-          }
+  .dashboard-title {
+    font-size: 1.65rem;
+    line-height: 1.25;
+  }
 
-          .filters-row {
-            flex-direction: column;
-          }
+  .dashboard-subtitle {
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
 
-          .filter-group {
-            min-width: 100%;
-          }
+  .header-actions {
+    flex-shrink: 0;
+  }
 
-          .data-table th,
-          .data-table td {
-            padding: 0.75rem 0.5rem;
-            font-size: 0.85rem;
-          }
-        }
+  .btn-refresh {
+    padding: 0.7rem 1rem;
+    white-space: nowrap;
+  }
 
-        @media (max-width: 480px) {
-          .dashboard-title {
-            font-size: 1.5rem;
-          }
 
-          .header-icon {
-            font-size: 2.5rem;
-          }
+  /* Summary Cards */
+  .summary-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
 
-          .card-header {
-            flex-direction: column;
-            gap: 0.75rem;
-            text-align: center;
-          }
+  .summary-card {
+    padding: 1.15rem;
+    gap: 1rem;
+  }
 
-          .chart-container {
-            height: 200px;
-          }
-        }
+  .card-icon-wrapper {
+    width: 56px;
+    height: 56px;
+    font-size: 1.5rem;
+  }
+
+  .card-content h3 {
+    font-size: 1.35rem;
+  }
+
+  .card-content p {
+    font-size: 0.85rem;
+  }
+
+
+  /* Tabs */
+  .report-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.4rem;
+    padding: 0.6rem;
+    margin-bottom: 1.25rem;
+    scrollbar-width: thin;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.82rem;
+  }
+
+
+  /* Report Cards */
+  .card-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+
+  .card-header h3 {
+    font-size: 1rem;
+  }
+
+  .card-icon {
+    font-size: 1.2rem;
+  }
+
+
+  /* Charts */
+  .chart-container {
+    min-height: 260px;
+    aspect-ratio: 16 / 10;
+  }
+
+
+  /* Filters */
+  .filters-row {
+    gap: 0.75rem;
+  }
+
+  .filter-group {
+    min-width: 220px;
+  }
+}
+
+
+/* ================= MOBILE ================= */
+@media (max-width: 768px) {
+
+  .report-dashboard-container {
+    padding: 0.75rem;
+  }
+
+
+  /* ================= DASHBOARD HEADER ================= */
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-radius: 14px;
+    text-align: left;
+  }
+
+  .header-content {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 0.85rem;
+    width: 100%;
+  }
+
+  .header-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    font-size: 1.35rem;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+
+  .header-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .dashboard-title {
+    font-size: 1.35rem;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    margin-top: 0.4rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .btn-refresh {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.7rem 1rem;
+    font-size: 0.88rem;
+  }
+
+
+  /* ================= SUMMARY CARDS ================= */
+
+  .summary-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .summary-card {
+    min-height: 96px;
+    padding: 1rem;
+    gap: 1rem;
+    border-radius: 14px;
+  }
+
+  .card-icon-wrapper {
+    width: 58px;
+    height: 58px;
+    min-width: 58px;
+    font-size: 1.45rem;
+    border-radius: 11px;
+  }
+
+  .card-content {
+    min-width: 0;
+  }
+
+  .card-content h3 {
+    font-size: 1.3rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .card-content p {
+    font-size: 0.82rem;
+    margin-top: 0.3rem;
+  }
+
+
+  /* ================= TABS ================= */
+
+  .report-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.45rem;
+    padding: 0.55rem;
+    margin-bottom: 1rem;
+    border-radius: 12px;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .report-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-btn {
+    flex: 0 0 auto;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.78rem;
+    white-space: nowrap;
+    border-width: 1px;
+  }
+
+
+  /* ================= REPORT CARD ================= */
+
+  .report-card {
+    border-radius: 14px;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .card-title-wrapper {
+    width: 100%;
+    gap: 0.65rem;
+  }
+
+  .card-header h3 {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  .card-icon {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  .card-header > div:last-child {
+    width: 100%;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+
+  /* ================= STATISTICS ================= */
+
+  .stats-grid,
+  .payment-overview,
+  .attendance-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .stat-box {
+    padding: 0.9rem;
+  }
+
+  .stat-item {
+    padding: 0.85rem;
+  }
+
+  .stat-item .stat-value.large {
+    font-size: 1.7rem;
+  }
+
+
+  /* ================= FILTERS ================= */
+
+  .filters-row {
+    flex-direction: column;
+    gap: 0.7rem;
+    margin-bottom: 1rem;
+  }
+
+  .filter-group {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .search-input,
+  .filter-select,
+  .filter-select-small {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+
+  /* ================= TABLE ================= */
+
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 650px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.7rem 0.65rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+
+  /* ================= CHARTS ================= */
+
+  .chart-container {
+    width: 100%;
+    height: 260px;
+    min-height: 260px;
+    aspect-ratio: auto;
+    margin-top: 1rem;
+  }
+}
+
+
+/* ================= SMALL MOBILE ================= */
+@media (max-width: 480px) {
+
+  .report-dashboard-container {
+    padding: 0.6rem;
+  }
+
+
+  /* Header */
+  .dashboard-header {
+    padding: 1rem;
+    border-radius: 13px;
+    gap: 0.85rem;
+  }
+
+  .header-content {
+    gap: 0.7rem;
+  }
+
+  .header-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    font-size: 1.2rem;
+  }
+
+  .dashboard-title {
+    font-size: 1.2rem;
+    line-height: 1.25;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.76rem;
+    line-height: 1.45;
+  }
+
+
+  /* Summary */
+  .summary-cards-grid {
+    gap: 0.7rem;
+  }
+
+  .summary-card {
+    min-height: 82px;
+    padding: 0.85rem;
+    gap: 0.8rem;
+  }
+
+  .card-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    min-width: 50px;
+    font-size: 1.25rem;
+  }
+
+  .card-content h3 {
+    font-size: 1.15rem;
+  }
+
+  .card-content p {
+    font-size: 0.76rem;
+  }
+
+
+  /* Tabs */
+  .report-tabs {
+    padding: 0.45rem;
+    gap: 0.35rem;
+  }
+
+  .tab-btn {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.72rem;
+  }
+
+
+  /* Cards */
+  .card-header {
+    padding: 0.85rem;
+  }
+
+  .card-body {
+    padding: 0.85rem;
+  }
+
+  .card-header h3 {
+    font-size: 0.92rem;
+  }
+
+
+  /* Charts */
+  .chart-container {
+    height: 220px;
+    min-height: 220px;
+  }
+
+
+  /* Tables */
+  .data-table th,
+  .data-table td {
+    padding: 0.65rem 0.55rem;
+    font-size: 0.76rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .payment-table-card .card-header {
+    gap: 0.6rem;
+  }
+
+  .payment-table-card .card-title-wrapper {
+    min-width: 0;
+  }
+
+  .payment-table-card .payment-export-actions,
+  .payment-table-card .payment-export-actions .export-buttons {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .payment-table-card .payment-export-actions .export-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0.5rem;
+  }
+
+  .payment-table-card .payment-export-actions .btn-export {
+    width: auto;
+    min-height: 36px;
+    padding: 0.45rem 0.7rem;
+  }
+
+  .payment-table-card .card-body {
+    min-width: 0;
+    padding: 0.75rem;
+  }
+
+  .payment-table-card .filters-row {
+    gap: 0.55rem;
+  }
+
+  .payment-table-card .filter-group,
+  .payment-table-card .filter-select {
+    min-width: 0;
+  }
+
+  .payment-table-card .results-count {
+    margin-bottom: 0.65rem;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .payment-table-card .table-responsive {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  .payment-table-card .data-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .payment-table-card .data-table thead {
+    display: none;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) {
+    display: block;
+    margin: 0 0 0.65rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid #e3eaf0;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 2px 6px rgba(15, 58, 74, 0.06);
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td {
+    display: grid;
+    grid-template-columns: minmax(88px, 34%) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid #edf2f6;
+    font-size: 0.8rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.68rem;
+    font-weight: 700;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td:last-child {
+    border-bottom: 0;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td > div {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .payment-table-card .data-table tbody tr.payment-details-row {
+    display: block;
+    margin: -0.5rem 0 0.75rem;
+  }
+
+  .payment-table-card .payment-details-row > td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+  }
+
+  .payment-table-card .fee-records-table {
+    min-width: 480px;
+  }
+}
+
+@media (max-width: 360px) {
+  .payment-table-card .card-body {
+    padding: 0.6rem;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem;
+    font-size: 0.78rem;
+  }
+
+  .payment-table-card .data-table tbody tr:not(.payment-details-row) td::before {
+    font-size: 0.66rem;
+  }
+
+  .payment-table-card .payment-export-actions .btn-export {
+    min-width: 0;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.72rem;
+  }
+}
+
+.report-dashboard-container {
+  box-sizing: border-box;
+  padding: 1rem 1.5rem 1.5rem;
+  background: linear-gradient(135deg, #f7fafb 0%, #edf3f5 100%);
+}
+.report-dashboard-container .report-tabs,
+.report-dashboard-container .tab-content,
+.report-dashboard-container .report-card,
+.report-dashboard-container .summary-cards-grid,
+.report-dashboard-container .summary-card,
+.report-dashboard-container .chart-container,
+.report-dashboard-container .filters-row,
+.report-dashboard-container .filter-group,
+.report-dashboard-container .filter-select,
+.report-dashboard-container .search-input,
+.report-dashboard-container .results-count,
+.report-dashboard-container .card-footer-pagination,
+.report-dashboard-container .data-table,
+.report-dashboard-container .empty-state {
+  box-sizing: border-box;
+}
+.report-dashboard-container > .standard-page-header {
+  margin-bottom: 1.15rem;
+}
+.report-dashboard-container .reports-refresh-button {
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  box-shadow: none;
+  transition: background 0.2s ease, transform 0.2s ease;
+  font-weight: 600;
+  
+}
+.report-dashboard-container .reports-refresh-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.2);
+}
+.report-dashboard-container .summary-cards-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+}
+.report-dashboard-container .summary-card {
+  min-width: 0;
+  min-height: 106px;
+  gap: 1rem;
+  padding: 1.1rem;
+  border: 1px solid #e1e9ed;
+  border-left: 3px solid rgba(15, 58, 74, 0.18);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(15, 58, 74, 0.055);
+}
+.report-dashboard-container .summary-card.warning {
+  border-left-color: #e6b23c;
+}
+.report-dashboard-container .summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(15, 58, 74, 0.09);
+}
+.report-dashboard-container .card-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  font-size: 1.25rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.report-dashboard-container .card-content {
+  min-width: 0;
+}
+.report-dashboard-container .card-content h3 {
+  font-size: clamp(1.15rem, 1.7vw, 1.55rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.report-dashboard-container .card-content p {
+  margin-top: 0.25rem;
+  line-height: 1.35;
+}
+.report-dashboard-container .report-tabs {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  padding: 0.45rem;
+  border: 1px solid #e0e8ec;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 3px 12px rgba(15, 58, 74, 0.045);
+}
+.report-dashboard-container .tab-btn {
+  min-width: 0;
+  padding: 0.65rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 0.86rem;
+}
+.report-dashboard-container .tab-btn:focus-visible {
+  outline: 3px solid #6bb5c8;
+  outline-offset: 2px;
+}
+.report-dashboard-container .tab-content {
+  min-height: 0;
+}
+.report-dashboard-container .report-card {
+  border: 1px solid #e0e8ec;
+  border-radius: 15px;
+  box-shadow: 0 5px 18px rgba(15, 58, 74, 0.06);
+}
+.report-dashboard-container .report-card:hover {
+  transform: none;
+  box-shadow: 0 7px 21px rgba(15, 58, 74, 0.075);
+}
+.report-dashboard-container .card-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e4ecef;
+  background: linear-gradient(135deg, #f8fbfc 0%, #f1f7f8 100%);
+}
+.report-dashboard-container .card-title-wrapper {
+  gap: 0.7rem;
+  min-width: 0;
+}
+.report-dashboard-container .card-icon {
+  color: #17637b;
+}
+.report-dashboard-container .card-header h3 {
+  font-size: 1.05rem;
+}
+.report-dashboard-container .card-body {
+  padding: 1.25rem;
+}
+.report-dashboard-container .stats-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.report-dashboard-container .stat-box,
+.report-dashboard-container .payment-stat,
+.report-dashboard-container .stat-item {
+  min-width: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e5ecef;
+  border-radius: 11px;
+  background: #f8fafb;
+}
+.report-dashboard-container .payment-stat.collected {
+  background: #f0f8f3;
+  border-color: #d7eadc;
+}
+.report-dashboard-container .payment-stat.pending {
+  background: #fff9eb;
+  border-color: #f1e4c2;
+}
+.report-dashboard-container .payment-stat.rate {
+  background: #eff8fa;
+  border-color: #d6e9ed;
+}
+.report-dashboard-container .payment-overview {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.report-dashboard-container .attendance-stats {
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.report-dashboard-container .chart-container {
+  width: 100%;
+  height: 300px;
+  min-height: 0;
+  margin-top: 0.75rem;
+  aspect-ratio: auto;
+}
+.report-dashboard-container .chart-container > .recharts-responsive-container {
+  height: 300px !important;
+}
+.report-dashboard-container .filters-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.5fr) repeat(2, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+.report-dashboard-container .filter-group {
+  width: 100%;
+  min-width: 0;
+}
+.report-dashboard-container .filter-icon {
+  left: 14px;
+  color: #718493;
+}
+.report-dashboard-container .search-input,
+.report-dashboard-container .filter-select,
+.report-dashboard-container .filter-select-small {
+  min-height: 44px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid #dce6eb;
+  border-radius: 9px;
+  background-color: #fff;
+  color: #2b4653;
+  font-size: 0.88rem;
+}
+.report-dashboard-container .search-input {
+  padding-left: 2.5rem;
+}
+.report-dashboard-container .search-input:focus,
+.report-dashboard-container .filter-select:focus,
+.report-dashboard-container .filter-select-small:focus {
+  border-color: #4a91a6;
+  box-shadow: 0 0 0 3px rgba(23, 99, 123, 0.11);
+}
+.report-dashboard-container .results-count {
+  width: fit-content;
+  margin: 0 0 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #deeaee;
+  border-radius: 8px;
+  background: #f4f9fa;
+  color: #345b69;
+  font-size: 0.82rem;
+}
+.report-dashboard-container .table-responsive {
+  border: 1px solid #e2e9ed;
+  border-radius: 10px;
+}
+.report-dashboard-container .data-table th {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #dce7eb;
+  background: #f4f8f9;
+  color: #315564;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+.report-dashboard-container .data-table td {
+  padding: 0.8rem 1rem;
+  border-bottom-color: #edf1f3;
+  font-size: 0.86rem;
+}
+.report-dashboard-container .data-table tbody tr:nth-child(even) {
+  background: #fcfdfe;
+}
+.report-dashboard-container .data-table tbody tr:hover {
+  background: #f2f8fa;
+}
+.report-dashboard-container .payment-empty-cell {
+  padding: 0 !important;
+}
+.report-dashboard-container .payment-table-card .payment-empty-cell {
+  display: block !important;
+}
+.report-dashboard-container .payment-empty-state {
+  min-height: 140px;
+  padding: 1.5rem;
+  color: #657b87;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  text-align: center;
+}
+.report-dashboard-container .payment-empty-state svg {
+  color: #398198;
+}
+.report-dashboard-container .card-footer-pagination {
+  justify-content: center;
+  margin: 0.85rem 0 0;
+  padding: 0.75rem 0.5rem 0;
+  border-top: 1px solid #e8eef1;
+  background: transparent;
+}
+.report-dashboard-container .empty-state.report-empty-state {
+  min-height: 220px;
+  padding: 2rem 1.25rem !important;
+  border: 1px dashed #d4e1e6;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #fbfdfe 0%, #f5f9fa 100%);
+}
+.report-dashboard-container .report-empty-icon {
+  margin-bottom: 0.65rem !important;
+  color: #b38a2c !important;
+  font-size: 2.25rem !important;
+}
+.report-dashboard-container .report-empty-title {
+  margin: 0 0 0.4rem;
+  color: #244653;
+  font-size: 1.1rem;
+}
+.report-dashboard-container .report-empty-description {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  color: #657b87 !important;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  text-align: center;
+}
+@media (max-width: 1024px) {
+  .report-dashboard-container .summary-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-dashboard-container .stats-grid,
+  .report-dashboard-container .payment-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-dashboard-container .filters-row {
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(150px, 0.75fr));
+  }
+  .report-dashboard-container .chart-container,
+  .report-dashboard-container .chart-container > .recharts-responsive-container {
+    height: 280px !important;
+  }
+}
+@media (max-width: 768px) {
+  .report-dashboard-container {
+    padding: 0.75rem;
+  }
+  .report-dashboard-container .report-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+  }
+  .report-dashboard-container .tab-btn {
+    flex: 0 0 auto;
+    padding: 0.6rem 0.85rem;
+  }
+  .report-dashboard-container .filters-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .report-dashboard-container .filter-group,
+  .report-dashboard-container .filter-select,
+  .report-dashboard-container .search-input {
+    width: 100%;
+  }
+  .report-dashboard-container .chart-container,
+  .report-dashboard-container .chart-container > .recharts-responsive-container {
+    height: 260px !important;
+  }
+}
+@media (max-width: 480px) {
+  .report-dashboard-container {
+    padding: 0.6rem;
+  }
+  .report-dashboard-container .summary-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 0.85rem;
+  }
+  .report-dashboard-container .summary-card {
+    min-height: 88px;
+    padding: 0.75rem;
+    gap: 0.65rem;
+    border-radius: 11px;
+  }
+  .report-dashboard-container .card-icon-wrapper {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
+  .report-dashboard-container .card-content h3 {
+    font-size: 1.05rem;
+  }
+  .report-dashboard-container .card-content p {
+    font-size: 0.72rem;
+  }
+  .report-dashboard-container .stats-grid,
+  .report-dashboard-container .payment-overview,
+  .report-dashboard-container .attendance-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .report-dashboard-container .card-body {
+    padding: 0.85rem;
+  }
+}
       `}</style>
     </div>
   );

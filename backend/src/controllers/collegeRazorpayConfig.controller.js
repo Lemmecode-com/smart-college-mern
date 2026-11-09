@@ -29,11 +29,19 @@ exports.getRazorpayConfig = async (req, res, next) => {
       gatewayCode: "razorpay",
     }).select("-credentials.keySecret -credentials.webhookSecret");
 
+    const backendPublicUrl = (process.env.BACKEND_URL || process.env.API_URL || "").trim();
+    let webhookUrl;
+    if (backendPublicUrl) {
+      const cleanBase = backendPublicUrl.replace(/\/+$/, "").replace(/\/api$/, "").replace(/\/+$/, "");
+      webhookUrl = `${cleanBase}/api/razorpay/webhook`.replace(/([^:]\/)\/+/g, "$1");
+    }
+
     if (!config) {
       return res.status(200).json({
         success: true,
         configured: false,
         isActive: false,
+        webhookUrl,
         message: "Razorpay is not configured for this college",
       });
     }
@@ -44,6 +52,7 @@ exports.getRazorpayConfig = async (req, res, next) => {
       success: true,
       configured: true,
       isActive: config.isActive,
+      webhookUrl,
       config: {
         id: config._id,
         gatewayCode: config.gatewayCode,
@@ -58,6 +67,7 @@ exports.getRazorpayConfig = async (req, res, next) => {
         createdAt: config.createdAt,
         updatedAt: config.updatedAt,
         isTestMode,
+        webhookUrl,
       },
     });
   } catch (error) {

@@ -123,25 +123,38 @@ export default function ChildProfile() {
     fetchProfile();
   }, [childId]);
 
-  if (loading) {
-    return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container parent-loading-container" style={{ minHeight: '50vh' }}>
-          <div className="parent-loading-state">
-            <motion.div
-              variants={spinVariants}
-              animate="animate"
-              className="parent-loading-spinner"
-              style={{ fontSize: '3rem', color: 'var(--parent-primary)', borderTopColor: 'var(--parent-primary)' }}
-            >
-              <FaSyncAlt />
-            </motion.div>
-            <h4 className="parent-loading-text" style={{ color: 'var(--parent-primary)' }}>Loading Profile...</h4>
-          </div>
+if (loading) {
+  return (
+    <div className="parent-portal-wrapper">
+      <div
+        className="parent-portal-container parent-loading-container"
+        style={{ minHeight: "50vh" }}
+      >
+        <div className="parent-loading-state">
+          <motion.div
+            variants={spinVariants}
+            animate="animate"
+            className="parent-loading-spinner"
+            style={{
+              fontSize: "3rem",
+              color: "var(--parent-primary)",
+              borderTopColor: "var(--parent-primary)",
+            }}
+          >
+            <FaSyncAlt />
+          </motion.div>
+
+          <h4
+            className="parent-loading-text"
+            style={{ color: "var(--parent-primary)" }}
+          >
+            Loading Profile...
+          </h4>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (error) {
     return (

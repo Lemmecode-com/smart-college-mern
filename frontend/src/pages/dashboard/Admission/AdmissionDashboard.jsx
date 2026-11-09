@@ -149,7 +149,22 @@ export default function AdmissionDashboard() {
     fetchData();
   }, []);
 
-  if (loading) return <Loading fullScreen size="lg" text="Loading Admission Dashboard..." />;
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Admission Dashboard..."
+          />
+        </div>
+      </div>
+    );
+  }
   if (error) return <ErrorDisplay message={error} onRetry={() => window.location.reload()} />;
 
   const { pendingCount, approvalsThisWeek, rejectionsThisWeek } = stats;

@@ -1,5 +1,25 @@
 const StudentFee = require("../models/studentFee.model");
+const FeeStructure = require("../models/feeStructure.model");
 const AppError = require("../utils/AppError");
+const { allocateLineItemsForInstallment } = require("../utils/gstCalculator");
+
+function getPlaceOfSupply(college) {
+  if (college?.state) {
+    return college.stateCode ? `${college.state} (${college.stateCode})` : college.state;
+  }
+  if (college?.gstin && typeof college.gstin === "string" && college.gstin.length >= 2) {
+    const code = college.gstin.slice(0, 2);
+    const STATE_CODES = {
+      "01": "Jammu & Kashmir", "02": "Himachal Pradesh", "03": "Punjab", "04": "Chandigarh",
+      "06": "Haryana", "07": "Delhi", "08": "Rajasthan", "09": "Uttar Pradesh", "10": "Bihar",
+      "19": "West Bengal", "23": "Madhya Pradesh", "24": "Gujarat", "27": "Maharashtra",
+      "29": "Karnataka", "32": "Kerala", "33": "Tamil Nadu", "36": "Telangana", "37": "Andhra Pradesh"
+    };
+    const stateName = STATE_CODES[code] || "State";
+    return `${stateName} (${code})`;
+  }
+  return "Maharashtra (27)";
+}
 
 /**
  * Get receipt for admin (view any student's receipt)
@@ -45,6 +65,68 @@ exports.getAdminReceipt = async (req, res, next) => {
       .slice(-6)
       .toUpperCase()}-${new Date().getFullYear()}`;
 
+    const taxBreakdown = installment.taxBreakdown;
+    const isTaxApplicable = Boolean(taxBreakdown && taxBreakdown.isTaxApplicable);
+
+    let lineItems = [];
+    if (installment.taxBreakdown?.lineItems && Array.isArray(installment.taxBreakdown.lineItems) && installment.taxBreakdown.lineItems.length > 0) {
+      lineItems = installment.taxBreakdown.lineItems;
+    } else if (isTaxApplicable) {
+      try {
+        const feeStructure = await FeeStructure.findOne({
+          college_id: studentFee.college_id._id || studentFee.college_id,
+          course_id: studentFee.course_id._id || studentFee.course_id,
+          category: studentFee.student_id?.category || "GEN",
+        }).select("components totalFee");
+
+        if (feeStructure?.components && feeStructure.components.length > 0) {
+          lineItems = allocateLineItemsForInstallment({
+            components: feeStructure.components,
+            installment,
+          });
+        }
+      } catch (_) {}
+    }
+
+    let finalTaxSplit = taxBreakdown?.taxSplit || {
+      type: "INTRA_STATE",
+      cgstRate: null,
+      cgstAmount: 0,
+      sgstRate: null,
+      sgstAmount: 0,
+      igstRate: null,
+      igstAmount: 0,
+    };
+
+    if (isTaxApplicable && Array.isArray(lineItems) && lineItems.length > 0) {
+      const taxableItems = lineItems.filter((l) => Number(l.gstRate) > 0 || Number(l.gstAmount) > 0);
+      const uniqueRates = [...new Set(taxableItems.map((l) => Number(l.gstRate)))];
+      const isUniform = uniqueRates.length === 1;
+      const uniformRate = isUniform ? uniqueRates[0] : null;
+
+      finalTaxSplit = {
+        ...finalTaxSplit,
+        isUniformRate: isUniform,
+        cgstRate: isUniform && uniformRate !== null ? (uniformRate / 2) : null,
+        sgstRate: isUniform && uniformRate !== null ? (uniformRate / 2) : null,
+        igstRate: isUniform && uniformRate !== null ? uniformRate : null,
+      };
+    }
+
+    const taxDetails = isTaxApplicable
+      ? {
+          isTaxApplicable: true,
+          sacCode: "999299",
+          placeOfSupply: getPlaceOfSupply(studentFee.college_id),
+          baseAmount: installment.baseAmount !== undefined ? installment.baseAmount : taxBreakdown.taxableBase,
+          totalTax: installment.gstAmount !== undefined ? installment.gstAmount : taxBreakdown.totalTax,
+          grossAmount: installment.amount,
+          gstRate: finalTaxSplit.isUniformRate ? (finalTaxSplit.igstRate || (finalTaxSplit.cgstRate ? finalTaxSplit.cgstRate * 2 : 0)) : null,
+          taxSplit: finalTaxSplit,
+          lineItems,
+        }
+      : null;
+
     return res.json({
       receiptNumber,
       transactionId: installment.transactionId,
@@ -72,7 +154,10 @@ exports.getAdminReceipt = async (req, res, next) => {
         address: studentFee.college_id?.address || "N/A",
         email: studentFee.college_id?.email || "N/A",
         contact: studentFee.college_id?.contactNumber || "N/A",
+        gstin: studentFee.college_id?.gstin || null,
       },
+
+      taxDetails,
 
       summary: {
         totalFee: studentFee.totalFee,

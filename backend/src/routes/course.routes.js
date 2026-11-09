@@ -13,6 +13,8 @@ const {
   updateCourse,
   deleteCourse,
   getAllCourses,
+  deactivateCourse,
+  reactivateCourse,
 } = require("../controllers/course.controller");
 
 // Create Course — COLLEGE_ADMIN only
@@ -61,6 +63,24 @@ router.delete(
   role(ROLE.COLLEGE_ADMIN),
   collegeMiddleware,
   deleteCourse,
+);
+
+// Deactivate Course — COLLEGE_ADMIN only
+router.put(
+  "/:id/deactivate",
+  auth,
+  role(ROLE.COLLEGE_ADMIN),
+  collegeMiddleware,
+  deactivateCourse,
+);
+
+// Reactivate Course — COLLEGE_ADMIN only
+router.put(
+  "/:id/reactivate",
+  auth,
+  role(ROLE.COLLEGE_ADMIN),
+  collegeMiddleware,
+  reactivateCourse,
 );
 
 module.exports = router;

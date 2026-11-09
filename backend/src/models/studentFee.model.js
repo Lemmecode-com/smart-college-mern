@@ -17,9 +17,29 @@ const studentFeeSchema = new mongoose.Schema({
     required: true,
   },
 
+  feeStructure_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "FeeStructure",
+    default: null,
+  },
+
+  academicYear: {
+    type: String,
+    default: null,
+  },
+
   totalFee: {
     type: Number,
     required: true,
+  },
+
+  baseFee: {
+    type: Number,
+  },
+
+  totalTax: {
+    type: Number,
+    default: 0,
   },
 
   paidAmount: {
@@ -27,10 +47,25 @@ const studentFeeSchema = new mongoose.Schema({
     default: 0,
   },
 
+  paymentStatus: {
+    type: String,
+    enum: ["PENDING", "PARTIAL", "PAID"],
+    default: "PENDING",
+  },
+
   installments: [
     {
       name: String,
       amount: Number,
+      baseAmount: Number,
+      gstAmount: {
+        type: Number,
+        default: 0,
+      },
+      taxBreakdown: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
+      },
       order: {
         type: Number,
         default: 0,
@@ -138,6 +173,11 @@ const studentFeeSchema = new mongoose.Schema({
         trim: true,
       },
 
+      receiptEmailSentAt: {
+        type: Date,
+        default: null,
+      },
+
       // Reminder tracking (original field)
       reminderSent: {
         type: Boolean,
@@ -192,7 +232,7 @@ const studentFeeSchema = new mongoose.Schema({
       },
     },
   ],
-});
+}, { timestamps: true });
 
 // ⚡ PERFORMANCE: Indexes for common queries
 studentFeeSchema.index({ student_id: 1, college_id: 1 }); // Student-wise fee

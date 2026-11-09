@@ -508,6 +508,7 @@ async function seedPayments() {
         student_id: student._id,
         college_id: college._id,
         course_id: student.course_id,
+        academicYear: student.currentAcademicYear || `${student.admissionYear}-${student.admissionYear + 1}`,
         totalFee,
         paidAmount,
         installments

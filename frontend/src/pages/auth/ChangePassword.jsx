@@ -78,6 +78,17 @@ export default function ChangePassword() {
       return;
     }
 
+    if (
+      !/[A-Z]/.test(formData.newPassword) ||
+      !/[a-z]/.test(formData.newPassword) ||
+      !/[0-9]/.test(formData.newPassword) ||
+      !/[^A-Za-z0-9]/.test(formData.newPassword)
+    ) {
+      setError("Password must include uppercase, lowercase, number, and a special character (e.g. @, #, $, !)");
+      setLoading(false);
+      return;
+    }
+
     try {
       const payload = {
         currentPassword: formData.currentPassword,
@@ -98,7 +109,11 @@ export default function ChangePassword() {
         setFormData({ currentPassword: "", newPassword: "", confirmPassword: "" });
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to change password");
+      const apiErrors = err.response?.data?.errors;
+      const validationMsg = Array.isArray(apiErrors) && apiErrors.length > 0
+        ? apiErrors[0].message
+        : null;
+      setError(validationMsg || err.response?.data?.message || "Failed to change password");
     } finally {
       setLoading(false);
     }

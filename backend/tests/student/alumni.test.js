@@ -15,6 +15,8 @@ const app = require("../../app");
 const Department = require("../../src/models/department.model");
 const Course = require("../../src/models/course.model");
 const FeeStructure = require("../../src/models/feeStructure.model");
+const AlumniPolicy = require("../../src/models/alumniPolicy.model");
+const SemesterResult = require("../../src/models/semesterResult.model");
 
 describe("STU-TC-011 — Admin Move to Alumni", () => {
   beforeAll(async () => {
@@ -107,6 +109,43 @@ describe("STU-TC-011 — Admin Move to Alumni", () => {
       status: "APPROVED",
       admissionYear: 2025,
       currentSemester: 8,
+      currentAcademicYear: "2025-2026",
+    });
+
+    await AlumniPolicy.create({
+      college_id: college._id,
+      course_id: course._id,
+      enabled: true,
+      requireFinalSemester: true,
+      resultRule: { requiredOutcome: "PASS" },
+      attendanceRule: { enabled: false },
+      feeRule: { enabled: false },
+      backlogRule: { allowCurrentBacklog: true },
+    });
+
+    await SemesterResult.create({
+      college_id: college._id,
+      student_id: student._id,
+      exam_id: new mongoose.Types.ObjectId(),
+      course_id: course._id,
+      semester: 8,
+      academicYear: "2025-2026",
+      subjects: [
+        {
+          subject: new mongoose.Types.ObjectId(),
+          subjectName: "Final Project",
+          subjectCode: "CS801",
+          passed: true,
+          status: "PASS",
+          marksRecorded: true,
+        },
+      ],
+      totalSubjects: 1,
+      passedSubjects: 1,
+      failedSubjects: 0,
+      overallResult: "PASS",
+      status: "PUBLISHED",
+      createdBy: admin._id,
     });
 
     const agent = request.agent(app);

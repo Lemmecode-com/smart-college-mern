@@ -52,8 +52,15 @@ router.put(
 /* =========================================================
    CRUD
 ========================================================= */
-router.post("/", auth, role(ROLE.COLLEGE_ADMIN), collegeMiddleware, uploadTeacherDocuments, validateTeacherCreation, createTeacher);
-
+router.post(
+  "/",
+  auth,
+  role(ROLE.COLLEGE_ADMIN),
+  collegeMiddleware,
+  uploadTeacherDocuments,
+  validateTeacherCreation,
+  createTeacher,
+);
 router.get(
   "/",
   auth,

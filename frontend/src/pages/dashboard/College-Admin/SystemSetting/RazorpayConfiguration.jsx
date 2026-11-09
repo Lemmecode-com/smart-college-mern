@@ -4,6 +4,7 @@ import api from "../../../../api/axios";
 import { toast } from "react-toastify";
 import { logger } from "../../../../utils/logger";
 import ApiError from "../../../../components/ApiError";
+import PageHeader from "../../../../components/PageHeader";
 import {
   FaCreditCard,
   FaArrowLeft,
@@ -15,18 +16,24 @@ import {
   FaEyeSlash,
   FaKey,
   FaLock,
-  FaShieldAlt,
   FaFlask,
   FaRocket,
   FaInfoCircle,
   FaExclamationTriangle,
   FaSpinner,
   FaServer,
-  FaCalendarAlt,
   FaToggleOn,
   FaToggleOff,
+  FaCopy,
+  FaCheck,
 } from "react-icons/fa";
+import {
+  buildWebhookUrl,
+  isInsecureOrLocalWebhookUrl,
+  WEBHOOK_LOCALHOST_WARNING_MESSAGE,
+} from "../../../../utils/webhookUrl";
 import "react-toastify/dist/ReactToastify.css";
+import "./RazorpayConfiguration.css";
 
 const RazorpayConfiguration = () => {
   const navigate = useNavigate();
@@ -53,6 +60,8 @@ const RazorpayConfiguration = () => {
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [isModified, setIsModified] = useState(false);
   const [isGatewayActive, setIsGatewayActive] = useState(false);
+  const [copiedCard, setCopiedCard] = useState(false);
+  const [backendWebhookUrl, setBackendWebhookUrl] = useState(null);
 
   const [formData, setFormData] = useState({
     keyId: "",
@@ -72,6 +81,12 @@ const RazorpayConfiguration = () => {
 
       const isActive = response.data.isActive || false;
       setIsGatewayActive(isActive);
+
+      const incomingWebhookUrl =
+        response.data?.webhookUrl || response.data?.config?.webhookUrl;
+      if (incomingWebhookUrl) {
+        setBackendWebhookUrl(incomingWebhookUrl);
+      }
 
       if (response.data.configured && response.data.config) {
         setConfig(response.data.config);
@@ -105,6 +120,31 @@ const RazorpayConfiguration = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const webhookUrl = buildWebhookUrl(backendWebhookUrl || api.defaults.baseURL);
+  const showWebhookWarning = isInsecureOrLocalWebhookUrl(webhookUrl);
+
+  const copyToClipboard = async (text) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setCopiedCard(true);
+      setTimeout(() => setCopiedCard(false), 2000);
+      toast.success("Webhook URL copied to clipboard");
+    } catch {
+      toast.error("Failed to copy URL");
     }
   };
 
@@ -322,378 +362,349 @@ const RazorpayConfiguration = () => {
   }
 
   return (
-    <div
-      className="razorpay-config-page"
-      style={{ maxWidth: "900px", margin: "0 auto", padding: "20px" }}
-    >
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div className="d-flex align-items-center gap-3">
-          <button
-            className="btn btn-outline-secondary"
-            onClick={() => navigate(-1)}
-          >
-            <FaArrowLeft className="me-2" />
-            Back
-          </button>
-          <div>
-            <h2 className="fw-bold mb-1">
-              <FaCreditCard className="me-2 text-primary" />
-              Razorpay Configuration
-            </h2>
-                   <p className="text-muted mb-0">
-                     Configure this webhook URL in your Razorpay dashboard:
-                   </p>
-                    <div className="bg-light p-3 rounded font-monospace">
-                      {api.defaults.baseURL}/razorpay/webhook
-                    </div>
-        </div>
-
-        <button
-          className={`btn ${isGatewayActive ? "btn-danger" : "btn-success"}`}
-          onClick={handleToggleGateway}
-          disabled={toggling}
-        >
-          {toggling ? (
-            <FaSpinner className="spin me-1" />
-          ) : isGatewayActive ? (
-            <>
-              <FaToggleOff className="me-1" /> Disable
-            </>
-          ) : (
-            <>
-              <FaToggleOn className="me-1" /> Enable
-            </>
-                   )}
-                 </button>
-               </div>
-
-        {isGatewayActive && (
-          <div className="d-flex align-items-center gap-2">
-            <span className="badge bg-success">
-              <FaCheckCircle className="me-1" />
-              Active
+    <div className="razorpay-config-page">
+    <PageHeader
+      className="rp-page-header"
+      icon={FaCreditCard}
+      title="Razorpay Configuration"
+      subtitle="Manage payment credentials, mode, and webhook settings."
+      actions={
+        <>
+          <div className="rp-header-actions">
+            <span
+              className={`rp-status ${isGatewayActive ? "rp-status--active" : "rp-status--disabled"}`}
+            >
+              {isGatewayActive ? <FaCheckCircle /> : <FaToggleOff />}
+              {isGatewayActive ? "Active" : "Disabled"}
             </span>
-            {formData.testMode && (
-              <span className="badge bg-warning text-dark">
-                <FaFlask className="me-1" />
-                Test Mode
+            {config && (
+              <span
+                className={`rp-status ${formData.testMode ? "rp-status--test" : "rp-status--live"}`}
+              >
+                {formData.testMode ? <FaFlask /> : <FaRocket />}
+                {formData.testMode ? "Test Mode" : "Live Mode"}
               </span>
             )}
           </div>
-        )}
-      </div>
-
-       {isGatewayActive ? (
-         <>
-           {/* Configuration Form */}
-           <div className="card shadow-sm mb-4">
-             <div className="card-body p-4">
-               <h5 className="fw-bold mb-4">
-                 <FaKey className="me-2 text-primary" />
-                 API Credentials
-               </h5>
-
-              {/* Mode Toggle */}
-              <div className="mb-4">
-                <label className="form-label fw-semibold">Mode</label>
-                <div className="d-flex align-items-center gap-3">
-                  <button
-                    className={`btn ${formData.testMode ? "btn-warning" : "btn-outline-secondary"}`}
-                    onClick={() => {
-                      setFormData((prev) => ({ ...prev, testMode: true }));
-                      setIsModified(true);
-                    }}
-                  >
-                    <FaFlask className="me-2" />
-                    Test Mode
-                  </button>
-                  <button
-                    className={`btn ${!formData.testMode ? "btn-success" : "btn-outline-secondary"}`}
-                    onClick={() => {
-                      setFormData((prev) => ({ ...prev, testMode: false }));
-                      setIsModified(true);
-                    }}
-                  >
-                    <FaRocket className="me-2" />
-                    Live Mode
-                  </button>
-                  <FaInfoCircle className="text-muted" />
-                  <span className="text-muted small">
-                    {formData.testMode
-                      ? "Using test keys - no real transactions"
-                      : "Using live keys - real transactions"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Key ID */}
-              <div className="mb-3">
-                <label className="form-label fw-semibold">
-                  Key ID
-                  <span className="text-danger ms-1">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="keyId"
-                  value={formData.keyId}
-                  onChange={handleInputChange}
-                  placeholder={
-                    formData.testMode ? "rzp_test_xxxxx" : "rzp_live_xxxxx"
-                  }
-                  disabled={saving}
-                />
-                <small className="text-muted">
-                  {formData.testMode
-                    ? "Starts with rzp_test_"
-                    : "Starts with rzp_live_"}
-                </small>
-              </div>
-
-              {/* Key Secret */}
-              <div className="mb-3">
-                <label className="form-label fw-semibold">
-                  Key Secret
-                  <span className="text-danger ms-1">*</span>
-                </label>
-                <div className="input-group">
-                  <input
-                    type={showSecret ? "text" : "password"}
-                    className="form-control"
-                    name="keySecret"
-                    value={formData.keySecret}
-                    onChange={handleInputChange}
-                    placeholder="Enter secret key"
-                    disabled={saving}
-                  />
-                  <button
-                    className="btn btn-outline-secondary"
-                    type="button"
-                    onClick={() => setShowSecret(!showSecret)}
-                  >
-                    {showSecret ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-                <small className="text-muted">
-                  <FaLock className="me-1" />
-                  Encrypted before storage
-                </small>
-              </div>
-
-              {/* Webhook Secret */}
-              <div className="mb-3">
-                <label className="form-label fw-semibold">
-                  Webhook Secret
-                  <span className="text-danger ms-1">*</span>
-                </label>
-                <div className="input-group">
-                  <input
-                    type={showWebhookSecret ? "text" : "password"}
-                    className="form-control"
-                    name="webhookSecret"
-                    value={formData.webhookSecret}
-                    onChange={handleInputChange}
-                    placeholder="Enter webhook secret (required)"
-                    disabled={saving}
-                    required
-                  />
-                  <button
-                    className="btn btn-outline-secondary"
-                    type="button"
-                    onClick={() => setShowWebhookSecret(!showWebhookSecret)}
-                  >
-                    {showWebhookSecret ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-                <small className="text-muted">
-                  Used to verify webhook signatures
-                </small>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="d-flex gap-2 mt-4">
-                <button
-                  className="btn btn-primary"
-                  onClick={handleSave}
-                  disabled={saving || !isModified}
-                >
-                  {saving ? (
-                    <>
-                      <FaSpinner className="spin me-2" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <FaSave className="me-2" />
-                      Save Configuration
-                    </>
-                  )}
-                </button>
-
-                {config && (
-                  <>
-                    <button
-                      className="btn btn-outline-primary"
-                      onClick={handleVerify}
-                      disabled={verifying}
-                    >
-                      {verifying ? (
-                        <>
-                          <FaSpinner className="spin me-2" />
-                          Verifying...
-                        </>
-                      ) : (
-                        <>
-                          <FaCheckCircle className="me-2" />
-                          Verify
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      className="btn btn-outline-info"
-                      onClick={handleTestConnection}
-                      disabled={testing}
-                    >
-                      {testing ? (
-                        <>
-                          <FaSpinner className="spin me-2" />
-                          Testing...
-                        </>
-                      ) : (
-                        <>
-                          <FaPlug className="me-2" />
-                          Test Connection
-                        </>
-                      )}
-                    </button>
-
-                    <button
-                      className="btn btn-outline-danger ms-auto"
-                      onClick={handleDelete}
-                      disabled={saving}
-                    >
-                      <FaTrash className="me-2" />
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {config && (
-            <>
-              <div className="card shadow-sm">
-                <div className="card-body p-4">
-                  <h5 className="fw-bold mb-3">
-                    <FaServer className="me-2 text-primary" />
-                    Configuration Details
-                  </h5>
-
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <div className="text-muted small">Key ID</div>
-                      <div className="fw-semibold">
-                        {config.credentials.keyId}
-                      </div>
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <div className="text-muted small">Status</div>
-                      <div>
-                        <span className="badge bg-success">
-                          <FaCheckCircle className="me-1" />
-                          Active
-                        </span>
-                      </div>
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <div className="text-muted small">Mode</div>
-                      <div>
-                        {formData.testMode ? (
-                          <span className="badge bg-warning text-dark">
-                            <FaFlask className="me-1" />
-                            Test
-                          </span>
-                        ) : (
-                          <span className="badge bg-success">
-                            <FaRocket className="me-1" />
-                            Live
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="col-md-6 mb-3">
-                      <div className="text-muted small">Last Verified</div>
-                      <div className="fw-semibold">
-                        {config.lastVerifiedAt ? (
-                          <>
-                            <FaCalendarAlt className="me-2 text-muted" />
-                            {new Date(config.lastVerifiedAt).toLocaleString()}
-                          </>
-                        ) : (
-                          <span className="text-muted">Not verified</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Webhook URL Info */}
-              <div className="card shadow-sm mt-4 border-info">
-                <div className="card-body p-4">
-                  <h5 className="fw-bold mb-3 text-info">
-                    <FaInfoCircle className="me-2" />
-                    Webhook Configuration
-                  </h5>
-                   <p className="mb-2">
-                     Configure this webhook URL in your Razorpay dashboard:
-                   </p>
-                   <div className="bg-light p-3 rounded font-monospace">
-                     {api.defaults.baseURL}/razorpay/webhook
-                   </div>
-                  <p className="text-muted small mt-2 mb-0">
-                    This allows Razorpay to send payment notifications to your
-                    application.
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-
-          <style>{`
-        .spin {
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-        </>
-      ) : (
-        <div className="text-center py-5">
-          <FaToggleOff className="text-muted" style={{ fontSize: "4rem" }} />
-          <h3 className="mt-3 text-muted">Razorpay Gateway is Disabled</h3>
-          <p className="text-muted mb-4">
-            Enable the Razorpay gateway to configure payment settings
-          </p>
           <button
-            className="btn btn-success"
+            className={`btn ${isGatewayActive ? "btn-danger" : "btn-success"}`}
+            
             onClick={handleToggleGateway}
             disabled={toggling}
           >
             {toggling ? (
               <FaSpinner className="spin me-1" />
+            ) : isGatewayActive ? (
+              <FaToggleOff className="me-1" />
             ) : (
-              <>
-                <FaToggleOn className="me-2" /> Enable Razorpay Gateway
-              </>
+              <FaToggleOn className="me-1" />
             )}
+            {isGatewayActive ? "Disable" : "Enable"}
           </button>
+          <button
+            className="btn btn-outline-light"
+            onClick={() => navigate(-1)}
+            style={{
+                    minHeight: "40px",
+                    padding: "0 20px",
+                    border: "1px solid rgba(255, 255, 255, 0.35)",
+                    borderRadius: "8px",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    color: "#ffffff",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "9px",
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",       
+                }}
+                  onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+                >
+
+          
+            <FaArrowLeft className="me-1" />
+            Back
+          </button>
+        </>
+      }
+    />
+      {showWebhookWarning && (
+        <div
+          className="alert alert-warning rp-webhook-warning py-2 px-3 mb-4 small d-flex align-items-center gap-2"
+          data-testid="webhook-warning-header"
+        >
+          <FaExclamationTriangle className="flex-shrink-0" />
+          <span>{WEBHOOK_LOCALHOST_WARNING_MESSAGE}</span>
         </div>
       )}
+
+    {isGatewayActive ? (
+      <div className={`rp-content-grid ${config ? "" : "rp-content-grid--unconfigured"}`}>
+        <section className="card rp-card">
+          <div className="card-body">
+            <h2 className="rp-card-heading">
+              <FaKey aria-hidden="true" />
+              API Credentials
+            </h2>
+
+            <div className="rp-field">
+              <label className="form-label fw-semibold">Payment mode</label>
+              <div className="rp-mode-selector" role="group" aria-label="Payment mode">
+                <button
+                  type="button"
+                  className={`rp-mode-option ${formData.testMode ? "is-selected" : ""}`}
+                  aria-pressed={formData.testMode}
+                  onClick={() => {
+                    setFormData((prev) => ({ ...prev, testMode: true }));
+                    setIsModified(true);
+                  }}
+                >
+                  <FaFlask aria-hidden="true" />
+                  Test mode
+                </button>
+                <button
+                  type="button"
+                  className={`rp-mode-option ${!formData.testMode ? "is-selected" : ""}`}
+                  aria-pressed={!formData.testMode}
+                  onClick={() => {
+                    setFormData((prev) => ({ ...prev, testMode: false }));
+                    setIsModified(true);
+                  }}
+                >
+                  <FaRocket aria-hidden="true" />
+                  Live mode
+                </button>
+              </div>
+              <small className="rp-help">
+                <FaInfoCircle className="me-1" aria-hidden="true" />
+                {formData.testMode
+                  ? "Test keys are used; no real transactions are processed."
+                  : "Live keys are used for real transactions."}
+              </small>
+            </div>
+
+            <div className="rp-field">
+              <label className="form-label fw-semibold" htmlFor="razorpay-key-id">
+                Key ID <span className="text-danger">*</span>
+              </label>
+              <input
+                id="razorpay-key-id"
+                type="text"
+                className="form-control"
+                name="keyId"
+                value={formData.keyId}
+                onChange={handleInputChange}
+                placeholder={formData.testMode ? "rzp_test_xxxxx" : "rzp_live_xxxxx"}
+                disabled={saving}
+              />
+              <small className="rp-help">
+                Must start with {formData.testMode ? "rzp_test_" : "rzp_live_"}.
+              </small>
+            </div>
+
+            <div className="rp-field">
+              <label className="form-label fw-semibold" htmlFor="razorpay-key-secret">
+                Key Secret <span className="text-danger">*</span>
+              </label>
+              <div className="input-group">
+                <input
+                  id="razorpay-key-secret"
+                  type={showSecret ? "text" : "password"}
+                  className="form-control"
+                  name="keySecret"
+                  value={formData.keySecret}
+                  onChange={handleInputChange}
+                  placeholder="Enter secret key"
+                  disabled={saving}
+                />
+                <button
+                  className="btn btn-outline-secondary"
+                  type="button"
+                  onClick={() => setShowSecret(!showSecret)}
+                  aria-label={showSecret ? "Hide key secret" : "Show key secret"}
+                >
+                  {showSecret ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              <small className="rp-help">
+                <FaLock className="me-1" aria-hidden="true" />
+                Encrypted before storage.
+              </small>
+            </div>
+
+            <div className="rp-field">
+              <label className="form-label fw-semibold" htmlFor="razorpay-webhook-secret">
+                Webhook Secret <span className="text-danger">*</span>
+              </label>
+              <div className="input-group">
+                <input
+                  id="razorpay-webhook-secret"
+                  type={showWebhookSecret ? "text" : "password"}
+                  className="form-control"
+                  name="webhookSecret"
+                  value={formData.webhookSecret}
+                  onChange={handleInputChange}
+                  placeholder="Enter webhook secret (required)"
+                  disabled={saving}
+                  required
+                />
+                <button
+                  className="btn btn-outline-secondary"
+                  type="button"
+                  onClick={() => setShowWebhookSecret(!showWebhookSecret)}
+                  aria-label={showWebhookSecret ? "Hide webhook secret" : "Show webhook secret"}
+                >
+                  {showWebhookSecret ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              <small className="rp-help">Used to verify webhook signatures.</small>
+            </div>
+
+            <div className="rp-form-actions">
+              <button
+                className="btn btn-primary"
+                onClick={handleSave}
+                disabled={saving || !isModified}
+              >
+                {saving ? <FaSpinner className="spin me-2" /> : <FaSave className="me-2" />}
+                {saving ? "Saving..." : "Save Configuration"}
+              </button>
+
+              {config && (
+                <>
+                  <button
+                    className="btn btn-outline-primary"
+                    onClick={handleVerify}
+                    disabled={verifying}
+                  >
+                    {verifying ? <FaSpinner className="spin me-2" /> : <FaCheckCircle className="me-2" />}
+                    {verifying ? "Verifying..." : "Verify"}
+                  </button>
+                  <button
+                    className="btn btn-outline-info"
+                    onClick={handleTestConnection}
+                    disabled={testing}
+                  >
+                    {testing ? <FaSpinner className="spin me-2" /> : <FaPlug className="me-2" />}
+                    {testing ? "Testing..." : "Test Connection"}
+                  </button>
+                  <button
+                    className="btn btn-outline-danger ms-auto"
+                    onClick={handleDelete}
+                    disabled={saving}
+                  >
+                    <FaTrash className="me-2" />
+                    Delete
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {config && (
+          <>
+            <section className="card rp-card">
+              <div className="card-body">
+                <h2 className="rp-card-heading">
+                  <FaServer aria-hidden="true" />
+                  Connection status
+                </h2>
+                <div className="rp-details-grid">
+                  <div className="rp-detail">
+                    <div className="rp-detail-label">Key ID</div>
+                    <div className="rp-detail-value">{config.credentials.keyId}</div>
+                  </div>
+                  <div className="rp-detail">
+                    <div className="rp-detail-label">Gateway</div>
+                    <div className="rp-detail-value">
+                      <span className={`rp-status ${isGatewayActive ? "rp-status--active" : "rp-status--disabled"}`}>
+                        {isGatewayActive ? "Active" : "Disabled"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="rp-detail">
+                    <div className="rp-detail-label">Mode</div>
+                    <div className="rp-detail-value">
+                      <span className={`rp-status ${formData.testMode ? "rp-status--test" : "rp-status--live"}`}>
+                        {formData.testMode ? <FaFlask /> : <FaRocket />}
+                        {formData.testMode ? "Test" : "Live"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="rp-detail">
+                    <div className="rp-detail-label">Last verified</div>
+                    <div className="rp-detail-value">
+                      {config.lastVerifiedAt
+                        ? new Date(config.lastVerifiedAt).toLocaleString()
+                        : "Not verified"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="card rp-card rp-webhook-card">
+              <div className="card-body">
+                <h2 className="rp-card-heading">
+                  <FaInfoCircle aria-hidden="true" />
+                  Webhook configuration
+                </h2>
+                <p className="text-muted mb-3">
+                  Add this endpoint in your Razorpay dashboard to receive payment notifications.
+                </p>
+                <div className="rp-webhook-field">
+                  <code className="rp-webhook-url">{webhookUrl}</code>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                    onClick={() => copyToClipboard(webhookUrl)}
+                    title="Copy webhook URL"
+                    aria-label="Copy webhook URL"
+                  >
+                    {copiedCard ? <FaCheck className="text-success" /> : <FaCopy />}
+                    {copiedCard ? "Copied" : "Copy"}
+                  </button>
+                </div>
+                {showWebhookWarning && (
+                  <div
+                    className="alert alert-warning py-2 px-3 mt-3 mb-0 small d-flex align-items-center gap-2"
+                    data-testid="webhook-warning-card"
+                  >
+                    <FaExclamationTriangle className="flex-shrink-0" />
+                    <span>{WEBHOOK_LOCALHOST_WARNING_MESSAGE}</span>
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    ) : (
+      <section className="rp-disabled-state">
+        <FaToggleOff className="text-muted" style={{ fontSize: "3rem" }} />
+        <h2>Razorpay Gateway is Disabled</h2>
+        <p>Enable the gateway to configure payment settings.</p>
+        <button
+          className="btn btn-success"
+          onClick={handleToggleGateway}
+          disabled={toggling}
+        >
+          {toggling ? <FaSpinner className="spin me-2" /> : <FaToggleOn className="me-2" />}
+          Enable Razorpay Gateway
+        </button>
+      </section>
+    )}
     </div>
   );
 };

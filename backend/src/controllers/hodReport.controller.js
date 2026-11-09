@@ -20,6 +20,7 @@ exports.getHodReportsOverview = async (req, res) => {
     const data = await hodReportService.getHodReportsOverview(
       req.user.id,
       req.college_id,
+      req.query
     );
 
     ApiResponse.success(res, data, "HOD reports overview fetched successfully");

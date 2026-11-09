@@ -27,6 +27,23 @@ const AUTH_ERROR_CODES = new Set([
 
 let responseInterceptor401CallCount = 0;
 
+// In-flight guard to deduplicate auth invalidation broadcasts when
+// multiple API requests return 401 simultaneously. Prevents N
+// broadcastAuthInvalidation() calls and N AuthContext listener
+// executions for a single session-expiry event.
+let authInvalidationInProgress = false;
+let authInvalidationTimeoutId = null;
+
+const AUTH_INVALIDATION_TIMEOUT_MS = 30000;
+
+export function resetAuthInvalidationGuard() {
+  authInvalidationInProgress = false;
+  if (authInvalidationTimeoutId) {
+    clearTimeout(authInvalidationTimeoutId);
+    authInvalidationTimeoutId = null;
+  }
+}
+
 // Request interceptor - ensure credentials are always sent
 api.interceptors.request.use(
   (config) => {
@@ -117,7 +134,18 @@ api.interceptors.response.use(
       );
 
       if (errorCode && AUTH_ERROR_CODES.has(errorCode) && !error.config?._skipAuthBroadcast) {
-        broadcastAuthInvalidation(errorCode);
+        if (authInvalidationInProgress) {
+          console.log(
+            `[AxiosResponseInterceptor] 401 deduplicated | URL=${requestUrl} | ErrorCode=${errorCode} | InFlightGuard=true`
+          );
+        } else {
+          authInvalidationInProgress = true;
+          authInvalidationTimeoutId = setTimeout(() => {
+            authInvalidationInProgress = false;
+            authInvalidationTimeoutId = null;
+          }, AUTH_INVALIDATION_TIMEOUT_MS);
+          broadcastAuthInvalidation(errorCode);
+        }
       }
     }
 

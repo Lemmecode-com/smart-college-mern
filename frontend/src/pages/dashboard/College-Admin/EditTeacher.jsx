@@ -200,7 +200,6 @@ export default function EditTeacher() {
     try {
       const fd = new FormData();
       fd.append("name", formData.name.trim());
-      fd.append("email", formData.email.trim());
       fd.append("employeeId", formData.employeeId.trim());
       fd.append("designation", formData.designation.trim());
       fd.append("qualification", formData.qualification.trim());
@@ -275,7 +274,14 @@ export default function EditTeacher() {
             <div className="row g-3">
 
               <Input label="Full Name" name="name" value={formData.name} onChange={handleChange} />
-              <Input label="Email" name="email" value={formData.email} onChange={handleChange} />
+              <Input
+                label="Email (Read-only)"
+                name="email"
+                value={formData.email}
+                disabled
+                readOnly
+                title="Email cannot be updated here. Use the secure email-change flow."
+              />
               <Input label="Employee ID" name="employeeId" value={formData.employeeId} onChange={handleChange} />
               <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} />
               <Input label="Qualification" name="qualification" value={formData.qualification} onChange={handleChange} />
