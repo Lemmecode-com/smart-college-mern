@@ -599,8 +599,8 @@ export default function ReportDashboard() {
             onClick={fetchAllReports}
             aria-label="Refresh report data"
           >
-            <FaSyncAlt className="spin-icon" />
-            Refresh Data
+            <FaSyncAlt style={{ marginRight: "0.4rem", }} />
+            Refresh 
           </button>
         }
       />
@@ -1604,14 +1604,9 @@ export default function ReportDashboard() {
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
 
-        .spin-icon {
-          animation: spin 1s linear infinite;
-        }
+      
 
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
+       
 
         /* ================= SUMMARY CARDS - CLEAN DESIGN ================= */
         .summary-cards-grid {
@@ -2967,6 +2962,8 @@ export default function ReportDashboard() {
   color: #fff;
   box-shadow: none;
   transition: background 0.2s ease, transform 0.2s ease;
+  font-weight: 600;
+  
 }
 .report-dashboard-container .reports-refresh-button:hover {
   transform: translateY(-1px);
