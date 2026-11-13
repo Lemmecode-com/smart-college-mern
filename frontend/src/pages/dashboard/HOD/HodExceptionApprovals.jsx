@@ -10,6 +10,7 @@ import Pagination from "../../../components/Pagination";
 import CustomSelect from "../../../components/CustomSelect";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import "./HodExceptionApprovals.css";
 import {
   FaExclamationTriangle,
   FaCheck,
@@ -361,13 +362,11 @@ export default function HodExceptionApprovals() {
     if (rows.length === 0) return null;
 
     return (
-      <div className="mt-3">
+      <div className="hod-exc-extra">
         {rows.map((row) => (
-          <div className="mb-2" key={row.label}>
-            <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-              {row.label}
-            </small>
-            <span className="fw-semibold text-dark small">{row.value}</span>
+          <div className="hod-exc-extra-item" key={row.label}>
+            <div className="hod-exc-extra-label">{row.label}</div>
+            <div className="hod-exc-extra-value">{row.value}</div>
           </div>
         ))}
       </div>
@@ -430,160 +429,98 @@ if (
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="card shadow-sm border-0 mb-3"
-      style={{
-        borderRadius: "12px",
-        background: "white",
-        border: "1px solid #e2e8f0",
-      }}
+      className="hod-exc-card"
     >
-      <div
-        className="card-body p-4"
-        style={{ borderLeft: `4px solid ${STATUS_COLORS.PENDING.border}` }}
-      >
-        <div className="d-flex align-items-start justify-content-between gap-3 flex-wrap">
-          <div className="flex-grow-1" style={{ minWidth: "0" }}>
-            <div className="d-flex align-items-center gap-2 mb-2 flex-wrap">
-              <span
-                className="badge fw-medium"
-                style={{
-                  background: STATUS_COLORS.PENDING.bg,
-                  color: STATUS_COLORS.PENDING.text,
-                  border: `1px solid ${STATUS_COLORS.PENDING.border}`,
-                  fontSize: "0.75rem",
-                  padding: "0.35rem 0.75rem",
-                  borderRadius: "6px",
-                }}
-              >
-                <FaClock className="me-1" size={10} />
-                Pending Approval
-              </span>
-            </div>
+      <div className="hod-exc-card-accent hod-exc-card-accent--pending" aria-hidden="true" />
+      <div className="hod-exc-card-header">
+        <div className="hod-exc-card-heading">
+          <h3 className="hod-exc-card-title">
+            {EXCEPTION_TYPES[exc.type] || exc.type || "Exception Request"}
+          </h3>
+          <p className="hod-exc-card-subtitle">
+            {exc.timetable_id?.name ? `${exc.timetable_id.name}` : "Timetable exception"}
+            {exc.timetable_id?.semester ? ` · Semester ${exc.timetable_id.semester}` : ""}
+          </p>
+        </div>
+        <span className="hod-exc-status-badge hod-exc-status-badge--pending">
+          <FaClock aria-hidden="true" />
+          <span>Pending Approval</span>
+        </span>
+      </div>
 
-            <div className="row g-3">
-              <div className="col-md-6 col-lg-3">
-                <div className="d-flex align-items-center gap-2">
-                  <FaUser className="text-muted" size={14} />
-                  <div>
-                    <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                      Teacher
-                    </small>
-                    <span className="fw-semibold text-dark small">
-                      {exc.createdBy?.name || "Unknown Teacher"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-3">
-                <div className="d-flex align-items-center gap-2">
-                  <FaBook className="text-muted" size={14} />
-                  <div>
-                    <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                      Subject
-                    </small>
-                    <span className="fw-semibold text-dark small">
-                      {exc.slot_id?.subject_id?.name || "N/A"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-3">
-                <div className="d-flex align-items-center gap-2">
-                  <FaCalendarAlt className="text-muted" size={14} />
-                  <div>
-                    <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                      Exception Date
-                    </small>
-                    <span className="fw-semibold text-dark small">
-                      {formatDate(exc.exceptionDate)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-6 col-lg-3">
-                <div className="d-flex align-items-center gap-2">
-                  <FaClock className="text-muted" size={14} />
-                  <div>
-                    <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                      Requested At
-                    </small>
-                    <span className="fw-semibold text-dark small">
-                      {formatDateTime(exc.createdAt)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {exc.reason && (
-              <div className="mt-3 p-2 rounded" style={{ background: "#f8fafc" }}>
-                <div className="d-flex align-items-start gap-2">
-                  <FaInfoCircle size={14} className="mt-1" style={{ color: "#64748b" }} />
-                  <div>
-                    <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                      Reason
-                    </small>
-                    <p className="text-dark mb-0 small">{exc.reason}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {renderExceptionDetails(exc)}
-
-            {exc.timetable_id && (
-              <div className="mt-2">
-                <small className="text-muted" style={{ fontSize: "0.7rem" }}>
-                  Timetable:{" "}
-                  <span className="fw-medium text-dark">
-                    {exc.timetable_id.name || "Timetable"} (Sem {exc.timetable_id.semester || "N/A"})
-                  </span>
-                </small>
-              </div>
-            )}
+      <div className="hod-exc-grid">
+        <div className="hod-exc-info">
+          <div className="hod-exc-info-icon"><FaUser aria-hidden="true" /></div>
+          <div className="hod-exc-info-body">
+            <div className="hod-exc-info-label">Teacher</div>
+            <div className="hod-exc-info-value">{exc.createdBy?.name || "Unknown Teacher"}</div>
           </div>
-
-          <div className="d-flex gap-2 flex-shrink-0">
-            <button
-              onClick={() => openApproveModal(exc._id)}
-              disabled={actionLoading}
-              className="btn btn-sm d-flex align-items-center gap-1 fw-semibold px-3 py-2 border-0"
-              style={{
-                background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-                color: "white",
-                borderRadius: "8px",
-                opacity: actionLoading ? 0.7 : 1,
-                boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
-              }}
-            >
-              <FaCheck size={12} />
-              Approve
-            </button>
-            <button
-              onClick={() => openRejectModal(exc._id)}
-              disabled={actionLoading}
-              className="btn btn-sm d-flex align-items-center gap-1 fw-semibold px-3 py-2 border-0"
-              style={{
-                background: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-                color: "white",
-                borderRadius: "8px",
-                opacity: actionLoading ? 0.7 : 1,
-                boxShadow: "0 2px 8px rgba(239, 68, 68, 0.3)",
-              }}
-            >
-              <FaTimes size={12} />
-              Reject
-            </button>
+        </div>
+        <div className="hod-exc-info">
+          <div className="hod-exc-info-icon"><FaBook aria-hidden="true" /></div>
+          <div className="hod-exc-info-body">
+            <div className="hod-exc-info-label">Subject</div>
+            <div className="hod-exc-info-value">{exc.slot_id?.subject_id?.name || "N/A"}</div>
           </div>
+        </div>
+        <div className="hod-exc-info">
+          <div className="hod-exc-info-icon"><FaCalendarAlt aria-hidden="true" /></div>
+          <div className="hod-exc-info-body">
+            <div className="hod-exc-info-label">Exception Date</div>
+            <div className="hod-exc-info-value">{formatDate(exc.exceptionDate)}</div>
+          </div>
+        </div>
+        <div className="hod-exc-info">
+          <div className="hod-exc-info-icon"><FaClock aria-hidden="true" /></div>
+          <div className="hod-exc-info-body">
+            <div className="hod-exc-info-label">Requested At</div>
+            <div className="hod-exc-info-value">{formatDateTime(exc.createdAt)}</div>
+          </div>
+        </div>
+      </div>
+
+      {exc.reason && (
+        <div className="hod-exc-reason-block">
+          <div className="hod-exc-reason-head">
+            <FaInfoCircle aria-hidden="true" />
+            <span>Reason</span>
+          </div>
+          <p className="hod-exc-reason-text">{exc.reason}</p>
+        </div>
+      )}
+
+      {renderExceptionDetails(exc)}
+
+      <div className="hod-exc-footer">
+        <div className="hod-exc-timestamp">
+          <FaClock aria-hidden="true" />
+          <span>Requested: <strong>{formatDateTime(exc.createdAt)}</strong></span>
+        </div>
+        <div className="hod-exc-actions">
+          <button
+            type="button"
+            onClick={() => openApproveModal(exc._id)}
+            disabled={actionLoading}
+            className="hod-exc-btn hod-exc-btn--approve"
+          >
+            <FaCheck aria-hidden="true" />
+            <span>Approve</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openRejectModal(exc._id)}
+            disabled={actionLoading}
+            className="hod-exc-btn hod-exc-btn--reject"
+          >
+            <FaTimes aria-hidden="true" />
+            <span>Reject</span>
+          </button>
         </div>
       </div>
     </MotionDiv>
   );
 
   const renderHistoryCard = (exc, index, type) => {
-    const colors = STATUS_COLORS[exc.status] || (
-      type === "approved" ? STATUS_COLORS.APPROVED : STATUS_COLORS.REJECTED
-    );
     const actionBy =
       type === "approved"
         ? exc.approvedBy
@@ -610,12 +547,24 @@ if (
           : "Withdrawn";
     const statusIcon =
       type === "approved" ? (
-        <FaCheck className="me-1" size={10} />
+        <FaCheck aria-hidden="true" />
       ) : type === "rejected" ? (
-        <FaTimes className="me-1" size={10} />
+        <FaTimes aria-hidden="true" />
       ) : (
-        <FaUndo className="me-1" size={10} />
+        <FaUndo aria-hidden="true" />
       );
+    const accentClass =
+      type === "approved"
+        ? "hod-exc-card-accent--approved"
+        : type === "rejected"
+          ? "hod-exc-card-accent--rejected"
+          : "hod-exc-card-accent--withdrawn";
+    const badgeClass =
+      type === "approved"
+        ? "hod-exc-status-badge--approved"
+        : type === "rejected"
+          ? "hod-exc-status-badge--rejected"
+          : "hod-exc-status-badge--withdrawn";
 
     return (
       <MotionDiv
@@ -623,142 +572,92 @@ if (
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
-        className="card shadow-sm border-0 mb-3"
-        style={{
-          borderRadius: "12px",
-          background: "white",
-          border: "1px solid #e2e8f0",
-        }}
+        className="hod-exc-card"
       >
-        <div
-          className="card-body p-4"
-          style={{ borderLeft: `4px solid ${colors.border}` }}
-        >
-          <div className="d-flex align-items-center gap-2 mb-3">
-            <span
-              className="badge fw-medium"
-              style={{
-                background: colors.bg,
-                color: colors.text,
-                border: `1px solid ${colors.border}`,
-                fontSize: "0.75rem",
-                padding: "0.35rem 0.75rem",
-                borderRadius: "6px",
-              }}
-            >
-              {statusIcon}
-              {statusLabel}
-            </span>
+        <div className={`hod-exc-card-accent ${accentClass}`} aria-hidden="true" />
+        <div className="hod-exc-card-header">
+          <div className="hod-exc-card-heading">
+            <h3 className="hod-exc-card-title">
+              {EXCEPTION_TYPES[exc.type] || exc.type || "Exception Request"}
+            </h3>
+            <p className="hod-exc-card-subtitle">
+              {exc.timetable_id?.name ? `${exc.timetable_id.name}` : "Timetable exception"}
+              {exc.timetable_id?.semester ? ` · Semester ${exc.timetable_id.semester}` : ""}
+            </p>
           </div>
+          <span className={`hod-exc-status-badge ${badgeClass}`}>
+            {statusIcon}
+            <span>{statusLabel}</span>
+          </span>
+        </div>
 
-          <div className="row g-3">
-            <div className="col-md-6 col-lg-3">
-              <div className="d-flex align-items-center gap-2">
-                <FaUser className="text-muted" size={14} />
-                <div>
-                  <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                    Teacher
-                  </small>
-                  <span className="fw-semibold text-dark small">
-                    {exc.createdBy?.name || "Unknown Teacher"}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-3">
-              <div className="d-flex align-items-center gap-2">
-                <FaBook className="text-muted" size={14} />
-                <div>
-                  <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                    Subject
-                  </small>
-                  <span className="fw-semibold text-dark small">
-                    {exc.slot_id?.subject_id?.name || "N/A"}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-3">
-              <div className="d-flex align-items-center gap-2">
-                <FaCalendarAlt className="text-muted" size={14} />
-                <div>
-                  <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                    Exception Date
-                  </small>
-                  <span className="fw-semibold text-dark small">
-                    {formatDate(exc.exceptionDate)}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-3">
-              <div className="d-flex align-items-center gap-2">
-                <FaUser className="text-muted" size={14} />
-                <div>
-                  <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                    {actionLabel}
-                  </small>
-                  <span className="fw-semibold text-dark small">
-                    {actionBy?.name || "N/A"}
-                  </span>
-                </div>
-              </div>
+        <div className="hod-exc-grid">
+          <div className="hod-exc-info">
+            <div className="hod-exc-info-icon"><FaUser aria-hidden="true" /></div>
+            <div className="hod-exc-info-body">
+              <div className="hod-exc-info-label">Teacher</div>
+              <div className="hod-exc-info-value">{exc.createdBy?.name || "Unknown Teacher"}</div>
             </div>
           </div>
-
-          {exc.reason && (
-            <div className="mt-3 p-2 rounded" style={{ background: "#f8fafc" }}>
-              <div className="d-flex align-items-start gap-2">
-                <FaInfoCircle size={14} className="mt-1" style={{ color: "#64748b" }} />
-                <div>
-                  <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                    Reason
-                  </small>
-                  <p className="text-dark mb-0 small">{exc.reason}</p>
-                </div>
-              </div>
+          <div className="hod-exc-info">
+            <div className="hod-exc-info-icon"><FaBook aria-hidden="true" /></div>
+            <div className="hod-exc-info-body">
+              <div className="hod-exc-info-label">Subject</div>
+              <div className="hod-exc-info-value">{exc.slot_id?.subject_id?.name || "N/A"}</div>
             </div>
-          )}
-
-          {renderExceptionDetails(exc)}
-
-          {type === "rejected" && exc.rejectionReason && (
-            <div className="mt-2 p-2 rounded" style={{ background: "#fef2f2" }}>
-              <div className="d-flex align-items-start gap-2">
-                <FaTimes size={14} className="mt-1" style={{ color: "#ef4444" }} />
-                <div>
-                  <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                    Rejection Reason
-                  </small>
-                  <p className="mb-0 small" style={{ color: "#ef4444" }}>
-                    {exc.rejectionReason}
-                  </p>
-                </div>
-              </div>
+          </div>
+          <div className="hod-exc-info">
+            <div className="hod-exc-info-icon"><FaCalendarAlt aria-hidden="true" /></div>
+            <div className="hod-exc-info-body">
+              <div className="hod-exc-info-label">Exception Date</div>
+              <div className="hod-exc-info-value">{formatDate(exc.exceptionDate)}</div>
             </div>
-          )}
-
-          {type === "withdrawn" && exc.withdrawalReason && (
-            <div className="mt-2 p-2 rounded" style={{ background: "#f8fafc" }}>
-              <div className="d-flex align-items-start gap-2">
-                <FaUndo size={14} className="mt-1" style={{ color: "#64748b" }} />
-                <div>
-                  <small className="text-muted d-block" style={{ fontSize: "0.7rem" }}>
-                    Withdrawal Reason
-                  </small>
-                  <p className="mb-0 small" style={{ color: "#64748b" }}>
-                    {exc.withdrawalReason}
-                  </p>
-                </div>
-              </div>
+          </div>
+          <div className="hod-exc-info">
+            <div className="hod-exc-info-icon"><FaUser aria-hidden="true" /></div>
+            <div className="hod-exc-info-body">
+              <div className="hod-exc-info-label">{actionLabel}</div>
+              <div className="hod-exc-info-value">{actionBy?.name || "N/A"}</div>
             </div>
-          )}
+          </div>
+        </div>
 
-          <div className="mt-2">
-            <small className="text-muted" style={{ fontSize: "0.7rem" }}>
-              {statusLabel} At:{" "}
-              <span className="fw-medium text-dark">{formatDateTime(actionAt)}</span>
-            </small>
+        {exc.reason && (
+          <div className="hod-exc-reason-block">
+            <div className="hod-exc-reason-head">
+              <FaInfoCircle aria-hidden="true" />
+              <span>Reason</span>
+            </div>
+            <p className="hod-exc-reason-text">{exc.reason}</p>
+          </div>
+        )}
+
+        {renderExceptionDetails(exc)}
+
+        {type === "rejected" && exc.rejectionReason && (
+          <div className="hod-exc-reason-block hod-exc-reason-block--danger">
+            <div className="hod-exc-reason-head">
+              <FaTimes aria-hidden="true" />
+              <span>Rejection Reason</span>
+            </div>
+            <p className="hod-exc-reason-text">{exc.rejectionReason}</p>
+          </div>
+        )}
+
+        {type === "withdrawn" && exc.withdrawalReason && (
+          <div className="hod-exc-reason-block hod-exc-reason-block--neutral">
+            <div className="hod-exc-reason-head">
+              <FaUndo aria-hidden="true" />
+              <span>Withdrawal Reason</span>
+            </div>
+            <p className="hod-exc-reason-text">{exc.withdrawalReason}</p>
+          </div>
+        )}
+
+        <div className="hod-exc-footer">
+          <div className="hod-exc-timestamp">
+            <FaCalendarAlt aria-hidden="true" />
+            <span>{statusLabel} At: <strong>{formatDateTime(actionAt)}</strong></span>
           </div>
         </div>
       </MotionDiv>
@@ -809,164 +708,117 @@ if (
         `}</style>
         </div>
 
-      <div className="p-4">
-        <div className="card shadow-sm border-0" style={{ borderRadius: "12px", background: "white" }}>
-          <div className="card-body p-0">
-            <ul className="nav nav-tabs border-0 px-4 pt-3 mb-0" style={{ gap: "4px" }}>
-              <li className="nav-item">
-                <button
-                  onClick={() => setActiveTab("pending")}
-                  className="border-0 fw-semibold position-relative"
-                  style={{
-                    borderRadius: "8px 8px 0 0",
-                    color: activeTab === "pending" ? "#0f172a" : "#475569",
-                    background: activeTab === "pending" ? "#eff6ff" : "transparent",
-                    borderBottom:
-                      activeTab === "pending"
-                        ? "2px solid #0ea5e9"
-                        : "2px solid transparent",
-                    opacity: 1,
-                    marginBottom: 0,
-                    padding: "0.5rem 1rem",
-                  }}
-                >
-                  <FaClock className="me-2" style={{ color: activeTab === "pending" ? "#0ea5e9" : "#64748b" }} />
-                  Pending Approvals
-                  {pendingRequests.length > 0 && (
-                    <span
-                      className="badge ms-2 fw-bold"
-                      style={{
-                        background: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
-                        color: "#78350f",
-                        borderRadius: "20px",
-                        padding: "0.25rem 0.5rem",
-                        fontSize: "0.7rem",
-                      }}
-                    >
-                      {pendingRequests.length}
-                    </span>
-                  )}
-                </button>
-              </li>
-              <li className="nav-item">
-                <button
-                  onClick={() => setActiveTab("history")}
-                  className="border-0 fw-semibold position-relative"
-                  style={{
-                    borderRadius: "8px 8px 0 0",
-                    color: activeTab === "history" ? "#0f172a" : "#475569",
-                    background: activeTab === "history" ? "#eff6ff" : "transparent",
-                    borderBottom:
-                      activeTab === "history"
-                        ? "2px solid #0ea5e9"
-                        : "2px solid transparent",
-                    opacity: 1,
-                    marginBottom: 0,
-                    padding: "0.5rem 1rem",
-                  }}
-                >
-                  <FaExclamationTriangle className="me-2" style={{ color: activeTab === "history" ? "#0ea5e9" : "#64748b" }} />
-                  Approval History
-                </button>
-              </li>
-            </ul>
+      <div className="hod-exc-page">
+        <div className="hod-exc-shell">
+          <div className="hod-exc-tabs-wrap">
+            <div className="hod-exc-tabs" role="tablist" aria-label="Exception approvals tabs">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "pending"}
+                onClick={() => setActiveTab("pending")}
+                className={`hod-exc-tab ${activeTab === "pending" ? "is-active" : ""}`}
+              >
+                <FaClock className="hod-exc-tab-icon" aria-hidden="true" />
+                <span>Pending Approvals</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "history"}
+                onClick={() => setActiveTab("history")}
+                className={`hod-exc-tab ${activeTab === "history" ? "is-active" : ""}`}
+              >
+                <FaExclamationTriangle className="hod-exc-tab-icon" aria-hidden="true" />
+                <span>Approval History</span>
+              </button>
+            </div>
+          </div>
 
-            {/* Search and Filter Bar */}
-            <div className="px-4 py-3 border-bottom" style={{ background: "white", borderBottom: "1px solid #e2e8f0" }}>
-              <div className="d-flex flex-wrap gap-3 align-items-end">
-                <div className="flex-grow-1 flex-shrink-0" style={{ minWidth: "200px", maxWidth: "250px" }}>
-                  <label className="form-label fw-medium text-muted small mb-1">
-                    <FaSearch className="me-1" size={12} />
-                    Teacher Name
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    placeholder="Search teacher..."
-                    value={searchTeacher}
-                    onChange={(e) => setSearchTeacher(e.target.value)}
-                    style={{
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "8px",
-                      padding: "0.5rem 0.75rem",
-                    }}
-                  />
-                </div>
-
-                <div className="flex-grow-1 flex-shrink-0" style={{ minWidth: "200px", maxWidth: "250px" }}>
-                  <label className="form-label fw-medium text-muted small mb-1">
-                    <FaSearch className="me-1" size={12} />
-                    Subject Name
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    placeholder="Search subject..."
-                    value={searchSubject}
-                    onChange={(e) => setSearchSubject(e.target.value)}
-                    style={{
-                      background: "#f8fafc",
-                      border: "1px solid #e2e8f0",
-                      borderRadius: "8px",
-                      padding: "0.5rem 0.75rem",
-                    }}
-                  />
-                </div>
-
-                <div className="flex-grow-1 flex-shrink-0" style={{ minWidth: "200px", maxWidth: "250px" }}>
-                  <label className="form-label fw-medium text-muted small mb-1">
-                    <FaSearch className="me-1" size={12} />
-                    Exception Type
-                  </label>
-                  <CustomSelect
-                    value={searchType}
-                    onChange={(e) => setSearchType(e.target.value)}
-                    options={TYPE_OPTIONS}
-                    placeholder="All Types"
-                    aria-label="Search by exception type"
-                  />
-                </div>
-
-                <div className="flex-shrink-0" style={{ minWidth: "180px" }}>
-                  <label className="form-label fw-medium text-muted small mb-1">
-                    Status
-                  </label>
-                  <CustomSelect
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    options={STATUS_OPTIONS}
-                    placeholder="All Status"
-                    aria-label="Filter by status"
-                  />
-                </div>
-
-                {(searchTeacher || searchSubject || searchType || statusFilter || typeFilter) && (
-                  <MotionButton
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleClearFilters}
-                    className="btn btn-sm fw-medium px-3 py-2 border-0"
-                    style={{
-                      background: "#f1f5f9",
-                      border: "1px solid #e2e8f0",
-                      color: "#64748b",
-                      borderRadius: "8px",
-                      height: "38px",
-                    }}
-                  >
-                    Clear Filters
-                  </MotionButton>
-                )}
+          {/* Search and Filter Bar */}
+          <div className="hod-exc-filters">
+            <div className="hod-exc-filters-grid">
+              <div className="hod-exc-field">
+                <label className="hod-exc-label">
+                  <FaSearch aria-hidden="true" />
+                  Teacher Name
+                </label>
+                <input
+                  type="text"
+                  className="hod-exc-input"
+                  placeholder="Search teacher..."
+                  value={searchTeacher}
+                  onChange={(e) => setSearchTeacher(e.target.value)}
+                />
               </div>
 
-              <div className="mt-2 text-muted small">
-                Showing records
-                {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
+              <div className="hod-exc-field">
+                <label className="hod-exc-label">
+                  <FaSearch aria-hidden="true" />
+                  Subject Name
+                </label>
+                <input
+                  type="text"
+                  className="hod-exc-input"
+                  placeholder="Search subject..."
+                  value={searchSubject}
+                  onChange={(e) => setSearchSubject(e.target.value)}
+                />
+              </div>
+
+              <div className="hod-exc-field">
+                <label className="hod-exc-label">
+                  <FaSearch aria-hidden="true" />
+                  Exception Type
+                </label>
+                <CustomSelect
+                  value={searchType}
+                  onChange={(e) => setSearchType(e.target.value)}
+                  options={TYPE_OPTIONS}
+                  placeholder="All Types"
+                  aria-label="Search by exception type"
+                />
+              </div>
+
+              <div className="hod-exc-field">
+                <label className="hod-exc-label">Status</label>
+                <CustomSelect
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  options={STATUS_OPTIONS}
+                  placeholder="All Status"
+                  aria-label="Filter by status"
+                />
               </div>
             </div>
 
-            <div className="p-4">
+            <div className="hod-exc-filters-footer">
+              <div className="hod-exc-meta">
+                Showing records
+                {totalPages > 1 && (
+                  <>
+                    {" "}
+                    <span>
+                      (Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>)
+                    </span>
+                  </>
+                )}
+              </div>
+              {(searchTeacher || searchSubject || searchType || statusFilter || typeFilter) && (
+                <MotionButton
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleClearFilters}
+                  className="hod-exc-clear-btn"
+                  type="button"
+                >
+                  Clear Filters
+                </MotionButton>
+              )}
+            </div>
+          </div>
+
+          <div className="hod-exc-content">
               <AnimatePresence mode="wait">
                 {activeTab === "pending" && (
                   <MotionDiv
@@ -976,33 +828,40 @@ if (
                     exit={{ opacity: 0, x: 20 }}
                   >
                     {loading ? (
-                      <div className="text-center py-5">
+                      <div className="hod-exc-loading">
                         <Loading size="md" text="Loading pending requests..." />
                       </div>
                     ) : pendingRequests.length === 0 ? (
                       <MotionDiv
-                        initial={{ opacity: 0, scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="text-center py-5"
                       >
-                        <div
-                          className="d-flex align-items-center justify-content-center mx-auto mb-3"
-                          style={{
-                            width: "80px",
-                            height: "80px",
-                            background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
-                            borderRadius: "50%",
-                          }}
-                        >
-                          <FaCheck size={36} style={{ color: "#94a3b8" }} />
+                        <div className="hod-exc-content-section-head">
+                          <h6 className="hod-exc-content-section-title">Pending Approvals</h6>
+                          <span className="hod-exc-content-section-badge">0 pending</span>
                         </div>
-                        <h5 className="fw-bold text-dark mb-2">All Caught Up!</h5>
-                        <p className="text-muted">
-                          No pending exception requests at the moment.
-                        </p>
+                        <div className="hod-exc-empty">
+                          <div className="hod-exc-empty-card">
+                            <div className="hod-exc-empty-icon" aria-hidden="true">
+                              <FaCheck />
+                            </div>
+                            <h5 className="hod-exc-empty-title">You're All Caught Up!</h5>
+                            <p className="hod-exc-empty-text">
+                              No pending exception requests at the moment. New requests will appear here for review.
+                            </p>
+                          </div>
+                        </div>
                       </MotionDiv>
                     ) : (
-                      pendingRequests.map((exc, index) => renderPendingCard(exc, index))
+                      <>
+                        <div className="hod-exc-content-section-head">
+                          <h6 className="hod-exc-content-section-title">Pending Approvals</h6>
+                          <span className="hod-exc-content-section-badge">
+                            {pendingRequests.length} {pendingRequests.length === 1 ? "pending request" : "pending requests"}
+                          </span>
+                        </div>
+                        {pendingRequests.map((exc, index) => renderPendingCard(exc, index))}
+                      </>
                     )}
                   </MotionDiv>
                 )}
@@ -1015,86 +874,78 @@ if (
                     exit={{ opacity: 0, x: -20 }}
                   >
                     {loading ? (
-                      <div className="text-center py-5">
+                      <div className="hod-exc-loading">
                         <Loading size="md" text="Loading history..." />
                       </div>
                     ) : history.approved.length === 0 && history.rejected.length === 0 && history.withdrawn.length === 0 ? (
                       <MotionDiv
-                        initial={{ opacity: 0, scale: 0.95 }}
+                        initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="text-center py-5"
+                        className="hod-exc-empty"
                       >
-                        <div
-                          className="d-flex align-items-center justify-content-center mx-auto mb-3"
-                          style={{
-                            width: "80px",
-                            height: "80px",
-                            background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
-                            borderRadius: "50%",
-                          }}
-                        >
-                          <FaExclamationTriangle size={36} style={{ color: "#94a3b8" }} />
+                        <div className="hod-exc-empty-card">
+                          <div className="hod-exc-empty-history-icon" aria-hidden="true">
+                            <FaExclamationTriangle />
+                          </div>
+                          <h5 className="hod-exc-empty-title">No History Yet</h5>
+                          <p className="hod-exc-empty-text">
+                            Approved, rejected, and withdrawn exceptions will appear here once actions are taken.
+                          </p>
+                          <div className="hod-exc-empty-status hod-exc-empty-status--neutral">
+                            <span className="hod-exc-empty-status-dot" aria-hidden="true" />
+                            <span>0 history records</span>
+                          </div>
                         </div>
-                        <h5 className="fw-bold text-dark mb-2">No History Yet</h5>
-                        <p className="text-muted">
-                          Approved, rejected, and withdrawn exceptions will appear here.
-                        </p>
                       </MotionDiv>
                     ) : (
                       <>
                         {history.approved.length > 0 && (
-                          <>
-                            <h6
-                              className="fw-bold text-uppercase mb-3"
-                              style={{
-                                fontSize: "0.75rem",
-                                letterSpacing: "0.5px",
-                                color: "#059669",
-                              }}
-                            >
-                              <FaCheck className="me-1" /> Approved Requests (
-                              {history.approved.length})
-                            </h6>
+                          <section className="hod-exc-history-section" aria-label="Approved requests">
+                            <div className="hod-exc-section-heading">
+                              <h6 className="hod-exc-section-title hod-exc-section-title--approved">
+                                <FaCheck aria-hidden="true" />
+                                <span>Approved Requests</span>
+                              </h6>
+                              <span className="hod-exc-count-badge hod-exc-count-badge--approved">
+                                {history.approved.length} {history.approved.length === 1 ? "record" : "records"}
+                              </span>
+                            </div>
                             {history.approved.map((exc, index) =>
                               renderHistoryCard(exc, index, "approved"),
                             )}
-                          </>
+                          </section>
                         )}
                         {history.rejected.length > 0 && (
-                          <>
-                            <h6
-                              className="fw-bold text-uppercase mb-3 mt-4"
-                              style={{
-                                fontSize: "0.75rem",
-                                letterSpacing: "0.5px",
-                                color: "#dc2626",
-                              }}
-                            >
-                              <FaTimes className="me-1" /> Rejected Requests (
-                              {history.rejected.length})
-                            </h6>
+                          <section className="hod-exc-history-section" aria-label="Rejected requests">
+                            <div className="hod-exc-section-heading">
+                              <h6 className="hod-exc-section-title hod-exc-section-title--rejected">
+                                <FaTimes aria-hidden="true" />
+                                <span>Rejected Requests</span>
+                              </h6>
+                              <span className="hod-exc-count-badge">
+                                {history.rejected.length} {history.rejected.length === 1 ? "record" : "records"}
+                              </span>
+                            </div>
                             {history.rejected.map((exc, index) =>
                               renderHistoryCard(exc, index, "rejected"),
                             )}
-                          </>
+                          </section>
                         )}
                         {history.withdrawn.length > 0 && (
-                          <>
-                            <h6
-                              className="fw-bold text-uppercase mb-3 mt-4"
-                              style={{
-                                fontSize: "0.75rem",
-                                letterSpacing: "0.5px",
-                                color: "#475569",
-                              }}
-                            >
-                              <FaUndo className="me-1" /> Withdrawn Requests (
-                              {history.withdrawn.length})
-                            </h6>
+                          <section className="hod-exc-history-section" aria-label="Withdrawn requests">
+                            <div className="hod-exc-section-heading">
+                              <h6 className="hod-exc-section-title hod-exc-section-title--withdrawn">
+                                <FaUndo aria-hidden="true" />
+                                <span>Withdrawn Requests</span>
+                              </h6>
+                              <span className="hod-exc-count-badge">
+                                {history.withdrawn.length} {history.withdrawn.length === 1 ? "record" : "records"}
+                              </span>
+                            </div>
                             {history.withdrawn.map((exc, index) =>
                               renderHistoryCard(exc, index, "withdrawn"),
                             )}
-                          </>
+                          </section>
                         )}
                       </>
                     )}
@@ -1104,7 +955,6 @@ if (
             </div>
           </div>
         </div>
-      </div>
 
       <AnimatePresence>
         {rejectModal.isOpen && (

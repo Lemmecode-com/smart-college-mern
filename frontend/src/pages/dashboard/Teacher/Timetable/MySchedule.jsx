@@ -28,6 +28,7 @@ import {
   FaHourglassEnd,
   FaLightbulb,
   FaTimesCircle,
+  FaLock,
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -194,20 +195,11 @@ const componentStyles = `
   }
 }
 .stats-bar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
   margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(15, 58, 74, 0.06);
 }
 .stats-items {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
 }
 .stat-item {
@@ -215,16 +207,18 @@ const componentStyles = `
   align-items: center;
   gap: 0.875rem;
   min-width: 0;
+  min-height: 96px;
   padding: 1rem 1.125rem;
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 13px;
+  border-left: 4px solid var(--stat-accent, #1a4b6d);
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(15, 58, 74, 0.05);
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 .stat-item:hover {
   transform: translateY(-2px);
-  border-color: #cbdde5;
-  box-shadow: 0 6px 16px rgba(15, 58, 74, 0.08);
+  box-shadow: 0 8px 18px rgba(15, 58, 74, 0.08);
 }
 .stat-icon {
   width: 42px;
@@ -238,6 +232,7 @@ const componentStyles = `
 .stat-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 .stat-label {
   font-size: 0.82rem;
@@ -246,23 +241,12 @@ const componentStyles = `
   line-height: 1.35;
 }
 .stat-value {
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
   font-size: 1.35rem;
-  line-height: 1.15;
+  line-height: 1.2;
   font-weight: 750;
   color: #0f3a4a;
-}
-.day-badge {
-  padding: 0.55rem 0.85rem;
-  border-radius: 20px;
-  background: #e8f4ec;
-  color: #20734a;
-  font-weight: 650;
-  font-size: 0.82rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 .schedule-header-actions {
   display: flex;
@@ -435,51 +419,52 @@ const componentStyles = `
 }
 .status-badge {
   margin-top: 0.75rem;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.85rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
   font-weight: 600;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.375rem;
   justify-content: center;
 }
 .status-active {
-  background: rgba(26, 75, 109, 0.1);
-  color: #1a4b6d;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
 }
 .status-completed {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 .status-session-active {
   background: #dcfce7;
   color: #166534;
+  border: 1px solid #bbf7d0;
 }
 .content-column {
   flex: 1;
   width: 100%;
+  min-width: 0;
 }
 .content-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 1.25rem;
   margin-bottom: 1rem;
 }
 .subject-info {
   flex: 1;
+  min-width: 0;
 }
 .subject-name {
   font-weight: 700;
   font-size: 1.2rem;
-  line-height: 1.35;
-  color: #172f3a;
-  margin-bottom: 0.55rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  line-height: 1.3;
+  color: #0f172a;
+  margin-bottom: 0.6rem;
 }
 .subject-meta {
   display: flex;
@@ -489,50 +474,56 @@ const componentStyles = `
 }
 .badge-type,
 .badge-room,
-.badge-status {
+.badge-status,
+.badge-academic {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  padding: 0.4rem 0.75rem;
+  padding: 0.35rem 0.7rem;
   border-radius: 8px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  line-height: 1.2;
 }
-.badge-room {
-  background: #f1f5f9;
-  color: #4a5568;
+.badge-room,
+.badge-academic {
+  background: #f8fafc;
+  color: #475569;
   border: 1px solid #e2e8f0;
 }
 .badge-status.published {
-  background: #dcfce7;
+  background: #ecfdf3;
   color: #166534;
   border: 1px solid #bbf7d0;
 }
 .badge-status.draft {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
+  border: 1px solid #fecdd3;
 }
 .timetable-info {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   flex-shrink: 0;
-  min-width: 150px;
+  max-width: 220px;
+  text-align: right;
 }
 .timetable-name {
   font-size: 0.9rem;
-  color: #334e5a;
+  color: #334155;
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.2rem;
+  overflow-wrap: anywhere;
 }
 .timetable-meta {
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: #64748b;
+  overflow-wrap: anywhere;
 }
 .content-bottom {
   padding-top: 1rem;
-  border-top: 1px dashed #e2e8f0;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -541,112 +532,133 @@ const componentStyles = `
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #4a5568;
-  font-size: 0.95rem;
+  color: #475569;
+  font-size: 0.92rem;
 }
 .teacher-icon {
   color: #1a4b6d;
 }
 .btn-action {
   width: 100%;
-  min-height: 48px;
-  padding: 0.8rem 1rem;
-  border-radius: 11px;
+  min-height: 46px;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
   border: none;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  transition: all 0.3s ease;
+  gap: 0.625rem;
+  transition: all 0.2s ease;
 }
 .btn-action:disabled {
   cursor: not-allowed;
   opacity: 0.8;
 }
 .btn-creating {
-  background: #28a745;
+  background: #16a34a;
   color: white;
 }
 .btn-active {
-  background: #dcfce7;
+  background: #ecfdf3;
   color: #166534;
-  border: 2px solid #86efac;
+  border: 1px solid #86efac;
 }
 .btn-ended {
-  background: #cbd5e1;
-  color: #64748b;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
 }
 .btn-unpublished {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
+  border: 1px solid #fecdd3;
 }
 .btn-upcoming {
   background: #f0f9ff;
   color: #0c4a6e;
   border: 1px solid #bae6fd;
 }
-.btn-start {
-  background: linear-gradient(135deg, #16814a 0%, #116b40 100%);
-  color: white;
-  box-shadow: 0 4px 12px rgba(22, 129, 74, 0.22);
-}
-.btn-start:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 7px 16px rgba(22, 129, 74, 0.3);
-}
-.info-message {
-  padding: 0.8rem 0.9rem;
-  border-radius: 11px;
-  font-size: 0.88rem;
-  line-height: 1.45;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.info-error {
-  background: #fee2e2;
-  color: #b91c1c;
+.btn-cancelled {
+  background: #fef2f2;
+  color: #991b1b;
   border: 1px solid #fecaca;
 }
+.btn-holiday {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.btn-rescheduled {
+  background: #ecfeff;
+  color: #155e75;
+  border: 1px solid #a5f3fc;
+}
+.btn-start {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: white;
+  box-shadow: 0 3px 10px rgba(22, 163, 74, 0.22);
+}
+.btn-start:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.28);
+}
+.info-message {
+  padding: 0.75rem 0.875rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.info-message svg {
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+.info-error {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
 .info-success {
-  background: #dcfce7;
-  color: #166534;
-  border: 1px solid #86efac;
+  background: #f0f9ff;
+  color: #075985;
+  border: 1px solid #bae6fd;
 }
 .info-info {
   background: #f0f9ff;
-  color: #0c4a6e;
+  color: #075985;
   border: 1px solid #bae6fd;
 }
 .info-warning {
-  background: #fef3c7;
+  background: #fffbeb;
   color: #92400e;
   border: 1px solid #fde68a;
 }
 .info-banner {
   margin-top: 1.5rem;
-  padding: 1.25rem;
-  border-radius: 16px;
+  padding: 1.125rem 1.25rem;
+  border-radius: 14px;
   background: #fffbeb;
-  border: 1px solid #f59e0b;
+  border: 1px solid #fcd34d;
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
+  gap: 0.875rem;
 }
 .info-banner-icon {
-  color: #ffc107;
+  color: #d97706;
   flex-shrink: 0;
-  margin-top: 0.25rem;
-  font-size: 1.5rem;
+  margin-top: 0.15rem;
+  font-size: 1.25rem;
 }
 .info-banner-content {
   color: #92400e;
-  font-size: 0.95rem;
-  line-height: 1.6;
+  font-size: 0.93rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
 }
 .empty-state {
   padding: 3rem 1.5rem;
@@ -696,6 +708,9 @@ const componentStyles = `
   .schedule-container {
     padding: 0.5rem 1rem 1rem;
   }
+  .stats-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 768px) {
   .card-header {
@@ -708,7 +723,9 @@ const componentStyles = `
   .timetable-info {
     align-items: flex-start;
     min-width: 100%;
-    margin-top: 0.5rem;
+    max-width: 100%;
+    text-align: left;
+    margin-top: 0.25rem;
   }
   .btn-action {
     font-size: 0.95rem;
@@ -735,16 +752,13 @@ const componentStyles = `
   .schedule-container .schedule-current-time {
     flex: 1;
   }
-  .schedule-container .stats-bar {
-    grid-template-columns: minmax(0, 1fr);
-    padding: 0.75rem;
-  }
   .schedule-container .stats-items {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
   }
   .schedule-container .stat-item {
     padding: 0.85rem;
+    min-height: 88px;
   }
   .schedule-container .stat-label {
     overflow-wrap: anywhere;
@@ -760,9 +774,6 @@ const componentStyles = `
   }
   .schedule-container .stat-label {
     overflow-wrap: anywhere;
-  }
-  .schedule-container .day-badge {
-    justify-self: start;
   }
   .schedule-container .schedule-header-actions {
     gap: 0.5rem;
@@ -1427,7 +1438,7 @@ if (loading || !sessionsLoaded) {
                 icon={<FaUniversity />}
                 label="Total Classes"
                 value={todaysSlots.length}
-                color={BRAND_COLORS.primary.main}
+                color="#2563eb"
                 styles={styles}
               />
               <StatItem
@@ -1439,20 +1450,23 @@ if (loading || !sessionsLoaded) {
                     (s) => s.timetable_id?.status === "PUBLISHED",
                   ).length
                 }
-                color={BRAND_COLORS.success.main}
+                color="#16a34a"
                 styles={styles}
               />
               <StatItem
                 icon={<FaBell />}
                 label="Active Sessions"
                 value={Object.keys(activeSessions).length}
-                color={BRAND_COLORS.warning.main}
+                color="#d97706"
                 styles={styles}
               />
-            </div>
-            <div className="day-badge">
-              <FaCalendarAlt size={14} />
-              {currentDayName}
+              <StatItem
+                icon={<FaCalendarAlt />}
+                label="Current Day"
+                value={currentDayName}
+                color="#0f766e"
+                styles={styles}
+              />
             </div>
           </div>
           {/* ================= ERROR STATE ================= */}
@@ -1606,18 +1620,14 @@ function isCurrentTimeSlot(timeSlot) {
 
 /* ================= STAT ITEM ================= */
 function StatItem({ icon, label, value, color, styles }) {
-  const isMobile =
-    typeof window !== "undefined" ? window.innerWidth < 768 : false;
   return (
-    <div className="stat-item">
+    <div className="stat-item" style={{ "--stat-accent": color }}>
       <div
         className="stat-icon"
         style={{
-          width: isMobile ? "32px" : "36px",
-          height: isMobile ? "32px" : "36px",
           backgroundColor: `${color}15`,
           color: color,
-          fontSize: isMobile ? "1rem" : "1.1rem",
+          fontSize: "1.1rem",
         }}
       >
         {icon}
@@ -1806,10 +1816,24 @@ function ScheduleRow({
         <div className="content-top">
           <div className="subject-info">
             <div className="subject-name">
-              <FaBook size={isMobile ? 16 : 18} />
               {slot.subject_id?.name}
             </div>
             <div className="subject-meta">
+              {slot.timetable_id?.course_id?.name && (
+                <span className="badge-academic">
+                  {slot.timetable_id.course_id.name}
+                </span>
+              )}
+              {slot.timetable_id?.semester && (
+                <span className="badge-academic">
+                  Sem {slot.timetable_id.semester}
+                </span>
+              )}
+              {slot.timetable_id?.academicYear && (
+                <span className="badge-academic">
+                  {slot.timetable_id.academicYear}
+                </span>
+              )}
               <span
                 className="badge-type"
                 style={{
@@ -1847,8 +1871,9 @@ function ScheduleRow({
             <div className="timetable-info">
               <div className="timetable-name">{slot.timetable_id?.name}</div>
               <div className="timetable-meta">
-                Sem {slot.timetable_id?.semester} •{" "}
-                {slot.timetable_id?.academicYear}
+                {slot.timetable_id?.course_id?.name && (
+                  <span>{slot.timetable_id.course_id.name}</span>
+                )}
               </div>
             </div>
           </div>
@@ -1882,28 +1907,19 @@ function ScheduleRow({
             <motion.div
               className="btn-action btn-active"
               style={{
-                background: "linear-gradient(135deg, #28a745, #1e7e34)",
-                color: "white",
-                boxShadow: "0 4px 15px rgba(40, 167, 69, 0.4)",
                 cursor: "default",
               }}
             >
               <FaCheckCircle size={isMobile ? 18 : 20} />
-              <span style={{ fontWeight: 600 }}>Attendance Active</span>
+              <span>Attendance Active</span>
             </motion.div>
           ) : buttonState === "ended" ? (
-            <motion.div
-              className="btn-action btn-ended"
-              style={{
-                background: "linear-gradient(135deg, #6c757d, #5a6268)",
-                color: "white",
-                cursor: "not-allowed",
-                opacity: 0.7,
-              }}
-            >
-              <FaTimesCircle size={isMobile ? 18 : 20} />
-              <span>Session Closed</span>
-            </motion.div>
+            <div className="info-message info-error info-closed-panel">
+              <FaLock size={16} />
+              <span>
+                This class ended at {formatTime12Hour(endTime)}. Attendance session is closed.
+              </span>
+            </div>
           ) : buttonState === "cancelled" ? (
             <div
               className="btn-action btn-cancelled"
@@ -1978,22 +1994,15 @@ function ScheduleRow({
           ) : canStartAttendance ? (
             <motion.button
               whileHover={{
-                scale: 1.03,
-                boxShadow: "0 6px 20px rgba(40, 167, 69, 0.45)",
+                y: -1,
+                boxShadow: "0 6px 14px rgba(22, 163, 74, 0.28)",
               }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onStartAttendance(slot, time)}
               className="btn-action btn-start"
-              style={{
-                background: "linear-gradient(135deg, #28a745, #1e7e34)",
-                color: "white",
-                boxShadow: "0 4px 15px rgba(40, 167, 69, 0.35)",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
             >
               <FaPlay />
-              <span style={{ fontWeight: 600 }}>Start Attendance</span>
+              <span>Start Attendance</span>
             </motion.button>
           ) : (
             <button
@@ -2025,14 +2034,6 @@ function ScheduleRow({
             >
               <FaInfoCircle size={16} />
               <span>{attendanceMessage}</span>
-            </div>
-          )}
-          {buttonState === "ended" && isPublished && (
-            <div className="info-message info-error">
-              <FaTimesCircle size={16} />
-              <span>
-                This class ended at {endTime}. Attendance session is closed.
-              </span>
             </div>
           )}
           {buttonState === "active" && (

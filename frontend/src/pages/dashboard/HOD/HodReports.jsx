@@ -144,14 +144,23 @@ const KpiCard = ({
       <div className="hod-kpi-card-top-bar" style={{ background: color }} />
       <div className="hod-kpi-card-body">
         <div className="hod-kpi-card-main">
-          <div className="hod-kpi-value">{value}</div>
           <div className="hod-kpi-label">{label}</div>
+          <div className="hod-kpi-value">{value}</div>
         </div>
-        <div className="hod-kpi-icon-wrap" style={{ background: bg, color }}>
+        <div
+          className="hod-kpi-icon-wrap"
+          style={{ background: bg, color, border: `1px solid ${color}22` }}
+        >
           {Icon && <Icon aria-hidden="true" />}
         </div>
       </div>
       {subtext && <div className="hod-kpi-subtext">{subtext}</div>}
+      {isClickable && (
+        <div className="hod-kpi-card-cta" style={{ color }}>
+          <span>View details</span>
+          <FaArrowRight aria-hidden="true" />
+        </div>
+      )}
     </div>
   );
 };
