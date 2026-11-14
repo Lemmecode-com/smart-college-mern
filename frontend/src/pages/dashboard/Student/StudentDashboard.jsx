@@ -7,6 +7,7 @@ import Loading from "../../../components/Loading";
 import { AuthContext } from "../../../auth/AuthContext";
 import { logger } from "../../../utils/logger";
 import studentDashboardCache from "../../../utils/studentDashboardCache";
+import { getMyResults } from "../../../api/results";
 import {
   FaGraduationCap,
   FaCalendarAlt,
@@ -27,6 +28,7 @@ import {
   FaBook,
   FaLayerGroup,
   FaIdBadge,
+  FaAward,
 } from "react-icons/fa";
 import {
   PieChart,
@@ -175,6 +177,12 @@ export default function StudentDashboard() {
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
 
+  // Academic Results (latest published) - isolated state, does not affect dashboard load/error behavior
+  const [latestPublishedResult, setLatestPublishedResult] = useState(null);
+  const [resultsLoading, setResultsLoading] = useState(true);
+  const [resultsError, setResultsError] = useState(null);
+  const [resultsRetryCount, setResultsRetryCount] = useState(0);
+
   // Initial load effect
   useEffect(() => {
     let isMounted = true;
@@ -302,6 +310,8 @@ export default function StudentDashboard() {
       ) {
         studentDashboardCache.set(userId, response.data);
       }
+      // Also refresh latest academic result (isolated)
+      setResultsRetryCount((c) => c + 1);
       toast.success("Dashboard refreshed", {
         position: "top-right",
         autoClose: 2000,
@@ -330,6 +340,54 @@ export default function StudentDashboard() {
     setRetryCount((prev) => prev + 1);
     setIsRetrying(false);
   }, [retryCount]);
+
+  // Fetch latest published academic result (student-specific, published only)
+  useEffect(() => {
+    if (!userId) {
+      setLatestPublishedResult(null);
+      setResultsLoading(false);
+      return;
+    }
+    let isMounted = true;
+    const loadResults = async () => {
+      setResultsLoading(true);
+      setResultsError(null);
+      try {
+        const data = await getMyResults();
+        if (!isMounted) return;
+        const regularResults = Array.isArray(data)
+          ? data
+          : (data?.data || data?.regularResults || []);
+        // Only published results (API returns published; guard explicitly)
+        const published = (Array.isArray(regularResults) ? regularResults : []).filter(
+          (r) => !r?.status || r.status === "PUBLISHED"
+        );
+        const pickTime = (r) => {
+          const t = new Date(r?.publishedAt || r?.updatedAt || r?.createdAt || r?.resultDate || 0).getTime();
+          return Number.isFinite(t) ? t : 0;
+        };
+        const sorted = [...published].sort((a, b) => {
+          const semDiff = Number(b?.semester || 0) - Number(a?.semester || 0);
+          if (semDiff !== 0) return semDiff;
+          return pickTime(b) - pickTime(a);
+        });
+        setLatestPublishedResult(sorted[0] || null);
+      } catch (err) {
+        if (!isMounted) return;
+        logger.error("Student dashboard latest result load error:", {
+          statusCode: err?.response?.status,
+          message: err?.message,
+          page: "StudentDashboard",
+        });
+        setLatestPublishedResult(null);
+        setResultsError("Unable to load academic results right now.");
+      } finally {
+        if (isMounted) setResultsLoading(false);
+      }
+    };
+    loadResults();
+    return () => { isMounted = false; };
+  }, [userId, resultsRetryCount]);
 
   // Handle go back action
   const handleGoBack = useCallback(() => {
@@ -830,6 +888,7 @@ export default function StudentDashboard() {
 
         {/* ================= 5. MAIN GRID (Equal Height Panels) ================= */}
         <div className="sd-main-grid">
+          <div className="sd-main-left-stack">
           {/* Panel A: Attendance Summary */}
           <article className="sd-card">
             <header className="sd-card-header">
@@ -985,6 +1044,138 @@ export default function StudentDashboard() {
               )}
             </div>
           </article>
+
+          {/* Academic Results (latest published) - left column only */}
+          <article className="sd-card sd-academic-results-card" aria-label="Academic Results">
+            <header className="sd-card-header">
+              <div className="sd-card-header-left">
+                <div className="sd-card-header-icon" aria-hidden="true">
+                  <FaAward />
+                </div>
+                <div className="sd-card-title-wrap">
+                  <h2 className="sd-card-title">Academic Results</h2>
+                  <p className="sd-card-subtitle">Latest published examination result</p>
+                </div>
+              </div>
+              <Link to="/student/results" className="sd-view-all-link">
+                View All Results <FaArrowRight size={11} />
+              </Link>
+            </header>
+
+            <div className="sd-card-body">
+              {resultsLoading ? (
+                <div className="sd-results-state" role="status" aria-live="polite">
+                  <FaSync className="sd-spin" aria-hidden="true" /> Loading latest result...
+                </div>
+              ) : resultsError ? (
+                <div className="sd-empty-state">
+                  <div className="sd-empty-icon-circle">
+                    <FaExclamationTriangle />
+                  </div>
+                  <div className="sd-empty-text-wrap">
+                    <span className="sd-empty-title">Results unavailable</span>
+                    <span className="sd-empty-subtitle">{resultsError}</span>
+                  </div>
+                </div>
+              ) : !latestPublishedResult ? (
+                <div className="sd-empty-state">
+                  <div className="sd-empty-icon-circle">
+                    <FaFileAlt />
+                  </div>
+                  <div className="sd-empty-text-wrap">
+                    <span className="sd-empty-title">No published results yet</span>
+                    <span className="sd-empty-subtitle">Your latest published examination result will appear here.</span>
+                  </div>
+                </div>
+              ) : (() => {
+                const r = latestPublishedResult;
+                const examName = r.examName || r.exam_id?.name || r.exam?.name || r.examinationName || null;
+                const academicSession = r.academicYear || r.session || r.academicSession || r.exam_id?.academicYear || null;
+                const obtained = r.obtainedMarks ?? r.totalMarksObtained ?? r.grandTotal ?? r.totalMarks ?? null;
+                const totalMarks = r.totalMaxMarks ?? r.maxMarks ?? r.maximumMarks ?? r.outOfMarks ?? null;
+                const percentage = r.percentage ?? r.percentageScore ?? r.resultPercentage ?? null;
+                const grade = r.grade ?? r.overallGrade ?? r.letterGrade ?? r.cgpa ?? r.sgpa ?? null;
+                const resultStatus = r.overallResult || r.resultStatus || r.status || null;
+                const subjects = Array.isArray(r.subjects) ? r.subjects : [];
+                const statusUpper = String(resultStatus || "").toUpperCase();
+                const statusTone = statusUpper === "PASS" || statusUpper === "PUBLISHED" ? "sd-chip-success"
+                  : (statusUpper === "FAIL" ? "sd-chip-danger" : "sd-chip-neutral");
+                const showVal = (v) => (v === null || v === undefined || v === "" ? "—" : v);
+                const pctDisplay = (percentage === null || percentage === undefined || percentage === "")
+                  ? "—"
+                  : `${Number(percentage).toFixed ? Number(percentage).toFixed(2).replace(/\.00$/, "") : percentage}%`;
+                return (
+                  <div className="sd-results-content">
+                    <div className="sd-results-headline">
+                      <div className="sd-results-title-block">
+                        {examName && <div className="sd-results-exam" title={examName}>{examName}</div>}
+                        <div className="sd-results-meta-line">
+                          {r.semester != null && <span>Semester {r.semester}</span>}
+                          {r.semester != null && academicSession && <span className="sd-results-dot">•</span>}
+                          {academicSession && <span>{academicSession}</span>}
+                        </div>
+                      </div>
+                      {resultStatus && (
+                        <span className={`sd-chip ${statusTone}`}>{showVal(resultStatus)}</span>
+                      )}
+                    </div>
+
+                    <div className="sd-results-metrics">
+                      <div className="sd-results-metric">
+                        <span className="sd-results-metric-label">Obtained</span>
+                        <span className="sd-results-metric-val">{showVal(obtained)}</span>
+                      </div>
+                      <div className="sd-results-metric">
+                        <span className="sd-results-metric-label">Total Marks</span>
+                        <span className="sd-results-metric-val">{showVal(totalMarks)}</span>
+                      </div>
+                      <div className="sd-results-metric">
+                        <span className="sd-results-metric-label">Percentage</span>
+                        <span className="sd-results-metric-val">{pctDisplay}</span>
+                      </div>
+                      {grade !== null && grade !== undefined && grade !== "" && (
+                        <div className="sd-results-metric">
+                          <span className="sd-results-metric-label">Grade</span>
+                          <span className="sd-results-metric-val">{grade}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {subjects.length > 0 && (
+                      <div className="sd-results-subjects" aria-label="Subject-wise marks breakdown">
+                        <div className="sd-results-subjects-head">
+                          <span>Subject</span>
+                          <span>Marks</span>
+                        </div>
+                        <div className="sd-results-subjects-list">
+                          {subjects.slice(0, 5).map((sub, idx) => {
+                            const subName = sub.subjectName || sub.name || sub.subject?.name || sub.subjectCode || `Subject ${idx + 1}`;
+                            const subCode = sub.subjectCode || sub.code || sub.subject?.code || "";
+                            const subObt = sub.totalMarks ?? sub.obtainedMarks ?? sub.marksObtained ?? sub.marks ?? null;
+                            const subMax = sub.maxMarks ?? sub.totalMaxMarks ?? sub.maximumMarks ?? null;
+                            return (
+                              <div key={sub.subjectId || sub._id || idx} className="sd-results-subject-row">
+                                <span className="sd-results-subject-name" title={subName}>
+                                  {subName}{subCode ? ` (${subCode})` : ""}
+                                </span>
+                                <span className="sd-results-subject-marks">
+                                  {showVal(subObt)}{subMax != null && subMax !== "" ? ` / ${subMax}` : ""}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {subjects.length > 5 && (
+                            <div className="sd-results-subject-more">+{subjects.length - 5} more subjects</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </article>
+          </div>
 
           {/* Panel B: Subject-wise Attendance */}
           <article className="sd-card">

@@ -361,118 +361,143 @@ if (loading) {
 
       {/* ================= PROFILE HEADER CARD ================= */}
       <div
-        className="card border-0 shadow-lg rounded-4 overflow-hidden mb-3 mb-md-4 animate-fade-in-up"
+        className="sph-header animate-fade-in-up"
         style={{ animationDelay: "0.1s" }}
       >
-        <div className="card-header bg-gradient-primary text-white py-4">
-          <div className="position-relative">
-            <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
-              <div className="d-flex align-items-center gap-4 mb-3 mb-md-0">
-                <div className="profile-avatar-container">
-                  <div className="profile-avatar bg-white d-flex align-items-center justify-content-center text-primary">
-                    <FaUserGraduate size={64} />
-                  </div>
-                  <div className="profile-status-indicator">
-                    <span
-                      className={`status-dot ${
-                        student?.status === "APPROVED"
-                          ? "bg-success"
-                          : student?.status === "REJECTED"
-                            ? "bg-danger"
-                            : "bg-warning"
-                      }`}
-                    ></span>
-                  </div>
+        <div className="sph-upper">
+          <div className="sph-upper-main">
+            <div className="sph-identity">
+              <div className="sph-avatar-wrap">
+                <div className="sph-avatar">
+                  <span className="sph-avatar-fallback" aria-hidden="true">
+                    <FaUserGraduate />
+                  </span>
                 </div>
-                <div>
-                  <h2 className="h3 fw-bold mb-1">
-                    {student?.fullName || "N/A"}
-                  </h2>
-                  <div className="d-flex flex-wrap gap-3">
-                    <div className="d-flex align-items-center gap-1">
-                      <FaGraduationCap className="text-white opacity-75" />
-                      <span className="opacity-75">{course?.name || "N/A"}</span>
-                    </div>
-                    <div className="d-flex align-items-center gap-1">
-                      <FaLayerGroup className="text-white opacity-75" />
-                      <span className="opacity-75">
-                        {department?.name || "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="mt-2 d-flex flex-wrap gap-2">
-                    <span
-                      className={`badge ${
-                        student?.status === "APPROVED"
-                          ? "bg-success"
-                          : student?.status === "REJECTED"
-                            ? "bg-danger"
-                            : "bg-warning"
-                      }`}
-                    >
-                      <FaCheckCircle className="me-1" />
-                      {student?.status || "PENDING"}
+                <div className="sph-avatar-status" aria-hidden="true">
+                  <span
+                    className={`sph-avatar-status-dot ${
+                      student?.status === "APPROVED"
+                        ? "is-approved"
+                        : student?.status === "REJECTED"
+                          ? "is-rejected"
+                          : "is-pending"
+                    }`}
+                  ></span>
+                </div>
+              </div>
+
+              <div className="sph-identity-text">
+                <h2 className="sph-name">{student?.fullName || "N/A"}</h2>
+                <div className="sph-subline">
+                  <span className="sph-subline-item">
+                    <FaGraduationCap aria-hidden="true" />
+                    <span>{course?.name || "N/A"}</span>
+                  </span>
+                  <span className="sph-subline-item">
+                    <FaLayerGroup aria-hidden="true" />
+                    <span>{department?.name || "N/A"}</span>
+                  </span>
+                </div>
+                <div className="sph-chips">
+                  <span
+                    className={`sph-chip ${
+                      student?.status === "APPROVED"
+                        ? "sph-chip--approved"
+                        : student?.status === "REJECTED"
+                          ? "sph-chip--rejected"
+                          : "sph-chip--pending"
+                    }`}
+                  >
+                    <FaCheckCircle aria-hidden="true" />
+                    <span>{student?.status || "PENDING"}</span>
+                  </span>
+                  {student?.currentSemester && (
+                    <span className="sph-chip" title="Current Semester">
+                      <FaGraduationCap aria-hidden="true" />
+                      <span>Semester {student.currentSemester}</span>
                     </span>
-                    {student?.currentSemester && (
-                      <span className="badge bg-light text-dark" title="Current Semester">
-                        <FaGraduationCap className="me-1" />
-                        Semester {student.currentSemester}
-                      </span>
-                    )}
-                    {student?.currentSemester && (
-                      <span className="badge bg-light text-dark" title="Academic Year">
-                        <FaClock className="me-1" />
-                        Year {Math.ceil((student.currentSemester || 0) / 2)}
-                      </span>
-                    )}
-                    {!student?.currentSemester && student?.currentYear && (
-                      <span className="badge bg-light text-dark" title="Academic Year">
-                        <FaClock className="me-1" />
-                        Year {student.currentYear}
-                      </span>
-                    )}
-                    <span className="badge bg-light text-dark">
-                      <FaCalendarAlt className="me-1" />
-                      Admitted: {student?.admissionYear || "N/A"}
+                  )}
+                  {student?.currentSemester && (
+                    <span className="sph-chip" title="Academic Year">
+                      <FaClock aria-hidden="true" />
+                      <span>Year {Math.ceil((student.currentSemester || 0) / 2)}</span>
                     </span>
-                  </div>
+                  )}
+                  {!student?.currentSemester && student?.currentYear && (
+                    <span className="sph-chip" title="Academic Year">
+                      <FaClock aria-hidden="true" />
+                      <span>Year {student.currentYear}</span>
+                    </span>
+                  )}
+                  <span className="sph-chip">
+                    <FaCalendarAlt aria-hidden="true" />
+                    <span>Admitted: {student?.admissionYear || "N/A"}</span>
+                  </span>
                 </div>
               </div>
             </div>
+
             <button
-              className="btn btn-light d-flex align-items-center gap-2 px-3 py-2 position-absolute top-0 end-0 profile-header-btn"
+              type="button"
+              className="sph-edit-btn"
               onClick={() => navigate("/student/edit-profile")}
               aria-label="Edit your profile"
             >
-              <FaEdit size={16} aria-hidden="true" /> Edit Profile
+              <FaEdit size={16} aria-hidden="true" />
+              <span>Edit Profile</span>
             </button>
           </div>
         </div>
 
-        <div className="card-body bg-light py-3">
-          <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center text-center text-md-start">
-            <div className="d-flex flex-wrap justify-content-center justify-content-md-start gap-4 mb-2 mb-md-0">
-              <div className="d-flex align-items-center gap-2">
-                <FaEnvelope className="text-primary" />
-                <span className="fw-medium">{student?.email || "N/A"}</span>
-              </div>
-              <div className="d-flex align-items-center gap-2">
-                <FaPhoneAlt className="text-success" />
-                <span className="fw-medium">
-                  {student?.mobileNumber || "N/A"}
+        <div className="sph-lower">
+          <div className="sph-contact-strip">
+            <div className="sph-contact-group">
+              <div className="sph-contact-label">Email Address</div>
+              <div className="sph-contact-value-row">
+                <span className="sph-contact-icon sph-contact-icon--email" aria-hidden="true">
+                  <FaEnvelope />
                 </span>
+                <span className="sph-contact-value">{student?.email || "N/A"}</span>
               </div>
-              <div className="d-flex align-items-center gap-2">
-                <FaGlobe className="text-info" />
-                <span className="fw-medium">
-                  {student?.nationality || "N/A"}
+            </div>
+
+            <div className="sph-contact-sep" aria-hidden="true"></div>
+
+            <div className="sph-contact-group">
+              <div className="sph-contact-label">Phone Number</div>
+              <div className="sph-contact-value-row">
+                <span className="sph-contact-icon sph-contact-icon--phone" aria-hidden="true">
+                  <FaPhoneAlt />
+                </span>
+                <span className="sph-contact-value">{student?.mobileNumber || "N/A"}</span>
+              </div>
+            </div>
+
+            <div className="sph-contact-sep" aria-hidden="true"></div>
+
+            <div className="sph-contact-group">
+              <div className="sph-contact-label">Nationality</div>
+              <div className="sph-contact-value-row">
+                <span className="sph-contact-icon sph-contact-icon--nationality" aria-hidden="true">
+                  <FaGlobe />
+                </span>
+                <span className="sph-contact-value">{student?.nationality || "N/A"}</span>
+              </div>
+            </div>
+
+            <div className="sph-contact-sep" aria-hidden="true"></div>
+
+            <div className="sph-contact-group">
+              <div className="sph-contact-label">Last Updated</div>
+              <div className="sph-contact-value-row">
+                <span className="sph-contact-icon sph-contact-icon--updated" aria-hidden="true">
+                  <FaSync />
+                </span>
+                <span className="sph-contact-value">
+                  {student?.updatedAt ? new Date(student.updatedAt).toLocaleString() : "N/A"}
                 </span>
               </div>
             </div>
-            <small className="text-muted">
-              <FaSync className="spin-icon me-1" />
-               Last updated: {student?.updatedAt ? new Date(student.updatedAt).toLocaleString() : "N/A"}
-            </small>
           </div>
         </div>
       </div>
@@ -554,7 +579,7 @@ if (loading) {
 
             {/* Tab Content */}
             <div
-              className="tabs-content flex-grow-1 p-4"
+              className="tabs-content flex-grow-1"
               role="tabpanel"
               aria-label="Profile information"
             >
@@ -562,9 +587,8 @@ if (loading) {
                 <SectionContent
                   title="Personal Information"
                   icon={<FaUserGraduate />}
-                  color="info"
                 >
-                  <div className="row g-3">
+                  <div className="row info-grid">
                     <InfoItem
                       label="Full Name"
                       value={student?.fullName || "N/A"}
@@ -638,39 +662,53 @@ if (loading) {
                 <SectionContent
                   title="Parent / Guardian Information"
                   icon={<FaUserFriends />}
-                  color="primary"
+                  action={
+                    <button
+                      type="button"
+                      className="section-edit-btn"
+                      onClick={() => navigate("/student/edit-profile")}
+                      aria-label="Edit parent details"
+                    >
+                      <FaEdit size={13} aria-hidden="true" />
+                      <span>Edit</span>
+                    </button>
+                  }
                 >
-                  <button
-                    className="btn btn-sm btn-outline-primary ms-auto"
-                    onClick={() => navigate("/student/edit-profile")}
-                    aria-label="Edit parent details"
-                  >
-                    <FaEdit size={12} className="me-1" aria-hidden="true" />
-                    Edit
-                  </button>
-                  <div className="row g-3">
-                    <InfoItem
-                      label="Father's Name"
-                      value={student?.fatherName || "N/A"}
-                      icon={<FaUserGraduate />}
-                      col={12}
-                    />
-                    <InfoItem
-                      label="Father's Mobile"
-                      value={student?.fatherMobile || "N/A"}
-                      icon={<FaPhoneAlt />}
-                    />
-                    <InfoItem
-                      label="Mother's Name"
-                      value={student?.motherName || "N/A"}
-                      icon={<FaUserGraduate />}
-                      col={12}
-                    />
-                    <InfoItem
-                      label="Mother's Mobile"
-                      value={student?.motherMobile || "N/A"}
-                      icon={<FaPhoneAlt />}
-                    />
+                  <div className="info-group-grid">
+                    <div className="info-group">
+                      <div className="info-group-title">Father&apos;s Details</div>
+                      <div className="row info-grid">
+                        <InfoItem
+                          label="Father's Name"
+                          value={student?.fatherName || "N/A"}
+                          icon={<FaUserGraduate />}
+                          col={12}
+                        />
+                        <InfoItem
+                          label="Father's Mobile"
+                          value={student?.fatherMobile || "N/A"}
+                          icon={<FaPhoneAlt />}
+                          col={12}
+                        />
+                      </div>
+                    </div>
+                    <div className="info-group">
+                      <div className="info-group-title">Mother&apos;s Details</div>
+                      <div className="row info-grid">
+                        <InfoItem
+                          label="Mother's Name"
+                          value={student?.motherName || "N/A"}
+                          icon={<FaUserGraduate />}
+                          col={12}
+                        />
+                        <InfoItem
+                          label="Mother's Mobile"
+                          value={student?.motherMobile || "N/A"}
+                          icon={<FaPhoneAlt />}
+                          col={12}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </SectionContent>
               )}
@@ -679,9 +717,8 @@ if (loading) {
                 <SectionContent
                   title="Academic Information"
                   icon={<FaBook />}
-                  color="success"
                 >
-                  <div className="row g-3">
+                  <div className="row info-grid">
                     <InfoItem
                       label="Department"
                       value={department?.name || "N/A"}
@@ -724,20 +761,19 @@ if (loading) {
                 <SectionContent
                   title="Contact Information"
                   icon={<FaPhoneAlt />}
-                  color="warning"
                 >
-                  <div className="row g-3">
+                  <div className="row info-grid">
                     <InfoItem
                       label="Personal Email"
                       value={student?.email || "N/A"}
                       icon={<FaEnvelope />}
-                      col={12}
+                      col={6}
                     />
                     <InfoItem
                       label="Mobile Number"
                       value={student?.mobileNumber || "N/A"}
                       icon={<FaPhoneAlt />}
-                      col={12}
+                      col={6}
                     />
                   </div>
                 </SectionContent>
@@ -747,9 +783,8 @@ if (loading) {
                 <SectionContent
                   title="Address Information"
                   icon={<FaHome />}
-                  color="dark"
                 >
-                  <div className="row g-3">
+                  <div className="row info-grid">
                     <InfoItem
                       label="Address Line 1"
                       value={student?.addressLine || "N/A"}
@@ -784,9 +819,8 @@ if (loading) {
                 <SectionContent
                   title="10th (SSC) Academic Details"
                   icon={<FaGraduationCap />}
-                  color="info"
                 >
-                  <div className="row g-3">
+                  <div className="row info-grid">
                     <InfoItem
                       label="School Name"
                       value={student?.sscSchoolName || "N/A"}
@@ -825,9 +859,8 @@ if (loading) {
                 <SectionContent
                   title="12th (HSC) Academic Details"
                   icon={<FaGraduationCap />}
-                  color="success"
                 >
-                  <div className="row g-3">
+                  <div className="row info-grid">
                     <InfoItem
                       label="School / College Name"
                       value={student?.hscSchoolName || "N/A"}
@@ -871,23 +904,16 @@ if (loading) {
                 <SectionContent
                   title="Uploaded Documents"
                   icon={<FaFileAlt />}
-                  color="primary"
                 >
-                  <div className="mb-4">
-                    <h5 className="fw-bold mb-3 text-primary">
-                      <FaFilePdf className="me-2" />
-                      Your Uploaded Documents
-                    </h5>
-                    <p className="text-muted mb-0">
-                      These are the documents you uploaded during registration.
-                      They are verified by the college admin.
-                    </p>
-                  </div>
+                  <p className="section-description">
+                    These are the documents you uploaded during registration.
+                    They are verified by the college admin.
+                  </p>
 
-                  <div className="row g-3">
+                  <div className="doc-profile-grid">
                     {mergedDocuments.length === 0 ? (
-                      <div className="col-12">
-                        <div className="alert alert-warning d-flex align-items-center">
+                      <div className="doc-profile-empty">
+                        <div className="alert alert-warning d-flex align-items-center mb-0">
                           <FaExclamationTriangle className="me-2" size={20} />
                           <div>
                             <strong>No Documents Required:</strong> Your
@@ -905,9 +931,6 @@ if (loading) {
                             icon={<FaFileAlt />}
                             type={doc.label}
                             name={doc.description || doc.label}
-                            board=""
-                            year=""
-                            percentage=""
                             file={uploadedDoc?.originalFileName || "Not uploaded"}
                             filePath={uploadedDoc?.downloadUrl}
                             documentId={uploadedDoc?.documentId}
@@ -918,12 +941,12 @@ if (loading) {
                     )}
                   </div>
 
-                  <div className="mt-4 p-3 bg-light rounded-3">
-                    <h6 className="fw-bold mb-2">
-                      <FaInfoCircle className="me-2 text-info" />
+                  <div className="doc-guidelines">
+                    <h6 className="doc-guidelines-title">
+                      <FaInfoCircle className="me-2" aria-hidden="true" />
                       Document Guidelines
                     </h6>
-                    <ul className="mb-0 ps-3 small text-muted">
+                    <ul className="doc-guidelines-list">
                       <li>All documents must be in PDF format</li>
                       <li>Maximum file size: 5MB per document</li>
                       <li>Ensure documents are clear and legible</li>
@@ -937,9 +960,8 @@ if (loading) {
                 <SectionContent
                   title="College Information"
                   icon={<FaUniversity />}
-                  color="secondary"
                 >
-                  <div className="row g-3">
+                  <div className="row info-grid">
                     <InfoItem
                       label="College Name"
                       value={college?.name || "N/A"}
@@ -1158,435 +1180,697 @@ if (loading) {
           display: inline-block;
         }
 
-        /* Tab Navigation Styles */
-        .tabs-navigation {
-          min-width: 250px;
-          border-right: 1px solid #e9ecef;
-          background: #f8f9fa;
+        /* ================= STUDENT PROFILE HEADER (NOVAA) ================= */
+        .student-profile-page .sph-header {
+          background: linear-gradient(135deg, #0E3746 0%, #164E63 100%);
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 10px 28px rgba(14, 55, 70, 0.18);
+          margin-bottom: 1rem;
         }
-        
-        @media (max-width: 992px) {
-          .tabs-navigation {
-            min-width: 100%;
-            border-right: none;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            overflow-x: auto;
-          }
+        @media (min-width: 768px) {
+          .student-profile-page .sph-header { margin-bottom: 1.5rem; }
         }
-        
-        .tab-item {
-          padding: 1.25rem 1.5rem;
+        .student-profile-page .sph-upper {
+          background: transparent;
+          color: #ffffff;
+          padding: 1.25rem 24px;
+        }
+        .student-profile-page .sph-upper-main {
           display: flex;
           align-items: center;
-          gap: 1rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          border-left: 3px solid transparent;
+          justify-content: space-between;
+          gap: 1.25rem;
+        }
+        .student-profile-page .sph-identity {
+          display: flex;
+          align-items: center;
+          gap: 1.1rem;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .student-profile-page .sph-avatar-wrap {
           position: relative;
+          flex: 0 0 auto;
         }
-        
-        .tab-item:hover {
-          background: rgba(26, 75, 109, 0.05);
-          transform: translateX(5px);
-        }
-        
-        .tab-item.active {
-          background: white;
-          border-left-color: #1a4b6d;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-          font-weight: 600;
-          color: #1a4b6d;
-        }
-        
-        .tab-item.active::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 3px;
-          background: #1a4b6d;
-        }
-        
-        .tab-badge {
-          background: #1a4b6d;
-          color: white;
-          font-size: 0.75rem;
-          padding: 0.15rem 0.5rem;
-          border-radius: 20px;
-          min-width: 24px;
-          text-align: center;
-        }
-        
-        .tabs-content {
-          min-height: 400px;
-        }
-        
-        .section-content {
-          border-radius: 12px;
-          padding: 1.5rem;
-          background: white;
-          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        
-        .section-title {
-          font-size: 1.5rem;
-          font-weight: 700;
-          margin-bottom: 1.5rem;
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid #f1f5f9;
-        }
-        
-        .document-card {
-          background: white;
-          border-radius: 12px;
-          padding: 1.25rem;
-          border: 1px solid #e2e8f0;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-        }
-        
-        .document-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-          border-color: #cbd5e1;
-        }
-        
-        .document-icon {
-          width: 50px;
-          height: 50px;
-          border-radius: 12px;
+        .student-profile-page .sph-avatar {
+          width: 84px;
+          height: 84px;
+          border-radius: 50%;
+          background: #ffffff;
+          color: #0e7490;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 1rem;
-          font-size: 1.5rem;
+          border: 3px solid rgba(255, 255, 255, 0.22);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
+          overflow: hidden;
         }
-        
-        .document-type {
-          font-weight: 600;
-          font-size: 0.95rem;
-          margin-bottom: 0.25rem;
+        .student-profile-page .sph-avatar-fallback {
+          font-size: 2.3rem;
+          line-height: 1;
           display: flex;
           align-items: center;
-          gap: 0.5rem;
-          flex-wrap: wrap;
+          justify-content: center;
         }
-        
-        .doc-badge-profile {
-          display: inline-block;
-          font-size: 0.6875rem;
-          font-weight: 600;
-          padding: 0.125rem 0.5rem;
-          border-radius: 9999px;
-          text-transform: uppercase;
-          letter-spacing: 0.03em;
-        }
-
-        .doc-badge-profile-required {
-          background: rgba(239, 68, 68, 0.1);
-          color: #dc2626;
-        }
-
-        .doc-badge-profile-optional {
-          background: rgba(107, 114, 128, 0.1);
-          color: #6b7280;
-        }
-        
-        .document-name {
-          font-weight: 500;
-          color: #1e293b;
-          margin-bottom: 0.5rem;
-          font-size: 1.05rem;
-        }
-        
-        .document-meta {
+        .student-profile-page .sph-avatar-status {
+          position: absolute;
+          right: 2px;
+          bottom: 2px;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #ffffff;
           display: flex;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 0.5rem;
-          margin-top: 0.75rem;
-          padding-top: 0.75rem;
-          border-top: 1px dashed #e2e8f0;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
-        
-        .document-board {
-          font-size: 0.85rem;
-          color: #4a5568;
+        .student-profile-page .sph-avatar-status-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          display: block;
         }
-        
-        .document-year {
-          font-size: 0.85rem;
-          color: #4a5568;
+        .student-profile-page .sph-avatar-status-dot.is-approved { background: #22c55e; }
+        .student-profile-page .sph-avatar-status-dot.is-rejected { background: #ef4444; }
+        .student-profile-page .sph-avatar-status-dot.is-pending { background: #f59e0b; }
+        .student-profile-page .sph-identity-text {
+          min-width: 0;
+          flex: 1 1 auto;
         }
-        
-        .document-percentage {
+        .student-profile-page .sph-name {
+          margin: 0;
+          font-size: 28px;
           font-weight: 700;
-          color: #166534;
-          font-size: 0.95rem;
+          color: #ffffff;
+          line-height: 1.2;
+          letter-spacing: -0.01em;
         }
-        
-        .document-download {
-          background: linear-gradient(135deg, #1a4b6d, #0f3a4a);
-          color: white;
-          border: none;
-          padding: 0.5rem 1rem;
-          border-radius: 8px;
-          font-weight: 500;
+        .student-profile-page .sph-subline {
+          margin-top: 0.3rem;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.35rem 1rem;
+          color: rgba(236, 254, 255, 0.94);
+          font-size: 0.95rem;
+          line-height: 1.4;
+        }
+        .student-profile-page .sph-subline-item {
           display: inline-flex;
           align-items: center;
+          gap: 0.4rem;
+          min-width: 0;
+        }
+        .student-profile-page .sph-subline-item svg {
+          color: #67e8f9;
+          font-size: 0.85rem;
+          flex-shrink: 0;
+        }
+        .student-profile-page .sph-chips {
+          margin-top: 0.65rem;
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
           gap: 0.5rem;
-          transition: all 0.3s ease;
-          margin-top: 0.5rem;
-          width: 100%;
         }
-        
-        .document-download:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 10px rgba(26, 75, 109, 0.3);
-        }
-        
-        .info-item {
-          border-left: 3px solid #e9ecef;
-          padding-left: 1rem;
-          transition: all 0.2s ease;
-        }
-        
-        .info-item:hover {
-          border-left-color: #1a4b6d;
-          background-color: rgba(26, 75, 109, 0.03);
-          transform: translateX(5px);
-        }
-        
-        .info-label {
+        .student-profile-page .sph-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.38rem;
+          min-height: 30px;
+          padding: 0.3rem 0.65rem;
+          border-radius: 999px;
+          font-size: 0.78rem;
           font-weight: 600;
-          color: #495057;
+          line-height: 1;
+          color: #f0fdff;
+          background: rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          white-space: nowrap;
+        }
+        .student-profile-page .sph-chip svg {
+          font-size: 0.72rem;
+          flex-shrink: 0;
+        }
+        .student-profile-page .sph-chip--approved {
+          color: #dcfce7;
+          background: rgba(34, 197, 94, 0.2);
+          border-color: rgba(134, 239, 172, 0.38);
+        }
+        .student-profile-page .sph-chip--approved svg { color: #86efac; }
+        .student-profile-page .sph-chip--rejected {
+          color: #fee2e2;
+          background: rgba(239, 68, 68, 0.16);
+          border-color: rgba(252, 165, 165, 0.32);
+        }
+        .student-profile-page .sph-chip--pending {
+          color: #fef3c7;
+          background: rgba(245, 158, 11, 0.16);
+          border-color: rgba(253, 230, 138, 0.32);
+        }
+        .student-profile-page .sph-edit-btn {
+          flex: 0 0 auto;
+          align-self: center;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          min-height: 40px;
+          padding: 0.55rem 1rem;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.45);
+          background: transparent;
+          color: #ffffff;
+          font-size: 0.9rem;
+          font-weight: 600;
+          line-height: 1;
+          cursor: pointer;
+          transition: background-color 0.18s ease, border-color 0.18s ease;
+          white-space: nowrap;
+        }
+        .student-profile-page .sph-edit-btn:hover {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.65);
+        }
+        .student-profile-page .sph-lower {
+          background: transparent;
+          color: #ffffff;
+          padding: 0.85rem 24px 1rem;
+          border-top: 1px solid rgba(184, 209, 217, 0.18);
+        }
+        .student-profile-page .sph-contact-strip {
+          display: flex;
+          align-items: stretch;
+          width: 100%;
+          min-width: 0;
+        }
+        .student-profile-page .sph-contact-group {
+          flex: 1 1 0;
+          min-width: 0;
+          padding: 0.1rem 1rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .student-profile-page .sph-contact-group:first-child { padding-left: 0; }
+        .student-profile-page .sph-contact-group:last-child { padding-right: 0; }
+        .student-profile-page .sph-contact-label {
+          font-size: 0.68rem;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: #B8D1D9;
+          margin-bottom: 0.3rem;
+          line-height: 1.2;
+        }
+        .student-profile-page .sph-contact-value-row {
           display: flex;
           align-items: center;
           gap: 0.5rem;
-          margin-bottom: 0.25rem;
+          min-width: 0;
+        }
+        .student-profile-page .sph-contact-icon {
           font-size: 0.9rem;
+          flex: 0 0 auto;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
-        
-        .info-value {
+        .student-profile-page .sph-contact-icon--email { color: #67e8f9; }
+        .student-profile-page .sph-contact-icon--phone { color: #86efac; }
+        .student-profile-page .sph-contact-icon--nationality { color: #67e8f9; }
+        .student-profile-page .sph-contact-icon--updated { color: #dbeafe; }
+        .student-profile-page .sph-contact-value {
+          color: #FFFFFF;
+          font-size: 0.9rem;
           font-weight: 500;
-          color: #212529;
-          font-size: 1rem;
+          line-height: 1.35;
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
+        .student-profile-page .sph-contact-sep {
+          flex: 0 0 1px;
+          width: 1px;
+          height: 38px;
+          background: rgba(184, 209, 217, 0.3);
+          align-self: center;
+        }
+        @media (max-width: 991.98px) {
+          .student-profile-page .sph-upper { padding: 1.15rem 20px; }
+          .student-profile-page .sph-lower { padding: 0.8rem 20px 0.95rem; }
+          .student-profile-page .sph-upper-main { flex-wrap: wrap; align-items: flex-start; }
+          .student-profile-page .sph-edit-btn { margin-left: auto; }
+          .student-profile-page .sph-contact-strip { flex-wrap: wrap; row-gap: 0.85rem; }
+          .student-profile-page .sph-contact-group { flex: 1 1 calc(50% - 0.5px); padding: 0.1rem 0.75rem; }
+          .student-profile-page .sph-contact-group:first-child,
+          .student-profile-page .sph-contact-group:last-child { padding-left: 0.75rem; padding-right: 0.75rem; }
+          .student-profile-page .sph-contact-sep { display: none; }
+        }
+        @media (max-width: 767.98px) {
+          .student-profile-page .sph-upper,
+          .student-profile-page .sph-lower { padding: 1rem 16px; }
+          .student-profile-page .sph-upper-main { flex-direction: column; align-items: stretch; gap: 1rem; }
+          .student-profile-page .sph-identity { align-items: flex-start; }
+          .student-profile-page .sph-avatar { width: 80px; height: 80px; }
+          .student-profile-page .sph-avatar-fallback { font-size: 2.1rem; }
+          .student-profile-page .sph-name { font-size: 24px; }
+          .student-profile-page .sph-edit-btn { width: 100%; margin-left: 0; }
+          .student-profile-page .sph-contact-strip {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.85rem 0.75rem;
+          }
+          .student-profile-page .sph-contact-group { padding: 0; }
+          .student-profile-page .sph-contact-sep { display: none; }
+        }
+        @media (max-width: 479.98px) {
+          .student-profile-page .sph-identity { flex-direction: column; gap: 0.8rem; }
+          .student-profile-page .sph-contact-strip { grid-template-columns: 1fr; }
+        }
+
+        /* ================= CONTENT AREA (NAV + SECTIONS) ================= */
+        .student-profile-page .tabs-navigation {
+          min-width: 250px;
+          max-width: 260px;
+          border-right: 1px solid #E2E8F0;
+          background: #f8fafc;
+          padding: 0.5rem 0;
+          align-self: stretch;
+        }
+        .student-profile-page .tab-item {
+          min-height: 52px;
+          padding: 0.85rem 1rem;
+          margin: 0.15rem 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          cursor: pointer;
+          transition: background-color 0.18s ease, color 0.18s ease;
+          border-left: 3px solid transparent;
+          border-radius: 10px;
+          position: relative;
+          color: #334155;
+        }
+        .student-profile-page .tab-item:hover {
+          background: rgba(22, 113, 245, 0.06);
+          color: #0f172a;
+        }
+        .student-profile-page .tab-item.active {
+          background: #ffffff;
+          border-left-color: #1671F5;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+          font-weight: 600;
+          color: #1671F5;
+        }
+        .student-profile-page .tab-item.active::before { display: none; }
+        .student-profile-page .tab-item-icon {
+          font-size: 1.05rem;
+          color: #64748b;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .student-profile-page .tab-item.active .tab-item-icon { color: #1671F5; }
+        .student-profile-page .tab-item-text { flex: 1 1 auto; min-width: 0; }
+        .student-profile-page .tab-item-label {
+          font-size: 0.92rem;
+          font-weight: 500;
+          line-height: 1.35;
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        .student-profile-page .tab-badge {
+          background: #1671F5;
+          color: #ffffff;
+          font-size: 0.72rem;
+          padding: 0.12rem 0.45rem;
+          border-radius: 999px;
+          min-width: 22px;
+          text-align: center;
+        }
+        .student-profile-page .tabs-content {
+          min-width: 0;
+          padding: 20px 24px;
+          background: #ffffff;
+        }
+        .student-profile-page .section-content {
+          border-radius: 14px;
+          padding: 24px;
+          background: #ffffff;
+          border: 1px solid #E2E8F0;
+          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        }
+        .student-profile-page .section-header-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+          padding-bottom: 0.85rem;
+          margin-bottom: 1.1rem;
+          border-bottom: 1px solid #E2E8F0;
+          flex-wrap: wrap;
+        }
+        .student-profile-page .section-title {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 700;
+          color: #1671F5;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.65rem;
+          line-height: 1.25;
+        }
+        .student-profile-page .section-title-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.15rem;
+        }
+        .student-profile-page .section-header-action { margin-left: auto; }
+        .student-profile-page .section-edit-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          min-height: 34px;
+          padding: 0.35rem 0.75rem;
+          border-radius: 8px;
+          border: 1px solid #bfdbfe;
+          background: #eff6ff;
+          color: #1671F5;
+          font-size: 0.82rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        .student-profile-page .section-edit-btn:hover {
+          background: #dbeafe;
+          border-color: #93c5fd;
+        }
+        .student-profile-page .section-body { min-width: 0; }
+        .student-profile-page .info-grid {
+          --bs-gutter-x: 1.5rem;
+          --bs-gutter-y: 0;
+          margin: 0;
+        }
+        .student-profile-page .info-item {
+          padding: 0.85rem 0.25rem;
+          border-bottom: 1px solid #f1f5f9;
+          border-left: 0;
+          transition: none;
+          min-width: 0;
+        }
+        .student-profile-page .info-item:hover {
+          border-left-color: transparent;
+          background-color: transparent;
+          transform: none;
+        }
+        .student-profile-page .info-label {
+          font-weight: 500;
+          color: #64748b;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.45rem;
+          margin-bottom: 0.3rem;
+          font-size: 14px;
+          line-height: 1.35;
+        }
+        .student-profile-page .info-label-icon {
+          font-size: 0.85rem;
+          color: #94a3b8;
+          display: inline-flex;
+        }
+        .student-profile-page .info-value {
+          font-weight: 600;
+          color: #1e293b;
+          font-size: 15.5px;
+          line-height: 1.45;
+          overflow-wrap: anywhere;
+        }
+        .student-profile-page .info-group-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 1.25rem 1.5rem;
+        }
+        .student-profile-page .info-group {
+          min-width: 0;
+        }
+        .student-profile-page .info-group-title {
+          font-size: 0.8rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: #475569;
+          margin-bottom: 0.15rem;
+          padding-bottom: 0.35rem;
+          border-bottom: 1px dashed #E2E8F0;
+        }
+        .student-profile-page .section-description {
+          margin: 0 0 1rem;
+          font-size: 0.92rem;
+          color: #64748b;
+          line-height: 1.5;
+        }
+
+        /* Documents */
+        .student-profile-page .doc-profile-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 1rem;
+        }
+        .student-profile-page .doc-profile-empty { grid-column: 1 / -1; }
+        .student-profile-page .doc-profile-card {
+          background: #ffffff;
+          border: 1px solid #E2E8F0;
+          border-radius: 12px;
+          padding: 1rem;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+          display: flex;
+          flex-direction: column;
+          gap: 0.85rem;
+          min-width: 0;
+        }
+        .student-profile-page .doc-profile-card.is-unavailable {
+          background: #f8fafc;
+        }
+        .student-profile-page .doc-profile-card-top {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          min-width: 0;
+        }
+        .student-profile-page .doc-profile-icon {
+          width: 42px;
+          height: 42px;
+          border-radius: 10px;
+          background: #eff6ff;
+          color: #1671F5;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.05rem;
+          flex-shrink: 0;
+          border: 1px solid #dbeafe;
+        }
+        .student-profile-page .doc-profile-card.is-unavailable .doc-profile-icon {
+          background: #f1f5f9;
+          color: #64748b;
+          border-color: #e2e8f0;
+        }
+        .student-profile-page .doc-profile-meta { min-width: 0; flex: 1 1 auto; }
+        .student-profile-page .doc-profile-title-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 0.5rem;
+          margin-bottom: 0.15rem;
+        }
+        .student-profile-page .doc-profile-type {
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: #0f172a;
+          line-height: 1.3;
+        }
+        .student-profile-page .doc-profile-name {
+          font-size: 0.82rem;
+          color: #475569;
+          line-height: 1.4;
+          overflow-wrap: anywhere;
+          margin-bottom: 0.3rem;
+        }
+        .student-profile-page .doc-profile-file {
+          font-size: 0.78rem;
+          color: #64748b;
+          line-height: 1.35;
+          overflow-wrap: anywhere;
+        }
+        .student-profile-page .doc-profile-file-label { font-weight: 600; margin-right: 0.25rem; }
+        .student-profile-page .doc-profile-file-value { color: #334155; }
+        .student-profile-page .doc-badge-profile {
+          display: inline-flex;
+          align-items: center;
+          font-size: 0.66rem;
+          font-weight: 700;
+          padding: 0.15rem 0.45rem;
+          border-radius: 999px;
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+          flex-shrink: 0;
+        }
+        .student-profile-page .doc-badge-profile-required {
+          background: rgba(239, 68, 68, 0.1);
+          color: #dc2626;
+          border: 1px solid rgba(239, 68, 68, 0.18);
+        }
+        .student-profile-page .doc-badge-profile-optional {
+          background: rgba(100, 116, 139, 0.1);
+          color: #475569;
+          border: 1px solid rgba(100, 116, 139, 0.18);
+        }
+        .student-profile-page .doc-profile-actions {
+          display: flex;
+          gap: 0.5rem;
+          margin-top: auto;
+        }
+        .student-profile-page .doc-profile-btn {
+          flex: 1 1 0;
+          min-height: 36px;
+          border-radius: 8px;
+          font-size: 0.82rem;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.35rem;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          border: 1px solid transparent;
+        }
+        .student-profile-page .doc-profile-btn--view {
+          background: #1671F5;
+          color: #ffffff;
+          border-color: #1671F5;
+        }
+        .student-profile-page .doc-profile-btn--view:hover:not(:disabled) {
+          background: #0f5fd1;
+          border-color: #0f5fd1;
+        }
+        .student-profile-page .doc-profile-btn--download {
+          background: #ffffff;
+          color: #1671F5;
+          border-color: #bfdbfe;
+        }
+        .student-profile-page .doc-profile-btn--download:hover:not(:disabled) {
+          background: #eff6ff;
+        }
+        .student-profile-page .doc-profile-btn:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+        .student-profile-page .doc-guidelines {
+          margin-top: 1rem;
+          padding: 0.9rem 1rem;
+          background: #f8fafc;
+          border: 1px solid #E2E8F0;
+          border-radius: 10px;
+        }
+        .student-profile-page .doc-guidelines-title {
+          margin: 0 0 0.4rem;
+          font-size: 0.88rem;
+          font-weight: 700;
+          color: #334155;
+          display: inline-flex;
+          align-items: center;
+        }
+        .student-profile-page .doc-guidelines-title svg { color: #1671F5; }
+        .student-profile-page .doc-guidelines-list {
+          margin: 0;
+          padding-left: 1.15rem;
+          color: #64748b;
+          font-size: 0.82rem;
+          line-height: 1.5;
+        }
+        .student-profile-page .doc-guidelines-list li { margin-bottom: 0.15rem; }
         
-        @media (max-width: 992px) {
-          .tabs-navigation {
+        @media (max-width: 991.98px) {
+          .student-profile-page .tabs-navigation {
             min-width: 100%;
-          }
-          
-          .tab-item {
-            min-width: 180px;
-            justify-content: center;
-            flex-direction: column;
-            text-align: center;
-            padding: 1rem;
-          }
-          
-          .tab-badge {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            font-size: 0.7rem;
-            padding: 0.1rem 0.4rem;
-          }
-        }
-        
-        @media (max-width: 768px) {
-          .btn-sm {
-            padding: 0.25rem 0.5rem !important;
-            font-size: 0.75rem !important;
-          }
-          .profile-avatar-container {
-            width: 80px;
-            height: 80px;
-          }
-          .profile-avatar {
-            width: 80px;
-            height: 80px;
-          }
-          .section-title {
-            font-size: 1.35rem;
-          }
-        }
-        
-        @media (max-width: 576px) {
-          .card-header.bg-gradient-primary {
-            padding: 1.25rem !important;
-          }
-
-          .card-header.bg-gradient-primary .position-relative > .d-flex {
-            align-items: flex-start !important;
-            gap: 1rem !important;
-          }
-
-          .card-header.bg-gradient-primary .position-relative > .d-flex > div:last-child {
-            min-width: 0;
-          }
-
-          .card-header.bg-gradient-primary h2 {
-            font-size: 1.35rem;
-            line-height: 1.2;
-            overflow-wrap: anywhere;
-          }
-
-          .card-header.bg-gradient-primary .profile-header-btn {
-            position: static !important;
+            max-width: none;
             width: 100%;
-            justify-content: center;
-            margin: 1rem 0 0 !important;
-          }
-
-          .card-header.bg-gradient-primary .d-flex.flex-wrap {
-            gap: 0.5rem !important;
-          }
-
-          .card-body.bg-light > .d-flex {
-            align-items: flex-start !important;
-            gap: 0.75rem !important;
-          }
-
-          .card-body.bg-light > .d-flex > div {
-            gap: 0.65rem !important;
-          }
-
-          .card-body.bg-light small {
-            display: block;
-            text-align: left;
-            white-space: normal;
-            overflow-wrap: anywhere;
-          }
-
-          .tabs-navigation {
-            display: flex !important;
-            flex-wrap: nowrap !important;
-            width: 100% !important;
-            min-width: 0 !important;
-            overflow-x: auto !important;
-            overflow-y: hidden !important;
-            border-right: 0 !important;
-            border-bottom: 1px solid #e9ecef !important;
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-right: 0;
+            border-bottom: 1px solid #E2E8F0;
+            padding: 0.5rem;
+            gap: 0.25rem;
             scrollbar-width: thin;
           }
-
-          .tabs-navigation .tab-item {
-            flex: 0 0 142px;
-            min-width: 142px;
-            min-height: 112px;
-            padding: 0.75rem 0.5rem;
-            gap: 0.5rem;
-            justify-content: center;
-            flex-direction: column;
-            text-align: center;
-            transform: none !important;
+          .student-profile-page .tab-item {
+            flex: 0 0 auto;
+            min-width: 150px;
+            min-height: 48px;
+            margin: 0;
+            padding: 0.65rem 0.75rem;
             border-left: 0;
             border-bottom: 3px solid transparent;
+            justify-content: center;
+            text-align: center;
+            flex-direction: column;
+            gap: 0.35rem;
           }
-
-          .tabs-navigation .tab-item.active {
-            border-left: 0;
-            border-bottom-color: #1a4b6d;
+          .student-profile-page .tab-item.active {
+            border-left-color: transparent;
+            border-bottom-color: #1671F5;
           }
-
-          .tabs-navigation .tab-item > span {
-            font-size: 1.35rem !important;
-          }
-
-          .tabs-content {
-            width: 100% !important;
-            min-width: 0 !important;
-            padding: 1rem !important;
-          }
-
-          .section-content {
+          .student-profile-page .tabs-content {
             width: 100%;
-            padding: 1rem;
-            box-sizing: border-box;
+            padding: 16px;
           }
-
-          .section-title {
-            font-size: 1.15rem;
-            line-height: 1.25;
-            margin-bottom: 1rem;
-            gap: 0.5rem;
+          .student-profile-page .section-content {
+            padding: 20px;
           }
-
-          .info-item {
-            min-width: 0;
-            overflow-wrap: anywhere;
-          }
-
-          .info-value {
-            overflow-wrap: anywhere;
-          }
-
-          .profile-logo-container {
-            width: 50px;
-            height: 50px;
-          }
-          .profile-avatar-container {
-            width: 70px;
-            height: 70px;
-          }
-          .profile-avatar {
-            width: 70px;
-            height: 70px;
-            font-size: 1.75rem;
-          }
-          .document-card {
-            padding: 1rem;
+          .student-profile-page .info-group-grid {
+            grid-template-columns: 1fr;
           }
         }
 
-        @media (min-width: 750px) and (max-width: 1100px) {
-          .student-profile-page .card-header.bg-gradient-primary .position-relative > .d-flex {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 1rem !important;
+        @media (max-width: 767.98px) {
+          .student-profile-page .tabs-content {
+            padding: 12px;
           }
-
-          .student-profile-page .profile-header-btn {
-            position: static !important;
-            margin: 0 !important;
-          }
-
-          .student-profile-page .tabs-navigation {
-            width: 100%;
-            min-width: 0;
-            display: flex;
-            overflow-x: auto;
-            border-right: 0;
-            border-bottom: 1px solid #e9ecef;
-          }
-
-          .student-profile-page .tabs-navigation .tab-item {
-            flex: 1 0 150px;
-            min-width: 150px;
-            padding: 0.9rem 0.65rem;
-            justify-content: center;
-            flex-direction: column;
-            text-align: center;
-          }
-
-          .student-profile-page .tabs-content,
           .student-profile-page .section-content {
-            width: 100%;
-            min-width: 0;
-            box-sizing: border-box;
+            padding: 16px;
+            border-radius: 12px;
           }
+          .student-profile-page .section-title {
+            font-size: 20px;
+          }
+          .student-profile-page .doc-profile-grid {
+            grid-template-columns: 1fr;
+          }
+          .student-profile-page .doc-profile-actions {
+            flex-direction: column;
+          }
+        }
 
-          .student-profile-page .info-item,
-          .student-profile-page .info-value {
-            min-width: 0;
-            overflow-wrap: anywhere;
+        @media (max-width: 575.98px) {
+          .student-profile-page .tab-item {
+            min-width: 132px;
+            padding: 0.55rem 0.5rem;
+          }
+          .student-profile-page .tab-item-label {
+            font-size: 0.84rem;
+          }
+          .student-profile-page .section-header-row {
+            align-items: flex-start;
+          }
+          .student-profile-page .info-item {
+            padding: 0.75rem 0.1rem;
           }
         }
 
@@ -1638,11 +1922,11 @@ function TabItem({ icon, label, active, onClick, badge, hidden }) {
       aria-selected={active}
       tabIndex={active ? 0 : -1}
     >
-      <span className="fs-4" aria-hidden="true">
+      <span className="tab-item-icon" aria-hidden="true">
         {icon}
       </span>
-      <div className="flex-grow-1">
-        <div className="fw-medium">{label}</div>
+      <div className="tab-item-text">
+        <div className="tab-item-label">{label}</div>
       </div>
       {badge && (
         <span className="tab-badge" aria-label={`${badge} items`}>
@@ -1654,14 +1938,17 @@ function TabItem({ icon, label, active, onClick, badge, hidden }) {
 }
 
 /* ================= SECTION CONTENT COMPONENT ================= */
-function SectionContent({ title, icon, children }) {
+function SectionContent({ title, icon, children, action }) {
   return (
     <div className="section-content" role="tabpanel">
-      <h2 className="section-title text-primary">
-        <span aria-hidden="true">{icon}</span>
-        {title}
-      </h2>
-      {children}
+      <div className="section-header-row">
+        <h2 className="section-title">
+          <span className="section-title-icon" aria-hidden="true">{icon}</span>
+          <span>{title}</span>
+        </h2>
+        {action ? <div className="section-header-action">{action}</div> : null}
+      </div>
+      <div className="section-body">{children}</div>
     </div>
   );
 }
@@ -1669,13 +1956,10 @@ function SectionContent({ title, icon, children }) {
 /* ================= INFO ITEM COMPONENT ================= */
 function InfoItem({ label, value, icon, col = 6 }) {
   return (
-    <div
-      className={`col-md-${col} info-item animate-fade-in`}
-      style={{ animationDelay: "0.1s" }}
-    >
+    <div className={`col-md-${col} info-item`}>
       <div className="info-label">
-        <span aria-hidden="true">{icon}</span>
-        {label}
+        <span className="info-label-icon" aria-hidden="true">{icon}</span>
+        <span>{label}</span>
       </div>
       <div className="info-value">{value}</div>
     </div>
@@ -1687,54 +1971,17 @@ function DocumentCard({
   icon,
   type,
   name,
-  board,
-  year,
-  percentage,
   file,
   filePath,
   documentId,
   mandatory,
 }) {
-  const getDocumentColor = () => {
-    switch (type) {
-      case "10th Marksheet":
-        return "#dbeafe";
-      case "12th Marksheet":
-        return "#dcfce7";
-      case "Migration Certificate":
-        return "#ffedd5";
-      case "Character Certificate":
-        return "#ede9fe";
-      case "Income Certificate":
-        return "#fee2e2";
-      default:
-        return "#f1f5f9";
-    }
-  };
-
-  const getDocumentIconColor = () => {
-    switch (type) {
-      case "10th Marksheet":
-        return "#1e40af";
-      case "12th Marksheet":
-        return "#166534";
-      case "Migration Certificate":
-        return "#c2410c";
-      case "Character Certificate":
-        return "#5b21b6";
-      case "Income Certificate":
-        return "#b91c1c";
-      default:
-        return "#4a5568";
-    }
-  };
-
   const source = filePath || null;
 
   const documentUrl = (() => {
     if (!source) return null;
-    if (source.startsWith('http')) return source;
-    if (source.startsWith('/api/')) {
+    if (source.startsWith("http")) return source;
+    if (source.startsWith("/api/")) {
       return `${window.location.origin}${source}`;
     }
     const fileName = source.split(/[\\/]/).pop();
@@ -1743,9 +1990,9 @@ function DocumentCard({
 
   const hasFile =
     (source &&
-     String(source).trim() !== "" &&
-     source !== "null" &&
-     source !== "undefined") ||
+      String(source).trim() !== "" &&
+      source !== "null" &&
+      source !== "undefined") ||
     false;
 
   const handleView = () => {
@@ -1798,53 +2045,51 @@ function DocumentCard({
   };
 
   return (
-    <div className="document-card">
-      <div
-        className="document-icon"
-        style={{
-          backgroundColor: getDocumentColor(),
-          color: getDocumentIconColor(),
-        }}
-        aria-label={`${type} document icon`}
-      >
-        {icon}
+    <div className={`doc-profile-card ${hasFile ? "is-available" : "is-unavailable"}`}>
+      <div className="doc-profile-card-top">
+        <div className="doc-profile-icon" aria-label={`${type} document icon`}>
+          {icon || <FaFileAlt />}
+        </div>
+        <div className="doc-profile-meta">
+          <div className="doc-profile-title-row">
+            <div className="doc-profile-type">{type}</div>
+            <span
+              className={`doc-badge-profile ${
+                mandatory ? "doc-badge-profile-required" : "doc-badge-profile-optional"
+              }`}
+            >
+              {mandatory ? "Required" : "Optional"}
+            </span>
+          </div>
+          <div className="doc-profile-name" title={name || type}>
+            {name || type}
+          </div>
+          <div className="doc-profile-file">
+            <span className="doc-profile-file-label">File:</span>
+            <span className="doc-profile-file-value">{file || "Not uploaded"}</span>
+          </div>
+        </div>
       </div>
-      <div className="document-type">
-        <FaFileAlt aria-hidden="true" /> {type}
-        <span className={`doc-badge-profile ${mandatory ? 'doc-badge-profile-required' : 'doc-badge-profile-optional'}`}>
-          {mandatory ? 'Required' : 'Optional'}
-        </span>
-      </div>
-      <div className="document-name">{name}</div>
-      <div className="document-meta">
-        <div className="document-board">{board}</div>
-        <div className="document-year">{year}</div>
-        {percentage && <div className="document-percentage">{percentage}</div>}
-      </div>
-      <div className="d-flex gap-2 mt-3">
+      <div className="doc-profile-actions">
         <button
-          className="btn btn-sm btn-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2"
+          type="button"
+          className="doc-profile-btn doc-profile-btn--view"
           onClick={handleView}
           disabled={!hasFile}
-          style={{
-            opacity: hasFile ? 1 : 0.5,
-            cursor: hasFile ? "pointer" : "not-allowed",
-          }}
           aria-label={`View ${type}`}
         >
-          <FaFilePdf size={14} aria-hidden="true" /> View
+          <FaFilePdf size={14} aria-hidden="true" />
+          <span>View</span>
         </button>
         <button
-          className="btn btn-sm btn-outline-primary flex-grow-1 d-flex align-items-center justify-content-center gap-2"
+          type="button"
+          className="doc-profile-btn doc-profile-btn--download"
           onClick={handleDownload}
           disabled={!hasFile}
-          style={{
-            opacity: hasFile ? 1 : 0.5,
-            cursor: hasFile ? "pointer" : "not-allowed",
-          }}
           aria-label={`Download ${type}`}
         >
-          <FaDownload size={14} aria-hidden="true" /> Download
+          <FaDownload size={14} aria-hidden="true" />
+          <span>Download</span>
         </button>
       </div>
     </div>

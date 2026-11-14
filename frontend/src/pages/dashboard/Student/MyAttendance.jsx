@@ -1,4 +1,5 @@
-import { useEffect, useState, useContext, useRef } from "react";
+/* eslint-disable no-unused-vars */
+import { useEffect, useState, useContext, useRef, useCallback } from "react";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
 import Loading from "../../../components/Loading";
@@ -7,7 +8,6 @@ import ApiError from "../../../components/ApiError";
 import { logger } from "../../../utils/logger";
 import { useNavigate } from "react-router-dom";
 import {
-  FaUserGraduate,
   FaClipboardList,
   FaCheckCircle,
   FaTimesCircle,
@@ -16,20 +16,20 @@ import {
   FaFilter,
   FaSyncAlt,
   FaExclamationTriangle,
-  FaArrowLeft,
   FaInfoCircle,
   FaClock,
   FaChartBar,
   FaUniversity,
-  FaLayerGroup,
   FaDownload,
   FaQuestionCircle,
   FaLightbulb,
-  FaBell,
-  FaCheck,
-  FaTimes
+  FaTimes,
+  FaChalkboardTeacher,
+  FaDoorOpen,
+  FaHourglassHalf
 } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
+/* eslint-enable no-unused-vars */
 
 // Brand Color Palette
 const BRAND_COLORS = {
@@ -81,23 +81,32 @@ const pulseVariants = {
   }
 };
 
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: { duration: 1, repeat: Infinity, ease: "linear" }
-  }
+// Timetable helpers (same data-source logic as StudentTimetable.jsx)
+const DAY_MAP_TT = { 0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT" };
+const toLocalDateStrTT = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const formatTime12HourTT = (time24) => {
+  if (!time24 || time24 === "N/A") return time24 || "";
+  const parts = String(time24).split(":").map(Number);
+  if (parts.length < 2 || Number.isNaN(parts[0])) return time24;
+  const [hours, minutes] = parts;
+  const period = hours >= 12 ? "PM" : "AM";
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
 };
-
-const scaleVariants = {
-  hidden: { scale: 0.9, opacity: 0 },
-  visible: { scale: 1, opacity: 1, transition: { duration: 0.3 } },
-  exit: { scale: 0.9, opacity: 0, transition: { duration: 0.2 } }
+const validateTimetableSlotTT = (slot) => {
+  if (!slot) return false;
+  if (!slot.day || !slot.startTime || !slot.endTime) return false;
+  if (!slot.subject_id?.name) return false;
+  if (slot.status === "HOLIDAY") return true;
+  if (slot.startTime >= slot.endTime) return false;
+  return true;
 };
 
 export default function StudentAttendanceReport() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const loadTimeoutRef = useRef(null);
+  const timetableReqIdRef = useRef(0);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -113,6 +122,9 @@ export default function StudentAttendanceReport() {
   const [showTooltip, setShowTooltip] = useState(null);
   const [tooltipContent, setTooltipContent] = useState("");
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const [todayTimetable, setTodayTimetable] = useState([]);
+  const [todayTimetableLoading, setTodayTimetableLoading] = useState(true);
+  const [todayTimetableError, setTodayTimetableError] = useState(null);
 /* ================= DATA VALIDATION HELPER ================= */
   const validateAttendanceData = (data) => {
     const errors = [];
@@ -151,12 +163,13 @@ export default function StudentAttendanceReport() {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  /* ================= RETRY & REFRESH HANDLERS ================= */
   const handleRetry = () => {
     setError(null);
     setLoading(true);
+    setTodayTimetableError(null);
+    setTodayTimetableLoading(true);
     addToast("Retrying...", "info");
-    
+
     setFilters(prev => ({
       ...prev,
       _retry: Date.now()
@@ -165,8 +178,10 @@ export default function StudentAttendanceReport() {
 
   const refreshData = () => {
     setLoading(true);
-    addToast("Refreshing attendance data...", "info");
-    
+    setTodayTimetableError(null);
+    setTodayTimetableLoading(true);
+    addToast("Refreshing attendance and timetable data...", "info");
+
     setFilters(prev => ({
       ...prev,
       _timestamp: Date.now()
@@ -192,7 +207,7 @@ export default function StudentAttendanceReport() {
       link.remove();
       
       addToast("Report downloaded successfully!", "success");
-    } catch (err) {
+    } catch {
       addToast("Failed to download report. Please try again.", "error");
     }
   };
@@ -215,6 +230,72 @@ export default function StudentAttendanceReport() {
     };
     fetchSubjects();
     return () => { cancelled = true; };
+  }, []);
+
+  const fetchTodayTimetable = useCallback(async () => {
+    const reqId = ++timetableReqIdRef.current;
+    const today = new Date();
+    const todayStr = toLocalDateStrTT(today);
+    const todayDay = DAY_MAP_TT[today.getDay()];
+
+    setTodayTimetableLoading(true);
+    setTodayTimetableError(null);
+
+    try {
+      // Same established student-specific source as StudentTimetable.jsx
+      const timetableRes = await api.get("/timetable/student");
+      const responseData = timetableRes.data?.data || timetableRes.data || {};
+      const allSlots = Array.isArray(responseData.slots) ? responseData.slots : (Array.isArray(responseData) ? responseData : []);
+
+      if (!allSlots || allSlots.length === 0) {
+        if (reqId === timetableReqIdRef.current) setTodayTimetable([]);
+        return;
+      }
+
+      const firstSlot = allSlots.find((s) => s.timetable_id);
+      const tId = typeof firstSlot?.timetable_id === "object" ? firstSlot?.timetable_id?._id : firstSlot?.timetable_id;
+
+      let slotsForToday = [];
+      if (tId) {
+        const scheduleRes = await api.get(`/timetable/${tId}/schedule`, {
+          params: { startDate: todayStr, endDate: todayStr },
+        });
+        const schedulePayload = scheduleRes.data || {};
+        const schedule = schedulePayload.schedule || [];
+        const dayEntry = schedule.find((d) => d.date === todayStr) || schedule[0];
+        if (dayEntry && dayEntry.date === todayStr && Array.isArray(dayEntry.slots)) {
+          slotsForToday = dayEntry.slots
+            .map((slot) => ({ ...slot, day: todayDay, exceptionDate: dayEntry.date, isHolidayOnly: !!dayEntry.isHoliday }))
+            .filter(validateTimetableSlotTT);
+        } else {
+          // fallback to old-format slots filtered to today
+          slotsForToday = allSlots
+            .filter((s) => (s.day || DAY_MAP_TT[today.getDay()]) === todayDay)
+            .map((s) => ({ ...s, day: s.day || todayDay }))
+            .filter(validateTimetableSlotTT);
+        }
+      } else {
+        slotsForToday = allSlots
+          .filter((s) => (s.day || todayDay) === todayDay)
+          .map((s) => ({ ...s, day: s.day || todayDay }))
+          .filter(validateTimetableSlotTT);
+      }
+
+      // Hide holiday-only placeholders from class list
+      slotsForToday = slotsForToday.filter((s) => s.status !== "HOLIDAY" && !s.isHolidayOnly);
+
+      slotsForToday.sort((a, b) => String(a.startTime || "").localeCompare(String(b.startTime || "")) || String(a.endTime || "").localeCompare(String(b.endTime || "")));
+
+      if (reqId === timetableReqIdRef.current) setTodayTimetable(slotsForToday);
+    } catch (err) {
+      if (reqId === timetableReqIdRef.current) {
+        setTodayTimetable([]);
+        setTodayTimetableError("Unable to load today's timetable. Please refresh to try again.");
+        logger.warn("Today's timetable load error:", { page: "MyAttendance", error: err?.response?.data || err?.message });
+      }
+    } finally {
+      if (reqId === timetableReqIdRef.current) setTodayTimetableLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -291,7 +372,9 @@ export default function StudentAttendanceReport() {
       }
     };
 
+    // Load attendance and today's timetable together (timetable unaffected by attendance filters)
     fetchData();
+    fetchTodayTimetable();
 
     // Cleanup timeout on unmount
     return () => {
@@ -299,7 +382,7 @@ export default function StudentAttendanceReport() {
         clearTimeout(loadTimeoutRef.current);
       }
     };
-  }, [filters]);
+  }, [filters, fetchTodayTimetable]);
 
   /* ================= HANDLE FILTERS ================= */
   const handleFilterChange = (e) => {
@@ -393,8 +476,78 @@ addToast("Filters reset successfully!", "info");
   };
 
   const sessions = data?.sessions || [];
-  const today = data?.today || [];
+  const attendanceToday = data?.today || [];
   const subjectWise = data?.subjectWise || [];
+
+  const now = new Date();
+  const todayDateLabel = now.toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  const normalizeText = (v) => String(v || "").trim().toLowerCase();
+  const getSlotSubjectName = (slot) => slot?.subject_id?.name || slot?.subject || slot?.subjectName || "Subject";
+  const getSlotSubjectCode = (slot) => slot?.subject_id?.code || slot?.subjectCode || slot?.code || "";
+  const getSlotTeacher = (slot) => slot?.teacher_id?.name || slot?.teacher || slot?.faculty_name || slot?.teacherName || "";
+  const getSlotRoom = (slot) => slot?.room || slot?.classroom || "";
+
+  // Build today's schedule from timetable (source of truth) and attach actual attendance record status only when present
+  const todaySchedule = [...todayTimetable]
+    .sort((a, b) => String(a.startTime || "").localeCompare(String(b.startTime || "")) || String(a.endTime || "").localeCompare(String(b.endTime || "")))
+    .map((slot) => {
+      const slotStart = String(slot.startTime || "");
+      const slotEnd = String(slot.endTime || "");
+      const slotSubject = normalizeText(getSlotSubjectName(slot));
+      const slotCode = normalizeText(getSlotSubjectCode(slot));
+      const record = attendanceToday.find((r) => {
+        const rStart = String(r.startTime || "");
+        const rEnd = String(r.endTime || "");
+        const rSubject = normalizeText(r.subject);
+        const rCode = normalizeText(r.subjectCode);
+        const timeMatch = rStart && rEnd ? (rStart === slotStart && rEnd === slotEnd) : (rStart === slotStart);
+        if (!timeMatch) return false;
+        if (slotCode && rCode) return slotCode === rCode;
+        if (slotSubject && rSubject) return slotSubject === rSubject || slotSubject.includes(rSubject) || rSubject.includes(slotSubject);
+        return timeMatch;
+      });
+
+      let statusInfo = { key: "upcoming", label: "Upcoming", tone: "info" };
+      if (record) {
+        const recStatus = String(record.status || "").toUpperCase();
+        if (recStatus === "PRESENT") statusInfo = { key: "present", label: "Present", tone: "success" };
+        else if (recStatus === "ABSENT") statusInfo = { key: "absent", label: "Absent", tone: "danger" };
+        else statusInfo = { key: "recorded", label: recStatus || "Recorded", tone: "neutral" };
+      } else {
+        const [sh, sm] = slotStart.split(":").map(Number);
+        const [eh, em] = slotEnd.split(":").map(Number);
+        if (!Number.isNaN(sh) && !Number.isNaN(eh)) {
+          const startDt = new Date(now); startDt.setHours(sh, sm || 0, 0, 0);
+          const endDt = new Date(now); endDt.setHours(eh, em || 0, 0, 0);
+          if (now > endDt) statusInfo = { key: "not-recorded", label: "Attendance not yet recorded", tone: "warning" };
+          else if (now >= startDt && now <= endDt) statusInfo = { key: "in-progress", label: "In progress", tone: "info" };
+          else statusInfo = { key: "upcoming", label: "Upcoming", tone: "info" };
+        }
+      }
+
+      return {
+        slotId: slot._id || slot.slotId || `${slotStart}-${slotEnd}-${getSlotSubjectName(slot)}`,
+        startTime: slotStart,
+        endTime: slotEnd,
+        subject: record?.subject || getSlotSubjectName(slot),
+        teacher: record?.teacher && record.teacher !== "N/A" ? record.teacher : (getSlotTeacher(slot) || ""),
+        room: record?.room && record.room !== "N/A" ? record.room : (getSlotRoom(slot) || ""),
+        statusInfo,
+        hasRecord: !!record,
+      };
+    });
+
+  const formatPercent = (p) => {
+    const n = Number(p);
+    if (Number.isNaN(n)) return p ?? 0;
+    return Number.isInteger(n) ? n : n.toFixed(2).replace(/\.00$/, "");
+  };
 
   return (
     <AnimatePresence mode="wait">
@@ -439,21 +592,88 @@ addToast("Filters reset successfully!", "info");
               box-sizing: border-box;
             }
 
+            .att-page-section { margin-bottom: 1.5rem; }
+            .att-card { background: #fff; border-radius: 18px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08); overflow: hidden; border: 1px solid #e8edf3; }
+            .att-section-head { padding: 1rem 1.25rem; background: linear-gradient(135deg, #0E3746 0%, #164E63 100%); color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+            .att-section-head-left { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+            .att-section-title { margin: 0; font-size: 1.1rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.55rem; color: #fff; }
+            .att-section-sub { margin: 0; font-size: 0.82rem; color: rgba(255,255,255,0.82); }
+            .att-head-meta { display: inline-flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+            .att-chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.65rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; background: rgba(255,255,255,0.14); color: #fff; border: 1px solid rgba(255,255,255,0.18); white-space: nowrap; }
+
+            .att-today-body { padding: 1rem 1.1rem; }
+            .att-timeline { display: flex; flex-direction: column; gap: 0.65rem; }
+            .att-slot-row { display: grid; grid-template-columns: 132px 1fr auto; gap: 0.85rem; align-items: center; padding: 0.75rem 0.85rem; border: 1px solid #e6edf3; border-radius: 14px; background: #fbfdff; }
+            .att-slot-time { display: flex; flex-direction: column; gap: 0.15rem; padding-right: 0.75rem; border-right: 1px solid #e6edf3; min-width: 0; }
+            .att-time-main { font-weight: 700; color: #0f3a4a; font-size: 0.92rem; line-height: 1.2; }
+            .att-time-sub { font-size: 0.75rem; color: #64748b; }
+            .att-slot-main { min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+            .att-slot-subject { font-weight: 700; color: #0f172a; font-size: 0.98rem; line-height: 1.25; overflow-wrap: anywhere; }
+            .att-slot-meta { display: flex; flex-wrap: wrap; gap: 0.4rem 0.85rem; color: #475569; font-size: 0.8rem; }
+            .att-meta-item { display: inline-flex; align-items: center; gap: 0.35rem; min-width: 0; }
+            .att-slot-status { display: flex; justify-content: flex-end; }
+            .att-badge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.32rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+            .att-badge.present { background: rgba(40,167,69,0.12); color: #1f7a34; border-color: rgba(40,167,69,0.2); }
+            .att-badge.absent { background: rgba(220,53,69,0.1); color: #b4232c; border-color: rgba(220,53,69,0.18); }
+            .att-badge.upcoming, .att-badge.in-progress { background: rgba(23,162,184,0.12); color: #0f6674; border-color: rgba(23,162,184,0.2); }
+            .att-badge.not-recorded { background: rgba(255,193,7,0.16); color: #8a6500; border-color: rgba(255,193,7,0.28); }
+            .att-badge.neutral { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+            .att-empty { text-align: center; padding: 1.25rem 0.75rem; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; }
+            .att-empty.compact { padding: 1rem 0.5rem; }
+            .att-empty-icon { width: 44px; height: 44px; border-radius: 12px; background: #eef4f7; color: #0f4c5c; display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 0.1rem; }
+            .att-empty h3 { margin: 0; font-size: 1rem; color: #0f172a; font-weight: 700; }
+            .att-empty p { margin: 0; color: #64748b; font-size: 0.88rem; max-width: 520px; }
+            .att-inline-state { display: flex; align-items: center; justify-content: center; gap: 0.6rem; padding: 1.1rem; color: #475569; font-size: 0.9rem; }
+            .att-inline-error { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.85rem 1rem; background: #fff8f8; border: 1px solid #fde2e2; color: #991b1b; border-radius: 12px; font-size: 0.88rem; }
+            .att-retry-btn { padding: 0.45rem 0.75rem; border-radius: 8px; border: 1px solid #fecaca; background: #fff; color: #991b1b; font-weight: 600; cursor: pointer; }
+
+            .att-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .att-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 760px; }
+            .att-table th { padding: 0.85rem 1rem; text-align: left; font-weight: 700; color: #334155; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; background: #f8fafc; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+            .att-table td { padding: 0.85rem 1rem; font-size: 0.9rem; color: #0f172a; border-bottom: 1px solid #eef2f6; vertical-align: middle; }
+            .att-table tbody tr:hover { background: #f8fbfd; }
+            .att-subject-cell { font-weight: 600; color: #0f172a; }
+            .att-code-pill { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 7px; background: #f1f5f9; color: #475569; font-size: 0.78rem; font-weight: 700; }
+            .att-num { font-weight: 600; color: #334155; }
+            .att-present { color: #1f7a34; font-weight: 700; }
+            .att-absent { color: #b4232c; font-weight: 700; }
+            .att-pct-wrap { display: flex; align-items: center; gap: 0.55rem; min-width: 150px; }
+            .att-pct-bar { flex: 1; height: 8px; border-radius: 999px; background: #e8eef4; overflow: hidden; min-width: 70px; }
+            .att-pct-fill { height: 100%; border-radius: 999px; }
+            .att-pct-val { font-weight: 800; font-size: 0.95rem; min-width: 52px; text-align: right; }
+            .att-status-good { display: inline-flex; align-items: center; gap: 0.35rem; color: #1f7a34; font-weight: 700; font-size: 0.85rem; }
+            .att-status-low { display: inline-flex; align-items: center; gap: 0.35rem; color: #b4232c; font-weight: 700; font-size: 0.85rem; }
+            .att-session-date { font-weight: 600; color: #0f172a; }
+            .att-session-sub { font-size: 0.8rem; color: #64748b; margin-top: 0.15rem; }
+            .att-record-badge { padding: 0.32rem 0.65rem; border-radius: 999px; font-weight: 700; font-size: 0.78rem; border: 1px solid; display: inline-flex; align-items: center; gap: 0.3rem; }
+            .att-record-badge.present { background: rgba(40,167,69,0.12); color: #1f7a34; border-color: rgba(40,167,69,0.2); }
+            .att-record-badge.absent { background: rgba(220,53,69,0.1); color: #b4232c; border-color: rgba(220,53,69,0.18); }
+            .att-card-footer { padding: 0.9rem 1.2rem; border-top: 1px solid #e9eef4; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+            .att-foot-note { display: inline-flex; align-items: center; gap: 0.5rem; color: #475569; font-size: 0.88rem; }
+            .att-btn-secondary { padding: 0.55rem 1rem; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; color: #0f3a4a; font-size: 0.9rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; }
+            .att-filters-wrap { padding: 1.1rem 1.25rem; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+            .att-filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; align-items: end; }
+            .att-filter-actions { display: flex; gap: 0.6rem; justify-content: flex-end; flex-wrap: wrap; margin-top: 0.75rem; }
+            .att-btn { padding: 0.65rem 1.1rem; border-radius: 10px; font-size: 0.92rem; font-weight: 600; cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; }
+            .att-btn.ghost { background: #fff; border-color: #d7e0ea; color: #334155; }
+            .att-btn.primary { background: #1a4b6d; color: #fff; box-shadow: 0 4px 12px rgba(26,75,109,0.25); }
+            .att-row-warning { background: #fff8f6; }
+
             @media (max-width: 1024px) {
               .student-attendance-report-hero-content {
                 padding: 1.35rem !important;
                 gap: 1rem !important;
               }
-
               .student-attendance-report-hero-copy h1 {
                 font-size: 1.75rem !important;
                 line-height: 1.15 !important;
               }
-
               .student-attendance-report-hero-copy p {
                 font-size: 1rem !important;
                 line-height: 1.45 !important;
               }
+              .att-slot-row { grid-template-columns: 118px 1fr; }
+              .att-slot-status { grid-column: 1 / -1; justify-content: flex-start; }
             }
 
             @media (max-width: 767.98px) {
@@ -463,31 +683,21 @@ addToast("Filters reset successfully!", "info");
                 text-align: center;
                 padding: 1.25rem !important;
               }
-
-              .student-attendance-report-hero-copy {
-                width: 100%;
-              }
-
-              .student-attendance-report-hero-copy h1 {
-                font-size: 1.55rem !important;
-                overflow-wrap: anywhere;
-              }
-
-              .student-attendance-report-hero-copy p {
-                margin-top: 0.5rem !important;
-                font-size: 0.9rem !important;
-              }
-
-              .student-attendance-report-hero-actions {
-                width: 100%;
-                justify-content: center;
-                flex-direction: column;
-              }
-
-              .student-attendance-report-hero-actions button {
-                width: 100%;
-                justify-content: center;
-              }
+              .student-attendance-report-hero-copy { width: 100%; }
+              .student-attendance-report-hero-copy h1 { font-size: 1.55rem !important; overflow-wrap: anywhere; }
+              .student-attendance-report-hero-copy p { margin-top: 0.5rem !important; font-size: 0.9rem !important; }
+              .student-attendance-report-hero-actions { width: 100%; justify-content: center; flex-direction: column; }
+              .student-attendance-report-hero-actions button { width: 100%; justify-content: center; }
+              .att-section-head { padding: 0.9rem 1rem; }
+              .att-today-body { padding: 0.85rem; }
+              .att-slot-row { grid-template-columns: 1fr; gap: 0.5rem; padding: 0.7rem 0.75rem; }
+              .att-slot-time { border-right: none; padding-right: 0; padding-bottom: 0.35rem; border-bottom: 1px dashed #e2e8f0; flex-direction: row; align-items: baseline; gap: 0.5rem; }
+              .att-slot-status { justify-content: flex-start; }
+              .att-table { min-width: 680px; }
+              .att-filter-actions { justify-content: stretch; }
+              .att-filter-actions .att-btn { flex: 1; }
+              .att-card-footer { flex-direction: column; align-items: stretch; }
+              .att-btn-secondary { justify-content: center; }
             }
           `}</style>
           {/* ================= TOAST CONTAINER ================= */}
@@ -712,20 +922,11 @@ addToast("Filters reset successfully!", "info");
             
             {/* Filters Section */}
             {showFilters && (
-              <div style={{
-                padding: '1.5rem',
-                backgroundColor: '#f8fafc',
-                borderTop: '1px solid #e2e8f0'
-              }}>
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                  gap: '1rem',
-                  marginBottom: '1rem'
-                }}>
-                  <FormField 
-                    icon={<FaBook />} 
-                    label="Subject" 
+              <div className="att-filters-wrap">
+                <div className="att-filters-grid">
+                  <FormField
+                    icon={<FaBook />}
+                    label="Subject"
                   >
                     <select
                       name="subjectId"
@@ -741,10 +942,10 @@ addToast("Filters reset successfully!", "info");
                       ))}
                     </select>
                   </FormField>
-                  
-                  <FormField 
-                    icon={<FaCalendarAlt />} 
-                    label="Start Date" 
+
+                  <FormField
+                    icon={<FaCalendarAlt />}
+                    label="Start Date"
                   >
                     <input
                       type="date"
@@ -754,60 +955,41 @@ addToast("Filters reset successfully!", "info");
                       style={inputStyle}
                     />
                   </FormField>
-                  
-<FormField 
-                     icon={<FaCalendarAlt />} 
-                     label="End Date" 
-                   >
-                     <input
-                       type="date"
-                       name="endDate"
-                       value={filters.endDate}
-                       onChange={handleFilterChange}
-                       style={inputStyle}
-                     />
-                   </FormField>
-                   {dateRangeError && (
-                     <div className="erp-alert erp-alert-danger">
-                       {dateRangeError}
-                     </div>
-                   )}
-                 </div>
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+
+                  <FormField
+                    icon={<FaCalendarAlt />}
+                    label="End Date"
+                  >
+                    <input
+                      type="date"
+                      name="endDate"
+                      value={filters.endDate}
+                      onChange={handleFilterChange}
+                      style={inputStyle}
+                    />
+                  </FormField>
+                </div>
+                {dateRangeError && (
+                  <div className="erp-alert erp-alert-danger" style={{ marginTop: "0.75rem" }}>
+                    {dateRangeError}
+                  </div>
+                )}
+                <div className="att-filter-actions">
                   <motion.button
-                    whileHover={{ scale: 1.03 }}
+                    whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={resetFilters}
-                    style={{
-                      padding: '0.75rem 1.5rem',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                      backgroundColor: 'white',
-                      color: '#1e293b',
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
+                    className="att-btn ghost"
+                    type="button"
                   >
                     Reset Filters
                   </motion.button>
                   <motion.button
-                    whileHover={{ scale: 1.03 }}
+                    whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={applyFilters}
-                    style={{
-                      padding: '0.75rem 1.5rem',
-                      borderRadius: '12px',
-                      border: 'none',
-                      backgroundColor: BRAND_COLORS.primary.main,
-                      color: 'white',
-                      fontSize: '1rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      boxShadow: '0 4px 15px rgba(26, 75, 109, 0.3)'
-                    }}
+                    className="att-btn primary"
+                    type="button"
                   >
                     Apply Filters
                   </motion.button>
@@ -869,191 +1051,75 @@ addToast("Filters reset successfully!", "info");
             custom={0}
             initial="hidden"
             animate="visible"
-            style={{ marginBottom: '2rem' }}
-            
+            className="att-page-section"
           >
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '20px',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-              overflow: 'hidden',
-              
-            }}>
-              <div style={{
-                padding: '1.75rem',
-                borderBottom: '1px solid #e2e8f0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                backgroundColor: '#0E3746',
-              }}>
-                <h2 style={{
-                  margin: 0,
-                  fontSize: '1.5rem',
-                  fontWeight: 700,
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem'
-                }}>
-                  <FaCalendarAlt style={{ color: 'white' }} /> 
-                  Today's Attendance
-                </h2>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem',
-                  backgroundColor: '#dbeafe',
-                  color: BRAND_COLORS.primary.main,
-                  padding: '0.5rem 1rem',
-                  borderRadius: '20px',
-                  fontSize: '0.9rem',
-                  fontWeight: 500
-                }}>
-                  <FaInfoCircle size={14} />
-                  {today.length} sessions today
+            <div className="att-card">
+              <div className="att-section-head">
+                <div className="att-section-head-left">
+                  <h2 className="att-section-title">
+                    <FaCalendarAlt /> Today's Attendance
+                  </h2>
+                  <p className="att-section-sub">{todayDateLabel}</p>
+                </div>
+                <div className="att-head-meta">
+                  <span className="att-chip">
+                    <FaClock size={12} /> {todaySchedule.length} scheduled {todaySchedule.length === 1 ? "class" : "classes"}
+                  </span>
+                  {!todayTimetableLoading && !todayTimetableError && (
+                    <span className="att-chip">
+                      <FaClipboardList size={12} /> Timetable for today
+                    </span>
+                  )}
                 </div>
               </div>
-              
-              <div style={{ padding: '2rem' }}>
-                {today.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-                    <div style={{
-                      fontSize: '4rem',
-                      marginBottom: '1.5rem',
-                      opacity: 0.3,
-                      color: '#e2e8f0'
-                    }}>
-                      <FaClipboardList />
-                    </div>
-                    <h3 style={{
-                      margin: '0 0 0.75rem 0',
-                      color: '#1e293b',
-                      fontWeight: 700,
-                      fontSize: '1.75rem'
-                    }}>
-                      No Sessions Today
-                    </h3>
-                    <p style={{ 
-                      color: '#64748b', 
-                      margin: '0 auto',
-                      maxWidth: '600px'
-                    }}>
-                      You don't have any scheduled classes today. Enjoy your day off!
-                    </p>
+
+              <div className="att-today-body">
+                {todayTimetableLoading ? (
+                  <div className="att-inline-state" role="status" aria-live="polite">
+                    <FaSyncAlt className="fa-spin" /> Loading today's timetable...
+                  </div>
+                ) : todayTimetableError ? (
+                  <div className="att-inline-error" role="alert">
+                    <span><FaExclamationTriangle /> {todayTimetableError}</span>
+                    <button type="button" className="att-retry-btn" onClick={fetchTodayTimetable}>Retry</button>
+                  </div>
+                ) : todaySchedule.length === 0 ? (
+                  <div className="att-empty compact">
+                    <div className="att-empty-icon"><FaCalendarAlt /></div>
+                    <h3>No classes scheduled today</h3>
+                    <p>Your timetable confirms there are no classes scheduled for today.</p>
                   </div>
                 ) : (
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
-                    gap: '1.5rem'
-                  }}>
-                    {today.map((session, index) => (
-                      <motion.div
-                        key={index}
-                        whileHover={{ y: -5, boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
-                        style={{
-                          backgroundColor: 'white',
-                          border: `2px solid ${
-                            session.status === "PRESENT" ? BRAND_COLORS.success.main :
-                            session.status === "ABSENT" ? BRAND_COLORS.danger.main :
-                            '#cbd5e1'
-                          }`,
-                          borderRadius: '16px',
-                          padding: '1.5rem',
-                          transition: 'all 0.3s ease',
-                          position: 'relative',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        {session.status === "PRESENT" && (
-                          <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '4px',
-                            background: BRAND_COLORS.success.gradient
-                          }} />
-                        )}
-                        {session.status === "ABSENT" && (
-                          <div style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '4px',
-                            background: BRAND_COLORS.danger.gradient
-                          }} />
-                        )}
-                        
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'flex-start',
-                          marginBottom: '1rem'
-                        }}>
-                          <div>
-                            <div style={{ 
-                              fontWeight: 700, 
-                              fontSize: '1.25rem', 
-                              color: '#1e293b',
-                              marginBottom: '0.25rem'
-                            }}>
-                              {session.subject}
-                            </div>
-                            <div style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '0.5rem',
-                              color: '#64748b',
-                              fontSize: '0.95rem'
-                            }}>
-                              <FaClock size={14} />
-                              <span>{session.startTime} - {session.endTime}</span>
+                  <div className="att-timeline" role="list" aria-label="Today's scheduled classes">
+                    {todaySchedule.map((item) => {
+                      const status = item.statusInfo;
+                      const icon = status.key === "present" ? <FaCheckCircle /> :
+                        status.key === "absent" ? <FaTimesCircle /> :
+                        status.key === "not-recorded" ? <FaHourglassHalf /> :
+                        status.key === "in-progress" ? <FaClock /> : <FaInfoCircle />;
+                      return (
+                        <div key={item.slotId} className="att-slot-row" role="listitem">
+                          <div className="att-slot-time">
+                            <span className="att-time-main">
+                              {formatTime12HourTT(item.startTime)} – {formatTime12HourTT(item.endTime)}
+                            </span>
+                            <span className="att-time-sub">{item.endTime ? "Scheduled" : "Time TBD"}</span>
+                          </div>
+                          <div className="att-slot-main">
+                            <div className="att-slot-subject">{item.subject}</div>
+                            <div className="att-slot-meta">
+                              <span className="att-meta-item"><FaChalkboardTeacher size={12} /> {item.teacher || "Faculty not specified"}</span>
+                              <span className="att-meta-item"><FaDoorOpen size={12} /> {item.room || "Room not specified"}</span>
                             </div>
                           </div>
-                          <span style={{
-                            padding: '0.375rem 0.875rem',
-                            borderRadius: '20px',
-                            backgroundColor: 
-                              session.status === "PRESENT" ? `${BRAND_COLORS.success.main}15` :
-                              session.status === "ABSENT" ? `${BRAND_COLORS.danger.main}15` :
-                              '#f1f5f9',
-                            color: 
-                              session.status === "PRESENT" ? BRAND_COLORS.success.main :
-                              session.status === "ABSENT" ? BRAND_COLORS.danger.main :
-                              '#4a5568',
-                            fontWeight: 600,
-                            fontSize: '0.9rem',
-                            border: `1px solid ${
-                              session.status === "PRESENT" ? BRAND_COLORS.success.main :
-                              session.status === "ABSENT" ? BRAND_COLORS.danger.main :
-                              '#e2e8f0'
-                            }`
-                          }}>
-                            {session.status}
-                          </span>
+                          <div className="att-slot-status">
+                            <span className={`att-badge ${status.tone === "success" ? "present" : status.tone === "danger" ? "absent" : status.key}`}>
+                              {icon} {status.label}
+                            </span>
+                          </div>
                         </div>
-                        
-                        <div style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '0.5rem',
-                          padding: '0.75rem',
-                          backgroundColor: '#f8fafc',
-                          borderRadius: '12px',
-                          marginTop: '1rem'
-                        }}>
-                          <FaUniversity size={16} style={{ color: BRAND_COLORS.primary.main }} />
-                          <span style={{ fontSize: '0.95rem', color: '#4a5568' }}>
-                            {session.room || 'Room not assigned'}
-                          </span>
-                        </div>
-                      </motion.div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1066,211 +1132,89 @@ addToast("Filters reset successfully!", "info");
             custom={1}
             initial="hidden"
             animate="visible"
-            style={{ marginBottom: '2rem' }}
+            className="att-page-section"
           >
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '20px',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                padding: '1.75rem',
-                borderBottom: '1px solid #e2e8f0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                backgroundColor: '#0E3746',
-              }}>
-                <h2 style={{
-                  margin: 0,
-                  fontSize: '1.5rem',
-                  fontWeight: 700,
-                  color: 'white ',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem'
-                }}>
-                  <FaBook style={{ color: 'white' }} /> 
-                  Subject-wise Attendance
-                </h2>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem',
-                  backgroundColor: '#dbeafe',
-                  color: BRAND_COLORS.primary.main,
-                  padding: '0.5rem 1rem',
-                  borderRadius: '20px',
-                  fontSize: '0.9rem',
-                  fontWeight: 500
-                }}>
-                  <FaInfoCircle size={14} />
-                  {subjectWise.length} subjects
+            <div className="att-card">
+              <div className="att-section-head">
+                <div className="att-section-head-left">
+                  <h2 className="att-section-title">
+                    <FaBook /> Subject-wise Attendance
+                  </h2>
+                  <p className="att-section-sub">Performance by subject (75% eligibility threshold)</p>
+                </div>
+                <div className="att-head-meta">
+                  <span className="att-chip"><FaInfoCircle size={12} /> {subjectWise.length} subjects</span>
                 </div>
               </div>
-              
-              <div style={{ overflowX: 'auto' }}>
-                <table style={tableStyle} role="table" aria-label="Subject-wise attendance">
+
+              <div className="att-table-wrap">
+                <table className="att-table" role="table" aria-label="Subject-wise attendance">
                   <thead>
                     <tr>
-                      <th style={headerCellStyle} scope="col">Subject</th>
-                      <th style={headerCellStyle} scope="col">Code</th>
-                      <th style={headerCellStyle} scope="col">Total</th>
-                      <th style={headerCellStyle} scope="col">Present</th>
-                      <th style={headerCellStyle} scope="col">Absent</th>
-                      <th style={headerCellStyle} scope="col">Percentage</th>
-                      <th style={headerCellStyle} scope="col">Status</th>
+                      <th scope="col">Subject</th>
+                      <th scope="col">Code</th>
+                      <th scope="col">Total</th>
+                      <th scope="col">Present</th>
+                      <th scope="col">Absent</th>
+                      <th scope="col">Percentage</th>
+                      <th scope="col">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {subjectWise.map((sub, index) => (
-                      <motion.tr
-                        key={index}
-                        variants={fadeInVariants}
-                        custom={index * 0.03}
-                        initial="hidden"
-                        animate="visible"
-                        style={{ 
-                          backgroundColor: sub.warning ? '#fff5f5' : 'white',
-                          transition: 'background-color 0.3s ease'
-                        }}
-                        whileHover={{ backgroundColor: '#f8fafc' }}
-                      >
-                        <td style={cellStyle}>
-                          <div style={{ fontWeight: 600, color: '#1e293b' }}>{sub.subject}</div>
-                        </td>
-                        <td style={cellStyle}>
-                          <span style={{ 
-                            display: 'inline-block',
-                            padding: '0.25rem 0.625rem',
-                            borderRadius: '6px',
-                            backgroundColor: '#f1f5f9',
-                            color: '#4a5568',
-                            fontSize: '0.85rem',
-                            fontWeight: 600
-                          }}>
-                            {sub.code}
-                          </span>
-                        </td>
-                        <td style={cellStyle}>{sub.total}</td>
-                        <td style={cellStyle}>
-                          <span style={{ 
-                            color: BRAND_COLORS.success.main,
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.375rem'
-                          }}>
-                            <FaCheckCircle size={14} /> {sub.present}
-                          </span>
-                        </td>
-                        <td style={cellStyle}>
-                          <span style={{ 
-                            color: BRAND_COLORS.danger.main,
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.375rem'
-                          }}>
-                            <FaTimesCircle size={14} /> {sub.absent}
-                          </span>
-                        </td>
-                        <td style={cellStyle}>
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '0.5rem'
-                          }}>
-                            <div style={{ 
-                              width: '60px', 
-                              height: '8px', 
-                              borderRadius: '4px', 
-                              backgroundColor: '#e2e8f0',
-                              overflow: 'hidden'
-                            }}>
-                              <div 
-                                style={{ 
-                                  width: `${sub.percentage}%`, 
-                                  height: '100%', 
-                                  borderRadius: '4px',
-                                  backgroundColor: sub.percentage >= 75 ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main
-                                }} 
-                              />
+                    {subjectWise.map((sub, index) => {
+                      const pct = Number(sub.percentage) || 0;
+                      const ok = pct >= 75;
+                      const fillColor = ok ? BRAND_COLORS.success.main : (pct >= 60 ? BRAND_COLORS.warning.main : BRAND_COLORS.danger.main);
+                      return (
+                        <motion.tr
+                          key={sub._id || `${sub.subject}-${index}`}
+                          variants={fadeInVariants}
+                          custom={index * 0.03}
+                          initial="hidden"
+                          animate="visible"
+                          className={sub.warning ? "att-row-warning" : ""}
+                        >
+                          <td><div className="att-subject-cell">{sub.subject}</div></td>
+                          <td><span className="att-code-pill">{sub.code || "—"}</span></td>
+                          <td className="att-num">{sub.total}</td>
+                          <td className="att-present"><FaCheckCircle size={12} style={{ marginRight: 4 }} />{sub.present}</td>
+                          <td className="att-absent"><FaTimesCircle size={12} style={{ marginRight: 4 }} />{sub.absent}</td>
+                          <td>
+                            <div className="att-pct-wrap">
+                              <div className="att-pct-bar" aria-hidden="true">
+                                <div className="att-pct-fill" style={{ width: `${Math.min(100, Math.max(0, pct))}%`, backgroundColor: fillColor }} />
+                              </div>
+                              <span className="att-pct-val" style={{ color: fillColor }}>{formatPercent(sub.percentage)}%</span>
                             </div>
-                            <span style={{ 
-                              fontWeight: 700,
-                              color: sub.percentage >= 75 ? BRAND_COLORS.success.main : BRAND_COLORS.warning.main
-                            }}>
-                              {sub.percentage}%
-                            </span>
-                          </div>
-                        </td>
-                        <td style={cellStyle}>
-                          {sub.warning ? (
-                            <div style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '0.5rem',
-                              color: BRAND_COLORS.danger.main,
-                              fontWeight: 600
-                            }}>
-                              <FaExclamationTriangle size={16} />
-                              <span>Low Attendance</span>
-                              <motion.span
-                                whileHover={{ scale: 1.2 }}
-                                style={{
-                                  cursor: 'pointer',
-                                  color: BRAND_COLORS.info.main,
-                                  fontSize: '0.85rem'
-                                }}
-                                onMouseEnter={(e) => handleTooltip(e, "Your attendance is below 75%. Please attend more classes to maintain eligibility for exams.")}
-                                onMouseLeave={handleTooltipLeave}
-                              >
-                                <FaQuestionCircle />
-                              </motion.span>
-                            </div>
-                          ) : (
-                            <div style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '0.5rem',
-                              color: BRAND_COLORS.success.main,
-                              fontWeight: 600
-                            }}>
-                              <FaCheckCircle size={16} />
-                              <span>Good</span>
-                            </div>
-                          )}
-                        </td>
-                      </motion.tr>
-                    ))}
-                    
+                          </td>
+                          <td>
+                            {sub.warning ? (
+                              <span className="att-status-low">
+                                <FaExclamationTriangle size={14} /> Low Attendance
+                                <motion.span
+                                  whileHover={{ scale: 1.15 }}
+                                  style={{ cursor: "pointer", color: BRAND_COLORS.info.main, fontSize: "0.85rem", marginLeft: 2 }}
+                                  onMouseEnter={(e) => handleTooltip(e, "Your attendance is below 75%. Please attend more classes to maintain eligibility for exams.")}
+                                  onMouseLeave={handleTooltipLeave}
+                                >
+                                  <FaQuestionCircle />
+                                </motion.span>
+                              </span>
+                            ) : (
+                              <span className="att-status-good"><FaCheckCircle size={14} /> Good</span>
+                            )}
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+
                     {subjectWise.length === 0 && (
                       <tr>
-                        <td colSpan="7" style={{ ...cellStyle, textAlign: 'center', padding: '3rem 1rem' }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{
-                              fontSize: '4rem',
-                              marginBottom: '1.5rem',
-                              opacity: 0.3,
-                              color: '#e2e8f0'
-                            }}>
-                              <FaBook />
-                            </div>
-                            <h3 style={{
-                              margin: '0 0 0.75rem 0',
-                              color: '#1e293b',
-                              fontWeight: 700,
-                              fontSize: '1.75rem'
-                            }}>
-                              No Attendance Data
-                            </h3>
-                            <p style={{ color: '#64748b', margin: 0 }}>
-                              Attendance records will appear here once classes begin
-                            </p>
+                        <td colSpan="7" style={{ textAlign: "center", padding: "2rem 1rem" }}>
+                          <div className="att-empty">
+                            <div className="att-empty-icon"><FaBook /></div>
+                            <h3>No Attendance Data</h3>
+                            <p>Attendance records will appear here once classes begin.</p>
                           </div>
                         </td>
                       </tr>
@@ -1278,46 +1222,24 @@ addToast("Filters reset successfully!", "info");
                   </tbody>
                 </table>
               </div>
-              
-              <div style={{
-                padding: '1.5rem',
-                borderTop: '1px solid #f1f5f9',
-                backgroundColor: '#f8fafc',
-                display: 'flex',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '1rem'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+              <div className="att-card-footer">
+                <div className="att-foot-note">
                   <FaLightbulb style={{ color: BRAND_COLORS.warning.main }} aria-hidden="true" />
-                  <span style={{ color: '#4a5568', fontSize: '0.95rem' }}>
-                    <strong>Important:</strong> Minimum 75% attendance required in each subject to be eligible for exams
-                  </span>
+                  <span><strong>Important:</strong> Minimum 75% attendance required in each subject to be eligible for exams.</span>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div>
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
                     onClick={handleDownloadReport}
-                    style={{
-                      padding: '0.625rem 1.25rem',
-                      borderRadius: '10px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: 'white',
-                      color: BRAND_COLORS.primary.main,
-                      fontSize: '0.95rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.2s ease'
-                    }}
+                    className="att-btn-secondary"
                     aria-label="Download attendance report as PDF"
+                    type="button"
                   >
-                    <FaDownload size={16} aria-hidden="true" /> Download Report
-                   </motion.button>
-                 </div>
+                    <FaDownload size={14} aria-hidden="true" /> Download Report
+                  </motion.button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -1328,165 +1250,84 @@ addToast("Filters reset successfully!", "info");
             custom={2}
             initial="hidden"
             animate="visible"
+            className="att-page-section"
           >
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '20px',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                padding: '1.75rem',
-                borderBottom: '1px solid #e2e8f0',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '1rem',
-                backgroundColor: '#0E3746',
-              }}>
-                <h2 style={{
-                  margin: 0,
-                  fontSize: '1.5rem',
-                  fontWeight: 700,
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem'
-                }}>
-                  <FaClipboardList style={{ color: 'white' }} /> 
-                  Session-wise Report
-                </h2>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem',
-                  backgroundColor: '#dbeafe',
-                  color: BRAND_COLORS.primary.main,
-                  padding: '0.5rem 1rem',
-                  borderRadius: '20px',
-                  fontSize: '0.9rem',
-                  fontWeight: 500
-                }}>
-                  <FaInfoCircle size={14} />
-                  {sessions.length} sessions recorded
+            <div className="att-card">
+              <div className="att-section-head">
+                <div className="att-section-head-left">
+                  <h2 className="att-section-title">
+                    <FaClipboardList /> Session-wise Report
+                  </h2>
+                  <p className="att-section-sub">Detailed attendance records by session</p>
+                </div>
+                <div className="att-head-meta">
+                  <span className="att-chip"><FaInfoCircle size={12} /> {sessions.length} sessions recorded</span>
                 </div>
               </div>
-              
-              <div style={{ overflowX: 'auto' }}>
-                <table style={tableStyle} role="table" aria-label="Session-wise attendance records">
+
+              <div className="att-table-wrap">
+                <table className="att-table" role="table" aria-label="Session-wise attendance records">
                   <thead>
                     <tr>
-                      <th style={headerCellStyle} scope="col">Date</th>
-                      <th style={headerCellStyle} scope="col">Subject</th>
-                      <th style={headerCellStyle} scope="col">Lecture</th>
-                      <th style={headerCellStyle} scope="col">Time</th>
-                      <th style={headerCellStyle} scope="col">Room</th>
-                      <th style={headerCellStyle} scope="col">Status</th>
+                      <th scope="col">Date</th>
+                      <th scope="col">Subject</th>
+                      <th scope="col">Lecture</th>
+                      <th scope="col">Time</th>
+                      <th scope="col">Room</th>
+                      <th scope="col">Status</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sessions.map((session, index) => (
-                      <motion.tr
-                        key={index}
-                        variants={fadeInVariants}
-                        custom={index * 0.03}
-                        initial="hidden"
-                        animate="visible"
-                        style={{ 
-                          backgroundColor: 'white',
-                          transition: 'background-color 0.3s ease'
-                        }}
-                        whileHover={{ backgroundColor: '#f8fafc' }}
-                      >
-                        <td style={cellStyle}>
-                          <div style={{ fontWeight: 600 }}>
-                            {new Date(session.date).toLocaleDateString('en-IN', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric'
-                            })}
-                          </div>
-                          <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-                            {new Date(session.date).toLocaleDateString('en-IN')}
-                          </div>
-                        </td>
-                        <td style={cellStyle}>
-                          <div style={{ fontWeight: 600, color: '#1e293b' }}>{session.subject}</div>
-                          <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.25rem' }}>
-                            {session.teacher}
-                          </div>
-                        </td>
-                        <td style={cellStyle}>Lecture {session.lectureNumber}</td>
-                        <td style={cellStyle}>
-                          <div>{session.startTime} - {session.endTime}</div>
-                        </td>
-                        <td style={cellStyle}>
-                          <span style={{ 
-                            display: 'inline-block',
-                            padding: '0.25rem 0.625rem',
-                            borderRadius: '6px',
-                            backgroundColor: '#f1f5f9',
-                            color: '#4a5568',
-                            fontSize: '0.85rem',
-                            fontWeight: 600
-                          }}>
-                            {session.room || 'N/A'}
-                          </span>
-                        </td>
-                        <td style={cellStyle}>
-                          <span style={{
-                            padding: '0.375rem 0.875rem',
-                            borderRadius: '20px',
-                            backgroundColor: 
-                              session.status === "PRESENT" ? `${BRAND_COLORS.success.main}15` :
-                              session.status === "ABSENT" ? `${BRAND_COLORS.danger.main}15` :
-                              '#f1f5f9',
-                            color: 
-                              session.status === "PRESENT" ? BRAND_COLORS.success.main :
-                              session.status === "ABSENT" ? BRAND_COLORS.danger.main :
-                              '#4a5568',
-                            fontWeight: 600,
-                            fontSize: '0.9rem',
-                            border: `1px solid ${
-                              session.status === "PRESENT" ? BRAND_COLORS.success.main :
-                              session.status === "ABSENT" ? BRAND_COLORS.danger.main :
-                              '#e2e8f0'
-                            }`,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.375rem'
-                          }}>
-                            {session.status === "PRESENT" ? <FaCheckCircle size={14} /> : <FaTimesCircle size={14} />}
-                            {session.status}
-                          </span>
-                        </td>
-                      </motion.tr>
-                    ))}
-                    
+                    {sessions.map((session, index) => {
+                      const sStatus = String(session.status || "").toUpperCase();
+                      const isPresent = sStatus === "PRESENT";
+                      const isAbsent = sStatus === "ABSENT";
+                      const dateObj = session.date ? new Date(session.date) : null;
+                      const validDate = dateObj && !Number.isNaN(dateObj.getTime());
+                      return (
+                        <motion.tr
+                          key={session._id || session.sessionId || `${session.date}-${index}`}
+                          variants={fadeInVariants}
+                          custom={index * 0.03}
+                          initial="hidden"
+                          animate="visible"
+                        >
+                          <td>
+                            <div className="att-session-date">
+                              {validDate ? dateObj.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) : (session.date || "—")}
+                            </div>
+                            <div className="att-session-sub">
+                              {validDate ? dateObj.toLocaleDateString("en-IN") : ""}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="att-subject-cell">{session.subject || "—"}</div>
+                            <div className="att-session-sub">{session.teacher && session.teacher !== "N/A" ? session.teacher : "Faculty not specified"}</div>
+                          </td>
+                          <td className="att-num">{session.lectureNumber ? `Lecture ${session.lectureNumber}` : "—"}</td>
+                          <td>
+                            <div className="att-num">
+                              {session.startTime && session.endTime ? `${formatTime12HourTT(session.startTime)} – ${formatTime12HourTT(session.endTime)}` : (session.startTime || "—")}
+                            </div>
+                          </td>
+                          <td><span className="att-code-pill">{session.room && session.room !== "N/A" ? session.room : "N/A"}</span></td>
+                          <td>
+                            <span className={`att-record-badge ${isPresent ? "present" : isAbsent ? "absent" : ""}`}>
+                              {isPresent ? <FaCheckCircle size={12} /> : isAbsent ? <FaTimesCircle size={12} /> : <FaInfoCircle size={12} />}
+                              {sStatus || "N/A"}
+                            </span>
+                          </td>
+                        </motion.tr>
+                      );
+                    })}
+
                     {sessions.length === 0 && (
                       <tr>
-                        <td colSpan="6" style={{ ...cellStyle, textAlign: 'center', padding: '3rem 1rem' }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <div style={{
-                              fontSize: '4rem',
-                              marginBottom: '1.5rem',
-                              opacity: 0.3,
-                              color: '#e2e8f0'
-                            }}>
-                              <FaClipboardList />
-                            </div>
-                            <h3 style={{
-                              margin: '0 0 0.75rem 0',
-                              color: '#1e293b',
-                              fontWeight: 700,
-                              fontSize: '1.75rem'
-                            }}>
-                              No Attendance Records
-                            </h3>
-                            <p style={{ color: '#64748b', margin: 0 }}>
-                              Your attendance records will appear here once classes begin
-                            </p>
+                        <td colSpan="6" style={{ textAlign: "center", padding: "2rem 1rem" }}>
+                          <div className="att-empty">
+                            <div className="att-empty-icon"><FaClipboardList /></div>
+                            <h3>No Attendance Records</h3>
+                            <p>Your attendance records will appear here once classes begin.</p>
                           </div>
                         </td>
                       </tr>
@@ -1494,20 +1335,12 @@ addToast("Filters reset successfully!", "info");
                   </tbody>
                 </table>
               </div>
-              
-              <div style={{ 
-                padding: '1.5rem',
-                borderTop: '1px solid #f1f5f9',
-                backgroundColor: '#f8fafc',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '0.75rem'
-              }}>
-                <FaInfoCircle style={{ color: BRAND_COLORS.primary.main }} />
-                <span style={{ color: '#4a5568', fontSize: '0.95rem' }}>
-                  <strong>Tip:</strong> Use filters above to view attendance for specific subjects or date ranges
-                </span>
+
+              <div className="att-card-footer" style={{ justifyContent: "center" }}>
+                <div className="att-foot-note">
+                  <FaInfoCircle style={{ color: BRAND_COLORS.primary.main }} />
+                  <span><strong>Tip:</strong> Use filters above to view attendance for specific subjects or date ranges.</span>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -1634,33 +1467,6 @@ function SummaryCard({ title, value, icon, color, tooltip, onTooltip, onTooltipL
   );
 }
 
-/* ================= STYLES ================= */
-const tableStyle = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  minWidth: '800px'
-};
-
-const headerCellStyle = {
-  padding: '1rem 1.25rem',
-  textAlign: 'left',
-  fontWeight: 700,
-  color: '#1e293b',
-  fontSize: '0.95rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-  backgroundColor: '#f8fafc',
-  borderBottom: '2px solid #e2e8f0'
-};
-
-const cellStyle = {
-  padding: '1rem 1.25rem',
-  fontSize: '0.95rem',
-  color: '#1e293b',
-  borderBottom: '1px solid #f1f5f9',
-  verticalAlign: 'middle'
-};
-
 const inputStyle = {
   width: '100%',
   padding: '0.875rem 1.25rem',
@@ -1688,17 +1494,4 @@ const selectStyle = {
   backgroundPosition: 'right 1.25rem center',
   backgroundSize: '20px',
   transition: 'all 0.3s ease'
-};
-
-/* ================= SCREEN READER ONLY STYLES ================= */
-const srOnlyStyle = {
-  position: 'absolute',
-  width: '1px',
-  height: '1px',
-  padding: 0,
-  margin: '-1px',
-  overflow: 'hidden',
-  clip: 'rect(0,0,0,0)',
-  whiteSpace: 'nowrap',
-  border: 0
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useContext } from "react";
+import React, { useEffect, useState, useRef, useContext, useMemo } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { AuthContext } from "../../../auth/AuthContext";
 import api from "../../../api/axios";
@@ -18,13 +18,12 @@ import {
   FaSun,
   FaBook,
   FaLayerGroup,
-  FaArrowLeft,
   FaSyncAlt,
   FaGraduationCap,
   FaChevronLeft,
   FaChevronRight,
 } from "react-icons/fa";
-import { motion } from "framer-motion";
+import { motion } from "framer-motion"; // eslint-disable-line no-unused-vars -- used as motion.div in JSX
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -69,16 +68,8 @@ const fadeInVariants = {
   },
 };
 
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" },
-  },
-};
-
 // Day mapping constant (exported for reuse)
+// eslint-disable-next-line react-refresh/only-export-components
 export const DAY_MAP = {
   0: "SUN",
   1: "MON",
@@ -134,29 +125,6 @@ const TIME_SLOTS = [
 ];
 
 /**
- * Convert 24-hour format to 12-hour AM/PM format
- */
-const convertTo12Hour = (time24h) => {
-  if (!time24h) return time24h;
-
-  const [hours, minutes] = time24h.split(":");
-  let h = parseInt(hours);
-  const modifier = h >= 12 ? "PM" : "AM";
-
-  h = h % 12;
-  h = h ? h : 12;
-
-  return `${h.toString().padStart(2, "0")}:${minutes} ${modifier}`;
-};
-
-/**
- * Format time range for display
- */
-const formatTimeRange = (startTime, endTime) => {
-  return `${convertTo12Hour(startTime)} - ${convertTo12Hour(endTime)}`;
-};
-
-/**
  * Format a Date as YYYY-MM-DD using LOCAL date parts (not toISOString which uses UTC).
  * This avoids off-by-one-day issues for timezones ahead of UTC (like IST).
  */
@@ -206,26 +174,21 @@ export default function StudentTimetable() {
 
   // Phase 1: Date range state for new schedule API
   const [scheduleData, setScheduleData] = useState(null);
-  const [timetableId, setTimetableId] = useState(null);
   const [dateRange, setDateRange] = useState(() => {
     return getCurrentWeekDateRange();
   });
-  const [scheduleSummary, setScheduleSummary] = useState(null);
   const [activePeriod, setActivePeriod] = useState({
     startDate: null,
     endDate: null,
   });
   const [isOutsideActiveRange, setIsOutsideActiveRange] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
 
-  const [fullWeekView, setFullWeekView] = useState(false);
-  const displayDays = fullWeekView ? ALL_DAYS : DAYS;
-  const displayDayNames = fullWeekView ? DAY_NAMES_FULL : DAY_NAMES;
+  // Track load state across renders/effects (hooks must be unconditional)
+  const hasLoadedRef = useRef(false);
+  const isFirstRenderRef = useRef(true);
 
-  // Security check
-  if (!user) return <Navigate to="/login" />;
-  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
-
-  const isClient = typeof window !== "undefined";
+  const displayDays = ALL_DAYS;
 
   // Update current time
   useEffect(() => {
@@ -275,7 +238,6 @@ export default function StudentTimetable() {
     setTodaySlots(weeklyData[currentDayAbbr] || []);
 
     setScheduleData(null);
-    setScheduleSummary(null);
   };
 
   // Helper: Process new format schedule
@@ -386,8 +348,6 @@ export default function StudentTimetable() {
         setWeekly({});
         setTodaySlots([]);
         setScheduleData(null);
-        setTimetableId(null);
-        setScheduleSummary(null);
         if (loadTimeoutRef.current) {
           clearTimeout(loadTimeoutRef.current);
         }
@@ -412,8 +372,6 @@ export default function StudentTimetable() {
         return;
       }
 
-      setTimetableId(tId);
-
       // Use the new date-wise schedule API
       const scheduleRes = await api.get(`/timetable/${tId}/schedule`, {
         params: {
@@ -425,12 +383,11 @@ export default function StudentTimetable() {
       // The API interceptor unwraps responses, so the data is already at the top level
       // Backend sends: { success: true, data: { timetable, schedule, summary } }
       // Interceptor transforms to: { timetable, schedule, summary, success, message }
-      const scheduleData = scheduleRes.data || {};
-      const schedule = scheduleData.schedule || [];
-      const summary = scheduleData.summary || null;
-      const timetableData = scheduleData.timetable || null;
+      const schedulePayload = scheduleRes.data || {};
+      const schedule = schedulePayload.schedule || [];
+      const timetableData = schedulePayload.timetable || null;
       const responseMessage =
-        scheduleData.message || scheduleRes.data?.message || "";
+        schedulePayload.message || scheduleRes.data?.message || "";
 
       // Extract active period from timetable data
       if (timetableData?.startDate && timetableData?.endDate) {
@@ -452,9 +409,8 @@ export default function StudentTimetable() {
 
       setIsOutsideActiveRange(hasActivePeriod && isOutsideActive);
 
-      // Store timetable data and summary
+      // Store timetable data
       setScheduleData({ timetable: timetableData });
-      setScheduleSummary(summary);
 
       if (hasActivePeriod && isOutsideActive) {
         // Date range is outside the timetable's active period - show banner but still display data
@@ -540,16 +496,6 @@ export default function StudentTimetable() {
   };
 
   // Phase 2: Week navigation handlers
-  const isDateWithinActiveRange = (startDate, endDate) => {
-    if (!activePeriod.startDate || !activePeriod.endDate) return true; // No active period set yet
-    const activeStart = parseLocalDate(activePeriod.startDate);
-    const activeEnd = parseLocalDate(activePeriod.endDate);
-    const requestedStart = parseLocalDate(startDate);
-    const requestedEnd = parseLocalDate(endDate);
-    // Check if the requested week overlaps with the active period
-    return requestedStart <= activeEnd && requestedEnd >= activeStart;
-  };
-
   const goToPreviousWeek = () => {
     const start = new Date(dateRange.startDate.replace(/-/g, "/"));
     start.setDate(start.getDate() - 7);
@@ -580,11 +526,73 @@ export default function StudentTimetable() {
 
   const goToToday = () => {
     goToCurrentWeek();
+    const todayCode = DAY_MAP[new Date().getDay()];
+    if (todayCode) setSelectedDay(todayCode);
   };
 
-  // Use a ref to track if timetable has been loaded
-  const hasLoadedRef = useRef(false);
-  const isFirstRenderRef = useRef(true);
+  // Helper: Get the date for a specific day code within the current date range
+  const getDateForDay = (dayCode) => {
+    const dayIndex = displayDays.indexOf(dayCode);
+    if (dayIndex === -1) return null;
+    const [year, month, day] = dateRange.startDate.split("-").map(Number);
+    const targetDate = new Date(year, month - 1, day + dayIndex);
+    return targetDate;
+  };
+
+  const isCurrentWeek = (() => {
+    const current = getCurrentWeekDateRange();
+    return (
+      current.startDate === dateRange.startDate &&
+      current.endDate === dateRange.endDate
+    );
+  })();
+
+  // Keep selected day in sync with the viewed week and available data
+  useEffect(() => {
+    const days = ALL_DAYS;
+    setSelectedDay((prev) => {
+      if (prev && days.includes(prev)) return prev;
+      if (isCurrentWeek) {
+        const todayCode = DAY_MAP[new Date().getDay()];
+        if (todayCode && days.includes(todayCode)) return todayCode;
+      }
+      const firstWithClasses = days.find((d) => (weekly[d] || []).length > 0);
+      return firstWithClasses || days[0] || "MON";
+    });
+  }, [dateRange.startDate, dateRange.endDate, weekly]);
+
+  const selectedDaySlots = useMemo(() => {
+    if (!selectedDay) return [];
+    const slots = [...(weekly[selectedDay] || [])];
+    return slots.sort((a, b) => {
+      const aStart = a.startTime || "99:99";
+      const bStart = b.startTime || "99:99";
+      if (aStart !== bStart) return aStart.localeCompare(bStart);
+      const aEnd = a.endTime || "99:99";
+      const bEnd = b.endTime || "99:99";
+      return aEnd.localeCompare(bEnd);
+    });
+  }, [weekly, selectedDay]);
+
+  const totalWeekClasses = useMemo(
+    () => ALL_DAYS.reduce((sum, day) => sum + (weekly[day]?.length || 0), 0),
+    [weekly]
+  );
+  const workingDaysCount = useMemo(
+    () => ALL_DAYS.filter((day) => (weekly[day]?.length || 0) > 0).length,
+    [weekly]
+  );
+  const todayDayCode = DAY_MAP[new Date().getDay()];
+  const isCurrentWeekRange = isCurrentWeek;
+  const selectedDayDate = selectedDay ? getDateForDay(selectedDay) : null;
+  const selectedDayLabel = selectedDayDate
+    ? selectedDayDate.toLocaleDateString("en-IN", {
+        weekday: "long",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : selectedDay || "";
 
   useEffect(() => {
     // Prevent double-loading in React 18 Strict Mode
@@ -613,74 +621,6 @@ export default function StudentTimetable() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange.startDate, dateRange.endDate]);
 
-  // Helper: Get the date for a specific day code within the current date range
-   const getDateForDay = (dayCode) => {
-    const dayIndex = displayDays.indexOf(dayCode);
-    if (dayIndex === -1) return null;
-    const [year, month, day] = dateRange.startDate.split("-").map(Number);
-    const targetDate = new Date(year, month - 1, day + dayIndex);
-    return targetDate;
-  };
-
-  const isCurrentWeek = (() => {
-    const current = getCurrentWeekDateRange();
-    return (
-      current.startDate === dateRange.startDate &&
-      current.endDate === dateRange.endDate
-    );
-  });
-
-  // Helper: Format date as DD/MM/YYYY
-  const formatDateDDMMYYYY = (date) => {
-    if (!date) return "";
-    const dd = String(date.getDate()).padStart(2, "0");
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const yyyy = date.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  };
-
-  const { timeRows: dynamicTimeRows, fullDayHolidays } = (() => {
-    const timeSet = new Set();
-    const fullDayHolidays = {}; // Track days with full-day holidays
-
-     // First pass: Identify full-day holidays for each day
-    ALL_DAYS.forEach((day) => {
-      const daySlots = weekly[day] || [];
-      const holidaySlot = daySlots.find(
-        (s) =>
-          s.status === "HOLIDAY" &&
-          s.startTime === "00:00" &&
-          s.endTime === "23:59",
-      );
-      if (holidaySlot) {
-        fullDayHolidays[day] = holidaySlot;
-      }
-    });
-
-    // Second pass: Collect all unique time ranges (excluding full-day holidays)
-    Object.values(weekly).forEach((daySlots) => {
-      daySlots.forEach((slot) => {
-        if (slot.startTime && slot.endTime) {
-          const timeKey = `${slot.startTime}-${slot.endTime}`;
-          // Only add if it's not a full-day holiday time range
-          if (timeKey !== "00:00-23:59") {
-            timeSet.add(timeKey);
-          }
-        }
-      });
-    });
-
-    // Generate sorted time rows
-    const filteredTimeRows = Array.from(timeSet)
-      .map((timeRange) => {
-        const [start, end] = timeRange.split("-");
-        return { start, end, key: timeRange };
-      })
-      .sort((a, b) => a.start.localeCompare(b.start));
-
-    return { timeRows: filteredTimeRows, fullDayHolidays };
-  })();
-
   // Get course info - Updated to use timetableId and scheduleData
   const renderFirstSlot =
     todaySlots.length > 0 ? todaySlots[0] : Object.values(weekly).flat()[0];
@@ -705,23 +645,82 @@ export default function StudentTimetable() {
     renderFirstSlot?.yearLabel ||
     "";
 
-// Loading State
-if (loading) {
-  return (
-    <div className="parent-portal-wrapper">
-      <div
-        className="parent-portal-container parent-loading-container"
-        style={{ minHeight: "70vh" }}
-      >
-        <Loading
-          size="md"
-          color="primary"
-          text="Loading Your Timetable..."
+  // Security checks (after hooks to satisfy rules-of-hooks)
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== "STUDENT") return <Navigate to="/student/dashboard" />;
+
+  // Loading State
+  if (loading) {
+    return (
+      <div className="st-container" role="main">
+        <style>{componentStyles}</style>
+        <Breadcrumb
+          items={[
+            { label: "Dashboard", path: "/student/dashboard" },
+            { label: "My Timetable" },
+          ]}
         />
+        <PageHeader
+          icon={FaGraduationCap}
+          title="My Class Timetable"
+          actions={
+            <>
+              <div className="st-time-badge">
+                <FaClock className="st-badge-icon" />
+                <div className="st-badge-text">
+                  <span className="st-badge-label">Current Time</span>
+                  <span className="st-badge-value">
+                    {currentTime.toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setToastShown({ success: false, error: false });
+                  loadTimetable(true);
+                }}
+                style={{
+                  minHeight: "48px",
+                  padding: "0 20px",
+                  border: "1px solid rgba(255, 255, 255, 0.35)",
+                  borderRadius: "12px",
+                  background: "rgba(255, 255, 255, 0.12)",
+                  color: "#ffffff",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "9px",
+                  fontSize: "15px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 10px rgba(20, 27, 41, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <FaSyncAlt className={loading ? "st-spin" : ""} />
+                <span>Refresh</span>
+              </button>
+            </>
+          }
+        />
+        <div className="st-state-card">
+          <Loading size="md" color="primary" text="Loading Your Timetable..." />
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   if (error) {
     return (
@@ -833,67 +832,6 @@ if (loading) {
   }
 />
 
-      {/* Phase 2: Date Navigation Bar */}
-      <div className="st-date-nav">
-        <div className="st-date-nav-left">
-          <button
-            onClick={goToPreviousWeek}
-            className="st-nav-btn"
-            title="Previous Week"
-          >
-            <FaChevronLeft />
-          </button>
-          <button
-            onClick={goToCurrentWeek}
-            className={`st-nav-btn st-nav-today${isCurrentWeek ? " st-nav-today--active" : ""}`}
-            title="Go to Current Week"
-          >
-            <FaCalendarAlt /> Current Week
-          </button>
-          <button
-            onClick={goToNextWeek}
-            className="st-nav-btn"
-            title="Next Week"
-          >
-            <FaChevronRight />
-          </button>
-          <div className="st-date-range">
-            <FaCalendarAlt className="st-date-icon" />
-            <span>
-              {parseLocalDate(dateRange.startDate).toLocaleDateString("en-IN", {
-                month: "short",
-                day: "numeric",
-              })}{" "}
-              -{" "}
-              {parseLocalDate(dateRange.endDate).toLocaleDateString("en-IN", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </span>
-          </div>
-        </div>
-        <div className="st-date-nav-right">
-          <button
-            onClick={goToToday}
-            className="st-nav-btn st-nav-today"
-            title="View Today's Schedule"
-          >
-            <FaSun /> Today
-          </button>
-          <button
-            onClick={() => {
-              setToastShown({ success: false, error: false });
-              loadTimetable(true);
-            }}
-            className="st-nav-btn"
-            title="Refresh"
-          >
-            <FaSyncAlt className={loading ? "st-spin" : ""} /> Refresh
-          </button>
-        </div>
-      </div>
-
       {/* Outside Active Range Banner */}
       {isOutsideActiveRange && (
         <motion.div
@@ -942,358 +880,250 @@ if (loading) {
         </motion.div>
       )}
 
-      {/* Stats Bar - Phase 4: Updated with summary statistics */}
-      <div className="st-stats-bar">
-        <div className="st-stat">
-          <div className="st-stat-icon st-stat-primary">
+      {/* Summary KPI Cards */}
+      <div className="st-kpi-grid">
+        <div className="st-kpi-card">
+          <div className="st-kpi-icon st-kpi-icon--week" aria-hidden="true">
             <FaCalendarAlt />
           </div>
-          <div className="st-stat-info">
-            <span className="st-stat-value">
-              {scheduleSummary?.totalScheduledSlots ||
-                Object.values(weekly).flat().length}
-            </span>
-            <span className="st-stat-label">Classes This Week</span>
+          <div className="st-kpi-content">
+            <div className="st-kpi-value">{totalWeekClasses}</div>
+            <div className="st-kpi-label">Classes This Week</div>
           </div>
         </div>
-        <div className="st-stat">
-          <div className="st-stat-icon st-stat-success">
+        <div className="st-kpi-card">
+          <div className="st-kpi-icon st-kpi-icon--today" aria-hidden="true">
             <FaSun />
           </div>
-          <div className="st-stat-info">
-            <span className="st-stat-value">{todaySlots.length}</span>
-            <span className="st-stat-label">Today's Classes</span>
+          <div className="st-kpi-content">
+            <div className="st-kpi-value">{todaySlots.length}</div>
+            <div className="st-kpi-label">Today&apos;s Classes</div>
           </div>
         </div>
-        <div className="st-stat">
-          <div className="st-stat-icon st-stat-info">
+        <div className="st-kpi-card">
+          <div className="st-kpi-icon st-kpi-icon--days" aria-hidden="true">
             <FaClock />
           </div>
-          <div className="st-stat-info">
-            <span className="st-stat-value">
-              {scheduleSummary?.workingDays ||
-                displayDays.filter((day) => weekly[day]?.length > 0).length}
-            </span>
-            <span className="st-stat-label">Working Days</span>
+          <div className="st-kpi-content">
+            <div className="st-kpi-value">{workingDaysCount}</div>
+            <div className="st-kpi-label">Working Days</div>
           </div>
         </div>
-        {/* Phase 4: New exception statistics */}
-        {scheduleSummary && (
-          <>
-            {scheduleSummary.cancelledSlots > 0 && (
-              <div className="st-stat">
-                <div className="st-stat-icon st-stat-danger">
-                  <FaExclamationTriangle />
-                </div>
-                <div className="st-stat-info">
-                  <span className="st-stat-value">
-                    {scheduleSummary.cancelledSlots}
-                  </span>
-                  <span className="st-stat-label">Cancelled</span>
-                </div>
-              </div>
-            )}
-            {scheduleSummary.extraClasses > 0 && (
-              <div className="st-stat">
-                <div className="st-stat-icon st-stat-success">
-                  <FaCheckCircle />
-                </div>
-                <div className="st-stat-info">
-                  <span className="st-stat-value">
-                    {scheduleSummary.extraClasses}
-                  </span>
-                  <span className="st-stat-label">Extra Classes</span>
-                </div>
-              </div>
-            )}
-            {scheduleSummary.holidays > 0 && (
-              <div className="st-stat">
-                <div className="st-stat-icon st-stat-warning">
-                  <FaCalendarAlt />
-                </div>
-                <div className="st-stat-info">
-                  <span className="st-stat-value">
-                    {scheduleSummary.holidays}
-                  </span>
-                  <span className="st-stat-label">Holidays</span>
-                </div>
-              </div>
-            )}
-          </>
-        )}
       </div>
 
-      {/* Today's Classes - Phase 4: Improved empty state */}
-      {todaySlots.length === 0 ? (
-        <motion.div
-          variants={fadeInVariants}
-          initial="hidden"
-          animate="visible"
-          className="st-section st-section-today"
-        >
-          <div className="st-empty-state">
-            {scheduleSummary?.holidays > 0 ? (
-              <>
-                <FaCalendarAlt
-                  className="st-empty-icon st-empty-icon-warning"
-                  aria-hidden="true"
-                />
-                <h3>Holiday Today</h3>
-                <p>Enjoy your holiday! No classes scheduled.</p>
-              </>
-            ) : scheduleSummary?.cancelledSlots > 0 ? (
-              <>
-                <FaExclamationTriangle
-                  className="st-empty-icon st-empty-icon-danger"
-                  aria-hidden="true"
-                />
-                <h3>All Classes Cancelled</h3>
-                <p>
-                  All classes for today have been cancelled. Check the weekly
-                  schedule for updates.
-                </p>
-              </>
-            ) : (
-              <>
-                <FaSun className="st-empty-icon" aria-hidden="true" />
-                <h3>No Classes Today</h3>
-                <p>Enjoy your free day or catch up on studies!</p>
-                <button onClick={goToCurrentWeek} className="st-empty-cta-btn">
-                  <FaCalendarAlt /> View Current Week
-                </button>
-              </>
-            )}
-          </div>
-        </motion.div>
-      ) : (
-        <motion.div
-          variants={fadeInVariants}
-          initial="hidden"
-          animate="visible"
-          className="st-section st-section-today"
-        >
-          <div className="st-section-header">
-            <div className="st-section-title-wrapper">
-              <FaSun
-                className="st-section-icon st-sun-icon"
-                aria-hidden="true"
-              />
-              <h2 id="todays-classes-heading">Today's Classes</h2>
-            </div>
-            <div
-              className="st-section-badge"
-              aria-label={`${todaySlots.length} classes today`}
-            >
-              <FaInfoCircle aria-hidden="true" />
-              <span>
-                {todaySlots.length === 1 &&
-                todaySlots[0].status === "HOLIDAY" &&
-                todaySlots[0].startTime === "00:00" &&
-                todaySlots[0].endTime === "23:59"
-                  ? "Full Day Holiday"
-                  : `${todaySlots.length} ${
-                      todaySlots.length === 1 ? "class" : "classes"
-                    }`}
-              </span>
-            </div>
-          </div>
-          <div
-            className="st-today-grid"
-            aria-labelledby="todays-classes-heading"
-          >
-            {(() => {
-              // Check if today is a full-day holiday
-              const isFullDayHoliday =
-                todaySlots.length === 1 &&
-                todaySlots[0].status === "HOLIDAY" &&
-                todaySlots[0].startTime === "00:00" &&
-                todaySlots[0].endTime === "23:59";
-
-              if (isFullDayHoliday) {
-                // Render special full-day holiday card
-                return <TodayHolidayCard slot={todaySlots[0]} index={0} />;
-              }
-
-              // Otherwise, render regular slot cards
-              return todaySlots.map((slot, idx) => (
-                <TodaySlotCard key={slot._id} slot={slot} index={idx} />
-              ));
-            })()}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Weekly Timetable Table */}
+      {/* Weekly Planner */}
       <motion.div
         variants={fadeInVariants}
         initial="hidden"
         animate="visible"
-        className="st-section st-section-weekly"
-        id="timetable-content"
+        className="st-planner-card"
         style={{ position: "relative" }}
       >
-        {/* Subtle loading overlay during week navigation */}
         {isNavigating && (
           <div className="st-navigating-overlay">
             <FaSyncAlt className="st-navigating-spinner" />
             <span>Loading timetable...</span>
           </div>
         )}
-        <div className="st-section-header">
-          <div className="st-section-title-wrapper">
-            <FaCalendarAlt className="st-section-icon" aria-hidden="true" />
-            <h2 id="weekly-schedule-heading">Weekly Schedule</h2>
+        <div className="st-planner-header">
+          <div className="st-planner-title-block">
+            <h2 className="st-planner-title">
+              <FaCalendarAlt aria-hidden="true" />
+              <span>Weekly Planner</span>
+            </h2>
+            <div className="st-planner-range">
+              {parseLocalDate(dateRange.startDate).toLocaleDateString("en-IN", {
+                month: "short",
+                day: "numeric",
+              })}{" "}
+              -{" "}
+              {parseLocalDate(dateRange.endDate).toLocaleDateString("en-IN", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </div>
           </div>
-          <div
-            className={`st-section-badge st-full-week-toggle ${fullWeekView ? "st-active" : ""}`}
-            aria-label="Full week view"
-            role="button"
-            tabIndex={0}
-            onClick={() => setFullWeekView((prev) => !prev)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setFullWeekView((prev) => !prev);
-              }
-            }}
-          >
-            <FaBook aria-hidden="true" />
-            <span>Full Week View</span>
+          <div className="st-planner-nav">
+            <button
+              type="button"
+              onClick={goToPreviousWeek}
+              className="st-planner-nav-btn"
+              title="Previous Week"
+              aria-label="Previous week"
+            >
+              <FaChevronLeft />
+            </button>
+            <button
+              type="button"
+              onClick={goToToday}
+              className="st-planner-today-btn"
+              title="Today"
+            >
+              <FaSun aria-hidden="true" />
+              <span>Today</span>
+            </button>
+            <button
+              type="button"
+              onClick={goToNextWeek}
+              className="st-planner-nav-btn"
+              title="Next Week"
+              aria-label="Next week"
+            >
+              <FaChevronRight />
+            </button>
           </div>
         </div>
-        <div
-          className="st-table-container erp-timetable-responsive"
-          role="region"
-          aria-labelledby="weekly-schedule-heading"
-          aria-label="Weekly timetable"
-        >
-          <table className="st-timetable-table" role="table">
-            <thead>
-              <tr>
-                <th className="st-time-col-header erp-timetable-time" scope="col">
-                  <FaClock aria-hidden="true" /> Time
-                </th>
-                {displayDays.map((day, idx) => {
-                  const dayDate = getDateForDay(day);
-                  const dateStr = formatDateDDMMYYYY(dayDate);
-                  const todayDayCode = DAY_MAP[new Date().getDay()];
-                  const isToday = day === todayDayCode;
-                  return (
-                    <th
-                      key={day}
-                      className={`st-day-col-header ${isToday ? "st-today-col" : ""} erp-timetable-day`}
-                      scope="col"
-                       aria-label={`${displayDayNames[idx]}${isToday ? " (Today)" : ""}`}
-                     >
-                       <div className="st-day-header-content">
-                         <span className="st-day-name">{displayDayNames[idx]}</span>
-                        {dateStr && (
-                          <span className="st-day-date">
-                            {dateStr}
-                             {isToday && (
-                               <span className="st-today-badge"> (Today)</span>
-                             )}
+
+        <div className="st-day-selector" role="tablist" aria-label="Select day">
+          {ALL_DAYS.map((day, idx) => {
+            const dayDate = getDateForDay(day);
+            const slots = weekly[day] || [];
+            const hasClasses = slots.length > 0;
+            const isSelected = selectedDay === day;
+            const isToday = isCurrentWeekRange && day === todayDayCode;
+            const dateLabel = dayDate
+              ? dayDate.toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+              : "";
+            return (
+              <button
+                key={day}
+                type="button"
+                role="tab"
+                aria-selected={isSelected}
+                className={`st-day-card ${isSelected ? "is-selected" : ""} ${isToday ? "is-today" : ""} ${hasClasses ? "has-classes" : ""}`}
+                onClick={() => setSelectedDay(day)}
+              >
+                <span className="st-day-card-name">{DAY_NAMES_FULL[idx].slice(0, 3)}</span>
+                <span className="st-day-card-date">{dateLabel}</span>
+                <span className="st-day-card-count">{slots.length}</span>
+                {hasClasses && <span className="st-day-card-dot" aria-hidden="true" />}
+                {isToday && <span className="st-day-card-today">Today</span>}
+              </button>
+            );
+          })}
+        </div>
+      </motion.div>
+
+      {/* Selected Day Schedule */}
+      <motion.div
+        variants={fadeInVariants}
+        initial="hidden"
+        animate="visible"
+        className="st-schedule-card"
+        id="timetable-content"
+      >
+        <div className="st-schedule-header">
+          <div className="st-schedule-title-wrap">
+            <h2 className="st-schedule-title">Selected Day Schedule</h2>
+            <p className="st-schedule-subtitle">{selectedDayLabel}</p>
+          </div>
+          <div className="st-schedule-count">
+            {selectedDaySlots.length} {selectedDaySlots.length === 1 ? "class" : "classes"}
+          </div>
+        </div>
+
+        {totalWeekClasses === 0 && !isOutsideActiveRange ? (
+          <div className="st-empty-state st-empty-state--week">
+            <FaCalendarAlt className="st-empty-icon" aria-hidden="true" />
+            <h3>No Classes This Week</h3>
+            <p>There are no classes scheduled for the selected week. Try navigating to another week.</p>
+          </div>
+        ) : isOutsideActiveRange ? (
+          <div className="st-empty-state st-empty-state--week">
+            <FaExclamationTriangle className="st-empty-icon st-empty-icon-warning" aria-hidden="true" />
+            <h3>No Timetable for This Week</h3>
+            <p>Use &quot;Go to Current Week&quot; above or navigate to a week within the active timetable period.</p>
+          </div>
+        ) : selectedDaySlots.length === 0 ? (
+          <div className="st-empty-state st-empty-state--day">
+            <FaSun className="st-empty-icon" aria-hidden="true" />
+            <h3>No Classes on This Day</h3>
+            <p>There are no classes scheduled for {selectedDayLabel}. Select another day to view its schedule.</p>
+          </div>
+        ) : (
+          <div className="st-day-timeline">
+            {selectedDaySlots.map((slot, idx) => {
+              const typeKey = (slot.slotType || "LECTURE").toUpperCase();
+              const typeColors = BRAND_COLORS.slotTypes[typeKey] || BRAND_COLORS.slotTypes.LECTURE;
+              const isCancelled = slot.status === "CANCELLED" || slot.exception?.type === "CANCELLED";
+              const isExtra = slot.status === "EXTRA" || slot.exception?.type === "EXTRA";
+              const isRescheduled = slot.status === "RESCHEDULED" || slot.exception?.type === "RESCHEDULED";
+              const isHoliday = slot.status === "HOLIDAY" || slot.exception?.type === "HOLIDAY";
+              const isFullDayHoliday = isHoliday && slot.startTime === "00:00" && slot.endTime === "23:59";
+
+              if (isFullDayHoliday) {
+                return (
+                  <div key={slot._id || `holiday-${idx}`} className="st-timeline-item">
+                    <div className="st-timeline-card st-timeline-card--holiday">
+                      <TodayHolidayCard slot={slot} index={idx} />
+                    </div>
+                  </div>
+                );
+              }
+
+              const courseLabel = slot.course_id?.name || slot.timetable_id?.course_id?.name || courseName || "";
+              const semVal = slot.timetable_id?.semester || semester;
+              const metaLine = [courseLabel, semVal ? `Semester ${semVal}` : "", slot.timetable_id?.division || division]
+                .filter(Boolean)
+                .join(" • ");
+
+              return (
+                <div key={slot._id || `${slot.subject_id?.name}-${slot.startTime}-${idx}`} className="st-timeline-item">
+                  <div className={`st-timeline-card ${isCancelled ? "is-cancelled" : ""}`}>
+                    <div className="st-timeline-card-top">
+                      <div className="st-timeline-time">
+                        <FaClock aria-hidden="true" />
+                        <span>{formatTime12Hour(slot.startTime)} - {formatTime12Hour(slot.endTime)}</span>
+                      </div>
+                      <div className="st-timeline-badges">
+                        <span className="st-timeline-type" style={{ color: typeColors.text, background: typeColors.bg, borderColor: typeColors.border }}>
+                          {slot.slotType || "LECTURE"}
+                        </span>
+                        {isCancelled && <span className="st-timeline-status st-timeline-status--cancelled">Cancelled</span>}
+                        {isExtra && <span className="st-timeline-status st-timeline-status--extra">Extra</span>}
+                        {isRescheduled && <span className="st-timeline-status st-timeline-status--rescheduled">Rescheduled</span>}
+                      </div>
+                    </div>
+                    <h3 className="st-timeline-subject">{slot.subject_id?.name || slot.subject_id?.code || "Subject"}</h3>
+                    {metaLine && <div className="st-timeline-meta">{metaLine}</div>}
+                    <div className="st-timeline-details">
+                      {slot.teacher_id?.name && (
+                        <div className="st-timeline-detail">
+                          <FaChalkboardTeacher aria-hidden="true" />
+                          <span>{slot.teacher_id.name}</span>
+                        </div>
+                      )}
+                      {slot.room && (
+                        <div className="st-timeline-detail">
+                          <FaDoorOpen aria-hidden="true" />
+                          <span>{slot.room}</span>
+                        </div>
+                      )}
+                      {slot.subject_id?.code && (
+                        <div className="st-timeline-detail">
+                          <FaBook aria-hidden="true" />
+                          <span>{slot.subject_id.code}</span>
+                        </div>
+                      )}
+                    </div>
+                    {slot.exception?.reason && (
+                      <div className={`st-timeline-reason st-timeline-reason--${String(slot.status || slot.exception?.type || "info").toLowerCase()}`}>
+                        <FaInfoCircle aria-hidden="true" />
+                        <span>{slot.exception.reason}</span>
+                        {slot.exception.rescheduledTo && (
+                          <span className="st-timeline-rescheduled-to">
+                            → {new Date(slot.exception.rescheduledTo).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" })}
                           </span>
                         )}
                       </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {dynamicTimeRows.length === 0 ? (
-                <tr>
-                  <td className="st-time-cell" colSpan={displayDays.length + 1}>
-                    <div className="st-no-slots">
-                      <FaCalendarAlt className="st-no-slots-icon" />
-                      <span>No classes scheduled for this week</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                dynamicTimeRows.map((timeRow, rowIndex) => {
-                  const timeStr = `${formatTime12Hour(timeRow.start)} - ${formatTime12Hour(timeRow.end)}`;
-                  return (
-                    <tr key={timeRow.key}>
-                      <td className="st-time-cell erp-timetable-time" scope="row">
-                        {timeStr}
-                      </td>
-                      {displayDays.map((day) => {
-                        // Check if this day has a full-day holiday
-                        const holidaySlot = fullDayHolidays[day];
-
-                        if (holidaySlot) {
-                          // Only render holiday card in the first row
-                          if (rowIndex === 0) {
-                            return (
-                              <td
-                                key={`${day}-${timeRow.key}`}
-                                className="st-slot-cell erp-timetable-cell"
-                                rowSpan={dynamicTimeRows.length}
-                                style={{ verticalAlign: "top" }}
-                              >
-                                <WeeklySlotCard slot={holidaySlot} />
-                              </td>
-                            );
-                          } else {
-                            // Skip this cell in subsequent rows (it's covered by rowSpan)
-                            return null;
-                          }
-                        }
-
-                        // Regular slot logic for non-holiday days
-                        const matchingSlots = (weekly[day] || []).filter(
-                          (s) =>
-                            s.startTime === timeRow.start &&
-                            s.endTime === timeRow.end,
-                        );
-                        const hasConflict = matchingSlots.length > 1;
-                        return (
-                          <td
-                            key={`${day}-${timeRow.key}`}
-                            className={`st-slot-cell erp-timetable-cell ${hasConflict ? "st-slot-cell--conflict" : ""}`}
-                          >
-                            {matchingSlots.length > 0 ? (
-                              <div
-                                className={`st-slot-stack ${hasConflict ? "st-slot-stack--conflict" : ""}`}
-                              >
-                                {hasConflict && (
-                                  <div className="st-conflict-badge">
-                                    <FaExclamationTriangle />{" "}
-                                    {matchingSlots.length} classes overlap
-                                  </div>
-                                )}
-                                {matchingSlots.map((slot, idx) => (
-                                  <div
-                                    key={
-                                      slot._id ||
-                                      `${slot.subject_id?.name}-${idx}-${timeRow.key}`
-                                    }
-                                    className="st-slot-item"
-                                  >
-                                    <WeeklySlotCard slot={slot} />
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div
-                                className="st-empty-cell"
-                                aria-label="No class"
-                              >
-                                —
-                              </div>
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </motion.div>
     </div>
   );
@@ -1628,104 +1458,15 @@ function WeeklySlotCard({ slot }) {
 
 /* ================= CSS STYLES ================= */
 const componentStyles = `
-  /* ================= CONTAINER ================= */
   .st-container {
     min-height: 100vh;
-    background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+    background: linear-gradient(180deg, #f1f5f9 0%, #e8eef5 100%);
     padding: 0.5rem 1.5rem 1.5rem;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   }
 
-  /* ================= LOADING ================= */
-  .st-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 80vh;
-    gap: 1.5rem;
-  }
-
-  .st-loading-icon {
-    font-size: 4rem;
-    color: #1a4b6d;
-  }
-
-  .st-loading h3 {
-    margin: 0;
-    color: #1a4b6d;
-    font-size: 1.5rem;
-  }
-
-  .st-loading p {
-    margin: 0;
-    color: #64748b;
-  }
-
-  /* ================= HEADER ================= */
-  .st-header {
-    background: linear-gradient(135deg, #1a4b6d 0%, #2d6f8f 100%);
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1.5rem;
-    box-shadow: 0 10px 40px rgba(26, 75, 109, 0.3);
-    color: white;
-  }
-
-  .st-header-left {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    flex-wrap: wrap;
-  }
-
-  .st-header-icon {
-    width: 64px;
-    height: 64px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-  }
-
-  .st-header-title {
-    margin: 0;
-    font-size: 1.75rem;
-    font-weight: 700;
-  }
-
-  .st-header-subtitle {
-    margin: 0.5rem 0 0;
-    opacity: 0.95;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    font-size: 0.95rem;
-  }
-
-  .st-subtitle-icon {
-    font-size: 0.9rem;
-  }
-
-  .st-sep {
-    opacity: 0.6;
-    margin: 0 0.25rem;
-  }
-
-  .st-header-right {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    flex-wrap: wrap;
-  }
+  .st-spin { animation: st-spin 1s linear infinite; }
+  @keyframes st-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
   .st-time-badge {
     background: rgba(255, 255, 255, 0.15);
@@ -1736,1212 +1477,279 @@ const componentStyles = `
     gap: 0.75rem;
     backdrop-filter: blur(10px);
   }
+  .st-badge-icon { font-size: 1.5rem; opacity: 0.9; }
+  .st-badge-text { display: flex; flex-direction: column; }
+  .st-badge-label { font-size: 0.7rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
+  .st-badge-value { font-size: 1.1rem; font-weight: 700; }
+  .st-subtitle-icon { font-size: 0.9rem; }
+  .st-sep { opacity: 0.6; margin: 0 0.25rem; }
 
-  .st-badge-icon {
-    font-size: 1.5rem;
-    opacity: 0.9;
+  .st-state-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
   }
 
-  .st-badge-text {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .st-badge-label {
-    font-size: 0.7rem;
-    opacity: 0.8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .st-badge-value {
-    font-size: 1.1rem;
-    font-weight: 700;
-  }
-
-  .st-refresh-btn {
-    background: white;
-    color: #1a4b6d;
-    border: none;
-    padding: 0.75rem 1.25rem;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
-  }
-
-  .st-refresh-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.3);
-  }
-
-  .st-spin {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* ================= DATE NAVIGATION ================= */
-  .st-date-nav {
-    background: white;
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  }
-
-  .st-date-nav-left {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .st-date-nav-right {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .st-nav-btn {
-    background: #f0f4f8;
-    border: none;
-    padding: 0.6rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #1a4b6d;
-    transition: all 0.2s ease;
-  }
-
-  .st-nav-btn:hover {
-    background: #e2e8f0;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  .st-nav-btn:active {
-    transform: translateY(0);
-  }
-
-  .st-nav-today {
-    background: #1a4b6d;
-    color: white;
-  }
-
-  .st-nav-today:hover {
-    background: #2d6f8f;
-  }
-
-  .st-nav-today--active {
-    background: #1565c0;
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4);
-  }
-
-  .st-date-range {
-    background: #e3f2fd;
-    padding: 0.6rem 1rem;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: #1565c0;
-    font-size: 0.95rem;
-  }
-
-  .st-date-icon {
-    font-size: 1.1rem;
-  }
-
-  /* ================= PHASE 3: EXCEPTION BADGES ================= */
-  .st-badges {
-    display: flex;
-    gap: 0.4rem;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .st-exception-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .st-exception-badge.st-cancelled {
-    background: #fee2e2;
-    color: #dc2626;
-    border: 1px solid #fecaca;
-  }
-
-  .st-exception-badge.st-extra {
-    background: #dcfce7;
-    color: #16a34a;
-    border: 1px solid #bbf7d0;
-  }
-
-  .st-exception-badge.st-rescheduled {
-    background: #dbeafe;
-    color: #2563eb;
-    border: 1px solid #bfdbfe;
-  }
-
-  .st-exception-badge.st-holiday {
-    background: #fef3c7;
-    color: #b45309;
-    border: 1px solid #fde68a;
-  }
-
-  .st-exception-reason {
-    margin-top: 0.75rem;
-    padding: 0.6rem 0.8rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    line-height: 1.4;
-  }
-
-  .st-exception-reason.st-cancelled {
-    background: #fee2e2;
-    color: #991b1b;
-    border-left: 3px solid #dc2626;
-  }
-
-  .st-exception-reason.st-extra {
-    background: #dcfce7;
-    color: #166534;
-    border-left: 3px solid #16a34a;
-  }
-
-  .st-exception-reason.st-rescheduled {
-    background: #dbeafe;
-    color: #1e40af;
-    border-left: 3px solid #2563eb;
-  }
-
-  .st-exception-reason.st-holiday {
-    background: #fef3c7;
-    color: #92400e;
-    border-left: 3px solid #f59e0b;
-  }
-
-  .st-exception-reason.st-info {
-    background: #f0f4f8;
-    color: #475569;
-    border-left: 3px solid #64748b;
-  }
-
-  .st-reason-icon {
-    flex-shrink: 0;
-    margin-top: 0.1rem;
-  }
-
-  .st-rescheduled-info {
-    margin-left: 0.5rem;
-    font-weight: 600;
-    color: #2563eb;
-  }
-
-  /* Weekly slot badges */
-  .st-weekly-badges {
-    display: flex;
-    gap: 0.3rem;
-    align-items: center;
-    justify-content: flex-end;
-  }
-
-  .st-weekly-exception {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    font-size: 0.7rem;
-  }
-
-  .st-weekly-exception.st-cancelled {
-    background: #dc2626;
-    color: white;
-  }
-
-  .st-weekly-exception.st-extra {
-    background: #16a34a;
-    color: white;
-  }
-
-  .st-weekly-exception.st-holiday {
-    background: #f59e0b;
-    color: white;
-  }
-
-  .st-weekly-reason {
-    margin-top: 0.3rem;
-    padding: 0.25rem 0.4rem;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
-    font-size: 0.6rem;
-    color: #64748b;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  /* ================= STATS BAR ================= */
-  .st-stats-bar {
+  /* KPI cards */
+  .st-kpi-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
   }
-
-  .st-stat {
-    background: white;
-    padding: 1.25rem;
-    border-radius: 12px;
+  .st-kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1rem 1.1rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    gap: 0.9rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   }
-
-  .st-stat-icon {
-    width: 48px;
-    height: 48px;
+  .st-kpi-icon {
+    width: 46px;
+    height: 46px;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     flex-shrink: 0;
   }
+  .st-kpi-icon--week { background: #e0f2fe; color: #0369a1; }
+  .st-kpi-icon--today { background: #dcfce7; color: #15803d; }
+  .st-kpi-icon--days { background: #e0e7ff; color: #4338ca; }
+  .st-kpi-content { min-width: 0; }
+  .st-kpi-value { font-size: 1.55rem; font-weight: 700; color: #0f172a; line-height: 1.1; }
+  .st-kpi-label { font-size: 0.85rem; color: #64748b; font-weight: 500; margin-top: 0.15rem; }
 
-  .st-stat-primary { background: #e3f2fd; color: #1976d2; }
-  .st-stat-success { background: #e8f5e9; color: #388e3c; }
-  .st-stat-info { background: #e0f7fa; color: #0097a7; }
-  .st-stat-danger { background: #fee2e2; color: #dc2626; }
-  .st-stat-warning { background: #fef3c7; color: #f59e0b; }
-
-  .st-stat-info {
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    border-radius: 12px;
-  }
-
-  .st-stat-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1e293b;
-  }
-
-  .st-stat-label {
-    font-size: 0.85rem;
-    color: #64748b;
-  }
-
-  /* ================= OUTSIDE RANGE BANNER ================= */
+  /* Outside range */
   .st-outside-range-banner {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-    border: 1px solid #f59e0b;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
     color: #92400e;
-    padding: 1rem 1.25rem;
+    padding: 0.9rem 1rem;
     border-radius: 12px;
     display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+    align-items: flex-start;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
   }
-
-  .st-banner-icon {
-    font-size: 1.5rem;
-    color: #f59e0b;
-    flex-shrink: 0;
-  }
-
-  .st-banner-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .st-banner-content strong {
-    font-size: 1rem;
-    font-weight: 700;
-  }
-
-  .st-banner-content span {
-    font-size: 0.85rem;
-    opacity: 0.9;
-  }
-
+  .st-banner-icon { font-size: 1.25rem; color: #d97706; flex-shrink: 0; margin-top: 0.1rem; }
+  .st-banner-content { flex: 1; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.9rem; }
+  .st-banner-content strong { color: #78350f; }
   .st-banner-btn {
-    background: #f59e0b;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
+    background: #d97706; color: #fff; border: none; padding: 0.5rem 0.85rem; border-radius: 8px;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;
+    flex-shrink: 0; white-space: nowrap;
   }
 
-  .st-banner-btn:hover {
-    background: #d97706;
-    transform: translateY(-1px);
-  }
-
-  /* ================= NAVIGATING OVERLAY ================= */
-  .st-navigating-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(2px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    z-index: 10;
+  /* Planner */
+  .st-planner-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 16px;
-    color: #1a4b6d;
-    font-weight: 600;
-    font-size: 0.95rem;
+    padding: 1.15rem 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
   }
-
-  .st-navigating-spinner {
-    animation: st-spin 1s linear infinite;
-    font-size: 1.25rem;
-  }
-
-  @keyframes st-spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  /* ================= EMPTY STATE ================= */
-  .st-empty-state {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: #64748b;
-  }
-
-  .st-empty-icon {
-    font-size: 4rem;
-    color: #f59e0b;
+  .st-planner-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
     margin-bottom: 1rem;
-    opacity: 0.8;
+    flex-wrap: wrap;
   }
-
-  .st-empty-icon.st-empty-icon-warning {
-    color: #f59e0b;
-  }
-
-  .st-empty-icon.st-empty-icon-danger {
-    color: #dc2626;
-  }
-
-  .st-empty-state h3 {
-    margin: 0 0 0.5rem 0;
-    color: #1e293b;
-    font-weight: 700;
-    font-size: 1.5rem;
-  }
-
-  .st-empty-state p {
+  .st-planner-title-block { min-width: 0; }
+  .st-planner-title {
     margin: 0;
-    color: #64748b;
-    font-size: 1rem;
-  }
-
-  /* Phase 4: Empty state CTA button */
-  .st-empty-cta-btn {
-    margin-top: 1.5rem;
-    background: #1a4b6d;
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    transition: all 0.2s ease;
   }
-
-  .st-empty-cta-btn:hover {
-    background: #2d6f8f;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(26, 75, 109, 0.3);
+  .st-planner-title svg { color: #0e7490; }
+  .st-planner-range { margin-top: 0.2rem; font-size: 0.85rem; color: #64748b; font-weight: 500; }
+  .st-planner-nav { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+  .st-planner-nav-btn, .st-planner-today-btn {
+    border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; border-radius: 10px;
+    min-height: 38px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    gap: 0.4rem; font-size: 0.85rem; font-weight: 600; transition: all 0.15s ease;
   }
+  .st-planner-nav-btn { width: 38px; padding: 0; }
+  .st-planner-today-btn { padding: 0 0.85rem; color: #0f766e; background: #f0fdfa; border-color: #99f6e4; }
+  .st-planner-nav-btn:hover, .st-planner-today-btn:hover { background: #e2e8f0; }
+  .st-planner-today-btn:hover { background: #ccfbf1; }
 
-  /* ================= SCREEN READER ONLY ================= */
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .sr-only-focusable:focus {
-    position: static;
-    width: auto;
-    height: auto;
-    margin: 0;
-    overflow: visible;
-    clip: auto;
-    white-space: normal;
-  }
-
-  /* ================= SECTIONS ================= */
-  .st-section {
-    background: white;
-    border-radius: 16px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  }
-
-  .st-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #f1f5f9;
-  }
-
-  .st-section-title-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-
-  .st-section-icon {
-    font-size: 1.5rem;
-    color: #1a4b6d;
-  }
-
-  .st-sun-icon {
-    color: #f59e0b;
-  }
-
-  .st-section-title {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1e293b;
-  }
-
-  .st-section-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: #f1f5f9;
-    color: #64748b;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
-
-  .st-full-week-toggle {
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.2s ease;
-  }
-
-  .st-full-week-toggle:hover {
-    background: #e2e8f0;
-    color: #33415a;
-  }
-
-  .st-full-week-toggle:focus {
-    outline: 2px solid #4fc3f7;
-    outline-offset: 2px;
-  }
-
-  .st-full-week-toggle.st-active {
-    background: #1a4b6d;
-    color: #ffffff;
-  }
-
-  .st-full-week-toggle.st-active:hover {
-    background: #2d6f8f;
-  }
-
-  /* ================= TODAY'S GRID ================= */
-  .st-today-grid {
+  .st-day-selector {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.6rem;
   }
-
-  .st-today-card {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    border-radius: 12px;
-    padding: 1.25rem;
-    transition: all 0.3s ease;
-  }
-
-  .st-today-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-  }
-
-  .st-today-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px dashed #e2e8f0;
-  }
-
-  .st-today-time {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
-    color: #1a4b6d;
-  }
-
-  .st-time-icon {
-    color: #64748b;
-  }
-
-  .st-time-text {
-    font-size: 0.95rem;
-  }
-
-  .st-type-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 8px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-
-  .st-today-card-body {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .st-today-subject {
-    margin: 0;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #1e293b;
-    line-height: 1.3;
-  }
-
-  .st-today-card-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .st-today-detail {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: #64748b;
-  }
-
-  .st-detail-icon {
-    color: #1a4b6d;
-    font-size: 0.9rem;
-  }
-
-  /* ================= WEEKLY TABLE ================= */
-  .st-table-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-  }
-
-  .st-timetable-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 1000px;
-  }
-
-  .st-timetable-table thead {
-    background: linear-gradient(135deg, #1a4b6d, #2d6f8f);
-    color: white;
-  }
-
-  .st-time-col-header {
-    padding: 1rem;
-    font-weight: 700;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    background: #0f3a4a;
-    width: 140px;
-    text-align: center;
-  }
-
-  .st-day-col-header {
-    padding: 1rem;
-    font-weight: 700;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    min-width: 140px;
-  }
-
-  .st-day-header-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .st-day-name {
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .st-day-date {
-    font-size: 0.75rem;
-    font-weight: 400;
-    opacity: 0.85;
-    text-transform: none;
-    letter-spacing: 0;
-  }
-
-  .st-today-badge {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #4fc3f7;
-    margin-left: 0.25rem;
-  }
-
-  .st-today-col {
-    background: rgba(255, 255, 255, 0.15);
+  .st-day-card {
     position: relative;
-  }
-
-  .st-timetable-table tbody tr {
-    border-bottom: 1px solid #e2e8f0;
-    transition: background 0.3s ease;
-  }
-
-  .st-timetable-table tbody tr:hover {
-    background: #f8fafc;
-  }
-
-  .st-time-cell {
-    padding: 0.75rem;
-    background: #f8fafc;
-    font-weight: 600;
-    font-size: 0.85rem;
-    color: #1a4b6d;
-    text-align: center;
     border: 1px solid #e2e8f0;
-  }
-
-  .st-slot-cell {
-    padding: 0.5rem;
-    border: 1px solid #e2e8f0;
-    vertical-align: top;
-    height: 140px;
-  }
-
-  .st-empty-cell {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #e2e8f0;
-    font-size: 1.5rem;
-  }
-
-  .st-no-slots {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 0.7rem 0.5rem 0.65rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding: 3rem 2rem;
-    color: #94a3b8;
-    font-size: 1.1rem;
+    gap: 0.15rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-width: 0;
+  }
+  .st-day-card:hover { border-color: #94a3b8; background: #ffffff; }
+  .st-day-card.is-selected {
+    background: linear-gradient(180deg, #0f766e 0%, #0e7490 100%);
+    border-color: #0f766e;
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(14, 116, 144, 0.25);
+  }
+  .st-day-card.is-today:not(.is-selected) { border-color: #5eead4; background: #f0fdfa; }
+  .st-day-card-name { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: #334155; }
+  .st-day-card.is-selected .st-day-card-name { color: rgba(255,255,255,0.95); }
+  .st-day-card-date { font-size: 0.74rem; color: #64748b; }
+  .st-day-card.is-selected .st-day-card-date { color: rgba(255,255,255,0.88); }
+  .st-day-card-count { font-size: 0.82rem; font-weight: 700; color: #0f172a; margin-top: 0.1rem; }
+  .st-day-card.is-selected .st-day-card-count { color: #ffffff; }
+  .st-day-card-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #0ea5e9; margin-top: 0.1rem;
+  }
+  .st-day-card.is-selected .st-day-card-dot { background: #ffffff; }
+  .st-day-card-today {
+    margin-top: 0.15rem; font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+    color: #0f766e; background: #ccfbf1; padding: 0.1rem 0.35rem; border-radius: 999px;
+  }
+  .st-day-card.is-selected .st-day-card-today { color: #0f766e; background: #ffffff; }
+
+  .st-navigating-overlay {
+    position: absolute; inset: 0; background: rgba(255,255,255,0.72); backdrop-filter: blur(2px);
+    display: flex; align-items: center; justify-content: center; gap: 0.6rem; z-index: 5;
+    border-radius: 16px; color: #0f766e; font-weight: 600; font-size: 0.9rem;
+  }
+  .st-navigating-spinner { animation: st-spin 1s linear infinite; }
+
+  /* Schedule */
+  .st-schedule-card {
+    background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.15rem 1.25rem;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  }
+  .st-schedule-header {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+    margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid #e2e8f0;
+  }
+  .st-schedule-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #0f172a; }
+  .st-schedule-subtitle { margin: 0.2rem 0 0; font-size: 0.85rem; color: #64748b; }
+  .st-schedule-count {
+    background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0; border-radius: 999px;
+    padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 700; white-space: nowrap;
   }
 
-  .st-no-slots-icon {
-    font-size: 2.5rem;
-    opacity: 0.5;
+  .st-day-timeline { display: flex; flex-direction: column; gap: 0.85rem; }
+  .st-timeline-item { display: flex; align-items: stretch; }
+  .st-timeline-card {
+    flex: 1; min-width: 0; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #38bdf8;
+    border-radius: 12px; padding: 0.9rem 1rem;
   }
-
-  /* ================= WEEKLY SLOT ================= */
-  .st-weekly-slot {
-    border-radius: 8px;
-    padding: 0.4rem;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    transition: all 0.3s ease;
-    overflow: hidden;
+  .st-timeline-card.is-cancelled { opacity: 0.8; }
+  .st-timeline-card--holiday { padding: 0.9rem 1rem; }
+  .st-timeline-card--holiday .st-today-holiday-card { margin: 0; }
+  .st-timeline-card-top {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.35rem; flex-wrap: wrap;
   }
-
-  .st-weekly-slot:hover {
-    transform: scale(1.03);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  .st-timeline-time { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.84rem; font-weight: 700; color: #0f172a; }
+  .st-timeline-time svg { color: #64748b; }
+  .st-timeline-badges { display: inline-flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+  .st-timeline-type {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+    padding: 0.2rem 0.45rem; border-radius: 999px; border: 1px solid #bfdbfe;
   }
-
-  .st-weekly-slot-header {
-    display: flex;
-    justify-content: flex-end;
+  .st-timeline-status {
+    font-size: 0.68rem; font-weight: 700; padding: 0.2rem 0.45rem; border-radius: 999px; border: 1px solid transparent;
   }
-
-  .st-weekly-type {
-    font-size: 0.5rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 0.1rem 0.3rem;
-    border-radius: 4px;
+  .st-timeline-status--cancelled { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
+  .st-timeline-status--extra { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
+  .st-timeline-status--rescheduled { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+  .st-timeline-subject { margin: 0.1rem 0 0; font-size: 1rem; font-weight: 700; color: #0f172a; line-height: 1.3; }
+  .st-timeline-meta { margin-top: 0.2rem; font-size: 0.8rem; color: #64748b; }
+  .st-timeline-details { margin-top: 0.55rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+  .st-timeline-detail { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; color: #334155; }
+  .st-timeline-detail svg { color: #64748b; font-size: 0.78rem; }
+  .st-timeline-reason {
+    margin-top: 0.6rem; padding: 0.5rem 0.65rem; border-radius: 8px; font-size: 0.8rem;
+    display: flex; align-items: flex-start; gap: 0.4rem; background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;
   }
+  .st-timeline-reason--cancelled { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .st-timeline-reason--extra { background: #ecfdf5; color: #166534; border-color: #bbf7d0; }
+  .st-timeline-reason--rescheduled { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+  .st-timeline-reason--holiday { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+  .st-timeline-rescheduled-to { font-weight: 600; margin-left: 0.25rem; }
 
-  .st-weekly-slot-subject {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #1a4b6d;
-    line-height: 1.1;
-    flex: 1;
-    word-break: break-word;
-    overflow: visible;
-  }
+  /* Empty states */
+  .st-empty-state { text-align: center; padding: 1.75rem 1rem; color: #64748b; }
+  .st-empty-state--day { padding: 1.25rem 1rem; }
+  .st-empty-state--week { padding: 1.5rem 1rem; }
+  .st-empty-icon { font-size: 2.4rem; color: #0ea5e9; margin-bottom: 0.6rem; opacity: 0.85; }
+  .st-empty-icon-warning { color: #d97706; }
+  .st-empty-state h3 { margin: 0 0 0.3rem; color: #0f172a; font-size: 1.05rem; font-weight: 700; }
+  .st-empty-state p { margin: 0 auto; max-width: 46ch; font-size: 0.88rem; line-height: 1.5; }
 
-  .st-weekly-slot-time {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: #475569;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .st-weekly-slot-footer {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-
-  .st-weekly-detail {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.7rem;
-    color: #64748b;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .st-weekly-icon {
-    color: #1a4b6d;
-    font-size: 0.7rem;
-    flex-shrink: 0;
-  }
-
-  .st-weekly-teacher {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* ================= RESPONSIVE ================= */
-  @media (min-width: 769px) and (max-width: 1024px) {
-    .st-header {
-      padding: 1.25rem;
-      gap: 1rem;
-    }
-
-    .st-header-icon {
-      width: 56px;
-      height: 56px;
-      font-size: 1.7rem;
-    }
-
-    .st-header-title {
-      font-size: 1.55rem;
-    }
-
-    .st-header-subtitle {
-      font-size: 0.88rem;
-      line-height: 1.45;
-    }
-
-    .st-header-right {
-      gap: 0.65rem;
-    }
-
-    .st-time-badge,
-    .st-refresh-btn {
-      padding: 0.65rem 0.9rem;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .st-container {
-      padding: 0.5rem 1rem 1rem;
-    }
-
-    .st-header {
-      padding: 1.1rem;
-      gap: 1rem;
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .st-header-left {
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .st-header-right {
-      width: 100%;
-      justify-content: center;
-    }
-
-    .st-header-title {
-      font-size: 1.5rem;
-      line-height: 1.2;
-    }
-
-    .st-header-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      font-size: 1.6rem;
-    }
-
-    .st-header-subtitle {
-      justify-content: center;
-      line-height: 1.5;
-      font-size: 0.88rem;
-    }
-
-    .st-header-right {
-      gap: 0.65rem;
-    }
-
-    .st-time-badge {
-      padding: 0.6rem 0.85rem;
-    }
-
-    .st-badge-icon {
-      font-size: 1.2rem;
-    }
-
-    .st-badge-value {
-      font-size: 1rem;
-    }
-
-    .st-refresh-btn {
-      padding: 0.65rem 0.9rem;
-      font-size: 0.82rem;
-    }
-
-    /* Phase 2: Mobile responsive date navigation */
-    .st-date-nav {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .st-date-nav-left {
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .st-date-nav-right {
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .st-nav-btn {
-      font-size: 0.85rem;
-      padding: 0.5rem 0.8rem;
-    }
-
-    .st-date-range {
-      font-size: 0.85rem;
-      padding: 0.5rem 0.8rem;
-      width: 100%;
-      justify-content: center;
-    }
-
-    .st-today-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .st-stats-bar {
-      grid-template-columns: 1fr;
-    }
-
-    .st-section-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-  }
-
-  /* ================= TODAY HOLIDAY CARD ================= */
+  /* Holiday card (reused) */
   .st-today-holiday-card {
-    background: linear-gradient(135deg, #fef9e7 0%, #fef3c7 100%);
-    border: 2px solid #f59e0b;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
-    transition: all 0.3s ease;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 1px solid #fcd34d; border-radius: 12px; padding: 1.1rem;
   }
-
-  .st-today-holiday-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 32px rgba(245, 158, 11, 0.2);
-  }
-
-  .st-holiday-banner {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 2px dashed #fcd34d;
-  }
-
+  .st-holiday-banner { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding-bottom: 0.85rem; border-bottom: 1px dashed #fcd34d; }
   .st-holiday-icon-wrapper {
-    width: 64px;
-    height: 64px;
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    width: 48px; height: 48px; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
+  .st-holiday-main-icon { font-size: 1.4rem; color: white; }
+  .st-holiday-content { flex: 1; min-width: 0; }
+  .st-holiday-title { display: flex; align-items: center; gap: 0.45rem; margin: 0 0 0.25rem; font-size: 1.05rem; font-weight: 700; color: #92400e; }
+  .st-holiday-title-icon { color: #d97706; }
+  .st-holiday-reason { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 0.9rem; color: #b45309; }
+  .st-holiday-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.6rem; margin-bottom: 0.85rem; }
+  .st-holiday-detail-item { display: flex; align-items: center; gap: 0.6rem; background: rgba(255,255,255,0.55); padding: 0.6rem 0.75rem; border-radius: 8px; }
+  .st-holiday-detail-icon { color: #d97706; flex-shrink: 0; }
+  .st-holiday-detail-item > div { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
+  .st-holiday-detail-label { font-size: 0.68rem; color: #92400e; font-weight: 700; text-transform: uppercase; }
+  .st-holiday-detail-value { font-size: 0.84rem; color: #78350f; font-weight: 500; }
+  .st-holiday-message { display: flex; align-items: flex-start; gap: 0.6rem; background: rgba(255,255,255,0.5); padding: 0.75rem; border-radius: 8px; border-left: 3px solid #f59e0b; font-size: 0.85rem; color: #78350f; }
+  .st-holiday-message-icon { color: #d97706; margin-top: 0.1rem; }
 
-  .st-holiday-main-icon {
-    font-size: 2rem;
-    color: white;
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+  @media (max-width: 991.98px) {
+    .st-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .st-day-selector { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   }
-
-  .st-holiday-content {
-    flex: 1;
-  }
-
-  .st-holiday-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0 0 0.5rem 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #92400e;
-  }
-
-  .st-holiday-title-icon {
-    font-size: 1.25rem;
-    color: #f59e0b;
-  }
-
-  .st-holiday-reason {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0;
-    font-size: 1.1rem;
-    color: #b45309;
-    font-weight: 500;
-  }
-
-  .st-holiday-reason-icon {
-    color: #f59e0b;
-    font-size: 1rem;
-  }
-
-  .st-holiday-details {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .st-holiday-detail-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.6);
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-  }
-
-  .st-holiday-detail-icon {
-    font-size: 1.25rem;
-    color: #f59e0b;
-    flex-shrink: 0;
-  }
-
-  .st-holiday-detail-item > div {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .st-holiday-detail-label {
-    font-size: 0.75rem;
-    color: #92400e;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .st-holiday-detail-value {
-    font-size: 0.95rem;
-    color: #78350f;
-    font-weight: 500;
-  }
-
-  .st-holiday-message {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    background: rgba(255, 255, 255, 0.5);
-    padding: 1rem;
-    border-radius: 8px;
-    border-left: 4px solid #f59e0b;
-  }
-
-  .st-holiday-message-icon {
-    font-size: 1.25rem;
-    color: #f59e0b;
-    flex-shrink: 0;
-    margin-top: 0.125rem;
-  }
-
-  .st-holiday-message span {
-    font-size: 0.95rem;
-    color: #78350f;
-    line-height: 1.5;
-  }
-
-  /* Mobile responsive for holiday card */
-  @media (max-width: 768px) {
-    .st-holiday-banner {
-      flex-direction: column;
-      text-align: center;
+  @media (max-width: 767.98px) {
+    .st-container { padding: 0.5rem 0.75rem 1rem; }
+    .st-kpi-grid { grid-template-columns: 1fr; }
+    .st-planner-header, .st-schedule-header { flex-direction: column; align-items: stretch; }
+    .st-planner-nav { width: 100%; justify-content: space-between; }
+    .st-planner-today-btn { flex: 1; }
+    .st-day-selector {
+      display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; gap: 0.55rem;
+      padding-bottom: 0.25rem; scroll-snap-type: x proximity;
     }
-
-    .st-holiday-title {
-      justify-content: center;
-    }
-
-    .st-holiday-reason {
-      justify-content: center;
-    }
-
-    .st-holiday-details {
-      grid-template-columns: 1fr;
-    }
+    .st-day-card { flex: 0 0 96px; scroll-snap-align: start; }
+    .st-timeline-item { gap: 0.55rem; }
+    .st-outside-range-banner { flex-direction: column; }
+    .st-banner-btn { width: 100%; justify-content: center; }
   }
-
-  /* ================= OVERLAPPING CLASS CONFLICT ================= */
-  .st-slot-cell--conflict {
-    background: #fef9e7 !important;
-    border-color: #fcd34d !important;
-    overflow: hidden;
-  }
-
-  .st-slot-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    height: 100%;
-  }
-
-  .st-slot-stack--conflict {
-    overflow-y: auto;
-    padding-right: 0.25rem;
-    max-height: 140px;
-  }
-
-  .st-slot-item {
-    flex-shrink: 0;
-  }
-
-  .st-conflict-badge {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #92400e;
-    background: #fef3c7;
-    border: 1px solid #fcd34d;
-    border-radius: 6px;
-    padding: 0.25rem 0.5rem;
-    margin-bottom: 0.25rem;
-    flex-shrink: 0;
-  }
-
-  .st-conflict-badge svg {
-    font-size: 0.75rem;
-    color: #f59e0b;
+  @media (max-width: 479.98px) {
+    .st-day-card { flex-basis: 88px; }
+    .st-timeline-card { padding: 0.8rem 0.85rem; }
+    .st-timeline-details { flex-direction: column; gap: 0.35rem; }
   }
 `;
