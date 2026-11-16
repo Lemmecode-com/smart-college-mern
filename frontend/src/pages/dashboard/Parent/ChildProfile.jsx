@@ -123,13 +123,13 @@ export default function ChildProfile() {
     fetchProfile();
   }, [childId]);
 
-if (loading) {
-  return (
-    <div className="parent-portal-wrapper">
-      <div
-        className="parent-portal-container parent-loading-container"
-        style={{ minHeight: "50vh" }}
-      >
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-profile">
+        <div
+          className="parent-portal-container parent-child-profile-page parent-loading-container"
+          style={{ minHeight: "50vh", width: "100%", maxWidth: "none" }}
+        >
         <div className="parent-loading-state">
           <motion.div
             variants={spinVariants}
@@ -158,8 +158,8 @@ if (loading) {
 
   if (error) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-profile">
+        <div className="parent-portal-container parent-child-profile-page" style={{ width: "100%", maxWidth: "none" }}>
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
@@ -201,8 +201,8 @@ if (loading) {
 
   if (!student) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-profile">
+        <div className="parent-portal-container parent-child-profile-page" style={{ width: "100%", maxWidth: "none" }}>
           <EmptyState
             icon={<FaUser style={{ color: BRAND_COLORS.secondary.main }} />}
             title="Profile Not Found"
@@ -245,9 +245,9 @@ if (loading) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper erp-viewport-min-100"
+        className="parent-portal-wrapper parent-portal-wrapper--child-profile erp-viewport-min-100"
       >
-        <div className="parent-portal-container">
+        <div className="parent-portal-container parent-child-profile-page" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= HEADER ================= */}
           <motion.div
             variants={slideDownVariants}

@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -18,7 +19,7 @@ import {
   FaCalendarAlt
 } from "react-icons/fa";
 import api from "../../../api/axios";
-import { formatDate, formatDateTime, formatINR, formatNumberIN } from "../../../utils/format";
+import { formatDateTime, formatINR } from "../../../utils/format";
 import { toast } from "react-toastify";
 
 // Brand Color Palette - Matching Application Theme
@@ -92,17 +93,6 @@ const pulseVariants = {
   }
 };
 
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: {
-      duration: 1,
-      repeat: Infinity,
-      ease: "linear"
-    }
-  }
-};
-
 export default function ChildFees() {
   const { childId } = useParams();
   const navigate = useNavigate();
@@ -132,27 +122,27 @@ export default function ChildFees() {
     fetchFees();
   }, [childId]);
 
-if (loading) {
-  return (
-    <div className="parent-portal-wrapper">
-      <div
-        className="parent-portal-container parent-loading-container"
-        style={{ minHeight: "70vh" }}
-      >
-        <Loading
-          size="md"
-          color="primary"
-          text="Loading Fee Details..."
-        />
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-fees">
+        <div
+          className="parent-portal-container parent-child-fees-page parent-loading-container"
+          style={{ minHeight: "70vh", width: "100%", maxWidth: "none" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Fee Details..."
+          />
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   if (error) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-fees">
+        <div className="parent-portal-container parent-child-fees-page" style={{ width: "100%", maxWidth: "none" }}>
           <motion.div
             variants={slideDownVariants}
             initial="hidden"
@@ -209,8 +199,8 @@ if (loading) {
 
   if (!feeData) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-fees">
+        <div className="parent-portal-container parent-child-fees-page" style={{ width: "100%", maxWidth: "none" }}>
           <EmptyState
             icon={<FaMoneyBillWave style={{ color: BRAND_COLORS.warning.main }} />}
             title="No Fee Record Available"
@@ -232,9 +222,9 @@ if (loading) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper erp-viewport-min-100"
+        className="parent-portal-wrapper parent-portal-wrapper--child-fees erp-viewport-min-100"
       >
-        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
+        <div className="parent-portal-container parent-child-fees-page" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -438,7 +428,9 @@ if (loading) {
 }
 
 /* ================= FEE STAT CARD ================= */
-function FeeStatCard({ icon: Icon, label, value, color, gradient, showProgress = false, progressValue = 0 }) {
+function FeeStatCard({ icon: IconComp, label, value, gradient, showProgress = false, progressValue = 0 }) {
+  // eslint-disable-next-line no-unused-vars
+  const Icon = IconComp;
   return (
     <motion.div
       whileHover={{ y: -3, boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)' }}

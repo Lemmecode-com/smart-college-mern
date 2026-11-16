@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -172,8 +173,8 @@ export default function ParentProfile() {
   // ================= LOADING STATE =================
   if (loading) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
+      <div className="parent-portal-wrapper parent-portal-wrapper--profile">
+        <div className="parent-portal-container parent-profile-page" style={{ width: "100%", maxWidth: "none" }}>
         
 
         <PageHeader
@@ -194,8 +195,8 @@ export default function ParentProfile() {
   // ================= ERROR STATE =================
   if (error) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
+      <div className="parent-portal-wrapper parent-portal-wrapper--profile">
+        <div className="parent-portal-container parent-profile-page" style={{ width: "100%", maxWidth: "none" }}>
 <PageHeader
   icon={FaUserTie}
   title="My Profile"
@@ -236,23 +237,15 @@ export default function ParentProfile() {
   const children = parent?.students || [];
   const relation = parent?.relation || "guardian";
 
-  // Generate initials for the user avatar
-  const getUserInitials = () => {
-    if (!user?.name) return "P";
-    const parts = user.name.trim().split(/\s+/);
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  };
-
   return (
     <AnimatePresence mode="wait">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper"
+        className="parent-portal-wrapper parent-portal-wrapper--profile"
       >
-        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
+        <div className="parent-portal-container parent-profile-page" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <div
               style={{

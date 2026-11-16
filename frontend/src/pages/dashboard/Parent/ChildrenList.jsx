@@ -8,6 +8,7 @@ import Breadcrumb from "../../../components/Breadcrumb";
 import StandardListView from "../../../components/StandardListView/StandardListView";
 import PageHeader from "../../../components/PageHeader";
 import { toast } from "react-toastify";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 
@@ -74,21 +75,6 @@ const fadeInVariants = {
   })
 };
 
-
-
-
-
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: {
-      duration: 1,
-      repeat: Infinity,
-      ease: "linear"
-    }
-  }
-};
-
 export default function ChildrenList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -98,20 +84,23 @@ export default function ChildrenList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
+  /* ================= DATA FETCHING ================= */
+  useEffect(() => {
+    if (!user || user.role !== "PARENT_GUARDIAN") return;
+    fetchChildren();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  useEffect(() => {
+    filterChildren();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [children, searchTerm, statusFilter]);
+
   /* ================= SECURITY ================= */
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "PARENT_GUARDIAN") {
     return <Navigate to="/dashboard" replace />;
   }
-
-  /* ================= DATA FETCHING ================= */
-  useEffect(() => {
-    fetchChildren();
-  }, []);
-
-  useEffect(() => {
-    filterChildren();
-  }, [children, searchTerm, statusFilter]);
 
   const fetchChildren = async () => {
     try {
@@ -177,65 +166,65 @@ export default function ChildrenList() {
   };
 
   
-const columns = [
-  {
-    key: "student",
-    label: "Student",
-    sortable: true,
-    width: "280px",
-    render: (child) => (
-      <div className="parent-student-info">
-        <div className="parent-student-avatar">
-          {(child.fullName || "?").charAt(0).toUpperCase()}
-        </div>
-
-        <div className="parent-student-details">
-          <div className="parent-student-name">
-            {child.fullName}
+  const columns = [
+    {
+      key: "student",
+      label: "Student",
+      sortable: true,
+      width: "34%",
+      render: (child) => (
+        <div className="parent-student-info">
+          <div className="parent-student-avatar">
+            {(child.fullName || "?").charAt(0).toUpperCase()}
           </div>
-          <div className="parent-student-email">
-            {child.email}
+
+          <div className="parent-student-details">
+            <div className="parent-student-name">
+              {child.fullName}
+            </div>
+            <div className="parent-student-email">
+              {child.email}
+            </div>
           </div>
         </div>
-      </div>
-    ),
-  },
-  {
-    key: "course",
-    label: "Class",
-    sortable: true,
-    width: "260px",
-    render: (child) => (
-      <div className="parent-course-info">
-        <div className="parent-course-name">
-          {child.course_id?.name || "—"}
+      ),
+    },
+    {
+      key: "course",
+      label: "Class",
+      sortable: true,
+      width: "28%",
+      render: (child) => (
+        <div className="parent-course-info">
+          <div className="parent-course-name">
+            {child.course_id?.name || "—"}
+          </div>
+          <div className="parent-course-semester">
+            Semester {child.currentSemester ?? "—"}
+          </div>
         </div>
-        <div className="parent-course-semester">
-          Semester {child.currentSemester ?? "—"}
-        </div>
-      </div>
-    ),
-  },
-  {
-    key: "status",
-    label: "Status",
-    sortable: true,
-    width: "150px",
-    render: (child) => (
-      <span
-        className={`parent-status-badge ${getStatusClass(
-          child.status
-        )}`}
-      >
-        {getStatusLabel(child.status)}
-      </span>
-    ),
-  },
-];
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      width: "12%",
+      render: (child) => (
+        <span
+          className={`parent-status-badge ${getStatusClass(
+            child.status
+          )}`}
+        >
+          {getStatusLabel(child.status)}
+        </span>
+      ),
+    },
+  ];
 
-const tableActions = {
-  label: "Actions",
-  width: "320px",
+  const tableActions = {
+    label: "Actions",
+    width: "26%",
   items: [
     {
       key: "view",
@@ -293,22 +282,22 @@ const tableActions = {
 };
 
 
-if (loading) {
-  return (
-    <div className="parent-portal-wrapper">
-      <div
-        className="parent-portal-container parent-loading-container"
-        style={{ minHeight: "70vh" }}
-      >
-        <Loading
-          size="md"
-          color="primary"
-          text="Loading Your Children..."
-        />
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper parent-portal-wrapper--children">
+        <div
+          className="parent-portal-container parent-children-page parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Your Children..."
+          />
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -316,9 +305,9 @@ if (loading) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper"
+        className="parent-portal-wrapper parent-portal-wrapper--children"
       >
-        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
+        <div className="parent-portal-container parent-children-page" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -340,10 +329,10 @@ if (loading) {
             custom={0}
             initial="hidden"
             animate="visible"
-            className="parent-search-container"
+            className="parent-search-container parent-children-filters-card"
           >
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              <div style={{ flex: "1 1 250px", minWidth: "220px" }}>
+            <div className="parent-children-filters">
+              <div className="parent-children-filter-search">
                 <div className="parent-search-input-group">
                   <FaSearch className="parent-search-icon" />
                   <input
@@ -355,33 +344,35 @@ if (loading) {
                   />
                 </div>
               </div>
-              <div style={{ flex: "0 1 200px", minWidth: "160px" }}>
-                <select
-                  className="parent-filter-select"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="ALL">All Status</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="ENROLLED">Enrolled</option>
-                </select>
-              </div>
-              <div style={{ flex: "0 1 160px", minWidth: "130px" }}>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="parent-clear-filters-btn"
-                  style={{ width: "100%" }}
-                  onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("ALL");
-                  }}
-                >
-                  <FaFilter className="parent-me-1" />
-                  Clear Filters
-                </motion.button>
+              <div className="parent-children-filter-controls">
+                <div className="parent-children-filter-status">
+                  <select
+                    className="parent-filter-select"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="APPROVED">Approved</option>
+                    <option value="ENROLLED">Enrolled</option>
+                  </select>
+                </div>
+                <div className="parent-children-filter-clear">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="parent-clear-filters-btn"
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setStatusFilter("ALL");
+                    }}
+                  >
+                    <FaFilter className="parent-me-1" />
+                    Clear Filters
+                  </motion.button>
+                </div>
               </div>
             </div>
           </motion.div>

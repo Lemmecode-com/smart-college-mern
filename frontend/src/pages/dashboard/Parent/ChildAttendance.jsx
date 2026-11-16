@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -69,39 +70,6 @@ const fadeInVariants = {
   })
 };
 
-const slideDownVariants = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, ease: "easeOut" }
-  }
-};
-
-const pulseVariants = {
-  initial: { scale: 1 },
-  pulse: {
-    scale: [1, 1.05, 1],
-    transition: {
-      duration: 2,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
-const spinVariants = {
-  animate: {
-    rotate: 360,
-    transition: {
-      duration: 1,
-      repeat: Infinity,
-      ease: "linear"
-    }
-  }
-};
-
-
-
 export default function ChildAttendance() {
   const { childId } = useParams();
   const navigate = useNavigate();
@@ -152,41 +120,41 @@ export default function ChildAttendance() {
     return () => clearInterval(interval);
   }, [childId]);
 
-if (loading) {
-  return (
-    <div className="parent-portal-wrapper">
-      <div
-        className="parent-portal-container parent-loading-container"
-        style={{ minHeight: "70vh" }}
-      >
-        <Loading
-          size="md"
-          color="primary"
-          text="Loading Attendance..."
-        />
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-attendance">
+        <div
+          className="parent-portal-container parent-child-attendance-page parent-loading-container"
+          style={{ minHeight: "70vh", width: "100%", maxWidth: "none" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Attendance..."
+          />
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
   if (error) {
     return (
-      <div className="parent-portal-wrapper">
-        <div className="parent-portal-container">
-<PageHeader
-  icon={FaExclamationTriangle}
-  title="Error Loading Attendance"
-  subtitle={error}
-  actions={
-    <button
-      type="button"
-      onClick={() => navigate("/dashboard/parent")}
-      className="parent-btn-primary"
-    >
-      <FaArrowLeft className="parent-me-2" />
-      Back to Dashboard
-    </button>
-  }
-/>
+      <div className="parent-portal-wrapper parent-portal-wrapper--child-attendance">
+        <div className="parent-portal-container parent-child-attendance-page" style={{ width: "100%", maxWidth: "none" }}>
+          <PageHeader
+            icon={FaExclamationTriangle}
+            title="Error Loading Attendance"
+            subtitle={error}
+            actions={
+              <button
+                type="button"
+                onClick={() => navigate("/dashboard/parent")}
+                className="parent-btn-primary"
+              >
+                <FaArrowLeft className="parent-me-2" />
+                Back to Dashboard
+              </button>
+            }
+          />
         </div>
       </div>
     );
@@ -198,9 +166,9 @@ if (loading) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper erp-viewport-min-100"
+        className="parent-portal-wrapper parent-portal-wrapper--child-attendance erp-viewport-min-100"
       >
-        <div className="parent-portal-container" style={{ width: "100%", maxWidth: "none" }}>
+        <div className="parent-portal-container parent-child-attendance-page" style={{ width: "100%", maxWidth: "none" }}>
           {/* ================= BREADCRUMB ================= */}
           <Breadcrumb
             items={[
@@ -283,7 +251,14 @@ if (loading) {
                 />
               ) : (
                 <div className="parent-table-responsive">
-                  <table className="parent-table">
+                  <table className="parent-table parent-attendance-detail-table">
+                    <colgroup>
+                      <col className="col-date" />
+                      <col className="col-subject" />
+                      <col className="col-status" />
+                      <col className="col-session" />
+                      <col className="col-slot" />
+                    </colgroup>
                     <thead>
                       <tr>
                         <th>Date</th>
@@ -368,7 +343,9 @@ if (loading) {
 }
 
 /* ================= STAT CARD ================= */
-function StatCard({ icon: Icon, label, value, color, gradient, subtitle }) {
+function StatCard({ icon: IconComp, label, value, gradient, subtitle }) {
+  // eslint-disable-next-line no-unused-vars
+  const Icon = IconComp;
   return (
     <motion.div
       whileHover={{ y: -3, boxShadow: '0 6px 16px rgba(0, 0, 0, 0.08)' }}

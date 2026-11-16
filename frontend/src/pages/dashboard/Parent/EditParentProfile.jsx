@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import "./ParentPortal.css";
 import Breadcrumb from "../../../components/Breadcrumb";
@@ -129,22 +130,22 @@ export default function EditParentProfile() {
     }
   };
 
-if (loading) {
-  return (
-    <div className="parent-portal-wrapper">
-      <div
-        className="parent-portal-container parent-loading-container"
-        style={{ minHeight: "70vh" }}
-      >
-        <Loading
-          size="md"
-          color="primary"
-          text="Loading Profile Details..."
-        />
+  if (loading) {
+    return (
+      <div className="parent-portal-wrapper parent-portal-wrapper--edit-profile">
+        <div
+          className="parent-portal-container parent-loading-container"
+          style={{ minHeight: "70vh" }}
+        >
+          <Loading
+            size="md"
+            color="primary"
+            text="Loading Profile Details..."
+          />
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -152,30 +153,29 @@ if (loading) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="parent-portal-wrapper"
+        className="parent-portal-wrapper parent-portal-wrapper--edit-profile"
       >
-        {/* ================= BREADCRUMB ================= */}
-        <div className="parent-breadcrumb-wrapper">
-          <Breadcrumb
-            items={[
-              { label: "Dashboard", path: "/dashboard/parent" },
-              { label: "My Profile", path: "/dashboard/parent/profile" },
-              { label: "Edit Profile", path: "" },
-            ]}
-          />
-        </div>
-
-      {/* ================= HEADER ================= */}
-      <PageHeader
-        icon={FaUserTie}
-        title="Edit Parent Profile"
-        subtitle="Update your display name and contact number below."
-      />
-
-
         <div className="parent-portal-container">
-          <div className="parent-content-grid">
-            <div className="parent-profile-card">
+          {/* ================= BREADCRUMB ================= */}
+          <div className="parent-breadcrumb-wrapper">
+            <Breadcrumb
+              items={[
+                { label: "Dashboard", path: "/dashboard/parent" },
+                { label: "My Profile", path: "/dashboard/parent/profile" },
+                { label: "Edit Profile", path: "" },
+              ]}
+            />
+          </div>
+
+          {/* ================= HEADER ================= */}
+          <PageHeader
+            icon={FaUserTie}
+            title="Edit Parent Profile"
+            subtitle="Update your display name and contact number below."
+          />
+
+          <div className="parent-edit-profile-layout">
+            <div className="parent-profile-card parent-edit-profile-card">
               <div className="parent-profile-header">
                 <h2 className="parent-profile-title">
                   <FaUserTie /> Edit Account Details
@@ -200,131 +200,93 @@ if (loading) {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} noValidate>
-                  <div className="parent-profile-item" style={{ borderBottom: "none", padding: 0 }}>
-                    <div className="parent-profile-icon" style={{ marginTop: 0 }}>
-                      <FaUserTie />
-                    </div>
-                    <div className="parent-profile-content" style={{ flex: 1, marginTop: 0 }}>
-                      <label
-                        htmlFor="name"
-                        className="parent-profile-label"
-                        style={{ marginBottom: "0.35rem", display: "block" }}
-                      >
-                        Full Name
-                      </label>
-                      <input
-                        id="name"
-                        name="name"
-                        type="text"
-                        className="parent-form-input"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Enter your full name"
-                        required
-                        maxLength={100}
-                        disabled={submitting}
-                      />
-                    </div>
-                  </div>
+                <form onSubmit={handleSubmit} noValidate className="parent-edit-profile-form">
+                  <div className="parent-edit-form-grid">
+                    {/* Left column */}
+                    <div className="parent-edit-form-column">
+                      <div className="parent-edit-form-field">
+                        <label htmlFor="name" className="parent-edit-form-label">
+                          <FaUserTie className="parent-edit-form-label-icon" /> Full Name
+                        </label>
+                        <input
+                          id="name"
+                          name="name"
+                          type="text"
+                          className="parent-form-input"
+                          value={formData.name}
+                          onChange={handleChange}
+                          placeholder="Enter your full name"
+                          required
+                          maxLength={100}
+                          disabled={submitting}
+                        />
+                      </div>
 
-                  <div className="parent-profile-item" style={{ borderBottom: "none", padding: 0, marginTop: "1rem" }}>
-                    <div className="parent-profile-icon" style={{ marginTop: 0, background: "rgba(23, 162, 184, 0.1)", color: BRAND_COLORS.info.main }}>
-                      <FaPhone />
+                      <div className="parent-edit-form-field">
+                        <label htmlFor="mobileNumber" className="parent-edit-form-label">
+                          <FaPhone className="parent-edit-form-label-icon parent-edit-form-label-icon--info" /> Mobile Number
+                        </label>
+                        <input
+                          id="mobileNumber"
+                          name="mobileNumber"
+                          type="tel"
+                          className="parent-form-input"
+                          value={formData.mobileNumber}
+                          onChange={handleChange}
+                          placeholder="Enter your mobile number"
+                          maxLength={20}
+                          disabled={submitting}
+                        />
+                      </div>
                     </div>
-                    <div className="parent-profile-content" style={{ flex: 1, marginTop: 0 }}>
-                      <label
-                        htmlFor="mobileNumber"
-                        className="parent-profile-label"
-                        style={{ marginBottom: "0.35rem", display: "block" }}
-                      >
-                        Mobile Number
-                      </label>
-                      <input
-                        id="mobileNumber"
-                        name="mobileNumber"
-                        type="tel"
-                        className="parent-form-input"
-                        value={formData.mobileNumber}
-                        onChange={handleChange}
-                        placeholder="Enter your mobile number"
-                        maxLength={20}
-                        disabled={submitting}
-                      />
-                    </div>
-                  </div>
 
-                  {/* Read-only email reminder (not editable here) */}
-                  <div className="parent-profile-item" style={{ borderBottom: "none", padding: 0, marginTop: "1rem" }}>
-                    <div className="parent-profile-icon" style={{ marginTop: 0, background: "rgba(23, 162, 184, 0.1)", color: BRAND_COLORS.info.main }}>
-                      <FaEnvelope />
-                    </div>
-                    <div className="parent-profile-content" style={{ flex: 1, marginTop: 0 }}>
-                      <label className="parent-profile-label" style={{ marginBottom: "0.35rem", display: "block" }}>
-                        Email Address (read-only)
-                      </label>
-                      <input
-                        type="email"
-                        className="parent-form-input"
-                        value={user?.email || ""}
-                        readOnly
-                        disabled
-                        style={{
-                          backgroundColor: "#f8fafc",
-                          color: "#64748b",
-                        }}
-                      />
-                      <div
-                        className="parent-table-cell-inline"
-                        style={{ marginTop: "0.4rem", fontSize: "0.8rem", color: "#64748b" }}
-                      >
-                        <FaShieldAlt size={12} style={{ color: BRAND_COLORS.info.dark }} />
-                        Change your email via the OTP flow in{" "}
-                        <span
-                          style={{ color: BRAND_COLORS.info.main, cursor: "pointer", textDecoration: "underline" }}
-                          onClick={() => navigate("/dashboard/parent/profile")}
-                        >
-                          My Profile
-                        </span>
-                        .
+                    {/* Right column */}
+                    <div className="parent-edit-form-column">
+                      <div className="parent-edit-form-field">
+                        <label className="parent-edit-form-label">
+                          <FaEnvelope className="parent-edit-form-label-icon parent-edit-form-label-icon--info" /> Email Address (read-only)
+                        </label>
+                        <input
+                          type="email"
+                          className="parent-form-input parent-form-input--readonly"
+                          value={user?.email || ""}
+                          readOnly
+                          disabled
+                        />
+                        <div className="parent-edit-form-note">
+                          <FaShieldAlt size={12} />
+                          <span>
+                            Change your email via the OTP flow in{" "}
+                            <button
+                              type="button"
+                              className="parent-edit-form-link"
+                              onClick={() => navigate("/dashboard/parent/profile")}
+                            >
+                              My Profile
+                            </button>
+                            .
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="parent-edit-form-field">
+                        <label className="parent-edit-form-label">
+                          <FaIdCard className="parent-edit-form-label-icon parent-edit-form-label-icon--info" /> Relation (set by college admin)
+                        </label>
+                        <input
+                          type="text"
+                          className="parent-form-input parent-form-input--readonly"
+                          value={parent?.relation || "guardian"}
+                          readOnly
+                          disabled
+                          style={{ textTransform: "capitalize" }}
+                        />
+                        <input type="hidden" name="relation" value={parent?.relation || "guardian"} />
                       </div>
                     </div>
                   </div>
 
-                  <div
-                    className="parent-profile-item"
-                    style={{
-                      borderBottom: "none",
-                      padding: 0,
-                      marginTop: "1rem",
-                      paddingTop: "1rem",
-                      borderTop: "1px solid #f1f5f9",
-                    }}
-                  >
-                    <div className="parent-profile-icon" style={{ marginTop: 0, background: "rgba(13, 170, 255, 0.1)", color: BRAND_COLORS.info.dark }}>
-                      <FaIdCard />
-                    </div>
-                    <div className="parent-profile-content" style={{ flex: 1, marginTop: 0 }}>
-                      <label className="parent-profile-label" style={{ marginBottom: "0.35rem", display: "block" }}>
-                        Relation (set by college admin)
-                      </label>
-                      <input
-                        type="text"
-                        className="parent-form-input"
-                        value={parent?.relation || "guardian"}
-                        readOnly
-                        disabled
-                        style={{
-                          backgroundColor: "#f8fafc",
-                          color: "#64748b",
-                          textTransform: "capitalize",
-                        }}
-                      />
-                      <input type="hidden" name="relation" value={parent?.relation || "guardian"} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem", justifyContent: "flex-end" }}>
+                  <div className="parent-edit-form-actions">
                     <button
                       type="button"
                       onClick={() => navigate("/dashboard/parent/profile")}
@@ -334,8 +296,8 @@ if (loading) {
                       <FaTimes /> Cancel
                     </button>
                     <motion.button
-                      whileHover={!submitting && { scale: 1.03 }}
-                      whileTap={!submitting && { scale: 0.97 }}
+                      whileHover={!submitting ? { scale: 1.03 } : undefined}
+                      whileTap={!submitting ? { scale: 0.97 } : undefined}
                       type="submit"
                       disabled={submitting}
                       className="parent-btn-primary"
