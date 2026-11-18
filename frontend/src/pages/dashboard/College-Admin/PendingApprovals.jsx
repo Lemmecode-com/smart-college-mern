@@ -28,7 +28,7 @@ import {
   FaCheckDouble,
   FaSpinner,
   FaTimesCircle,
-  FaCheckCircle,
+  FaClipboardCheck,
   FaUserCheck,
   FaUser,
   FaInfoCircle,
@@ -779,11 +779,19 @@ const tableActions = {
 }}
   loading={false}
   emptyState={{
-    icon: FaCheckCircle,
-    title: "No Pending Approvals",
-    description: search
-      ? "No pending students match your search criteria."
-      : "All caught up! No student applications awaiting approval.",
+    icon: search ? FaSearch : FaClipboardCheck,
+    title: search ? "No matching applications" : "You're all caught up!",
+    description: search ? (
+      "No pending applications match your current search."
+    ) : (
+      <>
+        There are currently no student applications waiting for your review.
+        <span className="pa-empty-badge">0 pending applications</span>
+        <span className="pa-empty-hint">
+          Refresh to check for newly submitted applications.
+        </span>
+      </>
+    ),
   }}
   actions={tableActions}
 />
@@ -2382,6 +2390,219 @@ const tableActions = {
     min-width: 31px !important;
     max-width: 31px;
     padding: 0 !important;
+  }
+}
+
+/* ============================================================
+   TARGETED REFINEMENTS — scoped to .pending-approvals-page only
+   ============================================================ */
+
+/* ---- Summary cards ---- */
+.pending-approvals-page .stats-grid {
+  gap: 1.1rem;
+  margin-bottom: 1.35rem;
+}
+
+.pending-approvals-page .stat-card {
+  height: 100%;
+  padding: 1.25rem 1.4rem;
+  align-items: center;
+  gap: 1rem;
+  border-radius: 14px;
+  border: 1px solid #DCE6EF;
+  box-shadow: 0 1px 2px rgba(16, 42, 60, 0.05), 0 8px 22px rgba(16, 42, 60, 0.05);
+}
+
+.pending-approvals-page .stat-card--accent {
+  border-color: rgba(34, 184, 230, 0.5);
+  background: linear-gradient(135deg, #ffffff 0%, #ecfaff 100%);
+  box-shadow: 0 1px 2px rgba(16, 42, 60, 0.05), 0 8px 22px rgba(34, 184, 230, 0.16);
+}
+
+.pending-approvals-page .stat-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 1.2rem;
+}
+
+.pending-approvals-page .stat-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.pending-approvals-page .stat-card-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #5b7183;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pending-approvals-page .stat-card-value {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.05;
+  color: #0E3746;
+}
+
+/* ---- Search toolbar ---- */
+.pending-approvals-page .erp-toolbar-card {
+  margin-bottom: 1.15rem;
+}
+
+.pending-approvals-page .erp-toolbar-card .erp-card-body {
+  padding: 0.7rem 0.9rem;
+}
+
+.pending-approvals-page .erp-toolbar {
+  gap: 0.9rem;
+}
+
+.pending-approvals-page .search-box {
+  flex: 1 1 420px;
+  max-width: 640px;
+}
+
+.pending-approvals-page .search-box input {
+  height: 42px;
+  padding: 0 0.95rem 0 2.5rem;
+  background: #eef3f8;
+  border: 1.5px solid #DCE6EF;
+  border-radius: 10px;
+}
+
+.pending-approvals-page .search-box input:focus {
+  background: #ffffff;
+}
+
+/* ---- Awaiting Your Review section ---- */
+.pending-approvals-page .pending-approvals-list .standard-list-header {
+  padding: 0.8rem 1.15rem;
+  align-items: center;
+}
+
+.pending-approvals-page .pending-approvals-list .standard-list-header-icon {
+  border-radius: 10px;
+}
+
+.pending-approvals-page .pending-approvals-list .standard-list-title-row h3 {
+  font-size: 1rem;
+}
+
+.pending-approvals-page .pending-approvals-list .standard-list-count {
+  padding: 0.28rem 0.7rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #eaf9ff;
+  background: rgba(34, 184, 230, 0.22);
+  border: 1px solid rgba(34, 184, 230, 0.35);
+}
+
+.pending-approvals-page .pending-approvals-list .standard-table tbody tr:hover {
+  background: #f5fbfe;
+}
+
+@media (min-width: 1401px) {
+  .pending-approvals-page .pending-approvals-list .standard-table tbody td {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+}
+
+/* ---- Empty state ---- */
+.pending-approvals-page .pending-approvals-list .standard-empty-state {
+  padding: 2.6rem 1.5rem 2.8rem;
+}
+
+.pending-approvals-page .pending-approvals-list .standard-empty-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.1rem;
+  border-radius: 20px;
+  color: #22B8E6;
+  font-size: 1.8rem;
+  background: linear-gradient(160deg, #e8f7fd 0%, #d3eefb 100%);
+  border: 1px solid #c6e7f7;
+  box-shadow: 0 10px 24px rgba(34, 184, 230, 0.18);
+}
+
+.pending-approvals-page .pending-approvals-list .standard-empty-state h3 {
+  margin: 0 0 0.4rem;
+  color: #0E3746;
+  font-size: 1.15rem;
+}
+
+.pending-approvals-page .pending-approvals-list .standard-empty-description {
+  max-width: 460px;
+  margin: 0 auto;
+  color: #5b7183;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.pending-approvals-page .pending-approvals-list .pa-empty-badge {
+  display: flex;
+  width: fit-content;
+  margin: 0.9rem auto 0;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  align-items: center;
+  gap: 0.4rem;
+  background: #e8f7fd;
+  border: 1px solid rgba(34, 184, 230, 0.3);
+  color: #164E63;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pending-approvals-page .pending-approvals-list .pa-empty-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22B8E6;
+}
+
+.pending-approvals-page .pending-approvals-list .pa-empty-hint {
+  display: block;
+  margin-top: 0.85rem;
+  color: #8497a8;
+  font-size: 0.78rem;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 900px) {
+  .pending-approvals-page .search-box {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .pending-approvals-page .stat-card {
+    padding: 0.95rem 1.05rem;
+    gap: 0.85rem;
+  }
+
+  .pending-approvals-page .stat-card-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.1rem;
+  }
+
+  .pending-approvals-page .stat-card-value {
+    font-size: 1.6rem;
+  }
+
+  .pending-approvals-page .erp-toolbar-card .erp-card-body {
+    padding: 0.85rem;
   }
 }
       `}</style>
