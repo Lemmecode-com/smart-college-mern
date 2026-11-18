@@ -1,6 +1,6 @@
 ============== Smart College MERN - Deployment Requirements ==============
 Project version: 2.1.0
-Last updated: October 21, 2026
+Last updated: November 18, 2026
 Source files analyzed:
 - frontend/package.json
 - frontend/package-lock.json
@@ -218,17 +218,11 @@ Optional:
 ============== Optional Backend Deployment Scripts ==============
 Run only when required by the deployment plan.
 
-Database/index setup:
-cd backend
-npm run add-indexes
-npm run add-timetable-indexes
-
 Migrations:
 cd backend
-npm run migrate
 npm run migrate:password-reset
-npm run migrate:timetable-dates
-npm run migrate:timetable-exception-unique-index
+npm run migrate:promotion-indexes
+npm run migrate:unique-studentfee-index
 
 Asset optimization / logo migration:
 cd backend
@@ -240,10 +234,6 @@ cd backend
 npm run seed
 npm run seed:minimal
 npm run seed:users
-
-Cleanup:
-cd backend
-npm run cleanup:orphans
 
 Do not run seed scripts on an existing production database unless the data reset/seed behavior is intended.
 
