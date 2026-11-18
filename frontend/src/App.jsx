@@ -11,7 +11,7 @@ import "react-toastify/dist/ReactToastify.css";
 // import "./components/GlobalToast.css";
 
 // Suppress specific React Router development warnings and excessive console logs for cleaner output
-if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+if (typeof window !== "undefined" && import.meta.env.DEV) {
   const originalWarn = console.warn;
   const originalLog = console.log;
 

@@ -722,7 +722,7 @@ if (authLoading) {
      ====================================================== */
   const handleMockPayment = async () => {
     // Only allow in development
-    if (process.env.NODE_ENV !== "development") {
+    if (!import.meta.env.DEV) {
       toast.error("Mock payments are only available in development mode", {
         position: "top-right",
         autoClose: 3000,

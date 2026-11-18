@@ -150,7 +150,7 @@ class ErrorBoundary extends Component {
             </motion.p>
 
             {/* Error Details (Development Only) */}
-            {process.env.NODE_ENV === "development" && this.state.error && (
+            {import.meta.env.DEV && this.state.error && (
               <details style={styles.errorDetails}>
                 <summary style={styles.errorSummary}>
                   <FaBug size={14} style={{ marginRight: "8px" }} />
